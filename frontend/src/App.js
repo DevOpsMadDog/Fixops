@@ -1,53 +1,103 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import './App.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Components
+import Sidebar from './components/Sidebar';
+import DeveloperDashboard from './components/DeveloperDashboard';
+import CISODashboard from './components/CISODashboard';
+import ArchitectDashboard from './components/ArchitectDashboard';
+import ServiceManagement from './components/ServiceManagement';
+import FindingsExplorer from './components/FindingsExplorer';
+import PolicyEngine from './components/PolicyEngine';
+import CorrelatedCases from './components/CorrelatedCases';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+const Layout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <div className={`flex-1 flex flex-col overflow-hidden ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300`}>
+        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">FixOps Control Plane</h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-gray-600">Real-time Security</span>
+              </div>
+              <div className="text-sm text-gray-500">
+                Fintech Production Environment
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 };
 
 function App() {
   return (
-    <div className="App">
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Navigate to="/developer" replace />} />
+            <Route path="/developer" element={
+              <Layout>
+                <DeveloperDashboard />
+              </Layout>
+            } />
+            <Route path="/ciso" element={
+              <Layout>
+                <CISODashboard />
+              </Layout>
+            } />
+            <Route path="/architect" element={
+              <Layout>
+                <ArchitectDashboard />
+              </Layout>
+            } />
+            <Route path="/services" element={
+              <Layout>
+                <ServiceManagement />
+              </Layout>
+            } />
+            <Route path="/findings" element={
+              <Layout>
+                <FindingsExplorer />
+              </Layout>
+            } />
+            <Route path="/policies" element={
+              <Layout>
+                <PolicyEngine />
+              </Layout>
+            } />
+            <Route path="/cases" element={
+              <Layout>
+                <CorrelatedCases />
+              </Layout>
+            } />
+          </Routes>
+        </div>
       </BrowserRouter>
-    </div>
+    </QueryClientProvider>
   );
 }
 
