@@ -12,11 +12,11 @@ sqlalchemy[asyncio]==2.0.23
 alembic==1.13.1
 
 # Cache & Session Management
-redis[hiredis]==5.0.1  # Redis with C extensions for performance
+redis==5.0.1
 aioredis==2.0.1
 
 # Message Queue & Background Tasks
-celery[redis]==5.3.4
+celery==5.3.4
 flower==2.0.1  # Celery monitoring
 
 # Authentication & Security (Enterprise Grade)
