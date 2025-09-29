@@ -50,7 +50,7 @@ aiofiles==23.2.1
 # Enterprise Integrations
 jira==3.5.2
 slack-sdk==3.26.2
-microsoft-graph==0.2.0
+msgraph-core==1.0.0
 
 # Development & Testing
 pytest==8.0.0
