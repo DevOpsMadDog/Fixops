@@ -2,11 +2,11 @@
 Enterprise user model with security, compliance, and RBAC
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from enum import Enum
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Enum as SQLEnum, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, Text, Enum as SQLEnum, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 
