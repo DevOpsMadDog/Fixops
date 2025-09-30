@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.config.settings import get_settings
 from src.db.session import DatabaseManager
-from src.models.security_sqlite import SecurityFinding, Service, ScannerType, SeverityLevel
+from src.models.security import SecurityFinding, Service, ScannerType, SeverityLevel
 from src.services.correlation_engine import correlation_engine
 from src.services.policy_engine import policy_engine, PolicyContext, PolicyDecision
 from src.services.fix_engine import fix_engine
