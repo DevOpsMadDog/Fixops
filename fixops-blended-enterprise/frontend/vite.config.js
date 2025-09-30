@@ -10,7 +10,8 @@ export default defineConfig({
       'localhost',
       '127.0.0.1',
       '.emergentagent.com',
-      '23a7d3bc-46c6-4797-8abc-4b7e891f1908.preview.emergentagent.com',
+      '.emergent.host',
+      '.devops.ai',
       'all'
     ],
     cors: true,
