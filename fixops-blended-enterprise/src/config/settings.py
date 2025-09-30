@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(default=os.getenv("REDIS_URL", "redis://redis:6379/0"))
     REDIS_MAX_CONNECTIONS: int = Field(default=50)
     
-    # Message Queue (using in-memory fallback)
+    # Message Queue Configuration (disabled for stateless operation)  
     RABBITMQ_URL: str = Field(default="memory://")
     CELERY_BROKER_URL: str = Field(default="redis://localhost:6379/1")
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/2")
