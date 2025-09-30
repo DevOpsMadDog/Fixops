@@ -57,7 +57,7 @@ async def upload_scan_file(
 
         # Initialize CLI for processing
         cli = FixOpsCLI()
-        await cli.init()
+        await cli.initialize()
 
         try:
             # Process based on scan type
