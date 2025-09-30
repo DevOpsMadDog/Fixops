@@ -311,7 +311,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 def require_permission(permission: str):
     """Dependency factory to require specific permission"""
     async def permission_checker(current_user: Dict = Depends(get_current_user)) -> bool:
-        user_id = int(current_user["sub"])
+        user_id = current_user["sub"]  # Keep as string
         
         has_permission = await RBACManager.check_permission(user_id, permission)
         if not has_permission:
@@ -321,7 +321,6 @@ def require_permission(permission: str):
             )
         return True
     
-    return permission_checker
     return permission_checker
 
 
