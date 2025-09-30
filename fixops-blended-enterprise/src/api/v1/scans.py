@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 import structlog
 
 from src.db.session import get_db
