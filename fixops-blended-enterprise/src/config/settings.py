@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     DATABASE_POOL_TIMEOUT: int = Field(default=30)
     
     # Redis Configuration
-    REDIS_URL: str = Field(default="redis://localhost:6379/0")
+    REDIS_URL: str = Field(default="memory://")
     REDIS_MAX_CONNECTIONS: int = Field(default=50)
     
     # Message Queue Configuration
