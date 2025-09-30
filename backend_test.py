@@ -822,6 +822,29 @@ except Exception as e:
         
         return True
 
+    def test_health_endpoints(self):
+        """Test core health and monitoring endpoints"""
+        print("\n🏥 Testing Health & Monitoring Endpoints...")
+        
+        # Test health endpoint
+        success, health_data = self.run_test("Health Check", "GET", "health", 200)
+        if success and health_data:
+            if health_data.get('status') == 'healthy':
+                print(f"✅ Health status: {health_data.get('status')}")
+            else:
+                print(f"⚠️  Health status: {health_data.get('status')}")
+        
+        # Test readiness endpoint
+        success, ready_data = self.run_test("Readiness Check", "GET", "ready", 200)
+        if success and ready_data:
+            dependencies = ready_data.get('dependencies', {})
+            print(f"   Dependencies: cache={dependencies.get('cache')}, database={dependencies.get('database')}")
+        
+        # Test metrics endpoint
+        success, metrics_data = self.run_test("Metrics Endpoint", "GET", "metrics", 200)
+        
+        return True
+
     def test_llm_integration(self):
         """Test LLM integration functionality"""
         print("\n🤖 Testing LLM Integration...")
@@ -842,6 +865,7 @@ except Exception as e:
         except Exception as e:
             print(f"❌ LLM integration test error: {str(e)}")
             self.tests_run += 1
+            self.failed_tests.append({'name': 'LLM Integration', 'error': str(e)})
         
         return True
 
