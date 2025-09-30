@@ -130,6 +130,12 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = async () => {
+    if (bypassAuth) {
+      console.log('🔓 Mock logout - Demo mode')
+      toast.success('Logged out successfully')
+      return
+    }
+
     try {
       // Notify backend of logout
       await api.post('/auth/logout')
