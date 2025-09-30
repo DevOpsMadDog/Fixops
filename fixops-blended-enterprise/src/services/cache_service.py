@@ -97,10 +97,11 @@ class CacheService:
             if self._redis_client:
                 await self._redis_client.ping()
                 return True
-            return False
+            # In-memory cache is always available
+            return hasattr(self.__class__, '_in_memory_cache')
         except Exception as e:
             logger.error(f"Redis ping failed: {str(e)}")
-            return False
+            return hasattr(self.__class__, '_in_memory_cache')
     
     async def set(
         self, 
@@ -111,23 +112,37 @@ class CacheService:
     ) -> bool:
         """Set key-value pair with optional TTL (optimized for performance)"""
         try:
-            # Serialize value with orjson for performance
-            if isinstance(value, (dict, list)):
-                serialized_value = orjson.dumps(value)
-            elif isinstance(value, str):
-                serialized_value = value.encode('utf-8')
+            if self._redis_client:
+                # Redis implementation
+                # Serialize value with orjson for performance
+                if isinstance(value, (dict, list)):
+                    serialized_value = orjson.dumps(value)
+                elif isinstance(value, str):
+                    serialized_value = value.encode('utf-8')
+                else:
+                    serialized_value = str(value).encode('utf-8')
+                
+                # Set with options
+                result = await self._redis_client.set(
+                    key, 
+                    serialized_value,
+                    ex=ttl,  # Expiration in seconds
+                    nx=nx
+                )
+                return bool(result)
             else:
-                serialized_value = str(value).encode('utf-8')
-            
-            # Set with options
-            result = await self._redis_client.set(
-                key, 
-                serialized_value,
-                ex=ttl,  # Expiration in seconds
-                nx=nx
-            )
-            
-            return bool(result)
+                # In-memory cache fallback
+                if nx and key in self.__class__._in_memory_cache:
+                    return False
+                
+                # Store with timestamp for TTL support
+                import time
+                cache_item = {
+                    'value': value,
+                    'expires_at': time.time() + ttl if ttl else None
+                }
+                self.__class__._in_memory_cache[key] = cache_item
+                return True
             
         except Exception as e:
             logger.error(f"Cache set error for key {key}: {str(e)}")
@@ -136,17 +151,33 @@ class CacheService:
     async def get(self, key: str, default: Any = None) -> Any:
         """Get value by key with automatic deserialization"""
         try:
-            value = await self._redis_client.get(key)
-            
-            if value is None:
-                return default
-            
-            # Try to deserialize JSON, fallback to string
-            try:
-                return orjson.loads(value)
-            except orjson.JSONDecodeError:
-                # Return as string if not JSON
-                return value.decode('utf-8')
+            if self._redis_client:
+                # Redis implementation
+                value = await self._redis_client.get(key)
+                
+                if value is None:
+                    return default
+                
+                # Try to deserialize JSON, fallback to string
+                try:
+                    return orjson.loads(value)
+                except orjson.JSONDecodeError:
+                    # Return as string if not JSON
+                    return value.decode('utf-8')
+            else:
+                # In-memory cache fallback
+                import time
+                if key not in self.__class__._in_memory_cache:
+                    return default
+                
+                cache_item = self.__class__._in_memory_cache[key]
+                
+                # Check if expired
+                if cache_item.get('expires_at') and time.time() > cache_item['expires_at']:
+                    del self.__class__._in_memory_cache[key]
+                    return default
+                
+                return cache_item['value']
                 
         except Exception as e:
             logger.error(f"Cache get error for key {key}: {str(e)}")
