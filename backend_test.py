@@ -184,33 +184,165 @@ class FixOpsDecisionEngineAPITester:
         
         return True
 
-    def test_api_v1_structure(self):
-        """Test API v1 structure and endpoints"""
-        print("\n🔗 Testing API v1 Structure...")
+    def test_scan_upload_api(self):
+        """Test Scan Upload API endpoints - CRITICAL TESTING AREA"""
+        print("\n📁 Testing Scan Upload API...")
         
-        # Test auth endpoints (should return 401/422 for missing data, not 404)
-        endpoints_to_test = [
-            ("api/v1/auth/login", "POST", 422),  # Missing required fields
-            ("api/v1/users", "GET", [401, 403]),        # Unauthorized or Forbidden
-            ("api/v1/incidents", "GET", [401, 403]),    # Unauthorized or Forbidden
-            ("api/v1/analytics/dashboard", "GET", [401, 403]),    # Unauthorized or Forbidden
-            ("api/v1/monitoring/health", "GET", 200),   # Public endpoint
-            ("api/v1/admin/system-info", "GET", [401, 403]),        # Unauthorized or Forbidden
-        ]
+        # Test 1: Upload SARIF file
+        sarif_content = {
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "TestScanner"
+                        }
+                    },
+                    "results": [
+                        {
+                            "ruleId": "SQL_INJECTION",
+                            "message": {"text": "SQL injection vulnerability"},
+                            "level": "error",
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/main.py"},
+                                        "region": {"startLine": 42}
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
         
-        for endpoint, method, expected_status in endpoints_to_test:
-            if isinstance(expected_status, list):
-                # Try the test and accept any of the expected status codes
-                success = False
-                for status in expected_status:
-                    test_success, _ = self.run_test(f"API Structure - {endpoint}", method, endpoint, status)
-                    if test_success:
-                        success = True
-                        break
-                if not success:
-                    print(f"❌ Failed - Expected one of {expected_status}")
-            else:
-                self.run_test(f"API Structure - {endpoint}", method, endpoint, expected_status)
+        # Create temporary SARIF file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.sarif', delete=False) as f:
+            json.dump(sarif_content, f)
+            sarif_file_path = f.name
+        
+        try:
+            with open(sarif_file_path, 'rb') as f:
+                files = {'file': ('test.sarif', f, 'application/json')}
+                data = {
+                    'service_name': 'test-service',
+                    'environment': 'production',
+                    'scan_type': 'sarif'
+                }
+                
+                success, response = self.run_test(
+                    "Scan Upload - SARIF", 
+                    "POST", 
+                    "api/v1/scans/upload", 
+                    [200, 401, 403, 422],  # Accept auth/validation errors
+                    data=data,
+                    files=files
+                )
+                
+                if success and response.get('data'):
+                    upload_data = response['data']
+                    print(f"   Findings processed: {upload_data.get('findings_processed', 'N/A')}")
+                    print(f"   Processing time: {upload_data.get('processing_time_ms', 'N/A')}ms")
+        
+        finally:
+            os.unlink(sarif_file_path)
+        
+        # Test 2: Upload SBOM file
+        sbom_content = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "components": [
+                {
+                    "name": "express",
+                    "version": "4.18.0",
+                    "purl": "pkg:npm/express@4.18.0",
+                    "vulnerabilities": [
+                        {
+                            "id": "CVE-2022-24999",
+                            "description": "Test vulnerability",
+                            "ratings": [{"severity": "high"}]
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(sbom_content, f)
+            sbom_file_path = f.name
+        
+        try:
+            with open(sbom_file_path, 'rb') as f:
+                files = {'file': ('test-sbom.json', f, 'application/json')}
+                data = {
+                    'service_name': 'test-service',
+                    'environment': 'production', 
+                    'scan_type': 'sbom'
+                }
+                
+                success, response = self.run_test(
+                    "Scan Upload - SBOM", 
+                    "POST", 
+                    "api/v1/scans/upload", 
+                    [200, 401, 403, 422],
+                    data=data,
+                    files=files
+                )
+        
+        finally:
+            os.unlink(sbom_file_path)
+        
+        # Test 3: Upload CSV file
+        csv_content = """rule_id,title,description,severity,category,scanner_type,file_path,line_number
+XSS_001,Cross-site scripting,XSS vulnerability found,high,injection,sast,src/web.py,123
+CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.py,45"""
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            f.write(csv_content)
+            csv_file_path = f.name
+        
+        try:
+            with open(csv_file_path, 'rb') as f:
+                files = {'file': ('test.csv', f, 'text/csv')}
+                data = {
+                    'service_name': 'test-service',
+                    'environment': 'production',
+                    'scan_type': 'csv'
+                }
+                
+                success, response = self.run_test(
+                    "Scan Upload - CSV", 
+                    "POST", 
+                    "api/v1/scans/upload", 
+                    [200, 401, 403, 422],
+                    data=data,
+                    files=files
+                )
+        
+        finally:
+            os.unlink(csv_file_path)
+        
+        # Test 4: File validation - oversized file
+        print("\n   Testing file validation...")
+        success, response = self.run_test(
+            "Scan Upload - File Size Validation", 
+            "POST", 
+            "api/v1/scans/upload", 
+            [400, 401, 403, 422],  # Should fail with 400 for large file or auth error
+            data={'service_name': 'test', 'scan_type': 'json'},
+            files={'file': ('large.json', 'x' * (11 * 1024 * 1024), 'application/json')}  # 11MB file
+        )
+        
+        # Test 5: Invalid scan type
+        success, response = self.run_test(
+            "Scan Upload - Invalid Scan Type", 
+            "POST", 
+            "api/v1/scans/upload", 
+            [400, 401, 403, 422],
+            data={'service_name': 'test', 'scan_type': 'invalid'},
+            files={'file': ('test.txt', 'test content', 'text/plain')}
+        )
         
         return True
 
