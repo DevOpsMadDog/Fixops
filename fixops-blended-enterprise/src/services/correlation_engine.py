@@ -488,6 +488,111 @@ class CorrelationEngine:
                 "correlated_findings": correlated,
                 "unique_findings": total - correlated
             }
+    
+    async def ai_enhanced_correlation(self, finding_id: str, context_findings: List[str] = None) -> Dict[str, Any]:
+        """Use AI to provide enhanced correlation insights and recommendations"""
+        if not self.llm_chat:
+            return {"error": "AI correlation not available - LLM not initialized"}
+            
+        try:
+            async with DatabaseManager.get_session_context() as session:
+                # Get main finding
+                main_finding = await self._get_finding_optimized(session, finding_id)
+                if not main_finding:
+                    return {"error": "Finding not found"}
+                
+                # Get context findings or find related ones
+                if not context_findings:
+                    # Get recent similar findings for context
+                    result = await session.execute(
+                        select(SecurityFinding)
+                        .where(
+                            and_(
+                                SecurityFinding.service_id == main_finding.service_id,
+                                SecurityFinding.id != finding_id,
+                                SecurityFinding.status.in_(["open", "in_progress"]),
+                                SecurityFinding.created_at >= datetime.utcnow() - timedelta(days=7)
+                            )
+                        )
+                        .limit(5)
+                    )
+                    context_findings_objs = result.scalars().all()
+                else:
+                    # Get specific context findings
+                    result = await session.execute(
+                        select(SecurityFinding)
+                        .where(SecurityFinding.id.in_(context_findings))
+                    )
+                    context_findings_objs = result.scalars().all()
+                
+                # Prepare data for AI analysis
+                analysis_data = {
+                    "main_finding": {
+                        "id": main_finding.id,
+                        "title": main_finding.title,
+                        "description": main_finding.description,
+                        "severity": main_finding.severity,
+                        "scanner_type": main_finding.scanner_type,
+                        "service_id": main_finding.service_id,
+                        "file_path": main_finding.file_path,
+                        "cve_id": main_finding.cve_id,
+                        "cwe_id": main_finding.cwe_id
+                    },
+                    "context_findings": [
+                        {
+                            "id": f.id,
+                            "title": f.title,
+                            "severity": f.severity,
+                            "scanner_type": f.scanner_type,
+                            "file_path": f.file_path
+                        } for f in context_findings_objs
+                    ]
+                }
+                
+                # Create AI analysis prompt
+                prompt = f"""
+                Analyze this security finding and provide correlation insights:
+
+                MAIN FINDING:
+                {json.dumps(analysis_data['main_finding'], indent=2)}
+
+                CONTEXT FINDINGS:
+                {json.dumps(analysis_data['context_findings'], indent=2)}
+
+                Please provide analysis in JSON format with:
+                1. "correlation_insights" - How this finding relates to context findings
+                2. "risk_assessment" - Risk level and business impact assessment  
+                3. "root_cause_analysis" - Likely root causes and patterns
+                4. "prioritization" - Should this be high/medium/low priority and why
+                5. "recommendations" - Specific actions to address this finding
+
+                Focus on actionable insights that help reduce security noise and prioritize remediation efforts.
+                """
+                
+                user_message = UserMessage(text=prompt)
+                ai_response = await self.llm_chat.send_message(user_message)
+                
+                # Parse AI response
+                try:
+                    ai_insights = json.loads(ai_response)
+                    return {
+                        "finding_id": finding_id,
+                        "ai_analysis": ai_insights,
+                        "context_count": len(context_findings_objs),
+                        "analysis_timestamp": datetime.utcnow().isoformat()
+                    }
+                except json.JSONDecodeError:
+                    # Return raw text if JSON parsing fails
+                    return {
+                        "finding_id": finding_id,
+                        "ai_analysis": {"raw_analysis": ai_response},
+                        "context_count": len(context_findings_objs),
+                        "analysis_timestamp": datetime.utcnow().isoformat()
+                    }
+                    
+        except Exception as e:
+            logger.error(f"AI correlation analysis failed: {str(e)}")
+            return {"error": f"AI analysis failed: {str(e)}"}
 
 
 # Global correlation engine instance
