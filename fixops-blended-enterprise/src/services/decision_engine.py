@@ -79,8 +79,12 @@ class DecisionEngine:
                 try:
                     from emergentintegrations import EmergentIntegrations
                     self.emergent_client = EmergentIntegrations(api_key=settings.EMERGENT_LLM_KEY)
+                    logger.info("✅ Real Emergent LLM integration initialized")
                 except ImportError:
                     logger.warning("EmergentIntegrations not available, using fallback")
+                    self.emergent_client = None
+                except Exception as e:
+                    logger.error(f"Emergent LLM initialization failed: {str(e)}")
                     self.emergent_client = None
             
             if self.demo_mode:
