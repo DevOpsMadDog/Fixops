@@ -42,8 +42,8 @@ class DatabaseManager:
             echo=settings.DEBUG,  # Only log SQL in debug mode
             echo_pool=settings.DEBUG,
             future=True,
-            # Connection optimization
-            connect_args={
+            # Connection optimization (conditional based on database type)
+            connect_args={} if "sqlite" in settings.DATABASE_URL else {
                 "server_settings": {
                     "application_name": "fixops-enterprise",
                     "jit": "off",  # Disable JIT for consistent performance
