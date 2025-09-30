@@ -10,7 +10,7 @@ import structlog
 
 from src.db.session import get_db
 from src.core.security import get_current_user, require_permission
-from src.models.user import User
+from src.models.user_sqlite import User
 from src.utils.logger import log_security_event
 
 logger = structlog.get_logger()
