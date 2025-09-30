@@ -573,3 +573,30 @@ class DecisionEngine:
 
 # Global instance
 decision_engine = DecisionEngine()
+
+# Helper functions for metrics
+def _get_service_type(service_name: str) -> str:
+    """Classify service type for metrics"""
+    service_lower = service_name.lower()
+    if any(term in service_lower for term in ["payment", "transaction", "billing"]):
+        return "financial"
+    elif any(term in service_lower for term in ["auth", "user", "identity"]):
+        return "authentication"
+    elif any(term in service_lower for term in ["api", "gateway", "proxy"]):
+        return "gateway"
+    elif any(term in service_lower for term in ["data", "database", "storage"]):
+        return "data"
+    else:
+        return "application"
+
+def _assess_business_impact(service_name: str) -> str:
+    """Assess business impact for metrics"""
+    service_lower = service_name.lower()
+    if any(term in service_lower for term in ["payment", "transaction", "core"]):
+        return "critical"
+    elif any(term in service_lower for term in ["auth", "user", "api"]):
+        return "high"
+    elif any(term in service_lower for term in ["reporting", "analytics", "notification"]):
+        return "medium"
+    else:
+        return "low"
