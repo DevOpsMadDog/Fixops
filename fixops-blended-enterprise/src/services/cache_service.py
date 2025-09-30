@@ -66,8 +66,10 @@ class CacheService:
                 url=redis_url.split('@')[-1] if '@' in redis_url else redis_url  # Hide credentials
             )
         except Exception as e:
-            logger.error(f"Failed to connect to Redis: {str(e)}")
-            raise
+            logger.warning(f"Redis connection failed, falling back to in-memory cache: {str(e)}")
+            # Use simple in-memory cache as fallback
+            cls._redis_client = None
+            cls._in_memory_cache = {}
     
     @classmethod
     def get_instance(cls) -> 'CacheService':
