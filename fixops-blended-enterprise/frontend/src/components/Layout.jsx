@@ -48,6 +48,7 @@ function Layout({ children }) {
                           ? 'border-blue-500 text-gray-900'
                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       }`}
+                      title={item.fullName}
                     >
                       <Icon className="h-4 w-4 mr-1 lg:mr-2" />
                       {item.name}
