@@ -1,14 +1,12 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
+import EnhancedDashboard from './pages/EnhancedDashboard'
 import DeveloperDashboard from './pages/DeveloperDashboard'
 import CISODashboard from './pages/CISODashboard'
-import ArchitectDashboard from './pages/ArchitectDashboard'
 import ScanUploadPage from './pages/ScanUploadPage'
 import MarketplacePage from './pages/MarketplacePage'
-import IncidentsPage from './pages/IncidentsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
-import ServiceManagement from './pages/ServiceManagement'
 
 function App() {
   // No authentication required - free tool
