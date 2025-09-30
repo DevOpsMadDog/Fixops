@@ -7,7 +7,7 @@ from typing import Optional, AsyncGenerator
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import QueuePool
-from sqlalchemy import event
+from sqlalchemy import event, text
 from contextlib import asynccontextmanager
 
 from src.config.settings import get_settings
