@@ -1,0 +1,199 @@
+{
+	"info": {
+		"name": "FixOps CI/CD Integration Tests",
+		"description": "Complete CI/CD pipeline integration testing for bank environments"
+	},
+	"item": [
+		{
+			"name": "1. Pre-Deployment Health Check",
+			"event": [
+				{
+					"listen": "test", 
+					"script": {
+						"exec": [
+							"// Ensure FixOps is healthy before pipeline starts",
+							"pm.test('FixOps ready for pipeline', function () {",
+							"    pm.response.to.have.status(200);",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.status).to.eql('ready');",
+							"    pm.expect(data.checks.database).to.be.true;",
+							"    pm.expect(data.checks.decision_engine).to.be.true;",
+							"    console.log('✅ FixOps ready for bank CI/CD pipeline');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{BASE_URL}}/ready"
+			}
+		},
+		{
+			"name": "2. Payment Service - Should ALLOW",
+			"event": [
+				{
+					"listen": "pre-request",
+					"script": {
+						"exec": [
+							"// Simulate bank's Jenkins pipeline",
+							"pm.environment.set('PIPELINE_ID', 'jenkins-payment-' + Date.now());",
+							"pm.environment.set('CORRELATION_ID', 'payment-deploy-' + Date.now());"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Payment service should be ALLOWED', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.decision).to.eql('ALLOW');",
+							"    pm.expect(data.exit_code).to.eql(0);",
+							"    pm.expect(data.deployment_approved).to.be.true;",
+							"    console.log('✅ Payment service approved for production deployment');",
+							"});",
+							"",
+							"pm.test('High confidence score', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.confidence_score).to.be.above(0.85);",
+							"    console.log('📊 Confidence:', Math.round(data.confidence_score * 100) + '%');",
+							"});",
+							"",
+							"pm.test('Compliance requirements met', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.compliance_status.pci_dss).to.eql('compliant');",
+							"    pm.expect(data.compliance_status.sox).to.eql('compliant');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-Pipeline-ID",
+						"value": "{{PIPELINE_ID}}"
+					},
+					{
+						"key": "X-Correlation-ID",
+						"value": "{{CORRELATION_ID}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"service_name\": \"payment-processor\",\n  \"environment\": \"production\",\n  \"repository_url\": \"https://git.bank.internal/payments/payment-processor\",\n  \"commit_sha\": \"abc123def456\",\n  \"branch_name\": \"main\",\n  \"sarif_results\": {\n    \"runs\": [{\n      \"tool\": { \"driver\": { \"name\": \"SonarQube\" } },\n      \"results\": [{\n        \"ruleId\": \"minor-code-smell\",\n        \"level\": \"note\",\n        \"message\": { \"text\": \"Minor code quality issue\" }\n      }]\n    }]\n  },\n  \"sca_results\": {\n    \"vulnerabilities\": []\n  },\n  \"business_criticality\": \"critical\",\n  \"compliance_requirements\": [\"pci_dss\", \"sox\"]\n}"
+				},
+				"url": "{{BASE_URL}}/api/v1/cicd/decision"
+			}
+		},
+		{
+			"name": "3. Auth Service - Should BLOCK", 
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Auth service should be BLOCKED', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.decision).to.eql('BLOCK');",
+							"    pm.expect(data.exit_code).to.eql(1);",
+							"    pm.expect(data.deployment_approved).to.be.false;",
+							"    console.log('🚫 Auth service blocked due to critical vulnerabilities');",
+							"});",
+							"",
+							"pm.test('Blocking issues identified', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.blocking_issues).to.be.an('array');",
+							"    pm.expect(data.blocking_issues.length).to.be.above(0);",
+							"    console.log('🚨 Blocking issues:', data.blocking_issues);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"service_name\": \"user-auth-service\",\n  \"environment\": \"production\",\n  \"sarif_results\": {\n    \"runs\": [{\n      \"tool\": { \"driver\": { \"name\": \"CodeQL\" } },\n      \"results\": [{\n        \"ruleId\": \"sql-injection\",\n        \"level\": \"error\",\n        \"message\": { \"text\": \"SQL injection in auth endpoint\" }\n      }]\n    }]\n  },\n  \"sca_results\": {\n    \"vulnerabilities\": [{\n      \"id\": \"CVE-2024-001\",\n      \"severity\": \"critical\",\n      \"title\": \"Authentication bypass vulnerability\",\n      \"packageName\": \"spring-security\"\n    }]\n  },\n  \"business_criticality\": \"critical\",\n  \"compliance_requirements\": [\"pci_dss\", \"sox\", \"gdpr\"]\n}"
+				},
+				"url": "{{BASE_URL}}/api/v1/cicd/decision"
+			}
+		},
+		{
+			"name": "4. API Gateway - Should DEFER",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('API Gateway should be DEFERRED', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.decision).to.eql('DEFER');",
+							"    pm.expect(data.exit_code).to.eql(2);",
+							"    pm.expect(data.manual_review_required).to.be.true;",
+							"    console.log('⏸️ API Gateway deferred for manual security review');",
+							"});",
+							"",
+							"pm.test('Low confidence triggers defer', function () {",
+							"    const data = pm.response.json();",
+							"    pm.expect(data.confidence_score).to.be.below(0.85);",
+							"    console.log('📊 Low confidence:', Math.round(data.confidence_score * 100) + '%');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{"key": "Content-Type", "value": "application/json"}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"service_name\": \"api-gateway\",\n  \"environment\": \"staging\",\n  \"sarif_results\": {\n    \"runs\": [{\n      \"tool\": { \"driver\": { \"name\": \"Mixed Tools\" } },\n      \"results\": [{\n        \"ruleId\": \"uncertain-vulnerability\",\n        \"level\": \"warning\",\n        \"message\": { \"text\": \"Potential security issue requiring investigation\" }\n      }]\n    }]\n  },\n  \"business_criticality\": \"medium\",\n  \"compliance_requirements\": [\"internal_policies\"]\n}"
+				},
+				"url": "{{BASE_URL}}/api/v1/cicd/decision"
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"console.log('🏦 Starting Bank CI/CD Integration Test Suite');",
+					"console.log('Target:', pm.environment.get('BASE_URL'));"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"exec": [
+					"// Global assertions for all bank CI/CD requests",
+					"pm.test('Bank SLA compliance', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(2000); // 2s SLA",
+					"});",
+					"",
+					"pm.test('Evidence ID generated', function () {",
+					"    if (pm.response.code === 200) {",
+					"        const data = pm.response.json();",
+					"        pm.expect(data.evidence_id).to.match(/^(EVD|DEMO-EVD)-\\d{4}-\\d+$/);",
+					"    }",
+					"});"
+				]
+			}
+		}
+	]
+}
