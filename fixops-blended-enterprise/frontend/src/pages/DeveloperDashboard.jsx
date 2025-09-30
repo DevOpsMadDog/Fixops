@@ -181,5 +181,3 @@ function DeveloperDashboard() {
 }
 
 export default DeveloperDashboard
-
-export default DeveloperDashboard
