@@ -1,147 +1,373 @@
-import React, { useState } from 'react'
-import { AlertTriangle, Clock, CheckCircle, User, Calendar, Filter } from 'lucide-react'
+import React from 'react'
 
 function IncidentsPage() {
-  const [filter, setFilter] = useState('all')
-  const [incidents] = useState([
-    {
-      id: '1',
-      title: 'SQL Injection in Payment Service',
-      severity: 'critical',
-      status: 'open',
-      assignee: 'Sarah Chen',
-      created: '2 hours ago',
-      service: 'payment-service',
-      description: 'SQL injection vulnerability discovered in payment processing endpoint'
-    },
-    {
-      id: '2',
-      title: 'XSS Vulnerability Cluster',
-      severity: 'high',
-      status: 'investigating',
-      assignee: 'Mike Johnson',
-      created: '4 hours ago',
-      service: 'web-app',
-      description: 'Multiple XSS findings correlated across user input forms'
-    },
-    {
-      id: '3',
-      title: 'Hardcoded API Key',
-      severity: 'medium',
-      status: 'resolved',
-      assignee: 'Alex Rodriguez',
-      created: '1 day ago',
-      service: 'auth-service',
-      description: 'Hardcoded API key found in configuration files'
-    }
-  ])
-
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'critical': return 'text-red-600 bg-red-100'
-      case 'high': return 'text-orange-600 bg-orange-100'
-      case 'medium': return 'text-yellow-600 bg-yellow-100'
-      case 'low': return 'text-blue-600 bg-blue-100'
-      default: return 'text-gray-600 bg-gray-100'
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'open': return 'text-red-700 bg-red-100'
-      case 'investigating': return 'text-yellow-700 bg-yellow-100'
-      case 'resolved': return 'text-green-700 bg-green-100'
-      default: return 'text-gray-700 bg-gray-100'
-    }
-  }
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'open': return AlertTriangle
-      case 'investigating': return Clock
-      case 'resolved': return CheckCircle
-      default: return AlertTriangle
-    }
-  }
-
-  const filteredIncidents = filter === 'all' ? incidents : incidents.filter(i => i.status === filter)
-
   return (
-    <div className="space-y-6">
-      <div className="border-b border-gray-200 pb-5">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
+    <div style={{
+      padding: '3rem 2rem',
+      maxWidth: '1400px',
+      margin: '0 auto'
+    }}>
+      
+      {/* Header */}
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{
+          fontSize: '3rem',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          marginBottom: '0.75rem',
+          letterSpacing: '-0.025em'
+        }}>
           Security Incidents
-        </h3>
-        <p className="mt-2 max-w-4xl text-sm text-gray-500">
+        </h1>
+        <p style={{ 
+          color: '#6b7280', 
+          fontSize: '1.25rem',
+          maxWidth: '600px',
+          margin: '0 auto',
+          lineHeight: '1.6'
+        }}>
           Track and manage security incidents across your services
         </p>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <Filter className="h-5 w-5 text-gray-400" />
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All Incidents</option>
-          <option value="open">Open</option>
-          <option value="investigating">Investigating</option>
-          <option value="resolved">Resolved</option>
-        </select>
+      {/* Incident Summary Cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '2rem',
+        marginBottom: '3rem'
+      }}>
+        {/* Active Incidents */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#fecaca',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            🚨
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#dc2626',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            3
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Active Incidents
+          </div>
+        </div>
+
+        {/* Resolved This Month */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#dcfce7',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            ✅
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#16a34a',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            27
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Resolved This Month
+          </div>
+        </div>
+
+        {/* Average Resolution Time */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#dbeafe',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            ⏱️
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#2563eb',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            2.4h
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Avg Resolution Time
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {filteredIncidents.map((incident) => {
-            const StatusIcon = getStatusIcon(incident.status)
-            return (
-              <li key={incident.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center min-w-0 flex-1">
-                    <div className="flex-shrink-0">
-                      <StatusIcon className={`h-5 w-5 ${getSeverityColor(incident.severity).split(' ')[0]}`} />
-                    </div>
-                    <div className="ml-4 min-w-0 flex-1">
-                      <div className="flex items-center space-x-3">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {incident.title}
-                        </p>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
-                          {incident.severity}
-                        </span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
-                          {incident.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {incident.description}
-                      </p>
-                      <div className="flex items-center text-xs text-gray-400 mt-2 space-x-4">
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-1" />
-                          {incident.assignee}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {incident.created}
-                        </div>
-                        <div>
-                          Service: {incident.service}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+      {/* Recent Incidents Table */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2.5rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        border: '1px solid #e5e7eb'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          marginBottom: '2rem',
+          paddingBottom: '1rem',
+          borderBottom: '2px solid #f3f4f6'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '1rem'
+          }}>
+            <span style={{ fontSize: '1.75rem' }}>⚠️</span>
+          </div>
+          <h2 style={{ 
+            fontSize: '1.75rem', 
+            fontWeight: '700', 
+            color: '#1f2937', 
+            margin: 0
+          }}>
+            Recent Security Incidents
+          </h2>
+        </div>
+        
+        {/* Incident List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            padding: '1.5rem',
+            backgroundColor: '#fef2f2',
+            borderRadius: '12px',
+            border: '1px solid #fecaca'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#dc2626',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.25rem',
+              color: 'white',
+              flexShrink: 0
+            }}>
+              🐛
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                  SQL Injection in Payment Service
+                </h3>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  color: '#dc2626',
+                  backgroundColor: '#fee2e2',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '20px'
+                }}>
+                  CRITICAL
+                </span>
+              </div>
+              <p style={{ fontSize: '1rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
+                SQL injection vulnerability discovered in payment processing endpoint
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>👤 Sarah Chen</span>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>🕒 2 hours ago</span>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>🏢 payment-service</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            padding: '1.5rem',
+            backgroundColor: '#fef3c7',
+            borderRadius: '12px',
+            border: '1px solid #fed7aa'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#d97706',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.25rem',
+              color: 'white',
+              flexShrink: 0
+            }}>
+              ⚠️
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                  XSS Vulnerability Cluster
+                </h3>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  color: '#d97706',
+                  backgroundColor: '#fef3c7',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '20px'
+                }}>
+                  HIGH
+                </span>
+              </div>
+              <p style={{ fontSize: '1rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
+                Multiple XSS findings correlated across user input forms
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>👤 Mike Johnson</span>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>🕒 4 hours ago</span>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>🏢 web-app</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            padding: '1.5rem',
+            backgroundColor: '#f0fdf4',
+            borderRadius: '12px',
+            border: '1px solid #bbf7d0'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#16a34a',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.25rem',
+              color: 'white',
+              flexShrink: 0
+            }}>
+              ✅
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                  Hardcoded API Key
+                </h3>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  color: '#16a34a',
+                  backgroundColor: '#dcfce7',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '20px'
+                }}>
+                  RESOLVED
+                </span>
+              </div>
+              <p style={{ fontSize: '1rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
+                Hardcoded API key found in configuration files
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>👤 Alex Rodriguez</span>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>🕒 1 day ago</span>
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af', fontWeight: '600' }}>🏢 auth-service</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,160 +1,308 @@
 import React from 'react'
-import { BarChart3, TrendingUp, PieChart, Activity, Calendar, Download } from 'lucide-react'
 
 function AnalyticsPage() {
   return (
-    <div className="space-y-6">
-      <div className="border-b border-gray-200 pb-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Security Analytics
-            </h3>
-            <p className="mt-2 max-w-4xl text-sm text-gray-500">
-              Comprehensive security metrics and trend analysis
-            </p>
+    <div style={{
+      padding: '3rem 2rem',
+      maxWidth: '1400px',
+      margin: '0 auto'
+    }}>
+      
+      {/* Header */}
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{
+          fontSize: '3rem',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          marginBottom: '0.75rem',
+          letterSpacing: '-0.025em'
+        }}>
+          Security Analytics
+        </h1>
+        <p style={{ 
+          color: '#6b7280', 
+          fontSize: '1.25rem',
+          maxWidth: '600px',
+          margin: '0 auto',
+          lineHeight: '1.6'
+        }}>
+          Comprehensive security metrics and trend analysis
+        </p>
+      </div>
+
+      {/* Analytics Metrics */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minItems(280px, 1fr))',
+        gap: '2rem',
+        marginBottom: '3rem'
+      }}>
+        {/* Risk Reduction */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#dcfce7',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            📈
           </div>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </button>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#16a34a',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            34%
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Risk Reduction
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#16a34a',
+            fontWeight: '600'
+          }}>
+            +12% this month
+          </div>
+        </div>
+
+        {/* MTTR */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#dbeafe',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            ⏱️
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#2563eb',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            2.4h
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            MTTR
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#16a34a',
+            fontWeight: '600'
+          }}>
+            -15% improvement
+          </div>
+        </div>
+
+        {/* Policy Automation */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#e0e7ff',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            🤖
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#7c3aed',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            89%
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Policy Automation
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#7c3aed',
+            fontWeight: '600'
+          }}>
+            24 active policies
+          </div>
+        </div>
+
+        {/* Correlation Rate */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#dcfce7',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            🔗
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#16a34a',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            65%
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Correlation Rate
+          </div>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#6b7280',
+            fontWeight: '600'
+          }}>
+            noise reduction
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Risk Reduction
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">34%</dd>
-                  <dd className="text-xs text-green-600">+12% this month</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
+      {/* Charts Placeholder */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2.5rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        border: '1px solid #e5e7eb',
+        textAlign: 'center',
+        height: '300px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <div style={{
+          width: '80px',
+          height: '80px',
+          backgroundColor: '#f3f4f6',
+          borderRadius: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '1.5rem',
+          fontSize: '2.5rem'
+        }}>
+          📊
         </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Activity className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    MTTR
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">2.4h</dd>
-                  <dd className="text-xs text-green-600">-15% improvement</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Policy Automation
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">89%</dd>
-                  <dd className="text-xs text-blue-600">24 active policies</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <PieChart className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Correlation Rate
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">65%</dd>
-                  <dd className="text-xs text-gray-600">noise reduction</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Finding Trends (30 days)</h3>
-            <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">Chart visualization would be here</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Integration with Recharts for live data visualization
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Severity Distribution</h3>
-            <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <PieChart className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500">Pie chart would be here</p>
-                <div className="text-xs text-gray-600 mt-2 space-y-1">
-                  <div>Critical: 8 (6%)</div>
-                  <div>High: 34 (27%)</div>
-                  <div>Medium: 52 (41%)</div>
-                  <div>Low: 33 (26%)</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Analytics</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-1">285μs</div>
-              <div className="text-sm text-gray-500">Average Hot Path Latency</div>
-              <div className="text-xs text-green-600 mt-1">✓ Under 299μs target</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 mb-1">99.7%</div>
-              <div className="text-sm text-gray-500">API Availability</div>
-              <div className="text-xs text-gray-600 mt-1">Last 30 days</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600 mb-1">156ms</div>
-              <div className="text-sm text-gray-500">Average Response Time</div>
-              <div className="text-xs text-green-600 mt-1">-23% improvement</div>
-            </div>
-          </div>
-        </div>
+        <h3 style={{
+          fontSize: '1.5rem',
+          fontWeight: '700',
+          color: '#1f2937',
+          marginBottom: '1rem'
+        }}>
+          Finding Trends (30 days)
+        </h3>
+        <p style={{
+          fontSize: '1rem',
+          color: '#6b7280',
+          marginBottom: '1rem'
+        }}>
+          Chart visualization would be here
+        </p>
+        <p style={{
+          fontSize: '0.875rem',
+          color: '#9ca3af',
+          fontStyle: 'italic'
+        }}>
+          Integration with Recharts for live data visualization
+        </p>
       </div>
     </div>
   )
