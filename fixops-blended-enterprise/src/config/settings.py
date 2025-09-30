@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     DATABASE_MAX_OVERFLOW: int = Field(default=20)
     DATABASE_POOL_TIMEOUT: int = Field(default=30)
     
-    # Cache Configuration (Redis for production, memory fallback)
+    # Cache Configuration (MongoDB-based for Emergent compatibility)
     REDIS_URL: str = Field(default=os.getenv("REDIS_URL", "memory://"))
     REDIS_MAX_CONNECTIONS: int = Field(default=50)
     
