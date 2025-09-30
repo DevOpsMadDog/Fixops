@@ -8,14 +8,14 @@ function DeveloperDashboard() {
       margin: '0 auto'
     }}>
       
-      {/* DECISION ENGINE Metrics - Not Fix Metrics */}
+      {/* Perfect 4-Column Metrics Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '2rem',
         marginBottom: '3rem'
       }}>
-        {/* Total Decisions */}
+        {/* Total Findings - Blue Theme */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
@@ -27,7 +27,17 @@ function DeveloperDashboard() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: 'center',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)'
+          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
           <div style={{
             width: '72px',
@@ -40,7 +50,7 @@ function DeveloperDashboard() {
             marginBottom: '1rem',
             fontSize: '2rem'
           }}>
-            ⚖️
+            🛡️
           </div>
           <div style={{
             fontSize: '3rem',
@@ -49,7 +59,7 @@ function DeveloperDashboard() {
             marginBottom: '0.5rem',
             lineHeight: '1'
           }}>
-            234
+            127
           </div>
           <div style={{
             fontSize: '0.875rem',
@@ -58,11 +68,11 @@ function DeveloperDashboard() {
             textTransform: 'uppercase',
             letterSpacing: '0.1em'
           }}>
-            Decisions Made
+            Total Findings
           </div>
         </div>
 
-        {/* Pending Decisions */}
+        {/* Open Findings - Yellow Theme */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
@@ -74,7 +84,17 @@ function DeveloperDashboard() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: 'center',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)'
+          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
           <div style={{
             width: '72px',
@@ -87,7 +107,7 @@ function DeveloperDashboard() {
             marginBottom: '1rem',
             fontSize: '2rem'
           }}>
-            ⏳
+            ⚠️
           </div>
           <div style={{
             fontSize: '3rem',
@@ -96,7 +116,7 @@ function DeveloperDashboard() {
             marginBottom: '0.5rem',
             lineHeight: '1'
           }}>
-            18
+            34
           </div>
           <div style={{
             fontSize: '0.875rem',
@@ -105,11 +125,11 @@ function DeveloperDashboard() {
             textTransform: 'uppercase',
             letterSpacing: '0.1em'
           }}>
-            Pending Review
+            Open Findings
           </div>
         </div>
 
-        {/* High Confidence */}
+        {/* Critical - Red Theme */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
@@ -121,7 +141,74 @@ function DeveloperDashboard() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: 'center',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)'
+          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            backgroundColor: '#fecaca',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            🐛
+          </div>
+          <div style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#dc2626',
+            marginBottom: '0.5rem',
+            lineHeight: '1'
+          }}>
+            8
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}>
+            Critical
+          </div>
+        </div>
+
+        {/* Fixed - Green Theme */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2.5rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center',
+          height: '180px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)'
+          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
           <div style={{
             width: '72px',
@@ -134,7 +221,7 @@ function DeveloperDashboard() {
             marginBottom: '1rem',
             fontSize: '2rem'
           }}>
-            🎯
+            ✅
           </div>
           <div style={{
             fontSize: '3rem',
@@ -143,7 +230,7 @@ function DeveloperDashboard() {
             marginBottom: '0.5rem',
             lineHeight: '1'
           }}>
-            87%
+            93
           </div>
           <div style={{
             fontSize: '0.875rem',
@@ -152,72 +239,19 @@ function DeveloperDashboard() {
             textTransform: 'uppercase',
             letterSpacing: '0.1em'
           }}>
-            High Confidence
-          </div>
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#6b7280'
-          }}>
-            (≥85% threshold)
-          </div>
-        </div>
-
-        {/* Context Enriched */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '180px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            width: '72px',
-            height: '72px',
-            backgroundColor: '#e0e7ff',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2rem'
-          }}>
-            🧠
-          </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: '#7c3aed',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            156
-          </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}>
-            Context Enriched
+            Fixed
           </div>
         </div>
       </div>
 
-      {/* Decision Engine Performance & Recent Decisions */}
+      {/* Perfect 2-Column Grid - Equal Heights */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '2rem',
         marginBottom: '3rem'
       }}>
-        {/* Decision Engine Performance */}
+        {/* Performance Metrics - Left Column */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
@@ -226,6 +260,7 @@ function DeveloperDashboard() {
           border: '1px solid #e5e7eb',
           height: '400px'
         }}>
+          {/* Section Header */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -249,12 +284,14 @@ function DeveloperDashboard() {
               fontSize: '1.75rem', 
               fontWeight: '700', 
               color: '#1f2937', 
-              margin: 0
+              margin: 0,
+              letterSpacing: '-0.025em'
             }}>
-              Decision Engine Performance
+              Performance Metrics
             </h2>
           </div>
           
+          {/* Perfectly Aligned Metrics */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{
               display: 'flex',
@@ -266,9 +303,14 @@ function DeveloperDashboard() {
               border: '1px solid #f3f4f6'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🎯</span>
+                <span style={{ 
+                  fontSize: '1.5rem', 
+                  marginRight: '1rem',
+                  width: '24px',
+                  textAlign: 'center'
+                }}>🎯</span>
                 <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Decision Latency
+                  Hot Path Latency
                 </span>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -291,12 +333,17 @@ function DeveloperDashboard() {
               border: '1px solid #f3f4f6'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🔗</span>
+                <span style={{ 
+                  fontSize: '1.5rem', 
+                  marginRight: '1rem',
+                  width: '24px',
+                  textAlign: 'center'
+                }}>📊</span>
                 <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Consensus Rate
+                  Correlated Findings
                 </span>
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>87%</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#2563eb' }}>45</div>
             </div>
             
             <div style={{
@@ -309,17 +356,22 @@ function DeveloperDashboard() {
               border: '1px solid #f3f4f6'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🧠</span>
+                <span style={{ 
+                  fontSize: '1.5rem', 
+                  marginRight: '1rem',
+                  width: '24px',
+                  textAlign: 'center'
+                }}>📈</span>
                 <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Context Enrichment
+                  Noise Reduction
                 </span>
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#2563eb' }}>95%</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>35%</div>
             </div>
           </div>
         </div>
 
-        {/* Recent Decisions */}
+        {/* Recent Activity - Right Column */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
@@ -328,6 +380,7 @@ function DeveloperDashboard() {
           border: '1px solid #e5e7eb',
           height: '400px'
         }}>
+          {/* Section Header */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -345,18 +398,20 @@ function DeveloperDashboard() {
               justifyContent: 'center',
               marginRight: '1rem'
             }}>
-              <span style={{ fontSize: '1.75rem' }}>⚖️</span>
+              <span style={{ fontSize: '1.75rem' }}>🕒</span>
             </div>
             <h2 style={{ 
               fontSize: '1.75rem', 
               fontWeight: '700', 
               color: '#1f2937', 
-              margin: 0
+              margin: 0,
+              letterSpacing: '-0.025em'
             }}>
-              Recent Decisions
+              Recent Activity
             </h2>
           </div>
           
+          {/* Perfectly Aligned Activity Items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
               <div style={{
@@ -370,88 +425,28 @@ function DeveloperDashboard() {
                 fontSize: '1.25rem',
                 flexShrink: 0
               }}>
-                ✅
+                🐛
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <p style={{ 
-                    fontSize: '1.125rem', 
-                    fontWeight: '700', 
-                    color: '#1f2937', 
-                    margin: 0
-                  }}>
-                    ALLOW: Deploy payment-service v2.1.3
-                  </p>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    color: '#16a34a',
-                    backgroundColor: '#dcfce7',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px'
-                  }}>
-                    92% CONFIDENCE
-                  </span>
-                </div>
+                <p style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '700', 
+                  color: '#1f2937', 
+                  margin: '0 0 0.5rem 0',
+                  lineHeight: '1.3'
+                }}>
+                  SQL Injection fixed in user-service
+                </p>
                 <p style={{ 
                   fontSize: '1rem', 
                   color: '#6b7280', 
                   margin: '0 0 0.5rem 0',
                   fontWeight: '500'
                 }}>
-                  Golden regression validated, policy compliance verified
+                  Critical vulnerability resolved
                 </p>
                 <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
-                  2h ago • Context: Business Critical • Environment: Production
-                </p>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#fecaca',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem',
-                flexShrink: 0
-              }}>
-                🚫
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <p style={{ 
-                    fontSize: '1.125rem', 
-                    fontWeight: '700', 
-                    color: '#1f2937', 
-                    margin: 0
-                  }}>
-                    BLOCK: Deploy user-auth v1.8.2
-                  </p>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    color: '#dc2626',
-                    backgroundColor: '#fecaca',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px'
-                  }}>
-                    89% CONFIDENCE
-                  </span>
-                </div>
-                <p style={{ 
-                  fontSize: '1rem', 
-                  color: '#6b7280', 
-                  margin: '0 0 0.5rem 0',
-                  fontWeight: '500'
-                }}>
-                  Critical SQL injection found, consensus check failed
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
-                  4h ago • Context: PII Data • Environment: Production  
+                  2h ago
                 </p>
               </div>
             </div>
@@ -468,39 +463,66 @@ function DeveloperDashboard() {
                 fontSize: '1.25rem',
                 flexShrink: 0
               }}>
-                ⏸️
+                ⚠️
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <p style={{ 
-                    fontSize: '1.125rem', 
-                    fontWeight: '700', 
-                    color: '#1f2937', 
-                    margin: 0
-                  }}>
-                    DEFER: Deploy api-gateway v3.2.1
-                  </p>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    color: '#d97706',
-                    backgroundColor: '#fef3c7',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px'
-                  }}>
-                    78% CONFIDENCE
-                  </span>
-                </div>
+                <p style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '700', 
+                  color: '#1f2937', 
+                  margin: '0 0 0.5rem 0',
+                  lineHeight: '1.3'
+                }}>
+                  XSS vulnerability correlated (3 findings)
+                </p>
                 <p style={{ 
                   fontSize: '1rem', 
                   color: '#6b7280', 
                   margin: '0 0 0.5rem 0',
                   fontWeight: '500'
                 }}>
-                  Below 85% consensus threshold, requires manual review
+                  Similar issues found across services
                 </p>
                 <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
-                  6h ago • Context: External API • Environment: Staging
+                  4h ago
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+                flexShrink: 0
+              }}>
+                ✅
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '700', 
+                  color: '#1f2937', 
+                  margin: '0 0 0.5rem 0',
+                  lineHeight: '1.3'
+                }}>
+                  Policy decision: ALLOW deployment
+                </p>
+                <p style={{ 
+                  fontSize: '1rem', 
+                  color: '#6b7280', 
+                  margin: '0 0 0.5rem 0',
+                  fontWeight: '500'
+                }}>
+                  Security review completed
+                </p>
+                <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
+                  6h ago
                 </p>
               </div>
             </div>
@@ -508,7 +530,7 @@ function DeveloperDashboard() {
         </div>
       </div>
 
-      {/* Decision & Verification Core Status */}
+      {/* AI Insights - Full Width Premium Section */}
       <div style={{
         background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)',
         padding: '3rem',
@@ -518,11 +540,23 @@ function DeveloperDashboard() {
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {/* Decorative Background Elements */}
+        <div style={{
+          position: 'absolute',
+          top: '-50px',
+          right: '-50px',
+          width: '200px',
+          height: '200px',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '50%',
+          zIndex: 0
+        }}></div>
+        
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
             <div style={{
-              width: '80px',
-              height: '80px',
+              width: '72px',
+              height: '72px',
               backgroundColor: 'white',
               borderRadius: '20px',
               display: 'flex',
@@ -531,25 +565,25 @@ function DeveloperDashboard() {
               marginRight: '1.5rem',
               boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)'
             }}>
-              <span style={{ fontSize: '2.5rem' }}>🧠</span>
+              <span style={{ fontSize: '2.25rem' }}>🤖</span>
             </div>
             <div>
               <h2 style={{ 
-                fontSize: '2.5rem', 
+                fontSize: '2.25rem', 
                 fontWeight: '800', 
                 color: '#1f2937', 
                 margin: 0,
                 letterSpacing: '-0.025em'
               }}>
-                Decision & Verification Core
+                AI-Powered Insights
               </h2>
               <p style={{
-                fontSize: '1.25rem',
+                fontSize: '1.125rem',
                 color: '#6b7280',
                 margin: 0,
                 fontWeight: '500'
               }}>
-                NOT a Fix Engine - Context-aware decision platform
+                Advanced correlation and analysis
               </p>
             </div>
           </div>
@@ -561,7 +595,7 @@ function DeveloperDashboard() {
             border: '1px solid rgba(37, 99, 235, 0.2)',
             boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
               <div style={{
                 width: '32px',
                 height: '32px',
@@ -577,7 +611,8 @@ function DeveloperDashboard() {
                   width: '12px', 
                   height: '12px', 
                   backgroundColor: '#16a34a', 
-                  borderRadius: '50%'
+                  borderRadius: '50%',
+                  animation: 'pulse 2s infinite'
                 }}></div>
               </div>
               <div>
@@ -585,55 +620,57 @@ function DeveloperDashboard() {
                   fontSize: '1.5rem', 
                   fontWeight: '700', 
                   color: '#1f2937', 
-                  margin: '0 0 1rem 0'
+                  margin: '0 0 1rem 0',
+                  letterSpacing: '-0.025em'
                 }}>
-                  Core Components Active
+                  Correlation Engine Active
                 </h3>
                 <p style={{ 
                   fontSize: '1.125rem', 
                   color: '#6b7280', 
-                  margin: '0 0 1.5rem 0', 
+                  margin: 0, 
                   lineHeight: '1.7',
                   fontWeight: '500'
                 }}>
-                  Vector DB + LLM+RAG context enrichment operating at <strong style={{ color: '#16a34a' }}>87% consensus rate</strong>. 
-                  OPA/Rego policies enforced with <strong style={{ color: '#2563eb' }}>Golden Regression Set</strong> validation.
+                  Automatically correlating security findings and reducing noise by <strong style={{ color: '#16a34a' }}>35%</strong>. 
+                  Last analysis: <strong style={{ color: '#2563eb' }}>45 findings</strong> correlated into <strong style={{ color: '#2563eb' }}>12 actionable items</strong>.
                 </p>
-              </div>
-            </div>
-            
-            {/* Core Components Status */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1.5rem',
-              padding: '1.5rem',
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '0.25rem' }}>
-                  87%
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                  Consensus Rate
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.25rem' }}>
-                  95%
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                  Context Enriched
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#7c3aed', marginBottom: '0.25rem' }}>
-                  24
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                  Active Policies
+                
+                {/* Performance Stats */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '1.5rem',
+                  marginTop: '2rem',
+                  padding: '1.5rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.25rem' }}>
+                      35%
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+                      Noise Reduced
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '0.25rem' }}>
+                      12
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+                      Action Items
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626', marginBottom: '0.25rem' }}>
+                      2.4h
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+                      Avg Resolution
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
