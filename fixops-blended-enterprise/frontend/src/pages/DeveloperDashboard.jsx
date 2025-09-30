@@ -1,155 +1,319 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 
 function DeveloperDashboard() {
-  const [stats, setStats] = useState({
-    totalFindings: 127,
-    openFindings: 34,
-    criticalFindings: 8,
-    fixedFindings: 93,
-    hotPathLatency: 285,
-    correlatedFindings: 45
-  })
-
-  const MetricCard = ({ title, value, iconBg, iconText, subtitle }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
-          {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-        </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold ${iconBg}`}>
-          {iconText}
-        </div>
-      </div>
-    </div>
-  )
-
+  console.log('🔥 DeveloperDashboard component rendering!')
+  
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f8fafc',
+      padding: '2rem'
+    }}>
       {/* Debug indicator */}
-      <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 mx-4">
-        🔧 New Dashboard Component Loaded Successfully!
+      <div style={{
+        backgroundColor: '#dcfce7',
+        border: '2px solid #22c55e',
+        color: '#166534',
+        padding: '1rem',
+        borderRadius: '8px',
+        marginBottom: '2rem',
+        fontSize: '18px',
+        fontWeight: 'bold'
+      }}>
+        🎉 NEW DASHBOARD COMPONENT IS WORKING!
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Developer Dashboard</h1>
-          <p className="text-gray-600">Security findings and performance metrics for your applications</p>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{
+            fontSize: '2.5rem',
+            fontWeight: 'bold',
+            color: '#1f2937',
+            marginBottom: '0.5rem'
+          }}>
+            FixOps Enterprise Dashboard
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
+            Security findings and performance metrics for your applications
+          </p>
         </div>
 
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <MetricCard
-            title="Total Findings"
-            value={stats.totalFindings}
-            iconBg="bg-blue-500"
-            iconText="🛡️"
-          />
-          <MetricCard
-            title="Open Findings"
-            value={stats.openFindings}
-            iconBg="bg-yellow-500"
-            iconText="⚠️"
-          />
-          <MetricCard
-            title="Critical"
-            value={stats.criticalFindings}
-            iconBg="bg-red-500"
-            iconText="🐛"
-          />
-          <MetricCard
-            title="Fixed"
-            value={stats.fixedFindings}
-            iconBg="bg-green-500"
-            iconText="✅"
-          />
-        </div>
-
-        {/* Performance & Activity Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Performance Metrics */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center mb-6">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-purple-600 text-lg">⚡</span>
+        {/* Metrics Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          {/* Total Findings Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Total Findings</p>
+                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>127</p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Performance Metrics</h3>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem'
+              }}>
+                🛡️
+              </div>
+            </div>
+          </div>
+
+          {/* Open Findings Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Open Findings</p>
+                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>34</p>
+              </div>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem'
+              }}>
+                ⚠️
+              </div>
+            </div>
+          </div>
+
+          {/* Critical Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Critical</p>
+                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>8</p>
+              </div>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#fecaca',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem'
+              }}>
+                🐛
+              </div>
+            </div>
+          </div>
+
+          {/* Fixed Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Fixed</p>
+                <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>93</p>
+              </div>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem'
+              }}>
+                ✅
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Section */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: '1.5rem'
+        }}>
+          {/* Performance Metrics */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#ddd6fe',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '0.75rem'
+              }}>
+                ⚡
+              </div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                Performance Metrics
+              </h3>
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <span className="text-green-600 text-sm mr-2">🎯</span>
-                  <span className="text-sm font-medium text-gray-700">Hot Path Latency</span>
-                </div>
-                <div className="text-right">
-                  <span className={`text-lg font-bold ${stats.hotPathLatency <= 299 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stats.hotPathLatency}μs
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.75rem',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px'
+              }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>
+                  🎯 Hot Path Latency
+                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#16a34a' }}>
+                    285μs
                   </span>
-                  <span className="text-xs text-gray-500 block">(target: 299μs)</span>
+                  <br />
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>(target: 299μs)</span>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <span className="text-blue-600 text-sm mr-2">📊</span>
-                  <span className="text-sm font-medium text-gray-700">Correlated Findings</span>
-                </div>
-                <span className="text-lg font-bold text-blue-600">{stats.correlatedFindings}</span>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.75rem',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px'
+              }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>
+                  📊 Correlated Findings
+                </span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#2563eb' }}>45</span>
               </div>
               
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <span className="text-green-600 text-sm mr-2">📈</span>
-                  <span className="text-sm font-medium text-gray-700">Noise Reduction</span>
-                </div>
-                <span className="text-lg font-bold text-green-600">35%</span>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.75rem',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px'
+              }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>
+                  📈 Noise Reduction
+                </span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#16a34a' }}>35%</span>
               </div>
             </div>
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center mb-6">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-orange-600 text-lg">🕒</span>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#fed7aa',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '0.75rem'
+              }}>
+                🕒
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                Recent Activity
+              </h3>
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 text-sm">🐛</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  backgroundColor: '#dcfce7',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem'
+                }}>
+                  🐛
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">SQL Injection fixed in user-service</p>
-                  <p className="text-sm text-gray-500">Critical vulnerability resolved</p>
-                  <p className="text-xs text-gray-400 mt-1">2h ago</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
+                    SQL Injection fixed in user-service
+                  </p>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>
+                    Critical vulnerability resolved
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>2h ago</p>
                 </div>
               </div>
               
-              <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50">
-                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <span className="text-yellow-600 text-sm">⚠️</span>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  backgroundColor: '#fef3c7',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem'
+                }}>
+                  ⚠️
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">XSS vulnerability correlated (3 findings)</p>
-                  <p className="text-sm text-gray-500">Similar issues found across services</p>
-                  <p className="text-xs text-gray-400 mt-1">4h ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 text-sm">✅</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">Policy decision: ALLOW deployment</p>
-                  <p className="text-sm text-gray-500">Security review completed</p>
-                  <p className="text-xs text-gray-400 mt-1">6h ago</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
+                    XSS vulnerability correlated (3 findings)
+                  </p>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>
+                    Similar issues found across services
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>4h ago</p>
                 </div>
               </div>
             </div>
@@ -157,22 +321,55 @@ function DeveloperDashboard() {
         </div>
 
         {/* AI Insights */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-6">
-          <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-blue-600 text-lg">🤖</span>
+        <div style={{
+          background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: '1px solid #3b82f6',
+          marginTop: '2rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '0.75rem'
+            }}>
+              🤖
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">AI-Powered Insights</h3>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+              AI-Powered Insights
+            </h3>
           </div>
           
-          <div className="bg-white rounded-lg p-4 border border-blue-100">
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '1rem',
+            borderRadius: '8px',
+            border: '1px solid rgba(59, 130, 246, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: '0.125rem'
+              }}>
+                <div style={{ width: '6px', height: '6px', backgroundColor: '#16a34a', borderRadius: '50%' }}></div>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-1">Correlation Engine Active</h4>
-                <p className="text-sm text-gray-600">
+                <h4 style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
+                  Correlation Engine Active
+                </h4>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
                   Automatically correlating security findings and reducing noise by 35%. 
                   Last analysis: 45 findings correlated into 12 actionable items.
                 </p>
