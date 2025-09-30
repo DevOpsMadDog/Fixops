@@ -1,11 +1,14 @@
 import axios from 'axios'
 import { toast } from 'react-hot-toast'
 
-// Resolve backend URL strictly from environment per platform rules
-// IMPORTANT: Per platform, use VITE_API_BASE_URL via import.meta.env (Vite requires VITE_ prefix)
-const BACKEND_BASE = (import.meta?.env?.VITE_API_BASE_URL || import.meta?.env?.REACT_APP_BACKEND_URL)
-if (!BACKEND_BASE) {
-  console.warn('Backend URL not set. Checked VITE_API_BASE_URL and REACT_APP_BACKEND_URL. Frontend API calls may fail.')
+// Resolve backend URL - use proxy in development, environment URL in production
+// IMPORTANT: In development, Vite proxy handles API calls to /api
+const BACKEND_BASE = import.meta?.env?.DEV 
+  ? '' // Use proxy in development (calls to /api will be proxied)
+  : (import.meta?.env?.VITE_API_BASE_URL || import.meta?.env?.REACT_APP_BACKEND_URL)
+
+if (!import.meta?.env?.DEV && !BACKEND_BASE) {
+  console.warn('Backend URL not set for production. Checked VITE_API_BASE_URL and REACT_APP_BACKEND_URL.')
 }
 
 // Create axios instance with enterprise configuration
