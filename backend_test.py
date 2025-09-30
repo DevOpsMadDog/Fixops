@@ -929,38 +929,54 @@ print('All engines imported successfully')
         return True
 
     def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting FixOps Enterprise Backend Testing...")
+        """Run all comprehensive FixOps Decision Engine tests"""
+        print("🚀 Starting FixOps Decision Engine Backend Testing...")
         print(f"Testing against: {self.base_url}")
+        print("=" * 80)
         
         # Test basic connectivity first
         if not self.test_health_endpoints():
             print("❌ Health endpoints failed - stopping tests")
             return False
         
-        # Run all test suites
+        # Run all test suites based on review request priorities
         test_suites = [
-            self.test_database_operations,
-            self.test_api_v1_structure,
-            self.test_enhanced_engines_integration,
-            self.test_correlation_engine,
-            self.test_policy_engine,
-            self.test_fix_engine,
-            self.test_llm_integration
+            # CRITICAL TESTING AREAS from review request
+            ("Decision Engine API", self.test_decision_engine_api),
+            ("Scan Upload API", self.test_scan_upload_api), 
+            ("Core Services", self.test_core_services),
+            ("CLI Integration", self.test_cli_functionality),
+            ("Database Operations", self.test_database_operations),
+            ("Authentication & Security", self.test_authentication_security),
+            ("LLM Integration", self.test_llm_integration)
         ]
         
-        for test_suite in test_suites:
+        for suite_name, test_suite in test_suites:
             try:
+                print(f"\n{'='*20} {suite_name} {'='*20}")
                 test_suite()
             except Exception as e:
-                print(f"❌ Test suite failed with error: {str(e)}")
+                print(f"❌ Test suite '{suite_name}' failed with error: {str(e)}")
+                self.failed_tests.append({'name': f'{suite_name} Suite', 'error': str(e)})
         
-        # Print final results
-        print(f"\n📊 Final Results:")
+        # Print comprehensive results
+        print(f"\n{'='*80}")
+        print(f"📊 COMPREHENSIVE TEST RESULTS:")
         print(f"Tests passed: {self.tests_passed}/{self.tests_run}")
         print(f"Success rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
         
-        return self.tests_passed == self.tests_run
+        if self.failed_tests:
+            print(f"\n❌ FAILED TESTS ({len(self.failed_tests)}):")
+            for i, failure in enumerate(self.failed_tests, 1):
+                print(f"   {i}. {failure['name']}")
+                if 'error' in failure:
+                    print(f"      Error: {failure['error']}")
+                if 'expected' in failure:
+                    print(f"      Expected: {failure['expected']}, Got: {failure['actual']}")
+        
+        print(f"\n{'='*80}")
+        
+        return len(self.failed_tests) == 0
 
 def main():
     tester = FixOpsAPITester()
