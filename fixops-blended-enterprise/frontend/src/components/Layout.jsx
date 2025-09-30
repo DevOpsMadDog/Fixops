@@ -35,7 +35,7 @@ function Layout({ children }) {
                 <Shield className="h-8 w-8 text-blue-600" />
                 <span className="ml-2 text-xl font-bold text-gray-900">FixOps Enterprise</span>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-4 lg:space-x-8">
                 {navigation.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.href
@@ -43,13 +43,13 @@ function Layout({ children }) {
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      className={`inline-flex items-center px-2 lg:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium whitespace-nowrap ${
                         isActive
                           ? 'border-blue-500 text-gray-900'
                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       }`}
                     >
-                      <Icon className="h-4 w-4 mr-2" />
+                      <Icon className="h-4 w-4 mr-1 lg:mr-2" />
                       {item.name}
                     </Link>
                   )
