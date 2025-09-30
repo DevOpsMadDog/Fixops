@@ -463,12 +463,18 @@ class DecisionEngine:
                 "sbom_criticality": consensus["component_scores"]["criticality_factor"]
             },
             "consensus_threshold_met": consensus["threshold_met"],
-            "immutable_hash": f"SHA256:a7b9c3d{int(time.time())[:6]}...",
-            "slsa_provenance": True
+            "slsa_provenance": True,
+            "user_id": "system"
         }
         
-        # Store in Evidence Lake (cache for demo)
-        await self.cache.set(f"evidence:{evidence_id}", evidence_record, ttl=86400)
+        # Store in Evidence Lake (persistent storage)
+        try:
+            from src.services.evidence_lake import EvidenceLake
+            await EvidenceLake.store_evidence(evidence_record)
+        except Exception as e:
+            logger.warning(f"Evidence Lake storage failed, using cache fallback: {str(e)}")
+            # Fallback to cache
+            await self.cache.set(f"evidence:{evidence_id}", evidence_record, ttl=86400)
         
         logger.info(
             "Evidence record generated",
