@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     REDIS_MAX_CONNECTIONS: int = Field(default=50)
     
     # Message Queue Configuration
-    RABBITMQ_URL: str = Field(default="amqp://localhost:5672")
+    RABBITMQ_URL: str = Field(default="memory://")
     CELERY_BROKER_URL: str = Field(default="redis://localhost:6379/1")
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/2")
     
