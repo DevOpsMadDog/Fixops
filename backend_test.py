@@ -166,23 +166,38 @@ class FixOpsAPITester:
         
         # Test policy check via CLI
         try:
+            env = os.environ.copy()
+            env['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
+            
             result = subprocess.run([
                 "python", "/app/fixops-blended-enterprise/src/cli/main.py", "policy-check",
                 "--severity", "high",
                 "--environment", "production",
-                "--data-classification", "internal"
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+                "--data-classification", "pci"
+            ], capture_output=True, text=True, timeout=30, 
+            cwd="/app/fixops-blended-enterprise", env=env)
             
             if result.returncode in [0, 1, 2]:  # Valid exit codes for policy decisions
                 print("✅ Policy engine CLI test passed")
                 try:
-                    cli_output = json.loads(result.stdout)
-                    decision = cli_output.get('policy_decision')
-                    confidence = cli_output.get('confidence')
-                    print(f"   Policy decision: {decision} (confidence: {confidence})")
-                    self.tests_passed += 1
-                except json.JSONDecodeError:
-                    print("⚠️  Policy CLI output not in JSON format")
+                    # Extract JSON from output (ignore log lines)
+                    lines = result.stdout.strip().split('\n')
+                    json_line = None
+                    for line in lines:
+                        if line.strip().startswith('{'):
+                            json_line = line
+                            break
+                    
+                    if json_line:
+                        cli_output = json.loads(json_line)
+                        decision = cli_output.get('policy_decision')
+                        confidence = cli_output.get('confidence')
+                        print(f"   Policy decision: {decision} (confidence: {confidence})")
+                        self.tests_passed += 1
+                    else:
+                        print("⚠️  No JSON output found in policy CLI response")
+                except json.JSONDecodeError as e:
+                    print(f"⚠️  Policy CLI output JSON parse error: {str(e)}")
             else:
                 print(f"❌ Policy engine CLI failed: {result.stderr}")
             
