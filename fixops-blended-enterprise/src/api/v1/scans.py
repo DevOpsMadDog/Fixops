@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import get_current_user
-from src.db.session import get_async_db
+from src.db.session import get_db
 from src.models.user import User
 from src.services.correlation_engine import CorrelationEngine
 from src.cli.main import FixOpsCLI
