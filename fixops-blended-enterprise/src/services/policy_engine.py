@@ -83,6 +83,35 @@ class PolicyEngine:
         self.cache = CacheService.get_instance()
         self._policy_cache = {}
         self._last_policy_refresh = None
+        # Initialize LLM for AI-powered policy insights
+        self.llm_chat = None
+        self._initialize_llm()
+        
+    def _initialize_llm(self):
+        """Initialize LLM for advanced policy analysis"""
+        try:
+            api_key = os.getenv('EMERGENT_LLM_KEY')
+            if api_key:
+                self.llm_chat = LlmChat(
+                    api_key=api_key,
+                    session_id="policy_engine_session",
+                    system_message="""You are an expert security policy analyst specialized in DevSecOps governance and compliance.
+                    Your role is to analyze security findings and provide:
+                    1. Policy recommendation based on risk assessment
+                    2. Compliance mapping (NIST SSDF, SOC2, PCI DSS)
+                    3. Business impact analysis
+                    4. Remediation prioritization guidance
+                    
+                    Always provide structured, compliance-focused analysis that helps organizations make informed security decisions."""
+                ).with_model("openai", "gpt-5")
+                
+                logger.info("LLM policy engine initialized successfully with gpt-5")
+            else:
+                logger.warning("No EMERGENT_LLM_KEY found, using rule-based policy evaluation only")
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize LLM: {str(e)}")
+            self.llm_chat = None
         
     async def evaluate_policy(self, context: PolicyContext) -> PolicyEvaluationResult:
         """
