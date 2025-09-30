@@ -225,21 +225,21 @@ class FixOpsAPITester:
 
     def run_all_tests(self):
         """Run all API tests"""
-        print("🚀 Starting FixOps API Testing...")
+        print("🚀 Starting FixOps Enterprise Backend Testing...")
         print(f"Testing against: {self.base_url}")
         
-        # Test basic connectivity
-        if not self.test_root_endpoint()[0]:
-            print("❌ Root endpoint failed - stopping tests")
+        # Test basic connectivity first
+        if not self.test_health_endpoints():
+            print("❌ Health endpoints failed - stopping tests")
             return False
         
         # Run all test suites
         test_suites = [
-            self.test_services_endpoints,
-            self.test_findings_endpoints,
-            self.test_cases_endpoints,
-            self.test_dashboard_endpoints,
-            self.test_policy_evaluation
+            self.test_api_v1_structure,
+            self.test_correlation_engine,
+            self.test_policy_engine,
+            self.test_fix_engine,
+            self.test_llm_integration
         ]
         
         for test_suite in test_suites:
