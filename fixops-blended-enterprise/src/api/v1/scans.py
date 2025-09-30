@@ -225,7 +225,7 @@ class ChunkedUploadCompleteRequest(BaseModel):
 async def upload_complete(request: ChunkedUploadCompleteRequest):
     """Assemble chunks and process the uploaded file."""
     start_time = time.perf_counter()
-    session_dir = UPLOAD_DIR / upload_id
+    session_dir = UPLOAD_DIR / request.upload_id
     if not session_dir.exists():
         raise HTTPException(status_code=400, detail='Invalid upload_id')
 
