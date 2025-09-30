@@ -218,21 +218,39 @@ class FixOpsAPITester:
         
         # Test fix generation via CLI
         try:
+            env = os.environ.copy()
+            env['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
+            
             result = subprocess.run([
                 "python", "/app/fixops-blended-enterprise/src/cli/main.py", "generate-fixes",
                 "--limit", "5",
                 "--min-confidence", "0.5"
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=30, 
+            cwd="/app/fixops-blended-enterprise", env=env)
             
             if result.returncode == 0:
                 print("✅ Fix engine CLI test passed")
                 try:
-                    cli_output = json.loads(result.stdout)
-                    fixes_count = cli_output.get('fixes_generated', 0)
-                    print(f"   Fixes generated: {fixes_count}")
-                    self.tests_passed += 1
-                except json.JSONDecodeError:
-                    print("⚠️  Fix engine CLI output not in JSON format")
+                    # Extract JSON from output (ignore log lines)
+                    lines = result.stdout.strip().split('\n')
+                    json_line = None
+                    for line in lines:
+                        if line.strip().startswith('{'):
+                            json_line = line
+                            break
+                    
+                    if json_line:
+                        cli_output = json.loads(json_line)
+                        fixes_count = cli_output.get('fixes_generated', 0)
+                        message = cli_output.get('message', '')
+                        print(f"   Fixes generated: {fixes_count}")
+                        if message:
+                            print(f"   Message: {message}")
+                        self.tests_passed += 1
+                    else:
+                        print("⚠️  No JSON output found in fix engine CLI response")
+                except json.JSONDecodeError as e:
+                    print(f"⚠️  Fix engine CLI output JSON parse error: {str(e)}")
             else:
                 print(f"❌ Fix engine CLI failed: {result.stderr}")
             
