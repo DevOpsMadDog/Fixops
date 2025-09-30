@@ -23,6 +23,13 @@ export const AuthProvider = ({ children }) => {
   const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true' || 
                      import.meta.env.REACT_APP_BYPASS_AUTH === 'true'
 
+  // Debug environment variables
+  console.log('Environment variables:', {
+    VITE_BYPASS_AUTH: import.meta.env.VITE_BYPASS_AUTH,
+    REACT_APP_BYPASS_AUTH: import.meta.env.REACT_APP_BYPASS_AUTH,
+    bypassAuth
+  })
+
   // Check for existing token on mount
   useEffect(() => {
     if (bypassAuth) {
