@@ -233,7 +233,8 @@ export const AuthProvider = ({ children }) => {
     updateUser,
     hasRole,
     hasPermission,
-    checkAuthStatus
+    checkAuthStatus,
+    bypassAuth
   }
 
   return (
