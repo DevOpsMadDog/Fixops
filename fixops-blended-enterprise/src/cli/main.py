@@ -620,28 +620,30 @@ def create_parser():
     """Create argument parser for CLI"""
     parser = argparse.ArgumentParser(
         description="FixOps Enterprise CLI - Decision & Verification Engine (NOT Fix Engine)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Make security decision for CI/CD pipeline
+  # Make security decision for CI/CD pipeline (Demo Mode)
   fixops make-decision --service-name payment-service --environment production --scan-file sarif-results.json
 
-  # Ingest security scan results  
-  fixops ingest --scan-file results.sarif --format sarif --service-name my-service
+  # Production mode with real integrations
+  fixops make-decision --service-name payment-service --production-mode --scan-file sarif-results.json
 
-  # Check policy compliance
-  fixops policy-check --service-name my-service --environment production
+  # Toggle to production mode for real data
+  export FIXOPS_DEMO_MODE=false
 
   # Get evidence record
   fixops get-evidence --evidence-id EVD-2024-0847
 
-  # System health check
-  fixops health
-
-  ⚠️  IMPORTANT: FixOps is a DECISION ENGINE, not a fix engine.
-  It makes ALLOW/BLOCK/DEFER decisions with confidence scores.
-        """
+  ⚠️  MODES:
+  🎭 DEMO MODE (default): Uses simulated data for showcase/testing
+  🏭 PRODUCTION MODE: Uses real Jira/Confluence/Vector DB integrations
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    
+    # Global demo mode flag
+    parser.add_argument("--demo-mode", action="store_true", help="Force demo mode (simulated data)")
+    parser.add_argument("--production-mode", action="store_true", help="Force production mode (real integrations)")
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
