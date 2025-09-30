@@ -1,17 +1,28 @@
 import React from 'react'
-import { Loader2 } from 'lucide-react'
 
 function LoadingSpinner({ size = 'md', className = '' }) {
   const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
-    xl: 'h-12 w-12'
+    sm: 'w-4 h-4',
+    md: 'w-8 h-8', 
+    lg: 'w-12 h-12'
   }
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600`} />
+    <div 
+      className={`${sizeClasses[size]} ${className}`}
+      style={{
+        border: '3px solid #f3f4f6',
+        borderTop: '3px solid #2563eb',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }}
+    >
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }
