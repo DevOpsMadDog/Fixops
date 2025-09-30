@@ -25,8 +25,26 @@ class Settings(BaseSettings):
     CONNECTION_POOL_OVERFLOW: int = 30
     CACHE_TTL_SECONDS: int = 300
     
-    # Security Configuration
-    SECRET_KEY: str = Field(default="fixops_enterprise_secret_key_change_in_production")
+    # FixOps Operation Mode
+    DEMO_MODE: bool = Field(default=True, description="Enable demo mode with simulated data")
+    
+    # Demo Mode Configuration
+    DEMO_VECTOR_DB_PATTERNS: int = Field(default=2847)
+    DEMO_GOLDEN_REGRESSION_CASES: int = Field(default=1247)
+    DEMO_BUSINESS_CONTEXTS: int = Field(default=342)
+    
+    # Real Integration Settings (used when DEMO_MODE=False)
+    JIRA_URL: Optional[str] = Field(default=None)
+    JIRA_USERNAME: Optional[str] = Field(default=None) 
+    JIRA_API_TOKEN: Optional[str] = Field(default=None)
+    CONFLUENCE_URL: Optional[str] = Field(default=None)
+    CONFLUENCE_USERNAME: Optional[str] = Field(default=None)
+    CONFLUENCE_API_TOKEN: Optional[str] = Field(default=None)
+    
+    # Real Vector DB Settings
+    VECTOR_DB_URL: Optional[str] = Field(default=None)
+    SECURITY_PATTERNS_DB_URL: Optional[str] = Field(default=None)
+    THREAT_INTEL_API_KEY: Optional[str] = Field(default=None)
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
