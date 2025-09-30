@@ -60,7 +60,7 @@ class UserBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100, description="First name")
     last_name: str = Field(..., min_length=1, max_length=100, description="Last name")
     username: Optional[str] = Field(None, min_length=3, max_length=50, description="Username")
-    phone: Optional[str] = Field(None, regex=r"^\+?[1-9]\d{1,14}$", description="Phone number")
+    phone: Optional[str] = Field(None, pattern=r"^\+?[1-9]\d{1,14}$", description="Phone number")
     department: Optional[str] = Field(None, max_length=100, description="Department")
     job_title: Optional[str] = Field(None, max_length=100, description="Job title")
 
