@@ -125,16 +125,25 @@ class FixOpsAPITester:
             if result.returncode == 0:
                 print("✅ CLI health check passed")
                 try:
-                    # Extract JSON from output (ignore log lines)
-                    lines = result.stdout.strip().split('\n')
-                    json_line = None
-                    for line in lines:
-                        if line.strip().startswith('{'):
-                            json_line = line
-                            break
-                    
-                    if json_line:
-                        cli_output = json.loads(json_line)
+                    # Find JSON block in output
+                    output = result.stdout
+                    start_idx = output.find('{')
+                    if start_idx != -1:
+                        # Find the matching closing brace
+                        brace_count = 0
+                        end_idx = start_idx
+                        for i, char in enumerate(output[start_idx:], start_idx):
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    end_idx = i + 1
+                                    break
+                        
+                        json_str = output[start_idx:end_idx]
+                        cli_output = json.loads(json_str)
+                        
                         if cli_output.get('status') == 'healthy':
                             print("✅ Correlation engine health: OK")
                             correlation_stats = cli_output.get('health_checks', {}).get('correlation_engine', {})
