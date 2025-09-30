@@ -20,6 +20,7 @@ function App() {
         <Route path="/ciso" element={<CISODashboard />} />
         <Route path="/architect" element={<ArchitectDashboard />} />
         <Route path="/upload" element={<ScanUploadPage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/incidents" element={<IncidentsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/services" element={<ServiceManagement />} />
