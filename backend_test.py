@@ -42,7 +42,7 @@ class FixOpsAPITester:
                 print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
                 print(f"   Response: {response.text[:200]}...")
 
-            return success, response.json() if response.status_code < 400 else {}
+            return success, response.json() if response.status_code < 400 and 'application/json' in response.headers.get('content-type', '') else {}
 
         except requests.exceptions.Timeout:
             print(f"❌ Failed - Request timeout")
