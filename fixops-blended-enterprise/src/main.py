@@ -69,6 +69,11 @@ async def lifespan(app: FastAPI):
     await decision_engine.initialize()
     logger.info("✅ Decision & Verification Engine ready")
     
+    # Initialize Enhanced Multi-LLM Engine
+    from src.services.enhanced_decision_engine import enhanced_decision_engine
+    await enhanced_decision_engine.initialize()
+    logger.info("✅ Enhanced Multi-LLM Decision Engine ready")
+    
     # Initialize Marketplace
     from src.services.marketplace import marketplace
     await marketplace.initialize()
