@@ -177,11 +177,11 @@ async def upload_init(request: ChunkedUploadInitRequest):
         session_dir.mkdir(parents=True, exist_ok=True)
         meta = {
             'upload_id': upload_id,
-            'file_name': file_name,
-            'total_size': total_size,
-            'scan_type': scan_type,
-            'service_name': service_name,
-            'environment': environment,
+            'file_name': request.file_name,
+            'total_size': request.total_size,
+            'scan_type': request.scan_type,
+            'service_name': request.service_name,
+            'environment': request.environment,
             'created_at': time.time(),
             'chunks': 0
         }
