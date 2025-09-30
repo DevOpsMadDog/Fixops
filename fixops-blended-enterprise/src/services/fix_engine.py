@@ -1,8 +1,9 @@
 """
-FixOps Fix Engine - Automated remediation and pull request generation
-Performance-optimized automated security fix suggestions and implementation
+FixOps Fix Engine - AI-powered automated remediation and pull request generation
+Performance-optimized automated security fix suggestions with GPT-5 intelligence
 """
 
+import os
 import asyncio
 import time
 import json
@@ -13,9 +14,15 @@ from datetime import datetime
 from enum import Enum
 import structlog
 
+from dotenv import load_dotenv
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
 from src.models.security import SecurityFinding, Service
 from src.services.cache_service import CacheService
 from src.utils.logger import PerformanceLogger
+
+# Load environment variables
+load_dotenv()
 
 logger = structlog.get_logger()
 
