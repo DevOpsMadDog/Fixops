@@ -13,7 +13,6 @@ from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
 from dataclasses import dataclass, asdict
 import structlog
-from emergentintegrations import EmergentIntegrations
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
