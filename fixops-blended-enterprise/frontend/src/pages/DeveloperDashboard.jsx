@@ -37,7 +37,7 @@ function DeveloperDashboard() {
       // Fallback to static data
       setMetrics({
         total_decisions: 234,
-        pending_review: {metrics?.pending_review || 18},
+        pending_review: 18,
         high_confidence_rate: 0.87,
         context_enrichment_rate: 0.95
       })
