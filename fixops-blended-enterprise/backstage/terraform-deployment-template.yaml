@@ -1,0 +1,231 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fixops-terraform-deployment
+  title: FixOps Terraform Deployment
+  description: Deploy FixOps Decision Engine via Terraform from Backstage
+  annotations:
+    backstage.io/managed-by-location: url:https://git.bank.internal/platform/backstage-templates
+  tags:
+    - terraform
+    - kubernetes
+    - security
+    - devsecops
+spec:
+  owner: platform-engineering
+  type: infrastructure
+  
+  parameters:
+    - title: Infrastructure Configuration
+      required:
+        - name
+        - environment
+        - cluster
+      properties:
+        name:
+          title: Deployment Name
+          type: string
+          description: Unique name for this FixOps deployment
+          default: fixops-decision-engine
+        environment:
+          title: Environment
+          type: string
+          enum: [development, staging, production]
+          description: Target deployment environment
+        cluster:
+          title: Kubernetes Cluster
+          type: string
+          enum: [bank-dev-cluster, bank-staging-cluster, bank-prod-cluster]
+          description: Target bank cluster
+        namespace:
+          title: Kubernetes Namespace
+          type: string
+          default: fixops
+          description: K8s namespace (will be created if not exists)
+          
+    - title: FixOps Configuration
+      properties:
+        backend_replicas:
+          title: Backend Replicas
+          type: integer
+          default: 3
+          minimum: 1
+          maximum: 10
+          description: Number of backend replicas for HA
+        storage_size:
+          title: Evidence Lake Storage
+          type: string
+          default: 10Gi
+          enum: [10Gi, 50Gi, 100Gi, 500Gi]
+          description: Persistent storage size for audit data
+        enable_ui:
+          title: Enable Frontend UI
+          type: boolean
+          default: true
+          description: Deploy frontend UI for security team access
+        demo_mode:
+          title: Demo Mode
+          type: boolean
+          default: false
+          description: Use simulated data (demo) or real integrations
+
+  steps:
+    - id: create-repo
+      name: Create Repository
+      action: publish:github
+      input:
+        repoUrl: git.bank.internal?owner=platform&repo=fixops-${{ parameters.name }}
+        description: FixOps ${{ parameters.name }} deployment via Backstage
+        visibility: internal
+        defaultBranch: main
+        
+    - id: fetch-terraform
+      name: Generate Terraform Configuration  
+      action: fetch:template
+      input:
+        url: https://git.bank.internal/platform/fixops-terraform-modules
+        targetPath: ./terraform
+        values:
+          name: ${{ parameters.name }}
+          environment: ${{ parameters.environment }}
+          cluster: ${{ parameters.cluster }}
+          namespace: ${{ parameters.namespace }}
+          backend_replicas: ${{ parameters.backend_replicas }}
+          storage_size: ${{ parameters.storage_size }}
+          enable_ui: ${{ parameters.enable_ui }}
+          demo_mode: ${{ parameters.demo_mode }}
+
+    - id: terraform-plan
+      name: Terraform Plan
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./terraform-plan.sh
+        content: |
+          #!/bin/bash
+          set -e
+          
+          echo \"🔧 Terraform Planning for FixOps ${{ parameters.name }}\"
+          
+          cd terraform/
+          
+          # Initialize
+          terraform init -backend-config=\"key=fixops/${{ parameters.environment }}/${{ parameters.name }}/terraform.tfstate\"
+          
+          # Plan
+          terraform plan \\
+            -var=\"environment=${{ parameters.environment }}\" \\
+            -var=\"namespace=${{ parameters.namespace }}\" \\
+            -var=\"emergent_llm_key=$EMERGENT_LLM_KEY\" \\
+            -var=\"mongodb_password=$MONGODB_PASSWORD\" \\
+            -var=\"redis_password=$REDIS_PASSWORD\" \\
+            -var=\"replicas=${{ parameters.backend_replicas }}\" \\
+            -var=\"storage_size=${{ parameters.storage_size }}\" \\
+            -out=fixops.plan
+            
+          echo \"📋 Terraform plan completed successfully\"
+
+    - id: terraform-apply  
+      name: Terraform Apply
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./terraform-apply.sh
+        content: |
+          #!/bin/bash
+          set -e
+          
+          echo \"🚀 Deploying FixOps ${{ parameters.name }} via Terraform\"
+          
+          cd terraform/
+          
+          # Apply the plan
+          terraform apply -auto-approve fixops.plan
+          
+          echo \"✅ FixOps infrastructure deployed successfully\"
+          echo \"\"
+          echo \"🌐 Access Information:\"
+          terraform output
+          
+          # Wait for pods to be ready
+          echo \"\"
+          echo \"⏳ Waiting for pods to be ready...\"
+          kubectl wait --for=condition=ready pod -l app=fixops-backend -n ${{ parameters.namespace }} --timeout=300s
+          
+          {% if parameters.enable_ui %}
+          kubectl wait --for=condition=ready pod -l app=fixops-frontend -n ${{ parameters.namespace }} --timeout=180s
+          {% endif %}
+          
+          echo \"✅ All pods are ready\"
+          
+          # Health check
+          API_URL=$(terraform output -raw fixops_api_url)
+          curl -f \"$API_URL/health\" || {
+            echo \"❌ Health check failed\"
+            exit 1
+          }
+          
+          echo \"✅ FixOps is healthy and ready for CI/CD integration\"
+
+    - id: create-backstage-catalog
+      name: Create Backstage Catalog Entry
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./catalog-info.yaml
+        content: |
+          apiVersion: backstage.io/v1alpha1
+          kind: Component
+          metadata:
+            name: ${{ parameters.name }}
+            title: FixOps ${{ parameters.environment | title }} 
+            description: FixOps Decision Engine deployed via Backstage + Terraform
+            annotations:
+              backstage.io/managed-by-location: url:${{ steps.create-repo.output.remoteUrl }}
+              backstage.io/techdocs-ref: dir:.
+              fixops.io/api-url: https://fixops-api.bank.internal
+              fixops.io/ui-url: https://fixops.bank.internal
+              kubernetes.io/namespace: ${{ parameters.namespace }}
+              terraform.io/state-url: s3://bank-terraform-state/fixops/${{ parameters.environment }}/${{ parameters.name }}/terraform.tfstate
+            tags:
+              - security
+              - devsecops
+              - ${{ parameters.environment }}
+              - terraform-managed
+            links:
+              - url: https://fixops.bank.internal
+                title: FixOps Dashboard
+                icon: web
+              - url: https://fixops-api.bank.internal/docs
+                title: API Documentation
+                icon: docs
+          spec:
+            type: service
+            lifecycle: ${{ parameters.environment }}
+            owner: platform-engineering
+            system: security-platform
+            providesApis:
+              - fixops-decision-api
+              - fixops-cicd-api
+
+    - id: register-catalog
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.create-repo.output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: FixOps Repository
+        url: ${{ steps.create-repo.output.remoteUrl }}
+      - title: Terraform State
+        url: https://terraform-console.bank.internal/states/fixops-${{ parameters.environment }}-${{ parameters.name }}
+      - title: FixOps API
+        url: https://fixops-api.bank.internal
+      - title: FixOps Dashboard  
+        url: https://fixops.bank.internal
+      - title: Kubernetes Workloads
+        url: https://k8s-dashboard.bank.internal/#!/workloads?namespace=${{ parameters.namespace }}
+      - title: Monitoring Dashboard
+        url: https://grafana.bank.internal/d/fixops-${{ parameters.name }}
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps.register-catalog.output.entityRef }}
