@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.settings import get_settings
 from src.core.security import PasswordManager, JWTManager, MFAManager, SecurityManager
 from src.db.session import DatabaseManager
-from src.models.user import User, UserSession, UserAuditLog, UserStatus
+from src.models.user_sqlite import User, UserSession, UserAuditLog, UserStatus
 from src.services.cache_service import CacheService
 from src.utils.crypto import generate_secure_token
 
