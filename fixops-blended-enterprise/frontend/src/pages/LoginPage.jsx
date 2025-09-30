@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Shield, Eye, EyeOff, AlertCircle, Info } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 function LoginPage() {
-  const { login, isLoading } = useAuth()
+  const { login, isLoading, bypassAuth } = useAuth()
   const [formData, setFormData] = useState({
     email: 'admin@fixops.dev',
     password: 'admin123'
@@ -33,6 +33,22 @@ function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {bypassAuth && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+            <div className="flex">
+              <Info className="h-5 w-5 text-blue-400" />
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-blue-800">
+                  Demo Mode Enabled
+                </h4>
+                <p className="text-sm text-blue-700 mt-1">
+                  Authentication is bypassed. Click "Sign in" to access the platform directly.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div>
           <div className="mx-auto h-12 w-12 flex items-center justify-center">
             <Shield className="h-12 w-12 text-blue-600" />
@@ -46,7 +62,7 @@ function LoginPage() {
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
+          {error && !bypassAuth && (
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <div className="flex">
                 <AlertCircle className="h-5 w-5 text-red-400" />
@@ -112,13 +128,13 @@ function LoginPage() {
               {isLoading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : null}
-              Sign in
+              {bypassAuth ? 'Enter Platform (Demo Mode)' : 'Sign in'}
             </button>
           </div>
           
           <div className="text-center text-xs text-gray-500 space-y-1">
-            <p>Demo Credentials:</p>
-            <p>Email: admin@fixops.dev | Password: admin123</p>
+            <p>{bypassAuth ? 'Demo Mode - No Authentication Required' : 'Demo Credentials:'}</p>
+            {!bypassAuth && <p>Email: admin@fixops.dev | Password: admin123</p>}
           </div>
         </form>
       </div>
