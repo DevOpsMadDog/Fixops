@@ -59,8 +59,8 @@ class Settings(BaseSettings):
     DATABASE_MAX_OVERFLOW: int = Field(default=20)
     DATABASE_POOL_TIMEOUT: int = Field(default=30)
     
-    # Cache Configuration (using in-memory fallback)
-    REDIS_URL: str = Field(default="memory://")
+    # Cache Configuration (Redis for production)
+    REDIS_URL: str = Field(default=os.getenv("REDIS_URL", "redis://redis:6379/0"))
     REDIS_MAX_CONNECTIONS: int = Field(default=50)
     
     # Message Queue (using in-memory fallback)
