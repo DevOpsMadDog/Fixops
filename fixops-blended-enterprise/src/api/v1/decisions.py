@@ -68,9 +68,7 @@ async def make_security_decision(
         raise HTTPException(status_code=500, detail=f"Decision engine error: {str(e)}")
 
 @router.get("/metrics")
-async def get_decision_metrics(
-    current_user: Dict = Depends(get_current_user)
-):
+async def get_decision_metrics():
     """Get decision engine performance metrics and status"""
     try:
         metrics = await decision_engine.get_decision_metrics()
