@@ -202,8 +202,22 @@ class CacheService:
     async def exists(self, key: str) -> bool:
         """Check if key exists in cache"""
         try:
-            result = await self._redis_client.exists(key)
-            return result > 0
+            if self._redis_client:
+                result = await self._redis_client.exists(key)
+                return result > 0
+            else:
+                # In-memory cache fallback
+                if key not in self.__class__._in_memory_cache:
+                    return False
+                
+                # Check if expired
+                import time
+                cache_item = self.__class__._in_memory_cache[key]
+                if cache_item.get('expires_at') and time.time() > cache_item['expires_at']:
+                    del self.__class__._in_memory_cache[key]
+                    return False
+                
+                return True
         except Exception as e:
             logger.error(f"Cache exists error for key {key}: {str(e)}")
             return False
