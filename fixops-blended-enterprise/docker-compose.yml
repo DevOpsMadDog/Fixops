@@ -21,19 +21,6 @@ services:
     networks:
       - fixops-network
 
-  # Redis for caching
-  redis:
-    image: redis:7.2-alpine
-    container_name: fixops-redis
-    restart: unless-stopped
-    command: redis-server --requirepass fixops-dev-password
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - fixops-network
-
   # FixOps Backend
   fixops-backend:
     build:
@@ -45,15 +32,15 @@ services:
       - "8001:8001"
     environment:
       - MONGO_URL=mongodb://fixops:fixops-dev-password@mongodb:27017/fixops_production?authSource=admin
-      - REDIS_URL=redis://:fixops-dev-password@redis:6379/0
-      - SECRET_KEY=fixops-dev-secret-key-change-in-production
+      - REDIS_URL=memory://
+      - SECRET_KEY=${SECRET_KEY:-fixops-dev-secret-key}
       - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY}
       - FIXOPS_ENVIRONMENT=development
       - FIXOPS_LOG_LEVEL=debug
       - FIXOPS_DEMO_MODE=false
+      - FIXOPS_AUTH_DISABLED=true
     depends_on:
       - mongodb
-      - redis
     networks:
       - fixops-network
     healthcheck:
