@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(default="memory://")
     REDIS_MAX_CONNECTIONS: int = Field(default=50)
     
-    # Message Queue Configuration
+    # Message Queue (using in-memory fallback)
     RABBITMQ_URL: str = Field(default="memory://")
     CELERY_BROKER_URL: str = Field(default="redis://localhost:6379/1")
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/2")
