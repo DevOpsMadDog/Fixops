@@ -20,7 +20,7 @@ import structlog
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
-from src.models.user import User
+from src.models.user_sqlite import User
 from src.utils.crypto import generate_secure_token
 
 logger = structlog.get_logger()
