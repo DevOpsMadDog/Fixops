@@ -681,19 +681,23 @@ Examples:
     policy_parser.add_argument("--business-impact", help="Business impact description")
     policy_parser.add_argument("--output-file", help="Output file for results")
     
-    # Generate fixes command
-    fixes_parser = subparsers.add_parser("generate-fixes", help="Generate automated fix suggestions")
-    fixes_parser.add_argument("--service-id", help="Service ID")
-    fixes_parser.add_argument("--severity-filter", nargs="+", choices=["critical", "high", "medium", "low"], help="Severity filter")
-    fixes_parser.add_argument("--scanner-type-filter", choices=["sast", "sca", "dast", "iast", "iac"], help="Scanner type filter")
-    fixes_parser.add_argument("--limit", type=int, default=100, help="Limit number of findings")
-    fixes_parser.add_argument("--min-confidence", type=float, default=0.5, help="Minimum confidence threshold")
-    fixes_parser.add_argument("--generate-pr", action="store_true", help="Generate PR patches")
-    fixes_parser.add_argument("--output-dir", help="Output directory for PR patches")
-    fixes_parser.add_argument("--output-file", help="Output file for results")
+    # Decision engine command
+    decision_parser = subparsers.add_parser("make-decision", help="Make security decision for CI/CD pipeline")
+    decision_parser.add_argument("--service-name", required=True, help="Service name")
+    decision_parser.add_argument("--environment", default="production", choices=["production", "staging", "development"], help="Environment")
+    decision_parser.add_argument("--scan-file", help="Security scan results file")
+    decision_parser.add_argument("--context-file", help="Business context JSON file") 
+    decision_parser.add_argument("--sbom-file", help="SBOM file for criticality assessment")
+    decision_parser.add_argument("--confidence-threshold", type=float, default=0.85, help="Confidence threshold (default: 85%)")
+    decision_parser.add_argument("--output-file", help="Output file for decision results")
     
-    # Correlation command
-    corr_parser = subparsers.add_parser("correlate", help="Analyze finding correlations")
+    # Evidence lookup command  
+    evidence_parser = subparsers.add_parser("get-evidence", help="Retrieve evidence record")
+    evidence_parser.add_argument("--evidence-id", required=True, help="Evidence ID")
+    evidence_parser.add_argument("--output-file", help="Output file for evidence")
+    
+    # Correlation command (updated for decision context)
+    corr_parser = subparsers.add_parser("correlate", help="Analyze finding correlations for decision context")
     corr_parser.add_argument("--service-id", help="Service ID")
     corr_parser.add_argument("--time-window-hours", type=int, default=24, help="Time window in hours")
     corr_parser.add_argument("--severity-filter", nargs="+", choices=["critical", "high", "medium", "low"], help="Severity filter")
