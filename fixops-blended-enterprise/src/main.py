@@ -178,13 +178,13 @@ async def performance_tracking(request: Request, call_next):
     duration = time.perf_counter() - start_time
     
     # Record metrics
-    REQUEST_COUNT.labels(
-        method=request.method,
-        endpoint=request.url.path,
-        status=response.status_code
-    ).inc()
+    # REQUEST_COUNT.labels(
+    #     method=request.method,
+    #     endpoint=request.url.path,
+    #     status=response.status_code
+    # ).inc()
     
-    REQUEST_DURATION.labels(endpoint=request.url.path).observe(duration)
+    # REQUEST_DURATION.labels(endpoint=request.url.path).observe(duration)
     
     # Add performance headers
     response.headers["X-Process-Time"] = str(duration)
