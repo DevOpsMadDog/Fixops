@@ -10,13 +10,13 @@ export default defineConfig({
       'localhost',
       '127.0.0.1',
       '.emergentagent.com',
-      'fixops-devsec.preview.emergentagent.com',
+      '23a7d3bc-46c6-4797-8abc-4b7e891f1908.preview.emergentagent.com',
       'all'
     ],
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://10.219.17.45:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         secure: false,
         configure: (proxy, _options) => {
