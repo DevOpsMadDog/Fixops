@@ -17,12 +17,12 @@ function Layout({ children }) {
   const location = useLocation()
 
   const navigation = [
-    { name: 'Developer Dashboard', href: '/developer', icon: Home },
-    { name: 'CISO Dashboard', href: '/ciso', icon: Shield },
-    { name: 'Architect Dashboard', href: '/architect', icon: Activity },
-    { name: 'Incidents', href: '/incidents', icon: AlertTriangle },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Services', href: '/services', icon: Settings },
+    { name: 'Developer', href: '/developer', icon: Home, fullName: 'Developer Dashboard' },
+    { name: 'CISO', href: '/ciso', icon: Shield, fullName: 'CISO Dashboard' },
+    { name: 'Architect', href: '/architect', icon: Activity, fullName: 'Architect Dashboard' },
+    { name: 'Incidents', href: '/incidents', icon: AlertTriangle, fullName: 'Incidents' },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3, fullName: 'Analytics' },
+    { name: 'Services', href: '/services', icon: Settings, fullName: 'Services' },
   ]
 
   return (
