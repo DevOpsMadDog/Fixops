@@ -24,7 +24,7 @@ async def create_minimal_tables():
         # Create minimal tables that the CLI health check needs
         async with DatabaseManager._engine.begin() as conn:
             # Create policy_decision_logs table (needed by CLI health check)
-            await conn.execute("""
+            await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS policy_decision_logs (
                     id TEXT PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -42,10 +42,10 @@ async def create_minimal_tables():
                     execution_time_ms REAL NOT NULL,
                     policy_version TEXT
                 )
-            """)
+            """))
             
             # Create policy_rules table
-            await conn.execute("""
+            await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS policy_rules (
                     id TEXT PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -66,10 +66,10 @@ async def create_minimal_tables():
                     default_decision TEXT NOT NULL,
                     escalation_threshold INTEGER
                 )
-            """)
+            """))
             
             # Create finding_correlations table
-            await conn.execute("""
+            await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS finding_correlations (
                     id TEXT PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,10 +83,10 @@ async def create_minimal_tables():
                     confidence_score REAL NOT NULL,
                     correlation_reason TEXT NOT NULL
                 )
-            """)
+            """))
             
             # Create security_findings table
-            await conn.execute("""
+            await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS security_findings (
                     id TEXT PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -106,10 +106,10 @@ async def create_minimal_tables():
                     first_seen TIMESTAMP NOT NULL,
                     last_seen TIMESTAMP NOT NULL
                 )
-            """)
+            """))
             
             # Create services table
-            await conn.execute("""
+            await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS services (
                     id TEXT PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -127,7 +127,7 @@ async def create_minimal_tables():
                     internet_facing BOOLEAN DEFAULT 0,
                     pci_scope BOOLEAN DEFAULT 0
                 )
-            """)
+            """))
         
         print("✅ Minimal database tables created successfully!")
         
