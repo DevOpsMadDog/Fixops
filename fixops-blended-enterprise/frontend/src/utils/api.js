@@ -3,17 +3,11 @@ import { toast } from 'react-hot-toast'
 
 // Resolve backend URL - use proxy in development, environment URL in production
 // IMPORTANT: In development, Vite proxy handles API calls to /api
-const BACKEND_BASE = import.meta?.env?.DEV 
-  ? '' // Use proxy in development (calls to /api will be proxied)
-  : (import.meta?.env?.VITE_API_BASE_URL || import.meta?.env?.REACT_APP_BACKEND_URL)
-
-if (!import.meta?.env?.DEV && !BACKEND_BASE) {
-  console.warn('Backend URL not set for production. Checked VITE_API_BASE_URL and REACT_APP_BACKEND_URL.')
-}
+const BACKEND_BASE = (import.meta?.env?.REACT_APP_BACKEND_URL)
 
 // Create axios instance with enterprise configuration
 const api = axios.create({
-  baseURL: `${BACKEND_BASE}/api/v1`,
+  baseURL: BACKEND_BASE ? `${BACKEND_BASE}/api/v1` : '/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
