@@ -101,7 +101,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
     # Performance optimizations
-    generate_unique_id_function=lambda route: f"fixops_{route.tags[0]}_{route.name}",
+    generate_unique_id_function=lambda route: f"fixops_{route.tags[0] if route.tags else 'api'}_{route.name}",
     swagger_ui_parameters={"syntaxHighlight": False},  # Reduce UI overhead
     redoc_url=None if settings.ENVIRONMENT == "production" else "/redoc"  # Disable in prod
 )
