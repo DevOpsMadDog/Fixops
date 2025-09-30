@@ -77,8 +77,6 @@ services:
 volumes:
   mongodb_data:
     driver: local
-  redis_data:
-    driver: local
 
 networks:
   fixops-network:
