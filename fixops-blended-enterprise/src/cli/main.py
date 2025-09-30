@@ -729,8 +729,10 @@ async def main():
             result = await cli.ingest_scan_results(args)
         elif args.command == "policy-check":
             result = await cli.policy_check(args)
-        elif args.command == "generate-fixes":
-            result = await cli.generate_fixes(args)
+        elif args.command == "make-decision":
+            result = await cli.make_decision(args)
+        elif args.command == "get-evidence":
+            result = await cli.get_evidence(args)
         elif args.command == "correlate":
             result = await cli.correlation_analysis(args)
         elif args.command == "health":
