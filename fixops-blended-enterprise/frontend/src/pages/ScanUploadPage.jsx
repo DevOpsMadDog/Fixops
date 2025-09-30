@@ -188,10 +188,10 @@ function ScanUploadPage() {
               Service Name *
             </label>
             <input
-              type=\"text\"
+              type="text"
               value={uploadState.serviceName}
               onChange={(e) => setUploadState(prev => ({ ...prev, serviceName: e.target.value, error: null }))}
-              placeholder=\"e.g., payment-service, user-auth, api-gateway\"
+              placeholder="e.g., payment-service, user-auth, api-gateway"
               style={{
                 width: '100%',
                 padding: '1rem',
