@@ -100,8 +100,18 @@ class Settings(BaseSettings):
     ENCRYPT_SENSITIVE_DATA: bool = Field(default=True)
     REQUIRE_MFA: bool = Field(default=False)
     
-    # AI/LLM Configuration
+    # LLM Integration - Multiple Providers
     EMERGENT_LLM_KEY: Optional[str] = Field(default=None)
+    OPENAI_API_KEY: Optional[str] = Field(default=None)
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None)
+    GOOGLE_API_KEY: Optional[str] = Field(default=None)
+    CYBER_LLM_API_KEY: Optional[str] = Field(default=None)
+    
+    # LLM Configuration
+    LLM_TIMEOUT_SECONDS: int = Field(default=30)
+    LLM_MAX_RETRIES: int = Field(default=3)
+    LLM_CONSENSUS_THRESHOLD: float = Field(default=0.75)
+    ENABLE_MULTI_LLM: bool = Field(default=True)
     
     @field_validator("CORS_ORIGINS", "ALLOWED_HOSTS", mode="before")
     @classmethod
