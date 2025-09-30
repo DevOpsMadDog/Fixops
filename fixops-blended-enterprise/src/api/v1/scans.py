@@ -5,6 +5,7 @@ Handles SARIF, SBOM, IBOM, CSV, JSON security scan files
 
 import json
 import io
+import time
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
