@@ -107,7 +107,7 @@ async def upload_scan_file(
             logger.info(
                 "Scan file processed successfully",
                 extra={
-                    "user_id": current_user.id,
+                    "user_id": "system",
                     "filename": file.filename,
                     "scan_type": scan_type,
                     "service_name": service_name,
