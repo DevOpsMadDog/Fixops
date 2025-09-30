@@ -427,45 +427,65 @@ class DecisionEngine:
         }
 
     async def _real_llm_enrichment(self, context: DecisionContext, base_context: Dict) -> Dict[str, Any]:
-        """Real LLM-based context enrichment"""
+        """Real LLM-based context enrichment using Emergent LLM"""
         if not self.emergent_client:
-            return {}
+            return {"sources": ["No LLM Available"]}
             
         try:
             prompt = f"""
-            PRODUCTION Security Decision Context Analysis:
+            Security Decision Context Analysis for CI/CD Pipeline:
+            
             Service: {context.service_name}
             Environment: {context.environment}
-            Security Findings: {len(context.security_findings)}
+            Security Findings Count: {len(context.security_findings)}
             Business Context: {base_context}
             
-            Provide production-grade assessment:
-            1. Business impact (critical/high/medium/low)
-            2. Data sensitivity level
-            3. Threat severity assessment
-            4. Recommended decision rationale
+            Security Findings Summary:
+            {json.dumps(context.security_findings[:3], indent=2) if context.security_findings else 'No findings'}
             
-            JSON format response required.
+            Please provide a JSON response with:
+            {{
+                "business_impact": "critical|high|medium|low",
+                "data_sensitivity": "pii_financial|pii|internal|public",
+                "threat_severity": "critical|high|medium|low", 
+                "deployment_risk": "high|medium|low",
+                "recommended_action": "allow|block|defer",
+                "risk_reasoning": "Brief explanation of risk assessment",
+                "compliance_concerns": ["pci_dss", "sox", "gdpr"] or [],
+                "mitigation_required": true/false
+            }}
+            
+            Focus on bank/financial context and regulatory compliance.
             """
             
             response = await self.emergent_client.generate_text(
                 model="gpt-5",
                 prompt=prompt,
-                max_tokens=300
+                max_tokens=400,
+                temperature=0.3  # Lower temperature for consistent risk assessment
             )
             
             llm_assessment = json.loads(response.get("content", "{}"))
+            
             return {
                 "llm_business_impact": llm_assessment.get("business_impact", "medium"),
-                "llm_data_sensitivity": llm_assessment.get("data_sensitivity", "medium"),
+                "llm_data_sensitivity": llm_assessment.get("data_sensitivity", "internal"),
                 "llm_threat_severity": llm_assessment.get("threat_severity", "medium"),
-                "llm_reasoning": llm_assessment.get("rationale", ""),
-                "llm_model": "gpt-5"
+                "llm_deployment_risk": llm_assessment.get("deployment_risk", "medium"),
+                "llm_recommended_action": llm_assessment.get("recommended_action", "defer"),
+                "llm_risk_reasoning": llm_assessment.get("risk_reasoning", ""),
+                "llm_compliance_concerns": llm_assessment.get("compliance_concerns", []),
+                "llm_mitigation_required": llm_assessment.get("mitigation_required", True),
+                "llm_model": "gpt-5",
+                "sources": ["Real LLM+RAG Analysis"]
             }
             
+        except json.JSONDecodeError as e:
+            logger.error(f"LLM returned invalid JSON: {str(e)}")
+            return {"sources": ["LLM Parse Error"], "error": "Invalid LLM response format"}
         except Exception as e:
             logger.error(f"Real LLM enrichment failed: {str(e)}")
-            return {}
+            return {"sources": ["LLM Error"], "error": str(e)}
 
     async def get_decision_metrics(self) -> Dict[str, Any]:
         """Get decision engine metrics with mode indicator"""
