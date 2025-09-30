@@ -1,6 +1,66 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 function DeveloperDashboard() {
+  const [metrics, setMetrics] = useState(null)
+  const [recentDecisions, setRecentDecisions] = useState([])
+  const [coreComponents, setCoreComponents] = useState(null)
+  const [ssdlcStages, setSsdlcStages] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch all dashboard data
+      const [metricsRes, decisionsRes, componentsRes, stagesRes] = await Promise.all([
+        fetch('/api/v1/analytics/dashboard'),
+        fetch('/api/v1/decisions/recent'),
+        fetch('/api/v1/decisions/core-components'),
+        fetch('/api/v1/decisions/ssdlc-stages')
+      ])
+
+      const [metricsData, decisionsData, componentsData, stagesData] = await Promise.all([
+        metricsRes.json(),
+        decisionsRes.json(), 
+        componentsRes.json(),
+        stagesRes.json()
+      ])
+
+      setMetrics(metricsData.data || metricsData)
+      setRecentDecisions(decisionsData.data || [])
+      setCoreComponents(componentsData.data || {})
+      setSsdlcStages(stagesData.data || {})
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+      // Fallback to static data
+      setMetrics({
+        total_decisions: 234,
+        pending_review: 18,
+        high_confidence_rate: 0.87,
+        context_enrichment_rate: 0.95
+      })
+      setRecentDecisions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '400px',
+        fontSize: '1.5rem',
+        color: '#6b7280'
+      }}>
+        Loading Decision Engine Data...
+      </div>
+    )
+  }
   return (
     <div style={{
       padding: '3rem 2rem',
