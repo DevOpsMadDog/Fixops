@@ -97,8 +97,9 @@ function ScanUploadPage() {
     }
   ]
 
-  const handleFormatSelect = (format) => {
-    setSelectedFormat(format)
+  const handleFormatSelect = (formatType) => {
+    console.log('Format selected:', formatType)
+    setSelectedFormat(formatType)
     setShowProcessing(false)
   }
 
