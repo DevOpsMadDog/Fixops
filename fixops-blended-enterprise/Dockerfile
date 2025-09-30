@@ -57,6 +57,8 @@ ENV PYTHONPATH=/app
 ENV FIXOPS_ENVIRONMENT=production
 ENV FIXOPS_LOG_LEVEL=info
 ENV FIXOPS_DEMO_MODE=false
+ENV FIXOPS_AUTH_DISABLED=true
+ENV FIXOPS_UI_ENABLED=true
 
 # Health check for Kubernetes
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
