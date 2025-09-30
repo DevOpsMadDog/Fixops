@@ -1,0 +1,96 @@
+# FixOps Development Environment
+# Use this for local development and testing
+
+version: '3.8'
+
+services:
+  # MongoDB for Evidence Lake
+  mongodb:
+    image: mongo:7.0
+    container_name: fixops-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: fixops
+      MONGO_INITDB_ROOT_PASSWORD: fixops-dev-password
+      MONGO_INITDB_DATABASE: fixops_production
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - fixops-network
+
+  # Redis for caching
+  redis:
+    image: redis:7.2-alpine
+    container_name: fixops-redis
+    restart: unless-stopped
+    command: redis-server --requirepass fixops-dev-password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fixops-network
+
+  # FixOps Backend
+  fixops-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fixops-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URL=mongodb://fixops:fixops-dev-password@mongodb:27017/fixops_production?authSource=admin
+      - REDIS_URL=redis://:fixops-dev-password@redis:6379/0
+      - SECRET_KEY=fixops-dev-secret-key-change-in-production
+      - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY}
+      - FIXOPS_ENVIRONMENT=development
+      - FIXOPS_LOG_LEVEL=debug
+      - FIXOPS_DEMO_MODE=false
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # FixOps Frontend (optional for development)
+  fixops-frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    container_name: fixops-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://fixops-backend:8001
+    depends_on:
+      - fixops-backend
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  fixops-network:
+    driver: bridge
