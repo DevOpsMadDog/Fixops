@@ -114,21 +114,38 @@ class FixOpsAPITester:
         
         # Test correlation engine via CLI
         try:
+            env = os.environ.copy()
+            env['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
+            
             result = subprocess.run([
                 "python", "/app/fixops-blended-enterprise/src/cli/main.py", "health"
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=30, 
+            cwd="/app/fixops-blended-enterprise", env=env)
             
             if result.returncode == 0:
                 print("✅ CLI health check passed")
                 try:
-                    cli_output = json.loads(result.stdout)
-                    if cli_output.get('status') == 'healthy':
-                        print("✅ Correlation engine health: OK")
-                        self.tests_passed += 1
+                    # Extract JSON from output (ignore log lines)
+                    lines = result.stdout.strip().split('\n')
+                    json_line = None
+                    for line in lines:
+                        if line.strip().startswith('{'):
+                            json_line = line
+                            break
+                    
+                    if json_line:
+                        cli_output = json.loads(json_line)
+                        if cli_output.get('status') == 'healthy':
+                            print("✅ Correlation engine health: OK")
+                            correlation_stats = cli_output.get('health_checks', {}).get('correlation_engine', {})
+                            print(f"   Correlation stats: {correlation_stats.get('stats', {})}")
+                            self.tests_passed += 1
+                        else:
+                            print(f"⚠️  Correlation engine health: {cli_output.get('status')}")
                     else:
-                        print(f"⚠️  Correlation engine health: {cli_output.get('status')}")
-                except json.JSONDecodeError:
-                    print("⚠️  CLI output not in JSON format")
+                        print("⚠️  No JSON output found in CLI response")
+                except json.JSONDecodeError as e:
+                    print(f"⚠️  CLI output JSON parse error: {str(e)}")
             else:
                 print(f"❌ CLI health check failed: {result.stderr}")
             
