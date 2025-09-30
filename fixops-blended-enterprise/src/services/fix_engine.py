@@ -70,6 +70,37 @@ class FixEngine:
     def __init__(self):
         self.cache = CacheService.get_instance()
         self.fix_templates = self._load_fix_templates()
+        # Initialize LLM for AI-powered fix generation
+        self.llm_chat = None
+        self._initialize_llm()
+        
+    def _initialize_llm(self):
+        """Initialize LLM for advanced fix generation"""
+        try:
+            api_key = os.getenv('EMERGENT_LLM_KEY')
+            if api_key:
+                self.llm_chat = LlmChat(
+                    api_key=api_key,
+                    session_id="fix_engine_session",
+                    system_message="""You are an expert DevSecOps engineer specialized in automated security remediation.
+                    Your role is to analyze security vulnerabilities and generate:
+                    1. Precise code fixes with patches
+                    2. Configuration improvements
+                    3. Infrastructure-as-code updates
+                    4. Step-by-step remediation instructions
+                    5. Pull request descriptions
+                    
+                    Always provide practical, tested solutions that minimize risk while maintaining functionality.
+                    Focus on secure-by-default configurations and defensive programming practices."""
+                ).with_model("openai", "gpt-5")
+                
+                logger.info("LLM fix engine initialized successfully with gpt-5")
+            else:
+                logger.warning("No EMERGENT_LLM_KEY found, using template-based fixes only")
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize LLM: {str(e)}")
+            self.llm_chat = None
         
     def _load_fix_templates(self) -> Dict[str, Dict[str, Any]]:
         """Load fix templates for common vulnerability patterns"""
