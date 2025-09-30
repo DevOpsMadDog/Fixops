@@ -73,7 +73,12 @@ class DecisionEngine:
         try:
             # Initialize Emergent LLM for RAG
             if settings.EMERGENT_LLM_KEY:
-                self.emergent_client = EmergentIntegrations(api_key=settings.EMERGENT_LLM_KEY)
+                try:
+                    from emergentintegrations import EmergentIntegrations
+                    self.emergent_client = EmergentIntegrations(api_key=settings.EMERGENT_LLM_KEY)
+                except ImportError:
+                    logger.warning("EmergentIntegrations not available, using fallback")
+                    self.emergent_client = None
             
             # Initialize Vector DB Knowledge Graph (simulated)
             await self._initialize_vector_db()
