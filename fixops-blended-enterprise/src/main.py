@@ -166,6 +166,7 @@ app.include_router(incidents.router, prefix="/api/v1/incidents", tags=["incident
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monitoring"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(scans.router, prefix="/api/v1", tags=["scan-ingestion"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):
