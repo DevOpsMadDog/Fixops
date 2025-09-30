@@ -13,22 +13,7 @@ import ServiceManagement from './pages/ServiceManagement'
 import LoadingSpinner from './components/LoadingSpinner'
 
 function App() {
-  const { isAuthenticated, isLoading } = useAuth()
-
-  console.log('App render state:', { isAuthenticated, isLoading })
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage />
-  }
-
+  // No authentication required - free tool
   return (
     <Layout>
       <Routes>
