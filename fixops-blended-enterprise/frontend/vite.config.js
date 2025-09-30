@@ -5,13 +5,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true,
+    host: '0.0.0.0',
     allowedHosts: [
       'localhost',
       '127.0.0.1',
       '.emergentagent.com',
-      'fixops-devsec.preview.emergentagent.com'
+      'fixops-devsec.preview.emergentagent.com',
+      'all'
     ],
+    cors: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
