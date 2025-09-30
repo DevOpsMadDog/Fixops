@@ -66,7 +66,7 @@ async def log_security_event(
                 action=action,
                 resource=resource,
                 resource_id=resource_id,
-                details=details or {},
+                details=json.dumps(details or {}),  # Convert dict to JSON string
                 ip_address=ip_address,
                 user_agent=user_agent,
                 success=success,
