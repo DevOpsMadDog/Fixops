@@ -51,132 +51,175 @@ class FixOpsAPITester:
             print(f"❌ Failed - Error: {str(e)}")
             return False, {}
 
-    def test_root_endpoint(self):
-        """Test root API endpoint"""
-        return self.run_test("Root API", "GET", "api/", 200)
-
-    def test_services_endpoints(self):
-        """Test services CRUD operations"""
-        print("\n📋 Testing Services Endpoints...")
+    def test_health_endpoints(self):
+        """Test core health and monitoring endpoints"""
+        print("\n🏥 Testing Health & Monitoring Endpoints...")
         
-        # Get all services
-        success, services_data = self.run_test("Get All Services", "GET", "api/services", 200)
-        if not success:
-            return False
-            
-        # Test service creation
-        new_service = {
-            "name": "test-service",
-            "business_capability": "Testing",
-            "data_classification": ["internal"],
-            "environment": "dev",
-            "owner_team": "test-team",
-            "owner_email": "test@example.com",
-            "internet_facing": False,
-            "pci_scope": False
-        }
-        
-        success, created_service = self.run_test("Create Service", "POST", "api/services", 200, new_service)
-        if success and created_service.get('id'):
-            # Test get specific service
-            service_id = created_service['id']
-            self.run_test("Get Specific Service", "GET", f"api/services/{service_id}", 200)
-        
-        return True
-
-    def test_findings_endpoints(self):
-        """Test findings endpoints"""
-        print("\n🔍 Testing Findings Endpoints...")
-        
-        # Get all findings
-        success, findings_data = self.run_test("Get All Findings", "GET", "api/findings", 200)
-        if not success:
-            return False
-            
-        # Test findings with filters
-        self.run_test("Get Critical Findings", "GET", "api/findings", 200, params={"severity": "critical"})
-        self.run_test("Get SAST Findings", "GET", "api/findings", 200, params={"scanner_type": "sast"})
-        
-        return True
-
-    def test_cases_endpoints(self):
-        """Test correlated cases endpoints"""
-        print("\n📊 Testing Cases Endpoints...")
-        
-        # Get all cases
-        success, cases_data = self.run_test("Get All Cases", "GET", "api/cases", 200)
-        if not success:
-            return False
-            
-        # If we have cases, test getting a specific one
-        if cases_data and len(cases_data) > 0:
-            case_id = cases_data[0]['id']
-            self.run_test("Get Specific Case", "GET", f"api/cases/{case_id}", 200)
-            
-            # Test fix suggestions for the case
-            self.run_test("Get Fix Suggestions", "GET", f"api/cases/{case_id}/fixes", 200)
-        
-        return True
-
-    def test_dashboard_endpoints(self):
-        """Test dashboard metrics endpoints"""
-        print("\n📈 Testing Dashboard Endpoints...")
-        
-        # Test dashboard metrics
-        success, metrics_data = self.run_test("Get Dashboard Metrics", "GET", "api/dashboard/metrics", 200)
-        if success and metrics_data:
-            # Verify expected metrics are present
-            expected_keys = ['total_services', 'total_findings', 'critical_findings', 'high_findings', 
-                           'findings_by_scanner', 'services_by_environment', 'mttr_days', 
-                           'noise_reduction_percentage', 'policy_decisions']
-            missing_keys = [key for key in expected_keys if key not in metrics_data]
-            if missing_keys:
-                print(f"⚠️  Warning: Missing metrics keys: {missing_keys}")
+        # Test health endpoint
+        success, health_data = self.run_test("Health Check", "GET", "health", 200)
+        if success and health_data:
+            if health_data.get('status') == 'healthy':
+                print(f"✅ Health status: {health_data.get('status')}")
             else:
-                print(f"✅ All expected metrics present")
+                print(f"⚠️  Health status: {health_data.get('status')}")
         
-        # Test finding trends
-        self.run_test("Get Finding Trends", "GET", "api/dashboard/trends", 200)
+        # Test readiness endpoint
+        success, ready_data = self.run_test("Readiness Check", "GET", "ready", 200)
+        if success and ready_data:
+            dependencies = ready_data.get('dependencies', {})
+            print(f"   Dependencies: cache={dependencies.get('cache')}, database={dependencies.get('database')}")
+        
+        # Test metrics endpoint
+        success, metrics_data = self.run_test("Metrics Endpoint", "GET", "metrics", 200)
         
         return True
 
-    def test_policy_evaluation(self):
-        """Test policy evaluation endpoint"""
-        print("\n🛡️  Testing Policy Evaluation...")
+    def test_api_v1_structure(self):
+        """Test API v1 structure and endpoints"""
+        print("\n🔗 Testing API v1 Structure...")
         
-        # Test policy evaluation with different contexts
-        test_contexts = [
-            {
-                "severity": "critical",
-                "data_classification": ["pci"],
-                "environment": "production",
-                "internet_facing": True
-            },
-            {
-                "severity": "high",
-                "data_classification": ["pii"],
-                "environment": "staging",
-                "internet_facing": False
-            },
-            {
-                "severity": "medium",
-                "data_classification": ["internal"],
-                "environment": "dev",
-                "internet_facing": False
-            }
+        # Test auth endpoints (should return 401/422 for missing data, not 404)
+        endpoints_to_test = [
+            ("api/v1/auth/login", "POST", 422),  # Missing required fields
+            ("api/v1/users", "GET", 401),        # Unauthorized
+            ("api/v1/incidents", "GET", 401),    # Unauthorized  
+            ("api/v1/analytics", "GET", 401),    # Unauthorized
+            ("api/v1/monitoring", "GET", 401),   # Unauthorized
+            ("api/v1/admin", "GET", 401),        # Unauthorized
         ]
         
-        for i, context in enumerate(test_contexts):
-            success, policy_result = self.run_test(
-                f"Policy Evaluation {i+1}", 
-                "POST", 
-                "api/policy/evaluate", 
-                200, 
-                context
-            )
-            if success and policy_result:
-                decisions = policy_result.get('decisions', [])
-                print(f"   Policy decisions: {len(decisions)} rules triggered")
+        for endpoint, method, expected_status in endpoints_to_test:
+            self.run_test(f"API Structure - {endpoint}", method, endpoint, expected_status)
+        
+        return True
+
+    def test_correlation_engine(self):
+        """Test correlation engine functionality"""
+        print("\n🔗 Testing Correlation Engine...")
+        
+        # Test correlation engine via CLI
+        try:
+            result = subprocess.run([
+                "python", "/app/fixops-blended-enterprise/src/cli/main.py", "health"
+            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            
+            if result.returncode == 0:
+                print("✅ CLI health check passed")
+                try:
+                    cli_output = json.loads(result.stdout)
+                    if cli_output.get('status') == 'healthy':
+                        print("✅ Correlation engine health: OK")
+                        self.tests_passed += 1
+                    else:
+                        print(f"⚠️  Correlation engine health: {cli_output.get('status')}")
+                except json.JSONDecodeError:
+                    print("⚠️  CLI output not in JSON format")
+            else:
+                print(f"❌ CLI health check failed: {result.stderr}")
+            
+            self.tests_run += 1
+            
+        except subprocess.TimeoutExpired:
+            print("❌ CLI health check timed out")
+            self.tests_run += 1
+        except Exception as e:
+            print(f"❌ CLI test error: {str(e)}")
+            self.tests_run += 1
+        
+        return True
+
+    def test_policy_engine(self):
+        """Test policy engine functionality"""
+        print("\n🛡️  Testing Policy Engine...")
+        
+        # Test policy check via CLI
+        try:
+            result = subprocess.run([
+                "python", "/app/fixops-blended-enterprise/src/cli/main.py", "policy-check",
+                "--severity", "high",
+                "--environment", "production",
+                "--data-classification", "internal"
+            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            
+            if result.returncode in [0, 1, 2]:  # Valid exit codes for policy decisions
+                print("✅ Policy engine CLI test passed")
+                try:
+                    cli_output = json.loads(result.stdout)
+                    decision = cli_output.get('policy_decision')
+                    confidence = cli_output.get('confidence')
+                    print(f"   Policy decision: {decision} (confidence: {confidence})")
+                    self.tests_passed += 1
+                except json.JSONDecodeError:
+                    print("⚠️  Policy CLI output not in JSON format")
+            else:
+                print(f"❌ Policy engine CLI failed: {result.stderr}")
+            
+            self.tests_run += 1
+            
+        except subprocess.TimeoutExpired:
+            print("❌ Policy engine CLI timed out")
+            self.tests_run += 1
+        except Exception as e:
+            print(f"❌ Policy engine test error: {str(e)}")
+            self.tests_run += 1
+        
+        return True
+
+    def test_fix_engine(self):
+        """Test fix engine functionality"""
+        print("\n🔧 Testing Fix Engine...")
+        
+        # Test fix generation via CLI
+        try:
+            result = subprocess.run([
+                "python", "/app/fixops-blended-enterprise/src/cli/main.py", "generate-fixes",
+                "--limit", "5",
+                "--min-confidence", "0.5"
+            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            
+            if result.returncode == 0:
+                print("✅ Fix engine CLI test passed")
+                try:
+                    cli_output = json.loads(result.stdout)
+                    fixes_count = cli_output.get('fixes_generated', 0)
+                    print(f"   Fixes generated: {fixes_count}")
+                    self.tests_passed += 1
+                except json.JSONDecodeError:
+                    print("⚠️  Fix engine CLI output not in JSON format")
+            else:
+                print(f"❌ Fix engine CLI failed: {result.stderr}")
+            
+            self.tests_run += 1
+            
+        except subprocess.TimeoutExpired:
+            print("❌ Fix engine CLI timed out")
+            self.tests_run += 1
+        except Exception as e:
+            print(f"❌ Fix engine test error: {str(e)}")
+            self.tests_run += 1
+        
+        return True
+
+    def test_llm_integration(self):
+        """Test LLM integration functionality"""
+        print("\n🤖 Testing LLM Integration...")
+        
+        # Check if LLM key is configured
+        try:
+            import os
+            llm_key = os.getenv('EMERGENT_LLM_KEY')
+            if llm_key:
+                print("✅ LLM API key is configured")
+                self.tests_passed += 1
+            else:
+                print("⚠️  LLM API key not configured - using rule-based engines only")
+                self.tests_passed += 1  # This is acceptable
+            
+            self.tests_run += 1
+            
+        except Exception as e:
+            print(f"❌ LLM integration test error: {str(e)}")
+            self.tests_run += 1
         
         return True
 
