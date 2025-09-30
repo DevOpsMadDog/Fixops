@@ -204,9 +204,9 @@ async def prometheus_metrics():
         media_type="text/plain; version=0.0.4; charset=utf-8"
     )
 
-# API Routes
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
-app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
+# API Routes - Free tool, no authentication required
+# app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])  # Disabled - free tool
+# app.include_router(users.router, prefix="/api/v1/users", tags=["users"])  # Disabled - free tool
 app.include_router(incidents.router, prefix="/api/v1/incidents", tags=["incidents"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monitoring"])
