@@ -17,7 +17,7 @@ function LoginPage() {
     setError('')
     
     try {
-      await login(formData.email, formData.password)
+      await login(formData)
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Login failed')
     }
