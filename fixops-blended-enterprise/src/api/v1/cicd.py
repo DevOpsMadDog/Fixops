@@ -4,6 +4,7 @@ Optimized endpoints for CI/CD pipeline integration
 """
 
 from typing import Dict, List, Any, Optional
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 import structlog
