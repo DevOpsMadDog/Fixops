@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     THREAT_INTEL_API_KEY: Optional[str] = Field(default=None)
     
     # Security Configuration  
-    SECRET_KEY: str = Field(default="fixops_enterprise_secret_key_change_in_production")
+    SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY", "fixops_enterprise_secret_key_change_in_production"))
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
