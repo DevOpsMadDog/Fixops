@@ -2,7 +2,8 @@ import axios from 'axios'
 import { toast } from 'react-hot-toast'
 
 // Resolve backend URL strictly from environment per platform rules
-const BACKEND_BASE = (import.meta?.env?.REACT_APP_BACKEND_URL || process?.env?.REACT_APP_BACKEND_URL)
+// IMPORTANT: Per platform, use REACT_APP_BACKEND_URL via import.meta.env only (no process in browser)
+const BACKEND_BASE = (import.meta?.env?.REACT_APP_BACKEND_URL)
 if (!BACKEND_BASE) {
   console.warn('REACT_APP_BACKEND_URL is not set. Frontend API calls may fail due to routing rules requiring env-based URL usage.')
 }
