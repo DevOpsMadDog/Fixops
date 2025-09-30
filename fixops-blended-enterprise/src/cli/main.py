@@ -634,9 +634,7 @@ class FixOpsCLI:
                 cvss_score=finding_data.get("cvss_score"),
                 first_seen=datetime.utcnow(),
                 last_seen=datetime.utcnow(),
-                status="open",
-                uploaded_by=finding_data.get("uploaded_by", "system"),
-                upload_filename=finding_data.get("upload_filename")
+                status="open"
             )
             
             session.add(finding)
