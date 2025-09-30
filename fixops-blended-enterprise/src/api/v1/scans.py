@@ -159,15 +159,17 @@ async def upload_scan_file(
             detail=f"Failed to process scan file: {str(e)}"
         )
 
-@router.post('/upload/init')
-async def upload_init(
-    *,
-    file_name: str,
-    total_size: int,
-    scan_type: str,
-    service_name: str,
+from pydantic import BaseModel
+
+class ChunkedUploadInitRequest(BaseModel):
+    file_name: str
+    total_size: int
+    scan_type: str
+    service_name: str
     environment: str = 'production'
-):
+
+@router.post('/upload/init')
+async def upload_init(request: ChunkedUploadInitRequest):
     """Initialize a chunked upload session."""
     try:
         upload_id = str(uuid.uuid4())
