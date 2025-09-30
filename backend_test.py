@@ -3,7 +3,11 @@ import sys
 import json
 import asyncio
 import subprocess
+import os
 from datetime import datetime
+
+# Set LLM key for testing
+os.environ['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
 
 class FixOpsAPITester:
     def __init__(self, base_url="http://localhost:8000"):
