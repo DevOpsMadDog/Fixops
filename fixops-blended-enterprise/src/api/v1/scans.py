@@ -93,10 +93,11 @@ async def upload_scan_file(
 
             # Run correlation engine on new findings
             correlation_engine = CorrelationEngine()
-            correlation_result = await correlation_engine.correlate_findings(
-                service_ids=[service.id],
-                time_window_hours=24
-            )
+            correlation_results = []
+            for finding in findings_created:
+                correlation_result = await correlation_engine.correlate_finding(finding.id)
+                if correlation_result:
+                    correlation_results.append(correlation_result)
 
             # Calculate processing time
             processing_time = (time.perf_counter() - start_time) * 1000
