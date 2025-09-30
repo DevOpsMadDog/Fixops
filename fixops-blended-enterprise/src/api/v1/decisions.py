@@ -35,8 +35,7 @@ class DecisionResponse(BaseModel):
 
 @router.post("/make-decision", response_model=DecisionResponse)
 async def make_security_decision(
-    request: DecisionRequest,
-    current_user: Dict = Depends(get_current_user)
+    request: DecisionRequest
 ):
     """
     Make a security decision based on context and intelligence
