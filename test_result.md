@@ -327,6 +327,56 @@ Review all codebase again, fix all stubs and make it more performance oriented a
   test_all: true
   test_priority: "completed"
 
+## backend:
+  - task: "Enhanced Standardized Analysis API"
+    implemented: true
+    working: "NA"
+    file: "src/api/v1/enhanced.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Added /api/v1/enhanced/analysis endpoint returning standardized schema {models[], consensus}. Migrated compare-llms to typed body, improved error handling."
+
+  - task: "Chunked Scan Upload API"
+    implemented: true
+    working: "NA"
+    file: "src/api/v1/scans.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Implemented /scans/upload/init, /scans/upload/chunk, /scans/upload/complete with persistent storage at /app/data/uploads. Reused parsers for SARIF/SBOM/CSV/JSON."
+
+## frontend:
+  - task: "EnhancedDashboard wiring + chunked upload UI"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/EnhancedDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Switched to centralized api client, added JSON analyze + chunked upload with progress, raw JSON viewer & download."
+
+## test_plan:
+  current_focus:
+    - "Enhanced Standardized Analysis API"
+    - "Chunked Scan Upload API"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+## agent_communication:
+    - agent: "main"
+    - message: "Please test backend endpoints: 1) GET /api/v1/enhanced/capabilities, 2) POST /api/v1/enhanced/compare-llms with JSON body, 3) POST /api/v1/enhanced/analysis returning standardized schema, 4) Scan uploads: multipart /api/v1/scans/upload (json), and chunked flow /api/v1/scans/upload/init -> /chunk -> /complete. Validate response structures and error handling. After backend passes, I will request frontend automated tests."
+
 ## agent_communication:
     - agent: "main"
     - message: "✅ UI ISSUES RESOLVED: Removed authentication bypass and fixed logout button visibility issue. Login page now displays properly without logout button when not authenticated. User can login with admin@fixops.dev/admin123. Both frontend (port 3001) and backend (port 8000) services running successfully. Navigation spacing fixed. All dashboards functional."
