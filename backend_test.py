@@ -524,64 +524,135 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
                     return i + 1
         return len(text)
 
-    def test_policy_engine(self):
-        """Test policy engine functionality"""
-        print("\n🛡️  Testing Policy Engine...")
+    def test_core_services(self):
+        """Test core services initialization and functionality"""
+        print("\n⚙️  Testing Core Services...")
         
-        # Test policy check via CLI
+        # Test decision_engine initialization
         try:
-            env = os.environ.copy()
-            env['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
-            
             result = subprocess.run([
-                "python", "/app/fixops-blended-enterprise/src/cli/main.py", "policy-check",
-                "--severity", "high",
-                "--environment", "production",
-                "--data-classification", "pci"
-            ], capture_output=True, text=True, timeout=30, 
-            cwd="/app/fixops-blended-enterprise", env=env)
+                "python", "-c", 
+                """
+import sys
+sys.path.insert(0, '/app/fixops-blended-enterprise')
+from src.services.decision_engine import decision_engine
+import asyncio
+
+async def test_decision_engine():
+    try:
+        await decision_engine.initialize()
+        print('Decision engine initialized successfully')
+        
+        # Test core components
+        metrics = await decision_engine.get_decision_metrics()
+        print(f'Core components: {list(metrics.get("core_components", {}).keys())}')
+        
+        # Test recent decisions
+        recent = await decision_engine.get_recent_decisions(3)
+        print(f'Recent decisions: {len(recent)} entries')
+        
+        return True
+    except Exception as e:
+        print(f'Decision engine error: {str(e)}')
+        return False
+
+result = asyncio.run(test_decision_engine())
+sys.exit(0 if result else 1)
+                """
+            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
             
-            if result.returncode in [0, 1, 2]:  # Valid exit codes for policy decisions
-                print("✅ Policy engine CLI test passed")
-                try:
-                    # Find JSON block in output
-                    output = result.stdout
-                    start_idx = output.find('{')
-                    if start_idx != -1:
-                        # Find the matching closing brace
-                        brace_count = 0
-                        end_idx = start_idx
-                        for i, char in enumerate(output[start_idx:], start_idx):
-                            if char == '{':
-                                brace_count += 1
-                            elif char == '}':
-                                brace_count -= 1
-                                if brace_count == 0:
-                                    end_idx = i + 1
-                                    break
-                        
-                        json_str = output[start_idx:end_idx]
-                        cli_output = json.loads(json_str)
-                        
-                        decision = cli_output.get('policy_decision')
-                        confidence = cli_output.get('confidence')
-                        print(f"   Policy decision: {decision} (confidence: {confidence})")
-                        self.tests_passed += 1
-                    else:
-                        print("⚠️  No JSON output found in policy CLI response")
-                except json.JSONDecodeError as e:
-                    print(f"⚠️  Policy CLI output JSON parse error: {str(e)}")
+            if result.returncode == 0:
+                print("✅ Decision engine initialization successful")
+                print(f"   Output: {result.stdout.strip()}")
+                self.tests_passed += 1
             else:
-                print(f"❌ Policy engine CLI failed: {result.stderr}")
+                print(f"❌ Decision engine initialization failed: {result.stderr}")
+                self.failed_tests.append({'name': 'Decision Engine Init', 'error': result.stderr})
             
             self.tests_run += 1
             
-        except subprocess.TimeoutExpired:
-            print("❌ Policy engine CLI timed out")
+        except Exception as e:
+            print(f"❌ Decision engine test error: {str(e)}")
             self.tests_run += 1
+            self.failed_tests.append({'name': 'Decision Engine Init', 'error': str(e)})
+        
+        # Test correlation_engine
+        try:
+            result = subprocess.run([
+                "python", "-c", 
+                """
+import sys
+sys.path.insert(0, '/app/fixops-blended-enterprise')
+from src.services.correlation_engine import correlation_engine
+import asyncio
+
+async def test_correlation():
+    try:
+        stats = await correlation_engine.get_correlation_stats()
+        print(f'Correlation stats: {stats}')
+        return True
+    except Exception as e:
+        print(f'Correlation engine error: {str(e)}')
+        return False
+
+result = asyncio.run(test_correlation())
+sys.exit(0 if result else 1)
+                """
+            ], capture_output=True, text=True, timeout=15, cwd="/app/fixops-blended-enterprise")
+            
+            if result.returncode == 0:
+                print("✅ Correlation engine working")
+                print(f"   Stats: {result.stdout.strip()}")
+                self.tests_passed += 1
+            else:
+                print(f"❌ Correlation engine failed: {result.stderr}")
+                self.failed_tests.append({'name': 'Correlation Engine', 'error': result.stderr})
+            
+            self.tests_run += 1
+            
+        except Exception as e:
+            print(f"❌ Correlation engine test error: {str(e)}")
+            self.tests_run += 1
+            self.failed_tests.append({'name': 'Correlation Engine', 'error': str(e)})
+        
+        # Test policy_engine
+        try:
+            result = subprocess.run([
+                "python", "-c", 
+                """
+import sys
+sys.path.insert(0, '/app/fixops-blended-enterprise')
+from src.services.policy_engine import policy_engine
+import asyncio
+
+async def test_policy():
+    try:
+        stats = await policy_engine.get_policy_stats()
+        print(f'Policy stats: {stats}')
+        return True
+    except Exception as e:
+        print(f'Policy engine error: {str(e)}')
+        return False
+
+result = asyncio.run(test_policy())
+sys.exit(0 if result else 1)
+                """
+            ], capture_output=True, text=True, timeout=15, cwd="/app/fixops-blended-enterprise")
+            
+            if result.returncode == 0:
+                print("✅ Policy engine working")
+                print(f"   Stats: {result.stdout.strip()}")
+                self.tests_passed += 1
+            else:
+                print(f"❌ Policy engine failed: {result.stderr}")
+                self.failed_tests.append({'name': 'Policy Engine', 'error': result.stderr})
+            
+            self.tests_run += 1
+            
         except Exception as e:
             print(f"❌ Policy engine test error: {str(e)}")
             self.tests_run += 1
+            self.failed_tests.append({'name': 'Policy Engine', 'error': str(e)})
         
         return True
 
