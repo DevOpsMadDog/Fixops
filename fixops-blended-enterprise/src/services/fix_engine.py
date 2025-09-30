@@ -17,7 +17,7 @@ import structlog
 from dotenv import load_dotenv
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
-from src.models.security import SecurityFinding, Service
+from src.models.security_sqlite import SecurityFinding, Service
 from src.services.cache_service import CacheService
 from src.utils.logger import PerformanceLogger
 
