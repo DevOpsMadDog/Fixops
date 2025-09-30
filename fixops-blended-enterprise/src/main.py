@@ -173,6 +173,7 @@ app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monito
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(scans.router, prefix="/api/v1", tags=["scan-ingestion"])
 app.include_router(decisions.router, prefix="/api/v1", tags=["decision-engine"])
+app.include_router(business_context.router, prefix="/api/v1", tags=["business-context"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):
