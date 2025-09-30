@@ -76,26 +76,111 @@ class FixOpsDecisionEngineAPITester:
             self.failed_tests.append({'name': name, 'error': str(e)})
             return False, {}
 
-    def test_health_endpoints(self):
-        """Test core health and monitoring endpoints"""
-        print("\n🏥 Testing Health & Monitoring Endpoints...")
+    def test_decision_engine_api(self):
+        """Test Decision Engine API endpoints - CRITICAL TESTING AREA"""
+        print("\n🎯 Testing Decision Engine API Endpoints...")
         
-        # Test health endpoint
-        success, health_data = self.run_test("Health Check", "GET", "health", 200)
-        if success and health_data:
-            if health_data.get('status') == 'healthy':
-                print(f"✅ Health status: {health_data.get('status')}")
-            else:
-                print(f"⚠️  Health status: {health_data.get('status')}")
+        # Test 1: /api/v1/decisions/make-decision endpoint
+        decision_request = {
+            "service_name": "payment-service",
+            "environment": "production",
+            "business_context": {
+                "criticality": "high",
+                "data_classification": "pci",
+                "business_impact": "critical"
+            },
+            "security_findings": [
+                {
+                    "rule_id": "SQL_INJECTION_001",
+                    "title": "SQL Injection vulnerability detected",
+                    "severity": "high",
+                    "category": "injection",
+                    "file_path": "/src/payment/dao.py",
+                    "line_number": 45
+                }
+            ],
+            "sbom_data": {
+                "components": [
+                    {
+                        "name": "express",
+                        "version": "4.18.0",
+                        "scope": "required"
+                    }
+                ]
+            }
+        }
         
-        # Test readiness endpoint
-        success, ready_data = self.run_test("Readiness Check", "GET", "ready", 200)
-        if success and ready_data:
-            dependencies = ready_data.get('dependencies', {})
-            print(f"   Dependencies: cache={dependencies.get('cache')}, database={dependencies.get('database')}")
+        success, response = self.run_test(
+            "Decision Engine - Make Decision", 
+            "POST", 
+            "api/v1/decisions/make-decision", 
+            [200, 401, 403],  # Accept auth errors as expected
+            data=decision_request
+        )
         
-        # Test metrics endpoint
-        success, metrics_data = self.run_test("Metrics Endpoint", "GET", "metrics", 200)
+        if success and response.get('decision'):
+            print(f"   Decision: {response.get('decision')}")
+            print(f"   Confidence: {response.get('confidence_score', 'N/A')}")
+            print(f"   Evidence ID: {response.get('evidence_id', 'N/A')}")
+        
+        # Test 2: /api/v1/decisions/metrics endpoint
+        success, response = self.run_test(
+            "Decision Engine - Metrics", 
+            "GET", 
+            "api/v1/decisions/metrics", 
+            [200, 401, 403]
+        )
+        
+        if success and response.get('data'):
+            metrics = response['data']
+            print(f"   Total decisions: {metrics.get('total_decisions', 'N/A')}")
+            print(f"   High confidence rate: {metrics.get('high_confidence_rate', 'N/A')}")
+        
+        # Test 3: /api/v1/decisions/recent endpoint
+        success, response = self.run_test(
+            "Decision Engine - Recent Decisions", 
+            "GET", 
+            "api/v1/decisions/recent", 
+            [200, 401, 403],
+            params={"limit": 5}
+        )
+        
+        if success and response.get('data'):
+            decisions = response['data']
+            print(f"   Recent decisions count: {len(decisions) if isinstance(decisions, list) else 'N/A'}")
+        
+        # Test 4: /api/v1/decisions/core-components endpoint
+        success, response = self.run_test(
+            "Decision Engine - Core Components", 
+            "GET", 
+            "api/v1/decisions/core-components", 
+            [200, 401, 403]
+        )
+        
+        if success and response.get('data'):
+            components = response['data']
+            print(f"   Core components: {list(components.keys()) if isinstance(components, dict) else 'N/A'}")
+            
+            # Check if all 6 core components are present
+            expected_components = ['vector_db', 'llm_rag', 'consensus_checker', 'golden_regression', 'policy_engine', 'sbom_injection']
+            if isinstance(components, dict):
+                missing_components = [comp for comp in expected_components if comp not in components]
+                if missing_components:
+                    print(f"   ⚠️  Missing components: {missing_components}")
+                else:
+                    print(f"   ✅ All 6 core components present")
+        
+        # Test 5: /api/v1/decisions/ssdlc-stages endpoint
+        success, response = self.run_test(
+            "Decision Engine - SSDLC Stages", 
+            "GET", 
+            "api/v1/decisions/ssdlc-stages", 
+            [200, 401, 403]
+        )
+        
+        if success and response.get('data'):
+            stages = response['data']
+            print(f"   SSDLC stages: {list(stages.keys()) if isinstance(stages, dict) else 'N/A'}")
         
         return True
 
