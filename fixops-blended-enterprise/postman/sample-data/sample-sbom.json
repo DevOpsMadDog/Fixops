@@ -1,0 +1,75 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.5",
+	"serialNumber": "urn:uuid:12345678-1234-1234-1234-123456789012",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2024-01-01T00:00:00Z",
+		"tools": [
+			{
+				"vendor": "Bank Security Team",
+				"name": "CycloneDX CLI",
+				"version": "0.24.0"
+			}
+		],
+		"component": {
+			"type": "application",
+			"bom-ref": "payment-processor@1.0.0",
+			"name": "payment-processor",
+			"version": "1.0.0",
+			"description": "Bank payment processing service"
+		}
+	},
+	"components": [
+		{
+			"type": "library",
+			"bom-ref": "jackson-core@2.13.0",
+			"name": "jackson-core",
+			"version": "2.13.0",
+			"scope": "required",
+			"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.0",
+			"vulnerabilities": [
+				{
+					"id": "CVE-2022-42003",
+					"description": "Deserialization vulnerability in Jackson",
+					"ratings": [
+						{
+							"severity": "high",
+							"method": "CVSSv3",
+							"score": 7.5
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "library",
+			"bom-ref": "spring-security@5.6.0",
+			"name": "spring-security", 
+			"version": "5.6.0",
+			"scope": "required",
+			"purl": "pkg:maven/org.springframework.security/spring-security-core@5.6.0",
+			"vulnerabilities": [
+				{
+					"id": "CVE-2023-34035",
+					"description": "Authentication bypass vulnerability",
+					"ratings": [
+						{
+							"severity": "critical",
+							"method": "CVSSv3",
+							"score": 9.1
+						}
+					]
+				}
+			]
+		},
+		{
+			"type": "library",
+			"bom-ref": "log4j-core@2.17.0",
+			"name": "log4j-core",
+			"version": "2.17.0", 
+			"scope": "required",
+			"purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.17.0"
+		}
+	]
+}
