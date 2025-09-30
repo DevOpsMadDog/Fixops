@@ -586,7 +586,7 @@ class FixOpsCLI:
             severity=finding.severity,
             scanner_type=finding.scanner_type,
             environment=service.environment,
-            data_classification=service.data_classification,
+            data_classification=service.get_data_classification(),  # Use helper method for SQLite
             internet_facing=service.internet_facing,
             pci_scope=service.pci_scope,
             cvss_score=finding.cvss_score,
