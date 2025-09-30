@@ -256,10 +256,10 @@ function ScanUploadPage() {
             transition: 'all 0.2s ease-in-out'
           }}>
             <input
-              id=\"fileInput\"
-              type=\"file\"
+              id="fileInput"
+              type="file"
               onChange={handleFileChange}
-              accept=\".json,.sarif,.csv,.xml\"
+              accept=".json,.sarif,.csv,.xml"
               style={{ display: 'none' }}
             />
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📁</div>
