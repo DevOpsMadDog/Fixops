@@ -19,10 +19,33 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const queryClient = useQueryClient()
 
+  // Check if auth bypass is enabled
+  const bypassAuth = import.meta.env.REACT_APP_BYPASS_AUTH === 'true'
+
   // Check for existing token on mount
   useEffect(() => {
+    if (bypassAuth) {
+      // Bypass authentication - create mock user
+      const mockUser = {
+        id: 'admin-user-001',
+        email: 'admin@fixops.dev',
+        username: 'admin',
+        first_name: 'System',
+        last_name: 'Administrator',
+        roles: ['admin', 'security_analyst', 'compliance_officer'],
+        full_name: 'System Administrator'
+      }
+      
+      setUser(mockUser)
+      setIsAuthenticated(true)
+      setIsLoading(false)
+      
+      console.log('🔓 Authentication bypassed - Demo mode enabled')
+      return
+    }
+
     checkAuthStatus()
-  }, [])
+  }, [bypassAuth])
 
   const checkAuthStatus = async () => {
     const token = localStorage.getItem('access_token')
