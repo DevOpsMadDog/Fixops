@@ -13,7 +13,7 @@ from structlog.processors import JSONRenderer
 
 from src.config.settings import get_settings
 from src.db.session import DatabaseManager
-from src.models.user import UserAuditLog
+from src.models.user_sqlite import UserAuditLog
 
 settings = get_settings()
 
