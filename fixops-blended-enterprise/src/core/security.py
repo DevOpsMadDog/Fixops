@@ -306,7 +306,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 
 def require_permission(permission: str):
-    """Dependency to require specific permission"""
+    """Dependency factory to require specific permission"""
     async def permission_checker(current_user: Dict = Depends(get_current_user)) -> bool:
         user_id = int(current_user["sub"])
         
@@ -318,7 +318,7 @@ def require_permission(permission: str):
             )
         return True
     
-    return Depends(permission_checker)
+    return permission_checker
     return permission_checker
 
 
