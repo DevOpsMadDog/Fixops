@@ -76,6 +76,25 @@ export const AuthProvider = ({ children }) => {
   }
 
   const login = async (credentials) => {
+    if (bypassAuth) {
+      // Simulate successful login
+      const mockUser = {
+        id: 'admin-user-001',
+        email: 'admin@fixops.dev',
+        username: 'admin',
+        first_name: 'System',
+        last_name: 'Administrator',
+        roles: ['admin', 'security_analyst', 'compliance_officer'],
+        full_name: 'System Administrator'
+      }
+      
+      setUser(mockUser)
+      setIsAuthenticated(true)
+      toast.success(`Welcome back, ${mockUser.first_name}!`)
+      console.log('🔓 Mock login successful - Demo mode')
+      return { success: true }
+    }
+
     try {
       setIsLoading(true)
       
