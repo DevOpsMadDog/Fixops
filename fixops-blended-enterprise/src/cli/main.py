@@ -666,24 +666,27 @@ class FixOpsCLI:
 def create_parser():
     """Create argument parser for CLI"""
     parser = argparse.ArgumentParser(
-        description="FixOps Enterprise CLI - CI/CD Security Integration",
+        description="FixOps Enterprise CLI - Decision & Verification Engine (NOT Fix Engine)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Ingest scan results from CI/CD pipeline
-  fixops ingest --scan-file results.sarif --format sarif --service-name my-app --environment production --scanner-type sast --scanner-name sonarqube
+  # Make security decision for CI/CD pipeline
+  fixops make-decision --service-name payment-service --environment production --scan-file sarif-results.json
 
-  # Check security policy for deployment gate
-  fixops policy-check --severity critical --environment production --data-classification pci --internet-facing
+  # Ingest security scan results  
+  fixops ingest --scan-file results.sarif --format sarif --service-name my-service
 
-  # Generate automated fixes
-  fixops generate-fixes --service-id abc123 --severity-filter critical,high --output-file fixes.json
+  # Check policy compliance
+  fixops policy-check --service-name my-service --environment production
 
-  # Analyze correlations for noise reduction
-  fixops correlate --service-id abc123 --time-window-hours 24 --output-file correlations.json
+  # Get evidence record
+  fixops get-evidence --evidence-id EVD-2024-0847
 
   # System health check
-  fixops health --output-file health.json
+  fixops health
+
+  ⚠️  IMPORTANT: FixOps is a DECISION ENGINE, not a fix engine.
+  It makes ALLOW/BLOCK/DEFER decisions with confidence scores.
         """
     )
     
