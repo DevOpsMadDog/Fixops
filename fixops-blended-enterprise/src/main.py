@@ -69,6 +69,11 @@ async def lifespan(app: FastAPI):
     await decision_engine.initialize()
     logger.info("✅ Decision & Verification Engine ready")
     
+    # Initialize Marketplace
+    from src.services.marketplace import marketplace
+    await marketplace.initialize()
+    logger.info("✅ Security Marketplace ready")
+    
     # Pre-warm critical caches
     await warm_performance_caches()
     logger.info("✅ Performance caches warmed")
