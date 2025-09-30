@@ -323,7 +323,7 @@ class AuthService:
             secret = SecurityManager.decrypt_sensitive_data(encrypted_secret)
             return self.mfa_manager.verify_totp(secret, mfa_code)
     
-    async def get_user_info(self, user_id: int) -> Dict[str, Any]:
+    async def get_user_info(self, user_id: str) -> Dict[str, Any]:
         """Get user information"""
         user_data = await self.cache.get(f"user:id:{user_id}")
         
@@ -333,7 +333,7 @@ class AuthService:
         # Get from database if not in cache
         async with DatabaseManager.get_session_context() as session:
             result = await session.execute(
-                select(User).where(User.id == str(user_id))
+                select(User).where(User.id == user_id)
             )
             user = result.scalar_one_or_none()
             
