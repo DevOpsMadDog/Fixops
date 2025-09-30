@@ -80,8 +80,7 @@ async def get_decision_metrics():
 
 @router.get("/recent")
 async def get_recent_decisions(
-    limit: int = Query(default=10, ge=1, le=50),
-    current_user: Dict = Depends(get_current_user)
+    limit: int = Query(default=10, ge=1, le=50)
 ):
     """Get recent pipeline decisions with full context"""
     try:
