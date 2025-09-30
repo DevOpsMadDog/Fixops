@@ -30,14 +30,38 @@ from src.db.session import DatabaseManager
 from src.services.cache_service import CacheService
 from src.utils.logger import setup_structured_logging
 
-# Performance monitoring
-REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
-REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration', ['endpoint'])
-HOT_PATH_LATENCY = Histogram(
-    'hot_path_latency_microseconds',
-    'Hot path request latency in microseconds',
-    buckets=[50, 100, 150, 200, 250, 299, 350, 400, 500, 750, 1000]
-)
+# Performance monitoring - check if metrics already exist
+try:
+    REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+except ValueError:
+    # Metric already exists, get existing instance
+    from prometheus_client import CollectorRegistry, REGISTRY
+    for collector in list(REGISTRY._collector_to_names.keys()):
+        if hasattr(collector, '_name') and collector._name == 'http_requests_total':
+            REQUEST_COUNT = collector
+            break
+
+try:
+    REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration', ['endpoint'])
+except ValueError:
+    from prometheus_client import CollectorRegistry, REGISTRY
+    for collector in list(REGISTRY._collector_to_names.keys()):
+        if hasattr(collector, '_name') and collector._name == 'http_request_duration_seconds':
+            REQUEST_DURATION = collector
+            break
+
+try:
+    HOT_PATH_LATENCY = Histogram(
+        'hot_path_latency_microseconds',
+        'Hot path request latency in microseconds',
+        buckets=[50, 100, 150, 200, 250, 299, 350, 400, 500, 750, 1000]
+    )
+except ValueError:
+    from prometheus_client import CollectorRegistry, REGISTRY
+    for collector in list(REGISTRY._collector_to_names.keys()):
+        if hasattr(collector, '_name') and collector._name == 'hot_path_latency_microseconds':
+            HOT_PATH_LATENCY = collector
+            break
 
 # Configure uvloop for maximum performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
