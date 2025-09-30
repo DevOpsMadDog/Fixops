@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "fixops-blended-enterprise"))
 
 from src.db.session import DatabaseManager
+from sqlalchemy import text
 
 async def create_minimal_tables():
     """Create minimal database tables for testing"""
