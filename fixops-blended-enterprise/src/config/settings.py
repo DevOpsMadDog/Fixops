@@ -65,8 +65,8 @@ class Settings(BaseSettings):
     
     # Message Queue Configuration (disabled for stateless operation)  
     RABBITMQ_URL: str = Field(default="memory://")
-    CELERY_BROKER_URL: str = Field(default=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1"))
-    CELERY_RESULT_BACKEND: str = Field(default=os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/2"))
+    CELERY_BROKER_URL: str = Field(default=os.getenv("CELERY_BROKER_URL", "memory://"))
+    CELERY_RESULT_BACKEND: str = Field(default=os.getenv("CELERY_RESULT_BACKEND", "memory://"))
     
     # CORS Configuration  
     CORS_ORIGINS: List[str] = Field(default=[
