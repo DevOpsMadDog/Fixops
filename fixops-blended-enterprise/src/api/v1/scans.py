@@ -218,8 +218,11 @@ async def upload_chunk(
         logger.error(f"Upload chunk failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class ChunkedUploadCompleteRequest(BaseModel):
+    upload_id: str
+
 @router.post('/upload/complete')
-async def upload_complete(upload_id: str):
+async def upload_complete(request: ChunkedUploadCompleteRequest):
     """Assemble chunks and process the uploaded file."""
     start_time = time.perf_counter()
     session_dir = UPLOAD_DIR / upload_id
