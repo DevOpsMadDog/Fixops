@@ -29,7 +29,7 @@ async def upload_scan_file(
     service_name: str = Form(...),
     environment: str = Form(default="production"),
     scan_type: str = Form(...),  # sarif, sbom, ibom, csv, json
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -169,7 +169,7 @@ async def get_scan_history(
     service_name: Optional[str] = None,
     scan_type: Optional[str] = None,
     limit: int = 50,
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get scan upload history"""
