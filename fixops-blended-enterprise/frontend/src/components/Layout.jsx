@@ -1,47 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import ModeToggle from './ModeToggle'
 
 function Layout({ children }) {
   const location = useLocation()
-  const [currentMode, setCurrentMode] = useState('demo')
-  
-  useEffect(() => {
-    // Check if backend is in demo mode
-    fetch('/api/v1/decisions/metrics')
-      .then(res => res.json())
-      .then(data => {
-        if (data.data?.demo_mode !== undefined) {
-          setCurrentMode(data.data.demo_mode ? 'demo' : 'production')
-        }
-      })
-      .catch(() => {
-        // Default to demo mode if API fails
-        setCurrentMode('demo')
-      })
-  }, [])
-  
-  const handleModeChange = async (newMode) => {
-    try {
-      // Call API to change mode
-      const response = await fetch('/api/v1/admin/set-mode', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || 'demo-token'}`
-        },
-        body: JSON.stringify({ demo_mode: newMode === 'demo' })
-      })
-      
-      if (response.ok) {
-        setCurrentMode(newMode)
-        // Refresh page to reload data in new mode
-        window.location.reload()
-      }
-    } catch (error) {
-      console.error('Failed to change mode:', error)
-    }
-  }
 
   const navigation = [
     { name: 'Developer', href: '/developer', fullName: 'Developer Dashboard' },
