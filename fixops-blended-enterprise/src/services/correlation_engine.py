@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from src.db.session import DatabaseManager
-from src.models.security import SecurityFinding, FindingCorrelation, Service
+from src.models.security_sqlite import SecurityFinding, FindingCorrelation, Service
 from src.services.cache_service import CacheService
 from src.utils.logger import PerformanceLogger
 
