@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "fixops-blended-enterprise"))
 
 from src.db.session import DatabaseManager
-from src.models.base import Base
+from src.models.base_sqlite import Base
 
 async def create_tables():
     """Create all database tables"""
