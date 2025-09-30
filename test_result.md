@@ -101,3 +101,99 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: 
+Review all codebase again, fix all stubs and make it more performance oriented and how to call cli in cicd for dataflow. Select most effective LLM to build this and fork it again even if expensive.
+
+## backend:
+  - task: "Fix Backend Startup Issues"
+    implemented: false
+    working: false
+    file: "src/main.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+        - agent: "main"
+        - comment: "Backend startup blocked - need to fix service configuration and dependencies"
+  
+  - task: "Implement Correlation Engine with LLM"
+    implemented: false  
+    working: "NA"
+    file: "src/services/correlation_engine.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Core service stub needs real implementation with gpt-5 integration"
+        
+  - task: "Implement Policy Engine with OPA/Rego"
+    implemented: false
+    working: "NA" 
+    file: "src/services/policy_engine.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Policy automation engine needs OPA integration"
+        
+  - task: "Implement Fix Engine with AI Suggestions"
+    implemented: false
+    working: "NA"
+    file: "src/services/fix_engine.py" 
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main" 
+        - comment: "Automated remediation with gpt-5 powered suggestions"
+        
+  - task: "Create CI/CD CLI Integration"
+    implemented: false
+    working: "NA"
+    file: "src/cli/main.py"
+    stuck_count: 0
+    priority: "high" 
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Command-line interface for CI/CD dataflow integration needed"
+
+## frontend:
+  - task: "Connect to Enterprise Backend APIs"
+    implemented: false
+    working: "NA" 
+    file: "frontend/src/components"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Frontend needs to connect to new enterprise API endpoints"
+
+## metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+## test_plan:
+  current_focus:
+    - "Fix Backend Startup Issues"
+    - "Implement Correlation Engine with LLM"
+    - "Create CI/CD CLI Integration"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+## agent_communication:
+    - agent: "main"
+    - message: "Starting Phase 1: Fixing critical startup issues and implementing core services with gpt-5 LLM integration"
