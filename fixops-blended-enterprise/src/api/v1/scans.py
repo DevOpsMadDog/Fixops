@@ -86,7 +86,7 @@ async def upload_scan_file(
             findings_created = []
             for finding_data in scan_data.get('findings', []):
                 finding_data['service_id'] = service.id
-                finding_data['uploaded_by'] = current_user.id
+                finding_data['uploaded_by'] = 'system'
                 finding_data['upload_filename'] = file.filename
                 
                 # Create finding using CLI logic
