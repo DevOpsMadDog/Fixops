@@ -1,537 +1,400 @@
 import React, { useState } from 'react'
 
 function ScanUploadPage() {
-  const [uploadState, setUploadState] = useState({
-    file: null,
-    serviceName: '',
-    environment: 'production',
-    scanType: '',
-    isUploading: false,
-    result: null,
-    error: null
-  })
-
-  const supportedFormats = [
-    { value: 'sarif', label: 'SARIF', desc: 'Static Analysis Results Interchange Format', icon: '🔍' },
-    { value: 'sbom', label: 'SBOM', desc: 'Software Bill of Materials (CycloneDX)', icon: '📦' },
-    { value: 'ibom', label: 'IBOM', desc: 'Infrastructure Bill of Materials', icon: '🏗️' },
-    { value: 'csv', label: 'CSV', desc: 'Comma-Separated Values', icon: '📊' },
-    { value: 'json', label: 'JSON', desc: 'JavaScript Object Notation', icon: '📋' }
+  const [selectedFormat, setSelectedFormat] = useState('')
+  const [showProcessing, setShowProcessing] = useState(false)
+  
+  const formats = [
+    {
+      type: 'sarif',
+      name: 'SARIF',
+      icon: '🔍',
+      description: 'Static Analysis Results',
+      stage: 'Code Stage',
+      what_fixops_does: 'Analyzes SAST findings through Vector DB pattern matching and LLM context enrichment',
+      example: 'SonarQube, CodeQL, Semgrep outputs'
+    },
+    {
+      type: 'sbom',
+      name: 'SBOM',
+      icon: '📦',
+      description: 'Software Bill of Materials',
+      stage: 'Build Stage', 
+      what_fixops_does: 'Injects dependency criticality metadata and assesses supply chain risk through consensus checking',
+      example: 'CycloneDX, SPDX format SBOMs'
+    },
+    {
+      type: 'ibom',
+      name: 'IBOM',
+      icon: '🏗️',
+      description: 'Infrastructure Bill of Materials',
+      stage: 'Deploy Stage',
+      what_fixops_does: 'Validates infrastructure components against golden regression set and security policies',
+      example: 'Terraform state, K8s manifests'
+    },
+    {
+      type: 'dast',
+      name: 'DAST',
+      icon: '🧪', 
+      description: 'Dynamic Application Security Testing',
+      stage: 'Test Stage',
+      what_fixops_does: 'Correlates runtime vulnerabilities with business context for exploitability assessment',
+      example: 'OWASP ZAP, Burp Suite results'
+    },
+    {
+      type: 'json',
+      name: 'JSON',
+      icon: '📋',
+      description: 'Generic Security Data',
+      stage: 'Any Stage',
+      what_fixops_does: 'Processes custom security data through decision engine for context-aware analysis',
+      example: 'Custom tool outputs, aggregated findings'
+    }
   ]
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-      setUploadState(prev => ({
-        ...prev,
-        file,
-        error: null,
-        result: null
-      }))
+  const processingSteps = [
+    {
+      step: 1,
+      title: 'Data Ingestion',
+      description: 'Parse and validate uploaded security data',
+      icon: '📥',
+      status: 'completed'
+    },
+    {
+      step: 2, 
+      title: 'Context Enrichment',
+      description: 'LLM+RAG enriches findings with business context from Jira/Confluence',
+      icon: '🧠',
+      status: showProcessing ? 'processing' : 'pending'
+    },
+    {
+      step: 3,
+      title: 'Vector DB Lookup',
+      description: 'Match against 2,847 security patterns in knowledge graph',
+      icon: '🗄️',
+      status: 'pending'
+    },
+    {
+      step: 4,
+      title: 'Golden Regression',
+      description: 'Validate against 1,247 regression test cases',
+      icon: '🏆',
+      status: 'pending'
+    },
+    {
+      step: 5,
+      title: 'Policy Evaluation',
+      description: 'Check compliance with OPA/Rego policies',
+      icon: '📜',
+      status: 'pending'
+    },
+    {
+      step: 6,
+      title: 'Consensus Decision',
+      description: 'Calculate confidence score and make ALLOW/BLOCK/DEFER decision',
+      icon: '⚖️',
+      status: 'pending'
     }
+  ]
+
+  const handleFormatSelect = (format) => {
+    setSelectedFormat(format)
+    setShowProcessing(false)
   }
 
-  const handleUpload = async () => {
-    if (!uploadState.file || !uploadState.serviceName || !uploadState.scanType) {
-      setUploadState(prev => ({
-        ...prev,
-        error: 'Please fill in all required fields and select a file'
-      }))
-      return
-    }
-
-    setUploadState(prev => ({ ...prev, isUploading: true, error: null }))
-
-    try {
-      const formData = new FormData()
-      formData.append('file', uploadState.file)
-      formData.append('service_name', uploadState.serviceName)
-      formData.append('environment', uploadState.environment)
-      formData.append('scan_type', uploadState.scanType)
-
-      const response = await fetch('/api/v1/scans/upload', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      setUploadState(prev => ({
-        ...prev,
-        result: result.data,
-        isUploading: false,
-        file: null,
-        serviceName: '',
-        scanType: ''
-      }))
-
-      // Reset file input
-      document.getElementById('fileInput').value = ''
-
-    } catch (error) {
-      setUploadState(prev => ({
-        ...prev,
-        error: error.message,
-        isUploading: false
-      }))
-    }
-  }
+  const selectedFormatDetails = formats.find(f => f.type === selectedFormat)
 
   return (
     <div style={{
-      padding: '3rem 2rem',
-      maxWidth: '1200px',
-      margin: '0 auto'
+      padding: '2rem',
+      maxWidth: '1600px',
+      margin: '0 auto',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
     }}>
+      
       {/* Header */}
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 style={{
-          fontSize: '3rem',
+          fontSize: '2.5rem',
           fontWeight: 'bold',
           color: '#1f2937',
-          marginBottom: '0.75rem',
-          letterSpacing: '-0.025em'
+          marginBottom: '0.5rem'
         }}>
-          Security Scan Upload
+          Security Data Upload & Decision Pipeline
         </h1>
         <p style={{ 
           color: '#6b7280', 
-          fontSize: '1.25rem',
-          maxWidth: '600px',
+          fontSize: '1.125rem',
+          maxWidth: '800px',
           margin: '0 auto',
           lineHeight: '1.6'
         }}>
-          Upload and process security scan files through FixOps correlation engine
+          Upload security scan data to see how FixOps makes intelligent deployment decisions
         </p>
       </div>
 
-      {/* Upload Form */}
+      {/* Step 1: Format Selection */}
       <div style={{
         backgroundColor: 'white',
-        padding: '3rem',
-        borderRadius: '20px',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        padding: '2rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         border: '1px solid #e5e7eb',
         marginBottom: '2rem'
       }}>
-        {/* File Format Selection */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{
-            fontSize: '1.25rem',
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: '700',
+          color: '#1f2937',
+          marginBottom: '1.5rem'
+        }}>
+          Step 1: Select Your Security Data Format
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '1.5rem'
+        }}>
+          {formats.map((format) => (
+            <div
+              key={format.type}
+              onClick={() => handleFormatSelect(format.type)}
+              style={{
+                padding: '1.5rem',
+                borderRadius: '12px',
+                border: selectedFormat === format.type ? '2px solid #2563eb' : '2px solid #e5e7eb',
+                backgroundColor: selectedFormat === format.type ? '#f0f9ff' : 'white',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '2rem', marginRight: '0.75rem' }}>{format.icon}</span>
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                    {format.name}
+                  </h3>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+                    {format.description}
+                  </p>
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#7c3aed' }}>
+                  SSDLC Stage: {format.stage}
+                </span>
+              </div>
+              
+              <div style={{ marginBottom: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', margin: '0 0 0.25rem 0' }}>
+                  What FixOps Does:
+                </h4>
+                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0, lineHeight: '1.4' }}>
+                  {format.what_fixops_does}
+                </p>
+              </div>
+              
+              <div style={{
+                padding: '0.75rem',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>
+                  Examples: {format.example}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 2: What Happens Next */}
+      {selectedFormat && (
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb',
+          marginBottom: '2rem'
+        }}>
+          <h2 style={{
+            fontSize: '1.5rem',
             fontWeight: '700',
             color: '#1f2937',
-            marginBottom: '1rem'
+            marginBottom: '1.5rem'
           }}>
-            Select Scan Format
-          </h3>
+            Step 2: How FixOps Will Process Your {selectedFormatDetails.name} Data
+          </h2>
+          
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1rem'
+            backgroundColor: '#f0f9ff',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            marginBottom: '2rem'
           }}>
-            {supportedFormats.map((format) => (
-              <div
-                key={format.value}
-                onClick={() => setUploadState(prev => ({ ...prev, scanType: format.value, error: null }))}
-                style={{
-                  padding: '1.5rem',
-                  borderRadius: '12px',
-                  border: uploadState.scanType === format.value ? '2px solid #2563eb' : '2px solid #e5e7eb',
-                  backgroundColor: uploadState.scanType === format.value ? '#f0f9ff' : 'white',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  transition: 'all 0.2s ease-in-out'
-                }}
-                onMouseEnter={(e) => {
-                  if (uploadState.scanType !== format.value) {
-                    e.currentTarget.style.backgroundColor = '#f9fafb'
-                    e.currentTarget.style.borderColor = '#d1d5db'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (uploadState.scanType !== format.value) {
-                    e.currentTarget.style.backgroundColor = 'white'
-                    e.currentTarget.style.borderColor = '#e5e7eb'
-                  }
-                }}
-              >
-                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{format.icon}</div>
-                <div style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-                  {format.label}
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '2rem', marginRight: '1rem' }}>{selectedFormatDetails.icon}</span>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                  {selectedFormatDetails.stage} Processing
+                </h3>
+                <p style={{ fontSize: '1rem', color: '#6b7280', margin: 0 }}>
+                  {selectedFormatDetails.what_fixops_does}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Processing Pipeline Visualization */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {processingSteps.map((step, idx) => (
+              <div key={step.step} style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '1rem',
+                backgroundColor: step.status === 'completed' ? '#f0fdf4' : 
+                                 step.status === 'processing' ? '#fef3c7' : '#f9fafb',
+                borderRadius: '12px',
+                border: step.status === 'completed' ? '1px solid #bbf7d0' :
+                        step.status === 'processing' ? '1px solid #fed7aa' : '1px solid #e5e7eb'
+              }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: step.status === 'completed' ? '#16a34a' :
+                                  step.status === 'processing' ? '#d97706' : '#9ca3af',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.25rem',
+                  marginRight: '1rem',
+                  flexShrink: 0
+                }}>
+                  {step.status === 'processing' ? '⏳' : step.icon}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  {format.desc}
+                
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <h4 style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                      {step.step}. {step.title}
+                    </h4>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      color: step.status === 'completed' ? '#16a34a' :
+                             step.status === 'processing' ? '#d97706' : '#6b7280',
+                      backgroundColor: step.status === 'completed' ? '#dcfce7' :
+                                      step.status === 'processing' ? '#fef3c7' : '#f3f4f6',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '20px',
+                      marginLeft: '1rem'
+                    }}>
+                      {step.status === 'completed' ? 'READY' :
+                       step.status === 'processing' ? 'PROCESSING' : 'WAITING'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+                    {step.description}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Service Details */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: '2rem',
-          marginBottom: '2rem'
-        }}>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '0.5rem'
-            }}>
-              Service Name *
-            </label>
-            <input
-              type="text"
-              value={uploadState.serviceName}
-              onChange={(e) => setUploadState(prev => ({ ...prev, serviceName: e.target.value, error: null }))}
-              placeholder="e.g., payment-service, user-auth, api-gateway"
-              style={{
-                width: '100%',
-                padding: '1rem',
-                fontSize: '1rem',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                outline: 'none',
-                transition: 'border-color 0.2s ease-in-out'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-            />
-          </div>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '1rem',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '0.5rem'
-            }}>
-              Environment
-            </label>
-            <select
-              value={uploadState.environment}
-              onChange={(e) => setUploadState(prev => ({ ...prev, environment: e.target.value }))}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                fontSize: '1rem',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                outline: 'none',
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="production">Production</option>
-              <option value="staging">Staging</option>
-              <option value="development">Development</option>
-              <option value="testing">Testing</option>
-            </select>
-          </div>
-        </div>
-
-        {/* File Upload */}
-        <div style={{ marginBottom: '2rem' }}>
-          <label style={{
-            display: 'block',
-            fontSize: '1rem',
-            fontWeight: '600',
-            color: '#374151',
-            marginBottom: '0.5rem'
-          }}>
-            Security Scan File *
-          </label>
-          <div style={{
-            border: '2px dashed #d1d5db',
-            borderRadius: '12px',
-            padding: '3rem',
-            textAlign: 'center',
-            backgroundColor: '#f9fafb',
-            transition: 'all 0.2s ease-in-out'
-          }}>
-            <input
-              id="fileInput"
-              type="file"
-              onChange={handleFileChange}
-              accept=".json,.sarif,.csv,.xml"
-              style={{ display: 'none' }}
-            />
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📁</div>
-            <div style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', marginBottom: '0.5rem' }}>
-              {uploadState.file ? uploadState.file.name : 'Drop your scan file here or click to browse'}
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-              Supports SARIF, SBOM, IBOM, CSV, JSON (max 10MB)
-            </div>
+          
+          {/* Upload Button */}
+          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
             <button
-              onClick={() => document.getElementById('fileInput').click()}
+              onClick={() => setShowProcessing(true)}
               style={{
-                padding: '0.75rem 2rem',
+                padding: '1rem 2rem',
                 backgroundColor: '#2563eb',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: '600',
+                borderRadius: '12px',
+                fontSize: '1.125rem',
+                fontWeight: '700',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s ease-in-out'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
             >
-              Choose File
+              🚀 Upload {selectedFormatDetails.name} & Start Decision Process
             </button>
-          </div>
-        </div>
-
-        {/* Upload Button */}
-        <div style={{ textAlign: 'center' }}>
-          <button
-            onClick={handleUpload}
-            disabled={uploadState.isUploading || !uploadState.file || !uploadState.serviceName || !uploadState.scanType}
-            style={{
-              padding: '1rem 3rem',
-              backgroundColor: uploadState.isUploading || !uploadState.file || !uploadState.serviceName || !uploadState.scanType ? '#9ca3af' : '#16a34a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '1.125rem',
-              fontWeight: '700',
-              cursor: uploadState.isUploading || !uploadState.file || !uploadState.serviceName || !uploadState.scanType ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s ease-in-out',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              margin: '0 auto'
-            }}
-          >
-            {uploadState.isUploading ? (
-              <>
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid transparent',
-                  borderTop: '2px solid white',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-                Processing...
-              </>
-            ) : (
-              <>
-                🚀 Process Scan File
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Error Display */}
-      {uploadState.error && (
-        <div style={{
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: '1.5rem', marginRight: '0.75rem' }}>❌</span>
-            <div>
-              <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#dc2626', margin: '0 0 0.25rem 0' }}>
-                Upload Error
-              </h4>
-              <p style={{ fontSize: '0.875rem', color: '#b91c1c', margin: 0 }}>
-                {uploadState.error}
-              </p>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Success Results */}
-      {uploadState.result && (
+      {/* Expected Output Preview */}
+      {selectedFormat && (
         <div style={{
           backgroundColor: 'white',
-          padding: '2.5rem',
+          padding: '2rem',
           borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           border: '1px solid #e5e7eb'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              backgroundColor: '#dcfce7',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1rem'
-            }}>
-              <span style={{ fontSize: '1.75rem' }}>✅</span>
-            </div>
-            <div>
-              <h3 style={{ 
-                fontSize: '1.75rem', 
-                fontWeight: '700', 
-                color: '#1f2937', 
-                margin: 0
-              }}>
-                Processing Complete
-              </h3>
-              <p style={{ fontSize: '1rem', color: '#6b7280', margin: 0 }}>
-                Scan file successfully processed and analyzed
-              </p>
-            </div>
-          </div>
-
-          {/* Processing Results */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1.5rem',
-            marginBottom: '2rem'
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: '700',
+            color: '#1f2937',
+            marginBottom: '1.5rem'
           }}>
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: '#f0f9ff',
-              borderRadius: '12px',
-              border: '1px solid #bfdbfe',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.5rem' }}>
-                {uploadState.result.findings_processed}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                Findings Processed
-              </div>
-            </div>
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '0.5rem' }}>
-                {uploadState.result.correlations_found}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                Correlations Found
-              </div>
-            </div>
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: '#fef3c7',
-              borderRadius: '12px',
-              border: '1px solid #fed7aa',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#d97706', marginBottom: '0.5rem' }}>
-                {uploadState.result.processing_time_ms}ms
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                Processing Time
-              </div>
-            </div>
-          </div>
-
-          {/* Upload Metadata */}
+            Step 3: Expected Decision Output
+          </h2>
+          
           <div style={{
             backgroundColor: '#f8fafc',
             padding: '1.5rem',
             borderRadius: '12px',
-            border: '1px solid #e5e7eb'
+            border: '1px solid #e5e7eb',
+            fontFamily: 'monospace',
+            fontSize: '0.875rem'
           }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '1rem' }}>
-              Upload Details
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-              <div>
-                <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Service:</span>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>
-                  {uploadState.result.service_name}
-                </div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>File:</span>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>
-                  {uploadState.result.upload_metadata.filename}
-                </div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Type:</span>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', textTransform: 'uppercase' }}>
-                  {uploadState.result.upload_metadata.scan_type}
-                </div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Size:</span>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>
-                  {Math.round(uploadState.result.upload_metadata.file_size_bytes / 1024)}KB
-                </div>
-              </div>
+            <div style={{ color: '#16a34a', fontWeight: '700', marginBottom: '0.5rem' }}>
+              ✅ DECISION: ALLOW/BLOCK/DEFER
+            </div>
+            <div style={{ color: '#2563eb', marginBottom: '0.5rem' }}>
+              📊 Confidence Score: XX% (≥85% threshold for ALLOW)
+            </div>
+            <div style={{ color: '#7c3aed', marginBottom: '0.5rem' }}>
+              🧠 Context: Business impact + threat intelligence assessment
+            </div>
+            <div style={{ color: '#d97706', marginBottom: '0.5rem' }}>
+              🏆 Validation: Golden regression + policy compliance results
+            </div>
+            <div style={{ color: '#059669', marginBottom: '0.5rem' }}>
+              🤝 Consensus: Multi-component agreement analysis
+            </div>
+            <div style={{ color: '#9ca3af' }}>
+              🗃️ Evidence: EVD-YYYY-XXXX (immutable audit record)
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-            <button
-              onClick={() => setUploadState(prev => ({ ...prev, result: null }))}
-              style={{
-                padding: '0.75rem 2rem',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                marginRight: '1rem',
-                transition: 'background-color 0.2s ease-in-out'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#4b5563'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#6b7280'}
-            >
-              Upload Another File
-            </button>
-            <button
-              onClick={() => window.location.href = '/developer'}
-              style={{
-                padding: '0.75rem 2rem',
-                backgroundColor: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease-in-out'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
-            >
-              View Dashboard
-            </button>
+          
+          <div style={{
+            marginTop: '1.5rem',
+            padding: '1rem',
+            backgroundColor: '#fef3c7',
+            borderRadius: '8px',
+            border: '1px solid #fed7aa'
+          }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#92400e', margin: '0 0 0.5rem 0' }}>
+              🎯 What This Means for You:
+            </h4>
+            <p style={{ fontSize: '0.875rem', color: '#92400e', margin: 0, lineHeight: '1.5' }}>
+              Your {selectedFormatDetails.name} data will be processed through FixOps Decision Engine to provide 
+              an intelligent ALLOW/BLOCK/DEFER decision for your deployment. This replaces manual security 
+              reviews with context-aware automation backed by confidence scoring.
+            </p>
           </div>
         </div>
       )}
-
-      {/* CSS Animation */}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }

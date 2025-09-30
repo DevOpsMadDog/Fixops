@@ -1,151 +1,270 @@
 import React, { useState, useEffect } from 'react'
 
 function DeveloperDashboard() {
-  const [metrics, setMetrics] = useState(null)
-  const [recentDecisions, setRecentDecisions] = useState([])
-  const [coreComponents, setCoreComponents] = useState(null)
-  const [ssdlcStages, setSsdlcStages] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch all dashboard data
-      const [metricsRes, decisionsRes, componentsRes, stagesRes] = await Promise.all([
-        fetch('/api/v1/analytics/dashboard'),
-        fetch('/api/v1/decisions/recent'),
-        fetch('/api/v1/decisions/core-components'),
-        fetch('/api/v1/decisions/ssdlc-stages')
-      ])
-
-      const [metricsData, decisionsData, componentsData, stagesData] = await Promise.all([
-        metricsRes.json(),
-        decisionsRes.json(), 
-        componentsRes.json(),
-        stagesRes.json()
-      ])
-
-      setMetrics(metricsData.data || metricsData)
-      setRecentDecisions(decisionsData.data || [])
-      setCoreComponents(componentsData.data || {})
-      setSsdlcStages(stagesData.data || {})
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
-      // Fallback to static data
-      setMetrics({
-        total_decisions: 234,
-        pending_review: 18,
-        high_confidence_rate: 0.87,
-        context_enrichment_rate: 0.95
-      })
-      setRecentDecisions([])
-    } finally {
-      setLoading(false)
+  const [selectedService, setSelectedService] = useState('payment-service v2.1.3')
+  const [decisionDetails, setDecisionDetails] = useState(null)
+  
+  // Mock recent deployment decision for the selected service
+  const serviceDecision = {
+    'payment-service v2.1.3': {
+      decision: 'ALLOW',
+      confidence: 92,
+      environment: 'Production',
+      timestamp: '2 hours ago',
+      evidence_id: 'EVD-2024-0847',
+      decision_latency_us: 278,
+      stages: {
+        plan: {
+          data_consumed: ['Jira Ticket #PAY-2847: Payment optimization', 'Confluence: PCI DSS Requirements'],
+          fixops_analysis: 'Business impact: CRITICAL • Data sensitivity: PII + Financial',
+          confidence_contribution: 0.85,
+          status: 'passed'
+        },
+        code: {
+          data_consumed: ['SonarQube SARIF: 3 medium findings', 'CodeQL SARIF: 1 low finding'],
+          fixops_analysis: 'Vector DB matched similar patterns • No critical vulnerabilities detected',
+          confidence_contribution: 0.94,
+          status: 'passed'
+        },
+        build: {
+          data_consumed: ['CycloneDX SBOM: 247 components', 'SLSA Provenance Level 3'],
+          fixops_analysis: 'SBOM criticality assessment: 2 high-risk deps • Supply chain validated',
+          confidence_contribution: 0.88,
+          status: 'passed'
+        },
+        test: {
+          data_consumed: ['OWASP ZAP DAST: Clean scan', 'Exploitability probe: Negative'],
+          fixops_analysis: 'Runtime vulnerability assessment: No exploitable paths found',
+          confidence_contribution: 0.96,
+          status: 'passed'
+        },
+        release: {
+          data_consumed: ['OPA/Rego Policy Check: 24 policies'],
+          fixops_analysis: 'All compliance policies passed • NIST SSDF: ✅ • SOC2: ✅',
+          confidence_contribution: 0.91,
+          status: 'passed'
+        },
+        deploy: {
+          data_consumed: ['Infrastructure SBOM', 'CNAPP runtime policy'],
+          fixops_analysis: 'Infrastructure validation passed • Runtime controls enabled',
+          confidence_contribution: 0.89,
+          status: 'passed'
+        },
+        operate: {
+          data_consumed: ['Runtime alerts: None', 'VM correlation data'],
+          fixops_analysis: 'No runtime anomalies • Baseline established for monitoring',
+          confidence_contribution: 0.93,
+          status: 'passed'
+        }
+      },
+      consensus_details: {
+        vector_db_score: 0.94,
+        golden_regression_passed: true,
+        policy_violations: 0,
+        criticality_factor: 1.1,
+        final_consensus: 0.92
+      }
     }
   }
 
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '400px',
-        fontSize: '1.5rem',
-        color: '#6b7280'
-      }}>
-        Loading Decision Engine Data...
-      </div>
-    )
-  }
+  const currentDecision = serviceDecision[selectedService]
+
   return (
     <div style={{
-      padding: '3rem 2rem',
+      padding: '2rem',
       maxWidth: '1600px',
-      margin: '0 auto'
+      margin: '0 auto',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
     }}>
       
-      {/* Header with Architecture Clarification */}
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+      {/* Header - Developer Focus */}
+      <div style={{ marginBottom: '2rem' }}>
         <h1 style={{
-          fontSize: '3rem',
+          fontSize: '2.5rem',
           fontWeight: 'bold',
           color: '#1f2937',
-          marginBottom: '0.5rem',
-          letterSpacing: '-0.025em'
+          marginBottom: '0.5rem'
         }}>
-          FixOps Decision & Verification Engine
+          Developer Pipeline Decision
         </h1>
-        <div style={{
-          display: 'inline-block',
-          backgroundColor: '#fef3c7',
-          border: '2px solid #d97706',
-          borderRadius: '12px',
-          padding: '0.75rem 1.5rem',
-          marginBottom: '1rem'
-        }}>
-          <p style={{ 
-            color: '#92400e', 
-            fontSize: '1.125rem',
-            fontWeight: '700',
-            margin: 0,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            ⚠️ NOT A FIX ENGINE - DECISION ENGINE ONLY ⚠️
-          </p>
-        </div>
         <p style={{ 
           color: '#6b7280', 
-          fontSize: '1.25rem',
-          maxWidth: '800px',
-          margin: '0 auto',
-          lineHeight: '1.6'
+          fontSize: '1.125rem',
+          marginBottom: '1.5rem'
         }}>
-          Context-aware security decisions with 85% consensus threshold and evidence-based verification
+          See exactly how FixOps analyzed your deployment through each SSDLC stage
         </p>
+        
+        {/* Service Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <label style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+            Service:
+          </label>
+          <select
+            value={selectedService}
+            onChange={(e) => setSelectedService(e.target.value)}
+            style={{
+              padding: '0.75rem 1rem',
+              fontSize: '1rem',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              backgroundColor: 'white'
+            }}
+          >
+            <option value="payment-service v2.1.3">payment-service v2.1.3</option>
+            <option value="user-auth v1.8.2">user-auth v1.8.2</option>
+            <option value="api-gateway v3.2.1">api-gateway v3.2.1</option>
+          </select>
+        </div>
       </div>
 
-      {/* SSDLC Stage Data Ingestion Status */}
+      {/* Decision Summary */}
+      <div style={{
+        backgroundColor: currentDecision.decision === 'ALLOW' ? '#f0fdf4' : '#fef2f2',
+        padding: '2rem',
+        borderRadius: '16px',
+        border: currentDecision.decision === 'ALLOW' ? '2px solid #16a34a' : '2px solid #dc2626',
+        marginBottom: '2rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              color: currentDecision.decision === 'ALLOW' ? '#16a34a' : '#dc2626',
+              margin: '0 0 0.5rem 0'
+            }}>
+              DECISION: {currentDecision.decision}
+            </h2>
+            <p style={{ fontSize: '1.125rem', color: '#6b7280', margin: 0 }}>
+              {selectedService} → {currentDecision.environment} • {currentDecision.timestamp}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{
+              fontSize: '2.5rem',
+              fontWeight: 'bold',
+              color: currentDecision.decision === 'ALLOW' ? '#16a34a' : '#dc2626',
+              marginBottom: '0.25rem'
+            }}>
+              {currentDecision.confidence}%
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+              Confidence Score
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              Evidence: {currentDecision.evidence_id}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stage-by-Stage Analysis */}
       <div style={{
         backgroundColor: 'white',
-        padding: '2.5rem',
+        padding: '2rem',
         borderRadius: '16px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         border: '1px solid #e5e7eb',
-        marginBottom: '3rem'
+        marginBottom: '2rem'
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1f2937',
           marginBottom: '2rem',
-          paddingBottom: '1rem',
-          borderBottom: '2px solid #f3f4f6'
+          borderBottom: '2px solid #f3f4f6',
+          paddingBottom: '1rem'
         }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            backgroundColor: '#e0e7ff',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '1rem'
-          }}>
-            <span style={{ fontSize: '1.75rem' }}>🔄</span>
-          </div>
-          <h2 style={{ 
-            fontSize: '1.75rem', 
-            fontWeight: '700', 
-            color: '#1f2937', 
-            margin: 0
-          }}>
-            SSDLC Stage Data Ingestion
-          </h2>
+          🔍 Stage-by-Stage Decision Analysis
+        </h2>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {Object.entries(currentDecision.stages).map(([stageName, stageData]) => (
+            <div key={stageName} style={{
+              padding: '1.5rem',
+              backgroundColor: stageData.status === 'passed' ? '#f0fdf4' : '#fef2f2',
+              borderRadius: '12px',
+              border: stageData.status === 'passed' ? '1px solid #bbf7d0' : '1px solid #fecaca'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{
+                  fontSize: '1.25rem',
+                  fontWeight: '700',
+                  color: '#1f2937',
+                  margin: 0,
+                  textTransform: 'capitalize'
+                }}>
+                  {stageName === 'plan' ? '📋' : stageName === 'code' ? '🔍' : stageName === 'build' ? '📦' : 
+                   stageName === 'test' ? '🧪' : stageName === 'release' ? '🚀' : stageName === 'deploy' ? '🏗️' : '⚙️'} {stageName.toUpperCase()} Stage
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '700',
+                    color: stageData.status === 'passed' ? '#16a34a' : '#dc2626',
+                    backgroundColor: stageData.status === 'passed' ? '#dcfce7' : '#fecaca',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '20px'
+                  }}>
+                    {stageData.confidence_contribution * 100}% CONFIDENCE
+                  </span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    color: stageData.status === 'passed' ? '#16a34a' : '#dc2626'
+                  }}>
+                    {stageData.status === 'passed' ? '✅ PASSED' : '❌ FAILED'}
+                  </span>
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                    📥 Data Consumed
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '1rem' }}>
+                    {stageData.data_consumed.map((item, idx) => (
+                      <li key={idx} style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                    🧠 FixOps Analysis
+                  </h4>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>
+                    {stageData.fixops_analysis}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
+
+      {/* Consensus Details */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e5e7eb'
+      }}>
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1f2937',
+          marginBottom: '2rem',
+          borderBottom: '2px solid #f3f4f6',
+          paddingBottom: '1rem'
+        }}>
+          🤝 Consensus & Validation Details
+        </h2>
         
         <div style={{
           display: 'grid',
@@ -159,15 +278,60 @@ function DeveloperDashboard() {
             border: '1px solid #bfdbfe',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📋</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Plan Stage
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.5rem' }}>
+              {(currentDecision.consensus_details.vector_db_score * 100).toFixed(0)}%
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              Business Context
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+              Vector DB Score
             </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ Jira + Confluence Active
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              Knowledge graph match
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: currentDecision.consensus_details.golden_regression_passed ? '#f0fdf4' : '#fef2f2',
+            borderRadius: '12px',
+            border: currentDecision.consensus_details.golden_regression_passed ? '1px solid #bbf7d0' : '1px solid #fecaca',
+            textAlign: 'center'
+          }}>
+            <div style={{ 
+              fontSize: '2rem', 
+              fontWeight: 'bold', 
+              color: currentDecision.consensus_details.golden_regression_passed ? '#16a34a' : '#dc2626', 
+              marginBottom: '0.5rem' 
+            }}>
+              {currentDecision.consensus_details.golden_regression_passed ? '✅' : '❌'}
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+              Golden Regression
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              1,247 test cases
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: currentDecision.consensus_details.policy_violations === 0 ? '#f0fdf4' : '#fef2f2',
+            borderRadius: '12px',
+            border: currentDecision.consensus_details.policy_violations === 0 ? '1px solid #bbf7d0' : '1px solid #fecaca',
+            textAlign: 'center'
+          }}>
+            <div style={{ 
+              fontSize: '2rem', 
+              fontWeight: 'bold', 
+              color: currentDecision.consensus_details.policy_violations === 0 ? '#16a34a' : '#dc2626', 
+              marginBottom: '0.5rem' 
+            }}>
+              {currentDecision.consensus_details.policy_violations}
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+              Policy Violations
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              24 policies checked
             </div>
           </div>
           
@@ -178,635 +342,15 @@ function DeveloperDashboard() {
             border: '1px solid #bfdbfe',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🔍</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Code Stage
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.5rem' }}>
+              {currentDecision.consensus_details.criticality_factor}x
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              SAST + SARIF Findings
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+              Risk Multiplier
             </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ 47 SARIF Reports
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              SBOM analysis
             </div>
-          </div>
-          
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '12px',
-            border: '1px solid #bfdbfe',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📦</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Build Stage
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              SCA + SBOM
-            </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ 23 SBOM + SLSA
-            </div>
-          </div>
-          
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '12px',
-            border: '1px solid #bfdbfe',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🧪</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Test Stage
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              DAST + Exploitability
-            </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ 12 DAST Reports
-            </div>
-          </div>
-          
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '12px',
-            border: '1px solid #bfdbfe',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🚀</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Release Stage
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              Policy Decisions
-            </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ 24 Active Policies
-            </div>
-          </div>
-          
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '12px',
-            border: '1px solid #bfdbfe',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🏗️</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Deploy Stage
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              IBOM/SBOM/CNAPP
-            </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ Runtime Validation
-            </div>
-          </div>
-          
-          <div style={{
-            padding: '1.5rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '12px',
-            border: '1px solid #bfdbfe',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>⚙️</div>
-            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
-              Operate Stage
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              Runtime Correlation
-            </div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
-              ✅ VM + Alert Data
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Decision Core Components & Intelligence */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '2rem',
-        marginBottom: '3rem'
-      }}>
-        {/* Decision Core Components Status */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          height: '500px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '2rem',
-            paddingBottom: '1rem',
-            borderBottom: '2px solid #f3f4f6'
-          }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              backgroundColor: '#ddd6fe',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1rem'
-            }}>
-              <span style={{ fontSize: '1.75rem' }}>⚙️</span>
-            </div>
-            <h2 style={{ 
-              fontSize: '1.75rem', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              margin: 0
-            }}>
-              Decision Core Components
-            </h2>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.25rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🗄️</span>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
-                  Vector DB + Knowledge Graph
-                </span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>ACTIVE</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.25rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🧠</span>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
-                  LLM+RAG Context Enrichment
-                </span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>95%</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.25rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🤝</span>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
-                  Consensus Checker
-                </span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>87%</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.25rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🏆</span>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
-                  Golden Regression Set
-                </span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>VALIDATED</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.25rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>📜</span>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
-                  OPA/Rego Policy Engine
-                </span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>24 POLICIES</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.25rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>📦</span>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
-                  SBOM Metadata Injection
-                </span>
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>CRITICAL</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Intelligence & Decision Insights */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          height: '500px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '2rem',
-            paddingBottom: '1rem',
-            borderBottom: '2px solid #f3f4f6'
-          }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              backgroundColor: '#fed7aa',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1rem'
-            }}>
-              <span style={{ fontSize: '1.75rem' }}>🤖</span>
-            </div>
-            <h2 style={{ 
-              fontSize: '1.75rem', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              margin: 0
-            }}>
-              Intelligence & Insights
-            </h2>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🗄️</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937' }}>
-                  Vector DB Knowledge Graph
-                </span>
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                • 2,847 security patterns indexed
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                • 156 threat models mapped
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                • 94% context match rate
-              </div>
-            </div>
-            
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🧠</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937' }}>
-                  LLM+RAG Intelligence
-                </span>
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                • Business impact correlation: 92%
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                • Threat intel enrichment: 89%
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                • Context precision: 95%
-              </div>
-            </div>
-            
-            <div style={{
-              padding: '1.5rem',
-              backgroundColor: '#fef3c7',
-              borderRadius: '12px',
-              border: '1px solid #fed7aa'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🏆</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937' }}>
-                  Golden Regression Suite
-                </span>
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                • 1,247 regression test cases
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                • 98.7% validation accuracy
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#16a34a', fontWeight: '600' }}>
-                • ✅ Last validation: 3 min ago
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Decisions with Full Context */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '2.5rem',
-        borderRadius: '16px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        border: '1px solid #e5e7eb',
-        marginBottom: '3rem'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '2rem',
-          paddingBottom: '1rem',
-          borderBottom: '2px solid #f3f4f6'
-        }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            backgroundColor: '#dcfce7',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '1rem'
-          }}>
-            <span style={{ fontSize: '1.75rem' }}>⚖️</span>
-          </div>
-          <h2 style={{ 
-            fontSize: '1.75rem', 
-            fontWeight: '700', 
-            color: '#1f2937', 
-            margin: 0
-          }}>
-            Recent Pipeline Decisions
-          </h2>
-        </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* ALLOW Decision */}
-          <div style={{
-            padding: '2rem',
-            backgroundColor: '#f0fdf4',
-            borderRadius: '12px',
-            border: '1px solid #bbf7d0'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  backgroundColor: '#16a34a',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.25rem',
-                  color: 'white',
-                  marginRight: '1rem'
-                }}>
-                  ✅
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
-                    DECISION: ALLOW
-                  </h3>
-                  <p style={{ fontSize: '1rem', color: '#16a34a', margin: 0, fontWeight: '600' }}>
-                    payment-service v2.1.3 → Production
-                  </p>
-                </div>
-              </div>
-              <span style={{
-                fontSize: '1rem',
-                fontWeight: '700',
-                color: '#16a34a',
-                backgroundColor: '#dcfce7',
-                padding: '0.5rem 1rem',
-                borderRadius: '20px'
-              }}>
-                92% CONFIDENCE
-              </span>
-            </div>
-            
-            <div style={{ marginBottom: '1rem' }}>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
-                <strong>Context Sources:</strong> Jira (Business Critical), SBOM (CycloneDX), SAST (47 findings), DAST (Clean)
-              </p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
-                <strong>Intelligence:</strong> Vector DB matched 12 similar deployments, LLM+RAG risk assessment: Low
-              </p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                <strong>Validation:</strong> Golden regression PASSED, OPA/Rego policy compliance VERIFIED
-              </p>
-            </div>
-            
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '600' }}>
-              Evidence ID: EVD-2024-0847 • Decision latency: 278μs • 2h ago
-            </div>
-          </div>
-          
-          {/* BLOCK Decision */}
-          <div style={{
-            padding: '2rem',
-            backgroundColor: '#fef2f2',
-            borderRadius: '12px',
-            border: '1px solid #fecaca'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  backgroundColor: '#dc2626',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.25rem',
-                  color: 'white',
-                  marginRight: '1rem'
-                }}>
-                  🚫
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
-                    DECISION: BLOCK
-                  </h3>
-                  <p style={{ fontSize: '1rem', color: '#dc2626', margin: 0, fontWeight: '600' }}>
-                    user-auth v1.8.2 → Production
-                  </p>
-                </div>
-              </div>
-              <span style={{
-                fontSize: '1rem',
-                fontWeight: '700',
-                color: '#dc2626',
-                backgroundColor: '#fecaca',
-                padding: '0.5rem 1rem',
-                borderRadius: '20px'
-              }}>
-                89% CONFIDENCE
-              </span>
-            </div>
-            
-            <div style={{ marginBottom: '1rem' }}>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
-                <strong>Context Sources:</strong> SAST (Critical SQL injection), SBOM (Vulnerable dependencies), Runtime alerts
-              </p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
-                <strong>Intelligence:</strong> Vector DB flagged similar vulnerabilities, LLM+RAG impact: HIGH (PII exposure)
-              </p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                <strong>Validation:</strong> Golden regression FAILED (known bad pattern), Policy violation: CRITICAL_DATA_EXPOSURE
-              </p>
-            </div>
-            
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '600' }}>
-              Evidence ID: EVD-2024-0848 • Decision latency: 342μs • 4h ago
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Evidence Lake & Audit Trail */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
-        padding: '3rem',
-        borderRadius: '20px',
-        border: '1px solid #4b5563',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        color: 'white'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '1.5rem',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <span style={{ fontSize: '2.5rem' }}>🗃️</span>
-          </div>
-          <div>
-            <h2 style={{ 
-              fontSize: '2.5rem', 
-              fontWeight: '800', 
-              margin: 0,
-              letterSpacing: '-0.025em'
-            }}>
-              Evidence Lake & Audit Trail
-            </h2>
-            <p style={{
-              fontSize: '1.25rem',
-              opacity: 0.8,
-              margin: 0,
-              fontWeight: '500'
-            }}>
-              Immutable signed records with provable decisions
-            </p>
-          </div>
-        </div>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '2rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              847
-            </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Evidence Records</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              {metrics?.total_decisions || 234}
-            </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Signed Decisions</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              100%
-            </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Audit Compliance</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              24/7
-            </div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Evidence Retention</div>
-          </div>
-        </div>
-        
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <h4 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem' }}>
-            🔒 Immutable Decision Record Example
-          </h4>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', opacity: 0.9 }}>
-            <div>📝 Decision: BLOCK user-auth v1.8.2</div>
-            <div>🎯 Confidence: 89% (Consensus: ✅ Vector DB: ✅ Regression: ❌)</div>
-            <div>📊 Context: PII Data + SAST Critical + SBOM Vulnerable Dependencies</div>
-            <div>🔗 Evidence: EVD-2024-0848 • Signed: SHA256:a7b9c3d... • SLSA Provenance ✅</div>
           </div>
         </div>
       </div>

@@ -1,609 +1,343 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 function CISODashboard() {
+  const [timeframe, setTimeframe] = useState('7d')
+  
+  // Executive decision summary data
+  const decisionSummary = {
+    '7d': {
+      total_decisions: 67,
+      allow_decisions: 52,
+      block_decisions: 8, 
+      defer_decisions: 7,
+      avg_confidence: 89,
+      critical_blocks: 3,
+      compliance_rate: 94,
+      risk_reduction: 23
+    }
+  }
+  
+  const currentSummary = decisionSummary[timeframe]
+  
+  const riskAreas = [
+    {
+      service: 'Payment Processing',
+      risk_level: 'CRITICAL',
+      decisions_blocked: 3,
+      business_impact: 'Financial transactions',
+      last_incident: '4h ago',
+      compliance_status: 'PCI DSS Review Required'
+    },
+    {
+      service: 'User Authentication', 
+      risk_level: 'HIGH',
+      decisions_blocked: 2,
+      business_impact: 'User access security',
+      last_incident: '12h ago',
+      compliance_status: 'SOC2 Compliant'
+    },
+    {
+      service: 'API Gateway',
+      risk_level: 'MEDIUM',
+      decisions_blocked: 1,
+      business_impact: 'External integrations',
+      last_incident: '2d ago', 
+      compliance_status: 'NIST SSDF Compliant'
+    }
+  ]
+
   return (
     <div style={{
-      padding: '3rem 2rem',
-      maxWidth: '1400px',
-      margin: '0 auto'
+      padding: '2rem',
+      maxWidth: '1600px',
+      margin: '0 auto',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
     }}>
       
-      {/* Perfect 3-Column Executive Metrics */}
+      {/* Executive Header */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{
+          fontSize: '2.5rem',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          marginBottom: '0.5rem'
+        }}>
+          Executive Security Risk Overview
+        </h1>
+        <p style={{ 
+          color: '#6b7280', 
+          fontSize: '1.125rem',
+          marginBottom: '1.5rem'
+        }}>
+          Business-focused security decision intelligence and risk assessment
+        </p>
+        
+        {/* Timeframe Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <label style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+            Timeframe:
+          </label>
+          <select
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
+            style={{
+              padding: '0.75rem 1rem',
+              fontSize: '1rem',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              backgroundColor: 'white'
+            }}
+          >
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Executive Decision Metrics */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '2rem',
-        marginBottom: '3rem'
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '1.5rem',
+        marginBottom: '2rem'
       }}>
-        {/* Risk Score - Red Theme */}
         <div style={{
           backgroundColor: 'white',
-          padding: '2.5rem',
+          padding: '2rem',
           borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '200px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
+          textAlign: 'center'
         }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: '#fecaca',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2.5rem'
-          }}>
-            🚨
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.5rem' }}>
+            {currentSummary.total_decisions}
           </div>
-          <div style={{
-            fontSize: '3.5rem',
-            fontWeight: 'bold',
-            color: '#dc2626',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            6.2
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+            Total Decisions
           </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: '0.25rem'
-          }}>
-            Risk Score
-          </div>
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#9ca3af',
-            fontWeight: '500'
-          }}>
-            out of 10 (lower is better)
+          <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+            Pipeline gates
           </div>
         </div>
-
-        {/* Critical Services - Yellow Theme */}
+        
         <div style={{
           backgroundColor: 'white',
-          padding: '2.5rem',
+          padding: '2rem',
           borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '200px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
+          textAlign: 'center'
         }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: '#fef3c7',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2.5rem'
-          }}>
-            ⚠️
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '0.5rem' }}>
+            {currentSummary.allow_decisions}
           </div>
-          <div style={{
-            fontSize: '3.5rem',
-            fontWeight: 'bold',
-            color: '#d97706',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            3
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+            Deployments Allowed
           </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: '0.25rem'
-          }}>
-            Critical Services
-          </div>
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#9ca3af',
-            fontWeight: '500'
-          }}>
-            requiring immediate attention
+          <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.25rem', fontWeight: '600' }}>
+            {Math.round(currentSummary.allow_decisions / currentSummary.total_decisions * 100)}% success rate
           </div>
         </div>
-
-        {/* Compliance Score - Green Theme */}
+        
         <div style={{
           backgroundColor: 'white',
-          padding: '2.5rem',
+          padding: '2rem',
           borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '200px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
+          textAlign: 'center'
         }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: '#dcfce7',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2.5rem'
-          }}>
-            ✅
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#dc2626', marginBottom: '0.5rem' }}>
+            {currentSummary.block_decisions}
           </div>
-          <div style={{
-            fontSize: '3.5rem',
-            fontWeight: 'bold',
-            color: '#16a34a',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            94%
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+            Deployments Blocked
           </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: '0.25rem'
-          }}>
-            Compliance Score
+          <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem', fontWeight: '600' }}>
+            Security issues prevented
           </div>
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#9ca3af',
-            fontWeight: '500'
-          }}>
-            NIST SSDF & SOC2
+        </div>
+        
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2rem',
+          borderRadius: '16px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '0.5rem' }}>
+            {currentSummary.avg_confidence}%
+          </div>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+            Avg Confidence
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+            Decision reliability
           </div>
         </div>
       </div>
 
-      {/* Executive Sections - Perfect Alignment */}
+      {/* High-Risk Areas Requiring Attention */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '2rem',
-        marginBottom: '3rem'
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e5e7eb',
+        marginBottom: '2rem'
       }}>
-        {/* Security Overview */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          height: '450px'
+        <h2 style={{
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1f2937',
+          marginBottom: '2rem',
+          borderBottom: '2px solid #f3f4f6',
+          paddingBottom: '1rem'
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '2rem',
-            paddingBottom: '1rem',
-            borderBottom: '2px solid #f3f4f6'
-          }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              backgroundColor: '#e0e7ff',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1rem'
-            }}>
-              <span style={{ fontSize: '1.75rem' }}>📊</span>
-            </div>
-            <h2 style={{ 
-              fontSize: '1.75rem', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              margin: 0
-            }}>
-              Security Overview
-            </h2>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+          🚨 High-Risk Services - Action Required
+        </h2>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {riskAreas.map((area, idx) => (
+            <div key={idx} style={{
               padding: '1.5rem',
-              backgroundColor: '#f9fafb',
+              backgroundColor: area.risk_level === 'CRITICAL' ? '#fef2f2' : area.risk_level === 'HIGH' ? '#fef3c7' : '#f0f9ff',
               borderRadius: '12px',
-              border: '1px solid #f3f4f6'
+              border: area.risk_level === 'CRITICAL' ? '1px solid #fecaca' : area.risk_level === 'HIGH' ? '1px solid #fed7aa' : '1px solid #bfdbfe'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>⏱️</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Mean Time to Remediation
-                </span>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#2563eb' }}>2.4h</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.5rem',
-              backgroundColor: '#f9fafb',
-              borderRadius: '12px',
-              border: '1px solid #f3f4f6'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>👥</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Security Team Size
-                </span>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#2563eb' }}>12</div>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.5rem',
-              backgroundColor: '#f9fafb',
-              borderRadius: '12px',
-              border: '1px solid #f3f4f6'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🎯</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Coverage Percentage
-                </span>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>87%</div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1.5rem',
-              backgroundColor: '#f0fdf4',
-              borderRadius: '12px',
-              border: '1px solid #bbf7d0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🤖</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  AI Automation Rate
-                </span>
-              </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>89%</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Compliance & Risk Assessment */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          height: '450px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '2rem',
-            paddingBottom: '1rem',
-            borderBottom: '2px solid #f3f4f6'
-          }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              backgroundColor: '#fed7aa',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1rem'
-            }}>
-              <span style={{ fontSize: '1.75rem' }}>🔍</span>
-            </div>
-            <h2 style={{ 
-              fontSize: '1.75rem', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              margin: 0
-            }}>
-              Risk & Compliance
-            </h2>
-          </div>
-          
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              marginBottom: '1rem' 
-            }}>
-              High-Risk Areas
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ 
-                padding: '1rem 1.5rem', 
-                backgroundColor: '#fef2f2', 
-                borderRadius: '12px',
-                border: '1px solid #fecaca',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>💳</span>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#dc2626' }}>
-                    Payment Processing
-                  </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>
+                      {area.service}
+                    </h3>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      color: area.risk_level === 'CRITICAL' ? '#dc2626' : area.risk_level === 'HIGH' ? '#d97706' : '#2563eb',
+                      backgroundColor: area.risk_level === 'CRITICAL' ? '#fecaca' : area.risk_level === 'HIGH' ? '#fef3c7' : '#dbeafe',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '20px',
+                      marginLeft: '1rem'
+                    }}>
+                      {area.risk_level}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Business Impact:</span>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>
+                        {area.business_impact}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Decisions Blocked:</span>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#dc2626' }}>
+                        {area.decisions_blocked} deployments
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Last Incident:</span>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>
+                        {area.last_incident}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>Compliance:</span>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: area.compliance_status.includes('Review') ? '#d97706' : '#16a34a' }}>
+                        {area.compliance_status}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: '700',
-                  color: '#dc2626',
-                  backgroundColor: '#fee2e2',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px'
-                }}>
-                  CRITICAL
-                </span>
-              </div>
-              <div style={{ 
-                padding: '1rem 1.5rem', 
-                backgroundColor: '#fef2f2', 
-                borderRadius: '12px',
-                border: '1px solid #fecaca',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🔐</span>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#dc2626' }}>
-                    User Authentication
-                  </span>
-                </div>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: '700',
-                  color: '#d97706',
-                  backgroundColor: '#fef3c7',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px'
-                }}>
-                  HIGH
-                </span>
-              </div>
-              <div style={{ 
-                padding: '1rem 1.5rem', 
-                backgroundColor: '#fef2f2', 
-                borderRadius: '12px',
-                border: '1px solid #fecaca',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🌐</span>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#dc2626' }}>
-                    API Gateway
-                  </span>
-                </div>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: '700',
-                  color: '#d97706',
-                  backgroundColor: '#fef3c7',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px'
-                }}>
-                  HIGH
-                </span>
               </div>
             </div>
-          </div>
-          
-          <div>
-            <h3 style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: '700', 
-              color: '#1f2937', 
-              marginBottom: '1rem' 
-            }}>
-              Compliance Status
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ 
-                padding: '1rem 1.5rem', 
-                backgroundColor: '#f0fdf4', 
-                borderRadius: '12px',
-                border: '1px solid #bbf7d0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>📋</span>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#16a34a' }}>
-                    NIST SSDF
-                  </span>
-                </div>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: '700',
-                  color: '#16a34a',
-                  backgroundColor: '#dcfce7',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px'
-                }}>
-                  COMPLIANT
-                </span>
-              </div>
-              <div style={{ 
-                padding: '1rem 1.5rem', 
-                backgroundColor: '#f0fdf4', 
-                borderRadius: '12px',
-                border: '1px solid #bbf7d0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🔒</span>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#16a34a' }}>
-                    SOC2 Type II
-                  </span>
-                </div>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: '700',
-                  color: '#16a34a',
-                  backgroundColor: '#dcfce7',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px'
-                }}>
-                  COMPLIANT
-                </span>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Executive Summary - Premium Section */}
+      {/* Business Value & ROI */}
       <div style={{
         background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
-        padding: '3rem',
+        padding: '2.5rem',
         borderRadius: '20px',
         border: '1px solid #4b5563',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden'
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+        color: 'white'
       }}>
-        {/* Background Pattern */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '300px',
-          height: '300px',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
-          zIndex: 0
-        }}></div>
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ 
+            fontSize: '2.25rem', 
+            fontWeight: '800', 
+            margin: '0 0 0.5rem 0'
+          }}>
+            📊 Business Impact & ROI
+          </h2>
+          <p style={{
+            fontSize: '1.125rem',
+            opacity: 0.8,
+            margin: 0
+          }}>
+            Quantified security decision value for executive reporting
+          </p>
+        </div>
         
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              width: '72px',
-              height: '72px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1.5rem',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <span style={{ fontSize: '2.25rem' }}>📈</span>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '2rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              {currentSummary.risk_reduction}%
             </div>
-            <div>
-              <h2 style={{ 
-                fontSize: '2.25rem', 
-                fontWeight: '800', 
-                margin: 0,
-                letterSpacing: '-0.025em'
-              }}>
-                Executive Summary
-              </h2>
-              <p style={{
-                fontSize: '1.125rem',
-                opacity: 0.8,
-                margin: 0,
-                fontWeight: '500'
-              }}>
-                Strategic security overview
-              </p>
-            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Risk Reduction</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.25rem' }}>vs baseline</div>
           </div>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '2rem',
-            marginBottom: '2rem'
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                24
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Active Policies</div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              ${((currentSummary.block_decisions * 850000) / 1000000).toFixed(1)}M
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                89%
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Automated Decisions</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                3
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Policy Violations</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                24/7
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Monitoring</div>
-            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Breach Cost Avoided</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.25rem' }}>estimated savings</div>
           </div>
-          
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <p style={{ 
-              fontSize: '1.125rem', 
-              margin: 0, 
-              lineHeight: '1.7',
-              fontWeight: '500'
-            }}>
-              <strong>Security Posture:</strong> The organization maintains a strong security posture with 94% compliance. 
-              Critical focus areas include payment processing and authentication modules. 
-              AI-driven correlation is reducing alert fatigue by 35%.
-            </p>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              2.4h
+            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Mean Time to Decision</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.25rem' }}>vs 24h manual</div>
           </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              {currentSummary.compliance_rate}%
+            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Compliance Rate</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.25rem' }}>NIST + SOC2</div>
+          </div>
+        </div>
+        
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <h4 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem' }}>
+            📋 Executive Summary
+          </h4>
+          <p style={{ fontSize: '1rem', margin: 0, lineHeight: '1.6', opacity: 0.9 }}>
+            FixOps Decision Engine prevented <strong>{currentSummary.block_decisions} high-risk deployments</strong> with 
+            <strong> {currentSummary.avg_confidence}% average confidence</strong>. Critical security issues in payment 
+            processing and authentication systems were identified and blocked before production impact. 
+            Automated decision-making reduced security review time from 24h to 2.4h average.
+          </p>
         </div>
       </div>
     </div>
