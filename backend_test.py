@@ -869,6 +869,245 @@ except Exception as e:
         
         return True
 
+    def test_enhanced_api_endpoints(self):
+        """Test Enhanced API endpoints as specified in review request"""
+        print("\n🔥 Testing Enhanced API Endpoints (Review Request)...")
+        
+        # Test 1: GET /api/v1/enhanced/capabilities
+        success, response = self.run_test(
+            "Enhanced Capabilities", 
+            "GET", 
+            "api/v1/enhanced/capabilities", 
+            200
+        )
+        
+        if success and response.get('data'):
+            data = response['data']
+            if 'supported_llms' in data:
+                print(f"   ✅ supported_llms present: {list(data['supported_llms'].keys())}")
+            else:
+                print(f"   ❌ supported_llms missing from response")
+                self.failed_tests.append({'name': 'Enhanced Capabilities - supported_llms', 'error': 'supported_llms field missing'})
+        
+        # Test 2: POST /api/v1/enhanced/compare-llms
+        compare_request = {
+            "service_name": "test-service",
+            "security_findings": [
+                {
+                    "severity": "high",
+                    "category": "injection", 
+                    "title": "SQL Injection vulnerability",
+                    "source": "sonarqube"
+                }
+            ],
+            "business_context": {}
+        }
+        
+        success, response = self.run_test(
+            "Enhanced Compare LLMs", 
+            "POST", 
+            "api/v1/enhanced/compare-llms", 
+            200,
+            data=compare_request
+        )
+        
+        if success and response.get('data'):
+            data = response['data']
+            if 'individual_analyses' in data and isinstance(data['individual_analyses'], list):
+                print(f"   ✅ individual_analyses array present with {len(data['individual_analyses'])} items")
+            else:
+                print(f"   ❌ individual_analyses array missing or invalid")
+                self.failed_tests.append({'name': 'Enhanced Compare LLMs - individual_analyses', 'error': 'individual_analyses array missing'})
+        
+        # Test 3: POST /api/v1/enhanced/analysis
+        analysis_request = {
+            "service_name": "test-service",
+            "environment": "production",
+            "business_context": {},
+            "security_findings": [
+                {
+                    "severity": "high",
+                    "category": "injection",
+                    "title": "SQL Injection vulnerability", 
+                    "source": "sonarqube"
+                }
+            ]
+        }
+        
+        success, response = self.run_test(
+            "Enhanced Analysis Standard", 
+            "POST", 
+            "api/v1/enhanced/analysis", 
+            200,
+            data=analysis_request
+        )
+        
+        if success and response:
+            # Check standardized schema
+            if 'models' in response and isinstance(response['models'], list):
+                print(f"   ✅ models array present with {len(response['models'])} items")
+                
+                # Check model structure
+                if response['models']:
+                    model = response['models'][0]
+                    required_fields = ['name', 'verdict', 'confidence', 'rationale', 'evidence', 'mitre_ttps']
+                    missing_fields = [field for field in required_fields if field not in model]
+                    if missing_fields:
+                        print(f"   ❌ Missing model fields: {missing_fields}")
+                        self.failed_tests.append({'name': 'Enhanced Analysis - model fields', 'error': f'Missing fields: {missing_fields}'})
+                    else:
+                        print(f"   ✅ Model structure valid")
+            else:
+                print(f"   ❌ models array missing")
+                self.failed_tests.append({'name': 'Enhanced Analysis - models', 'error': 'models array missing'})
+            
+            if 'consensus' in response:
+                consensus = response['consensus']
+                required_consensus_fields = ['verdict', 'confidence', 'method']
+                missing_consensus = [field for field in required_consensus_fields if field not in consensus]
+                if missing_consensus:
+                    print(f"   ❌ Missing consensus fields: {missing_consensus}")
+                    self.failed_tests.append({'name': 'Enhanced Analysis - consensus', 'error': f'Missing consensus fields: {missing_consensus}'})
+                else:
+                    print(f"   ✅ Consensus structure valid")
+            else:
+                print(f"   ❌ consensus missing")
+                self.failed_tests.append({'name': 'Enhanced Analysis - consensus', 'error': 'consensus missing'})
+        
+        return True
+
+    def test_scan_upload_enhanced(self):
+        """Test Enhanced Scan Upload endpoints as specified in review request"""
+        print("\n📤 Testing Enhanced Scan Upload (Review Request)...")
+        
+        # Test 4a: Single-shot upload
+        json_content = {
+            "findings": [
+                {
+                    "rule_id": "r1",
+                    "title": "Test Finding",
+                    "severity": "high",
+                    "category": "injection",
+                    "scanner_type": "generic"
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(json_content, f)
+            json_file_path = f.name
+        
+        try:
+            with open(json_file_path, 'rb') as f:
+                files = {'file': ('test.json', f, 'application/json')}
+                data = {
+                    'scan_type': 'json',
+                    'service_name': 'svc',
+                    'environment': 'production'
+                }
+                
+                success, response = self.run_test(
+                    "Scan Upload - Single-shot JSON", 
+                    "POST", 
+                    "api/v1/scans/upload", 
+                    200,
+                    data=data,
+                    files=files
+                )
+                
+                if success and response.get('data'):
+                    upload_data = response['data']
+                    if 'findings_processed' in upload_data:
+                        print(f"   ✅ Single-shot upload successful: {upload_data['findings_processed']} findings processed")
+                    else:
+                        print(f"   ❌ findings_processed count missing")
+                        self.failed_tests.append({'name': 'Single-shot Upload - counts', 'error': 'findings_processed missing'})
+        
+        finally:
+            os.unlink(json_file_path)
+        
+        # Test 4b: Chunked upload flow
+        print("\n   Testing chunked upload flow...")
+        
+        # Step i: Initialize chunked upload
+        init_request = {
+            "file_name": "sample.json",
+            "total_size": len(json.dumps(json_content).encode('utf-8')),
+            "scan_type": "json",
+            "service_name": "svc",
+            "environment": "production"
+        }
+        
+        success, response = self.run_test(
+            "Chunked Upload - Init", 
+            "POST", 
+            "api/v1/scans/upload/init", 
+            200,
+            data=init_request
+        )
+        
+        upload_id = None
+        if success and response.get('data', {}).get('upload_id'):
+            upload_id = response['data']['upload_id']
+            print(f"   ✅ Upload initialized with ID: {upload_id}")
+        else:
+            print(f"   ❌ Upload init failed - no upload_id returned")
+            self.failed_tests.append({'name': 'Chunked Upload - Init', 'error': 'No upload_id returned'})
+            return True
+        
+        # Step ii: Upload chunk
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(json_content, f)
+            chunk_file_path = f.name
+        
+        try:
+            with open(chunk_file_path, 'rb') as f:
+                files = {'chunk': ('sample.json', f, 'application/json')}
+                data = {
+                    'upload_id': upload_id,
+                    'chunk_index': 0,
+                    'total_chunks': 1
+                }
+                
+                success, response = self.run_test(
+                    "Chunked Upload - Chunk", 
+                    "POST", 
+                    "api/v1/scans/upload/chunk", 
+                    200,
+                    data=data,
+                    files=files
+                )
+                
+                if success:
+                    print(f"   ✅ Chunk uploaded successfully")
+                else:
+                    print(f"   ❌ Chunk upload failed")
+                    return True
+        
+        finally:
+            os.unlink(chunk_file_path)
+        
+        # Step iii: Complete upload
+        complete_request = {"upload_id": upload_id}
+        
+        success, response = self.run_test(
+            "Chunked Upload - Complete", 
+            "POST", 
+            "api/v1/scans/upload/complete", 
+            200,
+            data=complete_request
+        )
+        
+        if success and response.get('data'):
+            upload_data = response['data']
+            if 'findings_processed' in upload_data:
+                print(f"   ✅ Chunked upload completed: {upload_data['findings_processed']} findings processed")
+            else:
+                print(f"   ❌ findings_processed count missing from completion")
+                self.failed_tests.append({'name': 'Chunked Upload - Complete counts', 'error': 'findings_processed missing'})
+        
+        return True
+
     def run_all_tests(self):
         """Run all comprehensive FixOps Decision Engine tests"""
         print("🚀 Starting FixOps Decision Engine Backend Testing...")
@@ -882,7 +1121,10 @@ except Exception as e:
         
         # Run all test suites based on review request priorities
         test_suites = [
-            # CRITICAL TESTING AREAS from review request
+            # PRIORITY TESTING AREAS from review request
+            ("Enhanced API Endpoints", self.test_enhanced_api_endpoints),
+            ("Enhanced Scan Upload", self.test_scan_upload_enhanced),
+            # EXISTING CRITICAL TESTING AREAS
             ("Decision Engine API", self.test_decision_engine_api),
             ("Scan Upload API", self.test_scan_upload_api), 
             ("Core Services", self.test_core_services),
