@@ -614,6 +614,36 @@ class FixOpsCLI:
         """Generate pull request patches from fixes"""
         # Implementation would generate actual PR patches
         return []
+    
+    async def _create_finding_from_data(self, finding_data: Dict[str, Any]) -> SecurityFinding:
+        """Create a SecurityFinding from finding data"""
+        async with DatabaseManager.get_session_context() as session:
+            finding = SecurityFinding(
+                service_id=finding_data.get("service_id"),
+                scanner_type=finding_data.get("scanner_type", "generic"),
+                scanner_name=finding_data.get("scanner_name", "unknown"),
+                rule_id=finding_data.get("rule_id", "unknown"),
+                title=finding_data.get("title", "Unknown vulnerability"),
+                description=finding_data.get("description", ""),
+                severity=finding_data.get("severity", "low"),
+                category=finding_data.get("category", "unknown"),
+                file_path=finding_data.get("file_path"),
+                line_number=finding_data.get("line_number"),
+                cwe_id=finding_data.get("cwe_id"),
+                cve_id=finding_data.get("cve_id"),
+                cvss_score=finding_data.get("cvss_score"),
+                first_seen=datetime.utcnow(),
+                last_seen=datetime.utcnow(),
+                status="open",
+                uploaded_by=finding_data.get("uploaded_by", "system"),
+                upload_filename=finding_data.get("upload_filename")
+            )
+            
+            session.add(finding)
+            await session.commit()
+            await session.refresh(finding)
+            
+            return finding
 
 
 def create_parser():
