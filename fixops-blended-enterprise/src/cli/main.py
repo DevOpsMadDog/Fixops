@@ -298,6 +298,41 @@ class FixOpsCLI:
                 "error": str(e),
                 "exit_code": 2
             }
+    
+    async def get_evidence(self, args) -> Dict[str, Any]:
+        """Retrieve evidence record from Evidence Lake"""
+        try:
+            from src.services.cache_service import CacheService
+            cache = CacheService.get_instance()
+            
+            evidence = await cache.get(f"evidence:{args.evidence_id}")
+            if not evidence:
+                return {
+                    "status": "error",
+                    "error": f"Evidence record {args.evidence_id} not found",
+                    "exit_code": 1
+                }
+            
+            result = {
+                "status": "success",
+                "evidence_id": args.evidence_id,
+                "evidence_record": evidence,
+                "exit_code": 0
+            }
+            
+            if hasattr(args, 'output_file') and args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Evidence retrieval failed: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "exit_code": 2
+            }
                 
                 for fix in fix_suggestions:
                     fix_dict = fix.__dict__.copy()
