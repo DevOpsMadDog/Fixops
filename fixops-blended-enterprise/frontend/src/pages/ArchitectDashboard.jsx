@@ -1,148 +1,348 @@
 import React from 'react'
-import { Activity, Layers, Network, Database, Cloud, Cpu } from 'lucide-react'
 
 function ArchitectDashboard() {
-  const architectureMetrics = {
-    services: 23,
-    dependencies: 156,
-    hotPaths: 12,
-    dataFlows: 45,
-    securityZones: 4,
-    performanceScore: 'A+'
-  }
-
-  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
-      <div className="p-5">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <Icon className={`h-6 w-6 ${color}`} />
-          </div>
-          <div className="ml-5 w-0 flex-1">
-            <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                {title}
-              </dt>
-              <dd className="text-lg font-medium text-gray-900">{value}</dd>
-              {subtitle && (
-                <dd className="text-xs text-gray-500">{subtitle}</dd>
-              )}
-            </dl>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
+  console.log('🔥 Architect Dashboard component rendering!')
+  
   return (
-    <div className="space-y-6">
-      <div className="border-b border-gray-200 pb-5">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
-          Architect Dashboard
-        </h3>
-        <p className="mt-2 max-w-4xl text-sm text-gray-500">
-          System architecture overview and security design patterns
-        </p>
-      </div>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f8fafc',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+          <h1 style={{
+            fontSize: '3rem',
+            fontWeight: 'bold',
+            color: '#1f2937',
+            marginBottom: '0.75rem',
+            letterSpacing: '-0.025em'
+          }}>
+            Architect Dashboard
+          </h1>
+          <p style={{ 
+            color: '#6b7280', 
+            fontSize: '1.25rem',
+            maxWidth: '600px',
+            margin: '0 auto',
+            lineHeight: '1.6'
+          }}>
+            System architecture insights and security design patterns
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Services"
-          value={architectureMetrics.services}
-          icon={Layers}
-          color="text-blue-600"
-          subtitle="microservices monitored"
-        />
-        <StatCard
-          title="Dependencies"
-          value={architectureMetrics.dependencies}
-          icon={Network}
-          color="text-purple-600"
-          subtitle="service interactions"
-        />
-        <StatCard
-          title="Hot Paths"
-          value={architectureMetrics.hotPaths}
-          icon={Activity}
-          color="text-red-600"
-          subtitle="performance critical routes"
-        />
-      </div>
+        {/* Architecture Metrics Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '2rem',
+          marginBottom: '3rem'
+        }}>
+          {/* Services Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            border: '1px solid #e5e7eb',
+            height: '140px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <div>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#6b7280', 
+                  marginBottom: '0.5rem',
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Services
+                </p>
+                <p style={{ 
+                  fontSize: '2.5rem', 
+                  fontWeight: 'bold', 
+                  color: '#1f2937',
+                  margin: 0,
+                  lineHeight: '1'
+                }}>
+                  47
+                </p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
+                  microservices
+                </p>
+              </div>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                🏗️
+              </div>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Architecture Metrics</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Data Flows</span>
-                <span className="text-sm font-medium text-blue-600">{architectureMetrics.dataFlows}</span>
+          {/* Security Patterns Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            border: '1px solid #e5e7eb',
+            height: '140px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <div>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#6b7280', 
+                  marginBottom: '0.5rem',
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Security Patterns
+                </p>
+                <p style={{ 
+                  fontSize: '2.5rem', 
+                  fontWeight: 'bold', 
+                  color: '#16a34a',
+                  margin: 0,
+                  lineHeight: '1'
+                }}>
+                  12
+                </p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
+                  implemented
+                </p>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Security Zones</span>
-                <span className="text-sm font-medium text-green-600">{architectureMetrics.securityZones}</span>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                🛡️
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Performance Score</span>
-                <span className="text-sm font-medium text-green-600">{architectureMetrics.performanceScore}</span>
+            </div>
+          </div>
+
+          {/* API Endpoints Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            border: '1px solid #e5e7eb',
+            height: '140px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <div>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#6b7280', 
+                  marginBottom: '0.5rem',
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  API Endpoints
+                </p>
+                <p style={{ 
+                  fontSize: '2.5rem', 
+                  fontWeight: 'bold', 
+                  color: '#2563eb',
+                  margin: 0,
+                  lineHeight: '1'
+                }}>
+                  234
+                </p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
+                  secured endpoints
+                </p>
+              </div>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                backgroundColor: '#e0e7ff',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                🔗
+              </div>
+            </div>
+          </div>
+
+          {/* Code Quality Card */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '16px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            border: '1px solid #e5e7eb',
+            height: '140px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <div>
+                <p style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#6b7280', 
+                  marginBottom: '0.5rem',
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Code Quality
+                </p>
+                <p style={{ 
+                  fontSize: '2.5rem', 
+                  fontWeight: 'bold', 
+                  color: '#16a34a',
+                  margin: 0,
+                  lineHeight: '1'
+                }}>
+                  A+
+                </p>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
+                  security grade
+                </p>
+              </div>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                💻
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Security Architecture</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-900">Zero Trust Implementation</span>
-                <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-900">Service Mesh Security</span>
-                <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Enabled</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-900">Network Segmentation</span>
-                <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Configured</span>
-              </div>
+        {/* Architecture Insights */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%)',
+          padding: '2.5rem',
+          borderRadius: '20px',
+          border: '2px solid #8b5cf6',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '1rem',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}>
+              <span style={{ fontSize: '1.75rem' }}>🏛️</span>
             </div>
+            <h3 style={{ 
+              fontSize: '1.75rem', 
+              fontWeight: '700', 
+              color: '#1f2937', 
+              margin: 0,
+              letterSpacing: '-0.025em'
+            }}>
+              Architecture Insights
+            </h3>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">System Design Insights</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center mb-2">
-                <Cpu className="h-5 w-5 text-blue-600 mr-2" />
-                <h4 className="text-sm font-medium text-blue-800">Performance Optimization</h4>
+          
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '16px',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: '0.25rem',
+                flexShrink: 0
+              }}>
+                <div style={{ 
+                  width: '8px', 
+                  height: '8px', 
+                  backgroundColor: '#16a34a', 
+                  borderRadius: '50%'
+                }}></div>
               </div>
-              <p className="text-xs text-blue-700">
-                Hot path analysis shows 12 critical routes achieving sub-299μs latency targets.
-              </p>
-            </div>
-            
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center mb-2">
-                <Database className="h-5 w-5 text-green-600 mr-2" />
-                <h4 className="text-sm font-medium text-green-800">Data Architecture</h4>
+              <div>
+                <h4 style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '700', 
+                  color: '#1f2937', 
+                  margin: '0 0 0.75rem 0' 
+                }}>
+                  Security-First Architecture Active
+                </h4>
+                <p style={{ 
+                  fontSize: '1rem', 
+                  color: '#6b7280', 
+                  margin: 0, 
+                  lineHeight: '1.6',
+                  fontWeight: '500'
+                }}>
+                  Zero-trust architecture with layered security controls. API gateway enforcing 
+                  authentication, rate limiting, and threat detection on all 234 endpoints.
+                </p>
               </div>
-              <p className="text-xs text-green-700">
-                Distributed data patterns ensure PII compliance across 4 security zones.
-              </p>
-            </div>
-            
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <div className="flex items-center mb-2">
-                <Cloud className="h-5 w-5 text-purple-600 mr-2" />
-                <h4 className="text-sm font-medium text-purple-800">Cloud Native Design</h4>
-              </div>
-              <p className="text-xs text-purple-700">
-                Kubernetes-native architecture with automated security policy enforcement.
-              </p>
             </div>
           </div>
         </div>
