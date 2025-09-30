@@ -107,12 +107,32 @@ function Layout({ children }) {
               </div>
             </div>
 
-            {/* Mode Toggle */}
+            {/* FixOps Free Tool Indicator */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <ModeToggle 
-                currentMode={currentMode}
-                onModeChange={handleModeChange}
-              />
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: '#f0fdf4',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                border: '1px solid #bbf7d0'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  backgroundColor: '#16a34a',
+                  borderRadius: '50%',
+                  marginRight: '0.5rem',
+                  animation: 'pulse 2s infinite'
+                }}></div>
+                <span style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#16a34a'
+                }}>
+                  🆓 Free Decision Engine
+                </span>
+              </div>
             </div>
           </div>
 
