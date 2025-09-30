@@ -196,10 +196,12 @@ async def readiness_check():
 
 @app.get("/metrics")
 async def prometheus_metrics():
-    """Prometheus metrics endpoint for monitoring"""
+    """Prometheus metrics endpoint for bank monitoring"""
+    from src.services.metrics import FixOpsMetrics
+    
     return Response(
-        content=generate_latest(),
-        media_type="text/plain"
+        content=FixOpsMetrics.get_metrics(),
+        media_type="text/plain; version=0.0.4; charset=utf-8"
     )
 
 # API Routes
