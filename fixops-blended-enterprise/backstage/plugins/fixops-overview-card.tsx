@@ -16,9 +16,10 @@ export const FixOpsOverviewCard = () => {
   const [recentDecisions, setRecentDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Get FixOps API URL from entity annotations
+  // Get FixOps API URL from entity annotations or environment
   const fixopsApiUrl = entity.metadata.annotations?.['fixops.io/api-url'] || 
-                      'https://fixops-api.bank.internal';
+                      process.env.REACT_APP_API_BASE_URL ||
+                      'https://api.fixops.devops.ai';
 
   useEffect(() => {
     fetchFixOpsData();
