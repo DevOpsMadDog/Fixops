@@ -169,6 +169,18 @@ function ScanUploadPage() {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in-out'
               }}
+              onMouseEnter={(e) => {
+                if (selectedFormat !== format.type) {
+                  e.currentTarget.style.backgroundColor = '#f9fafb'
+                  e.currentTarget.style.borderColor = '#d1d5db'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedFormat !== format.type) {
+                  e.currentTarget.style.backgroundColor = 'white'
+                  e.currentTarget.style.borderColor = '#e5e7eb'
+                }
+              }}
             >
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '2rem', marginRight: '0.75rem' }}>{format.icon}</span>
