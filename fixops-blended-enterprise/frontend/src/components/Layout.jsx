@@ -1,19 +1,15 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 import { 
   Shield, 
   Home, 
   AlertTriangle, 
   BarChart3, 
   Settings,
-  User,
-  LogOut,
   Activity
 } from 'lucide-react'
 
 function Layout({ children }) {
-  const { user, logout } = useAuth()
   const location = useLocation()
 
   const navigation = [
