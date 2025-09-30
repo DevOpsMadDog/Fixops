@@ -1,8 +1,9 @@
 """
 FixOps Policy Engine - High-performance policy evaluation with OPA/Rego support
-Enterprise-grade decision automation with 299μs hot path performance
+Enterprise-grade decision automation with 299μs hot path performance and AI-powered insights
 """
 
+import os
 import asyncio
 import time
 import json
@@ -14,11 +15,16 @@ import structlog
 
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from dotenv import load_dotenv
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from src.db.session import DatabaseManager
 from src.models.security import PolicyRule, PolicyDecisionLog, SecurityFinding, Service
 from src.services.cache_service import CacheService
 from src.utils.logger import PerformanceLogger
+
+# Load environment variables
+load_dotenv()
 
 logger = structlog.get_logger()
 
