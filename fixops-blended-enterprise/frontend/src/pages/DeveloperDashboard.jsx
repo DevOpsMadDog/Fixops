@@ -4,227 +4,244 @@ function DeveloperDashboard() {
   return (
     <div style={{
       padding: '3rem 2rem',
-      maxWidth: '1400px',
+      maxWidth: '1600px',
       margin: '0 auto'
     }}>
       
-      {/* DECISION ENGINE Metrics - Not Fix Metrics */}
+      {/* Header with Architecture Clarification */}
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{
+          fontSize: '3rem',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          marginBottom: '0.5rem',
+          letterSpacing: '-0.025em'
+        }}>
+          FixOps Decision & Verification Engine
+        </h1>
+        <div style={{
+          display: 'inline-block',
+          backgroundColor: '#fef3c7',
+          border: '2px solid #d97706',
+          borderRadius: '12px',
+          padding: '0.75rem 1.5rem',
+          marginBottom: '1rem'
+        }}>
+          <p style={{ 
+            color: '#92400e', 
+            fontSize: '1.125rem',
+            fontWeight: '700',
+            margin: 0,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            ⚠️ NOT A FIX ENGINE - DECISION ENGINE ONLY ⚠️
+          </p>
+        </div>
+        <p style={{ 
+          color: '#6b7280', 
+          fontSize: '1.25rem',
+          maxWidth: '800px',
+          margin: '0 auto',
+          lineHeight: '1.6'
+        }}>
+          Context-aware security decisions with 85% consensus threshold and evidence-based verification
+        </p>
+      </div>
+
+      {/* SSDLC Stage Data Ingestion Status */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '2rem',
+        backgroundColor: 'white',
+        padding: '2.5rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        border: '1px solid #e5e7eb',
         marginBottom: '3rem'
       }}>
-        {/* Total Decisions */}
         <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '180px',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
+          alignItems: 'center',
+          marginBottom: '2rem',
+          paddingBottom: '1rem',
+          borderBottom: '2px solid #f3f4f6'
         }}>
           <div style={{
-            width: '72px',
-            height: '72px',
-            backgroundColor: '#dbeafe',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2rem'
-          }}>
-            ⚖️
-          </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: '#1f2937',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            234
-          </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}>
-            Decisions Made
-          </div>
-        </div>
-
-        {/* Pending Decisions */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '180px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            width: '72px',
-            height: '72px',
-            backgroundColor: '#fef3c7',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2rem'
-          }}>
-            ⏳
-          </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: '#d97706',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            18
-          </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}>
-            Pending Review
-          </div>
-        </div>
-
-        {/* High Confidence */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '180px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            width: '72px',
-            height: '72px',
-            backgroundColor: '#dcfce7',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2rem'
-          }}>
-            🎯
-          </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: '#16a34a',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
-          }}>
-            87%
-          </div>
-          <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
-          }}>
-            High Confidence
-          </div>
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#6b7280'
-          }}>
-            (≥85% threshold)
-          </div>
-        </div>
-
-        {/* Context Enriched */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2.5rem',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e5e7eb',
-          textAlign: 'center',
-          height: '180px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{
-            width: '72px',
-            height: '72px',
+            width: '56px',
+            height: '56px',
             backgroundColor: '#e0e7ff',
-            borderRadius: '20px',
+            borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '1rem',
-            fontSize: '2rem'
+            marginRight: '1rem'
           }}>
-            🧠
+            <span style={{ fontSize: '1.75rem' }}>🔄</span>
           </div>
-          <div style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: '#7c3aed',
-            marginBottom: '0.5rem',
-            lineHeight: '1'
+          <h2 style={{ 
+            fontSize: '1.75rem', 
+            fontWeight: '700', 
+            color: '#1f2937', 
+            margin: 0
           }}>
-            156
+            SSDLC Stage Data Ingestion
+          </h2>
+        </div>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1.5rem'
+        }}>
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📋</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Plan Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              Business Context
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ Jira + Confluence Active
+            </div>
           </div>
+          
           <div style={{
-            fontSize: '0.875rem',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em'
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
           }}>
-            Context Enriched
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🔍</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Code Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              SAST + SARIF Findings
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ 47 SARIF Reports
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>📦</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Build Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              SCA + SBOM
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ 23 SBOM + SLSA
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🧪</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Test Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              DAST + Exploitability
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ 12 DAST Reports
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🚀</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Release Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              Policy Decisions
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ 24 Active Policies
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>🏗️</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Deploy Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              IBOM/SBOM/CNAPP
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ Runtime Validation
+            </div>
+          </div>
+          
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '12px',
+            border: '1px solid #bfdbfe',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>⚙️</div>
+            <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.25rem' }}>
+              Operate Stage
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              Runtime Correlation
+            </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a' }}>
+              ✅ VM + Alert Data
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Decision Engine Performance & Recent Decisions */}
+      {/* Decision Core Components & Intelligence */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '2rem',
         marginBottom: '3rem'
       }}>
-        {/* Decision Engine Performance */}
+        {/* Decision Core Components Status */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
           borderRadius: '16px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
           border: '1px solid #e5e7eb',
-          height: '400px'
+          height: '500px'
         }}>
           <div style={{
             display: 'flex',
@@ -243,7 +260,7 @@ function DeveloperDashboard() {
               justifyContent: 'center',
               marginRight: '1rem'
             }}>
-              <span style={{ fontSize: '1.75rem' }}>⚡</span>
+              <span style={{ fontSize: '1.75rem' }}>⚙️</span>
             </div>
             <h2 style={{ 
               fontSize: '1.75rem', 
@@ -251,82 +268,129 @@ function DeveloperDashboard() {
               color: '#1f2937', 
               margin: 0
             }}>
-              Decision Engine Performance
+              Decision Core Components
             </h2>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '1.5rem',
-              backgroundColor: '#f9fafb',
+              padding: '1.25rem',
+              backgroundColor: '#f0fdf4',
               borderRadius: '12px',
-              border: '1px solid #f3f4f6'
+              border: '1px solid #bbf7d0'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🎯</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Decision Latency
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🗄️</span>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+                  Vector DB + Knowledge Graph
                 </span>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>
-                  285μs
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '500' }}>
-                  (target: 299μs)
-                </div>
-              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>ACTIVE</div>
             </div>
             
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '1.5rem',
-              backgroundColor: '#f9fafb',
+              padding: '1.25rem',
+              backgroundColor: '#f0fdf4',
               borderRadius: '12px',
-              border: '1px solid #f3f4f6'
+              border: '1px solid #bbf7d0'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🔗</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Consensus Rate
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🧠</span>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+                  LLM+RAG Context Enrichment
                 </span>
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>87%</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>95%</div>
             </div>
             
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '1.5rem',
-              backgroundColor: '#f9fafb',
+              padding: '1.25rem',
+              backgroundColor: '#f0fdf4',
               borderRadius: '12px',
-              border: '1px solid #f3f4f6'
+              border: '1px solid #bbf7d0'
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: '1.5rem', marginRight: '1rem', width: '24px', textAlign: 'center' }}>🧠</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
-                  Context Enrichment
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🤝</span>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+                  Consensus Checker
                 </span>
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#2563eb' }}>95%</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>87%</div>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.25rem',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '12px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🏆</span>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+                  Golden Regression Set
+                </span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>VALIDATED</div>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.25rem',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '12px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>📜</span>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+                  OPA/Rego Policy Engine
+                </span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>24 POLICIES</div>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.25rem',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '12px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>📦</span>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+                  SBOM Metadata Injection
+                </span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>CRITICAL</div>
             </div>
           </div>
         </div>
 
-        {/* Recent Decisions */}
+        {/* Intelligence & Decision Insights */}
         <div style={{
           backgroundColor: 'white',
           padding: '2.5rem',
           borderRadius: '16px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
           border: '1px solid #e5e7eb',
-          height: '400px'
+          height: '500px'
         }}>
           <div style={{
             display: 'flex',
@@ -345,7 +409,7 @@ function DeveloperDashboard() {
               justifyContent: 'center',
               marginRight: '1rem'
             }}>
-              <span style={{ fontSize: '1.75rem' }}>⚖️</span>
+              <span style={{ fontSize: '1.75rem' }}>🤖</span>
             </div>
             <h2 style={{ 
               fontSize: '1.75rem', 
@@ -353,290 +417,336 @@ function DeveloperDashboard() {
               color: '#1f2937', 
               margin: 0
             }}>
-              Recent Decisions
+              Intelligence & Insights
             </h2>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem',
-                flexShrink: 0
-              }}>
-                ✅
+            <div style={{
+              padding: '1.5rem',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🗄️</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937' }}>
+                  Vector DB Knowledge Graph
+                </span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <p style={{ 
-                    fontSize: '1.125rem', 
-                    fontWeight: '700', 
-                    color: '#1f2937', 
-                    margin: 0
-                  }}>
-                    ALLOW: Deploy payment-service v2.1.3
-                  </p>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    color: '#16a34a',
-                    backgroundColor: '#dcfce7',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px'
-                  }}>
-                    92% CONFIDENCE
-                  </span>
-                </div>
-                <p style={{ 
-                  fontSize: '1rem', 
-                  color: '#6b7280', 
-                  margin: '0 0 0.5rem 0',
-                  fontWeight: '500'
-                }}>
-                  Golden regression validated, policy compliance verified
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
-                  2h ago • Context: Business Critical • Environment: Production
-                </p>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                • 2,847 security patterns indexed
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                • 156 threat models mapped
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                • 94% context match rate
               </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#fecaca',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem',
-                flexShrink: 0
-              }}>
-                🚫
+            <div style={{
+              padding: '1.5rem',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🧠</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937' }}>
+                  LLM+RAG Intelligence
+                </span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <p style={{ 
-                    fontSize: '1.125rem', 
-                    fontWeight: '700', 
-                    color: '#1f2937', 
-                    margin: 0
-                  }}>
-                    BLOCK: Deploy user-auth v1.8.2
-                  </p>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    color: '#dc2626',
-                    backgroundColor: '#fecaca',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px'
-                  }}>
-                    89% CONFIDENCE
-                  </span>
-                </div>
-                <p style={{ 
-                  fontSize: '1rem', 
-                  color: '#6b7280', 
-                  margin: '0 0 0.5rem 0',
-                  fontWeight: '500'
-                }}>
-                  Critical SQL injection found, consensus check failed
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
-                  4h ago • Context: PII Data • Environment: Production  
-                </p>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                • Business impact correlation: 92%
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                • Threat intel enrichment: 89%
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                • Context precision: 95%
               </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#fef3c7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem',
-                flexShrink: 0
-              }}>
-                ⏸️
+            <div style={{
+              padding: '1.5rem',
+              backgroundColor: '#fef3c7',
+              borderRadius: '12px',
+              border: '1px solid #fed7aa'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.25rem', marginRight: '0.75rem' }}>🏆</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#1f2937' }}>
+                  Golden Regression Suite
+                </span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <p style={{ 
-                    fontSize: '1.125rem', 
-                    fontWeight: '700', 
-                    color: '#1f2937', 
-                    margin: 0
-                  }}>
-                    DEFER: Deploy api-gateway v3.2.1
-                  </p>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    color: '#d97706',
-                    backgroundColor: '#fef3c7',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px'
-                  }}>
-                    78% CONFIDENCE
-                  </span>
-                </div>
-                <p style={{ 
-                  fontSize: '1rem', 
-                  color: '#6b7280', 
-                  margin: '0 0 0.5rem 0',
-                  fontWeight: '500'
-                }}>
-                  Below 85% consensus threshold, requires manual review
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, fontWeight: '600' }}>
-                  6h ago • Context: External API • Environment: Staging
-                </p>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                • 1,247 regression test cases
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                • 98.7% validation accuracy
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#16a34a', fontWeight: '600' }}>
+                • ✅ Last validation: 3 min ago
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Decision & Verification Core Status */}
+      {/* Recent Decisions with Full Context */}
       <div style={{
-        background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)',
-        padding: '3rem',
-        borderRadius: '20px',
-        border: '2px solid #2563eb',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        position: 'relative',
-        overflow: 'hidden'
+        backgroundColor: 'white',
+        padding: '2.5rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        border: '1px solid #e5e7eb',
+        marginBottom: '3rem'
       }}>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '1.5rem',
-              boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)'
-            }}>
-              <span style={{ fontSize: '2.5rem' }}>🧠</span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          marginBottom: '2rem',
+          paddingBottom: '1rem',
+          borderBottom: '2px solid #f3f4f6'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: '#dcfce7',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '1rem'
+          }}>
+            <span style={{ fontSize: '1.75rem' }}>⚖️</span>
+          </div>
+          <h2 style={{ 
+            fontSize: '1.75rem', 
+            fontWeight: '700', 
+            color: '#1f2937', 
+            margin: 0
+          }}>
+            Recent Pipeline Decisions
+          </h2>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* ALLOW Decision */}
+          <div style={{
+            padding: '2rem',
+            backgroundColor: '#f0fdf4',
+            borderRadius: '12px',
+            border: '1px solid #bbf7d0'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: '#16a34a',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.25rem',
+                  color: 'white',
+                  marginRight: '1rem'
+                }}>
+                  ✅
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
+                    DECISION: ALLOW
+                  </h3>
+                  <p style={{ fontSize: '1rem', color: '#16a34a', margin: 0, fontWeight: '600' }}>
+                    payment-service v2.1.3 → Production
+                  </p>
+                </div>
+              </div>
+              <span style={{
+                fontSize: '1rem',
+                fontWeight: '700',
+                color: '#16a34a',
+                backgroundColor: '#dcfce7',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px'
+              }}>
+                92% CONFIDENCE
+              </span>
             </div>
-            <div>
-              <h2 style={{ 
-                fontSize: '2.5rem', 
-                fontWeight: '800', 
-                color: '#1f2937', 
-                margin: 0,
-                letterSpacing: '-0.025em'
-              }}>
-                Decision & Verification Core
-              </h2>
-              <p style={{
-                fontSize: '1.25rem',
-                color: '#6b7280',
-                margin: 0,
-                fontWeight: '500'
-              }}>
-                NOT a Fix Engine - Context-aware decision platform
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
+                <strong>Context Sources:</strong> Jira (Business Critical), SBOM (CycloneDX), SAST (47 findings), DAST (Clean)
               </p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
+                <strong>Intelligence:</strong> Vector DB matched 12 similar deployments, LLM+RAG risk assessment: Low
+              </p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+                <strong>Validation:</strong> Golden regression PASSED, OPA/Rego policy compliance VERIFIED
+              </p>
+            </div>
+            
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '600' }}>
+              Evidence ID: EVD-2024-0847 • Decision latency: 278μs • 2h ago
             </div>
           </div>
           
+          {/* BLOCK Decision */}
           <div style={{
-            backgroundColor: 'white',
-            padding: '2.5rem',
-            borderRadius: '16px',
-            border: '1px solid rgba(37, 99, 235, 0.2)',
-            boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)'
+            padding: '2rem',
+            backgroundColor: '#fef2f2',
+            borderRadius: '12px',
+            border: '1px solid #fecaca'
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', marginBottom: '2rem' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#dcfce7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: '0.25rem',
-                flexShrink: 0
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: '#dc2626',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.25rem',
+                  color: 'white',
+                  marginRight: '1rem'
+                }}>
+                  🚫
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
+                    DECISION: BLOCK
+                  </h3>
+                  <p style={{ fontSize: '1rem', color: '#dc2626', margin: 0, fontWeight: '600' }}>
+                    user-auth v1.8.2 → Production
+                  </p>
+                </div>
+              </div>
+              <span style={{
+                fontSize: '1rem',
+                fontWeight: '700',
+                color: '#dc2626',
+                backgroundColor: '#fecaca',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px'
               }}>
-                <div style={{ 
-                  width: '12px', 
-                  height: '12px', 
-                  backgroundColor: '#16a34a', 
-                  borderRadius: '50%'
-                }}></div>
-              </div>
-              <div>
-                <h3 style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '700', 
-                  color: '#1f2937', 
-                  margin: '0 0 1rem 0'
-                }}>
-                  Core Components Active
-                </h3>
-                <p style={{ 
-                  fontSize: '1.125rem', 
-                  color: '#6b7280', 
-                  margin: '0 0 1.5rem 0', 
-                  lineHeight: '1.7',
-                  fontWeight: '500'
-                }}>
-                  Vector DB + LLM+RAG context enrichment operating at <strong style={{ color: '#16a34a' }}>87% consensus rate</strong>. 
-                  OPA/Rego policies enforced with <strong style={{ color: '#2563eb' }}>Golden Regression Set</strong> validation.
-                </p>
-              </div>
+                89% CONFIDENCE
+              </span>
             </div>
             
-            {/* Core Components Status */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1.5rem',
-              padding: '1.5rem',
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '0.25rem' }}>
-                  87%
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                  Consensus Rate
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.25rem' }}>
-                  95%
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                  Context Enriched
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#7c3aed', marginBottom: '0.25rem' }}>
-                  24
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
-                  Active Policies
-                </div>
-              </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
+                <strong>Context Sources:</strong> SAST (Critical SQL injection), SBOM (Vulnerable dependencies), Runtime alerts
+              </p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600', marginBottom: '0.5rem' }}>
+                <strong>Intelligence:</strong> Vector DB flagged similar vulnerabilities, LLM+RAG impact: HIGH (PII exposure)
+              </p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '600' }}>
+                <strong>Validation:</strong> Golden regression FAILED (known bad pattern), Policy violation: CRITICAL_DATA_EXPOSURE
+              </p>
             </div>
+            
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '600' }}>
+              Evidence ID: EVD-2024-0848 • Decision latency: 342μs • 4h ago
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Evidence Lake & Audit Trail */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
+        padding: '3rem',
+        borderRadius: '20px',
+        border: '1px solid #4b5563',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        color: 'white'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '1.5rem',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <span style={{ fontSize: '2.5rem' }}>🗃️</span>
+          </div>
+          <div>
+            <h2 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: '800', 
+              margin: 0,
+              letterSpacing: '-0.025em'
+            }}>
+              Evidence Lake & Audit Trail
+            </h2>
+            <p style={{
+              fontSize: '1.25rem',
+              opacity: 0.8,
+              margin: 0,
+              fontWeight: '500'
+            }}>
+              Immutable signed records with provable decisions
+            </p>
+          </div>
+        </div>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '2rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              847
+            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Evidence Records</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              234
+            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Signed Decisions</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              100%
+            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Audit Compliance</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              24/7
+            </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Evidence Retention</div>
+          </div>
+        </div>
+        
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <h4 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.75rem' }}>
+            🔒 Immutable Decision Record Example
+          </h4>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', opacity: 0.9 }}>
+            <div>📝 Decision: BLOCK user-auth v1.8.2</div>
+            <div>🎯 Confidence: 89% (Consensus: ✅ Vector DB: ✅ Regression: ❌)</div>
+            <div>📊 Context: PII Data + SAST Critical + SBOM Vulnerable Dependencies</div>
+            <div>🔗 Evidence: EVD-2024-0848 • Signed: SHA256:a7b9c3d... • SLSA Provenance ✅</div>
           </div>
         </div>
       </div>
