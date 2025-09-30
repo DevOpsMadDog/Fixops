@@ -3,12 +3,17 @@
 
 output "fixops_api_url" {
   description = "FixOps Decision Engine API endpoint for CI/CD integration"
-  value       = "https://fixops-api.bank.internal"
+  value       = "https://api.fixops.devops.ai"
 }
 
 output "fixops_ui_url" {
   description = "FixOps UI for security team access"
-  value       = "https://fixops.bank.internal"
+  value       = "https://fixops.devops.ai"
+}
+
+output "marketplace_url" {
+  description = "FixOps Security Marketplace"
+  value       = "https://marketplace.fixops.devops.ai"
 }
 
 output "namespace" {
@@ -28,17 +33,18 @@ output "mongodb_connection" {
 }
 
 output "deployment_info" {
-  description = "Complete deployment information for bank teams"
+  description = "Complete deployment information for integration teams"
   value = {
-    api_endpoint      = "https://fixops-api.bank.internal"
-    ui_endpoint       = "https://fixops.bank.internal"
-    health_check      = "https://fixops-api.bank.internal/health"
-    readiness_check   = "https://fixops-api.bank.internal/ready"
-    metrics_endpoint  = "https://fixops-api.bank.internal/metrics"
+    api_endpoint      = "https://api.fixops.devops.ai"
+    ui_endpoint       = "https://fixops.devops.ai"
+    marketplace       = "https://marketplace.fixops.devops.ai"
+    health_check      = "https://api.fixops.devops.ai/health"
+    readiness_check   = "https://api.fixops.devops.ai/ready"
+    metrics_endpoint  = "https://api.fixops.devops.ai/metrics"
     
     # CI/CD Integration
-    cicd_decision_api = "https://fixops-api.bank.internal/api/v1/cicd/decision"
-    file_upload_api   = "https://fixops-api.bank.internal/api/v1/scans/upload"
+    cicd_decision_api = "https://api.fixops.devops.ai/api/v1/cicd/decision"
+    file_upload_api   = "https://api.fixops.devops.ai/api/v1/scans/upload"
     
     # Kubernetes info
     namespace         = module.fixops_namespace.name
@@ -46,7 +52,7 @@ output "deployment_info" {
     storage_size      = var.storage_size
     
     # Example CI/CD integration
-    curl_example = "curl -X POST https://fixops-api.bank.internal/api/v1/cicd/decision -H 'Content-Type: application/json' --data '{\"service_name\": \"your-service\", \"environment\": \"production\"}'"
+    curl_example = "curl -X POST https://api.fixops.devops.ai/api/v1/cicd/decision -H 'Content-Type: application/json' --data '{\"service_name\": \"your-service\", \"environment\": \"production\"}'"
   }
 }
 
