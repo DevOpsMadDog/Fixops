@@ -19,8 +19,9 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const queryClient = useQueryClient()
 
-  // Check if auth bypass is enabled
-  const bypassAuth = import.meta.env.REACT_APP_BYPASS_AUTH === 'true'
+  // Check if auth bypass is enabled (support both Vite and React App env vars)
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true' || 
+                     import.meta.env.REACT_APP_BYPASS_AUTH === 'true'
 
   // Check for existing token on mount
   useEffect(() => {
