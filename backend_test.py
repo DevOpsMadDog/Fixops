@@ -18,10 +18,11 @@ class FixOpsDecisionEngineAPITester:
         self.tests_passed = 0
         self.failed_tests = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, params=None, files=None, headers=None):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}"
-        headers = {'Content-Type': 'application/json'}
+        if headers is None:
+            headers = {'Content-Type': 'application/json'}
 
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
@@ -31,7 +32,14 @@ class FixOpsDecisionEngineAPITester:
             if method == 'GET':
                 response = requests.get(url, headers=headers, params=params, timeout=10)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=10)
+                if files:
+                    # Remove Content-Type for file uploads
+                    headers_copy = headers.copy()
+                    if 'Content-Type' in headers_copy:
+                        del headers_copy['Content-Type']
+                    response = requests.post(url, data=data, files=files, headers=headers_copy, timeout=10)
+                else:
+                    response = requests.post(url, json=data, headers=headers, timeout=10)
 
             success = response.status_code == expected_status
             if success:
@@ -43,19 +51,29 @@ class FixOpsDecisionEngineAPITester:
                         print(f"   Response: List with {len(response_data)} items")
                     elif isinstance(response_data, dict):
                         print(f"   Response keys: {list(response_data.keys())}")
+                        if 'data' in response_data:
+                            print(f"   Data keys: {list(response_data['data'].keys()) if isinstance(response_data['data'], dict) else 'Non-dict data'}")
                 except:
                     print(f"   Response: {response.text[:100]}...")
             else:
                 print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
                 print(f"   Response: {response.text[:200]}...")
+                self.failed_tests.append({
+                    'name': name,
+                    'expected': expected_status,
+                    'actual': response.status_code,
+                    'response': response.text[:200]
+                })
 
             return success, response.json() if response.status_code < 400 and 'application/json' in response.headers.get('content-type', '') else {}
 
         except requests.exceptions.Timeout:
             print(f"❌ Failed - Request timeout")
+            self.failed_tests.append({'name': name, 'error': 'Request timeout'})
             return False, {}
         except Exception as e:
             print(f"❌ Failed - Error: {str(e)}")
+            self.failed_tests.append({'name': name, 'error': str(e)})
             return False, {}
 
     def test_health_endpoints(self):
