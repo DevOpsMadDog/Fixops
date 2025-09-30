@@ -110,7 +110,7 @@ async def upload_scan_file(
                     "service_name": service_name,
                     "findings_count": len(findings_created),
                     "processing_time_ms": processing_time,
-                    "correlations_found": len(correlation_result.get('correlations', []))
+                    "correlations_found": len(correlation_results)
                 }
             )
 
