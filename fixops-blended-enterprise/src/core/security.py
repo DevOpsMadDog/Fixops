@@ -55,7 +55,10 @@ class SecurityManager:
         """Get or generate encryption key for sensitive data"""
         # In production, this should come from a secure key management service
         key = settings.SECRET_KEY.encode()
-        return hashlib.sha256(key).digest()[:32]  # 32 bytes for Fernet
+        # Create a 32-byte key and base64 encode it for Fernet
+        raw_key = hashlib.sha256(key).digest()[:32]
+        from base64 import urlsafe_b64encode
+        return urlsafe_b64encode(raw_key)
     
     @classmethod
     def encrypt_sensitive_data(cls, data: str) -> str:
