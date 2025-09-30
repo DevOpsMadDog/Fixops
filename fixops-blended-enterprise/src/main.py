@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Dict, Any
 
 import uvloop
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from prometheus_client import Counter, Histogram, generate_latest
