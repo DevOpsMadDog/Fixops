@@ -530,11 +530,10 @@ class FixOpsCLI:
             
             if not service:
                 # Create new service
-                import json
                 service = Service(
                     name=service_name,
                     business_capability="Unknown", 
-                    data_classification=json.dumps(["internal"]),  # Convert to JSON string for SQLite
+                    data_classification=json.dumps(["internal"]),  # JSON string for SQLite
                     environment=environment,
                     owner_team="Unknown",
                     owner_email="unknown@example.com",
