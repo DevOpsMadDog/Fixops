@@ -55,6 +55,35 @@ class CorrelationEngine:
             self._correlate_by_root_cause,
             self._correlate_by_vulnerability
         ]
+        # Initialize LLM for AI-powered correlation insights
+        self.llm_chat = None
+        self._initialize_llm()
+        
+    def _initialize_llm(self):
+        """Initialize LLM for advanced correlation analysis"""
+        try:
+            api_key = os.getenv('EMERGENT_LLM_KEY')
+            if api_key:
+                self.llm_chat = LlmChat(
+                    api_key=api_key,
+                    session_id="correlation_engine_session",
+                    system_message="""You are an expert DevSecOps analyst specialized in security finding correlation and deduplication. 
+                    Your role is to analyze security findings and provide:
+                    1. Correlation insights between findings
+                    2. Risk assessment and prioritization
+                    3. Root cause analysis suggestions
+                    4. Noise reduction recommendations
+                    
+                    Always provide concise, actionable analysis focused on reducing security alert fatigue."""
+                ).with_model("openai", "gpt-5")
+                
+                logger.info("LLM correlation engine initialized successfully with gpt-5")
+            else:
+                logger.warning("No EMERGENT_LLM_KEY found, using rule-based correlation only")
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize LLM: {str(e)}")
+            self.llm_chat = None
     
     async def correlate_finding(self, finding_id: str, force_refresh: bool = False) -> Optional[CorrelationResult]:
         """
