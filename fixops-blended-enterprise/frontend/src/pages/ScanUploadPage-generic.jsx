@@ -8,7 +8,8 @@ function ScanUploadPage() {
     scanType: '',
     isUploading: false,
     result: null,
-    error: null
+    error: null,
+    uploadProgress: 0
   })
 
   const supportedFormats = [
@@ -22,6 +23,38 @@ function ScanUploadPage() {
   const handleFileChange = (event) => {
     const file = event.target.files[0]
     if (file) {
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadState(prev => ({
+          ...prev,
+          error: 'File size too large. Maximum 10MB allowed.',
+          file: null
+        }))
+        return
+      }
+      
+      // Validate file type based on selected format
+      const validExtensions = {
+        sarif: ['.sarif', '.json'],
+        sbom: ['.json', '.xml'],
+        ibom: ['.json', '.xml'],
+        dast: ['.json', '.xml'],
+        csv: ['.csv'],
+        json: ['.json']
+      }
+      
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
+      const validExts = validExtensions[uploadState.scanType] || ['.json']
+      
+      if (uploadState.scanType && !validExts.includes(fileExtension)) {
+        setUploadState(prev => ({
+          ...prev,
+          error: `Invalid file type for ${uploadState.scanType.toUpperCase()}. Expected: ${validExts.join(', ')}`,
+          file: null
+        }))
+        return
+      }
+      
       setUploadState(prev => ({
         ...prev,
         file,
@@ -40,7 +73,7 @@ function ScanUploadPage() {
       return
     }
 
-    setUploadState(prev => ({ ...prev, isUploading: true, error: null }))
+    setUploadState(prev => ({ ...prev, isUploading: true, error: null, uploadProgress: 0 }))
 
     try {
       const formData = new FormData()
@@ -49,33 +82,51 @@ function ScanUploadPage() {
       formData.append('environment', uploadState.environment)
       formData.append('scan_type', uploadState.scanType)
 
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadState(prev => ({
+          ...prev,
+          uploadProgress: Math.min(prev.uploadProgress + 10, 90)
+        }))
+      }, 200)
+
       const response = await fetch('/api/v1/scans/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || 'demo-token'}`
+        }
       })
 
+      clearInterval(progressInterval)
+      setUploadState(prev => ({ ...prev, uploadProgress: 100 }))
+
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`)
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `Upload failed: ${response.statusText}`)
       }
 
       const result = await response.json()
+      
       setUploadState(prev => ({
         ...prev,
         result: result.data,
         isUploading: false,
         file: null,
         serviceName: '',
-        scanType: ''
+        uploadProgress: 0
       }))
 
       // Reset file input
-      document.getElementById('fileInput').value = ''
+      const fileInput = document.getElementById('fileInput')
+      if (fileInput) fileInput.value = ''
 
     } catch (error) {
       setUploadState(prev => ({
         ...prev,
         error: error.message,
-        isUploading: false
+        isUploading: false,
+        uploadProgress: 0
       }))
     }
   }
