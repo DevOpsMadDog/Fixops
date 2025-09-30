@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     VECTOR_DB_URL: Optional[str] = Field(default=None)
     SECURITY_PATTERNS_DB_URL: Optional[str] = Field(default=None)
     THREAT_INTEL_API_KEY: Optional[str] = Field(default=None)
+    
+    # Security Configuration  
+    SECRET_KEY: str = Field(default="fixops_enterprise_secret_key_change_in_production")
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
