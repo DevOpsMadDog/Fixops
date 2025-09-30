@@ -92,10 +92,7 @@ function ScanUploadPage() {
 
       const response = await fetch('/api/v1/scans/upload', {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || 'demo-token'}`
-        }
+        body: formData
       })
 
       clearInterval(progressInterval)
