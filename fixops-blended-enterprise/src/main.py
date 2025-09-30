@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI):
     await warm_performance_caches()
     logger.info("✅ Performance caches warmed")
     
-    logger.info(f"🎯 Target hot path latency: 299μs")
+    logger.info("🎯 Target hot path latency: 299μs")
     logger.info("🟢 FixOps Enterprise Platform ready for requests")
     
     yield
