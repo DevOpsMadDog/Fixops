@@ -774,7 +774,7 @@ function DeveloperDashboard() {
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              234
+              {metrics?.total_decisions || 234}
             </div>
             <div style={{ fontSize: '0.875rem', opacity: 0.8, fontWeight: '600' }}>Signed Decisions</div>
           </div>
