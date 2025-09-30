@@ -221,10 +221,10 @@ class FixOpsAPITester:
         
         # Check if LLM key is configured
         try:
-            import os
             llm_key = os.getenv('EMERGENT_LLM_KEY')
-            if llm_key:
+            if llm_key and llm_key.startswith('sk-emergent-'):
                 print("✅ LLM API key is configured")
+                print(f"   Key: {llm_key[:20]}...")
                 self.tests_passed += 1
             else:
                 print("⚠️  LLM API key not configured - using rule-based engines only")
