@@ -333,53 +333,6 @@ class FixOpsCLI:
                 "error": str(e),
                 "exit_code": 2
             }
-                
-                for fix in fix_suggestions:
-                    fix_dict = fix.__dict__.copy()
-                    fix_dict["finding_title"] = finding.title
-                    fix_dict["finding_severity"] = finding.severity
-                    all_fixes.append(fix_dict)
-            
-            # Filter fixes by confidence if specified
-            if args.min_confidence:
-                all_fixes = [f for f in all_fixes if f["confidence"] >= args.min_confidence]
-            
-            # Sort by confidence
-            all_fixes.sort(key=lambda f: f["confidence"], reverse=True)
-            
-            # Generate result
-            total_time = time.perf_counter() - start_time
-            
-            result = {
-                "status": "success",
-                "findings_analyzed": len(findings),
-                "fixes_generated": len(all_fixes),
-                "fixes": all_fixes,
-                "processing_time_ms": total_time * 1000,
-                "performance_metrics": {
-                    "fixes_per_second": len(all_fixes) / total_time if total_time > 0 else 0
-                },
-                "exit_code": 0
-            }
-            
-            # Generate pull request patches if requested
-            if args.generate_pr and args.output_dir:
-                pr_patches = await self._generate_pr_patches(all_fixes, args.output_dir)
-                result["pr_patches"] = pr_patches
-            
-            if args.output_file:
-                with open(args.output_file, 'w') as f:
-                    json.dump(result, f, indent=2, default=str)
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Fix generation failed: {str(e)}")
-            return {
-                "status": "error", 
-                "error": str(e),
-                "exit_code": 2
-            }
     
     async def correlation_analysis(self, args) -> Dict[str, Any]:
         """
