@@ -241,7 +241,7 @@ async def upload_complete(upload_id: str):
         content = assembled_path.read_text(encoding='utf-8', errors='ignore')
 
         cli = FixOpsCLI()
-        await cli.init()
+        await cli.initialize()
         try:
             scan_type = meta['scan_type']
             if scan_type == 'sarif':
