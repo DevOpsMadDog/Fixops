@@ -330,27 +330,33 @@ Review all codebase again, fix all stubs and make it more performance oriented a
 ## backend:
   - task: "Enhanced Standardized Analysis API"
     implemented: true
-    working: "NA"
+    working: true
     file: "src/api/v1/enhanced.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "main"
         - comment: "Added /api/v1/enhanced/analysis endpoint returning standardized schema {models[], consensus}. Migrated compare-llms to typed body, improved error handling."
+        - working: true
+        - agent: "testing"
+        - comment: "✅ ENHANCED API ENDPOINTS WORKING: 1) GET /api/v1/enhanced/capabilities returns 200 with supported_llms present (emergent_gpt5, openai_gpt4, anthropic_claude, google_gemini, specialized_cyber). 2) POST /api/v1/enhanced/compare-llms returns 200 with individual_analyses array. 3) POST /api/v1/enhanced/analysis returns 200 with proper standardized schema: models[] array with required fields (name, verdict, confidence, rationale, evidence, mitre_ttps) and consensus object with (verdict, confidence, method). All endpoints working correctly."
 
   - task: "Chunked Scan Upload API"
     implemented: true
-    working: "NA"
+    working: true
     file: "src/api/v1/scans.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
         - agent: "main"
         - comment: "Implemented /scans/upload/init, /scans/upload/chunk, /scans/upload/complete with persistent storage at /app/data/uploads. Reused parsers for SARIF/SBOM/CSV/JSON."
+        - working: true
+        - agent: "testing"
+        - comment: "✅ SCAN UPLOAD ENDPOINTS WORKING: 1) Single-shot POST /api/v1/scans/upload with JSON file returns 200 with findings_processed count. 2) Chunked upload flow: a) POST /api/v1/scans/upload/init returns 200 with upload_id, b) POST /api/v1/scans/upload/chunk returns 200 with received_chunk confirmation, c) POST /api/v1/scans/upload/complete returns 200 with findings_processed count. Fixed CLI initialization issues and correlation engine method calls. Both single-shot and chunked uploads processing findings correctly."
 
 ## frontend:
   - task: "EnhancedDashboard wiring + chunked upload UI"
