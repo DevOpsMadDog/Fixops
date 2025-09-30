@@ -14,7 +14,7 @@ import structlog
 
 from src.db.session import get_db
 from src.core.security import get_current_user, require_permission
-from src.models.security import SecurityIncident, SecurityFinding, Service, IncidentStatus
+from src.models.security_sqlite import SecurityIncident, SecurityFinding, Service, IncidentStatus
 from src.services.correlation_engine import correlation_engine
 from src.services.policy_engine import policy_engine, PolicyContext
 from src.services.fix_engine import fix_engine
