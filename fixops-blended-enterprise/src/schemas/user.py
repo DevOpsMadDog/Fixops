@@ -29,7 +29,7 @@ class LoginRequest(BaseModel):
     """Login request with optional MFA code"""
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., min_length=8, description="User password")
-    mfa_code: Optional[str] = Field(None, regex=r"^\d{6}$", description="6-digit MFA code")
+    mfa_code: Optional[str] = Field(None, pattern=r"^\d{6}$", description="6-digit MFA code")
 
 
 class LoginResponse(BaseModel):
