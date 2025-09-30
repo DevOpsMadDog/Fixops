@@ -186,8 +186,15 @@ class CacheService:
     async def delete(self, key: str) -> bool:
         """Delete key from cache"""
         try:
-            result = await self._redis_client.delete(key)
-            return result > 0
+            if self._redis_client:
+                result = await self._redis_client.delete(key)
+                return result > 0
+            else:
+                # In-memory cache fallback
+                if key in self.__class__._in_memory_cache:
+                    del self.__class__._in_memory_cache[key]
+                    return True
+                return False
         except Exception as e:
             logger.error(f"Cache delete error for key {key}: {str(e)}")
             return False
