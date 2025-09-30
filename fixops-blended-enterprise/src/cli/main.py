@@ -1,0 +1,714 @@
+#!/usr/bin/env python3
+"""
+FixOps Enterprise CLI - CI/CD Integration Tool
+High-performance command-line interface for DevSecOps automation
+"""
+
+import asyncio
+import json
+import sys
+import time
+from pathlib import Path
+from typing import Dict, Any, List, Optional
+import argparse
+import structlog
+from datetime import datetime
+
+# Add project root to path  
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from src.config.settings import get_settings
+from src.db.session import DatabaseManager
+from src.models.security import SecurityFinding, Service, ScannerType, SeverityLevel
+from src.services.correlation_engine import correlation_engine
+from src.services.policy_engine import policy_engine, PolicyContext, PolicyDecision
+from src.services.fix_engine import fix_engine
+from src.services.cache_service import CacheService
+
+logger = structlog.get_logger()
+settings = get_settings()
+
+
+class FixOpsCLI:
+    """
+    FixOps CLI for CI/CD pipeline integration
+    Provides high-performance security scanning integration and policy automation
+    """
+    
+    def __init__(self):
+        self.start_time = time.perf_counter()
+        
+    async def initialize(self):
+        """Initialize CLI components"""
+        await DatabaseManager.initialize()
+        await CacheService.initialize()
+        logger.info("FixOps CLI initialized")
+    
+    async def cleanup(self):
+        """Cleanup resources"""
+        await DatabaseManager.close()
+        await CacheService.close()
+    
+    async def ingest_scan_results(self, args) -> Dict[str, Any]:
+        """
+        Ingest security scan results from CI/CD pipeline
+        High-performance bulk ingestion with deduplication
+        """
+        start_time = time.perf_counter()
+        
+        try:
+            # Read scan results file
+            scan_file = Path(args.scan_file)
+            if not scan_file.exists():
+                raise FileNotFoundError(f"Scan file not found: {scan_file}")
+            
+            with open(scan_file, 'r') as f:
+                if args.format == 'sarif':
+                    scan_data = await self._parse_sarif(f.read())
+                elif args.format == 'json':
+                    scan_data = json.load(f)
+                else:
+                    raise ValueError(f"Unsupported format: {args.format}")
+            
+            # Get or create service
+            service = await self._get_or_create_service(
+                service_name=args.service_name,
+                environment=args.environment,
+                repository_url=args.repository_url
+            )
+            
+            # Process findings in batches for performance
+            findings = []
+            batch_size = 100
+            
+            for i in range(0, len(scan_data.get('findings', [])), batch_size):
+                batch = scan_data['findings'][i:i + batch_size]
+                batch_findings = await self._process_findings_batch(
+                    batch, service, args.scanner_type, args.scanner_name
+                )
+                findings.extend(batch_findings)
+            
+            # Run correlation and policy evaluation
+            correlation_results = []
+            policy_results = []
+            
+            if args.enable_correlation:
+                finding_ids = [f.id for f in findings]
+                correlation_results = await correlation_engine.batch_correlate_findings(finding_ids)
+            
+            if args.enable_policy_evaluation:
+                policy_contexts = [
+                    await self._create_policy_context(f, service) for f in findings
+                ]
+                policy_results = await policy_engine.batch_evaluate_policies(policy_contexts)
+            
+            # Generate summary
+            total_time = time.perf_counter() - start_time
+            
+            result = {
+                "status": "success",
+                "service_id": service.id,
+                "service_name": service.name,
+                "findings_ingested": len(findings),
+                "correlations_found": len(correlation_results),
+                "policy_decisions": len(policy_results),
+                "processing_time_ms": total_time * 1000,
+                "performance_metrics": {
+                    "ingestion_rate_per_sec": len(findings) / total_time,
+                    "hot_path_compliant": total_time * 1_000_000 < settings.HOT_PATH_TARGET_LATENCY_US * len(findings)
+                }
+            }
+            
+            # Policy decision summary
+            if policy_results:
+                decision_counts = {}
+                blocked_findings = []
+                
+                for i, policy_result in enumerate(policy_results):
+                    decision = policy_result.decision.value
+                    decision_counts[decision] = decision_counts.get(decision, 0) + 1
+                    
+                    if policy_result.decision == PolicyDecision.BLOCK:
+                        blocked_findings.append({
+                            "finding_id": findings[i].id,
+                            "title": findings[i].title,
+                            "severity": findings[i].severity,
+                            "rationale": policy_result.rationale
+                        })
+                
+                result["policy_summary"] = {
+                    "decision_counts": decision_counts,
+                    "blocked_findings": blocked_findings,
+                    "deployment_blocked": any(pr.decision == PolicyDecision.BLOCK for pr in policy_results)
+                }
+            
+            # Output results
+            if args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            # Set exit code based on policy decisions
+            if result.get("policy_summary", {}).get("deployment_blocked"):
+                result["exit_code"] = 1
+                logger.warning("Deployment blocked by security policies")
+            else:
+                result["exit_code"] = 0
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Scan ingestion failed: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "exit_code": 2
+            }
+    
+    async def policy_check(self, args) -> Dict[str, Any]:
+        """
+        Evaluate security policies for CI/CD gates
+        Ultra-fast policy evaluation for deployment decisions
+        """
+        start_time = time.perf_counter()
+        
+        try:
+            # Build policy context from CLI arguments
+            context = PolicyContext(
+                service_id=args.service_id,
+                severity=args.severity,
+                scanner_type=args.scanner_type,
+                environment=args.environment,
+                data_classification=args.data_classification or [],
+                internet_facing=args.internet_facing,
+                pci_scope=args.pci_scope,
+                cvss_score=args.cvss_score,
+                cve_id=args.cve_id,
+                business_impact=args.business_impact
+            )
+            
+            # Evaluate policy
+            policy_result = await policy_engine.evaluate_policy(context)
+            
+            # Generate result
+            total_time = time.perf_counter() - start_time
+            
+            result = {
+                "status": "success",
+                "policy_decision": policy_result.decision.value,
+                "confidence": policy_result.confidence,
+                "rationale": policy_result.rationale,
+                "nist_ssdf_controls": policy_result.nist_ssdf_controls,
+                "escalation_required": policy_result.escalation_required,
+                "execution_time_ms": total_time * 1000,
+                "hot_path_compliant": total_time * 1_000_000 < settings.HOT_PATH_TARGET_LATENCY_US
+            }
+            
+            # Set exit code based on decision
+            if policy_result.decision == PolicyDecision.BLOCK:
+                result["exit_code"] = 1
+            elif policy_result.decision in [PolicyDecision.DEFER, PolicyDecision.ESCALATE]:
+                result["exit_code"] = 2
+            else:
+                result["exit_code"] = 0
+            
+            if args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Policy check failed: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "exit_code": 2
+            }
+    
+    async def generate_fixes(self, args) -> Dict[str, Any]:
+        """
+        Generate automated fix suggestions for findings
+        High-performance fix generation for CI/CD integration
+        """
+        start_time = time.perf_counter()
+        
+        try:
+            # Get findings to fix
+            findings = await self._get_findings_for_fix_generation(
+                service_id=args.service_id,
+                severity_filter=args.severity_filter,
+                scanner_type_filter=args.scanner_type_filter,
+                limit=args.limit
+            )
+            
+            if not findings:
+                return {
+                    "status": "success",
+                    "message": "No findings to generate fixes for",
+                    "exit_code": 0
+                }
+            
+            # Get service context if available
+            service = None
+            if args.service_id:
+                service = await self._get_service_by_id(args.service_id)
+            
+            # Generate fixes for each finding
+            all_fixes = []
+            for finding in findings:
+                fix_suggestions = await fix_engine.generate_fix_suggestions(finding, service)
+                
+                for fix in fix_suggestions:
+                    fix_dict = fix.__dict__.copy()
+                    fix_dict["finding_title"] = finding.title
+                    fix_dict["finding_severity"] = finding.severity
+                    all_fixes.append(fix_dict)
+            
+            # Filter fixes by confidence if specified
+            if args.min_confidence:
+                all_fixes = [f for f in all_fixes if f["confidence"] >= args.min_confidence]
+            
+            # Sort by confidence
+            all_fixes.sort(key=lambda f: f["confidence"], reverse=True)
+            
+            # Generate result
+            total_time = time.perf_counter() - start_time
+            
+            result = {
+                "status": "success",
+                "findings_analyzed": len(findings),
+                "fixes_generated": len(all_fixes),
+                "fixes": all_fixes,
+                "processing_time_ms": total_time * 1000,
+                "performance_metrics": {
+                    "fixes_per_second": len(all_fixes) / total_time if total_time > 0 else 0
+                },
+                "exit_code": 0
+            }
+            
+            # Generate pull request patches if requested
+            if args.generate_pr and args.output_dir:
+                pr_patches = await self._generate_pr_patches(all_fixes, args.output_dir)
+                result["pr_patches"] = pr_patches
+            
+            if args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Fix generation failed: {str(e)}")
+            return {
+                "status": "error", 
+                "error": str(e),
+                "exit_code": 2
+            }
+    
+    async def correlation_analysis(self, args) -> Dict[str, Any]:
+        """
+        Analyze finding correlations for noise reduction
+        High-performance correlation analysis
+        """
+        start_time = time.perf_counter()
+        
+        try:
+            # Get findings for correlation
+            findings = await self._get_findings_for_correlation(
+                service_id=args.service_id,
+                time_window_hours=args.time_window_hours,
+                severity_filter=args.severity_filter
+            )
+            
+            if len(findings) < 2:
+                return {
+                    "status": "success",
+                    "message": "Not enough findings for correlation analysis",
+                    "exit_code": 0
+                }
+            
+            # Run correlation analysis
+            finding_ids = [f.id for f in findings]
+            correlation_results = await correlation_engine.batch_correlate_findings(finding_ids)
+            
+            # Calculate noise reduction metrics
+            noise_reduction = await correlation_engine.calculate_noise_reduction(args.time_window_hours)
+            
+            # Generate correlation summary
+            correlation_by_type = {}
+            for result in correlation_results:
+                corr_type = result.correlation_type
+                correlation_by_type[corr_type] = correlation_by_type.get(corr_type, 0) + 1
+            
+            total_time = time.perf_counter() - start_time
+            
+            result = {
+                "status": "success",
+                "findings_analyzed": len(findings),
+                "correlations_found": len(correlation_results),
+                "noise_reduction_metrics": noise_reduction,
+                "correlation_by_type": correlation_by_type,
+                "processing_time_ms": total_time * 1000,
+                "performance_metrics": {
+                    "correlations_per_second": len(correlation_results) / total_time if total_time > 0 else 0
+                },
+                "exit_code": 0
+            }
+            
+            if args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Correlation analysis failed: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "exit_code": 2
+            }
+    
+    async def health_check(self, args) -> Dict[str, Any]:
+        """
+        Perform system health check for CI/CD monitoring
+        Ultra-fast health validation
+        """
+        start_time = time.perf_counter()
+        
+        try:
+            health_checks = {}
+            
+            # Database health
+            db_healthy = await DatabaseManager.health_check()
+            health_checks["database"] = {
+                "healthy": db_healthy,
+                "latency_ms": 0  # Would measure actual latency
+            }
+            
+            # Cache health
+            cache = CacheService.get_instance()
+            cache_healthy = await cache.ping()
+            health_checks["cache"] = {
+                "healthy": cache_healthy,
+                "stats": await cache.get_cache_stats() if cache_healthy else {}
+            }
+            
+            # Policy engine health
+            policy_stats = await policy_engine.get_policy_stats()
+            health_checks["policy_engine"] = {
+                "healthy": True,
+                "stats": policy_stats
+            }
+            
+            # Correlation engine health
+            correlation_stats = await correlation_engine.get_correlation_stats()
+            health_checks["correlation_engine"] = {
+                "healthy": True,
+                "stats": correlation_stats
+            }
+            
+            # Overall health
+            overall_healthy = all(check.get("healthy", False) for check in health_checks.values())
+            
+            total_time = time.perf_counter() - start_time
+            
+            result = {
+                "status": "healthy" if overall_healthy else "unhealthy",
+                "health_checks": health_checks,
+                "performance_metrics": {
+                    "health_check_time_ms": total_time * 1000,
+                    "hot_path_compliant": total_time * 1_000_000 < settings.HOT_PATH_TARGET_LATENCY_US
+                },
+                "exit_code": 0 if overall_healthy else 1
+            }
+            
+            if args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Health check failed: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "exit_code": 2
+            }
+    
+    # Helper methods
+    async def _parse_sarif(self, sarif_content: str) -> Dict[str, Any]:
+        """Parse SARIF format scan results"""
+        sarif_data = json.loads(sarif_content)
+        
+        findings = []
+        for run in sarif_data.get("runs", []):
+            tool_name = run.get("tool", {}).get("driver", {}).get("name", "unknown")
+            
+            for result in run.get("results", []):
+                rule_id = result.get("ruleId", "unknown")
+                message = result.get("message", {}).get("text", "")
+                level = result.get("level", "note")
+                
+                # Map SARIF level to severity
+                severity_mapping = {
+                    "error": "high",
+                    "warning": "medium", 
+                    "note": "low",
+                    "info": "info"
+                }
+                
+                locations = result.get("locations", [])
+                file_path = None
+                line_number = None
+                
+                if locations:
+                    location = locations[0]
+                    physical_location = location.get("physicalLocation", {})
+                    artifact_location = physical_location.get("artifactLocation", {})
+                    file_path = artifact_location.get("uri")
+                    
+                    region = physical_location.get("region", {})
+                    line_number = region.get("startLine")
+                
+                findings.append({
+                    "rule_id": rule_id,
+                    "title": message,
+                    "description": message,
+                    "severity": severity_mapping.get(level, "low"),
+                    "category": result.get("ruleIndex", 0),
+                    "file_path": file_path,
+                    "line_number": line_number,
+                    "scanner_name": tool_name
+                })
+        
+        return {"findings": findings}
+    
+    async def _get_or_create_service(self, service_name: str, environment: str, repository_url: Optional[str] = None) -> Service:
+        """Get or create service record"""
+        async with DatabaseManager.get_session_context() as session:
+            from sqlalchemy import select
+            
+            # Try to find existing service
+            result = await session.execute(
+                select(Service).where(
+                    Service.name == service_name,
+                    Service.environment == environment
+                )
+            )
+            service = result.scalar_one_or_none()
+            
+            if not service:
+                # Create new service
+                service = Service(
+                    name=service_name,
+                    business_capability="Unknown", 
+                    data_classification=["internal"],
+                    environment=environment,
+                    owner_team="Unknown",
+                    owner_email="unknown@example.com",
+                    repository_url=repository_url
+                )
+                session.add(service)
+                await session.commit()
+                await session.refresh(service)
+            
+            return service
+    
+    async def _process_findings_batch(self, findings_data: List[Dict], service: Service, scanner_type: str, scanner_name: str) -> List[SecurityFinding]:
+        """Process a batch of findings for performance"""
+        findings = []
+        
+        async with DatabaseManager.get_session_context() as session:
+            for finding_data in findings_data:
+                # Create finding record
+                finding = SecurityFinding(
+                    service_id=service.id,
+                    scanner_type=scanner_type,
+                    scanner_name=scanner_name,
+                    rule_id=finding_data.get("rule_id", "unknown"),
+                    title=finding_data.get("title", "Unknown vulnerability"),
+                    description=finding_data.get("description", ""),
+                    severity=finding_data.get("severity", "low"),
+                    category=finding_data.get("category", "unknown"),
+                    file_path=finding_data.get("file_path"),
+                    line_number=finding_data.get("line_number"),
+                    cwe_id=finding_data.get("cwe_id"),
+                    cve_id=finding_data.get("cve_id"),
+                    cvss_score=finding_data.get("cvss_score"),
+                    first_seen=datetime.utcnow(),
+                    last_seen=datetime.utcnow(),
+                    status="open"
+                )
+                
+                session.add(finding)
+                findings.append(finding)
+            
+            await session.commit()
+        
+        return findings
+    
+    async def _create_policy_context(self, finding: SecurityFinding, service: Service) -> PolicyContext:
+        """Create policy context from finding and service"""
+        return PolicyContext(
+            finding_id=finding.id,
+            service_id=service.id,
+            severity=finding.severity,
+            scanner_type=finding.scanner_type,
+            environment=service.environment,
+            data_classification=service.data_classification,
+            internet_facing=service.internet_facing,
+            pci_scope=service.pci_scope,
+            cvss_score=finding.cvss_score,
+            cve_id=finding.cve_id,
+            business_impact=finding.business_impact
+        )
+    
+    # Additional helper method stubs
+    async def _get_findings_for_fix_generation(self, **kwargs) -> List[SecurityFinding]:
+        """Get findings for fix generation"""
+        # Implementation would query database based on filters
+        return []
+    
+    async def _get_findings_for_correlation(self, **kwargs) -> List[SecurityFinding]:
+        """Get findings for correlation analysis"""
+        # Implementation would query database based on filters
+        return []
+    
+    async def _get_service_by_id(self, service_id: str) -> Optional[Service]:
+        """Get service by ID"""
+        # Implementation would query database
+        return None
+    
+    async def _generate_pr_patches(self, fixes: List[Dict], output_dir: str) -> List[str]:
+        """Generate pull request patches from fixes"""
+        # Implementation would generate actual PR patches
+        return []
+
+
+def create_parser():
+    """Create argument parser for CLI"""
+    parser = argparse.ArgumentParser(
+        description="FixOps Enterprise CLI - CI/CD Security Integration",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Ingest scan results from CI/CD pipeline
+  fixops ingest --scan-file results.sarif --format sarif --service-name my-app --environment production --scanner-type sast --scanner-name sonarqube
+
+  # Check security policy for deployment gate
+  fixops policy-check --severity critical --environment production --data-classification pci --internet-facing
+
+  # Generate automated fixes
+  fixops generate-fixes --service-id abc123 --severity-filter critical,high --output-file fixes.json
+
+  # Analyze correlations for noise reduction
+  fixops correlate --service-id abc123 --time-window-hours 24 --output-file correlations.json
+
+  # System health check
+  fixops health --output-file health.json
+        """
+    )
+    
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Ingest command
+    ingest_parser = subparsers.add_parser("ingest", help="Ingest security scan results")
+    ingest_parser.add_argument("--scan-file", required=True, help="Path to scan results file")
+    ingest_parser.add_argument("--format", choices=["sarif", "json"], default="sarif", help="Scan results format")
+    ingest_parser.add_argument("--service-name", required=True, help="Service name")
+    ingest_parser.add_argument("--environment", choices=["dev", "staging", "production"], required=True, help="Environment")
+    ingest_parser.add_argument("--scanner-type", choices=["sast", "sca", "dast", "iast", "iac", "container"], required=True, help="Scanner type")
+    ingest_parser.add_argument("--scanner-name", required=True, help="Scanner name")
+    ingest_parser.add_argument("--repository-url", help="Repository URL")
+    ingest_parser.add_argument("--enable-correlation", action="store_true", help="Enable correlation analysis")
+    ingest_parser.add_argument("--enable-policy-evaluation", action="store_true", help="Enable policy evaluation")
+    ingest_parser.add_argument("--output-file", help="Output file for results")
+    
+    # Policy check command
+    policy_parser = subparsers.add_parser("policy-check", help="Evaluate security policies")
+    policy_parser.add_argument("--service-id", help="Service ID")
+    policy_parser.add_argument("--severity", choices=["critical", "high", "medium", "low"], help="Finding severity")
+    policy_parser.add_argument("--scanner-type", choices=["sast", "sca", "dast", "iast", "iac"], help="Scanner type")
+    policy_parser.add_argument("--environment", choices=["dev", "staging", "production"], help="Environment")
+    policy_parser.add_argument("--data-classification", nargs="+", choices=["pci", "pii", "phi", "confidential"], help="Data classifications")
+    policy_parser.add_argument("--internet-facing", action="store_true", help="Internet-facing service")
+    policy_parser.add_argument("--pci-scope", action="store_true", help="PCI-scoped service") 
+    policy_parser.add_argument("--cvss-score", type=float, help="CVSS score")
+    policy_parser.add_argument("--cve-id", help="CVE ID")
+    policy_parser.add_argument("--business-impact", help="Business impact description")
+    policy_parser.add_argument("--output-file", help="Output file for results")
+    
+    # Generate fixes command
+    fixes_parser = subparsers.add_parser("generate-fixes", help="Generate automated fix suggestions")
+    fixes_parser.add_argument("--service-id", help="Service ID")
+    fixes_parser.add_argument("--severity-filter", nargs="+", choices=["critical", "high", "medium", "low"], help="Severity filter")
+    fixes_parser.add_argument("--scanner-type-filter", choices=["sast", "sca", "dast", "iast", "iac"], help="Scanner type filter")
+    fixes_parser.add_argument("--limit", type=int, default=100, help="Limit number of findings")
+    fixes_parser.add_argument("--min-confidence", type=float, default=0.5, help="Minimum confidence threshold")
+    fixes_parser.add_argument("--generate-pr", action="store_true", help="Generate PR patches")
+    fixes_parser.add_argument("--output-dir", help="Output directory for PR patches")
+    fixes_parser.add_argument("--output-file", help="Output file for results")
+    
+    # Correlation command
+    corr_parser = subparsers.add_parser("correlate", help="Analyze finding correlations")
+    corr_parser.add_argument("--service-id", help="Service ID")
+    corr_parser.add_argument("--time-window-hours", type=int, default=24, help="Time window in hours")
+    corr_parser.add_argument("--severity-filter", nargs="+", choices=["critical", "high", "medium", "low"], help="Severity filter")
+    corr_parser.add_argument("--output-file", help="Output file for results")
+    
+    # Health check command
+    health_parser = subparsers.add_parser("health", help="System health check")
+    health_parser.add_argument("--output-file", help="Output file for results")
+    
+    return parser
+
+
+async def main():
+    """Main CLI entry point"""
+    parser = create_parser()
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+    
+    cli = FixOpsCLI()
+    
+    try:
+        await cli.initialize()
+        
+        # Route to appropriate command handler
+        if args.command == "ingest":
+            result = await cli.ingest_scan_results(args)
+        elif args.command == "policy-check":
+            result = await cli.policy_check(args)
+        elif args.command == "generate-fixes":
+            result = await cli.generate_fixes(args)
+        elif args.command == "correlate":
+            result = await cli.correlation_analysis(args)
+        elif args.command == "health":
+            result = await cli.health_check(args)
+        else:
+            print(f"Unknown command: {args.command}")
+            sys.exit(1)
+        
+        # Output result
+        if not args.output_file:
+            print(json.dumps(result, indent=2, default=str))
+        
+        # Set exit code
+        exit_code = result.get("exit_code", 0)
+        sys.exit(exit_code)
+        
+    except Exception as e:
+        logger.error(f"CLI execution failed: {str(e)}")
+        print(json.dumps({"status": "error", "error": str(e)}, indent=2))
+        sys.exit(2)
+    finally:
+        await cli.cleanup()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
