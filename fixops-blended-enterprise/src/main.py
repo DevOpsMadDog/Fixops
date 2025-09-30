@@ -129,36 +129,74 @@ app.add_middleware(PerformanceMiddleware)
 setup_exception_handlers(app)
 
 # Hot Path Routes (299μs target)
-@app.get("/health", tags=["monitoring"])
+@app.get("/health")
 async def health_check():
-    """Ultra-fast health check endpoint - Hot Path optimized"""
-    start_time = time.perf_counter()
-    
-    result = {"status": "healthy", "timestamp": time.time()}
-    
-    # Record hot path latency
-    latency_us = (time.perf_counter() - start_time) * 1_000_000
-    # HOT_PATH_LATENCY.observe(latency_us)
-    
-    return result
+    """Kubernetes liveness probe endpoint"""
+    try:
+        # Quick health check for liveness
+        return {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "service": "fixops-decision-engine",
+            "version": "1.0.0"
+        }
+    except Exception:
+        raise HTTPException(status_code=503, detail="Service unavailable")
 
-@app.get("/ready", tags=["monitoring"])
+@app.get("/ready")
 async def readiness_check():
-    """Readiness check with dependency validation"""
-    cache = CacheService.get_instance()
-    
-    # Quick dependency checks
-    cache_healthy = await cache.ping()
-    db_healthy = await DatabaseManager.health_check()
-    
-    if cache_healthy and db_healthy:
-        return {"status": "ready", "dependencies": {"cache": True, "database": True}}
-    else:
-        return {"status": "not_ready", "dependencies": {"cache": cache_healthy, "database": db_healthy}}
+    """Kubernetes readiness probe endpoint"""
+    try:
+        # Check if all critical components are ready
+        checks = {
+            "database": False,
+            "cache": False,
+            "decision_engine": False
+        }
+        
+        # Check database connectivity
+        try:
+            await DatabaseManager.health_check()
+            checks["database"] = True
+        except Exception:
+            pass
+        
+        # Check cache service
+        try:
+            cache = CacheService.get_instance()
+            await cache.set("health_check", "ok", ttl=10)
+            checks["cache"] = True
+        except Exception:
+            pass
+        
+        # Check decision engine
+        try:
+            from src.services.decision_engine import decision_engine
+            if hasattr(decision_engine, 'demo_mode'):
+                checks["decision_engine"] = True
+        except Exception:
+            pass
+        
+        if all(checks.values()):
+            return {
+                "status": "ready",
+                "timestamp": time.time(),
+                "checks": checks
+            }
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail={"status": "not_ready", "checks": checks}
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Readiness check failed: {str(e)}")
 
-@app.get("/metrics", tags=["monitoring"])
-async def metrics_endpoint():
-    """Prometheus metrics endpoint"""
+@app.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus metrics endpoint for monitoring"""
     return Response(
         content=generate_latest(),
         media_type="text/plain"
