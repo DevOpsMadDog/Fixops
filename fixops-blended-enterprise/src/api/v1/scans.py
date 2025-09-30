@@ -159,8 +159,6 @@ async def upload_scan_file(
             detail=f"Failed to process scan file: {str(e)}"
         )
 
-from pydantic import BaseModel
-
 class ChunkedUploadInitRequest(BaseModel):
     file_name: str
     total_size: int
