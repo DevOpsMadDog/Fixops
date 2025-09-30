@@ -533,7 +533,7 @@ class FixOpsCLI:
                 service = Service(
                     name=service_name,
                     business_capability="Unknown", 
-                    data_classification=["internal"],
+                    data_classification='["internal"]',  # Convert to JSON string for SQLite
                     environment=environment,
                     owner_team="Unknown",
                     owner_email="unknown@example.com",
