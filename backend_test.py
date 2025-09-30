@@ -4,16 +4,19 @@ import json
 import asyncio
 import subprocess
 import os
+import tempfile
+import io
 from datetime import datetime
 
 # Set LLM key for testing
 os.environ['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
 
-class FixOpsAPITester:
-    def __init__(self, base_url="http://localhost:8000"):
+class FixOpsDecisionEngineAPITester:
+    def __init__(self, base_url="http://localhost:8001"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
+        self.failed_tests = []
 
     def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
