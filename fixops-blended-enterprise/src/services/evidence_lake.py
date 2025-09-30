@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
 from src.db.session import DatabaseManager
-from src.models.user_sqlite import UserAuditLog
+from src.models.user import User, UserAuditLog
 
 logger = structlog.get_logger()
 
