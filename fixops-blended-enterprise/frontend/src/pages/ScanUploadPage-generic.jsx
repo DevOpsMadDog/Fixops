@@ -341,6 +341,40 @@ function ScanUploadPage() {
           </div>
         </div>
 
+        {/* Upload Progress */}
+        {uploadState.isUploading && (
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.5rem'
+            }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>
+                Upload Progress
+              </span>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#2563eb' }}>
+                {uploadState.uploadProgress}%
+              </span>
+            </div>
+            <div style={{
+              width: '100%',
+              height: '8px',
+              backgroundColor: '#e5e7eb',
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${uploadState.uploadProgress}%`,
+                height: '100%',
+                backgroundColor: '#2563eb',
+                borderRadius: '4px',
+                transition: 'width 0.3s ease-in-out'
+              }}></div>
+            </div>
+          </div>
+        )}
+
         {/* Upload Button */}
         <div style={{ textAlign: 'center' }}>
           <button
