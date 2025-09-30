@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     ENCRYPT_SENSITIVE_DATA: bool = Field(default=True)
     REQUIRE_MFA: bool = Field(default=False)
     
+    # AI/LLM Configuration
+    EMERGENT_LLM_KEY: Optional[str] = Field(default=None)
+    
     @field_validator("CORS_ORIGINS", "ALLOWED_HOSTS", mode="before")
     @classmethod
     def parse_list_fields(cls, v):
