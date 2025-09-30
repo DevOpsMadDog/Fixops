@@ -47,8 +47,12 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = Field(default="redis://localhost:6379/1")
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/2")
     
-    # CORS Configuration
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000"])
+    # CORS Configuration  
+    CORS_ORIGINS: List[str] = Field(default=[
+        "http://localhost:3000",
+        "https://*.preview.emergentagent.com",
+        "https://*.emergent.host"
+    ])
     
     # Rate Limiting
     RATE_LIMIT_REQUESTS: int = Field(default=1000)
