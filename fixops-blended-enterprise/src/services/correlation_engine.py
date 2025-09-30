@@ -1,10 +1,12 @@
 """
 FixOps Correlation Engine - Core intelligence for noise reduction and finding correlation
-Performance-optimized for 299μs hot path operations
+Performance-optimized for 299μs hot path operations with AI-powered insights
 """
 
+import os
 import asyncio
 import time
+import json
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -13,11 +15,16 @@ import structlog
 
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from dotenv import load_dotenv
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from src.db.session import DatabaseManager
 from src.models.security import SecurityFinding, FindingCorrelation, Service
 from src.services.cache_service import CacheService
 from src.utils.logger import PerformanceLogger
+
+# Load environment variables
+load_dotenv()
 
 logger = structlog.get_logger()
 
