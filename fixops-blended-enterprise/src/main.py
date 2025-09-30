@@ -64,6 +64,11 @@ async def lifespan(app: FastAPI):
     SecurityManager.initialize()
     logger.info("✅ Security components initialized")
     
+    # Initialize Decision & Verification Engine
+    from src.services.decision_engine import decision_engine
+    await decision_engine.initialize()
+    logger.info("✅ Decision & Verification Engine ready")
+    
     # Pre-warm critical caches
     await warm_performance_caches()
     logger.info("✅ Performance caches warmed")
