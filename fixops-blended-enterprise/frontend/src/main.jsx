@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App'
-import { AuthProvider } from './contexts/AuthContext'
 import './index.css'
 
 // Create React Query client with enterprise configuration
