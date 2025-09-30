@@ -8,33 +8,33 @@ metadata:
     Processes SARIF, SBOM, and security scan data to make ALLOW/BLOCK/DEFER decisions
     with 85% consensus threshold and evidence-based audit trails.
   annotations:
-    backstage.io/managed-by-location: url:https://git.bank.internal/platform/fixops
+    backstage.io/managed-by-location: url:https://github.com/devopsai/fixops-decision-engine
     backstage.io/techdocs-ref: dir:.
-    github.com/project-slug: bank/fixops-decision-engine
+    github.com/project-slug: devopsai/fixops-decision-engine
     jenkins.io/job-full-name: platform/fixops-deploy
     sonarqube.org/project-key: fixops-decision-engine
-    security.bank/classification: confidential
-    compliance.bank/frameworks: pci-dss,sox,ffiec
+    security.devops.ai/classification: open-source
+    compliance.devops.ai/frameworks: configurable
   tags:
     - security
     - devsecops  
     - decision-engine
     - ci-cd
-    - banking
+    - marketplace
     - free-tool
   links:
-    - url: https://fixops.bank.internal
+    - url: https://fixops.devops.ai
       title: FixOps Dashboard
       icon: web
-    - url: https://fixops-api.bank.internal/docs
+    - url: https://api.fixops.devops.ai/docs
       title: API Documentation
       icon: docs
-    - url: https://grafana.bank.internal/d/fixops
-      title: Monitoring Dashboard
+    - url: https://marketplace.fixops.devops.ai
+      title: Security Marketplace
       icon: dashboard
-    - url: https://git.bank.internal/platform/fixops/-/wikis/home
-      title: Integration Guide
-      icon: help
+    - url: https://github.com/devopsai/fixops-decision-engine
+      title: Source Code
+      icon: github
 spec:
   type: service
   lifecycle: production
