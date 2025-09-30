@@ -133,7 +133,7 @@ async def health_check():
     
     # Record hot path latency
     latency_us = (time.perf_counter() - start_time) * 1_000_000
-    HOT_PATH_LATENCY.observe(latency_us)
+    # HOT_PATH_LATENCY.observe(latency_us)
     
     return result
 
