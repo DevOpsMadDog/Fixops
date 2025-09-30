@@ -228,10 +228,10 @@ function ScanUploadPage() {
                 backgroundColor: 'white'
               }}
             >
-              <option value=\"production\">Production</option>
-              <option value=\"staging\">Staging</option>
-              <option value=\"development\">Development</option>
-              <option value=\"testing\">Testing</option>
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+              <option value="development">Development</option>
+              <option value="testing">Testing</option>
             </select>
           </div>
         </div>
