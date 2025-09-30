@@ -407,7 +407,7 @@ function ScanUploadPage() {
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }}></div>
-                Processing...
+                Uploading... {uploadState.uploadProgress}%
               </>
             ) : (
               <>
