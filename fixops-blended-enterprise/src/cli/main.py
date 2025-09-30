@@ -704,13 +704,26 @@ Examples:
 
 
 async def main():
-    """Main CLI entry point"""
+    """Main CLI entry point with mode handling"""
     parser = create_parser()
     args = parser.parse_args()
     
     if not args.command:
         parser.print_help()
         sys.exit(1)
+    
+    # Handle mode flags
+    if hasattr(args, 'demo_mode') and args.demo_mode:
+        import os
+        os.environ['FIXOPS_DEMO_MODE'] = 'true'
+        print("🎭 Running in DEMO MODE (simulated data)")
+    elif hasattr(args, 'production_mode') and args.production_mode:
+        import os
+        os.environ['FIXOPS_DEMO_MODE'] = 'false'
+        print("🏭 Running in PRODUCTION MODE (real integrations)")
+    else:
+        mode = "DEMO" if settings.DEMO_MODE else "PRODUCTION"
+        print(f"🔄 Running in {mode} MODE")
     
     cli = FixOpsCLI()
     
