@@ -137,12 +137,10 @@ class AuthService:
         cached_user_data = await self.cache.get(cache_key)
         
         if cached_user_data:
-            # Reconstruct user object from cache
-            user = User()
-            for key, value in cached_user_data.items():
-                if hasattr(user, key):
-                    setattr(user, key, value)
-            return user
+            # Cache hit - return cached data
+            # Note: We'll reconstruct the user object from fresh DB query if needed
+            # For now, skip cache for login to ensure proper object initialization
+            pass
         
         # Cache miss - query database
         async with DatabaseManager.get_session_context() as session:
