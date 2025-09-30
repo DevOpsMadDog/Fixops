@@ -31,8 +31,7 @@ async def upload_scan_file(
     service_name: str = Form(...),
     environment: str = Form(default="production"),
     scan_type: str = Form(...),  # sarif, sbom, ibom, csv, json
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Upload and process security scan files
