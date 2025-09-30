@@ -1,0 +1,1 @@
+{"findings": [{"rule_id": "r1", "title": "Test Finding", "severity": "high", "category": "injection", "scanner_type": "generic"}]}
