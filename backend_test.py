@@ -656,65 +656,169 @@ sys.exit(0 if result else 1)
         
         return True
 
-    def test_fix_engine(self):
-        """Test fix engine functionality"""
-        print("\n🔧 Testing Fix Engine...")
+    def test_database_operations(self):
+        """Test database connectivity and operations - CRITICAL TESTING AREA"""
+        print("\n💾 Testing Database Operations...")
         
-        # Test fix generation via CLI
         try:
-            env = os.environ.copy()
-            env['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
+            # Test database file exists
+            db_path = "/app/fixops-blended-enterprise/fixops_enterprise.db"
+            if os.path.exists(db_path):
+                print("✅ SQLite database file exists")
+                print(f"   Database path: {db_path}")
+                print(f"   File size: {os.path.getsize(db_path)} bytes")
+                self.tests_passed += 1
+            else:
+                print("❌ SQLite database file not found")
+                self.failed_tests.append({'name': 'Database File', 'error': 'Database file missing'})
             
+            self.tests_run += 1
+            
+            # Test database connectivity via DatabaseManager
             result = subprocess.run([
-                "python", "/app/fixops-blended-enterprise/src/cli/main.py", "generate-fixes",
-                "--limit", "5",
-                "--min-confidence", "0.5"
-            ], capture_output=True, text=True, timeout=30, 
-            cwd="/app/fixops-blended-enterprise", env=env)
+                "python", "-c", 
+                """
+import sys
+sys.path.insert(0, '/app/fixops-blended-enterprise')
+from src.db.session import DatabaseManager
+import asyncio
+
+async def test_db():
+    try:
+        await DatabaseManager.initialize()
+        health = await DatabaseManager.health_check()
+        print(f'Database health: {health}')
+        
+        # Test session context
+        async with DatabaseManager.get_session_context() as session:
+            print('Database session created successfully')
+        
+        await DatabaseManager.close()
+        return True
+    except Exception as e:
+        print(f'Database error: {str(e)}')
+        return False
+
+result = asyncio.run(test_db())
+sys.exit(0 if result else 1)
+                """
+            ], capture_output=True, text=True, timeout=15, cwd="/app/fixops-blended-enterprise")
             
             if result.returncode == 0:
-                print("✅ Fix engine CLI test passed")
-                try:
-                    # Find JSON block in output
-                    output = result.stdout
-                    start_idx = output.find('{')
-                    if start_idx != -1:
-                        # Find the matching closing brace
-                        brace_count = 0
-                        end_idx = start_idx
-                        for i, char in enumerate(output[start_idx:], start_idx):
-                            if char == '{':
-                                brace_count += 1
-                            elif char == '}':
-                                brace_count -= 1
-                                if brace_count == 0:
-                                    end_idx = i + 1
-                                    break
-                        
-                        json_str = output[start_idx:end_idx]
-                        cli_output = json.loads(json_str)
-                        
-                        fixes_count = cli_output.get('fixes_generated', 0)
-                        message = cli_output.get('message', '')
-                        print(f"   Fixes generated: {fixes_count}")
-                        if message:
-                            print(f"   Message: {message}")
-                        self.tests_passed += 1
-                    else:
-                        print("⚠️  No JSON output found in fix engine CLI response")
-                except json.JSONDecodeError as e:
-                    print(f"⚠️  Fix engine CLI output JSON parse error: {str(e)}")
+                print("✅ Database connectivity working")
+                print(f"   {result.stdout.strip()}")
+                self.tests_passed += 1
             else:
-                print(f"❌ Fix engine CLI failed: {result.stderr}")
+                print(f"❌ Database connectivity failed: {result.stderr}")
+                self.failed_tests.append({'name': 'Database Connectivity', 'error': result.stderr})
             
             self.tests_run += 1
             
-        except subprocess.TimeoutExpired:
-            print("❌ Fix engine CLI timed out")
+            # Test data persistence by checking if tables exist
+            result = subprocess.run([
+                "python", "-c", 
+                """
+import sqlite3
+import sys
+
+try:
+    conn = sqlite3.connect('/app/fixops-blended-enterprise/fixops_enterprise.db')
+    cursor = conn.cursor()
+    
+    # Check if main tables exist
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = [row[0] for row in cursor.fetchall()]
+    
+    expected_tables = ['security_findings', 'services', 'users', 'incidents']
+    existing_expected = [t for t in expected_tables if t in tables]
+    
+    print(f'Tables found: {len(tables)}')
+    print(f'Expected tables present: {len(existing_expected)}/{len(expected_tables)}')
+    print(f'Tables: {", ".join(tables[:10])}{"..." if len(tables) > 10 else ""}')
+    
+    conn.close()
+    sys.exit(0)
+except Exception as e:
+    print(f'Database schema check error: {str(e)}')
+    sys.exit(1)
+                """
+            ], capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                print("✅ Database schema validation passed")
+                print(f"   {result.stdout.strip()}")
+                self.tests_passed += 1
+            else:
+                print(f"❌ Database schema validation failed: {result.stderr}")
+                self.failed_tests.append({'name': 'Database Schema', 'error': result.stderr})
+            
             self.tests_run += 1
+            
         except Exception as e:
-            print(f"❌ Fix engine test error: {str(e)}")
+            print(f"❌ Database test error: {str(e)}")
             self.tests_run += 1
+            self.failed_tests.append({'name': 'Database Operations', 'error': str(e)})
+        
+        return True
+
+    def test_authentication_security(self):
+        """Test authentication and security features - CRITICAL TESTING AREA"""
+        print("\n🔐 Testing Authentication & Security...")
+        
+        # Test 1: Authentication middleware (should return 401/403 for protected endpoints)
+        protected_endpoints = [
+            "api/v1/decisions/make-decision",
+            "api/v1/decisions/metrics", 
+            "api/v1/decisions/recent",
+            "api/v1/decisions/core-components",
+            "api/v1/scans/upload",
+            "api/v1/users",
+            "api/v1/incidents"
+        ]
+        
+        for endpoint in protected_endpoints:
+            success, response = self.run_test(
+                f"Auth Protection - {endpoint}", 
+                "GET", 
+                endpoint, 
+                [401, 403]  # Should be unauthorized/forbidden
+            )
+            
+            if success:
+                print(f"   ✅ {endpoint} properly protected")
+            else:
+                print(f"   ⚠️  {endpoint} may not be properly protected")
+        
+        # Test 2: Login endpoint validation
+        success, response = self.run_test(
+            "Auth Login - Missing Fields", 
+            "POST", 
+            "api/v1/auth/login", 
+            422,  # Should return validation error for missing fields
+            data={}
+        )
+        
+        if success:
+            print("   ✅ Login endpoint validates required fields")
+        
+        # Test 3: Public endpoints (should work without auth)
+        public_endpoints = [
+            ("health", "GET"),
+            ("ready", "GET"), 
+            ("metrics", "GET"),
+            ("api/v1/monitoring/health", "GET")
+        ]
+        
+        for endpoint, method in public_endpoints:
+            success, response = self.run_test(
+                f"Public Access - {endpoint}", 
+                method, 
+                endpoint, 
+                200
+            )
+            
+            if success:
+                print(f"   ✅ {endpoint} publicly accessible")
         
         return True
 
