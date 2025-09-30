@@ -124,7 +124,7 @@ async def upload_scan_file(
                         "service_name": service.name,
                         "findings_processed": len(findings_created),
                         "findings_created": [f.id for f in findings_created],
-                        "correlations_found": len(correlation_result.get('correlations', [])),
+                        "correlations_found": len(correlation_results),
                         "processing_time_ms": round(processing_time, 2),
                         "hot_path_compliant": processing_time * 1000 < settings.HOT_PATH_TARGET_LATENCY_US,
                         "upload_metadata": {
