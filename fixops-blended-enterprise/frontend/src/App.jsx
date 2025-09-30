@@ -26,6 +26,7 @@ function App() {
         <Route path="/developer" element={<DeveloperDashboard />} />
         <Route path="/ciso" element={<CISODashboard />} />
         <Route path="/architect" element={<ArchitectDashboard />} />
+        <Route path="/upload" element={<ScanUploadPage />} />
         <Route path="/incidents" element={<IncidentsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/services" element={<ServiceManagement />} />
