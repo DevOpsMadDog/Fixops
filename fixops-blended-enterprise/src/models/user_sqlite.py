@@ -257,19 +257,33 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
     
     def to_dict(self, include_sensitive: bool = False) -> dict:
         """Convert to dict with optional sensitive data exclusion"""
-        result = super().to_dict()
+        result = {}
         
-        # Convert roles from JSON string
+        # Manually serialize only the required fields to avoid SQLAlchemy metadata issues
+        result['id'] = self.id
+        result['email'] = self.email
+        result['username'] = self.username
+        result['first_name'] = self.first_name
+        result['last_name'] = self.last_name
+        result['status'] = self.status
         result['roles'] = self.get_roles()
+        result['email_verified'] = self.email_verified
+        result['mfa_enabled'] = self.mfa_enabled
+        result['phone'] = self.phone
+        result['department'] = self.department
+        result['job_title'] = self.job_title
+        result['notification_email'] = self.notification_email
+        result['notification_sms'] = self.notification_sms
+        result['notification_slack'] = self.notification_slack
+        result['is_active'] = self.is_active
+        result['created_at'] = self.created_at.isoformat() if self.created_at else None
+        result['updated_at'] = self.updated_at.isoformat() if self.updated_at else None
         
-        if not include_sensitive:
-            # Remove sensitive fields from API responses
-            sensitive_fields = [
-                'password_hash', 'mfa_secret', 'failed_login_attempts',
-                'last_login_ip', 'created_from_ip', 'modified_from_ip'
-            ]
-            for field in sensitive_fields:
-                result.pop(field, None)
+        if include_sensitive:
+            result['failed_login_attempts'] = self.failed_login_attempts
+            result['last_login_at'] = self.last_login_at.isoformat() if self.last_login_at else None
+            result['last_login_ip'] = self.last_login_ip
+            result['password_changed_at'] = self.password_changed_at.isoformat() if self.password_changed_at else None
         
         return result
 
