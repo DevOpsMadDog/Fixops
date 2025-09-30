@@ -225,38 +225,79 @@ class FixOpsCLI:
                 "exit_code": 2
             }
     
-    async def generate_fixes(self, args) -> Dict[str, Any]:
+    async def make_decision(self, args) -> Dict[str, Any]:
         """
-        Generate automated fix suggestions for findings
-        High-performance fix generation for CI/CD integration
+        Make security decision for CI/CD pipeline
+        Core FixOps Decision & Verification Engine operation
         """
         start_time = time.perf_counter()
         
         try:
-            # Get findings to fix
-            findings = await self._get_findings_for_fix_generation(
-                service_id=args.service_id,
-                severity_filter=args.severity_filter,
-                scanner_type_filter=args.scanner_type_filter,
-                limit=args.limit
+            # Initialize decision engine
+            from src.services.decision_engine import decision_engine, DecisionContext
+            await decision_engine.initialize()
+            
+            # Read context data if provided
+            business_context = {}
+            if hasattr(args, 'context_file') and args.context_file:
+                with open(args.context_file, 'r') as f:
+                    business_context = json.load(f)
+            
+            # Get security findings from scan file
+            security_findings = []
+            if hasattr(args, 'scan_file') and args.scan_file:
+                scan_data = await self.ingest_scan_results(args)
+                security_findings = scan_data.get('findings', [])
+            
+            # Create decision context
+            context = DecisionContext(
+                service_name=args.service_name,
+                environment=getattr(args, 'environment', 'production'),
+                business_context=business_context,
+                security_findings=security_findings
             )
             
-            if not findings:
-                return {
-                    "status": "success",
-                    "message": "No findings to generate fixes for",
-                    "exit_code": 0
-                }
+            # Make decision
+            decision_result = await decision_engine.make_decision(context)
             
-            # Get service context if available
-            service = None
-            if args.service_id:
-                service = await self._get_service_by_id(args.service_id)
+            total_time = time.perf_counter() - start_time
             
-            # Generate fixes for each finding
-            all_fixes = []
-            for finding in findings:
-                fix_suggestions = await fix_engine.generate_fix_suggestions(finding, service)
+            result = {
+                "status": "success",
+                "decision": decision_result.decision.value,
+                "confidence_score": decision_result.confidence_score,
+                "evidence_id": decision_result.evidence_id,
+                "reasoning": decision_result.reasoning,
+                "consensus_details": decision_result.consensus_details,
+                "validation_results": decision_result.validation_results,
+                "context_sources": decision_result.context_sources,
+                "processing_time_ms": total_time * 1000,
+                "processing_time_us": decision_result.processing_time_us,
+                "hot_path_compliant": decision_result.processing_time_us < settings.HOT_PATH_TARGET_LATENCY_US
+            }
+            
+            # Set exit code for CI/CD
+            if decision_result.decision == DecisionOutcome.BLOCK:
+                result["exit_code"] = 1
+            elif decision_result.decision == DecisionOutcome.DEFER:
+                result["exit_code"] = 2  
+            else:
+                result["exit_code"] = 0
+            
+            if hasattr(args, 'output_file') and args.output_file:
+                with open(args.output_file, 'w') as f:
+                    json.dump(result, f, indent=2, default=str)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Decision making failed: {str(e)}")
+            return {
+                "status": "error", 
+                "decision": "DEFER",
+                "error": str(e),
+                "exit_code": 2
+            }
                 
                 for fix in fix_suggestions:
                     fix_dict = fix.__dict__.copy()
