@@ -14,10 +14,7 @@ logger = structlog.get_logger()
 router = APIRouter()
 
 @router.get("/dashboard")
-async def get_dashboard_metrics(
-    current_user: Dict = Depends(get_current_user),
-    _: bool = Depends(require_permission("analytics.read"))
-) -> Dict[str, Any]:
+async def get_dashboard_metrics() -> Dict[str, Any]:
     """Get Decision Engine dashboard metrics"""
     
     from src.services.decision_engine import decision_engine
