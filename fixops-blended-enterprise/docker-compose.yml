@@ -74,6 +74,8 @@ services:
       - "3000:3000"
     environment:
       - BACKEND_URL=http://fixops-backend:8001
+      - VITE_API_BASE_URL=https://api.fixops.devops.ai
+      - REACT_APP_API_BASE_URL=https://api.fixops.devops.ai
     depends_on:
       - fixops-backend
     networks:
