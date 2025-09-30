@@ -208,7 +208,7 @@ async def get_current_user_info(
     """
     Get current user information
     """
-    user_id = int(current_user["sub"])
+    user_id = current_user["sub"]  # Keep as string since our IDs are UUIDs
     
     user_info = await auth_service.get_user_info(user_id)
     
