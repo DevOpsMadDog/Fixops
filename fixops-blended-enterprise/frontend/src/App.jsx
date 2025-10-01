@@ -1,9 +1,9 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Layout from './components/Layout'
-import EnhancedDashboard from './pages/EnhancedDashboard'
-import DeveloperDashboard from './pages/DeveloperDashboard'
-import CISODashboard from './pages/CISODashboard'
+import NewLayout from './components/NewLayout'
+import NewEnhancedDashboard from './pages/NewEnhancedDashboard'
+import NewDeveloperDashboard from './pages/NewDeveloperDashboard'
+import NewCISODashboard from './pages/NewCISODashboard'
 import ArchitectDashboard from './pages/ArchitectDashboard'
 import ScanUploadPage from './pages/ScanUploadPage'
 import MarketplacePage from './pages/MarketplacePage'
@@ -13,12 +13,12 @@ import ArchitecturePage from './pages/ArchitecturePage'
 
 function App() {
   return (
-    <Layout>
+    <NewLayout>
       <Routes>
         <Route path="/" element={<Navigate to="/enhanced" replace />} />
-        <Route path="/enhanced" element={<EnhancedDashboard />} />
-        <Route path="/developer" element={<DeveloperDashboard />} />
-        <Route path="/ciso" element={<CISODashboard />} />
+        <Route path="/enhanced" element={<NewEnhancedDashboard />} />
+        <Route path="/developer" element={<NewDeveloperDashboard />} />
+        <Route path="/ciso" element={<NewCISODashboard />} />
         <Route path="/architect" element={<ArchitectDashboard />} />
         <Route path="/upload" element={<ScanUploadPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
@@ -27,7 +27,7 @@ function App() {
         <Route path="/architecture" element={<ArchitecturePage />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
       </Routes>
-    </Layout>
+    </NewLayout>
   )
 }
 
