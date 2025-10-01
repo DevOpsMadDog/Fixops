@@ -444,29 +444,70 @@ function EnhancedDashboard() {
               </div>
             )}
 
-            {/* Action Button */}
-            <button
-              onClick={() => {
-                if (uploadState.selectedFile && uploadState.scanType) {
-                  handleFileUpload(uploadState.selectedFile, uploadState.scanType)
-                }
-              }}
-              disabled={!uploadState.selectedFile || !uploadState.scanType || uploadState.processingStage === 'uploading'}
-              style={{
-                width: '100%',
-                padding: '1rem 2rem',
-                backgroundColor: '#2563eb',
-                color: 'white',
-                border: 'none',
+            {/* Enhanced Action Button */}
+            {scanProcessor.selectedFile && scanProcessor.scanType && (
+              <button
+                onClick={() => handleFileUpload(scanProcessor.selectedFile, scanProcessor.scanType)}
+                disabled={scanProcessor.processingStage === 'uploading'}
+                style={{
+                  width: '100%',
+                  padding: '1.5rem 2rem',
+                  background: scanProcessor.processingStage === 'uploading' ? 
+                    'linear-gradient(135deg, #64748b 0%, #475569 100%)' :
+                    'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '16px',
+                  fontSize: '1.125rem',
+                  fontWeight: '800',
+                  cursor: scanProcessor.processingStage === 'uploading' ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 8px 25px rgba(220, 38, 38, 0.4)',
+                  transition: 'all 0.3s ease',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  fontFamily: '"Inter", sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  if (scanProcessor.processingStage !== 'uploading') {
+                    e.target.style.transform = 'translateY(-2px)'
+                    e.target.style.boxShadow = '0 12px 35px rgba(220, 38, 38, 0.6)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0px)'
+                  e.target.style.boxShadow = '0 8px 25px rgba(220, 38, 38, 0.4)'
+                }}
+              >
+                {scanProcessor.processingStage === 'uploading' ? (
+                  <>
+                    <span style={{ marginRight: '0.75rem' }}>🔄</span>
+                    PROCESSING SCAN...
+                  </>
+                ) : (
+                  <>
+                    <span style={{ marginRight: '0.75rem' }}>🚀</span>
+                    LAUNCH SECURITY ANALYSIS
+                  </>
+                )}
+              </button>
+            )}
+
+            {!scanProcessor.selectedFile && (
+              <div style={{
+                padding: '1.5rem',
+                backgroundColor: 'rgba(100, 116, 139, 0.1)',
+                border: '1px dashed #64748b',
                 borderRadius: '12px',
-                fontSize: '1.125rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                opacity: (!uploadState.selectedFile || !uploadState.scanType) ? 0.5 : 1
-              }}
-            >
-              🚀 Analyze with FixOps
-            </button>
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: '600' }}>
+                  🎯 Ready to analyze your security scans
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                  Upload any SARIF, SBOM, CSV, or JSON security scan file
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Live Analysis Flow */}
