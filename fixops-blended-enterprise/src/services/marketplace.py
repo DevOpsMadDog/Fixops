@@ -1,16 +1,31 @@
 """
-Marketplace service stubs (in-memory) for FixOps
-- Provides content browsing, recommendations, contributions, and purchases
-- Uses UUIDs and simple in-memory lists to simulate a real marketplace backend
-- Replace with real DB integrations (Mongo/Postgres) in a future iteration
+Marketplace service with file persistence and validation (enterprise-ready stub)
+- In-memory index plus JSON snapshots under /app/data/marketplace
+- UUID-only IDs, simple versioning and purchase records
+- Tokenized download links (HMAC) without app-level auth
 """
 from __future__ import annotations
 
+import json
+import os
 import uuid
-from dataclasses import dataclass, field
+import hmac
+import hashlib
+from dataclasses import dataclass, field, asdict
 from enum import Enum
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+from pydantic import BaseModel, Field, ValidationError
+import structlog
+
+logger = structlog.get_logger()
+
+DATA_DIR = Path("/app/data/marketplace")
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+ITEMS_FILE = DATA_DIR / "items.json"
+PURCHASES_FILE = DATA_DIR / "purchases.json"
 
 
 class ContentType(str, Enum):
@@ -27,6 +42,24 @@ class PricingModel(str, Enum):
     subscription = "subscription"
 
 
+class MarketplaceItemModel(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    content_type: ContentType
+    compliance_frameworks: List[str] = []
+    ssdlc_stages: List[str] = []
+    pricing_model: PricingModel = PricingModel.free
+    price: float = 0.0
+    tags: List[str] = []
+    metadata: Dict[str, Any] = {}
+    rating: float = 4.6
+    downloads: int = 0
+    version: str = Field(default="1.0.0")
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
 @dataclass
 class MarketplaceItem:
     id: str
@@ -41,21 +74,45 @@ class MarketplaceItem:
     metadata: Dict[str, Any] = field(default_factory=dict)
     rating: float = 4.6
     downloads: int = 0
+    version: str = "1.0.0"
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class MarketplaceService:
-    def __init__(self) -> None:
-        self._items: List[MarketplaceItem] = self._seed_items()
+    def __init__(self, secret: Optional[str] = None) -> None:
+        self._items: List[MarketplaceItem] = []
         self._purchases: Dict[str, Dict[str, Any]] = {}
+        self._secret = (secret or "fixops-secret").encode("utf-8")
+        self._load()
+        if not self._items:
+            self._seed_items()
+            self._persist()
 
     async def initialize(self):
         # No-op for now; placeholder for DB connections or caching
         return None
 
-    def _seed_items(self) -> List[MarketplaceItem]:
-        return [
+    # Persistence
+    def _load(self):
+        try:
+            if ITEMS_FILE.exists():
+                raw = json.loads(ITEMS_FILE.read_text(encoding='utf-8'))
+                self._items = [MarketplaceItem(**i) for i in raw]
+            if PURCHASES_FILE.exists():
+                self._purchases = json.loads(PURCHASES_FILE.read_text(encoding='utf-8'))
+        except Exception as e:
+            logger.error("Failed to load marketplace data", error=str(e))
+
+    def _persist(self):
+        try:
+            ITEMS_FILE.write_text(json.dumps([asdict(i) for i in self._items], indent=2), encoding='utf-8')
+            PURCHASES_FILE.write_text(json.dumps(self._purchases, indent=2), encoding='utf-8')
+        except Exception as e:
+            logger.error("Failed to persist marketplace data", error=str(e))
+
+    def _seed_items(self):
+        demo_items = [
             MarketplaceItem(
                 id=str(uuid.uuid4()),
                 name="PCI DSS Payment Gateway Policy Pack",
@@ -97,7 +154,43 @@ class MarketplaceService:
                 downloads=77,
             ),
         ]
+        self._items.extend(demo_items)
 
+    # Validation
+    def _validate_content(self, content: Dict[str, Any]):
+        try:
+            # ensure minimal schema via pydantic
+            MarketplaceItemModel(**{
+                **content,
+                "id": content.get("id", str(uuid.uuid4())),
+                "content_type": ContentType(content["content_type"]),
+                "pricing_model": PricingModel(content.get("pricing_model", "free"))
+            })
+        except Exception as e:
+            raise ValueError(f"Invalid content fields: {e}")
+
+    # Tokenization
+    def _sign_token(self, purchase_id: str, expires_in_minutes: int = 60) -> str:
+        exp = int((datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes)).timestamp())
+        payload = f"{purchase_id}.{exp}".encode("utf-8")
+        sig = hmac.new(self._secret, payload, hashlib.sha256).hexdigest()
+        return f"{purchase_id}.{exp}.{sig}"
+
+    def _verify_token(self, token: str) -> Tuple[bool, Optional[str]]:
+        try:
+            purchase_id, exp_s, sig = token.split('.')
+            exp = int(exp_s)
+            payload = f"{purchase_id}.{exp}".encode("utf-8")
+            expected = hmac.new(self._secret, payload, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(sig, expected):
+                return False, None
+            if int(datetime.now(timezone.utc).timestamp()) > exp:
+                return False, None
+            return True, purchase_id
+        except Exception:
+            return False, None
+
+    # Public API
     async def _get_all_marketplace_items(self) -> List[MarketplaceItem]:
         return list(self._items)
 
@@ -122,7 +215,6 @@ class MarketplaceService:
             ]
         if ssdlc_stages:
             results = [i for i in results if any(st in i.ssdlc_stages for st in ssdlc_stages)]
-        # organization_type can weight recommendations in a real system
         return results
 
     async def get_recommended_content(
@@ -131,7 +223,6 @@ class MarketplaceService:
         organization_type: str,
         compliance_requirements: List[str],
     ) -> List[MarketplaceItem]:
-        # Very simple heuristic: prioritize items that match any compliance requirement
         ranked = []
         for item in self._items:
             score = 0
@@ -140,33 +231,40 @@ class MarketplaceService:
                 score += 2
             ranked.append((score, item))
         ranked.sort(key=lambda x: x[0], reverse=True)
-        # Return top 5
         return [i for _, i in ranked[:5]]
 
     async def contribute_content(self, content: Dict[str, Any], author: str, organization: str) -> str:
-        # Validate minimal fields
-        try:
-            ct = ContentType(content["content_type"])  # may raise ValueError
-            pm = PricingModel(content.get("pricing_model", "free"))
-        except Exception as e:
-            raise ValueError(f"Invalid content fields: {e}")
-
+        self._validate_content(content)
         item = MarketplaceItem(
             id=str(uuid.uuid4()),
             name=content["name"],
             description=content.get("description", ""),
-            content_type=ct,
+            content_type=ContentType(content["content_type"]),
             compliance_frameworks=content.get("compliance_frameworks", []),
             ssdlc_stages=content.get("ssdlc_stages", []),
-            pricing_model=pm,
+            pricing_model=PricingModel(content.get("pricing_model", "free")),
             price=float(content.get("price", 0.0)),
             tags=content.get("tags", []),
             metadata={**content.get("metadata", {}), "author": author, "organization": organization},
             rating=4.7,
             downloads=0,
+            version=content.get("version", "1.0.0")
         )
         self._items.append(item)
+        self._persist()
         return item.id
+
+    async def update_content(self, item_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        item = next((i for i in self._items if i.id == item_id), None)
+        if not item:
+            raise ValueError("Item not found")
+        # Update fields
+        for k in ["name", "description", "compliance_frameworks", "ssdlc_stages", "tags", "price", "pricing_model", "metadata", "version"]:
+            if k in patch:
+                setattr(item, k, patch[k] if k != "pricing_model" else PricingModel(patch[k]))
+        item.updated_at = datetime.now(timezone.utc).isoformat()
+        self._persist()
+        return asdict(item)
 
     async def purchase_content(self, item_id: str, purchaser: str, organization: str) -> Dict[str, Any]:
         item = next((i for i in self._items if i.id == item_id), None)
@@ -180,13 +278,31 @@ class MarketplaceService:
             "organization": organization,
             "price": item.price,
             "currency": "USD",
-            "license": "perpetual" if item.pricing_model == PricingModel.one_time else "subscription",
+            "license": "perpetual" if item.pricing_model == PricingModel.one_time else "subscription" if item.pricing_model == PricingModel.subscription else "free",
             "purchased_at": datetime.now(timezone.utc).isoformat(),
         }
         self._purchases[purchase_id] = record
-        # Simulate a download increment
         item.downloads += 1
-        return record
+        self._persist()
+        token = self._sign_token(purchase_id)
+        return {**record, "download_token": token}
+
+    async def download_by_token(self, token: str) -> Dict[str, Any]:
+        ok, purchase_id = self._verify_token(token)
+        if not ok or not purchase_id:
+            raise ValueError("Invalid or expired token")
+        record = self._purchases.get(purchase_id)
+        if not record:
+            raise ValueError("Purchase not found")
+        item = next((i for i in self._items if i.id == record["item_id"]), None)
+        if not item:
+            raise ValueError("Item missing")
+        # For stub, return metadata and links to docs/templates if any
+        return {
+            "purchase": record,
+            "item": asdict(item),
+            "content": item.metadata.get("content", {"readme": "Content available upon request in OSS mode"})
+        }
 
     async def get_compliance_content_for_stage(self, stage: str, frameworks: List[str]) -> Dict[str, Any]:
         items = [
@@ -195,9 +311,9 @@ class MarketplaceService:
         return {
             "stage": stage,
             "frameworks": frameworks,
-            "items": [i.__dict__ for i in items],
+            "items": [asdict(i) for i in items],
         }
 
-
 # Singleton instance
-marketplace = MarketplaceService()
+from src.config.settings import get_settings
+marketplace = MarketplaceService(secret=(get_settings().SECRET_KEY or "fixops-secret"))
