@@ -17,9 +17,6 @@ function App() {
         <Route path="/developer" element={<DeveloperOps />} />
         <Route path="/ciso" element={<ExecutiveBriefing />} />
         <Route path="/architect" element={<ArchitectureCenter />} />
-        <Route path="/upload" element={<ScanUploadPage />} />
-        <Route path="/marketplace" element={<MarketplacePage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/architecture" element={<ArchitecturePage />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
