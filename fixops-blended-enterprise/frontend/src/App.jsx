@@ -7,7 +7,8 @@ import CISODashboard from './pages/CISODashboard'
 import ScanUploadPage from './pages/ScanUploadPage'
 import MarketplacePage from './pages/MarketplacePage'
 import AnalyticsPage from './pages/AnalyticsPage'
-import Docs from './pages/Docs'
+import InstallPage from './pages/InstallPage'
+import ArchitecturePage from './pages/ArchitecturePage'
 
 function App() {
   return (
