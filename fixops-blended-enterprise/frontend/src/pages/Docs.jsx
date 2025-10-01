@@ -69,11 +69,39 @@ function Docs() {
         </div>
       </div>
 
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', padding: '1rem' }}>
+      <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', padding: '2rem', minHeight: '400px' }}>
         {loading ? (
-          <div style={{ color: '#6b7280' }}>Loading…</div>
+          <div style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Loading…</div>
         ) : (
-          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', color: '#111827' }}>{content}</pre>
+          <div style={{ 
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            lineHeight: '1.6',
+            color: '#111827'
+          }}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.5rem' }}>{children}</h1>,
+                h2: ({ children }) => <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '1.5rem', marginBottom: '0.75rem', color: '#1f2937' }}>{children}</h2>,
+                h3: ({ children }) => <h3 style={{ fontSize: '1.25rem', fontWeight: 'semibold', marginTop: '1.25rem', marginBottom: '0.5rem', color: '#374151' }}>{children}</h3>,
+                h4: ({ children }) => <h4 style={{ fontSize: '1.1rem', fontWeight: 'semibold', marginTop: '1rem', marginBottom: '0.5rem', color: '#4b5563' }}>{children}</h4>,
+                p: ({ children }) => <p style={{ marginBottom: '1rem', lineHeight: '1.7' }}>{children}</p>,
+                ul: ({ children }) => <ul style={{ marginBottom: '1rem', paddingLeft: '1.5rem' }}>{children}</ul>,
+                ol: ({ children }) => <ol style={{ marginBottom: '1rem', paddingLeft: '1.5rem' }}>{children}</ol>,
+                li: ({ children }) => <li style={{ marginBottom: '0.25rem' }}>{children}</li>,
+                code: ({ inline, children }) => inline 
+                  ? <code style={{ backgroundColor: '#f3f4f6', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', fontSize: '0.875rem', fontFamily: 'ui-monospace, monospace' }}>{children}</code>
+                  : <pre style={{ backgroundColor: '#f8f9fa', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto', fontSize: '0.875rem', fontFamily: 'ui-monospace, monospace' }}><code>{children}</code></pre>,
+                table: ({ children }) => <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem', border: '1px solid #e5e7eb' }}>{children}</table>,
+                th: ({ children }) => <th style={{ border: '1px solid #e5e7eb', padding: '0.75rem', backgroundColor: '#f9fafb', fontWeight: 'semibold', textAlign: 'left' }}>{children}</th>,
+                td: ({ children }) => <td style={{ border: '1px solid #e5e7eb', padding: '0.75rem' }}>{children}</td>,
+                blockquote: ({ children }) => <blockquote style={{ borderLeft: '4px solid #e5e7eb', paddingLeft: '1rem', margin: '1rem 0', fontStyle: 'italic', color: '#6b7280' }}>{children}</blockquote>,
+                a: ({ href, children }) => <a href={href} style={{ color: '#2563eb', textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">{children}</a>
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          </div>
         )}
       </div>
     </div>
