@@ -3,11 +3,11 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 const tabs = [
-  { key: 'install', label: 'Install' },
-  { key: 'ssvc', label: 'SSVC' },
-  { key: 'architecture', label: 'Architecture' },
-  { key: 'requirements', label: 'Requirements' },
-  { key: 'roadmap', label: 'Roadmap' },
+  { key: 'install', label: '🚀 Install', icon: '🚀', color: 'blue' },
+  { key: 'ssvc', label: '🎯 SSVC', icon: '🎯', color: 'green' },
+  { key: 'architecture', label: '🏗️ Architecture', icon: '🏗️', color: 'purple' },
+  { key: 'requirements', label: '📋 Requirements', icon: '📋', color: 'orange' },
+  { key: 'roadmap', label: '🗺️ Roadmap', icon: '🗺️', color: 'pink' },
 ]
 
 const LS_LAST_TAB = 'fixops.docs.lastTab'
