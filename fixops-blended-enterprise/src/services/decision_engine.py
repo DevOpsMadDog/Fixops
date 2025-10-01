@@ -145,6 +145,9 @@ class DecisionEngine:
     async def _initialize_production_mode(self):
         """Initialize with real integrations for production"""
         try:
+            # Initialize OSS tools integration
+            await self._initialize_oss_tools()
+            
             # Initialize real Vector DB
             if settings.VECTOR_DB_URL:
                 await self._initialize_real_vector_db()
