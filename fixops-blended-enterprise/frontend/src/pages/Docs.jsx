@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const tabs = [
   { key: 'install', label: 'Install' },
   { key: 'ssvc', label: 'SSVC' },
+  { key: 'architecture', label: 'Architecture' },
   { key: 'requirements', label: 'Requirements' },
   { key: 'roadmap', label: 'Roadmap' },
 ]
