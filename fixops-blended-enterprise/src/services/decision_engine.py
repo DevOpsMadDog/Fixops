@@ -65,6 +65,7 @@ class DecisionEngine:
         self.real_jira_client = None
         self.real_confluence_client = None
         self.real_threat_intel = None
+        self.oss_integrations = None
         
         # Demo mode data
         self.demo_data = {}
