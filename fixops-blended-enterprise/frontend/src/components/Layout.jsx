@@ -10,7 +10,8 @@ function Layout({ children }) {
     { name: 'CISO', href: '/ciso', fullName: 'CISO Dashboard' },
     { name: 'Marketplace', href: '/marketplace', fullName: 'Security Marketplace' },
     { name: 'Analytics', href: '/analytics', fullName: 'Analytics' },
-    { name: 'Docs', href: '/docs', fullName: 'Documentation' },
+    { name: 'Install', href: '/install', fullName: 'Installation Guide' },
+    { name: 'Architecture', href: '/architecture', fullName: 'Technical Architecture' },
   ]
 
   return (
