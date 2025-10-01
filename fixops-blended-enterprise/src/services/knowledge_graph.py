@@ -34,13 +34,16 @@ class SecurityRelation:
 
 class CTINexusEntityExtractor:
     """
-    Entity extraction using CTINexus approach
-    Extracts entities from security scan data, SARIF, SBOM, etc.
+    REAL CTINexus-inspired entity extraction using LLM-based in-context learning
+    Based on CTINexus framework for automatic cybersecurity entity and relation extraction
+    Uses optimized prompt-based LLM inference with demonstration selection
     """
     
     def __init__(self):
-        self.entity_patterns = self._initialize_patterns()
-        self.relation_patterns = self._initialize_relation_patterns()
+        self.llm_client = None
+        self._initialize_llm_client()
+        self.cybersecurity_ontology = self._load_cybersecurity_ontology()
+        self.demonstration_examples = self._load_demonstration_examples()
     
     def _initialize_patterns(self) -> Dict[str, List[str]]:
         """Initialize entity extraction patterns"""
