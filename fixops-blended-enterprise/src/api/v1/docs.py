@@ -19,6 +19,7 @@ async def get_doc(name: str):
             "requirements": "REQUIREMENTS.md",
             "ssvc": "SSVC.md",
             "roadmap": "ROADMAP.md",
+            "architecture": "ARCHITECTURE.md",
         }
         filename = mapping.get(safe, None)
         if not filename:
