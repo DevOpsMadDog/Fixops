@@ -18,7 +18,7 @@ function CISODashboard() {
   ]
 
   // Compact Enhanced analysis snapshot
-  const [snapshot, setSnapshot] = useState({ loading: true, error: null, data: null })
+  const [snapshot, setSnapshot] = useState({ loading: true, error: null, data: null, lastUpdated: null })
 
   useEffect(() => {
     const fetchSnapshot = async () => {
@@ -28,9 +28,9 @@ function CISODashboard() {
           security_findings: [ { severity: 'high', category: 'injection', title: 'SQL injection vulnerability in payment endpoint', source: 'sonarqube' } ],
           business_context: { business_criticality: 'critical', data_classification: 'pii_financial' },
         })
-        setSnapshot({ loading: false, error: null, data: res.data?.data })
+        setSnapshot({ loading: false, error: null, data: res.data?.data, lastUpdated: new Date().toISOString() })
       } catch (e) {
-        setSnapshot({ loading: false, error: e?.message || 'Failed to load', data: null })
+        setSnapshot({ loading: false, error: e?.message || 'Failed to load', data: null, lastUpdated: new Date().toISOString() })
       }
     }
     fetchSnapshot()
@@ -40,6 +40,15 @@ function CISODashboard() {
     if (confidence >= 0.85) return '#16a34a'
     if (confidence >= 0.7) return '#d97706'
     return '#dc2626'
+  }
+
+  const formatTime = (iso) => {
+    try {
+      const d = new Date(iso)
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`
+    } catch {
+      return iso || ''
+    }
   }
 
   return (
@@ -90,10 +99,13 @@ function CISODashboard() {
 
       {/* Enhanced Analysis Snapshot (compact) */}
       <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#111827', margin: 0 }}>
             🔍 Enhanced Analysis Snapshot
           </h2>
+          <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+            {snapshot.lastUpdated ? `Last updated: ${formatTime(snapshot.lastUpdated)}` : ''}
+          </div>
           <Link to="/enhanced" style={{ textDecoration: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', backgroundColor: '#2563eb', color: 'white', fontWeight: 700 }}>
             View Full Analysis
           </Link>

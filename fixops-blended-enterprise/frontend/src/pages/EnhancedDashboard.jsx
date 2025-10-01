@@ -4,6 +4,7 @@ import Tooltip from '../components/Tooltip'
 
 const LS_INPUT_KEY = 'fixops.enhanced.input'
 const LS_RESULT_KEY = 'fixops.enhanced.lastResult'
+const LS_SERVICE_KEY = 'fixops.enhanced.service'
 
 function EnhancedDashboard() {
   const [enhancedMetrics, setEnhancedMetrics] = useState(null)
@@ -28,6 +29,8 @@ function EnhancedDashboard() {
   useEffect(() => {
     // Load any saved input and last result
     try {
+      const savedService = localStorage.getItem(LS_SERVICE_KEY)
+      if (savedService) setSelectedService(savedService)
       const saved = localStorage.getItem(LS_INPUT_KEY)
       if (saved) setJsonInput(saved)
       const savedResult = localStorage.getItem(LS_RESULT_KEY)
@@ -89,6 +92,7 @@ function EnhancedDashboard() {
       try {
         localStorage.setItem(LS_INPUT_KEY, jsonInput)
         localStorage.setItem(LS_RESULT_KEY, JSON.stringify(res.data))
+        localStorage.setItem(LS_SERVICE_KEY, selectedService)
       } catch (_) {}
     } catch (e) {
       console.error(e)
@@ -105,6 +109,8 @@ function EnhancedDashboard() {
     try {
       const saved = localStorage.getItem(LS_INPUT_KEY)
       if (saved) setJsonInput(saved)
+      const savedService = localStorage.getItem(LS_SERVICE_KEY)
+      if (savedService) setSelectedService(savedService)
       const savedResult = localStorage.getItem(LS_RESULT_KEY)
       if (savedResult) {
         const parsed = JSON.parse(savedResult)
@@ -181,6 +187,41 @@ function EnhancedDashboard() {
     downloadText('sample.sbom.json', sbom)
   }
 
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setStatusMsg('copied')
+      setTimeout(() => setStatusMsg('idle'), 1500)
+    } catch (e) {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        setStatusMsg('copied')
+        setTimeout(() => setStatusMsg('idle'), 1500)
+      } catch (_) {
+        console.error('Copy failed')
+      }
+    }
+  }
+
+  const curlCompare = () => {
+    const base = (import.meta?.env?.REACT_APP_BACKEND_URL) || ''
+    return `curl -X POST "${base}/api/v1/enhanced/compare-llms" \
+  -H 'Content-Type: application/json' \
+  -d '{"service_name":"${selectedService}","security_findings":[{"severity":"high","category":"injection","title":"SQLi"}],"business_context":{}}'`
+  }
+
+  const curlAnalysis = () => {
+    const base = (import.meta?.env?.REACT_APP_BACKEND_URL) || ''
+    return `curl -X POST "${base}/api/v1/enhanced/analysis" \
+  -H 'Content-Type: application/json' \
+  -d '{"service_name":"${selectedService}","environment":"production","business_context":{},"security_findings":[],"compliance_requirements":[]}'`
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px', fontSize: '1.5rem', color: '#6b7280' }}>
@@ -209,10 +250,21 @@ function EnhancedDashboard() {
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
       {/* Input Panel (Paste JSON + Upload formats) */}
       <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          Provide Security Findings
-          <Tooltip text="Paste scanner JSON to analyze immediately, or upload SARIF/SBOM/CSV/JSON using chunked upload. We’ll parse and process findings for you."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Provide Security Findings
+            <Tooltip text="Paste scanner JSON to analyze immediately, or upload SARIF/SBOM/CSV/JSON using chunked upload. We’ll parse and process findings for you."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Service Name</label>
+            <input
+              value={selectedService}
+              onChange={(e) => { setSelectedService(e.target.value); try { localStorage.setItem(LS_SERVICE_KEY, e.target.value) } catch (_) {} }}
+              placeholder="e.g., payment-processor"
+              style={{ padding: '0.5rem 0.75rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+            />
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           {/* Left: Paste JSON */}
           <div>
@@ -275,6 +327,10 @@ function EnhancedDashboard() {
           </button>
           {showApiDocs && (
             <div style={{ marginTop: '0.75rem', backgroundColor: '#0b1020', color: '#e5e7eb', padding: '1rem', borderRadius: '8px', overflowX: 'auto' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                <button onClick={() => copyToClipboard(curlCompare())} style={{ padding: '0.35rem 0.75rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem' }}>Copy curl (Compare)</button>
+                <button onClick={() => copyToClipboard(curlAnalysis())} style={{ padding: '0.35rem 0.75rem', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem' }}>Copy curl (Analysis)</button>
+              </div>
               <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>REST Endpoints</div>
               <pre style={{ whiteSpace: 'pre-wrap' }}>{`
 POST /api/v1/scans/upload  (multipart)
@@ -303,9 +359,7 @@ fixops-cli ingest --format sarif --scan-file results.sarif.json \
   --enable-correlation --enable-policy-evaluation
 
 # After ingestion, call enhanced analysis via REST in pipeline step
-curl -X POST "$REACT_APP_BACKEND_URL/api/v1/enhanced/compare-llms" \
-  -H 'Content-Type: application/json' \
-  -d '{"service_name":"${selectedService}","security_findings":[{"severity":"high","category":"injection"}]}'
+${curlCompare()}
 `}</pre>
             </div>
           )}
