@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     # CORS Configuration  
     CORS_ORIGINS: List[str] = Field(default=[
         "http://localhost:3000",
-        "https://verifysec.preview.emergentagent.com",
+        "https://vuldecider.preview.emergentagent.com",
         "https://*.emergent.host"
     ])
     
