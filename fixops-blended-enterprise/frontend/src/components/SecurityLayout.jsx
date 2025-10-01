@@ -321,6 +321,12 @@ function Layout({ children }) {
       </main>
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
@@ -335,6 +341,21 @@ function Layout({ children }) {
           padding: 0;
           background: #0a0e1a;
           color: white;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-weight: 700;
+          letter-spacing: -0.025em;
+        }
+        
+        code, pre {
+          font-family: 'JetBrains Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+          font-feature-settings: 'liga' 0;
         }
       `}</style>
     </div>
