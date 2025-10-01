@@ -8,6 +8,7 @@ import ScanUploadPage from './pages/ScanUploadPage'
 import MarketplacePage from './pages/MarketplacePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import Docs from './pages/Docs'
+import OssIntegrationsPage from './pages/OssIntegrationsPage'
 
 function App() {
   return (
