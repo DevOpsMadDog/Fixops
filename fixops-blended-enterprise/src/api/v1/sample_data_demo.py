@@ -705,5 +705,3 @@ stage('FixOps Security Gate') {
             }
         }
     }
-
-logger = structlog.get_logger()
