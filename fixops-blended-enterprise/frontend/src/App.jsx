@@ -1,10 +1,10 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Layout from './components/Layout'
-import EnhancedDashboard from './pages/EnhancedDashboard'
-import DeveloperDashboard from './pages/DeveloperDashboard'
-import CISODashboard from './pages/CISODashboard'
-import ArchitectDashboard from './pages/ArchitectDashboard'
+import SecurityLayout from './components/SecurityLayout'
+import CommandCenter from './pages/CommandCenter'
+import DeveloperOps from './pages/DeveloperOps'
+import ExecutiveBriefing from './pages/ExecutiveBriefing'
+import ArchitectureCenter from './pages/ArchitectureCenter'
 import ScanUploadPage from './pages/ScanUploadPage'
 import MarketplacePage from './pages/MarketplacePage'
 import AnalyticsPage from './pages/AnalyticsPage'
@@ -13,13 +13,13 @@ import ArchitecturePage from './pages/ArchitecturePage'
 
 function App() {
   return (
-    <Layout>
+    <SecurityLayout>
       <Routes>
         <Route path="/" element={<Navigate to="/enhanced" replace />} />
-        <Route path="/enhanced" element={<EnhancedDashboard />} />
-        <Route path="/developer" element={<DeveloperDashboard />} />
-        <Route path="/ciso" element={<CISODashboard />} />
-        <Route path="/architect" element={<ArchitectDashboard />} />
+        <Route path="/enhanced" element={<CommandCenter />} />
+        <Route path="/developer" element={<DeveloperOps />} />
+        <Route path="/ciso" element={<ExecutiveBriefing />} />
+        <Route path="/architect" element={<ArchitectureCenter />} />
         <Route path="/upload" element={<ScanUploadPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
@@ -27,7 +27,7 @@ function App() {
         <Route path="/architecture" element={<ArchitecturePage />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
       </Routes>
-    </Layout>
+    </SecurityLayout>
   )
 }
 
