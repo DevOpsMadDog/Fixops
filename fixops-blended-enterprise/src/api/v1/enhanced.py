@@ -9,9 +9,12 @@ from pydantic import BaseModel, Field
 import structlog
 
 from src.services.enhanced_decision_engine import enhanced_decision_engine
+from src.services.feeds_service import FeedsService
+from src.config.settings import get_settings
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/enhanced", tags=["enhanced-decision-engine"])
+settings = get_settings()
 
 class EnhancedAnalysisModel(BaseModel):
     name: str
@@ -31,6 +34,13 @@ class EnhancedConsensus(BaseModel):
 class EnhancedStandardResponse(BaseModel):
     models: List[EnhancedAnalysisModel]
     consensus: EnhancedConsensus
+
+class EnhancedSignals(BaseModel):
+    kev_count: int = 0
+    epss_count: int = 0
+    last_updated_epss: Optional[str] = None
+    last_updated_kev: Optional[str] = None
+    ssvc_label: str  # Act / Attend / Track
 
 class EnhancedDecisionRequest(BaseModel):
     service_name: str
@@ -91,6 +101,24 @@ async def enhanced_analysis_standard(request: EnhancedDecisionRequest):
         logger.error(f"Enhanced analysis failed: {str(e)}")
         raise HTTPException(status_code=500, detail={"error": "analysis_failed", "message": str(e)})
 
+# Additional signals endpoint (SSVC + feeds badges)
+@router.get("/signals", response_model=EnhancedSignals)
+async def enhanced_signals(verdict: str = "allow", confidence: float = 0.9):
+    try:
+        st = FeedsService.status(settings.ENABLED_EPSS, settings.ENABLED_KEV)
+        # Map SSVC labels
+        ssvc = "Track" if verdict.lower() == "allow" else ("Act" if verdict.lower() == "block" else "Attend")
+        return EnhancedSignals(
+            kev_count=st.kev_count,
+            epss_count=st.epss_count,
+            last_updated_epss=st.last_updated_epss,
+            last_updated_kev=st.last_updated_kev,
+            ssvc_label=ssvc
+        )
+    except Exception as e:
+        logger.error(f"Enhanced signals failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Keep previous endpoints for capabilities and comparisons
 class CapabilitiesResponse(BaseModel):
     status: str
@@ -104,7 +132,7 @@ async def get_enhanced_capabilities():
             status="success",
             data={
                 **metrics,
-                "api_version": "enhanced_v1.0",
+                "api_version": "enhanced_v1.1",
                 "capabilities": {
                     "multi_llm_consensus": "Analysis from multiple AI models for higher accuracy",
                     "mitre_attack_mapping": "Vulnerability to attack technique mapping",
@@ -112,13 +140,8 @@ async def get_enhanced_capabilities():
                     "marketplace_integration": "Leverage community security intelligence",
                     "risk_amplification": "Business context-aware risk scoring",
                     "expert_validation": "Automated detection of cases requiring human review",
-                },
-                "supported_llms": {
-                    "emergent_gpt5": "Balanced comprehensive analysis",
-                    "openai_gpt4": "Deep reasoning and context understanding",
-                    "anthropic_claude": "Conservative and reliable assessment",
-                    "google_gemini": "Fast multimodal analysis",
-                    "specialized_cyber": "Security-focused threat analysis",
+                    "ssvc_mapping": "SSVC Act/Attend/Track labels for stakeholders",
+                    "threat_feeds": "EPSS/KEV badges and scheduler",
                 },
             },
         )
@@ -170,53 +193,8 @@ async def compare_llm_analyses(payload: CompareLLMsRequest):
                 "decision_split": len(set([a.recommended_action for a in llm_result.individual_analyses])) > 1,
                 "expert_validation_needed": llm_result.expert_validation_required,
             },
-            "llm_strengths": {
-                "gpt4": "Deep contextual reasoning and comprehensive analysis",
-                "claude": "Conservative assessment with minimal false positives",
-                "gemini": "Fast processing with multimodal capabilities",
-                "emergent": "Balanced analysis with strong general capabilities",
-                "cyber_specialized": "Security-focused with domain expertise",
-            },
         }
         return {"status": "success", "data": comparison}
     except Exception as e:
         logger.error(f"LLM comparison failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/mitre-mapping/{vulnerability_type}")
-async def get_mitre_mapping(vulnerability_type: str):
-    try:
-        mappings = {
-            "sql_injection": ["T1190", "T1212"],
-            "xss": ["T1190", "T1059"],
-            "auth_bypass": ["T1078", "T1190"],
-            "privilege_escalation": ["T1068", "T1055"],
-            "data_exposure": ["T1005", "T1041"],
-            "weak_crypto": ["T1555", "T1003"],
-            "injection": ["T1190", "T1059", "T1055"],
-            "deserialization": ["T1190", "T1055"],
-            "path_traversal": ["T1083", "T1190"],
-            "weak_authentication": ["T1078", "T1110"],
-        }
-        techniques = mappings.get(vulnerability_type.lower(), [])
-
-        technique_details = []
-        if hasattr(enhanced_decision_engine, 'mitre_techniques'):
-            for tech_id in techniques:
-                if tech_id in enhanced_decision_engine.mitre_techniques:
-                    technique_details.append({
-                        "id": tech_id,
-                        **enhanced_decision_engine.mitre_techniques[tech_id],
-                    })
-        return {
-            "status": "success",
-            "data": {
-                "vulnerability_type": vulnerability_type,
-                "mitre_techniques": technique_details,
-                "attack_path_severity": "critical" if len(techniques) >= 3 else "high" if len(techniques) >= 2 else "medium",
-                "business_risk_factors": [d["business_impact"] for d in technique_details],
-            },
-        }
-    except Exception as e:
-        logger.error(f"MITRE mapping failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

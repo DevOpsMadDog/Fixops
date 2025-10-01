@@ -26,18 +26,11 @@ from src.core.middleware import (
 from src.core.exceptions import setup_exception_handlers
 from src.core.security import SecurityManager
 from src.api.v1 import auth, users, incidents, analytics, monitoring, admin, scans, decisions, business_context, cicd, marketplace, enhanced
+from src.api.v1 import feeds, integrations, docs, system, policy, notifications
 from src.db.session import DatabaseManager
 from src.services.cache_service import CacheService
 from src.utils.logger import setup_structured_logging
-
-# Performance monitoring - simplified for development
-# REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
-# REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration', ['endpoint'])
-# HOT_PATH_LATENCY = Histogram(
-#     'hot_path_latency_microseconds',
-#     'Hot path request latency in microseconds',
-#     buckets=[50, 100, 150, 200, 250, 299, 350, 400, 500, 750, 1000]
-# )
+from src.services.feeds_service import FeedsService
 
 # Configure uvloop for maximum performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -79,6 +72,11 @@ async def lifespan(app: FastAPI):
     await marketplace.initialize()
     logger.info("✅ Security Marketplace ready")
     
+    # Start feeds scheduler if any feed is enabled
+    if settings.ENABLED_EPSS or settings.ENABLED_KEV:
+        asyncio.create_task(FeedsService.scheduler(settings))
+        logger.info("📅 Feeds scheduler started")
+    
     # Pre-warm critical caches
     await warm_performance_caches()
     logger.info("✅ Performance caches warmed")
@@ -108,7 +106,7 @@ async def warm_performance_caches():
 app = FastAPI(
     title="FixOps Blended Enterprise Platform",
     description="Agentic DevSecOps Control Plane with 299μs Hot Path Performance",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
     # Performance optimizations
     generate_unique_id_function=lambda route: f"fixops_{route.tags[0] if route.tags else 'api'}_{route.name}",
@@ -148,7 +146,7 @@ async def health_check():
             "status": "healthy",
             "timestamp": time.time(),
             "service": "fixops-decision-engine",
-            "version": "1.0.0"
+            "version": "1.1.0"
         }
     except Exception:
         raise HTTPException(status_code=503, detail="Service unavailable")
@@ -227,6 +225,12 @@ app.include_router(business_context.router, prefix="/api/v1", tags=["business-co
 app.include_router(cicd.router, prefix="/api/v1", tags=["ci-cd-integration"])
 app.include_router(marketplace.router, prefix="/api/v1", tags=["marketplace"])
 app.include_router(enhanced.router, prefix="/api/v1", tags=["enhanced-multi-llm"])
+app.include_router(feeds.router, prefix="/api/v1", tags=["external-feeds"])
+app.include_router(integrations.router, prefix="/api/v1", tags=["integrations-stub"])
+app.include_router(docs.router, prefix="/api/v1", tags=["documentation"])
+app.include_router(system.router, prefix="/api/v1", tags=["system-status"])
+app.include_router(policy.router, prefix="/api/v1", tags=["policy-gates"])
+app.include_router(notifications.router, prefix="/api/v1", tags=["notifications-stub"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):
@@ -237,15 +241,6 @@ async def performance_tracking(request: Request, call_next):
     
     # Calculate request duration
     duration = time.perf_counter() - start_time
-    
-    # Record metrics
-    # REQUEST_COUNT.labels(
-    #     method=request.method,
-    #     endpoint=request.url.path,
-    #     status=response.status_code
-    # ).inc()
-    
-    # REQUEST_DURATION.labels(endpoint=request.url.path).observe(duration)
     
     # Add performance headers
     response.headers["X-Process-Time"] = str(duration)
