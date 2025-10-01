@@ -8,6 +8,7 @@ function Layout({ children }) {
     { name: 'Enhanced', href: '/enhanced', fullName: 'Enhanced Multi-LLM' },
     { name: 'Developer', href: '/developer', fullName: 'Developer Dashboard' },
     { name: 'CISO', href: '/ciso', fullName: 'CISO Dashboard' },
+    { name: 'Architect', href: '/architect', fullName: 'Architecture Dashboard' },
     { name: 'Marketplace', href: '/marketplace', fullName: 'Security Marketplace' },
     { name: 'Analytics', href: '/analytics', fullName: 'Analytics' },
     { name: 'Install', href: '/install', fullName: 'Installation Guide' },
