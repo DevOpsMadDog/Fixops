@@ -280,7 +280,7 @@ function EnhancedDashboard() {
             🎯 SECURITY SCAN OPERATIONS
             <Tooltip text="Paste scanner JSON to analyze immediately, or upload SARIF/SBOM/CSV/JSON using chunked upload. We’ll parse and process findings for you."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Service Name</label>
             <input
               value={selectedService}
