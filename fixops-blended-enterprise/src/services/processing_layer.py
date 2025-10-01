@@ -668,6 +668,11 @@ class ProcessingLayer:
         self.markov_builder = MarkovTransitionMatrixBuilder()  
         self.fusion_engine = SSVCProbabilisticFusion()
         self.sarif_handler = SARIFVulnerabilityHandler()
+        
+        # Initialize missing architecture components
+        self.knowledge_graph = None
+        self.explanation_engine = None
+        self._initialize_additional_components()
     
     async def process_security_context(self,
                                      ssvc_context: SSVCContext,
