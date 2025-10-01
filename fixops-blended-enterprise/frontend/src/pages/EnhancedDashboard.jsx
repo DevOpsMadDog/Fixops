@@ -298,41 +298,186 @@ function EnhancedDashboard() {
             />
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          {/* Left: Paste JSON */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+          {/* Left: JSON Input */}
           <div>
-            <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Paste JSON</label>
+            <label style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: 600, marginBottom: '0.75rem', display: 'block' }}>
+              📝 Paste Security Findings JSON
+            </label>
             <textarea
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
               rows={12}
-              style={{ width: '100%', padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.875rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}
+              style={{ 
+                width: '100%', 
+                padding: '1rem', 
+                fontFamily: '"JetBrains Mono", Monaco, Consolas, monospace', 
+                fontSize: '0.875rem', 
+                border: '1px solid rgba(255, 255, 255, 0.2)', 
+                borderRadius: '12px', 
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                color: '#e2e8f0',
+                resize: 'vertical'
+              }}
+              placeholder='{\n  "security_findings": [...],\n  "business_context": {...}\n}'
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button onClick={handleAnalyze} style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Analyze JSON</button>
-              <button onClick={handleTrySample} style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Try Sample JSON</button>
-              <button onClick={handleLoadLast} style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Load Last Analysis</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+              <button 
+                onClick={handleAnalyze} 
+                style={{ 
+                  padding: '0.75rem 1.5rem', 
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(220, 38, 38, 0.4)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                🚀 ANALYZE JSON
+              </button>
+              <button 
+                onClick={handleTrySample} 
+                style={{ 
+                  padding: '0.75rem 1.5rem', 
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                📊 TRY SAMPLE
+              </button>
+              <button 
+                onClick={handleLoadLast} 
+                style={{ 
+                  padding: '0.75rem 1.5rem', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                  color: 'white', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)', 
+                  borderRadius: '12px', 
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                📋 LOAD LAST
+              </button>
               {statusMsg !== 'idle' && (
-                <span style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Status: {statusMsg}</span>
+                <span style={{ fontSize: '0.875rem', color: '#10b981', fontWeight: '600', textTransform: 'uppercase' }}>
+                  Status: {statusMsg}
+                </span>
               )}
             </div>
           </div>
 
-          {/* Right: Upload (Chunked) */}
+          {/* Right: File Upload */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Or Upload File (Chunked)</label>
-              <Tooltip text="Chunked upload helps bypass proxy limits and improves reliability for large files."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <label style={{ fontSize: '0.875rem', color: '#94a3b8', fontWeight: 600 }}>
+                📤 Enterprise File Upload (Chunked)
+              </label>
+              <Tooltip text="Chunked upload handles large files reliably and bypasses proxy limits for enterprise deployment"><span style={{ cursor: 'help', color: '#60a5fa' }}>ℹ️</span></Tooltip>
             </div>
-            <input type="file" accept=".json,.sarif,.csv,application/json,text/csv" onChange={handleFileChange} style={{ display: 'block', marginBottom: '0.5rem' }} />
-            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              Accepted: JSON (SARIF .sarif.json / SBOM .sbom.json / generic) and CSV • Suggested max size: 10MB (larger OK via chunks)
+            
+            <div style={{
+              border: '2px dashed rgba(255, 255, 255, 0.3)',
+              borderRadius: '12px',
+              padding: '2rem',
+              textAlign: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              marginBottom: '1rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}>
+              <input type="file" accept=".json,.sarif,.csv,application/json,text/csv" onChange={handleFileChange} style={{ display: 'block', marginBottom: '1rem' }} />
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+                {file ? '📊' : '🔒'}
+              </div>
+              <div style={{ fontSize: '1rem', fontWeight: '600', color: file ? '#60a5fa' : '#94a3b8', marginBottom: '0.5rem' }}>
+                {file ? file.name : 'DROP SCAN FILE OR CLICK TO BROWSE'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                SARIF • SBOM • CSV • JSON • Max 100MB
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-              <button onClick={() => handleChunkedUpload('sarif')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SARIF</button>
-              <button onClick={() => handleChunkedUpload('sbom')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SBOM</button>
-              <button onClick={() => handleChunkedUpload('csv')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload CSV</button>
-              <button onClick={() => handleChunkedUpload('json')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload JSON</button>
+            
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => handleChunkedUpload('sarif')} 
+                disabled={!file} 
+                style={{ 
+                  padding: '0.75rem 1rem', 
+                  background: file ? 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)' : 'rgba(100, 116, 139, 0.3)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.75rem',
+                  cursor: file ? 'pointer' : 'not-allowed',
+                  textTransform: 'uppercase'
+                }}
+              >
+                SARIF
+              </button>
+              <button 
+                onClick={() => handleChunkedUpload('sbom')} 
+                disabled={!file} 
+                style={{ 
+                  padding: '0.75rem 1rem', 
+                  background: file ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' : 'rgba(100, 116, 139, 0.3)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.75rem',
+                  cursor: file ? 'pointer' : 'not-allowed',
+                  textTransform: 'uppercase'
+                }}
+              >
+                SBOM
+              </button>
+              <button 
+                onClick={() => handleChunkedUpload('csv')} 
+                disabled={!file} 
+                style={{ 
+                  padding: '0.75rem 1rem', 
+                  background: file ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'rgba(100, 116, 139, 0.3)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.75rem',
+                  cursor: file ? 'pointer' : 'not-allowed',
+                  textTransform: 'uppercase'
+                }}
+              >
+                CSV
+              </button>
+              <button 
+                onClick={() => handleChunkedUpload('json')} 
+                disabled={!file} 
+                style={{ 
+                  padding: '0.75rem 1rem', 
+                  background: file ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'rgba(100, 116, 139, 0.3)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.75rem',
+                  cursor: file ? 'pointer' : 'not-allowed',
+                  textTransform: 'uppercase'
+                }}
+              >
+                JSON
+              </button>
             </div>
             {uploadStatus !== 'idle' && (
               <div>
