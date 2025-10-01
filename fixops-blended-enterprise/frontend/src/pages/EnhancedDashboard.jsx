@@ -277,7 +277,7 @@ function EnhancedDashboard() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#60a5fa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            Provide Security Findings
+            🎯 SECURITY SCAN OPERATIONS
             <Tooltip text="Paste scanner JSON to analyze immediately, or upload SARIF/SBOM/CSV/JSON using chunked upload. We’ll parse and process findings for you."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
