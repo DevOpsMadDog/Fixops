@@ -706,20 +706,83 @@ class ProcessingLayer:
         # 5. Generate comprehensive results
         processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         
+        # 6. Knowledge Graph Construction (if enabled)
+        knowledge_graph_results = None
+        if self.knowledge_graph:
+            logger.info("🕸️ Constructing knowledge graph...")
+            scan_data_dict = {"sarif": sarif_data} if sarif_data else {}
+            knowledge_graph_results = await self.knowledge_graph.build_graph(scan_data_dict)
+        
+        # 7. LLM Explanation Generation (if enabled)
+        human_explanation = None
+        if self.explanation_engine:
+            logger.info("📝 Generating human-readable explanation...")
+            explanation_data = {
+                "decision": fusion_results["final_decision"],
+                "confidence": fusion_results["confidence"],
+                "risk_score": fusion_results["composite_risk_score"],
+                "ssvc_context": ssvc_context.__dict__,
+                "markov_predictions": markov_predictions,
+                "sarif_findings": sarif_results.get("total_findings", 0) if sarif_results else 0
+            }
+            
+            from src.services.llm_explanation_engine import ExplanationRequest
+            explanation_request = ExplanationRequest(
+                context_type="decision_rationale",
+                technical_data=explanation_data,
+                audience="security_analyst",
+                detail_level="detailed"
+            )
+            human_explanation = await self.explanation_engine.generate_explanation(explanation_request)
+
+        components_used = ["bayesian", "markov", "fusion"] + (["sarif"] if sarif_data else [])
+        if knowledge_graph_results:
+            components_used.append("knowledge_graph")
+        if human_explanation:
+            components_used.append("llm_explanation")
+
         return {
             "processing_results": {
                 "bayesian_priors": bayesian_priors,
                 "markov_predictions": markov_predictions,
                 "sarif_analysis": sarif_results,
-                "fusion_decision": fusion_results
+                "fusion_decision": fusion_results,
+                "knowledge_graph": knowledge_graph_results,
+                "human_explanation": human_explanation.__dict__ if human_explanation else None
             },
             "final_recommendation": fusion_results["final_decision"],
             "confidence_score": fusion_results["confidence"],
             "risk_score": fusion_results["composite_risk_score"],
             "explanation": fusion_results["explanation"],
+            "human_readable_summary": human_explanation.summary if human_explanation else fusion_results["explanation"],
+            "key_insights": human_explanation.key_points if human_explanation else [],
+            "recommendations": human_explanation.recommendations if human_explanation else [],
             "processing_metadata": {
                 "processing_time_seconds": processing_time,
-                "components_used": ["bayesian", "markov", "fusion"] + (["sarif"] if sarif_data else []),
-                "timestamp": start_time.isoformat()
+                "components_used": components_used,
+                "timestamp": start_time.isoformat(),
+                "architecture_complete": len(components_used) >= 6  # All major components
             }
         }
+    
+    def _initialize_additional_components(self):
+        """Initialize Knowledge Graph and LLM Explanation Engine"""
+        try:
+            # Initialize Knowledge Graph
+            from src.services.knowledge_graph import knowledge_graph
+            self.knowledge_graph = knowledge_graph
+            logger.info("✅ Knowledge Graph Construction initialized")
+            
+        except Exception as e:
+            logger.warning(f"Knowledge Graph initialization failed: {e}")
+            self.knowledge_graph = None
+        
+        try:
+            # Initialize LLM Explanation Engine
+            from src.services.llm_explanation_engine import explanation_engine
+            self.explanation_engine = explanation_engine
+            logger.info("✅ LLM Explanation Engine initialized")
+            
+        except Exception as e:
+            logger.warning(f"LLM Explanation Engine initialization failed: {e}")
+            self.explanation_engine = None
