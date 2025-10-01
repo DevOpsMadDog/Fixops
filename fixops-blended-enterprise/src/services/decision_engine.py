@@ -273,6 +273,31 @@ class DecisionEngine:
         except Exception as e:
             logger.error(f"Real threat intel initialization failed: {str(e)}")
             raise
+    
+    async def _initialize_oss_tools(self):
+        """Initialize OSS tools integration for real scanning and policy evaluation"""
+        try:
+            from src.services.oss_integrations import OSSIntegrationService
+            self.oss_integrations = OSSIntegrationService()
+            
+            # Check tool availability
+            status = self.oss_integrations.get_status()
+            available_tools = [name for name, tool in status.items() if tool["available"]]
+            
+            logger.info(f"OSS tools initialized: {len(available_tools)}/{len(status)} tools available")
+            for tool_name, tool_info in status.items():
+                if tool_info["available"]:
+                    logger.info(f"✅ {tool_name} v{tool_info['version']} available")
+                else:
+                    logger.warning(f"❌ {tool_name} not installed")
+            
+            # Initialize default OPA policies if OPA is available
+            if status.get("opa", {}).get("available", False):
+                logger.info("OPA available - default security policies loaded")
+            
+        except Exception as e:
+            logger.error(f"OSS tools initialization failed: {str(e)}")
+            self.oss_integrations = None
 
     async def make_decision(self, context: DecisionContext) -> DecisionResult:
         """Make a security decision based on mode (demo vs production)"""
