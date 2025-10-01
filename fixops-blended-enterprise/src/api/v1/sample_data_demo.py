@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import structlog
+
+logger = structlog.get_logger()
 import json
 from datetime import datetime, timezone
 
