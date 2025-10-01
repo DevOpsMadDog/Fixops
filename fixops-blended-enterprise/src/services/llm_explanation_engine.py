@@ -267,17 +267,23 @@ class LLMExplanationEngine:
             logger.error(f"Explanation generation failed: {e}")
             return await self._generate_error_explanation(request, str(e))
     
-    async def _call_llm(self, prompt: str) -> str:
-        """Call LLM with cybersecurity-optimized parameters"""
+    async def _call_llm(self, prompt: str, context_type: str = "general_cybersecurity") -> str:
+        """Call LLM with Awesome-LLM4Cybersecurity optimized parameters"""
         try:
+            # Select appropriate model configuration based on context
+            config = self.cybersec_engine.cybersec_models.get(context_type, 
+                self.cybersec_engine.cybersec_models["general_cybersecurity"])
+            
             response = await self.cybersec_engine.llm_client.generate_async(
                 prompt=prompt,
-                system_message="You are a cybersecurity expert providing clear, actionable explanations of security findings to various stakeholders. Focus on practical recommendations and business impact.",
+                system_message=config["system_prompt"],
             )
+            
+            logger.info(f"Generated explanation using Awesome-LLM4Cybersecurity {context_type} model")
             return response
             
         except Exception as e:
-            logger.error(f"LLM call failed: {e}")
+            logger.error(f"Awesome-LLM4Cybersecurity call failed: {e}")
             raise
     
     async def _parse_llm_response(self, llm_response: str, request: ExplanationRequest) -> GeneratedExplanation:
