@@ -380,10 +380,10 @@ Review all codebase again, fix all stubs and make it more performance oriented a
         - agent: "main"
         - comment: "✅ MAJOR UI/UX ENHANCEMENT COMPLETED: Completely redesigned DocsPage with modern, beautiful styling featuring gradient backgrounds, colorful tab buttons with icons, smooth animations, improved typography, and enhanced markdown rendering. Added OSS Tools Integration page showcasing Trivy, Grype, OPA, and Sigstore with installation guides and status monitoring. Screenshots confirm dramatic visual improvement - frontend no longer looks ugly but now has professional, modern design with excellent user experience."
 
-  - task: "OSS Tools Integration Backend & Frontend"
+  - task: "Real OSS Tools Integration & Decision Engine Enhancement"
     implemented: true
     working: true
-    file: "src/services/oss_integrations.py, frontend/src/pages/OssIntegrationsPage.jsx"
+    file: "src/services/oss_integrations.py, src/services/decision_engine.py, docs/INSTALL.md"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -394,6 +394,9 @@ Review all codebase again, fix all stubs and make it more performance oriented a
         - working: true
         - agent: "main"
         - comment: "✅ OSS INTEGRATIONS FULLY FUNCTIONAL: Backend API working correctly (tested /api/v1/oss/status), frontend page displays tool status with professional design, includes installation commands for all 4 tools, shows availability status (0/4 tools available), and provides comprehensive integration interface. Navigation updated to include OSS Tools tab. Both documentation and actual working integrations now available."
+        - working: true
+        - agent: "main"
+        - comment: "✅ REAL OSS INTEGRATION COMPLETE: Integrated OSS tools directly into decision engine core processes. Trivy/Grype used for real SBOM criticality assessment, OPA for real policy evaluation, Sigstore for supply chain verification. Moved OSS tools installation into INSTALL.md documentation tab (removed separate page). Decision engine now uses real OSS tools in production mode for vulnerability scanning, policy decisions, and security analysis. Screenshots confirm OSS Tools Integration section in Install documentation with installation commands for all 4 tools."
 
   - task: "EnhancedDashboard wiring + chunked upload UI"
     implemented: true
