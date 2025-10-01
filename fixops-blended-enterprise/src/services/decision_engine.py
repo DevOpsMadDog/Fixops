@@ -394,9 +394,36 @@ class DecisionEngine:
         )
 
     async def _make_production_decision(self, context: DecisionContext, start_time: float) -> DecisionResult:
-        """Make decision using real integrations (production mode)"""
+        """Make decision using real Processing Layer integration (production mode)"""
         
-        # Real production processing
+        # Use Processing Layer if available (Architecture Components)
+        if self.processing_layer:
+            try:
+                processing_results = await self._use_processing_layer(context)
+                processing_time_us = (time.perf_counter() - start_time) * 1_000_000
+                
+                return DecisionResult(
+                    decision=processing_results["decision"]["outcome"],
+                    confidence_score=processing_results["sarif_results"].get("confidence", 0.85),
+                    consensus_details=processing_results["sarif_results"],
+                    evidence_id=processing_results["evidence_id"],
+                    reasoning=processing_results["decision"]["reasoning"],
+                    validation_results={
+                        "production_mode": True,
+                        "processing_layer": True,
+                        "bayesian_results": processing_results["bayesian_results"],
+                        "markov_results": processing_results["markov_results"],
+                        "ssvc_results": processing_results["ssvc_results"],
+                        "sarif_results": processing_results["sarif_results"]
+                    },
+                    processing_time_us=processing_time_us,
+                    context_sources=["Processing Layer", "Bayesian Prior Mapping", "Markov Transitions", "SSVC Fusion", "SARIF Analysis"],
+                    demo_mode=False
+                )
+            except Exception as e:
+                logger.error(f"Processing Layer failed, falling back to individual components: {str(e)}")
+        
+        # Fallback to individual components if Processing Layer unavailable
         enriched_context = await self._real_context_enrichment(context)
         knowledge_results = await self._real_vector_db_lookup(context, enriched_context)
         regression_results = await self._real_golden_regression_validation(context)
@@ -422,6 +449,7 @@ class DecisionEngine:
             reasoning=decision["reasoning"],
             validation_results={
                 "production_mode": True,
+                "processing_layer": False,
                 "vector_db": knowledge_results,
                 "golden_regression": regression_results,
                 "policy_engine": policy_results,
