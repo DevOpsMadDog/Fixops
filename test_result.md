@@ -366,6 +366,22 @@ Review all codebase again, fix all stubs and make it more performance oriented a
     stuck_count: 2
     priority: "high"
     needs_retesting: false
+        - working: "NA"
+        - agent: "main"
+        - comment: "Enhanced page improved: restored upload UI (SARIF/SBOM/CSV/JSON chunked), added tooltips, sample downloads, and API/CLI drawer. Ready for UI testing."
+    needs_retesting: true
+
+  - task: "CISO Snapshot of Enhanced Analysis"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/CISODashboard.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+        - agent: "main"
+        - comment: "Added compact Enhanced analysis snapshot card to CISO with link to full Enhanced page."
     status_history:
         - working: "NA"
         - agent: "main"
