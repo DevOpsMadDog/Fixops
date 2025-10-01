@@ -100,5 +100,43 @@ spec:
 - Use your GitOps pipeline to rollback to last known good image
 - PVC retains uploads; ensure backups for Mongo
 
-## 10. Support
+## 10. OSS Tools Integration
+
+FixOps integrates with several open source security tools to provide comprehensive scanning and policy evaluation. Install these tools for enhanced functionality:
+
+### 🛡️ Trivy (Container Vulnerability Scanner)
+```bash
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+```
+
+### 🔍 Grype (Vulnerability Scanner) 
+```bash
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+```
+
+### ⚖️ OPA (Policy Engine)
+```bash
+curl -L -o opa https://openpolicyagent.org/downloads/v0.57.0/opa_linux_amd64_static
+chmod 755 ./opa && sudo mv opa /usr/local/bin
+```
+
+### 🔒 Cosign (Supply Chain Security)
+```bash
+curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64"
+sudo mv cosign-linux-amd64 /usr/local/bin/cosign && chmod +x /usr/local/bin/cosign
+```
+
+### Tool Integration
+- **Trivy**: Used for container image scanning in decision engine SBOM analysis
+- **Grype**: Alternative/complementary vulnerability scanner for comprehensive coverage  
+- **OPA**: Policy evaluation engine for security policies (vulnerability.rego, sbom.rego)
+- **Cosign**: Container signature verification for supply chain security
+
+### Verification
+Check tool installation status via API:
+```bash
+curl GET /api/v1/oss/status
+```
+
+## 11. Support
 - See docs/REQUIREMENTS.md for functional/non‑functional requirements, and docs/SSVC.md for decision methodology.
