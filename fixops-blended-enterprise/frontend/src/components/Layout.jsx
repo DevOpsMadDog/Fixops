@@ -10,6 +10,7 @@ function Layout({ children }) {
     { name: 'CISO', href: '/ciso', fullName: 'CISO Dashboard' },
     { name: 'Marketplace', href: '/marketplace', fullName: 'Security Marketplace' },
     { name: 'Analytics', href: '/analytics', fullName: 'Analytics' },
+    { name: 'OSS Tools', href: '/oss-tools', fullName: 'OSS Tools Integration' },
     { name: 'Docs', href: '/docs', fullName: 'Documentation' },
   ]
 
