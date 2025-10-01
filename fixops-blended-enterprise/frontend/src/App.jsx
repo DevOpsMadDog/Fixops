@@ -21,7 +21,8 @@ function App() {
         <Route path="/upload" element={<ScanUploadPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/docs" element={<Docs />} />
+        <Route path="/install" element={<InstallPage />} />
+        <Route path="/architecture" element={<ArchitecturePage />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
       </Routes>
     </Layout>
