@@ -763,7 +763,15 @@ function CommandCenter() {
 
             {/* Quick Actions */}
             <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #374151' }}>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '1rem', color: '#94a3b8' }}>
+              <h4 style={{ 
+                fontSize: '0.875rem', 
+                fontWeight: '600', 
+                marginBottom: '1rem', 
+                color: '#94a3b8',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase'
+              }}>
                 MISSION CONTROL
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
