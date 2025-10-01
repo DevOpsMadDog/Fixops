@@ -701,24 +701,27 @@ function CommandCenter() {
             border: '1px solid #334155',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
           }}>
-            <h2 style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              marginBottom: '2rem',
-              color: '#10b981',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <div style={{
-                width: '8px',
-                height: '8px',
-                backgroundColor: '#10b981',
-                borderRadius: '50%',
-                animation: 'pulse 2s infinite'
-              }}></div>
-              REAL-TIME ACTIVITY LOG
-            </h2>
+              <h2 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                marginBottom: '2rem',
+                color: '#10b981',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                letterSpacing: '-0.025em',
+                lineHeight: '1.3',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  backgroundColor: '#10b981',
+                  borderRadius: '50%',
+                  animation: 'pulse 2s infinite'
+                }}></div>
+                REAL-TIME ACTIVITY LOG
+              </h2>
 
             <div style={{
               height: '400px',
