@@ -52,6 +52,7 @@ google-auth-httplib2==0.2.0
 google-genai==1.39.1
 google-generativeai==0.8.5
 googleapis-common-protos==1.70.0
+graphviz==0.21
 greenlet==3.2.4
 grpcio==1.74.0
 grpcio-status==1.71.2
@@ -86,6 +87,7 @@ Mako==1.3.10
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mccabe==0.7.0
+mchmm==0.4.5
 mdurl==0.1.2
 microsoft-kiota-abstractions==1.3.3
 microsoft-kiota-authentication-azure==1.1.0
