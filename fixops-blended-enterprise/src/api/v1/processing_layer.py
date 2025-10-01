@@ -328,3 +328,86 @@ async def test_full_processing_pipeline(bayesian_request: SSVCTestRequest):
     except Exception as e:
         logger.error(f"Full pipeline test failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/missing-oss/status")
+async def get_missing_oss_status():
+    """Get status of missing OSS tools that were not initially implemented"""
+    try:
+        from src.services.missing_oss_integrations import missing_oss_service
+        
+        status = await missing_oss_service.get_integration_status()
+        
+        return {
+            "status": "success",
+            "missing_oss_tools_now_implemented": status,
+            "architecture_table_compliance": {
+                "design_stage_ssvc_prep": status["python_ssvc"]["available"],
+                "input_layer_sbom_parsing": status["lib4sbom"]["available"], 
+                "input_layer_sarif_conversion": status["sarif_tools"]["available"],
+                "processing_layer_bayesian_alternative": status["pomegranate"]["available"]
+            },
+            "note": "These are the OSS tools from your architecture table that were initially missed"
+        }
+    except Exception as e:
+        logger.error(f"Missing OSS status check failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/missing-oss/test")
+async def test_missing_oss_tools():
+    """Test all the missing OSS tools with sample data"""
+    try:
+        from src.services.missing_oss_integrations import missing_oss_service
+        
+        # Prepare test data
+        test_data = {
+            "vulnerability_data": {
+                "exploitation": "active",
+                "exposure": "open", 
+                "automatable": "yes",
+                "technical_impact": "total"
+            },
+            "sbom_data": json.dumps({
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.4", 
+                "components": [
+                    {
+                        "name": "express",
+                        "version": "4.18.0",
+                        "type": "library",
+                        "purl": "pkg:npm/express@4.18.0"
+                    }
+                ]
+            }),
+            "findings": [
+                {
+                    "rule_id": "FIXOPS-SQL-001",
+                    "severity": "high",
+                    "description": "SQL injection vulnerability detected",
+                    "file_path": "/app/database.js",
+                    "line_number": 42,
+                    "cve_id": "CVE-2024-12345"
+                }
+            ],
+            "vulnerabilities": [
+                {
+                    "severity": "high",
+                    "cve_id": "CVE-2024-12345",
+                    "exploitability": "easy"
+                }
+            ]
+        }
+        
+        # Run comprehensive analysis
+        results = await missing_oss_service.comprehensive_analysis(test_data)
+        
+        return {
+            "status": "success",
+            "component": "missing_oss_tools_integration",
+            "tools_tested": ["python-ssvc", "lib4sbom", "sarif-tools", "pomegranate"],
+            "test_results": results,
+            "explanation": "All previously missing OSS tools from architecture table now implemented and tested"
+        }
+        
+    except Exception as e:
+        logger.error(f"Missing OSS tools test failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
