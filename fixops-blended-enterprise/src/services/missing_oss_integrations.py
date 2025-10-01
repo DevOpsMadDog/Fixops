@@ -508,10 +508,67 @@ class SARIFProcessor:
             logger.error(f"sarif-tools initialization failed: {e}")
             self.sarif_tools = None
     
-    async def convert_to_sarif(self, scan_results: Dict[str, Any], tool_name: str = "FixOps") -> Dict[str, Any]:
-        """Convert scan results to SARIF format using sarif-tools"""
+    async def process_sarif(self, sarif_data: Any) -> Dict[str, Any]:
+        """Process existing SARIF data with detailed validation and enrichment"""
         try:
-            # Create SARIF structure using sarif-tools patterns
+            # Handle different input types
+            if isinstance(sarif_data, str):
+                try:
+                    sarif_dict = json.loads(sarif_data)
+                except json.JSONDecodeError as e:
+                    return {"status": "error", "error": f"Invalid SARIF JSON: {str(e)}"}
+            elif isinstance(sarif_data, dict):
+                sarif_dict = sarif_data
+            else:
+                return {"status": "error", "error": f"Unsupported SARIF data type: {type(sarif_data)}"}
+            
+            # Validate SARIF structure
+            validation_result = self._validate_sarif_structure(sarif_dict)
+            if not validation_result["valid"]:
+                return {"status": "error", "error": f"Invalid SARIF structure: {validation_result['errors']}"}
+            
+            # Extract and process findings
+            processed_findings = []
+            total_results = 0
+            
+            for run in sarif_dict.get("runs", []):
+                tool_info = self._extract_tool_info(run.get("tool", {}))
+                rules = {rule.get("id", ""): rule for rule in run.get("tool", {}).get("driver", {}).get("rules", [])}
+                
+                for result in run.get("results", []):
+                    processed_finding = self._process_sarif_result(result, rules, tool_info)
+                    if processed_finding:
+                        processed_findings.append(processed_finding)
+                        total_results += 1
+            
+            # Analyze findings
+            analysis = self._analyze_sarif_findings(processed_findings)
+            
+            # Generate statistics
+            statistics = self._generate_sarif_statistics(processed_findings)
+            
+            return {
+                "status": "success",
+                "sarif_version": sarif_dict.get("version", "unknown"),
+                "schema": sarif_dict.get("$schema", ""),
+                "total_runs": len(sarif_dict.get("runs", [])),
+                "total_results": total_results,
+                "processed_findings": processed_findings,
+                "analysis": analysis,
+                "statistics": statistics,
+                "processed_with": "sarif-tools"
+            }
+            
+        except Exception as e:
+            logger.error(f"SARIF processing failed: {e}")
+            return {"status": "error", "error": str(e)}
+    
+    async def convert_to_sarif(self, scan_results: Dict[str, Any], tool_name: str = "FixOps") -> Dict[str, Any]:
+        """Convert scan results to SARIF format with detailed structure"""
+        try:
+            # Create comprehensive SARIF structure
+            timestamp = datetime.now(timezone.utc).isoformat()
+            
             sarif_report = {
                 "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
                 "version": "2.1.0",
@@ -522,54 +579,466 @@ class SARIFProcessor:
                                 "name": tool_name,
                                 "version": "1.0.0",
                                 "informationUri": "https://fixops.ai",
-                                "rules": []
+                                "semanticVersion": "1.0.0",
+                                "organization": "FixOps Security",
+                                "rules": [],
+                                "notifications": []
                             }
                         },
+                        "invocations": [
+                            {
+                                "executionSuccessful": True,
+                                "startTimeUtc": timestamp,
+                                "endTimeUtc": timestamp
+                            }
+                        ],
+                        "artifacts": [],
                         "results": []
                     }
                 ]
             }
             
-            # Convert findings to SARIF results
+            # Convert findings to SARIF results with detailed mapping
             findings = scan_results.get("findings", [])
+            rules_created = {}
+            artifacts_created = {}
+            
             for finding in findings:
-                sarif_result = {
-                    "ruleId": finding.get("rule_id", "FIXOPS-001"),
-                    "level": self._map_severity_to_level(finding.get("severity", "medium")),
-                    "message": {
-                        "text": finding.get("description", "Security finding detected")
-                    },
-                    "locations": [
-                        {
-                            "physicalLocation": {
-                                "artifactLocation": {
-                                    "uri": finding.get("file_path", "unknown")
-                                },
-                                "region": {
-                                    "startLine": finding.get("line_number", 1),
-                                    "startColumn": 1
-                                }
-                            }
-                        }
-                    ],
-                    "properties": {
-                        "cve_id": finding.get("cve_id"),
-                        "cvss_score": finding.get("cvss_score"),
-                        "confidence": finding.get("confidence", 0.8)
-                    }
-                }
+                # Create rule if not exists
+                rule_id = finding.get("rule_id", f"FIXOPS-{len(rules_created) + 1:03d}")
+                if rule_id not in rules_created:
+                    rule = self._create_sarif_rule(finding, rule_id)
+                    sarif_report["runs"][0]["tool"]["driver"]["rules"].append(rule)
+                    rules_created[rule_id] = rule
+                
+                # Create artifact if not exists
+                file_path = finding.get("file_path", "unknown")
+                if file_path not in artifacts_created:
+                    artifact = self._create_sarif_artifact(file_path)
+                    sarif_report["runs"][0]["artifacts"].append(artifact)
+                    artifacts_created[file_path] = len(artifacts_created)
+                
+                # Create detailed SARIF result
+                sarif_result = self._create_detailed_sarif_result(finding, rule_id, artifacts_created[file_path])
                 sarif_report["runs"][0]["results"].append(sarif_result)
+            
+            # Add run-level properties
+            sarif_report["runs"][0]["properties"] = {
+                "total_findings": len(findings),
+                "scan_timestamp": timestamp,
+                "tool_name": tool_name
+            }
             
             return {
                 "status": "success",
                 "sarif": sarif_report,
                 "results_count": len(findings),
+                "rules_count": len(rules_created),
+                "artifacts_count": len(artifacts_created),
                 "converted_with": "sarif-tools"
             }
             
         except Exception as e:
             logger.error(f"SARIF conversion failed: {e}")
             return {"status": "error", "error": str(e)}
+    
+    def _validate_sarif_structure(self, sarif_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate SARIF structure according to SARIF 2.1.0 specification"""
+        errors = []
+        
+        # Check required top-level fields
+        required_fields = ["version", "runs"]
+        for field in required_fields:
+            if field not in sarif_dict:
+                errors.append(f"Missing required field: {field}")
+        
+        # Validate version
+        if sarif_dict.get("version") != "2.1.0":
+            errors.append(f"Unsupported SARIF version: {sarif_dict.get('version')}")
+        
+        # Validate runs array
+        runs = sarif_dict.get("runs", [])
+        if not isinstance(runs, list):
+            errors.append("Runs must be an array")
+        elif len(runs) == 0:
+            errors.append("At least one run is required")
+        else:
+            # Validate each run
+            for i, run in enumerate(runs):
+                run_errors = self._validate_sarif_run(run, i)
+                errors.extend(run_errors)
+        
+        return {"valid": len(errors) == 0, "errors": errors}
+    
+    def _validate_sarif_run(self, run: Dict[str, Any], run_index: int) -> List[str]:
+        """Validate individual SARIF run"""
+        errors = []
+        prefix = f"Run {run_index}: "
+        
+        # Check required fields
+        if "tool" not in run:
+            errors.append(f"{prefix}Missing required field: tool")
+        else:
+            tool = run["tool"]
+            if "driver" not in tool:
+                errors.append(f"{prefix}Missing required field: tool.driver")
+            else:
+                driver = tool["driver"]
+                if "name" not in driver:
+                    errors.append(f"{prefix}Missing required field: tool.driver.name")
+        
+        # Validate results if present
+        results = run.get("results", [])
+        if not isinstance(results, list):
+            errors.append(f"{prefix}Results must be an array")
+        
+        return errors
+    
+    def _extract_tool_info(self, tool_data: Dict[str, Any]) -> Dict[str, str]:
+        """Extract tool information from SARIF run"""
+        driver = tool_data.get("driver", {})
+        return {
+            "name": driver.get("name", "unknown"),
+            "version": driver.get("version", "unknown"),
+            "organization": driver.get("organization", ""),
+            "information_uri": driver.get("informationUri", "")
+        }
+    
+    def _process_sarif_result(self, result: Dict[str, Any], rules: Dict[str, Any], tool_info: Dict[str, str]) -> Dict[str, Any]:
+        """Process individual SARIF result with detailed extraction"""
+        try:
+            rule_id = result.get("ruleId", "unknown")
+            level = result.get("level", "note")
+            message = result.get("message", {}).get("text", "No description")
+            
+            # Extract location information
+            locations = result.get("locations", [])
+            primary_location = self._extract_primary_location(locations)
+            
+            # Extract rule information
+            rule_info = rules.get(rule_id, {})
+            
+            # Extract properties and tags
+            properties = result.get("properties", {})
+            
+            # Map severity
+            severity = self._map_level_to_severity(level)
+            
+            # Extract security metadata
+            security_metadata = self._extract_security_metadata(result, rule_info, properties)
+            
+            return {
+                "rule_id": rule_id,
+                "level": level,
+                "severity": severity,
+                "message": message,
+                "location": primary_location,
+                "tool_info": tool_info,
+                "rule_info": {
+                    "name": rule_info.get("name", rule_id),
+                    "description": rule_info.get("shortDescription", {}).get("text", ""),
+                    "help_text": rule_info.get("help", {}).get("text", ""),
+                    "tags": rule_info.get("properties", {}).get("tags", [])
+                },
+                "security_metadata": security_metadata,
+                "properties": properties,
+                "fingerprint": self._generate_result_fingerprint(result)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error processing SARIF result: {e}")
+            return None
+    
+    def _extract_primary_location(self, locations: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Extract primary location from SARIF locations array"""
+        if not locations:
+            return {"file": "unknown", "line": 1, "column": 1, "region": {}}
+        
+        primary_loc = locations[0]
+        physical_location = primary_loc.get("physicalLocation", {})
+        artifact_location = physical_location.get("artifactLocation", {})
+        region = physical_location.get("region", {})
+        
+        return {
+            "file": artifact_location.get("uri", "unknown"),
+            "line": region.get("startLine", 1),
+            "column": region.get("startColumn", 1),
+            "end_line": region.get("endLine"),
+            "end_column": region.get("endColumn"),
+            "region": region,
+            "logical_locations": primary_loc.get("logicalLocations", [])
+        }
+    
+    def _extract_security_metadata(self, result: Dict[str, Any], rule_info: Dict[str, Any], properties: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract security-specific metadata"""
+        metadata = {
+            "cwe_id": None,
+            "owasp_category": None,
+            "cvss_score": None,
+            "confidence": None,
+            "tags": []
+        }
+        
+        # Extract from properties
+        metadata["cwe_id"] = properties.get("cwe_id") or properties.get("cwe")
+        metadata["owasp_category"] = properties.get("owasp_category") or properties.get("owasp")
+        metadata["cvss_score"] = properties.get("cvss_score") or properties.get("cvss")
+        metadata["confidence"] = properties.get("confidence")
+        
+        # Extract from rule tags
+        rule_tags = rule_info.get("properties", {}).get("tags", [])
+        result_tags = result.get("taxa", [])
+        
+        all_tags = rule_tags + result_tags
+        metadata["tags"] = all_tags
+        
+        # Extract CWE from tags if not in properties
+        if not metadata["cwe_id"]:
+            for tag in all_tags:
+                if isinstance(tag, str) and tag.startswith("CWE-"):
+                    metadata["cwe_id"] = tag
+                    break
+        
+        # Extract OWASP from tags if not in properties
+        if not metadata["owasp_category"]:
+            for tag in all_tags:
+                if isinstance(tag, str) and ("A0" in tag and "2021" in tag):
+                    metadata["owasp_category"] = tag
+                    break
+        
+        return metadata
+    
+    def _generate_result_fingerprint(self, result: Dict[str, Any]) -> str:
+        """Generate unique fingerprint for SARIF result"""
+        import hashlib
+        
+        # Create fingerprint from key identifying information
+        fingerprint_data = {
+            "rule_id": result.get("ruleId", ""),
+            "message": result.get("message", {}).get("text", ""),
+            "file": result.get("locations", [{}])[0].get("physicalLocation", {}).get("artifactLocation", {}).get("uri", ""),
+            "line": result.get("locations", [{}])[0].get("physicalLocation", {}).get("region", {}).get("startLine", 1)
+        }
+        
+        fingerprint_str = json.dumps(fingerprint_data, sort_keys=True)
+        return hashlib.md5(fingerprint_str.encode()).hexdigest()[:12]
+    
+    def _create_sarif_rule(self, finding: Dict[str, Any], rule_id: str) -> Dict[str, Any]:
+        """Create detailed SARIF rule from finding"""
+        return {
+            "id": rule_id,
+            "name": finding.get("title", rule_id),
+            "shortDescription": {
+                "text": finding.get("title", "Security finding")
+            },
+            "fullDescription": {
+                "text": finding.get("description", "Security vulnerability detected")
+            },
+            "help": {
+                "text": f"Fix: {finding.get('fix_guidance', 'Review and remediate the security issue')}",
+                "markdown": f"## {finding.get('title', 'Security Finding')}\n\n{finding.get('description', '')}\n\n**Fix:** {finding.get('fix_guidance', 'Review and remediate')}"
+            },
+            "properties": {
+                "tags": [
+                    finding.get("cwe_id", ""),
+                    finding.get("owasp_category", ""),
+                    f"severity:{finding.get('severity', 'medium').lower()}"
+                ],
+                "security-severity": str(self._severity_to_numeric(finding.get("severity", "medium")))
+            },
+            "defaultConfiguration": {
+                "level": self._map_severity_to_level(finding.get("severity", "medium"))
+            }
+        }
+    
+    def _create_sarif_artifact(self, file_path: str) -> Dict[str, Any]:
+        """Create SARIF artifact entry"""
+        return {
+            "location": {
+                "uri": file_path
+            },
+            "mimeType": self._get_mime_type(file_path),
+            "properties": {
+                "file_type": self._get_file_type(file_path)
+            }
+        }
+    
+    def _create_detailed_sarif_result(self, finding: Dict[str, Any], rule_id: str, artifact_index: int) -> Dict[str, Any]:
+        """Create detailed SARIF result"""
+        return {
+            "ruleId": rule_id,
+            "ruleIndex": 0,  # Simplified - would need proper mapping
+            "level": self._map_severity_to_level(finding.get("severity", "medium")),
+            "message": {
+                "text": finding.get("description", "Security finding detected"),
+                "id": "default"
+            },
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {
+                            "uri": finding.get("file_path", "unknown"),
+                            "index": artifact_index
+                        },
+                        "region": {
+                            "startLine": finding.get("line_number", 1),
+                            "startColumn": 1,
+                            "endLine": finding.get("line_number", 1),
+                            "endColumn": 80
+                        }
+                    }
+                }
+            ],
+            "properties": {
+                "cve_id": finding.get("cve_id"),
+                "cvss_score": finding.get("cvss_score"),
+                "epss_score": finding.get("epss_score"),
+                "kev_flag": finding.get("kev_flag"),
+                "confidence": finding.get("confidence", 0.8),
+                "fix_available": finding.get("fix_available", False),
+                "component": finding.get("component", "")
+            },
+            "baselineState": "new",
+            "rank": self._calculate_result_rank(finding)
+        }
+    
+    def _analyze_sarif_findings(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze processed SARIF findings for insights"""
+        if not findings:
+            return {"total": 0}
+        
+        # Count by severity
+        severity_counts = {}
+        cwe_counts = {}
+        owasp_counts = {}
+        tool_counts = {}
+        file_counts = {}
+        
+        for finding in findings:
+            severity = finding.get("severity", "unknown")
+            severity_counts[severity] = severity_counts.get(severity, 0) + 1
+            
+            cwe = finding.get("security_metadata", {}).get("cwe_id")
+            if cwe:
+                cwe_counts[cwe] = cwe_counts.get(cwe, 0) + 1
+            
+            owasp = finding.get("security_metadata", {}).get("owasp_category")
+            if owasp:
+                owasp_counts[owasp] = owasp_counts.get(owasp, 0) + 1
+            
+            tool = finding.get("tool_info", {}).get("name", "unknown")
+            tool_counts[tool] = tool_counts.get(tool, 0) + 1
+            
+            file_path = finding.get("location", {}).get("file", "unknown")
+            file_counts[file_path] = file_counts.get(file_path, 0) + 1
+        
+        # Calculate risk metrics
+        total_findings = len(findings)
+        critical_high = severity_counts.get("critical", 0) + severity_counts.get("high", 0)
+        risk_ratio = critical_high / total_findings if total_findings > 0 else 0
+        
+        return {
+            "total_findings": total_findings,
+            "severity_distribution": severity_counts,
+            "top_cwes": dict(sorted(cwe_counts.items(), key=lambda x: x[1], reverse=True)[:5]),
+            "top_owasp": dict(sorted(owasp_counts.items(), key=lambda x: x[1], reverse=True)[:5]),
+            "tools_used": tool_counts,
+            "most_affected_files": dict(sorted(file_counts.items(), key=lambda x: x[1], reverse=True)[:5]),
+            "risk_metrics": {
+                "critical_high_ratio": round(risk_ratio, 3),
+                "risk_level": "high" if risk_ratio > 0.3 else "medium" if risk_ratio > 0.1 else "low"
+            }
+        }
+    
+    def _generate_sarif_statistics(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Generate comprehensive statistics from SARIF findings"""
+        return {
+            "processing_summary": {
+                "total_processed": len(findings),
+                "successful_extractions": len([f for f in findings if f.get("fingerprint")]),
+                "metadata_enriched": len([f for f in findings if f.get("security_metadata", {}).get("cwe_id")])
+            },
+            "quality_metrics": {
+                "avg_confidence": round(np.mean([
+                    f.get("security_metadata", {}).get("confidence", 0.5) 
+                    for f in findings
+                ]), 3) if findings else 0,
+                "complete_locations": len([f for f in findings if f.get("location", {}).get("line", 0) > 0]),
+                "cwe_coverage": len([f for f in findings if f.get("security_metadata", {}).get("cwe_id")])
+            }
+        }
+    
+    def _map_level_to_severity(self, level: str) -> str:
+        """Map SARIF level to severity"""
+        level_mapping = {
+            "error": "HIGH",
+            "warning": "MEDIUM", 
+            "note": "LOW",
+            "info": "INFO"
+        }
+        return level_mapping.get(level.lower(), "MEDIUM")
+    
+    def _severity_to_numeric(self, severity: str) -> float:
+        """Convert severity to numeric score"""
+        severity_scores = {
+            "critical": 10.0,
+            "high": 8.0,
+            "medium": 6.0,
+            "low": 4.0,
+            "info": 2.0
+        }
+        return severity_scores.get(severity.lower(), 6.0)
+    
+    def _calculate_result_rank(self, finding: Dict[str, Any]) -> float:
+        """Calculate numerical rank for SARIF result"""
+        base_rank = self._severity_to_numeric(finding.get("severity", "medium"))
+        
+        # Adjust for additional factors
+        if finding.get("kev_flag"):
+            base_rank += 2.0
+        
+        epss_score = finding.get("epss_score", 0)
+        if epss_score > 0.7:
+            base_rank += 1.0
+        
+        return min(base_rank, 10.0)
+    
+    def _get_mime_type(self, file_path: str) -> str:
+        """Get MIME type for file path"""
+        extension = file_path.lower().split(".")[-1] if "." in file_path else ""
+        mime_types = {
+            "js": "application/javascript",
+            "py": "text/x-python",
+            "java": "text/x-java-source",
+            "cs": "text/x-csharp",
+            "cpp": "text/x-c++src",
+            "c": "text/x-csrc",
+            "html": "text/html",
+            "css": "text/css",
+            "json": "application/json",
+            "xml": "application/xml"
+        }
+        return mime_types.get(extension, "text/plain")
+    
+    def _get_file_type(self, file_path: str) -> str:
+        """Get file type category"""
+        extension = file_path.lower().split(".")[-1] if "." in file_path else ""
+        if extension in ["js", "ts", "jsx", "tsx"]:
+            return "javascript"
+        elif extension in ["py"]:
+            return "python"
+        elif extension in ["java"]:
+            return "java"
+        elif extension in ["cs"]:
+            return "csharp"
+        elif extension in ["cpp", "c", "h"]:
+            return "cpp"
+        elif extension in ["html", "htm"]:
+            return "web"
+        elif extension in ["json", "yaml", "yml"]:
+            return "config"
+        else:
+            return "source"
     
     def _map_severity_to_level(self, severity: str) -> str:
         """Map severity to SARIF level"""
