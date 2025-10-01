@@ -258,7 +258,14 @@ function EnhancedDashboard() {
   ]
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ 
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', 
+      padding: '2rem', 
+      maxWidth: '1600px', 
+      margin: '0 auto', 
+      minHeight: '100vh',
+      color: 'white'
+    }}>
       {/* Input Panel (Paste JSON + Upload formats) */}
       <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem', flexWrap: 'wrap' }}>
