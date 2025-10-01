@@ -161,15 +161,29 @@ async def get_evidence_record(
 ):
     """Get immutable evidence record from Evidence Lake"""
     try:
-        # Retrieve from Evidence Lake (cache for demo)
+        settings = get_settings()
+        
+        # Try Evidence Lake first (production mode)
+        if not settings.DEMO_MODE:
+            from src.services.evidence_lake import EvidenceLake
+            evidence = await EvidenceLake.retrieve_evidence(evidence_id)
+            
+            if evidence:
+                return {"status": "success", "data": evidence, "source": "evidence_lake"}
+        
+        # Fallback to cache (demo mode or if not found in Evidence Lake)
         from src.services.cache_service import CacheService
         cache = CacheService.get_instance()
         
-        evidence = await cache.get(f"evidence:{evidence_id}")
-        if not evidence:
-            raise HTTPException(status_code=404, detail="Evidence record not found")
+        cached_evidence = await cache.get(f"evidence:{evidence_id}")
+        if cached_evidence:
+            if isinstance(cached_evidence, str):
+                import json
+                cached_evidence = json.loads(cached_evidence)
+            return {"status": "success", "data": cached_evidence, "source": "cache"}
         
-        return {"status": "success", "data": evidence}
+        # Not found in either location
+        raise HTTPException(status_code=404, detail="Evidence record not found")
         
     except HTTPException:
         raise
