@@ -13,10 +13,13 @@ function EnhancedDashboard() {
   const [rawResponse, setRawResponse] = useState(null)
   const [statusMsg, setStatusMsg] = useState('idle')
 
-  // Upload state (UI restored here)
+  // Upload state
   const [file, setFile] = useState(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadStatus, setUploadStatus] = useState('idle') // idle | uploading | processing | done | error
+
+  // Helpers for collapsible drawer
+  const [showApiDocs, setShowApiDocs] = useState(false)
 
   useEffect(() => {
     fetchEnhancedData()
@@ -98,6 +101,44 @@ function EnhancedDashboard() {
     }
   }
 
+  // Sample template downloads
+  const downloadText = (filename, content) => {
+    const blob = new Blob([content], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadSampleSarif = () => {
+    const sarif = JSON.stringify({
+      version: '2.1.0',
+      runs: [{
+        tool: { driver: { name: 'ExampleScanner', rules: [{ id: 'SQLI-001', name: 'SQL Injection' }] } },
+        results: [{
+          ruleId: 'SQLI-001',
+          level: 'error',
+          message: { text: 'SQL injection risk detected in POST /payments' },
+          locations: [{ physicalLocation: { artifactLocation: { uri: 'payments.py' }, region: { startLine: 42 } } }]
+        }]
+      }]
+    }, null, 2)
+    downloadText('sample.sarif.json', sarif)
+  }
+
+  const downloadSampleSbom = () => {
+    const sbom = JSON.stringify({
+      bomFormat: 'CycloneDX', specVersion: '1.4', components: [
+        { name: 'express', version: '4.18.2', purl: 'pkg:npm/express@4.18.2', vulnerabilities: [
+          { id: 'CVE-2023-XXXX', description: 'Example vuln', ratings: [{ severity: 'high' }] }
+        ] }
+      ]
+    }, null, 2)
+    downloadText('sample.sbom.json', sbom)
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px', fontSize: '1.5rem', color: '#6b7280' }}>
@@ -154,7 +195,10 @@ function EnhancedDashboard() {
               <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Or Upload File (Chunked)</label>
               <Tooltip text="Chunked upload helps bypass proxy limits and improves reliability for large files."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
             </div>
-            <input type="file" onChange={handleFileChange} style={{ display: 'block', marginBottom: '0.5rem' }} />
+            <input type="file" accept=".json,.sarif,.csv,application/json,text/csv" onChange={handleFileChange} style={{ display: 'block', marginBottom: '0.5rem' }} />
+            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              Accepted: JSON (SARIF/SBOM/Generic) and CSV • Max suggested size: 10MB (larger files OK via chunks)
+            </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <button onClick={() => handleChunkedUpload('sarif')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SARIF</button>
               <button onClick={() => handleChunkedUpload('sbom')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SBOM</button>
@@ -171,7 +215,54 @@ function EnhancedDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Sample templates */}
+            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={downloadSampleSarif} style={{ padding: '0.35rem 0.75rem', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem' }}>Download Sample SARIF</button>
+              <button onClick={downloadSampleSbom} style={{ padding: '0.35rem 0.75rem', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem' }}>Download Sample SBOM</button>
+            </div>
           </div>
+        </div>
+
+        {/* Collapsible API/CLI usage */}
+        <div style={{ marginTop: '1rem', borderTop: '1px dashed #e5e7eb', paddingTop: '0.75rem' }}>
+          <button onClick={() => setShowApiDocs(!showApiDocs)} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', fontWeight: 700 }}>
+            {showApiDocs ? 'Hide' : 'Show'} API / CLI Usage
+          </button>
+          {showApiDocs && (
+            <div style={{ marginTop: '0.75rem', backgroundColor: '#0b1020', color: '#e5e7eb', padding: '1rem', borderRadius: '8px', overflowX: 'auto' }}>
+              <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>REST Endpoints</div>
+              <pre style={{ whiteSpace: 'pre-wrap' }}>{`
+POST /api/v1/scans/upload  (multipart)
+  fields: file=<file>, service_name, environment, scan_type (sarif|sbom|csv|json)
+
+POST /api/v1/scans/upload/init  (json)
+  { file_name, total_size, scan_type, service_name, environment }
+POST /api/v1/scans/upload/chunk  (form)
+  upload_id, chunk_index, total_chunks, chunk=<file part>
+POST /api/v1/scans/upload/complete  (json)
+  { upload_id }
+
+POST /api/v1/enhanced/compare-llms  (json)
+  { service_name, security_findings: [], business_context: {} }
+POST /api/v1/enhanced/analysis  (json)
+  { service_name, environment, business_context, security_findings, compliance_requirements }
+`}</pre>
+              <div style={{ fontWeight: 700, margin: '0.75rem 0 0.5rem' }}>CLI (CI/CD)</div>
+              <pre style={{ whiteSpace: 'pre-wrap' }}>{`
+# Ingest SARIF file and evaluate policies
+fixops-cli ingest --format sarif --scan-file results.sarif.json \
+  --service-name ${selectedService} --environment production \
+  --scanner-type sast --scanner-name SonarQube \
+  --enable-correlation --enable-policy-evaluation
+
+# After ingestion, call enhanced analysis via REST in pipeline step
+curl -X POST "$REACT_APP_BACKEND_URL/api/v1/enhanced/compare-llms" \
+  -H 'Content-Type: application/json' \
+  -d '{"service_name":"${selectedService}","security_findings":[{"severity":"high","category":"injection"}]}'
+`}</pre>
+            </div>
+          )}
         </div>
       </div>
 
