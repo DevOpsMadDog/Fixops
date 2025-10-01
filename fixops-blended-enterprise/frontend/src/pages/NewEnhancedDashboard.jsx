@@ -308,34 +308,105 @@ function EnhancedDashboard() {
               </label>
             </div>
 
-            {/* Scan Type Selection */}
-            {uploadState.selectedFile && (
-              <div style={{ marginBottom: '2rem' }}>
-                <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>
-                  Select Scan Type:
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                  {['sarif', 'sbom', 'csv', 'json'].map((type) => (
+            {/* Enhanced Scan Processing Interface */}
+            <div style={{
+              marginBottom: '2rem'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{
+                  fontSize: '1rem',
+                  fontWeight: '700',
+                  color: '#60a5fa',
+                  margin: 0,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em'
+                }}>
+                  SCAN TYPE SELECTION
+                </h3>
+                {scanProcessor.selectedFile && (
+                  <button
+                    onClick={() => setScanProcessor(prev => ({ ...prev, selectedFile: null, scanType: null }))}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                      border: '1px solid #dc2626',
+                      borderRadius: '8px',
+                      color: '#fca5a5',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🗑️ CLEAR
+                  </button>
+                )}
+              </div>
+
+              {scanProcessor.selectedFile ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '1rem',
+                  marginBottom: '2rem'
+                }}>
+                  {[
+                    { type: 'sarif', name: 'SARIF', desc: 'Static Analysis Results', color: '#3b82f6' },
+                    { type: 'sbom', name: 'SBOM', desc: 'Software Bill of Materials', color: '#8b5cf6' },
+                    { type: 'csv', name: 'CSV', desc: 'Custom Vulnerability Export', color: '#10b981' },
+                    { type: 'json', name: 'JSON', desc: 'Generic Security Data', color: '#f59e0b' }
+                  ].map((format) => (
                     <button
-                      key={type}
-                      onClick={() => setUploadState(prev => ({ ...prev, scanType: type }))}
+                      key={format.type}
+                      onClick={() => setScanProcessor(prev => ({ ...prev, scanType: format.type }))}
                       style={{
-                        padding: '1rem',
-                        backgroundColor: uploadState.scanType === type ? '#2563eb' : 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '8px',
+                        padding: '1.5rem',
+                        backgroundColor: scanProcessor.scanType === format.type ? `${format.color}30` : 'rgba(255, 255, 255, 0.05)',
+                        border: `2px solid ${scanProcessor.scanType === format.type ? format.color : '#475569'}`,
+                        borderRadius: '12px',
                         color: 'white',
-                        fontWeight: '600',
                         cursor: 'pointer',
-                        textTransform: 'uppercase'
+                        textAlign: 'left',
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      {type}
+                      <div style={{
+                        fontSize: '1.125rem',
+                        fontWeight: '800',
+                        marginBottom: '0.5rem',
+                        color: scanProcessor.scanType === format.type ? format.color : 'white'
+                      }}>
+                        {format.name}
+                      </div>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        fontWeight: '500'
+                      }}>
+                        {format.desc}
+                      </div>
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{
+                  padding: '1rem',
+                  backgroundColor: 'rgba(100, 116, 139, 0.1)',
+                  border: '1px dashed #64748b',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  marginBottom: '2rem'
+                }}>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                    Select file first to choose scan type
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Upload Progress */}
             {uploadState.processingStage !== 'idle' && (
