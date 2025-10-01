@@ -1014,6 +1014,18 @@ class DecisionEngine:
                 await self.cache.set(f"evidence:{evidence_id}", json.dumps(evidence_record), ttl=86400*7)  # 7 days for demo
             
             return evidence_id
+            
+        except Exception as e:
+            logger.error(f"Evidence generation failed: {e}")
+            # Create simple evidence record
+            simple_evidence = {
+                "evidence_id": evidence_id,
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "service_name": context.service_name
+            }
+            await self.cache.set(f"evidence:{evidence_id}", json.dumps(simple_evidence), ttl=86400*7)
+            return evidence_id
     
     async def get_recent_decisions(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Get recent decisions from database or cache"""
