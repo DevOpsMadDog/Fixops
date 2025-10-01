@@ -8,7 +8,6 @@ function Layout({ children }) {
     { name: 'Enhanced', href: '/enhanced', fullName: 'Enhanced Multi-LLM' },
     { name: 'Developer', href: '/developer', fullName: 'Developer Dashboard' },
     { name: 'CISO', href: '/ciso', fullName: 'CISO Dashboard' },
-    // Upload tab removed per request
     { name: 'Marketplace', href: '/marketplace', fullName: 'Security Marketplace' },
     { name: 'Analytics', href: '/analytics', fullName: 'Analytics' },
   ]
@@ -155,9 +154,19 @@ function Layout({ children }) {
         </div>
       </header>
 
+      {/* Footer with docs links */}
+      <footer style={{ backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0.75rem 2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', color: '#6b7280' }}>
+          <a href="/api/v1/docs/install" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>Install Guide</a>
+          <a href="/api/v1/docs/ssvc" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>SSVC</a>
+          <a href="/api/v1/docs/requirements" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>Requirements</a>
+          <a href="/api/v1/docs/roadmap" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>Roadmap</a>
+        </div>
+      </footer>
+
       {/* Main Content Area */}
       <main style={{
-        minHeight: 'calc(100vh - 140px)',
+        minHeight: 'calc(100vh - 180px)',
         backgroundColor: '#f8fafc'
       }}>
         {children}
