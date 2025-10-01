@@ -390,9 +390,12 @@ function CommandCenter() {
           }}>
             <h2 style={{
               fontSize: '1.25rem',
-              fontWeight: '700',
+              fontWeight: '600',
               marginBottom: '2rem',
-              color: '#10b981'
+              color: '#10b981',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+              letterSpacing: '-0.025em',
+              lineHeight: '1.3'
             }}>
               🏗️ SYSTEM HEALTH
             </h2>
