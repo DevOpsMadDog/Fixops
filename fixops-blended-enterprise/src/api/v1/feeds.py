@@ -1,11 +1,12 @@
 """
 External feeds endpoints (EPSS, KEV) using FeedsService
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 import structlog
+from pathlib import Path
 
 from src.config.settings import get_settings
-from src.services.feeds_service import FeedsService
+from src.services.feeds_service import FeedsService, FEEDS_DIR
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/feeds", tags=["external-feeds"])
@@ -50,4 +51,21 @@ async def kev_refresh():
         return res
     except Exception as e:
         logger.error(f"kev_refresh failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/download/{feed}")
+async def download_feed(feed: str):
+    try:
+        safe = feed.lower()
+        if safe not in ("epss", "kev"):
+            raise HTTPException(status_code=404, detail="Unknown feed")
+        path = FEEDS_DIR / f"{safe}.json"
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="Feed snapshot not available")
+        content = path.read_text(encoding='utf-8')
+        return Response(content=content, media_type="application/json")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"download_feed failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -10,6 +10,7 @@ function Layout({ children }) {
     { name: 'CISO', href: '/ciso', fullName: 'CISO Dashboard' },
     { name: 'Marketplace', href: '/marketplace', fullName: 'Security Marketplace' },
     { name: 'Analytics', href: '/analytics', fullName: 'Analytics' },
+    { name: 'Docs', href: '/docs', fullName: 'Documentation' },
   ]
 
   return (
@@ -131,18 +132,6 @@ function Layout({ children }) {
                       marginTop: isActive ? '0' : '0',
                       position: 'relative',
                       whiteSpace: 'nowrap'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.target.style.backgroundColor = '#f9fafb'
-                        e.target.style.color = '#374151'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.target.style.backgroundColor = 'transparent'
-                        e.target.style.color = '#6b7280'
-                      }
                     }}
                   >
                     {item.name}

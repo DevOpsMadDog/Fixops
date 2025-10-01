@@ -7,9 +7,9 @@ import CISODashboard from './pages/CISODashboard'
 import ScanUploadPage from './pages/ScanUploadPage'
 import MarketplacePage from './pages/MarketplacePage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import Docs from './pages/Docs'
 
 function App() {
-  // No authentication required - free tool
   return (
     <Layout>
       <Routes>
@@ -20,6 +20,7 @@ function App() {
         <Route path="/upload" element={<ScanUploadPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/docs" element={<Docs />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
       </Routes>
     </Layout>
