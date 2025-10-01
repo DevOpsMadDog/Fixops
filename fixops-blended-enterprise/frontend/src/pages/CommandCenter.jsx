@@ -537,11 +537,16 @@ function CommandCenter() {
                   {scanProcessor.selectedFile ? '📊' : scanProcessor.dragActive ? '🎯' : '🔒'}
                 </div>
                 <h3 style={{
-                  fontSize: scanProcessor.selectedFile ? '1.25rem' : '1.75rem',
-                  fontWeight: '800',
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
                   marginBottom: '1rem',
-                  color: scanProcessor.selectedFile ? '#3b82f6' : scanProcessor.dragActive ? '#60a5fa' : 'white',
-                  fontFamily: '"JetBrains Mono", "SF Mono", Consolas, monospace'
+                  color: scanProcessor.selectedFile ? '#3b82f6' : 'white',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                  letterSpacing: '-0.025em',
+                  lineHeight: '1.2',
+                  wordBreak: 'break-word',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}>
                   {scanProcessor.selectedFile ? 
                     `SCAN READY: ${scanProcessor.selectedFile.name}` : 
