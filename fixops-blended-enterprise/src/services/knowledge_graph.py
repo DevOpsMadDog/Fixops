@@ -89,31 +89,152 @@ class CTINexusEntityExtractor:
         ]
     
     async def extract_entities(self, scan_data: Dict[str, Any]) -> List[SecurityEntity]:
-        """Extract security entities from scan data"""
+        """Extract security entities using REAL CTINexus LLM-based approach"""
         entities = []
         
         try:
-            # Extract from SARIF findings
-            if "sarif" in scan_data:
-                sarif_entities = await self._extract_from_sarif(scan_data["sarif"])
-                entities.extend(sarif_entities)
+            if self.llm_client:
+                # Use real CTINexus-style LLM extraction
+                entities = await self._ctinexus_llm_extraction(scan_data)
+            else:
+                # Fallback to pattern-based extraction
+                entities = await self._fallback_pattern_extraction(scan_data)
             
-            # Extract from SBOM
-            if "sbom" in scan_data:
-                sbom_entities = await self._extract_from_sbom(scan_data["sbom"])
-                entities.extend(sbom_entities)
-            
-            # Extract from security findings
-            if "security_findings" in scan_data:
-                finding_entities = await self._extract_from_findings(scan_data["security_findings"])
-                entities.extend(finding_entities)
-            
-            logger.info(f"Extracted {len(entities)} entities from scan data")
+            logger.info(f"CTINexus extracted {len(entities)} entities from scan data")
             return entities
             
         except Exception as e:
-            logger.error(f"Entity extraction failed: {e}")
+            logger.error(f"CTINexus entity extraction failed: {e}")
             return []
+    
+    async def _ctinexus_llm_extraction(self, scan_data: Dict[str, Any]) -> List[SecurityEntity]:
+        """Real CTINexus LLM-based entity and relation extraction"""
+        entities = []
+        
+        try:
+            # Prepare CTI text from scan data
+            cti_text = self._prepare_cti_text(scan_data)
+            
+            # Create CTINexus prompt with demonstration examples
+            prompt = self._create_ctinexus_prompt(cti_text)
+            
+            # Call LLM for entity extraction
+            response = await self.llm_client.generate_async(
+                prompt=prompt,
+                system_message="You are a cybersecurity expert extracting entities and relations from cyber threat intelligence reports. Follow the demonstration format exactly."
+            )
+            
+            # Parse LLM response into entities
+            entities = self._parse_ctinexus_response(response)
+            
+            return entities
+            
+        except Exception as e:
+            logger.error(f"CTINexus LLM extraction failed: {e}")
+            return []
+    
+    def _prepare_cti_text(self, scan_data: Dict[str, Any]) -> str:
+        """Prepare cyber threat intelligence text from scan data for CTINexus"""
+        cti_segments = []
+        
+        # Extract text from SARIF
+        if "sarif" in scan_data:
+            sarif_data = scan_data["sarif"]
+            for run in sarif_data.get("runs", []):
+                for result in run.get("results", []):
+                    message = result.get("message", {}).get("text", "")
+                    rule_id = result.get("ruleId", "")
+                    location = self._extract_file_location(result) or "unknown"
+                    
+                    cti_segments.append(f"{rule_id} vulnerability found in {location}: {message}")
+        
+        # Extract from security findings
+        if "security_findings" in scan_data:
+            for finding in scan_data["security_findings"]:
+                title = finding.get("title", "")
+                description = finding.get("description", "")
+                severity = finding.get("severity", "")
+                cve = finding.get("cve", "")
+                
+                cti_segments.append(f"{severity} {cve} {title}: {description}")
+        
+        return ". ".join(cti_segments)
+    
+    def _create_ctinexus_prompt(self, cti_text: str) -> str:
+        """Create CTINexus-style prompt with in-context learning demonstrations"""
+        
+        # Build demonstration examples
+        demonstrations = "\n\n".join([
+            f"Input: {ex['input']}\nOutput: {ex['output']}" 
+            for ex in self.demonstration_examples
+        ])
+        
+        prompt = f"""You are performing cybersecurity entity and relation extraction using the CTINexus framework. Extract entities and their relationships from cyber threat intelligence reports.
+
+Entity Types: {', '.join(self.cybersecurity_ontology.keys())}
+
+Demonstration Examples:
+{demonstrations}
+
+Now extract entities and relations from the following cyber threat intelligence:
+
+Input: {cti_text}
+Output: """
+        
+        return prompt
+    
+    def _parse_ctinexus_response(self, response: str) -> List[SecurityEntity]:
+        """Parse CTINexus LLM response into SecurityEntity objects"""
+        entities = []
+        
+        try:
+            # Parse entities from response format: [entity_name|entity_type]
+            if "Entities:" in response:
+                entities_part = response.split("Entities:")[1].split("Relations:")[0] if "Relations:" in response else response.split("Entities:")[1]
+                
+                # Extract entity mentions using regex
+                import re
+                entity_pattern = r'\[(.*?)\|(.*?)\]'
+                matches = re.findall(entity_pattern, entities_part)
+                
+                for name, entity_type in matches:
+                    entity = SecurityEntity(
+                        entity_id=f"ctinexus_{entity_type}_{hash(name) % 10000}",
+                        entity_type=entity_type.strip(),
+                        name=name.strip(),
+                        properties={
+                            "extraction_method": "ctinexus_llm",
+                            "source": "llm_analysis"
+                        },
+                        confidence=0.9  # High confidence for LLM extraction
+                    )
+                    entities.append(entity)
+            
+        except Exception as e:
+            logger.error(f"CTINexus response parsing failed: {e}")
+        
+        return entities
+    
+    async def _fallback_pattern_extraction(self, scan_data: Dict[str, Any]) -> List[SecurityEntity]:
+        """Fallback pattern-based extraction when LLM unavailable"""
+        entities = []
+        
+        # Extract from SARIF findings
+        if "sarif" in scan_data:
+            sarif_entities = await self._extract_from_sarif(scan_data["sarif"])
+            entities.extend(sarif_entities)
+        
+        # Extract from SBOM
+        if "sbom" in scan_data:
+            sbom_entities = await self._extract_from_sbom(scan_data["sbom"])
+            entities.extend(sbom_entities)
+        
+        # Extract from security findings
+        if "security_findings" in scan_data:
+            finding_entities = await self._extract_from_findings(scan_data["security_findings"])
+            entities.extend(finding_entities)
+        
+        return entities
     
     async def _extract_from_sarif(self, sarif_data: Dict[str, Any]) -> List[SecurityEntity]:
         """Extract entities from SARIF data"""
