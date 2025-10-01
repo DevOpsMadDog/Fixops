@@ -129,9 +129,21 @@ function CommandCenter() {
     }
   }
 
+  const addLogEntry = (action, message) => {
+    setScanProcessor(prev => ({
+      ...prev,
+      realTimeLog: [...prev.realTimeLog, {
+        timestamp: new Date(),
+        action,
+        message,
+        id: Date.now() + Math.random()
+      }]
+    }))
+  }
+
   const downloadBusinessContextSample = async (format) => {
     try {
-      const response = await fetch(`/api/v1/business-context/sample/${format}?service_name=${selectedService}`)
+      const response = await fetch(`/api/v1/business-context/sample/${format}?service_name=payment-service`)
       const data = await response.json()
       
       const blob = new Blob([data.content], { 
