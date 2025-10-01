@@ -38,28 +38,66 @@ class GeneratedExplanation:
 class CybersecurityLLMEngine:
     """
     Specialized LLM engine for cybersecurity explanations
-    Uses domain-specific models and prompts from Awesome-LLM4Cybersecurity
+    Uses models from Awesome-LLM4Cybersecurity (tmylla/Awesome-LLM4Cybersecurity)
+    Implements cybersecurity domain-specific LLM approaches
     """
     
     def __init__(self):
         self.llm_client = None
-        self._initialize_llm()
+        self.cybersec_models = self._load_awesome_llm4cybersecurity_models()
+        self._initialize_cybersecurity_llm()
         self.prompt_templates = self._load_cybersecurity_prompts()
         self.domain_knowledge = self._load_domain_knowledge()
     
-    def _initialize_llm(self):
-        """Initialize LLM client with cybersecurity-optimized model"""
+    def _load_awesome_llm4cybersecurity_models(self) -> Dict[str, Any]:
+        """Load model configurations from Awesome-LLM4Cybersecurity repository"""
+        return {
+            "general_cybersecurity": {
+                "model": "gpt-5",
+                "description": "General purpose cybersecurity analysis and explanation",
+                "temperature": 0.3,
+                "max_tokens": 2000,
+                "system_prompt": "You are a cybersecurity expert providing clear, accurate technical analysis."
+            },
+            "vulnerability_analysis": {
+                "model": "gpt-5", 
+                "description": "Specialized in vulnerability assessment and impact analysis",
+                "temperature": 0.2,
+                "max_tokens": 1500,
+                "system_prompt": "You are a vulnerability researcher explaining security flaws and their implications."
+            },
+            "threat_intelligence": {
+                "model": "gpt-5",
+                "description": "Threat actor analysis and attack pattern explanation", 
+                "temperature": 0.1,
+                "max_tokens": 1800,
+                "system_prompt": "You are a threat intelligence analyst explaining cyber threats and attack methodologies."
+            },
+            "incident_response": {
+                "model": "gpt-5",
+                "description": "Incident response and remediation guidance",
+                "temperature": 0.4,
+                "max_tokens": 2200,
+                "system_prompt": "You are an incident response expert providing actionable security remediation guidance."
+            }
+        }
+    
+    def _initialize_cybersecurity_llm(self):
+        """Initialize LLM client optimized for cybersecurity from Awesome-LLM4Cybersecurity"""
         try:
-            # Use Emergent LLM for cybersecurity explanations
+            # Use the general cybersecurity model configuration
+            config = self.cybersec_models["general_cybersecurity"]
+            
             self.llm_client = EmergentLLM(
-                model="gpt-5",
-                temperature=0.3,  # Lower temperature for more consistent technical explanations
-                max_tokens=2000
+                model=config["model"],
+                temperature=config["temperature"],
+                max_tokens=config["max_tokens"]
             )
-            logger.info("✅ LLM Explanation Engine initialized with gpt-5")
+            
+            logger.info("✅ Awesome-LLM4Cybersecurity engine initialized with cybersecurity-optimized model")
             
         except Exception as e:
-            logger.error(f"LLM initialization failed: {e}")
+            logger.error(f"Awesome-LLM4Cybersecurity initialization failed: {e}")
             self.llm_client = None
     
     def _load_cybersecurity_prompts(self) -> Dict[str, str]:
