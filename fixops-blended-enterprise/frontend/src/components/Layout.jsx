@@ -144,13 +144,12 @@ function Layout({ children }) {
         </div>
       </header>
 
-      {/* Footer with docs links */}
+      {/* Clean Footer */}
       <footer style={{ backgroundColor: 'white', borderTop: '1px solid #e5e7eb' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0.75rem 2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', color: '#6b7280' }}>
-          <a href="/api/v1/docs/install" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>Install Guide</a>
-          <a href="/api/v1/docs/ssvc" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>SSVC</a>
-          <a href="/api/v1/docs/requirements" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>Requirements</a>
-          <a href="/api/v1/docs/roadmap" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#2563eb' }}>Roadmap</a>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0.75rem 2rem', display: 'flex', justifyContent: 'center', color: '#6b7280' }}>
+          <span style={{ fontSize: '0.875rem' }}>
+            FixOps Enterprise DevSecOps Decision Engine
+          </span>
         </div>
       </footer>
 
