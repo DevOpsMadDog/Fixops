@@ -456,13 +456,13 @@ function CommandCenter() {
           </div>
         </div>
 
-        {/* Main Operations Interface */}
+        {/* Enhanced Main Operations Interface */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1.5fr 1fr',
           gap: '3rem'
         }}>
-          {/* Left: Scan Processing Interface */}
+          {/* Left: Complete Decision Pipeline */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
             padding: '3rem',
@@ -479,7 +479,7 @@ function CommandCenter() {
               letterSpacing: '-0.025em',
               lineHeight: '1.3'
             }}>
-              🎯 DECISION ENGINE OPERATIONS
+              🎯 COMPLETE DECISION PIPELINE
             </h2>
             <p style={{
               fontSize: '0.875rem',
@@ -489,8 +489,86 @@ function CommandCenter() {
               fontWeight: '500',
               lineHeight: '1.4'
             }}>
-              Upload security scans for AI-powered analysis and deployment decisions
+              Upload security scans + business context for AI-powered analysis and deployment decisions
             </p>
+
+            {/* Step 1: Business Context Upload */}
+            <div style={{
+              padding: '2rem',
+              backgroundColor: 'rgba(124, 58, 237, 0.1)',
+              border: '1px solid #8b5cf6',
+              borderRadius: '16px',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#c4b5fd',
+                marginBottom: '1rem',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+              }}>
+                📋 STEP 1: Business Context (Optional but Recommended)
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <button
+                  onClick={() => downloadBusinessContextSample('fixops.yaml')}
+                  style={{
+                    padding: '1rem',
+                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                    border: '1px solid #8b5cf6',
+                    borderRadius: '8px',
+                    color: '#c4b5fd',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  📄 FIXOPS.YAML
+                </button>
+                <button
+                  onClick={() => downloadBusinessContextSample('otm.json')}
+                  style={{
+                    padding: '1rem',
+                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                    border: '1px solid #8b5cf6',
+                    borderRadius: '8px',
+                    color: '#c4b5fd',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🏗️ OTM.JSON
+                </button>
+                <button
+                  onClick={() => downloadBusinessContextSample('ssvc.yaml')}
+                  style={{
+                    padding: '1rem',
+                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                    border: '1px solid #8b5cf6',
+                    borderRadius: '8px',
+                    color: '#c4b5fd',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🎯 SSVC.YAML
+                </button>
+              </div>
+              
+              <p style={{
+                fontSize: '0.75rem',
+                color: '#94a3b8',
+                margin: 0,
+                lineHeight: '1.4'
+              }}>
+                <strong>FixOps.yaml:</strong> Complete business context with SSVC factors, compliance requirements, and threat model integration.<br/>
+                <strong>OTM.json:</strong> Open Threat Model format - automatically converts to SSVC business context.<br/>
+                <strong>SSVC.yaml:</strong> Pure CISA/SEI SSVC framework format for compliance-first organizations.
+              </p>
+            </div>
 
             {/* Enhanced File Drop Zone */}
             <div
