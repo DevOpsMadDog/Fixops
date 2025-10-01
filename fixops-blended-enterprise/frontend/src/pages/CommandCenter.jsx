@@ -461,17 +461,23 @@ function CommandCenter() {
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
           }}>
             <h2 style={{
-              fontSize: '1.75rem',
-              fontWeight: '800',
-              marginBottom: '0.5rem',
-              color: '#3b82f6'
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              marginBottom: '1rem',
+              color: '#3b82f6',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+              letterSpacing: '-0.025em',
+              lineHeight: '1.3'
             }}>
               🎯 DECISION ENGINE OPERATIONS
             </h2>
             <p style={{
               fontSize: '0.875rem',
               color: '#94a3b8',
-              marginBottom: '2rem'
+              marginBottom: '2rem',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+              fontWeight: '500',
+              lineHeight: '1.4'
             }}>
               Upload security scans for AI-powered analysis and deployment decisions
             </p>
