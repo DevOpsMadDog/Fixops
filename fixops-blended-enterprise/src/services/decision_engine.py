@@ -734,46 +734,146 @@ class DecisionEngine:
     
     async def _real_policy_evaluation(self, context, enriched_context):
         """Real policy evaluation using OPA and custom policies"""
-        if not self.oss_integrations or not self.oss_integrations.opa.version != "not-installed":
-            return {"status": "opa_not_available", "decision": "defer"}
-        
         try:
-            # Evaluate vulnerability policy using OPA
-            policy_input = {
-                "service_name": context.service_name,
-                "environment": context.environment,
-                "vulnerabilities": [
-                    {
-                        "severity": finding.get("severity", "MEDIUM"),
-                        "fix_available": finding.get("fix_available", False),
-                        "cve_id": finding.get("cve", "NONE")
-                    }
-                    for finding in context.security_findings
-                ],
-                "sbom_present": context.sbom_data is not None,
-                "sbom_valid": bool(context.sbom_data)
-            }
+            # Import and use real OPA engine
+            from src.services.real_opa_engine import get_opa_engine
+            
+            opa_engine = await get_opa_engine()
+            
+            # Check OPA health first
+            opa_healthy = await opa_engine.health_check()
+            if not opa_healthy and not settings.DEMO_MODE:
+                logger.warning("OPA server unhealthy, falling back to basic policy logic")
+                return await self._fallback_policy_evaluation(context, enriched_context)
+            
+            # Prepare vulnerability data for OPA evaluation
+            vulnerabilities = []
+            for finding in context.security_findings:
+                vuln_data = {
+                    "severity": finding.get("severity", "MEDIUM").upper(),
+                    "fix_available": finding.get("fix_available", False),
+                    "cve_id": finding.get("cve") or finding.get("cve_id"),
+                    "title": finding.get("title", ""),
+                    "description": finding.get("description", ""),
+                    "cvss_score": finding.get("cvss_score", 0)
+                }
+                vulnerabilities.append(vuln_data)
             
             # Evaluate vulnerability policy
-            vuln_result = await self.oss_integrations.opa.evaluate_policy(
-                "vulnerability", policy_input
-            )
+            vuln_result = await opa_engine.evaluate_policy("vulnerability", {
+                "vulnerabilities": vulnerabilities,
+                "service_name": context.service_name,
+                "environment": context.environment
+            })
             
-            # Evaluate SBOM policy
-            sbom_result = await self.oss_integrations.opa.evaluate_policy(
-                "sbom", policy_input
-            )
+            # Evaluate SBOM policy if SBOM data is present
+            sbom_result = None
+            if context.sbom_data:
+                sbom_result = await opa_engine.evaluate_policy("sbom", {
+                    "sbom_present": bool(context.sbom_data),
+                    "sbom_valid": bool(context.sbom_data),
+                    "sbom": context.sbom_data
+                })
+            else:
+                # Default SBOM policy evaluation
+                sbom_result = await opa_engine.evaluate_policy("sbom", {
+                    "sbom_present": False,
+                    "sbom_valid": False
+                })
+            
+            # Combine OPA results
+            overall_decision = "allow"
+            confidence = 1.0
+            rationale_parts = []
+            
+            # Vulnerability policy result
+            if vuln_result.get("decision") == "block":
+                overall_decision = "block"
+                confidence = min(confidence, 0.9)
+                rationale_parts.append(f"Vulnerability policy: {vuln_result.get('rationale', 'blocked')}")
+            elif vuln_result.get("decision") == "defer":
+                if overall_decision == "allow":
+                    overall_decision = "defer"
+                confidence = min(confidence, 0.7)
+                rationale_parts.append(f"Vulnerability policy: {vuln_result.get('rationale', 'deferred')}")
+            else:
+                rationale_parts.append(f"Vulnerability policy: {vuln_result.get('rationale', 'allowed')}")
+            
+            # SBOM policy result
+            if sbom_result:
+                if sbom_result.get("decision") == "block":
+                    overall_decision = "block"
+                    confidence = min(confidence, 0.9)
+                    rationale_parts.append(f"SBOM policy: {sbom_result.get('rationale', 'blocked')}")
+                elif sbom_result.get("decision") == "defer":
+                    if overall_decision == "allow":
+                        overall_decision = "defer"
+                    confidence = min(confidence, 0.8)
+                    rationale_parts.append(f"SBOM policy: {sbom_result.get('rationale', 'deferred')}")
+                else:
+                    rationale_parts.append(f"SBOM policy: {sbom_result.get('rationale', 'allowed')}")
             
             return {
                 "status": "evaluated",
+                "overall_decision": overall_decision == "allow",
+                "decision_type": overall_decision,
+                "confidence": confidence,
                 "vulnerability_policy": vuln_result,
                 "sbom_policy": sbom_result,
-                "overall_decision": vuln_result.get("decision", False) and sbom_result.get("decision", False)
+                "rationale": " | ".join(rationale_parts),
+                "opa_engine_used": True,
+                "demo_mode": vuln_result.get("demo_mode", settings.DEMO_MODE)
             }
             
         except Exception as e:
-            logger.error(f"OPA policy evaluation failed: {str(e)}")
-            return {"status": "error", "error": str(e), "decision": "defer"}
+            logger.error(f"Real OPA policy evaluation failed: {str(e)}")
+            # Fallback to basic policy evaluation
+            return await self._fallback_policy_evaluation(context, enriched_context)
+    
+    async def _fallback_policy_evaluation(self, context, enriched_context):
+        """Fallback policy evaluation when OPA is not available"""
+        # Basic policy logic without OPA
+        vulnerabilities = context.security_findings
+        
+        # Check for critical vulnerabilities
+        critical_vulns = [v for v in vulnerabilities if v.get("severity", "").upper() == "CRITICAL"]
+        high_vulns = [v for v in vulnerabilities if v.get("severity", "").upper() == "HIGH"]
+        
+        if critical_vulns:
+            # Check if critical vulns have fixes
+            unfixed_critical = [v for v in critical_vulns if not v.get("fix_available", False)]
+            if unfixed_critical:
+                return {
+                    "status": "fallback_evaluation",
+                    "overall_decision": False,
+                    "decision_type": "block",
+                    "confidence": 0.9,
+                    "rationale": f"Found {len(unfixed_critical)} critical vulnerabilities without fixes",
+                    "opa_engine_used": False
+                }
+        
+        # Check for high severity in production
+        if context.environment == "production" and high_vulns:
+            internet_facing = enriched_context.get("environment_risk", "medium") == "high"
+            if internet_facing:
+                return {
+                    "status": "fallback_evaluation",
+                    "overall_decision": False,
+                    "decision_type": "defer",
+                    "confidence": 0.7,
+                    "rationale": f"Found {len(high_vulns)} high severity vulnerabilities in production environment",
+                    "opa_engine_used": False
+                }
+        
+        # Default allow
+        return {
+            "status": "fallback_evaluation",
+            "overall_decision": True,
+            "decision_type": "allow", 
+            "confidence": 0.8,
+            "rationale": "Basic policy evaluation passed",
+            "opa_engine_used": False
+        }
     
     async def _real_sbom_criticality_assessment(self, context):
         """Real SBOM criticality assessment using Trivy/Grype"""
