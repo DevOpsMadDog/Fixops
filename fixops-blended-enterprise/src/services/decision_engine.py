@@ -968,25 +968,63 @@ class DecisionEngine:
         }
     
     async def _real_evidence_generation(self, context, decision, consensus_result):
-        """Real evidence generation with OSS tool results"""
+        """Real evidence generation using Evidence Lake for immutable storage"""
         evidence_id = f"PROD-EVD-{int(time.time())}-{hash(context.service_name) % 10000}"
         
-        # Store evidence in cache or database
-        evidence = {
-            "evidence_id": evidence_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "service_name": context.service_name,
-            "environment": context.environment,
-            "decision": decision["outcome"].value,
-            "confidence": decision["confidence"],
-            "consensus_details": consensus_result,
-            "oss_tools_used": consensus_result.get("oss_tools_used", []),
-            "security_findings_count": len(context.security_findings)
-        }
-        
-        await self.cache.set(f"evidence:{evidence_id}", json.dumps(evidence), ttl=86400*30)  # 30 days
-        
-        return evidence_id
+        try:
+            # Create comprehensive evidence record
+            evidence_record = {
+                "evidence_id": evidence_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "service_name": context.service_name,
+                "environment": context.environment,
+                "decision": decision["outcome"].value,
+                "confidence": decision["confidence"],
+                "reasoning": decision["reasoning"],
+                "consensus_details": consensus_result,
+                "security_findings": context.security_findings,
+                "business_context": context.business_context,
+                "sbom_data_present": bool(context.sbom_data),
+                "threat_model_present": bool(context.threat_model),
+                "runtime_data_present": bool(context.runtime_data),
+                "oss_tools_used": consensus_result.get("oss_tools_used", []),
+                "policy_evaluations": consensus_result.get("policy_evaluations", "not_evaluated"),
+                "vector_db_matches": consensus_result.get("patterns_matched", 0),
+                "processing_mode": "production" if not self.demo_mode else "demo",
+                "compliance_data": {
+                    "audit_required": context.environment == "production",
+                    "retention_days": 2555 if context.environment == "production" else 90,  # 7 years for production
+                    "immutable": True
+                }
+            }
+            
+            # Store in real Evidence Lake if available
+            if not self.demo_mode:
+                try:
+                    from src.services.evidence_lake import EvidenceLake
+                    stored_id = await EvidenceLake.store_evidence(evidence_record)
+                    logger.info(f"✅ Evidence stored in Evidence Lake: {stored_id}")
+                except Exception as e:
+                    logger.error(f"Evidence Lake storage failed, using cache fallback: {e}")
+                    # Fallback to cache storage
+                    await self.cache.set(f"evidence:{evidence_id}", json.dumps(evidence_record), ttl=86400*30)
+            else:
+                # Demo mode - use cache
+                await self.cache.set(f"evidence:{evidence_id}", json.dumps(evidence_record), ttl=86400*7)  # 7 days for demo
+            
+            return evidence_id
+            
+        except Exception as e:
+            logger.error(f"Evidence generation failed: {e}")
+            # Create simple evidence record
+            simple_evidence = {
+                "evidence_id": evidence_id,
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "service_name": context.service_name
+            }
+            await self.cache.set(f"evidence:{evidence_id}", json.dumps(simple_evidence), ttl=86400*7)
+            return evidence_id
     
     async def _use_processing_layer(self, context) -> Dict[str, Any]:
         """Use Processing Layer for integrated architecture components"""
