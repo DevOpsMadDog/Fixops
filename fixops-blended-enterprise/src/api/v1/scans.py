@@ -9,18 +9,20 @@ import os
 import shutil
 import time
 import uuid
+import hashlib
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 import structlog
 
 from src.db.session import get_db
 from src.services.correlation_engine import CorrelationEngine
 from src.cli.main import FixOpsCLI
 from src.config.settings import get_settings
+from src.services.metrics import FixOpsMetrics
 
 logger = structlog.get_logger()
 
@@ -58,7 +60,7 @@ async def upload_scan_file(
 
         # Initialize CLI for processing
         cli = FixOpsCLI()
-        await cli.initialize()
+        await cli.init()
 
         try:
             # Process based on scan type
@@ -93,26 +95,14 @@ async def upload_scan_file(
 
             # Run correlation engine on new findings
             correlation_engine = CorrelationEngine()
-            correlation_results = []
-            for finding in findings_created:
-                correlation_result = await correlation_engine.correlate_finding(finding.id)
-                if correlation_result:
-                    correlation_results.append(correlation_result)
+            correlation_result = await correlation_engine.correlate_findings(
+                service_ids=[service.id],
+                time_window_hours=24
+            )
 
             # Calculate processing time
             processing_time = (time.perf_counter() - start_time) * 1000
-
-            logger.info(
-                "Scan file processed successfully",
-                extra={
-                    "filename": file.filename,
-                    "scan_type": scan_type,
-                    "service_name": service_name,
-                    "findings_count": len(findings_created),
-                    "processing_time_ms": processing_time,
-                    "correlations_found": len(correlation_results)
-                }
-            )
+            FixOpsMetrics.record_upload(scan_type)
 
             return JSONResponse(
                 status_code=200,
@@ -124,7 +114,7 @@ async def upload_scan_file(
                         "service_name": service.name,
                         "findings_processed": len(findings_created),
                         "findings_created": [f.id for f in findings_created],
-                        "correlations_found": len(correlation_results),
+                        "correlations_found": len(correlation_result.get('correlations', [])),
                         "processing_time_ms": round(processing_time, 2),
                         "hot_path_compliant": processing_time * 1000 < settings.HOT_PATH_TARGET_LATENCY_US,
                         "upload_metadata": {
@@ -133,7 +123,7 @@ async def upload_scan_file(
                             "scan_type": scan_type,
                             "environment": environment,
                             "uploaded_by": 'system',
-                            "upload_timestamp": time.time()
+                            "upload_timestamp": datetime.now(timezone.utc).isoformat()
                         }
                     }
                 }
@@ -161,15 +151,16 @@ async def upload_scan_file(
             detail=f"Failed to process scan file: {str(e)}"
         )
 
-class ChunkedUploadInitRequest(BaseModel):
-    file_name: str
-    total_size: int
-    scan_type: str
-    service_name: str
-    environment: str = 'production'
-
 @router.post('/upload/init')
-async def upload_init(request: ChunkedUploadInitRequest):
+async def upload_init(
+    *,
+    file_name: str,
+    total_size: int,
+    scan_type: str,
+    service_name: str,
+    environment: str = 'production',
+    checksum_sha256: Optional[str] = None
+):
     """Initialize a chunked upload session."""
     try:
         upload_id = str(uuid.uuid4())
@@ -177,12 +168,13 @@ async def upload_init(request: ChunkedUploadInitRequest):
         session_dir.mkdir(parents=True, exist_ok=True)
         meta = {
             'upload_id': upload_id,
-            'file_name': request.file_name,
-            'total_size': request.total_size,
-            'scan_type': request.scan_type,
-            'service_name': request.service_name,
-            'environment': request.environment,
-            'created_at': time.time(),
+            'file_name': file_name,
+            'total_size': total_size,
+            'scan_type': scan_type,
+            'service_name': service_name,
+            'environment': environment,
+            'checksum_sha256': checksum_sha256,
+            'created_at': datetime.now(timezone.utc).isoformat(),
             'chunks': 0
         }
         with open(session_dir / 'meta.json', 'w') as f:
@@ -219,14 +211,11 @@ async def upload_chunk(
         logger.error(f"Upload chunk failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-class ChunkedUploadCompleteRequest(BaseModel):
-    upload_id: str
-
 @router.post('/upload/complete')
-async def upload_complete(request: ChunkedUploadCompleteRequest):
+async def upload_complete(upload_id: str):
     """Assemble chunks and process the uploaded file."""
     start_time = time.perf_counter()
-    session_dir = UPLOAD_DIR / request.upload_id
+    session_dir = UPLOAD_DIR / upload_id
     if not session_dir.exists():
         raise HTTPException(status_code=400, detail='Invalid upload_id')
 
@@ -242,11 +231,21 @@ async def upload_complete(request: ChunkedUploadCompleteRequest):
                 with open(part_path, 'rb') as p:
                     shutil.copyfileobj(p, out)
 
+        # Optional checksum verification
+        if meta.get('checksum_sha256'):
+            h = hashlib.sha256()
+            with open(assembled_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                    h.update(chunk)
+            digest = h.hexdigest()
+            if digest != meta['checksum_sha256']:
+                raise HTTPException(status_code=400, detail='Checksum mismatch')
+
         # Process using existing single-shot code path by reusing parsers
         content = assembled_path.read_text(encoding='utf-8', errors='ignore')
 
         cli = FixOpsCLI()
-        await cli.initialize()
+        await cli.init()
         try:
             scan_type = meta['scan_type']
             if scan_type == 'sarif':
@@ -277,13 +276,13 @@ async def upload_complete(request: ChunkedUploadCompleteRequest):
                 findings_created.append(finding)
 
             correlation_engine = CorrelationEngine()
-            correlation_results = []
-            for finding in findings_created:
-                correlation_result = await correlation_engine.correlate_finding(finding.id)
-                if correlation_result:
-                    correlation_results.append(correlation_result)
+            correlation_result = await correlation_engine.correlate_findings(
+                service_ids=[service.id],
+                time_window_hours=24
+            )
 
             processing_time = (time.perf_counter() - start_time) * 1000
+            FixOpsMetrics.record_upload(scan_type)
             return {
                 "status": "success",
                 "message": f"Successfully processed {meta['scan_type'].upper()} file",
@@ -292,7 +291,7 @@ async def upload_complete(request: ChunkedUploadCompleteRequest):
                     "service_name": service.name,
                     "findings_processed": len(findings_created),
                     "findings_created": [f.id for f in findings_created],
-                    "correlations_found": len(correlation_results),
+                    "correlations_found": len(correlation_result.get('correlations', [])),
                     "processing_time_ms": round(processing_time, 2),
                     "hot_path_compliant": processing_time * 1000 < settings.HOT_PATH_TARGET_LATENCY_US,
                     "upload_metadata": {
@@ -301,7 +300,7 @@ async def upload_complete(request: ChunkedUploadCompleteRequest):
                         "scan_type": meta['scan_type'],
                         "environment": meta['environment'],
                         "uploaded_by": 'system',
-                        "upload_timestamp": time.time()
+                        "upload_timestamp": datetime.now(timezone.utc).isoformat()
                     }
                 }
             }
@@ -309,6 +308,24 @@ async def upload_complete(request: ChunkedUploadCompleteRequest):
             await cli.cleanup()
     except Exception as e:
         logger.error(f"Upload completion failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post('/upload/abort')
+async def upload_abort(upload_id: str):
+    """Abort and cleanup an in-progress chunked upload session."""
+    try:
+        session_dir = UPLOAD_DIR / upload_id
+        if not session_dir.exists():
+            return {"status": "success", "message": "Nothing to cleanup"}
+        for p in session_dir.glob('*'):
+            try:
+                p.unlink()
+            except IsADirectoryError:
+                shutil.rmtree(p, ignore_errors=True)
+        session_dir.rmdir()
+        return {"status": "success", "message": "Upload session aborted and cleaned up"}
+    except Exception as e:
+        logger.error(f"Upload abort failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/history")
@@ -382,6 +399,7 @@ async def _parse_csv(content: str) -> Dict[str, Any]:
     findings = []
 
     for row in csv_reader:
+      
         findings.append({
             "rule_id": row.get('rule_id', 'unknown'),
             "title": row.get('title', ''),
