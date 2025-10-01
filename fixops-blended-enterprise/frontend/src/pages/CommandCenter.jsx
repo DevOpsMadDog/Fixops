@@ -417,7 +417,14 @@ function CommandCenter() {
                   borderRadius: '8px',
                   border: '1px solid #374151'
                 }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
+                  <span style={{ 
+                    fontSize: '0.875rem', 
+                    fontWeight: '600',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {item.component}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
