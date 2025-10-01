@@ -41,14 +41,18 @@ class Settings(BaseSettings):
     CONFLUENCE_USERNAME: Optional[str] = Field(default=None)
     CONFLUENCE_API_TOKEN: Optional[str] = Field(default=None)
     
-    # Real Vector DB Settings
+    # Vector Store
+    PGVECTOR_ENABLED: bool = Field(default=False)
+    PGVECTOR_DSN: Optional[str] = Field(default=None, description="postgresql+psycopg://user:pass@host:5432/db")
+    
+    # Real Vector DB Settings (legacy)
     VECTOR_DB_URL: Optional[str] = Field(default=None)
     SECURITY_PATTERNS_DB_URL: Optional[str] = Field(default=None)
     THREAT_INTEL_API_KEY: Optional[str] = Field(default=None)
     
     # External Feeds / Feature Flags (SSVC deck alignment)
-    ENABLED_EPSS: bool = Field(default=False)
-    ENABLED_KEV: bool = Field(default=False)
+    ENABLED_EPSS: bool = Field(default=True)
+    ENABLED_KEV: bool = Field(default=True)
     ENABLED_VEX: bool = Field(default=False)
     ENABLED_RSS_SIDECAR: bool = Field(default=False)
     

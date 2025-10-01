@@ -1,24 +1,29 @@
 """
-External feeds stubs aligned to SSVC deck (EPSS, KEV) and status
+External feeds endpoints (EPSS, KEV) using FeedsService
 """
 from fastapi import APIRouter, HTTPException
-from src.config.settings import get_settings
 import structlog
 
+from src.config.settings import get_settings
+from src.services.feeds_service import FeedsService
+
 logger = structlog.get_logger()
-router = APIRouter(prefix="/feeds", tags=["external-feeds-stub"])
+router = APIRouter(prefix="/feeds", tags=["external-feeds"])
 settings = get_settings()
 
 @router.get("/status")
 async def feeds_status():
     try:
+        st = FeedsService.status(settings.ENABLED_EPSS, settings.ENABLED_KEV)
         return {
             "status": "success",
             "data": {
-                "enabled_epss": settings.ENABLED_EPSS,
-                "enabled_kev": settings.ENABLED_KEV,
-                "enabled_vex": settings.ENABLED_VEX,
-                "enabled_rss_sidecar": settings.ENABLED_RSS_SIDECAR,
+                "enabled_epss": st.enabled_epss,
+                "enabled_kev": st.enabled_kev,
+                "last_updated_epss": st.last_updated_epss,
+                "last_updated_kev": st.last_updated_kev,
+                "epss_count": st.epss_count,
+                "kev_count": st.kev_count,
             }
         }
     except Exception as e:
@@ -30,8 +35,8 @@ async def epss_refresh():
     try:
         if not settings.ENABLED_EPSS:
             return {"status": "disabled", "message": "EPSS integration disabled"}
-        # TODO: implement EPSS ingestion
-        return {"status": "success", "message": "EPSS refresh queued"}
+        res = await FeedsService.refresh_epss()
+        return res
     except Exception as e:
         logger.error(f"epss_refresh failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -41,8 +46,8 @@ async def kev_refresh():
     try:
         if not settings.ENABLED_KEV:
             return {"status": "disabled", "message": "KEV integration disabled"}
-        # TODO: implement KEV ingestion
-        return {"status": "success", "message": "KEV refresh queued"}
+        res = await FeedsService.refresh_kev()
+        return res
     except Exception as e:
         logger.error(f"kev_refresh failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
