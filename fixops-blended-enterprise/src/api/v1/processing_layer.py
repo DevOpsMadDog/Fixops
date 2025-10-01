@@ -56,11 +56,18 @@ async def get_processing_layer_status():
             },
             "architecture_compliance": {
                 "bayesian_prior_mapping_custom": True,
-                "markov_transition_matrix_builder_custom": True,
+                "markov_transition_matrix_builder_REAL_mchmm": True,
                 "ssvc_probabilistic_fusion_logic_custom": True,
                 "sarif_non_cve_vulnerability_handling_custom": True,
-                "knowledge_graph_construction": "planned",
-                "llm_explanation_engine": "planned"
+                "knowledge_graph_construction_REAL_ctinexus": True,
+                "llm_explanation_engine_REAL_awesome_llm4cybersec": True
+            },
+            "real_oss_tools_used": {
+                "mchmm": "Real Markov Chain Hidden Markov Models library",
+                "ctinexus_approach": "LLM-based entity extraction with in-context learning",
+                "awesome_llm4cybersecurity": "Cybersecurity-specialized LLM models and prompts",
+                "networkx": "Graph construction and analysis",
+                "emergent_llm": "Real LLM integration for explanations"
             }
         }
     except Exception as e:
