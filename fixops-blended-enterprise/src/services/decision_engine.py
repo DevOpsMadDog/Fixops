@@ -1049,14 +1049,7 @@ class DecisionEngine:
                 try:
                     from src.services.evidence_lake import EvidenceLake
                     # In a real implementation, Evidence Lake would have a method to get recent records
-                    # For now, query cache for recent evidence
-                    cache_keys = []
-                    for i in range(100):  # Check last 100 possible evidence IDs
-                        timestamp = int(time.time()) - (i * 3600)  # Check last 100 hours
-                        pattern = f"evidence:PROD-EVD-{timestamp}*"
-                        # This is simplified - real implementation would use proper cache scanning
-                    
-                    # Return simplified recent decisions for now
+                    # For now, return simplified recent decisions
                     return [
                         {
                             "evidence_id": f"PROD-EVD-{int(time.time()) - i*3600}",
