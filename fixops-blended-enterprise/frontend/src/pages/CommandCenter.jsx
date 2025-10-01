@@ -301,16 +301,24 @@ function CommandCenter() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div>
                 <h1 style={{
-                  fontSize: '2.5rem',
-                  fontWeight: '900',
+                  fontSize: '2.25rem',
+                  fontWeight: '700',
+                  color: 'white',
                   margin: 0,
-                  background: 'linear-gradient(135deg, #ffffff 0%, #3b82f6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  letterSpacing: '-0.025em',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                  lineHeight: '1.2'
                 }}>
                   SECURITY COMMAND CENTER
                 </h1>
-                <p style={{ fontSize: '1rem', color: '#94a3b8', margin: '0.5rem 0 0 0' }}>
+                <p style={{ 
+                  fontSize: '1rem', 
+                  color: '#94a3b8', 
+                  margin: '0.75rem 0 0 0',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                  fontWeight: '500',
+                  lineHeight: '1.4'
+                }}>
                   Enterprise DevSecOps Decision & Verification Engine
                 </p>
               </div>
