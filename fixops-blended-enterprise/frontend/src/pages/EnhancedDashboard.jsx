@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { apiMethods } from '../utils/api'
+import React, { useState, useEffect } from 'react'
+import { apiMethods, chunkedFileUpload } from '../utils/api'
 import Tooltip from '../components/Tooltip'
 
 function EnhancedDashboard() {
@@ -8,10 +8,15 @@ function EnhancedDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedService, setSelectedService] = useState('payment-processor')
 
-  // Input state (Paste JSON only – upload UI removed per request)
+  // Input state
   const [jsonInput, setJsonInput] = useState('{\n  "security_findings": [\n    {\n      "severity": "high",\n      "category": "injection",\n      "title": "SQL injection vulnerability in payment endpoint",\n      "source": "sonarqube"\n    }\n  ],\n  "business_context": {\n    "business_criticality": "critical",\n    "data_classification": "pii_financial"\n  }\n}')
   const [rawResponse, setRawResponse] = useState(null)
   const [statusMsg, setStatusMsg] = useState('idle')
+
+  // Upload state (UI restored here)
+  const [file, setFile] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadStatus, setUploadStatus] = useState('idle') // idle | uploading | processing | done | error
 
   useEffect(() => {
     fetchEnhancedData()
@@ -68,6 +73,31 @@ function EnhancedDashboard() {
     }
   }
 
+  const handleFileChange = (e) => {
+    const f = e.target.files?.[0]
+    setFile(f || null)
+    setUploadProgress(0)
+    setUploadStatus('idle')
+  }
+
+  const handleChunkedUpload = async (scan_type) => {
+    if (!file) return
+    try {
+      setUploadStatus('uploading')
+      const resp = await chunkedFileUpload(file, {
+        scan_type,
+        service_name: selectedService,
+        environment: 'production',
+        onProgress: (p) => setUploadProgress(p),
+      })
+      setRawResponse(resp)
+      setUploadStatus('done')
+    } catch (e) {
+      console.error('Chunked upload failed', e)
+      setUploadStatus('error')
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px', fontSize: '1.5rem', color: '#6b7280' }}>
@@ -94,23 +124,52 @@ function EnhancedDashboard() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      {/* Input Panel (Paste JSON only) */}
+      {/* Input Panel (Paste JSON + Upload formats) */}
       <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           Provide Security Findings
+          <Tooltip text="Paste scanner JSON to analyze immediately, or upload SARIF/SBOM/CSV/JSON using chunked upload. We’ll parse and process findings for you."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
         </h2>
-        <div>
-          <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Paste JSON</label>
-          <textarea
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            rows={12}
-            style={{ width: '100%', padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.875rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}
-          />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button onClick={handleAnalyze} style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Analyze JSON</button>
-            {statusMsg !== 'idle' && (
-              <span style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Status: {statusMsg}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {/* Left: Paste JSON */}
+          <div>
+            <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Paste JSON</label>
+            <textarea
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              rows={12}
+              style={{ width: '100%', padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.875rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button onClick={handleAnalyze} style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Analyze JSON</button>
+              {statusMsg !== 'idle' && (
+                <span style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Status: {statusMsg}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Upload (Chunked) */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 600 }}>Or Upload File (Chunked)</label>
+              <Tooltip text="Chunked upload helps bypass proxy limits and improves reliability for large files."><span style={{ cursor: 'help' }}>ℹ️</span></Tooltip>
+            </div>
+            <input type="file" onChange={handleFileChange} style={{ display: 'block', marginBottom: '0.5rem' }} />
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={() => handleChunkedUpload('sarif')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SARIF</button>
+              <button onClick={() => handleChunkedUpload('sbom')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SBOM</button>
+              <button onClick={() => handleChunkedUpload('csv')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload CSV</button>
+              <button onClick={() => handleChunkedUpload('json')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload JSON</button>
+            </div>
+            {uploadStatus !== 'idle' && (
+              <div>
+                <div style={{ height: '10px', backgroundColor: '#e5e7eb', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                  <div style={{ height: '10px', width: `${uploadProgress}%`, backgroundColor: '#16a34a' }} />
+                </div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                  Status: {uploadStatus} {uploadStatus === 'uploading' ? `${uploadProgress}%` : ''}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -187,9 +246,7 @@ function EnhancedDashboard() {
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '2rem', fontWeight: 'bold', color: getConfidenceColor(llmComparison.consensus_confidence), marginBottom: '0.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                   {Math.round(llmComparison.consensus_confidence * 100)}%
-                  <Tooltip text="Consensus confidence is computed via weighted aggregation across LLM outputs with variance checks; higher variance lowers confidence." position="left">
-                    <span style={{ fontSize: '1rem', cursor: 'help' }}>ℹ️</span>
-                  </Tooltip>
+                  <Tooltip text="Consensus confidence is computed via weighted aggregation across LLM outputs with variance checks; higher variance lowers confidence." position="left"><span style={{ fontSize: '1rem', cursor: 'help' }}>ℹ️</span></Tooltip>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Consensus Confidence</div>
               </div>
@@ -204,9 +261,7 @@ function EnhancedDashboard() {
                   <span style={{ fontSize: '1.5rem', marginRight: '0.75rem' }}>{getLLMIcon(analysis.provider)}</span>
                   <div>
                     <h4 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>{analysis.provider_name}
-                      <Tooltip text="Per-model recommendation and confidence before consensus. Use this to understand model-specific strengths." position="right">
-                        <span style={{ marginLeft: '0.4rem', cursor: 'help' }}>ℹ️</span>
-                      </Tooltip>
+                      <Tooltip text="Per-model recommendation and confidence before consensus. Use this to understand model-specific strengths." position="right"><span style={{ marginLeft: '0.4rem', cursor: 'help' }}>ℹ️</span></Tooltip>
                     </h4>
                     <div style={{ fontSize: '0.75rem', fontWeight: '600', color: getConfidenceColor(analysis.confidence), backgroundColor: analysis.confidence >= 0.85 ? '#dcfce7' : analysis.confidence >= 0.7 ? '#fef3c7' : '#fecaca', padding: '0.25rem 0.5rem', borderRadius: '12px', display: 'inline-block' }}>
                       {Math.round(analysis.confidence * 100)}% CONFIDENCE
