@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     SECURITY_PATTERNS_DB_URL: Optional[str] = Field(default=None)
     THREAT_INTEL_API_KEY: Optional[str] = Field(default=None)
     
+    # External Feeds / Feature Flags (SSVC deck alignment)
+    ENABLED_EPSS: bool = Field(default=False)
+    ENABLED_KEV: bool = Field(default=False)
+    ENABLED_VEX: bool = Field(default=False)
+    ENABLED_RSS_SIDECAR: bool = Field(default=False)
+    
     # Security Configuration  
     SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY"))
     JWT_ALGORITHM: str = "HS256"
