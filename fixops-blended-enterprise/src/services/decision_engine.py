@@ -779,6 +779,40 @@ class DecisionEngine:
         await self.cache.set(f"evidence:{evidence_id}", json.dumps(evidence), ttl=86400*30)  # 30 days
         
         return evidence_id
+    
+    async def _use_processing_layer(self, context) -> Dict[str, Any]:
+        """Use Processing Layer for integrated architecture components"""
+        try:
+            # Process through Bayesian Prior Mapping
+            bayesian_results = await self.processing_layer.bayesian_prior_mapping(context)
+            
+            # Process through Markov Chain Transitions
+            markov_results = await self.processing_layer.markov_transitions(context, bayesian_results)
+            
+            # Process through SSVC Fusion
+            ssvc_results = await self.processing_layer.ssvc_fusion(context, markov_results)
+            
+            # Process through SARIF Analysis
+            sarif_results = await self.processing_layer.sarif_analysis(context, ssvc_results)
+            
+            # Generate final decision from Processing Layer
+            decision = await self.processing_layer.generate_decision(sarif_results)
+            
+            # Generate evidence
+            evidence_id = await self._real_evidence_generation(context, decision, sarif_results)
+            
+            return {
+                "decision": decision,
+                "evidence_id": evidence_id,
+                "bayesian_results": bayesian_results,
+                "markov_results": markov_results,
+                "ssvc_results": ssvc_results,
+                "sarif_results": sarif_results
+            }
+            
+        except Exception as e:
+            logger.error(f"Processing Layer execution failed: {str(e)}")
+            raise
 
 # Global instance
 decision_engine = DecisionEngine()
