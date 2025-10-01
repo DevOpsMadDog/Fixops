@@ -22,7 +22,6 @@ function App() {
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/docs" element={<Docs />} />
-        <Route path="/oss-tools" element={<OssIntegrationsPage />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
       </Routes>
     </Layout>
