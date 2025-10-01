@@ -1201,18 +1201,6 @@ class DecisionEngine:
                 "error": "Failed to load SSDLC data",
                 "fallback": True
             }
-            
-        except Exception as e:
-            logger.error(f"Evidence generation failed: {e}")
-            # Create simple evidence record
-            simple_evidence = {
-                "evidence_id": evidence_id,
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "service_name": context.service_name
-            }
-            await self.cache.set(f"evidence:{evidence_id}", json.dumps(simple_evidence), ttl=86400*7)
-            return evidence_id
     
     async def _use_processing_layer(self, context) -> Dict[str, Any]:
         """Use Processing Layer for integrated architecture components"""
