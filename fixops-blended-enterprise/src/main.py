@@ -234,6 +234,7 @@ app.include_router(notifications.router, prefix="/api/v1", tags=["notifications-
 app.include_router(oss_tools.router, prefix="/api/v1", tags=["oss-integrations"])
 app.include_router(processing_layer.router, prefix="/api/v1", tags=["processing-layer"])
 app.include_router(user_workflow.router, prefix="/api/v1", tags=["user-workflow"])
+app.include_router(sample_data_demo.router, prefix="/api/v1", tags=["sample-data-demo"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):
