@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { apiMethods, chunkedFileUpload } from '../utils/api'
 import Tooltip from '../components/Tooltip'
 
+const LS_INPUT_KEY = 'fixops.enhanced.input'
+const LS_RESULT_KEY = 'fixops.enhanced.lastResult'
+
 function EnhancedDashboard() {
   const [enhancedMetrics, setEnhancedMetrics] = useState(null)
   const [llmComparison, setLlmComparison] = useState(null)
@@ -9,7 +12,8 @@ function EnhancedDashboard() {
   const [selectedService, setSelectedService] = useState('payment-processor')
 
   // Input state
-  const [jsonInput, setJsonInput] = useState('{\n  "security_findings": [\n    {\n      "severity": "high",\n      "category": "injection",\n      "title": "SQL injection vulnerability in payment endpoint",\n      "source": "sonarqube"\n    }\n  ],\n  "business_context": {\n    "business_criticality": "critical",\n    "data_classification": "pii_financial"\n  }\n}')
+  const defaultJson = '{\n  "security_findings": [\n    {\n      "severity": "high",\n      "category": "injection",\n      "title": "SQL injection vulnerability in payment endpoint",\n      "source": "sonarqube"\n    }\n  ],\n  "business_context": {\n    "business_criticality": "critical",\n    "data_classification": "pii_financial"\n  }\n}'
+  const [jsonInput, setJsonInput] = useState(defaultJson)
   const [rawResponse, setRawResponse] = useState(null)
   const [statusMsg, setStatusMsg] = useState('idle')
 
@@ -22,6 +26,18 @@ function EnhancedDashboard() {
   const [showApiDocs, setShowApiDocs] = useState(false)
 
   useEffect(() => {
+    // Load any saved input and last result
+    try {
+      const saved = localStorage.getItem(LS_INPUT_KEY)
+      if (saved) setJsonInput(saved)
+      const savedResult = localStorage.getItem(LS_RESULT_KEY)
+      if (savedResult) {
+        const parsed = JSON.parse(savedResult)
+        setRawResponse(parsed)
+        if (parsed?.data) setLlmComparison(parsed.data)
+      }
+    } catch (_) {}
+
     fetchEnhancedData()
   }, [])
 
@@ -70,9 +86,34 @@ function EnhancedDashboard() {
       setRawResponse(res.data)
       setLlmComparison(res.data?.data || {})
       setStatusMsg('done')
+      try {
+        localStorage.setItem(LS_INPUT_KEY, jsonInput)
+        localStorage.setItem(LS_RESULT_KEY, JSON.stringify(res.data))
+      } catch (_) {}
     } catch (e) {
       console.error(e)
       setStatusMsg('error')
+    }
+  }
+
+  const handleTrySample = async () => {
+    setJsonInput(defaultJson)
+    await handleAnalyze()
+  }
+
+  const handleLoadLast = async () => {
+    try {
+      const saved = localStorage.getItem(LS_INPUT_KEY)
+      if (saved) setJsonInput(saved)
+      const savedResult = localStorage.getItem(LS_RESULT_KEY)
+      if (savedResult) {
+        const parsed = JSON.parse(savedResult)
+        setRawResponse(parsed)
+        if (parsed?.data) setLlmComparison(parsed.data)
+        setStatusMsg('restored')
+      }
+    } catch (e) {
+      console.error('Failed to load last analysis', e)
     }
   }
 
@@ -95,6 +136,7 @@ function EnhancedDashboard() {
       })
       setRawResponse(resp)
       setUploadStatus('done')
+      try { localStorage.setItem(LS_RESULT_KEY, JSON.stringify(resp)) } catch (_) {}
     } catch (e) {
       console.error('Chunked upload failed', e)
       setUploadStatus('error')
@@ -181,8 +223,10 @@ function EnhancedDashboard() {
               rows={12}
               style={{ width: '100%', padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.875rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button onClick={handleAnalyze} style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Analyze JSON</button>
+              <button onClick={handleTrySample} style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Try Sample JSON</button>
+              <button onClick={handleLoadLast} style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700 }}>Load Last Analysis</button>
               {statusMsg !== 'idle' && (
                 <span style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Status: {statusMsg}</span>
               )}
@@ -197,7 +241,7 @@ function EnhancedDashboard() {
             </div>
             <input type="file" accept=".json,.sarif,.csv,application/json,text/csv" onChange={handleFileChange} style={{ display: 'block', marginBottom: '0.5rem' }} />
             <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-              Accepted: JSON (SARIF/SBOM/Generic) and CSV • Max suggested size: 10MB (larger files OK via chunks)
+              Accepted: JSON (SARIF .sarif.json / SBOM .sbom.json / generic) and CSV • Suggested max size: 10MB (larger OK via chunks)
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
               <button onClick={() => handleChunkedUpload('sarif')} disabled={!file} style={{ padding: '0.5rem 0.75rem', backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '8px' }}>Upload SARIF</button>
@@ -247,6 +291,8 @@ POST /api/v1/enhanced/compare-llms  (json)
   { service_name, security_findings: [], business_context: {} }
 POST /api/v1/enhanced/analysis  (json)
   { service_name, environment, business_context, security_findings, compliance_requirements }
+
+Docs: /api/docs (Swagger) • /api/redoc (ReDoc)
 `}</pre>
               <div style={{ fontWeight: 700, margin: '0.75rem 0 0.5rem' }}>CLI (CI/CD)</div>
               <pre style={{ whiteSpace: 'pre-wrap' }}>{`
