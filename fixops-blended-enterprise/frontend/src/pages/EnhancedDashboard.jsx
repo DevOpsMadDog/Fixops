@@ -377,29 +377,75 @@ ${curlCompare()}
         </div>
       </div>
 
-      {/* Header */}
+      {/* Header with Mode Indicator */}
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
-          ✨ Enhanced Multi-LLM Intelligence
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }}></div>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0, flex: 2, textAlign: 'center' }}>
+            ✨ Enhanced Multi-LLM Intelligence
+          </h1>
+          <div style={{ flex: 1, textAlign: 'right' }}>
+            <div style={{ 
+              fontSize: '0.875rem', 
+              fontWeight: '700', 
+              color: enhancedMetrics?.system_mode === 'demo' ? '#7c3aed' : '#16a34a',
+              backgroundColor: enhancedMetrics?.system_mode === 'demo' ? '#f3e8ff' : '#dcfce7',
+              padding: '0.5rem 1rem',
+              borderRadius: '20px',
+              textTransform: 'uppercase',
+              display: 'inline-block'
+            }}>
+              {enhancedMetrics?.system_mode === 'demo' ? '🎭 DEMO MODE' : '🏭 PRODUCTION MODE'}
+            </div>
+          </div>
+        </div>
         <p style={{ color: '#6b7280', fontSize: '1.125rem', marginBottom: '1rem' }}>
-          Advanced security decisions powered by GPT-4, Claude, Gemini, and specialized models
+          {enhancedMetrics?.system_mode === 'demo' 
+            ? 'Demo: Advanced security decisions powered by simulated GPT-4, Claude, Gemini, and specialized models'
+            : 'Production: Real-time security decisions from live LLM integrations'
+          }
         </p>
+        
+        {/* System Status Indicators */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            fontWeight: '600',
+            color: enhancedMetrics?.processing_layer_available ? '#16a34a' : '#6b7280',
+            backgroundColor: enhancedMetrics?.processing_layer_available ? '#dcfce7' : '#f3f4f6',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '12px'
+          }}>
+            Processing Layer: {enhancedMetrics?.processing_layer_available ? 'Active' : 'Demo'}
+          </div>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            fontWeight: '600',
+            color: enhancedMetrics?.oss_integrations_available ? '#16a34a' : '#6b7280',
+            backgroundColor: enhancedMetrics?.oss_integrations_available ? '#dcfce7' : '#f3f4f6',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '12px'
+          }}>
+            OSS Integrations: {enhancedMetrics?.oss_integrations_available ? 'Active' : 'Demo'}
+          </div>
+        </div>
 
         {/* Enhanced Capabilities Overview */}
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'inline-block' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb' }}>{enhancedMetrics?.llm_providers_available || 0}</div>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>LLM Models</div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{enhancedMetrics?.system_mode === 'demo' ? 'Demo Models' : 'Real Models'}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#16a34a' }}>{enhancedMetrics?.mitre_techniques_mapped || 0}</div>
               <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>MITRE Techniques</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#7c3aed' }}>95%+</div>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Accuracy</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#7c3aed' }}>
+                {enhancedMetrics?.system_mode === 'demo' ? 'Demo' : 'Real'} Data
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Analysis Source</div>
             </div>
           </div>
         </div>
