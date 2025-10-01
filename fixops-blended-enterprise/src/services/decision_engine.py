@@ -14,6 +14,7 @@ import structlog
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
+from src.database.manager import DatabaseManager
 
 logger = structlog.get_logger()
 settings = get_settings()
