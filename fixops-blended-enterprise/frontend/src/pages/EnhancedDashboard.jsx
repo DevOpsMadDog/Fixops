@@ -266,7 +266,7 @@ function EnhancedDashboard() {
       minHeight: '100vh',
       color: 'white'
     }}>
-      {/* Input Panel (Paste JSON + Upload formats) */}
+      {/* Professional Input Panel */}
       <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
