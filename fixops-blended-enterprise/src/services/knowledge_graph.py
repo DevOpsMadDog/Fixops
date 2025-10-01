@@ -45,37 +45,48 @@ class CTINexusEntityExtractor:
         self.cybersecurity_ontology = self._load_cybersecurity_ontology()
         self.demonstration_examples = self._load_demonstration_examples()
     
-    def _initialize_patterns(self) -> Dict[str, List[str]]:
-        """Initialize entity extraction patterns"""
+    def _initialize_llm_client(self):
+        """Initialize LLM client for CTINexus-style entity extraction"""
+        try:
+            from emergentintegrations import EmergentLLM
+            self.llm_client = EmergentLLM(
+                model="gpt-5",
+                temperature=0.1,  # Low temperature for consistent entity extraction
+                max_tokens=1500
+            )
+            logger.info("✅ CTINexus LLM client initialized for entity extraction")
+        except Exception as e:
+            logger.error(f"CTINexus LLM initialization failed: {e}")
+            self.llm_client = None
+
+    def _load_cybersecurity_ontology(self) -> Dict[str, List[str]]:
+        """Load cybersecurity ontology for CTINexus entity extraction"""
         return {
-            "vulnerability": [
-                r"CVE-\d{4}-\d{4,7}",
-                r"CWE-\d+",
-                r"GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}"
-            ],
-            "component": [
-                r"[\w\-]+@\d+\.\d+\.\d+",  # package@version
-                r"[\w\-]+:[\w\-]+:\d+\.\d+\.\d+"  # group:artifact:version
-            ],
-            "service": [
-                r"[a-z][a-z0-9\-]*[a-z0-9]\.service",
-                r"[a-z][a-z0-9\-]*[a-z0-9]\.app"
-            ],
-            "technique": [
-                r"T\d{4}(\.\d{3})?",  # MITRE ATT&CK techniques
-                r"TA\d{4}"  # MITRE ATT&CK tactics
-            ]
+            "vulnerability": ["CVE", "CWE", "vulnerability", "exploit", "bug", "flaw"],
+            "threat_actor": ["APT", "threat actor", "attacker", "hacker", "group"],
+            "malware": ["malware", "trojan", "ransomware", "virus", "backdoor", "rootkit"],
+            "technique": ["MITRE", "technique", "tactic", "procedure", "TTP"],
+            "indicator": ["IOC", "hash", "IP address", "domain", "URL", "file path"],
+            "asset": ["system", "server", "application", "database", "network", "endpoint"],
+            "control": ["patch", "update", "fix", "mitigation", "control", "defense"]
         }
     
-    def _initialize_relation_patterns(self) -> Dict[str, List[str]]:
-        """Initialize relationship extraction patterns"""
-        return {
-            "exploits": ["exploits", "targets", "attacks"],
-            "depends_on": ["depends on", "requires", "needs", "uses"],
-            "mitigates": ["fixes", "patches", "resolves", "mitigates"],
-            "affects": ["affects", "impacts", "compromises"],
-            "contains": ["contains", "includes", "has component"]
-        }
+    def _load_demonstration_examples(self) -> List[Dict[str, str]]:
+        """Load demonstration examples for in-context learning as per CTINexus"""
+        return [
+            {
+                "input": "CVE-2024-1234 affects Apache Struts allowing remote code execution on web servers.",
+                "output": "Entities: [CVE-2024-1234|vulnerability], [Apache Struts|asset], [remote code execution|technique], [web servers|asset]. Relations: [CVE-2024-1234|affects|Apache Struts], [CVE-2024-1234|enables|remote code execution], [remote code execution|targets|web servers]"
+            },
+            {
+                "input": "Threat actor APT29 uses PowerShell to deploy Cobalt Strike beacon for persistence.",
+                "output": "Entities: [APT29|threat_actor], [PowerShell|technique], [Cobalt Strike|malware], [persistence|technique]. Relations: [APT29|uses|PowerShell], [PowerShell|deploys|Cobalt Strike], [Cobalt Strike|achieves|persistence]"
+            },
+            {
+                "input": "SQL injection vulnerability in login form allows data exfiltration from customer database.",
+                "output": "Entities: [SQL injection|vulnerability], [login form|asset], [data exfiltration|technique], [customer database|asset]. Relations: [SQL injection|located_in|login form], [SQL injection|enables|data exfiltration], [data exfiltration|targets|customer database]"
+            }
+        ]
     
     async def extract_entities(self, scan_data: Dict[str, Any]) -> List[SecurityEntity]:
         """Extract security entities from scan data"""
