@@ -644,15 +644,84 @@ class DecisionEngine:
     # Real production methods with OSS tools integration
     async def _real_vector_db_lookup(self, context, enriched_context):
         """Real vector database lookup for security patterns"""
-        if not self.real_vector_db:
-            return {"status": "not_available", "patterns_matched": 0}
-        
-        return {
-            "status": "active",
-            "patterns_matched": 15,
-            "confidence": 0.92,
-            "security_patterns": ["sql_injection", "auth_bypass", "crypto_weakness"]
-        }
+        try:
+            if not self.real_vector_db:
+                return {"status": "not_available", "patterns_matched": 0}
+            
+            # Create search query from security findings
+            query_texts = []
+            
+            # Add security finding descriptions to query
+            for finding in context.security_findings:
+                if finding.get('description'):
+                    query_texts.append(finding['description'])
+                if finding.get('title'):
+                    query_texts.append(finding['title'])
+            
+            # Add service context
+            query_texts.append(f"Security vulnerability in {context.service_name} service")
+            
+            # Combine all text for search
+            combined_query = " ".join(query_texts[:3])  # Limit to prevent too long queries
+            
+            if not combined_query.strip():
+                combined_query = f"security vulnerability analysis {context.service_name}"
+            
+            # Search vector store for similar patterns
+            similar_patterns = await self.real_vector_db.search_security_patterns(
+                query_text=combined_query,
+                top_k=10
+            )
+            
+            # Extract pattern information
+            matched_patterns = []
+            total_confidence = 0
+            
+            for pattern in similar_patterns:
+                metadata = pattern.metadata
+                matched_patterns.append({
+                    "pattern_id": pattern.id,
+                    "category": metadata.get("category", "unknown"),
+                    "severity": metadata.get("severity", "medium"),
+                    "cwe_id": metadata.get("cwe_id", ""),
+                    "mitre_techniques": metadata.get("mitre_techniques", []),
+                    "similarity_score": pattern.similarity_score,
+                    "fix_guidance": metadata.get("fix_guidance", "")
+                })
+                total_confidence += pattern.similarity_score
+            
+            # Calculate average confidence
+            avg_confidence = total_confidence / len(similar_patterns) if similar_patterns else 0.0
+            
+            # Extract unique categories and techniques
+            categories = list(set([p["category"] for p in matched_patterns]))
+            techniques = []
+            for p in matched_patterns:
+                techniques.extend(p.get("mitre_techniques", []))
+            unique_techniques = list(set(techniques))
+            
+            result = {
+                "status": "active",
+                "patterns_matched": len(similar_patterns),
+                "confidence": round(avg_confidence, 3),
+                "avg_similarity": round(avg_confidence, 3),
+                "categories_found": categories,
+                "mitre_techniques": unique_techniques[:10],  # Top 10 techniques
+                "matched_patterns": matched_patterns[:5],  # Top 5 detailed patterns
+                "database_type": "ChromaDB" if not settings.DEMO_MODE else "Demo"
+            }
+            
+            logger.info(f"Vector DB lookup found {len(similar_patterns)} similar patterns with avg confidence {avg_confidence:.3f}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Vector DB lookup failed: {str(e)}")
+            return {
+                "status": "error", 
+                "error": str(e),
+                "patterns_matched": 0,
+                "confidence": 0.0
+            }
     
     async def _real_golden_regression_validation(self, context):
         """Real golden regression validation using historical decisions"""
