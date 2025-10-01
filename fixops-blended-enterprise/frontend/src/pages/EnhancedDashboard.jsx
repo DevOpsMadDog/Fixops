@@ -286,7 +286,15 @@ function EnhancedDashboard() {
               value={selectedService}
               onChange={(e) => { setSelectedService(e.target.value); try { localStorage.setItem(LS_SERVICE_KEY, e.target.value) } catch (_) {} }}
               placeholder="e.g., payment-processor"
-              style={{ padding: '0.5rem 0.75rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+              style={{ 
+                padding: '0.75rem 1rem', 
+                border: '1px solid rgba(255, 255, 255, 0.2)', 
+                borderRadius: '8px',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                color: 'white',
+                fontSize: '0.875rem',
+                fontWeight: '600'
+              }}
             />
           </div>
         </div>
