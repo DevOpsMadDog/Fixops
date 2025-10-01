@@ -295,10 +295,20 @@ class DecisionEngine:
             # Initialize default OPA policies if OPA is available
             if status.get("opa", {}).get("available", False):
                 logger.info("OPA available - default security policies loaded")
-            
+                
         except Exception as e:
             logger.error(f"OSS tools initialization failed: {str(e)}")
             self.oss_integrations = None
+            
+        # Initialize Processing Layer with all architecture components
+        try:
+            from src.services.processing_layer import ProcessingLayer
+            self.processing_layer = ProcessingLayer()
+            logger.info("✅ Processing Layer initialized with Bayesian/Markov/SSVC/SARIF components")
+            
+        except Exception as e:
+            logger.error(f"Processing Layer initialization failed: {str(e)}")
+            self.processing_layer = None
 
     async def make_decision(self, context: DecisionContext) -> DecisionResult:
         """Make a security decision based on mode (demo vs production)"""
