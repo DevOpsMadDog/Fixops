@@ -811,36 +811,125 @@ class DecisionEngine:
     async def _use_processing_layer(self, context) -> Dict[str, Any]:
         """Use Processing Layer for integrated architecture components"""
         try:
-            # Process through Bayesian Prior Mapping
-            bayesian_results = await self.processing_layer.bayesian_prior_mapping(context)
+            from src.services.processing_layer import SSVCContext, MarkovState
             
-            # Process through Markov Chain Transitions
-            markov_results = await self.processing_layer.markov_transitions(context, bayesian_results)
+            # Convert decision context to Processing Layer format
+            ssvc_context = SSVCContext(
+                exploitation=self._extract_exploitation_level(context),
+                exposure=self._extract_exposure_level(context),
+                utility=self._extract_utility_level(context),
+                safety_impact=self._extract_safety_impact(context),
+                mission_impact=self._extract_mission_impact(context)
+            )
             
-            # Process through SSVC Fusion
-            ssvc_results = await self.processing_layer.ssvc_fusion(context, markov_results)
+            # Create Markov states from security findings
+            markov_states = []
+            for finding in context.security_findings:
+                markov_state = MarkovState(
+                    current_state="vulnerable" if finding.get("severity") in ["HIGH", "CRITICAL"] else "secure",
+                    cve_id=finding.get("cve"),
+                    epss_score=finding.get("epss_score", 0.5),
+                    kev_flag=finding.get("kev_flag", False),
+                    disclosure_date=datetime.now(timezone.utc)  # Default to now
+                )
+                markov_states.append(markov_state)
             
-            # Process through SARIF Analysis
-            sarif_results = await self.processing_layer.sarif_analysis(context, ssvc_results)
+            # Extract SARIF data if available
+            sarif_data = context.scan_data.get("sarif") if context.scan_data else None
             
-            # Generate final decision from Processing Layer
-            decision = await self.processing_layer.generate_decision(sarif_results)
+            # Run Processing Layer pipeline
+            processing_results = await self.processing_layer.process_security_context(
+                ssvc_context=ssvc_context,
+                markov_states=markov_states,
+                sarif_data=sarif_data
+            )
+            
+            # Convert Processing Layer decision to Decision Engine format
+            decision_outcome = processing_results["final_recommendation"]
+            outcome_enum = DecisionOutcome.ALLOW
+            if decision_outcome == "BLOCK":
+                outcome_enum = DecisionOutcome.BLOCK
+            elif decision_outcome == "DEFER":
+                outcome_enum = DecisionOutcome.DEFER
+            
+            decision = {
+                "outcome": outcome_enum,
+                "reasoning": processing_results["explanation"],
+                "confidence": processing_results["confidence_score"]
+            }
             
             # Generate evidence
-            evidence_id = await self._real_evidence_generation(context, decision, sarif_results)
+            evidence_id = await self._real_evidence_generation(context, decision, processing_results)
             
             return {
                 "decision": decision,
                 "evidence_id": evidence_id,
-                "bayesian_results": bayesian_results,
-                "markov_results": markov_results,
-                "ssvc_results": ssvc_results,
-                "sarif_results": sarif_results
+                "bayesian_results": processing_results["processing_results"]["bayesian_priors"],
+                "markov_results": processing_results["processing_results"]["markov_predictions"],
+                "ssvc_results": processing_results["processing_results"]["fusion_decision"],
+                "sarif_results": processing_results["processing_results"].get("sarif_analysis", {}),
+                "processing_metadata": processing_results["processing_metadata"]
             }
             
         except Exception as e:
             logger.error(f"Processing Layer execution failed: {str(e)}")
             raise
+    
+    def _extract_exploitation_level(self, context) -> str:
+        """Extract exploitation level from context for SSVC"""
+        # Check if any CVE has active exploitation
+        for finding in context.security_findings:
+            if finding.get("kev_flag", False):
+                return "active"
+            elif finding.get("epss_score", 0) > 0.7:
+                return "poc"
+        return "none"
+    
+    def _extract_exposure_level(self, context) -> str:
+        """Extract exposure level from context for SSVC"""
+        environment = context.environment.lower()
+        if environment == "production":
+            return "open"
+        elif environment == "staging":
+            return "controlled"
+        else:
+            return "small"
+    
+    def _extract_utility_level(self, context) -> str:
+        """Extract utility level from context for SSVC"""
+        # Check severity of findings to determine utility
+        critical_count = len([f for f in context.security_findings if f.get("severity") == "CRITICAL"])
+        if critical_count > 2:
+            return "super_effective"
+        elif critical_count > 0:
+            return "efficient"
+        else:
+            return "laborious"
+    
+    def _extract_safety_impact(self, context) -> str:
+        """Extract safety impact from context for SSVC"""
+        # Determine based on service type and environment
+        service_name = context.service_name.lower()
+        if any(keyword in service_name for keyword in ["auth", "payment", "user", "admin"]):
+            return "major"
+        elif context.environment.lower() == "production":
+            return "marginal"
+        else:
+            return "negligible"
+    
+    def _extract_mission_impact(self, context) -> str:
+        """Extract mission impact from context for SSVC"""
+        # Determine based on criticality and findings
+        if context.environment.lower() == "production":
+            critical_findings = len([f for f in context.security_findings if f.get("severity") == "CRITICAL"])
+            if critical_findings > 3:
+                return "mev"  # Mission Essential Degraded
+            elif critical_findings > 0:
+                return "crippled"
+            else:
+                return "degraded"
+        else:
+            return "degraded"
 
 # Global instance
 decision_engine = DecisionEngine()
