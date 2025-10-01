@@ -50,6 +50,10 @@ class MarketplaceService:
         self._items: List[MarketplaceItem] = self._seed_items()
         self._purchases: Dict[str, Dict[str, Any]] = {}
 
+    async def initialize(self):
+        # No-op for now; placeholder for DB connections or caching
+        return None
+
     def _seed_items(self) -> List[MarketplaceItem]:
         return [
             MarketplaceItem(
