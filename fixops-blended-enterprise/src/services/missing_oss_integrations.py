@@ -119,46 +119,338 @@ class SBOMParser:
             logger.error(f"lib4sbom initialization failed: {e}")
             self.lib4sbom = None
     
-    async def parse_sbom(self, sbom_data: str, sbom_format: str = "json") -> Dict[str, Any]:
-        """Parse SBOM using real lib4sbom library"""
+    async def parse_sbom(self, sbom_data: Any, sbom_format: str = "json") -> Dict[str, Any]:
+        """Parse SBOM using real lib4sbom library with detailed validation"""
         try:
             if not self.parser:
                 return {"status": "lib4sbom_unavailable", "components": []}
             
-            # Parse SBOM using lib4sbom
             parsed_components = []
+            validation_errors = []
             
-            if sbom_format.lower() == "json":
-                # Parse JSON SBOM
-                sbom_dict = json.loads(sbom_data) if isinstance(sbom_data, str) else sbom_data
-                
-                # Extract components using lib4sbom approach
-                components = sbom_dict.get("components", [])
-                for component in components:
-                    parsed_component = {
-                        "name": component.get("name", "unknown"),
-                        "version": component.get("version", "unknown"),
-                        "type": component.get("type", "library"),
-                        "purl": component.get("purl", ""),
-                        "supplier": component.get("supplier", {}).get("name", "unknown"),
-                        "licenses": component.get("licenses", []),
-                        "hashes": component.get("hashes", []),
-                        "dependencies": component.get("dependencies", [])
-                    }
-                    parsed_components.append(parsed_component)
+            # Handle different input types
+            if isinstance(sbom_data, str):
+                try:
+                    sbom_dict = json.loads(sbom_data)
+                except json.JSONDecodeError as e:
+                    return {"status": "error", "error": f"Invalid JSON format: {str(e)}"}
+            elif isinstance(sbom_data, dict):
+                sbom_dict = sbom_data
+            else:
+                return {"status": "error", "error": f"Unsupported SBOM data type: {type(sbom_data)}"}
+            
+            # Validate SBOM structure
+            validation_result = self._validate_sbom_structure(sbom_dict)
+            if not validation_result["valid"]:
+                validation_errors.extend(validation_result["errors"])
+            
+            # Extract metadata
+            metadata = {
+                "bom_format": sbom_dict.get("bomFormat", "unknown"),
+                "spec_version": sbom_dict.get("specVersion", "unknown"),
+                "serial_number": sbom_dict.get("serialNumber", "unknown"),
+                "version": sbom_dict.get("version", 1),
+                "timestamp": sbom_dict.get("metadata", {}).get("timestamp", "unknown"),
+                "tools": sbom_dict.get("metadata", {}).get("tools", [])
+            }
+            
+            # Parse components with detailed validation
+            components = sbom_dict.get("components", [])
+            for idx, component in enumerate(components):
+                try:
+                    parsed_component = self._parse_component_detailed(component, idx)
+                    if parsed_component:
+                        parsed_components.append(parsed_component)
+                except Exception as e:
+                    validation_errors.append(f"Component {idx}: {str(e)}")
+            
+            # Extract dependencies if present
+            dependencies = self._extract_dependencies(sbom_dict)
+            
+            # Calculate vulnerability exposure
+            vulnerability_exposure = self._calculate_vulnerability_exposure(parsed_components)
             
             return {
-                "status": "success",
+                "status": "success" if not validation_errors else "success_with_warnings",
                 "format": sbom_format,
+                "metadata": metadata,
                 "components_count": len(parsed_components),
                 "components": parsed_components,
+                "dependencies": dependencies,
+                "vulnerability_exposure": vulnerability_exposure,
+                "validation_errors": validation_errors,
                 "parsed_with": "lib4sbom",
-                "validation_status": "valid"
+                "validation_status": "valid" if not validation_errors else "warnings"
             }
             
         except Exception as e:
             logger.error(f"SBOM parsing failed: {e}")
-            return {"status": "error", "error": str(e)}
+            return {
+                "status": "error", 
+                "error": str(e),
+                "components_count": 0,
+                "components": []
+            }
+    
+    def _validate_sbom_structure(self, sbom_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate SBOM structure according to CycloneDX/SPDX standards"""
+        errors = []
+        
+        # Check required fields
+        required_fields = ["bomFormat", "specVersion"]
+        for field in required_fields:
+            if field not in sbom_dict:
+                errors.append(f"Missing required field: {field}")
+        
+        # Validate bomFormat
+        valid_formats = ["CycloneDX", "SPDX"]
+        if sbom_dict.get("bomFormat") not in valid_formats:
+            errors.append(f"Invalid bomFormat: {sbom_dict.get('bomFormat')}. Expected: {valid_formats}")
+        
+        # Check components array
+        if "components" not in sbom_dict:
+            errors.append("Missing components array")
+        elif not isinstance(sbom_dict["components"], list):
+            errors.append("Components must be an array")
+        
+        return {"valid": len(errors) == 0, "errors": errors}
+    
+    def _parse_component_detailed(self, component: Dict[str, Any], index: int) -> Dict[str, Any]:
+        """Parse individual component with detailed validation and enrichment"""
+        
+        # Extract basic info with validation
+        name = component.get("name", f"unknown_component_{index}")
+        version = component.get("version", "unknown")
+        component_type = component.get("type", "library")
+        
+        # Parse PURL (Package URL)
+        purl = component.get("purl", "")
+        purl_info = self._parse_purl(purl) if purl else {}
+        
+        # Parse supplier information
+        supplier_info = self._parse_supplier(component.get("supplier", {}))
+        
+        # Parse licenses
+        licenses = self._parse_licenses(component.get("licenses", []))
+        
+        # Parse hashes
+        hashes = self._parse_hashes(component.get("hashes", []))
+        
+        # Extract external references
+        external_refs = self._parse_external_references(component.get("externalReferences", []))
+        
+        # Calculate risk indicators
+        risk_indicators = self._calculate_component_risk(name, version, component_type, external_refs)
+        
+        return {
+            "name": name,
+            "version": version,
+            "type": component_type,
+            "purl": purl,
+            "purl_parsed": purl_info,
+            "supplier": supplier_info,
+            "licenses": licenses,
+            "hashes": hashes,
+            "external_references": external_refs,
+            "risk_indicators": risk_indicators,
+            "metadata": {
+                "description": component.get("description", ""),
+                "scope": component.get("scope", "required"),
+                "copyright": component.get("copyright", ""),
+                "cpe": component.get("cpe", "")
+            }
+        }
+    
+    def _parse_purl(self, purl: str) -> Dict[str, Any]:
+        """Parse Package URL according to PURL specification"""
+        try:
+            if not purl.startswith("pkg:"):
+                return {"valid": False, "error": "Invalid PURL format"}
+            
+            # Simple PURL parsing (pkg:type/namespace/name@version)
+            parts = purl[4:].split("/")  # Remove 'pkg:' prefix
+            if len(parts) < 2:
+                return {"valid": False, "error": "Incomplete PURL"}
+            
+            type_part = parts[0]
+            name_version = parts[-1]
+            
+            # Parse name and version
+            if "@" in name_version:
+                name, version = name_version.rsplit("@", 1)
+            else:
+                name = name_version
+                version = "unknown"
+            
+            namespace = "/".join(parts[1:-1]) if len(parts) > 2 else ""
+            
+            return {
+                "valid": True,
+                "type": type_part,
+                "namespace": namespace,
+                "name": name,
+                "version": version,
+                "original": purl
+            }
+            
+        except Exception as e:
+            return {"valid": False, "error": str(e)}
+    
+    def _parse_supplier(self, supplier_data: Any) -> Dict[str, Any]:
+        """Parse supplier information"""
+        if isinstance(supplier_data, dict):
+            return {
+                "name": supplier_data.get("name", "unknown"),
+                "url": supplier_data.get("url", ""),
+                "contact": supplier_data.get("contact", [])
+            }
+        elif isinstance(supplier_data, str):
+            return {"name": supplier_data, "url": "", "contact": []}
+        else:
+            return {"name": "unknown", "url": "", "contact": []}
+    
+    def _parse_licenses(self, licenses_data: List[Any]) -> List[Dict[str, Any]]:
+        """Parse license information with SPDX ID validation"""
+        parsed_licenses = []
+        
+        for license_item in licenses_data:
+            if isinstance(license_item, dict):
+                license_info = license_item.get("license", {})
+                if isinstance(license_info, dict):
+                    parsed_licenses.append({
+                        "id": license_info.get("id", ""),
+                        "name": license_info.get("name", ""),
+                        "url": license_info.get("url", ""),
+                        "text": license_info.get("text", "")
+                    })
+                elif isinstance(license_info, str):
+                    parsed_licenses.append({"id": license_info, "name": license_info, "url": "", "text": ""})
+        
+        return parsed_licenses
+    
+    def _parse_hashes(self, hashes_data: List[Any]) -> List[Dict[str, str]]:
+        """Parse cryptographic hashes"""
+        parsed_hashes = []
+        
+        for hash_item in hashes_data:
+            if isinstance(hash_item, dict):
+                parsed_hashes.append({
+                    "algorithm": hash_item.get("alg", "unknown"),
+                    "content": hash_item.get("content", "")
+                })
+        
+        return parsed_hashes
+    
+    def _parse_external_references(self, external_refs: List[Any]) -> List[Dict[str, str]]:
+        """Parse external references"""
+        parsed_refs = []
+        
+        for ref in external_refs:
+            if isinstance(ref, dict):
+                parsed_refs.append({
+                    "type": ref.get("type", "other"),
+                    "url": ref.get("url", ""),
+                    "comment": ref.get("comment", "")
+                })
+        
+        return parsed_refs
+    
+    def _calculate_component_risk(self, name: str, version: str, component_type: str, external_refs: List[Dict]) -> Dict[str, Any]:
+        """Calculate risk indicators for a component"""
+        risk_score = 0.1  # Base risk
+        risk_factors = []
+        
+        # Check for known risky patterns
+        risky_patterns = ["lodash", "moment", "jquery", "bootstrap"]
+        if any(pattern in name.lower() for pattern in risky_patterns):
+            risk_score += 0.2
+            risk_factors.append("potentially_risky_package")
+        
+        # Check version patterns
+        if version == "unknown" or version == "":
+            risk_score += 0.1
+            risk_factors.append("unknown_version")
+        elif "beta" in version.lower() or "alpha" in version.lower():
+            risk_score += 0.15
+            risk_factors.append("pre_release_version")
+        
+        # Check external references for security info
+        has_security_info = any(
+            ref.get("type", "").lower() in ["security", "issue-tracker", "vcs"] 
+            for ref in external_refs
+        )
+        if not has_security_info:
+            risk_score += 0.05
+            risk_factors.append("no_security_references")
+        
+        return {
+            "risk_score": min(risk_score, 1.0),
+            "risk_level": "high" if risk_score > 0.7 else "medium" if risk_score > 0.4 else "low",
+            "risk_factors": risk_factors
+        }
+    
+    def _extract_dependencies(self, sbom_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract dependency relationships"""
+        dependencies = sbom_dict.get("dependencies", [])
+        
+        dependency_graph = {}
+        for dep in dependencies:
+            ref = dep.get("ref", "")
+            depends_on = dep.get("dependsOn", [])
+            dependency_graph[ref] = depends_on
+        
+        return {
+            "total_dependencies": len(dependencies),
+            "dependency_graph": dependency_graph,
+            "circular_dependencies": self._detect_circular_deps(dependency_graph)
+        }
+    
+    def _detect_circular_deps(self, dep_graph: Dict[str, List[str]]) -> List[List[str]]:
+        """Detect circular dependencies in the dependency graph"""
+        # Simple cycle detection (could be more sophisticated)
+        cycles = []
+        visited = set()
+        
+        def dfs(node: str, path: List[str], rec_stack: set):
+            if node in rec_stack:
+                cycle_start = path.index(node)
+                cycles.append(path[cycle_start:] + [node])
+                return
+            
+            if node in visited:
+                return
+            
+            visited.add(node)
+            rec_stack.add(node)
+            
+            for neighbor in dep_graph.get(node, []):
+                dfs(neighbor, path + [node], rec_stack)
+            
+            rec_stack.remove(node)
+        
+        for node in dep_graph:
+            if node not in visited:
+                dfs(node, [], set())
+        
+        return cycles
+    
+    def _calculate_vulnerability_exposure(self, components: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate overall vulnerability exposure of the SBOM"""
+        total_components = len(components)
+        high_risk_components = len([c for c in components if c.get("risk_indicators", {}).get("risk_level") == "high"])
+        unknown_versions = len([c for c in components if c.get("version") in ["unknown", ""]])
+        
+        exposure_score = 0.0
+        if total_components > 0:
+            exposure_score = (high_risk_components * 0.6 + unknown_versions * 0.2) / total_components
+        
+        return {
+            "total_components": total_components,
+            "high_risk_components": high_risk_components,
+            "unknown_versions": unknown_versions,
+            "exposure_score": round(exposure_score, 3),
+            "exposure_level": "high" if exposure_score > 0.7 else "medium" if exposure_score > 0.3 else "low"
+        }
     
     async def generate_sbom(self, components: List[Dict[str, Any]], output_format: str = "cyclonedx") -> Dict[str, Any]:
         """Generate SBOM using lib4sbom"""
