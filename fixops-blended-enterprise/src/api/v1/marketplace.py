@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Form, UploadFile, File
 from pydantic import BaseModel
 import structlog
+import json
 
 from src.services.marketplace import marketplace, ContentType, PricingModel
 from src.config.settings import get_settings
