@@ -135,6 +135,22 @@ function EnhancedDashboard() {
     )
   }
 
+  // Steps explanation content
+  const steps = [
+    { title: '1) Ingest Scans', emoji: '📥', text: 'Accept SARIF, SBOM, DAST, IaC, CSV and JSON outputs from existing scanners.' },
+    { title: '2) Normalize & De-duplicate', emoji: '🧹', text: 'Unify formats, normalize severities, and merge duplicates across tools.' },
+    { title: '3) Business Context Enrichment', emoji: '🏢', text: 'Apply service criticality, data classification, internet exposure, owners, and SLAs.' },
+    { title: '4) Threat Intelligence (MITRE ATT&CK)', emoji: '🎯', text: 'Map findings to TTPs to estimate attacker paths and business impact.' },
+    { title: '5) Multi-LLM Analysis', emoji: '🧠', text: 'Consult GPT-4, Claude, Gemini, and specialized cyber models for layered insights.' },
+    { title: '6) Consensus & Confidence', emoji: '📊', text: 'Weight model outputs, compute consensus verdict and confidence with disagreement analysis.' },
+    { title: '7) Policy & Compliance', emoji: '⚖️', text: 'Evaluate OPA/Rego and frameworks (PCI, SOX, HIPAA, NIST) for governance alignment.' },
+    { title: '8) Decision', emoji: '🚦', text: 'Return ALLOW/BLOCK/DEFER with rationale and remediation recommendations.' },
+    { title: '9) Evidence Lake', emoji: '🗄️', text: 'Persist full evidence trail for audits, forensics, and reproducibility.' },
+    { title: '10) Feedback & Learning', emoji: '🔁', text: 'Capture human validation to improve future decisions and reduce noise.' },
+    { title: '11) Marketplace', emoji: '🛒', text: 'Leverage community policies, test sets, and patterns to accelerate adoption.' },
+    { title: '12) CI/CD Integration', emoji: '⚙️', text: 'Use CLI in pipelines to gate deploys and export decisions to your tools.' },
+  ]
+
   return (
     <div style={{
       padding: '2rem',
@@ -400,6 +416,27 @@ function EnhancedDashboard() {
           </div>
         </div>
       )}
+
+      {/* How FixOps Works - Step by Step */}
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.06)', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginBottom: '0.5rem' }}>
+          🧭 How FixOps Works (Step‑by‑Step)
+        </h2>
+        <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
+          FixOps is a Decision & Verification Engine. It enriches scanner output with business context and threat intelligence, then reaches a consensus decision with evidence and confidence.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+          {steps.map((s) => (
+            <div key={s.title} style={{ padding: '1rem', border: '1px solid #f3f4f6', borderRadius: '12px', backgroundColor: '#f9fafb' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>{s.emoji}</span>
+                <div style={{ fontWeight: 700, color: '#111827' }}>{s.title}</div>
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.5' }}>{s.text}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Enhanced Features */}
       <div style={{ background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)', padding: '2.5rem', borderRadius: '20px', color: 'white', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
