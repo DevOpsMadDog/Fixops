@@ -141,6 +141,88 @@ function CommandCenter() {
     }))
   }
 
+  const downloadSampleSARIF = () => {
+    const sarif = {
+      "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [{
+        "tool": {
+          "driver": {
+            "name": "FixOps Sample Scanner",
+            "version": "1.0.0",
+            "rules": [{
+              "id": "SQLI-001",
+              "name": "SQL Injection Vulnerability",
+              "shortDescription": { "text": "SQL injection vulnerability detected" }
+            }]
+          }
+        },
+        "results": [{
+          "ruleId": "SQLI-001",
+          "level": "error",
+          "message": { "text": "SQL injection vulnerability in payment endpoint" },
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": { "uri": "src/payment/handler.py" },
+              "region": { "startLine": 42, "startColumn": 15 }
+            }
+          }]
+        }]
+      }]
+    }
+
+    const blob = new Blob([JSON.stringify(sarif, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sample-security-scan.sarif'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadSampleSBOM = () => {
+    const sbom = {
+      "bomFormat": "CycloneDX",
+      "specVersion": "1.4",
+      "serialNumber": "urn:uuid:fixops-sample-" + Date.now(),
+      "version": 1,
+      "metadata": {
+        "timestamp": new Date().toISOString(),
+        "tools": [{ "vendor": "FixOps", "name": "Sample Generator", "version": "1.0.0" }]
+      },
+      "components": [
+        {
+          "type": "library",
+          "name": "express",
+          "version": "4.18.2",
+          "purl": "pkg:npm/express@4.18.2",
+          "licenses": [{ "license": { "id": "MIT" } }]
+        },
+        {
+          "type": "library", 
+          "name": "lodash",
+          "version": "4.17.21",
+          "purl": "pkg:npm/lodash@4.17.21",
+          "licenses": [{ "license": { "id": "MIT" } }]
+        }
+      ],
+      "vulnerabilities": [{
+        "id": "CVE-2023-26136",
+        "source": { "name": "Sample Vulnerability Database" },
+        "ratings": [{ "severity": "high", "score": 7.5 }],
+        "description": "Sample high-severity vulnerability for demonstration"
+      }]
+    }
+
+    const blob = new Blob([JSON.stringify(sbom, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sample-components.sbom.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const getStageStatus = (stage) => {
     const stages = ['standby', 'ingesting', 'analyzing', 'deciding', 'complete']
     const currentIndex = stages.indexOf(scanProcessor.processingStage)
