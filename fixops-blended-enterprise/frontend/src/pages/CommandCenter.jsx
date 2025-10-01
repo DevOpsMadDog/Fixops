@@ -129,16 +129,25 @@ function CommandCenter() {
     }
   }
 
-  const addLogEntry = (action, message) => {
-    setScanProcessor(prev => ({
-      ...prev,
-      realTimeLog: [...prev.realTimeLog, {
-        timestamp: new Date(),
-        action,
-        message,
-        id: Date.now() + Math.random()
-      }]
-    }))
+  const downloadBusinessContextSample = async (format) => {
+    try {
+      const response = await fetch(`/api/v1/business-context/sample/${format}?service_name=${selectedService}`)
+      const data = await response.json()
+      
+      const blob = new Blob([data.content], { 
+        type: format.includes('yaml') ? 'application/x-yaml' : 'application/json' 
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = data.filename
+      a.click()
+      URL.revokeObjectURL(url)
+      
+      addLogEntry('📄 SAMPLE DOWNLOADED', `${format.toUpperCase()} business context template`)
+    } catch (error) {
+      addLogEntry('❌ DOWNLOAD ERROR', error.message)
+    }
   }
 
   const downloadSampleSARIF = () => {
