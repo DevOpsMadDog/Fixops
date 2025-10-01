@@ -45,12 +45,15 @@ function Docs() {
     URL.revokeObjectURL(url)
   }
 
+  const [copySuccess, setCopySuccess] = useState(false)
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/api/v1/docs/${active}`)
-      alert('Link copied')
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
     } catch (e) {
-      alert('Copy failed')
+      console.error('Copy failed:', e)
     }
   }
 
