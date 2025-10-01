@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import structlog
+import json
 from datetime import datetime, timezone
 
 from src.services.processing_layer import ProcessingLayer, SSVCContext, MarkovState, SARIFVulnerability
