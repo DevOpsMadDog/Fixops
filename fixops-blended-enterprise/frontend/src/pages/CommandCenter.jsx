@@ -356,10 +356,12 @@ function CommandCenter() {
                   textAlign: 'center'
                 }}>
                   <div style={{
-                    fontSize: '2rem',
-                    fontWeight: '800',
+                    fontSize: '1.75rem',
+                    fontWeight: '700',
                     color: metric.color,
-                    marginBottom: '0.5rem'
+                    marginBottom: '0.5rem',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                    lineHeight: '1.1'
                   }}>
                     {metric.value}
                   </div>
@@ -367,7 +369,9 @@ function CommandCenter() {
                     fontSize: '0.75rem',
                     color: '#94a3b8',
                     fontWeight: '600',
-                    letterSpacing: '0.05em'
+                    letterSpacing: '0.05em',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                    lineHeight: '1.2'
                   }}>
                     {metric.label}
                   </div>
