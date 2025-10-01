@@ -46,7 +46,7 @@ function EnhancedDashboard() {
 
   const fetchEnhancedData = async () => {
     try {
-      const [capabilitiesRes, comparisonRes] = await Promise.all([
+      const [capabilitiesRes, comparisonRes, systemRes] = await Promise.all([
         apiMethods.enhanced.capabilities(),
         apiMethods.enhanced.compare({
           service_name: selectedService,
@@ -55,8 +55,19 @@ function EnhancedDashboard() {
           ],
           business_context: { business_criticality: 'critical', data_classification: 'pii_financial' },
         }),
+        fetch('/api/v1/decisions/core-components').catch(() => ({ json: () => ({ data: { system_info: { mode: 'demo' } } }) }))
       ])
-      setEnhancedMetrics(capabilitiesRes.data || {})
+      
+      const systemData = await systemRes.json()
+      const systemInfo = systemData.data?.system_info || { mode: 'demo' }
+      
+      // Enhance metrics with system info
+      const enhancedMetrics = capabilitiesRes.data || {}
+      enhancedMetrics.system_mode = systemInfo.mode
+      enhancedMetrics.processing_layer_available = systemInfo.processing_layer_available || false
+      enhancedMetrics.oss_integrations_available = systemInfo.oss_integrations_available || false
+      
+      setEnhancedMetrics(enhancedMetrics)
       setLlmComparison(comparisonRes.data?.data || {})
     } catch (error) {
       console.error('Failed to fetch enhanced data:', error)
