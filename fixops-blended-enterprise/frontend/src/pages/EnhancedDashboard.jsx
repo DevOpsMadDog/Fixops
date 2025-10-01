@@ -267,7 +267,14 @@ function EnhancedDashboard() {
       color: 'white'
     }}>
       {/* Professional Input Panel */}
-      <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
+      <div style={{ 
+        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)', 
+        padding: '2rem', 
+        borderRadius: '16px', 
+        border: '1px solid rgba(255, 255, 255, 0.1)', 
+        marginBottom: '2rem',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '1rem', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             Provide Security Findings
