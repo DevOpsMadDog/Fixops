@@ -382,17 +382,19 @@ function CommandCenter() {
               Upload security scans for AI-powered analysis and deployment decisions
             </p>
 
-            {/* File Drop Zone */}
+            {/* Enhanced File Drop Zone */}
             <div
               style={{
-                border: scanProcessor.dragActive ? '2px solid #3b82f6' : '2px dashed #64748b',
-                borderRadius: '16px',
-                padding: '4rem 2rem',
+                border: scanProcessor.dragActive ? '2px solid #3b82f6' : '2px dashed #475569',
+                borderRadius: '20px',
+                padding: scanProcessor.selectedFile ? '2rem' : '4rem 2rem',
                 textAlign: 'center',
-                backgroundColor: scanProcessor.dragActive ? 'rgba(59, 130, 246, 0.1)' : 'rgba(0, 0, 0, 0.3)',
+                backgroundColor: scanProcessor.dragActive ? 'rgba(59, 130, 246, 0.1)' : 'rgba(0, 0, 0, 0.4)',
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
-                marginBottom: '2rem'
+                marginBottom: '2rem',
+                position: 'relative',
+                overflow: 'hidden'
               }}
               onDragOver={(e) => {
                 e.preventDefault()
@@ -405,11 +407,24 @@ function CommandCenter() {
               onDrop={handleFileDrop}
               onClick={() => document.getElementById('scan-upload').click()}
             >
+              {/* Background Animation */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: scanProcessor.dragActive ? 
+                  'radial-gradient(circle at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%)' :
+                  'radial-gradient(circle at center, rgba(100, 116, 139, 0.05) 0%, transparent 70%)',
+                zIndex: 0
+              }}></div>
+
               <input
                 id="scan-upload"
                 type="file"
                 style={{ display: 'none' }}
-                accept=".json,.sarif,.csv,.sbom"
+                accept=".json,.sarif,.csv,.sbom,.xml"
                 onChange={(e) => {
                   if (e.target.files[0]) {
                     processSecurityScan(e.target.files[0])
@@ -417,46 +432,112 @@ function CommandCenter() {
                 }}
               />
               
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
-                {scanProcessor.selectedFile ? '📊' : '🎯'}
-              </div>
-              <h3 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                marginBottom: '1rem',
-                color: scanProcessor.selectedFile ? '#3b82f6' : 'white'
-              }}>
-                {scanProcessor.selectedFile ? scanProcessor.selectedFile.name : 'DEPLOY SECURITY SCAN'}
-              </h3>
-              <p style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '1.5rem' }}>
-                {scanProcessor.selectedFile 
-                  ? `Ready to process • ${(scanProcessor.selectedFile.size / 1024).toFixed(1)}KB`
-                  : 'SARIF • SBOM • CSV • JSON • Max 100MB'
-                }
-              </p>
-
-              {/* Processing Stages */}
-              {scanProcessor.processingStage !== 'standby' && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: '1rem',
-                  marginTop: '2rem'
-                }}>
-                  {['ingesting', 'analyzing', 'deciding', 'complete'].map((stage) => {
-                    const status = getStageStatus(stage)
-                    return (
-                      <div key={stage} style={{
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: getStageColor(status),
-                        borderRadius: '50%',
-                        opacity: status === 'pending' ? 0.3 : 1
-                      }}></div>
-                    )
-                  })}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: scanProcessor.selectedFile ? '3rem' : '4rem', marginBottom: '1.5rem' }}>
+                  {scanProcessor.selectedFile ? '📊' : scanProcessor.dragActive ? '🎯' : '🔒'}
                 </div>
-              )}
+                <h3 style={{
+                  fontSize: scanProcessor.selectedFile ? '1.25rem' : '1.75rem',
+                  fontWeight: '800',
+                  marginBottom: '1rem',
+                  color: scanProcessor.selectedFile ? '#3b82f6' : scanProcessor.dragActive ? '#60a5fa' : 'white',
+                  fontFamily: '"JetBrains Mono", "SF Mono", Consolas, monospace'
+                }}>
+                  {scanProcessor.selectedFile ? 
+                    `SCAN READY: ${scanProcessor.selectedFile.name}` : 
+                    scanProcessor.dragActive ? 
+                      'DROP SECURITY SCAN' : 
+                      'DEPLOY SECURITY SCAN'
+                  }
+                </h3>
+                
+                {!scanProcessor.selectedFile && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                    gap: '1rem',
+                    margin: '2rem 0',
+                    maxWidth: '600px',
+                    marginLeft: 'auto',
+                    marginRight: 'auto'
+                  }}>
+                    {['SARIF', 'SBOM', 'CSV', 'JSON'].map((format) => (
+                      <div key={format} style={{
+                        padding: '1rem',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        color: '#60a5fa'
+                      }}>
+                        {format}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p style={{ 
+                  fontSize: scanProcessor.selectedFile ? '0.875rem' : '1rem', 
+                  color: '#94a3b8', 
+                  marginBottom: scanProcessor.selectedFile ? '1rem' : '2rem',
+                  fontWeight: '500'
+                }}>
+                  {scanProcessor.selectedFile ? 
+                    `${(scanProcessor.selectedFile.size / 1024).toFixed(1)}KB • Ready for analysis` : 
+                    'Drag & drop security scan files or click to browse • Max 100MB'
+                  }
+                </p>
+
+                {/* Sample Downloads */}
+                {!scanProcessor.selectedFile && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        downloadSampleSARIF()
+                      }}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '12px',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      📥 Download Sample SARIF
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        downloadSampleSBOM()
+                      }}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                        border: '1px solid #8b5cf6',
+                        borderRadius: '12px',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      📦 Download Sample SBOM
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Results Display */}
