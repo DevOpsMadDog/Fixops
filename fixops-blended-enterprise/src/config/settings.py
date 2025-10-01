@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     # CORS Configuration  
     CORS_ORIGINS: List[str] = Field(default=[
         "http://localhost:3000",
-        "https://vuldecider.preview.emergentagent.com",
+        "https://vulnops-intelligence.preview.emergentagent.com",
         "https://*.emergent.host"
     ])
     
