@@ -1052,7 +1052,7 @@ class DecisionEngine:
                     # For now, return simplified recent decisions
                     return [
                         {
-                            "evidence_id": f"PROD-EVD-{int(time.time()) - i*3600}",
+                            "evidence_id": f"PROD-EVD-{int(time.time()) - 3600}",
                             "service_name": "real-service-name",
                             "environment": "production", 
                             "decision": "ALLOW",
