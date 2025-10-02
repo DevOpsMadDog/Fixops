@@ -406,76 +406,88 @@ function CommandCenter() {
             </div>
           </div>
 
-          {/* Right: System Health */}
+          {/* Right: System Health - Better Integrated */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(0, 0, 0, 0.8) 100%)',
-            padding: '2.5rem',
-            borderRadius: '20px',
-            border: '1px solid #334155',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.6) 100%)',
+            padding: '2rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
           }}>
-            <h2 style={{
-              fontSize: '1rem',
-              fontWeight: '600',
-              marginBottom: '1rem',
-              color: '#10b981',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-              letterSpacing: '-0.025em',
-              lineHeight: '1.3'
-            }}>
-              🏗️ System Health
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                backgroundColor: '#10b981',
+                borderRadius: '50%',
+                animation: 'pulse 2s infinite',
+                marginRight: '0.75rem'
+              }}></div>
+              <h2 style={{
+                fontSize: '1rem',
+                fontWeight: '600',
+                margin: 0,
+                color: '#10b981',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                letterSpacing: '-0.025em'
+              }}>
+                System Health
+              </h2>
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {[
-                { component: 'Decision Engine', status: 'OPERATIONAL', health: 100 },
-                { component: 'Vector Database', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 95 },
-                { component: 'LLM Consensus', status: 'OPERATIONAL', health: 98 },
-                { component: 'Policy Engine', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 92 },
-                { component: 'Evidence Lake', status: 'OPERATIONAL', health: 100 }
+                { component: 'Decision Engine', status: 'OPERATIONAL', health: 100, color: '#10b981' },
+                { component: 'Vector Database', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 95, color: operationalState.systemMode === 'demo' ? '#f59e0b' : '#10b981' },
+                { component: 'LLM Consensus', status: 'OPERATIONAL', health: 98, color: '#10b981' },
+                { component: 'Policy Engine', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 92, color: operationalState.systemMode === 'demo' ? '#f59e0b' : '#10b981' },
+                { component: 'Evidence Lake', status: 'OPERATIONAL', health: 100, color: '#10b981' }
               ].map((item) => (
                 <div key={item.component} style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '0.75rem 1rem',
-                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  padding: '0.75rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
                   borderRadius: '6px',
-                  border: '1px solid #374151',
-                  minHeight: '45px'
+                  border: `1px solid ${item.color}20`
                 }}>
                   <span style={{ 
                     fontSize: '0.875rem', 
                     fontWeight: '500',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1
+                    color: 'white',
+                    flex: 1,
+                    minWidth: 0
                   }}>
                     {item.component}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.75rem',
+                    flexShrink: 0
+                  }}>
                     <div style={{
-                      width: '50px',
-                      height: '4px',
-                      backgroundColor: '#374151',
+                      width: '40px',
+                      height: '3px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       borderRadius: '2px',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      position: 'relative'
                     }}>
                       <div style={{
                         width: `${item.health}%`,
                         height: '100%',
-                        backgroundColor: item.health > 95 ? '#10b981' : item.health > 80 ? '#d97706' : '#dc2626',
-                        transition: 'width 0.3s ease'
+                        backgroundColor: item.color,
+                        borderRadius: '2px'
                       }}></div>
                     </div>
                     <span style={{
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: item.status === 'OPERATIONAL' ? '#10b981' : item.status === 'DEMO' ? '#a78bfa' : '#dc2626',
+                      color: item.color,
                       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                      minWidth: '75px',
+                      minWidth: '65px',
                       textAlign: 'right'
                     }}>
                       {item.status}
