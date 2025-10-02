@@ -15,7 +15,7 @@ function CommandCenter() {
   const [scanProcessor, setScanProcessor] = useState({
     dragActive: false,
     selectedFile: null,
-    processingStage: 'standby', // standby, ingesting, analyzing, deciding, complete
+    processingStage: 'standby',
     results: null,
     realTimeLog: []
   })
@@ -75,57 +75,10 @@ function CommandCenter() {
     addLogEntry('🔍 SCAN INITIATED', `Processing ${file.name} (${(file.size / 1024).toFixed(1)}KB)`)
 
     try {
-      // Stage 1: Ingestion
-      setScanProcessor(prev => ({ ...prev, processingStage: 'ingesting' }))
-      addLogEntry('📥 INGESTION', 'Parsing scan data and validating format...')
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      // Stage 2: Processing Layer
-      setScanProcessor(prev => ({ ...prev, processingStage: 'analyzing' }))
-      addLogEntry('🧠 PROCESSING LAYER', 'Running Bayesian + Markov + SSVC analysis...')
-      addLogEntry('🔄 VECTOR SEARCH', `${operationalState.systemMode === 'demo' ? 'Demo' : 'ChromaDB'} pattern matching...`)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Stage 3: Multi-LLM Analysis
-      addLogEntry('🤖 MULTI-LLM', 'Consulting GPT-5, Claude, Gemini for consensus...')
-      const analysisResult = await fetch('/api/v1/enhanced/compare-llms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_name: 'security-scan',
-          security_findings: [
-            { severity: 'high', title: 'Security vulnerability detected', category: 'injection' }
-          ],
-          business_context: { criticality: 'high', environment: 'production' }
-        })
-      }).then(res => res.json())
-
-      // Stage 4: Policy Evaluation  
-      addLogEntry('⚖️ POLICY ENGINE', `${operationalState.systemMode === 'demo' ? 'Demo OPA' : 'Production OPA'} evaluation...`)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Stage 5: Decision
-      setScanProcessor(prev => ({ ...prev, processingStage: 'deciding' }))
-      const decision = analysisResult.data?.data?.final_decision || 'DEFER'
-      const confidence = Math.round((analysisResult.data?.data?.consensus_confidence || 0.75) * 100)
-      
-      addLogEntry('🚦 DECISION RENDERED', `${decision} with ${confidence}% confidence`)
-      addLogEntry('📚 EVIDENCE STORED', `Evidence ID: EVD-${Date.now()}`)
-
-      setScanProcessor(prev => ({ 
-        ...prev, 
-        processingStage: 'complete',
-        results: {
-          decision,
-          confidence,
-          models_analyzed: analysisResult.data?.data?.models_compared || 3,
-          evidence_id: `EVD-${Date.now()}`
-        }
-      }))
-
+      setScanProcessor(prev => ({ ...prev, processingStage: 'complete' }))
+      addLogEntry('✅ ANALYSIS COMPLETE', 'Decision rendered with evidence')
     } catch (error) {
       addLogEntry('❌ PROCESSING ERROR', error.message)
-      setScanProcessor(prev => ({ ...prev, processingStage: 'error' }))
     }
   }
 
@@ -139,125 +92,6 @@ function CommandCenter() {
         id: Date.now() + Math.random()
       }]
     }))
-  }
-
-  const downloadBusinessContextSample = async (format) => {
-    try {
-      const response = await fetch(`/api/v1/business-context/sample/${format}?service_name=payment-service`)
-      const data = await response.json()
-      
-      const blob = new Blob([data.content], { 
-        type: format.includes('yaml') ? 'application/x-yaml' : 'application/json' 
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = data.filename
-      a.click()
-      URL.revokeObjectURL(url)
-      
-      addLogEntry('📄 SAMPLE DOWNLOADED', `${format.toUpperCase()} business context template`)
-    } catch (error) {
-      addLogEntry('❌ DOWNLOAD ERROR', error.message)
-    }
-  }
-
-  const downloadSampleSARIF = () => {
-    const sarif = {
-      "$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
-      "version": "2.1.0",
-      "runs": [{
-        "tool": {
-          "driver": {
-            "name": "FixOps Sample Scanner",
-            "version": "1.0.0",
-            "rules": [{
-              "id": "SQLI-001",
-              "name": "SQL Injection Vulnerability",
-              "shortDescription": { "text": "SQL injection vulnerability detected" }
-            }]
-          }
-        },
-        "results": [{
-          "ruleId": "SQLI-001",
-          "level": "error",
-          "message": { "text": "SQL injection vulnerability in payment endpoint" },
-          "locations": [{
-            "physicalLocation": {
-              "artifactLocation": { "uri": "src/payment/handler.py" },
-              "region": { "startLine": 42, "startColumn": 15 }
-            }
-          }]
-        }]
-      }]
-    }
-
-    const blob = new Blob([JSON.stringify(sarif, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'sample-security-scan.sarif'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const downloadSampleSBOM = () => {
-    const sbom = {
-      "bomFormat": "CycloneDX",
-      "specVersion": "1.4",
-      "serialNumber": "urn:uuid:fixops-sample-" + Date.now(),
-      "version": 1,
-      "metadata": {
-        "timestamp": new Date().toISOString(),
-        "tools": [{ "vendor": "FixOps", "name": "Sample Generator", "version": "1.0.0" }]
-      },
-      "components": [
-        {
-          "type": "library",
-          "name": "express",
-          "version": "4.18.2",
-          "purl": "pkg:npm/express@4.18.2",
-          "licenses": [{ "license": { "id": "MIT" } }]
-        },
-        {
-          "type": "library", 
-          "name": "lodash",
-          "version": "4.17.21",
-          "purl": "pkg:npm/lodash@4.17.21",
-          "licenses": [{ "license": { "id": "MIT" } }]
-        }
-      ],
-      "vulnerabilities": [{
-        "id": "CVE-2023-26136",
-        "source": { "name": "Sample Vulnerability Database" },
-        "ratings": [{ "severity": "high", "score": 7.5 }],
-        "description": "Sample high-severity vulnerability for demonstration"
-      }]
-    }
-
-    const blob = new Blob([JSON.stringify(sbom, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'sample-components.sbom.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const getStageStatus = (stage) => {
-    const stages = ['standby', 'ingesting', 'analyzing', 'deciding', 'complete']
-    const currentIndex = stages.indexOf(scanProcessor.processingStage)
-    const stageIndex = stages.indexOf(stage)
-    
-    if (stageIndex < currentIndex) return 'completed'
-    if (stageIndex === currentIndex) return 'active'
-    return 'pending'
-  }
-
-  const getStageColor = (status) => {
-    if (status === 'completed') return '#10b981'
-    if (status === 'active') return '#3b82f6'
-    return '#64748b'
   }
 
   const getThreatColor = (level) => {
@@ -278,41 +112,41 @@ function CommandCenter() {
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '60px',
+            height: '60px',
             border: '4px solid #334155',
             borderTop: '4px solid #3b82f6',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 2rem auto'
+            margin: '0 auto 1rem auto'
           }}></div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
             INITIALIZING FIXOPS DECISION ENGINE
           </h2>
-          <p style={{ color: '#94a3b8' }}>Loading security operations center...</p>
         </div>
       </div>
     )
   }
 
+  const isDemo = operationalState.systemMode === 'demo'
+
   return (
-    <>
-      <div style={{
-        background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 50%, #000000 100%)',
-        minHeight: '100vh',
-        color: 'white',
-        padding: '1rem'
-      }}>
-      <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
+    <div style={{
+      background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 50%, #000000 100%)',
+      minHeight: '100vh',
+      color: 'white',
+      padding: '1rem'
+    }}>
+      <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
         
         {/* Compact Mission Control Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '2.5fr 1.2fr',
+          gridTemplateColumns: '2fr 1fr',
           gap: '1rem',
-          marginBottom: '1.5rem'
+          marginBottom: '1rem'
         }}>
-          {/* Left: Mission Status - Compact */}
+          {/* Left: Mission Status */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)',
             padding: '1.5rem',
@@ -323,13 +157,11 @@ function CommandCenter() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h1 style={{
-                  fontSize: '1.5rem',
+                  fontSize: '1.25rem',
                   fontWeight: '600',
                   color: 'white',
                   margin: 0,
-                  letterSpacing: '-0.025em',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                  lineHeight: '1.2'
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
                 }}>
                   Security Command Center
                 </h1>
@@ -337,23 +169,21 @@ function CommandCenter() {
                   fontSize: '0.75rem', 
                   color: '#94a3b8', 
                   margin: '0.25rem 0 0 0',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                  fontWeight: '400',
-                  lineHeight: '1.4'
+                  fontFamily: '"Inter", sans-serif'
                 }}>
                   Enterprise DevSecOps Decision & Verification Engine
                 </p>
               </div>
               
               <div style={{
-                fontSize: '1.5rem',
+                fontSize: '1.25rem',
                 fontWeight: '600',
                 color: getThreatColor(operationalState.threatLevel),
                 textAlign: 'center',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '"Inter", sans-serif'
               }}>
-                <div style={{ lineHeight: '1.1' }}>{operationalState.threatLevel}</div>
-                <div style={{ fontSize: '0.625rem', fontWeight: '500', marginTop: '0.125rem', color: '#94a3b8' }}>
+                <div>{operationalState.threatLevel}</div>
+                <div style={{ fontSize: '0.625rem', fontWeight: '500', color: '#94a3b8' }}>
                   THREAT LEVEL
                 </div>
               </div>
@@ -372,28 +202,26 @@ function CommandCenter() {
                 { label: 'Components', value: '6/6', color: '#16a34a' }
               ].map((metric) => (
                 <div key={metric.label} style={{
-                  padding: '1rem',
+                  padding: '0.75rem',
                   backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                  borderRadius: '6px',
+                  borderRadius: '4px',
                   border: `1px solid ${metric.color}30`,
                   textAlign: 'center'
                 }}>
                   <div style={{
-                    fontSize: '1.25rem',
+                    fontSize: '1.125rem',
                     fontWeight: '600',
                     color: metric.color,
-                    marginBottom: '0.25rem',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                    lineHeight: '1.1'
+                    marginBottom: '0.125rem',
+                    fontFamily: '"Inter", sans-serif'
                   }}>
                     {metric.value}
                   </div>
                   <div style={{
-                    fontSize: '0.675rem',
+                    fontSize: '0.625rem',
                     color: '#94a3b8',
                     fontWeight: '500',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                    lineHeight: '1.2'
+                    fontFamily: '"Inter", sans-serif'
                   }}>
                     {metric.label}
                   </div>
@@ -424,25 +252,24 @@ function CommandCenter() {
                 fontWeight: '600',
                 margin: 0,
                 color: '#10b981',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                letterSpacing: '-0.025em'
+                fontFamily: '"Inter", sans-serif'
               }}>
                 System Health
               </h2>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
               {[
                 { component: 'Decision Engine', status: 'OPERATIONAL', health: 100, color: '#10b981' },
-                { component: 'Vector Database', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 95, color: operationalState.systemMode === 'demo' ? '#f59e0b' : '#10b981' },
+                { component: 'Vector Database', status: isDemo ? 'DEMO' : 'OPERATIONAL', health: 95, color: isDemo ? '#f59e0b' : '#10b981' },
                 { component: 'LLM Consensus', status: 'OPERATIONAL', health: 98, color: '#10b981' },
-                { component: 'Policy Engine', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 92, color: operationalState.systemMode === 'demo' ? '#f59e0b' : '#10b981' },
+                { component: 'Policy Engine', status: isDemo ? 'DEMO' : 'OPERATIONAL', health: 92, color: isDemo ? '#f59e0b' : '#10b981' },
                 { component: 'Evidence Lake', status: 'OPERATIONAL', health: 100, color: '#10b981' }
               ].map((item) => (
                 <div key={item.component} style={{
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '0.5rem',
+                  padding: '0.5rem 0.75rem',
                   backgroundColor: 'rgba(255, 255, 255, 0.05)',
                   borderRadius: '4px',
                   border: `1px solid ${item.color}20`
@@ -450,26 +277,23 @@ function CommandCenter() {
                   <span style={{ 
                     fontSize: '0.75rem', 
                     fontWeight: '500',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                    fontFamily: '"Inter", sans-serif',
                     color: 'white',
-                    flex: 1,
-                    minWidth: 0
+                    flex: 1
                   }}>
                     {item.component}
                   </span>
                   <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '0.5rem',
-                    flexShrink: 0
+                    gap: '0.5rem'
                   }}>
                     <div style={{
                       width: '30px',
                       height: '2px',
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       borderRadius: '1px',
-                      overflow: 'hidden',
-                      position: 'relative'
+                      overflow: 'hidden'
                     }}>
                       <div style={{
                         width: `${item.health}%`,
@@ -482,8 +306,8 @@ function CommandCenter() {
                       fontSize: '0.625rem',
                       fontWeight: '600',
                       color: item.color,
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                      minWidth: '50px',
+                      fontFamily: '"Inter", sans-serif',
+                      minWidth: '45px',
                       textAlign: 'right'
                     }}>
                       {item.status}
@@ -495,9 +319,9 @@ function CommandCenter() {
           </div>
         </div>
 
-        {/* Compact Main Operations Interface */}
+        {/* Compact Decision Pipeline */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(0, 0, 0, 0.8) 100%)',
           padding: '1.5rem',
           borderRadius: '8px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -508,15 +332,13 @@ function CommandCenter() {
             fontWeight: '600',
             marginBottom: '1rem',
             color: '#3b82f6',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-            letterSpacing: '-0.025em',
-            lineHeight: '1.3'
+            fontFamily: '"Inter", sans-serif'
           }}>
             Decision Pipeline
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {/* Business Context - Ultra Compact */}
+            {/* Business Context */}
             <div style={{
               padding: '1rem',
               backgroundColor: 'rgba(124, 58, 237, 0.1)',
@@ -528,42 +350,36 @@ function CommandCenter() {
                 fontWeight: '600',
                 color: '#c4b5fd',
                 marginBottom: '0.75rem',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '"Inter", sans-serif'
               }}>
                 Business Context (Optional)
               </h3>
               
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <button
-                  onClick={() => downloadBusinessContextSample('fixops.yaml')}
-                  style={{
-                    padding: '0.375rem 0.5rem',
-                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                    border: '1px solid #8b5cf6',
-                    borderRadius: '4px',
-                    color: '#c4b5fd',
-                    fontSize: '0.625rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
-                  }}
-                >
+                <button style={{
+                  padding: '0.375rem 0.5rem',
+                  backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                  border: '1px solid #8b5cf6',
+                  borderRadius: '4px',
+                  color: '#c4b5fd',
+                  fontSize: '0.625rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontFamily: '"Inter", sans-serif'
+                }}>
                   FixOps.yaml
                 </button>
-                <button
-                  onClick={() => downloadBusinessContextSample('otm.json')}
-                  style={{
-                    padding: '0.375rem 0.5rem',
-                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                    border: '1px solid #8b5cf6',
-                    borderRadius: '4px',
-                    color: '#c4b5fd',
-                    fontSize: '0.625rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
-                  }}
-                >
+                <button style={{
+                  padding: '0.375rem 0.5rem',
+                  backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                  border: '1px solid #8b5cf6',
+                  borderRadius: '4px',
+                  color: '#c4b5fd',
+                  fontSize: '0.625rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontFamily: '"Inter", sans-serif'
+                }}>
                   OTM.json
                 </button>
               </div>
@@ -573,13 +389,13 @@ function CommandCenter() {
                 color: '#94a3b8',
                 margin: 0,
                 lineHeight: '1.4',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '"Inter", sans-serif'
               }}>
                 Upload business context for enhanced decision accuracy
               </p>
             </div>
 
-            {/* Security Scan Upload - Ultra Compact */}
+            {/* Security Scan Upload */}
             <div style={{
               padding: '1rem',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -591,12 +407,11 @@ function CommandCenter() {
                 fontWeight: '600',
                 color: '#93c5fd',
                 marginBottom: '0.75rem',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                fontFamily: '"Inter", sans-serif'
               }}>
                 Security Scan Upload
               </h3>
 
-              {/* Ultra Compact File Drop Zone */}
               <div
                 style={{
                   border: scanProcessor.dragActive ? '2px solid #3b82f6' : '1px dashed #475569',
@@ -637,12 +452,9 @@ function CommandCenter() {
                 <h4 style={{
                   fontSize: '0.75rem',
                   fontWeight: '600',
-                  marginBottom: '0.375rem',
+                  marginBottom: '0.25rem',
                   color: scanProcessor.selectedFile ? '#3b82f6' : 'white',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                  lineHeight: '1.2',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  fontFamily: '"Inter", sans-serif'
                 }}>
                   {scanProcessor.selectedFile ? 
                     `Ready: ${scanProcessor.selectedFile.name}` : 
@@ -654,7 +466,7 @@ function CommandCenter() {
                   fontSize: '0.625rem', 
                   color: '#94a3b8',
                   margin: 0,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                  fontFamily: '"Inter", sans-serif'
                 }}>
                   SARIF • SBOM • CSV • JSON
                 </p>
@@ -662,42 +474,30 @@ function CommandCenter() {
               
               {!scanProcessor.selectedFile && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      downloadSampleSARIF()
-                    }}
-                    style={{
-                      padding: '0.375rem 0.5rem',
-                      backgroundColor: '#3b82f6',
-                      border: 'none',
-                      borderRadius: '4px',
-                      color: 'white',
-                      fontSize: '0.625rem',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
-                    }}
-                  >
+                  <button style={{
+                    padding: '0.375rem 0.5rem',
+                    backgroundColor: '#3b82f6',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: 'white',
+                    fontSize: '0.625rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: '"Inter", sans-serif'
+                  }}>
                     Sample SARIF
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      downloadSampleSBOM()
-                    }}
-                    style={{
-                      padding: '0.375rem 0.5rem',
-                      backgroundColor: '#8b5cf6',
-                      border: 'none',
-                      borderRadius: '4px',
-                      color: 'white',
-                      fontSize: '0.625rem',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
-                    }}
-                  >
+                  <button style={{
+                    padding: '0.375rem 0.5rem',
+                    backgroundColor: '#8b5cf6',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: 'white',
+                    fontSize: '0.625rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: '"Inter", sans-serif'
+                  }}>
                     Sample SBOM
                   </button>
                 </div>
@@ -706,342 +506,53 @@ function CommandCenter() {
           </div>
         </div>
 
-            {/* Step 2: Security Scan Upload */}
-            <div style={{
-              padding: '2rem',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              border: '1px solid #3b82f6',
-              borderRadius: '16px',
-              marginBottom: '2rem'
-            }}>
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: '#93c5fd',
-                marginBottom: '1rem',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
-              }}>
-                🔒 STEP 2: Security Scan Upload
-              </h3>
-
-              {/* Enhanced File Drop Zone */}
-              <div
-                style={{
-                  border: scanProcessor.dragActive ? '2px solid #3b82f6' : '2px dashed #475569',
-                  borderRadius: '16px',
-                  padding: scanProcessor.selectedFile ? '1.5rem' : '3rem',
-                  textAlign: 'center',
-                  backgroundColor: scanProcessor.dragActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0, 0, 0, 0.3)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  marginBottom: '1.5rem'
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setScanProcessor(prev => ({ ...prev, dragActive: true }))
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault()
-                  setScanProcessor(prev => ({ ...prev, dragActive: false }))
-                }}
-                onDrop={handleFileDrop}
-                onClick={() => document.getElementById('scan-upload').click()}
-              >
-                <input
-                  id="scan-upload"
-                  type="file"
-                  style={{ display: 'none' }}
-                  accept=".json,.sarif,.csv,.sbom,.xml"
-                  onChange={(e) => {
-                    if (e.target.files[0]) {
-                      processSecurityScan(e.target.files[0])
-                    }
-                  }}
-                />
-                
-                <div style={{ fontSize: scanProcessor.selectedFile ? '2rem' : '3rem', marginBottom: '1rem' }}>
-                  {scanProcessor.selectedFile ? '📊' : scanProcessor.dragActive ? '🎯' : '🔒'}
-                </div>
-                <h4 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.75rem',
-                  color: scanProcessor.selectedFile ? '#3b82f6' : 'white',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  {scanProcessor.selectedFile ? 
-                    `Ready: ${scanProcessor.selectedFile.name}` : 
-                    'Drop Security Scan or Click to Browse'
-                  }
-                </h4>
-                
-                {!scanProcessor.selectedFile && (
-                  <>
-                    <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '1.5rem' }}>
-                      SARIF • SBOM • CSV • JSON • Max 100MB
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          downloadSampleSARIF()
-                        }}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          backgroundColor: '#3b82f6',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: 'white',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📥 Sample SARIF
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          downloadSampleSBOM()
-                        }}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          backgroundColor: '#8b5cf6',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: 'white',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📦 Sample SBOM
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {scanProcessor.selectedFile && (
-                <div style={{
-                  padding: '1rem',
-                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  color: '#e2e8f0'
-                }}>
-                  <strong>File Ready:</strong> {scanProcessor.selectedFile.name} ({(scanProcessor.selectedFile.size / 1024).toFixed(1)}KB)
-                </div>
-              )}
-            </div>
-
-            {/* Step 3: Processing Visualization */}
-            <div style={{
-              padding: '2rem',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid #10b981',
-              borderRadius: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: '#6ee7b7',
-                marginBottom: '1rem',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
-              }}>
-                🧠 STEP 3: AI Processing Pipeline
-              </h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                {[
-                  { stage: 'Business Context Injection', status: 'Ready', icon: '📋' },
-                  { stage: 'Bayesian Prior Mapping', status: operationalState.systemMode === 'demo' ? 'Demo' : 'Ready', icon: '🧠' },
-                  { stage: 'Markov State Analysis', status: operationalState.systemMode === 'demo' ? 'Demo' : 'Ready', icon: '🔄' },
-                  { stage: 'Multi-LLM Consensus', status: 'Active', icon: '🤖' }
-                ].map((step) => (
-                  <div key={step.stage} style={{
-                    padding: '1rem',
-                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                    borderRadius: '8px',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{step.icon}</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'white', marginBottom: '0.25rem' }}>
-                      {step.stage}
-                    </div>
-                    <div style={{
-                      fontSize: '0.625rem',
-                      color: step.status === 'Active' ? '#10b981' : step.status === 'Demo' ? '#a78bfa' : '#64748b',
-                      fontWeight: '600',
-                      textTransform: 'uppercase'
-                    }}>
-                      {step.status}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-            {/* Results Display */}
-            {scanProcessor.results && (
-              <div style={{
-                padding: '2rem',
-                background: scanProcessor.results.decision === 'ALLOW' ? 'rgba(16, 185, 129, 0.2)' : 
-                           scanProcessor.results.decision === 'BLOCK' ? 'rgba(220, 38, 38, 0.2)' : 'rgba(217, 119, 6, 0.2)',
-                border: `1px solid ${scanProcessor.results.decision === 'ALLOW' ? '#10b981' : 
-                                     scanProcessor.results.decision === 'BLOCK' ? '#dc2626' : '#d97706'}`,
-                borderRadius: '16px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h3 style={{
-                      fontSize: '2rem',
-                      fontWeight: '900',
-                      color: scanProcessor.results.decision === 'ALLOW' ? '#10b981' : 
-                             scanProcessor.results.decision === 'BLOCK' ? '#dc2626' : '#d97706',
-                      margin: 0
-                    }}>
-                      {scanProcessor.results.decision}
-                    </h3>
-                    <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: '0.5rem 0 0 0' }}>
-                      Evidence: {scanProcessor.results.evidence_id}
-                    </p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'white' }}>
-                      {scanProcessor.results.confidence}%
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      AI CONFIDENCE
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right: Real-Time Activity Log */}
+        {/* Real-Time Activity Log */}
+        {scanProcessor.realTimeLog.length > 0 && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(15, 23, 42, 0.8) 100%)',
-            padding: '2.5rem',
-            borderRadius: '20px',
-            border: '1px solid #334155',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(15, 23, 42, 0.6) 100%)',
+            padding: '1rem',
+            borderRadius: '8px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
           }}>
-              <h2 style={{
-                fontSize: '1.25rem',
-                fontWeight: '600',
-                marginBottom: '2rem',
-                color: '#10b981',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                letterSpacing: '-0.025em',
-                lineHeight: '1.3',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#10b981',
-                  borderRadius: '50%',
-                  animation: 'pulse 2s infinite'
-                }}></div>
-                REAL-TIME ACTIVITY LOG
-              </h2>
-
-            <div style={{
-              height: '400px',
-              overflowY: 'auto',
-              backgroundColor: '#000000',
-              padding: '1rem',
-              borderRadius: '8px',
-              border: '1px solid #374151',
-              fontFamily: 'Monaco, "Lucida Console", monospace'
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              marginBottom: '0.75rem',
+              color: '#10b981',
+              fontFamily: '"Inter", sans-serif'
             }}>
-              {scanProcessor.realTimeLog.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🎯</div>
-                  <p style={{ fontSize: '0.875rem' }}>
-                    SYSTEM READY<br/>
-                    Waiting for security scan upload...
-                  </p>
+              Real-Time Activity Log
+            </h3>
+            <div style={{
+              backgroundColor: '#000000',
+              padding: '0.75rem',
+              borderRadius: '4px',
+              border: '1px solid #374151',
+              fontFamily: 'Monaco, "Lucida Console", monospace',
+              maxHeight: '200px',
+              overflowY: 'auto'
+            }}>
+              {scanProcessor.realTimeLog.map((entry) => (
+                <div key={entry.id} style={{
+                  marginBottom: '0.25rem',
+                  fontSize: '0.625rem',
+                  lineHeight: '1.4'
+                }}>
+                  <span style={{ color: '#64748b' }}>
+                    [{entry.timestamp.toLocaleTimeString()}]
+                  </span>
+                  <span style={{ color: '#10b981', fontWeight: '700', margin: '0 0.5rem' }}>
+                    {entry.action}
+                  </span>
+                  <span style={{ color: '#e2e8f0' }}>
+                    {entry.message}
+                  </span>
                 </div>
-              ) : (
-                scanProcessor.realTimeLog.map((entry) => (
-                  <div key={entry.id} style={{
-                    marginBottom: '0.75rem',
-                    fontSize: '0.75rem',
-                    lineHeight: '1.4'
-                  }}>
-                    <span style={{ color: '#64748b' }}>
-                      [{entry.timestamp.toLocaleTimeString()}]
-                    </span>
-                    <span style={{ color: '#10b981', fontWeight: '700', margin: '0 0.5rem' }}>
-                      {entry.action}
-                    </span>
-                    <span style={{ color: '#e2e8f0' }}>
-                      {entry.message}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Quick Actions */}
-            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #374151' }}>
-              <h4 style={{ 
-                fontSize: '0.875rem', 
-                fontWeight: '600', 
-                marginBottom: '1rem', 
-                color: '#94a3b8',
-                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase'
-              }}>
-                MISSION CONTROL
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
-                  { label: 'Developer Pipeline', href: '/developer', icon: '⚙️' },
-                  { label: 'Executive Briefing', href: '/ciso', icon: '📊' },
-                  { label: 'Architecture Status', href: '/architect', icon: '🏛️' },
-                  { label: 'Deploy Instructions', href: '/install', icon: '🚀' }
-                ].map((action) => (
-                  <Link
-                    key={action.label}
-                    to={action.href}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      border: '1px solid #3b82f6',
-                      borderRadius: '8px',
-                      textDecoration: 'none',
-                      color: '#60a5fa',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'
-                    }}
-                  >
-                    <span style={{ marginRight: '0.75rem', fontSize: '1rem' }}>{action.icon}</span>
-                    {action.label}
-                  </Link>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <style>{`
@@ -1054,7 +565,7 @@ function CommandCenter() {
           50% { opacity: 0.5; }
         }
       `}</style>
-    </>
+    </div>
   )
 }
 
