@@ -359,30 +359,34 @@ function CommandCenter() {
               </div>
             </div>
 
-            {/* Operational Metrics */}
+            {/* Operational Metrics - Apiiro Style */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '1.5rem'
+              gap: '1rem'
             }}>
               {[
-                { label: 'ACTIVE DECISIONS', value: operationalState.activeDecisions, color: '#3b82f6' },
-                { label: 'PROCESSING QUEUE', value: operationalState.processingQueue, color: '#8b5cf6' },
-                { label: 'SYSTEM MODE', value: operationalState.systemMode.toUpperCase(), color: operationalState.systemMode === 'demo' ? '#a78bfa' : '#10b981' },
-                { label: 'COMPONENTS', value: '6/6', color: '#16a34a' }
+                { label: 'Active Decisions', value: operationalState.activeDecisions, color: '#3b82f6' },
+                { label: 'Processing Queue', value: operationalState.processingQueue, color: '#8b5cf6' },
+                { label: 'System Mode', value: operationalState.systemMode.toUpperCase(), color: operationalState.systemMode === 'demo' ? '#a78bfa' : '#10b981' },
+                { label: 'Components', value: '6/6', color: '#16a34a' }
               ].map((metric) => (
                 <div key={metric.label} style={{
-                  padding: '1.5rem',
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '12px',
-                  border: `1px solid ${metric.color}40`,
-                  textAlign: 'center'
+                  padding: '1.25rem',
+                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  borderRadius: '8px',
+                  border: `1px solid ${metric.color}30`,
+                  textAlign: 'center',
+                  minHeight: '85px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
                 }}>
                   <div style={{
-                    fontSize: '1.75rem',
-                    fontWeight: '700',
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
                     color: metric.color,
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.25rem',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                     lineHeight: '1.1'
                   }}>
@@ -391,8 +395,7 @@ function CommandCenter() {
                   <div style={{
                     fontSize: '0.75rem',
                     color: '#94a3b8',
-                    fontWeight: '600',
-                    letterSpacing: '0.05em',
+                    fontWeight: '500',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                     lineHeight: '1.2'
                   }}>
