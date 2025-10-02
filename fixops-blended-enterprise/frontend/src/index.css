@@ -266,22 +266,28 @@
   @apply skeleton rounded-full w-10 h-10;
 }
 
-/* Mobile Screenshot Support */
+/* Mobile Screenshot Support - Fixed */
 html, body {
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  -ms-user-select: text !important;
-  user-select: text !important;
-  -webkit-touch-callout: default !important;
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Remove screenshot restrictions */
-* {
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  user-select: text !important;
+/* Enable screenshots without breaking functionality */
+body {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Ensure buttons and interactive elements work */
+button, a, input, select, textarea {
   pointer-events: auto !important;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
 }
 
 /* Mobile responsive enhancements */
