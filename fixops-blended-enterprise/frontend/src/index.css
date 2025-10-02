@@ -266,6 +266,40 @@
   @apply skeleton rounded-full w-10 h-10;
 }
 
+/* Mobile Screenshot Support */
+html, body {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Remove screenshot restrictions */
+* {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  pointer-events: auto !important;
+}
+
+/* Mobile responsive enhancements */
+@media (max-width: 768px) {
+  .mobile-responsive {
+    padding: 1rem !important;
+    font-size: 0.875rem !important;
+  }
+  
+  .mobile-hide {
+    display: none !important;
+  }
+  
+  .mobile-stack {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Print styles for compliance reports */
 @media print {
   .no-print {
