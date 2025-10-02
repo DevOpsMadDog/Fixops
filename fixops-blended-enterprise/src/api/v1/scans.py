@@ -143,4 +143,225 @@ async def upload_scan_file(
             detail=f"Failed to process scan file: {str(e)}"
         )
 
-# ... the rest of the file remains same (chunked upload, parsers) ...
+# Chunked upload endpoints
+@router.post("/upload/init")
+async def init_chunked_upload(
+    file_name: str = Form(...),
+    total_size: int = Form(...),
+    scan_type: str = Form(...),
+    service_name: str = Form(...),
+    environment: str = Form(default="production")
+):
+    """Initialize chunked upload"""
+    try:
+        upload_id = f"upload_{int(time.time() * 1000)}"
+        
+        # Store upload metadata
+        upload_metadata = {
+            "upload_id": upload_id,
+            "file_name": file_name,
+            "total_size": total_size,
+            "scan_type": scan_type,
+            "service_name": service_name,
+            "environment": environment,
+            "chunks_received": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Store in upload directory
+        upload_dir = UPLOAD_DIR / upload_id
+        upload_dir.mkdir(exist_ok=True)
+        
+        with open(upload_dir / "metadata.json", "w") as f:
+            json.dump(upload_metadata, f)
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "data": {
+                    "upload_id": upload_id,
+                    "message": "Chunked upload initialized"
+                }
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Chunked upload init failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize chunked upload: {str(e)}"
+        )
+
+@router.post("/upload/chunk")
+async def upload_chunk(
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...),
+    total_chunks: int = Form(...),
+    chunk: UploadFile = File(...)
+):
+    """Upload a chunk"""
+    try:
+        upload_dir = UPLOAD_DIR / upload_id
+        if not upload_dir.exists():
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        
+        # Save chunk
+        chunk_content = await chunk.read()
+        chunk_path = upload_dir / f"chunk_{chunk_index}"
+        
+        with open(chunk_path, "wb") as f:
+            f.write(chunk_content)
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "success",
+                "data": {
+                    "upload_id": upload_id,
+                    "chunk_index": chunk_index,
+                    "message": f"Chunk {chunk_index} received"
+                }
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Chunk upload failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload chunk: {str(e)}"
+        )
+
+@router.post("/upload/complete")
+async def complete_chunked_upload(
+    upload_id: str = Form(...)
+):
+    """Complete chunked upload and process file"""
+    try:
+        upload_dir = UPLOAD_DIR / upload_id
+        if not upload_dir.exists():
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        
+        # Load metadata
+        with open(upload_dir / "metadata.json", "r") as f:
+            metadata = json.load(f)
+        
+        # Reassemble file
+        chunks = sorted([f for f in upload_dir.iterdir() if f.name.startswith("chunk_")])
+        assembled_content = b""
+        
+        for chunk_file in chunks:
+            with open(chunk_file, "rb") as f:
+                assembled_content += f.read()
+        
+        # Process the assembled file
+        cli = FixOpsCLI()
+        await cli.initialize()
+        
+        try:
+            scan_type = metadata["scan_type"]
+            if scan_type == 'sarif':
+                scan_data = await cli._parse_sarif(assembled_content.decode('utf-8'))
+            elif scan_type == 'sbom':
+                scan_data = await parse_sbom(assembled_content.decode('utf-8'))
+            elif scan_type == 'json':
+                scan_data = json.loads(assembled_content.decode('utf-8'))
+            else:
+                raise ValueError(f"Unsupported scan type: {scan_type}")
+            
+            service = await cli._get_or_create_service(
+                service_name=metadata["service_name"],
+                environment=metadata["environment"],
+                repository_url=f"chunked-upload-{metadata['service_name']}"
+            )
+            
+            findings_created = []
+            for finding_data in scan_data.get('findings', []):
+                finding_data['service_id'] = service.id
+                finding_data['uploaded_by'] = 'system'
+                finding_data['upload_filename'] = metadata["file_name"]
+                
+                finding = await cli._create_finding_from_data(finding_data)
+                findings_created.append(finding)
+            
+            # Cleanup upload directory
+            shutil.rmtree(upload_dir)
+            
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "success",
+                    "message": f"Chunked upload completed and processed",
+                    "data": {
+                        "service_id": service.id,
+                        "service_name": service.name,
+                        "findings_processed": len(findings_created),
+                        "upload_metadata": {
+                            "filename": metadata["file_name"],
+                            "scan_type": scan_type,
+                            "environment": metadata["environment"]
+                        }
+                    }
+                }
+            )
+            
+        finally:
+            await cli.cleanup()
+        
+    except Exception as e:
+        logger.error(f"Chunked upload completion failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to complete chunked upload: {str(e)}"
+        )
+
+# Helper parsers
+async def _parse_ibom(content: str) -> Dict[str, Any]:
+    """Parse IBOM format"""
+    # Simple IBOM parser - would be enhanced in production
+    try:
+        ibom_data = json.loads(content)
+        findings = []
+        
+        for component in ibom_data.get('components', []):
+            if component.get('vulnerabilities'):
+                for vuln in component['vulnerabilities']:
+                    findings.append({
+                        'rule_id': vuln.get('id', 'unknown'),
+                        'title': f"Vulnerability in {component.get('name', 'unknown')}",
+                        'description': vuln.get('description', ''),
+                        'severity': vuln.get('severity', 'medium').lower(),
+                        'category': 'dependency',
+                        'scanner_type': 'sca'
+                    })
+        
+        return {'findings': findings}
+    except Exception as e:
+        logger.error(f"IBOM parsing failed: {str(e)}")
+        return {'findings': []}
+
+async def _parse_csv(content: str) -> Dict[str, Any]:
+    """Parse CSV format"""
+    import csv
+    import io
+    
+    try:
+        findings = []
+        csv_reader = csv.DictReader(io.StringIO(content))
+        
+        for row in csv_reader:
+            findings.append({
+                'rule_id': row.get('rule_id', 'unknown'),
+                'title': row.get('title', 'Unknown vulnerability'),
+                'description': row.get('description', ''),
+                'severity': row.get('severity', 'medium').lower(),
+                'category': row.get('category', 'unknown'),
+                'scanner_type': row.get('scanner_type', 'generic'),
+                'file_path': row.get('file_path'),
+                'line_number': int(row.get('line_number', 0)) if row.get('line_number') else None
+            })
+        
+        return {'findings': findings}
+    except Exception as e:
+        logger.error(f"CSV parsing failed: {str(e)}")
+        return {'findings': []}
