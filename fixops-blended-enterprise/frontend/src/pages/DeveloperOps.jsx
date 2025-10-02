@@ -225,24 +225,25 @@ function DeveloperOps() {
           </div>
         </div>
 
-        {/* SSDLC Stages Pipeline */}
+        {/* Compact SSDLC Pipeline Stages */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
-          padding: '3rem',
-          borderRadius: '20px',
-          border: '1px solid #334155',
-          marginBottom: '3rem',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(0, 0, 0, 0.8) 100%)',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          marginBottom: '1rem',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
         }}>
           <h2 style={{
-            fontSize: '1.75rem',
-            fontWeight: '800',
-            marginBottom: '1rem',
-            color: '#60a5fa'
+            fontSize: '1rem',
+            fontWeight: '600',
+            marginBottom: '0.75rem',
+            color: '#60a5fa',
+            fontFamily: '"Inter", sans-serif'
           }}>
-            🔄 SECURE SOFTWARE DEVELOPMENT LIFECYCLE
+            Secure Software Development Lifecycle
           </h2>
-          <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '2rem' }}>
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '1rem', fontFamily: '"Inter", sans-serif' }}>
             {isDemo 
               ? 'Demo pipeline showing complete SSDLC integration with FixOps Decision Engine'
               : 'Production pipeline ready for security scan ingestion and decision automation'
@@ -251,8 +252,8 @@ function DeveloperOps() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '2rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1rem'
           }}>
             {Object.entries(pipelineState.ssdlcStages).map(([stageKey, stage]) => (
               <div key={stageKey} style={{
