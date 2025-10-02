@@ -1,61 +1,123 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
-function ModeToggle({ currentMode, onModeChange }) {
+function ModeToggle() {
+  const [currentMode, setCurrentMode] = useState('demo')
+  const [switching, setSwitching] = useState(false)
+
+  useEffect(() => {
+    fetchCurrentMode()
+  }, [])
+
+  const fetchCurrentMode = async () => {
+    try {
+      const response = await fetch('/api/v1/decisions/core-components')
+      const data = await response.json()
+      const mode = data.data?.system_info?.mode || 'demo'
+      setCurrentMode(mode)
+    } catch (error) {
+      setCurrentMode('demo')
+    }
+  }
+
+  const toggleMode = async () => {
+    setSwitching(true)
+    try {
+      // In a real implementation, this would call an API to switch modes
+      // For now, we'll just show what would happen
+      const newMode = currentMode === 'demo' ? 'production' : 'demo'
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      setCurrentMode(newMode)
+      
+      // Reload the page to reflect mode change
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+      
+    } catch (error) {
+      console.error('Mode toggle failed:', error)
+    } finally {
+      setSwitching(false)
+    }
+  }
+
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '1rem',
+      gap: '0.75rem',
       padding: '0.5rem 1rem',
-      backgroundColor: currentMode === 'demo' ? '#fef3c7' : '#f0fdf4',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       borderRadius: '20px',
-      border: currentMode === 'demo' ? '1px solid #fed7aa' : '1px solid #bbf7d0'
+      border: '1px solid rgba(255, 255, 255, 0.2)'
     }}>
       <div style={{
-        width: '8px',
-        height: '8px',
-        backgroundColor: currentMode === 'demo' ? '#d97706' : '#16a34a',
-        borderRadius: '50%',
-        animation: 'pulse 2s infinite'
-      }}></div>
-      
-      <span style={{
-        fontSize: '0.875rem',
-        fontWeight: '700',
-        color: currentMode === 'demo' ? '#92400e' : '#166534'
+        fontSize: '0.75rem',
+        color: '#94a3b8',
+        fontWeight: '500',
+        fontFamily: '"Inter", sans-serif'
       }}>
-        {currentMode === 'demo' ? '🎭 DEMO MODE' : '🏭 PRODUCTION MODE'}
-      </span>
+        MODE:
+      </div>
       
       <button
-        onClick={() => onModeChange(currentMode === 'demo' ? 'production' : 'demo')}
+        onClick={toggleMode}
+        disabled={switching}
         style={{
-          padding: '0.25rem 0.75rem',
-          backgroundColor: 'white',
-          border: '1px solid #d1d5db',
-          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.375rem 0.75rem',
+          backgroundColor: currentMode === 'demo' ? 'rgba(167, 139, 250, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+          border: `1px solid ${currentMode === 'demo' ? '#a78bfa' : '#10b981'}`,
+          borderRadius: '15px',
+          color: currentMode === 'demo' ? '#a78bfa' : '#10b981',
           fontSize: '0.75rem',
           fontWeight: '600',
-          color: '#374151',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#f3f4f6'
-          e.target.style.borderColor = '#9ca3af'
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.backgroundColor = 'white'
-          e.target.style.borderColor = '#d1d5db'
+          cursor: switching ? 'wait' : 'pointer',
+          transition: 'all 0.3s ease',
+          fontFamily: '"Inter", sans-serif'
         }}
       >
-        Switch to {currentMode === 'demo' ? 'Production' : 'Demo'}
+        {switching ? (
+          <>
+            <div style={{
+              width: '12px',
+              height: '12px',
+              border: '2px solid transparent',
+              borderTop: '2px solid currentColor',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            SWITCHING...
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              backgroundColor: 'currentColor',
+              borderRadius: '50%'
+            }}></div>
+            {currentMode.toUpperCase()}
+          </>
+        )}
       </button>
       
+      <div style={{
+        fontSize: '0.625rem',
+        color: '#64748b',
+        fontFamily: '"Inter", sans-serif'
+      }}>
+        {currentMode === 'demo' ? 'Showcase' : 'Live'}
+      </div>
+      
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>
