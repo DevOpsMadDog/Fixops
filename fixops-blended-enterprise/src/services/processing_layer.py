@@ -187,159 +187,283 @@ class BayesianPriorMapping:
         else:
             return {"critical": 0.02, "high": 0.08, "medium": 0.3, "low": 0.6}
 
-class MarkovTransitionMatrixBuilder:
-    """
-    Markov Transition Matrix Builder using REAL mchmm library
-    Purpose: Define model state transitions (e.g., Secure → Vulnerable → Exploited → Patched)
-    Inputs: CVE disclosure dates, EPSS scores, KEV flags
-    Uses mchmm to define and simulate transitions
-    """
-    
+
+class MarkovTransitionBuilder:
+    """Construct transition matrices using mchmm and vulnerability telemetry."""
+
     def __init__(self):
-        import mchmm as mc
-        self.mc = mc
-        self.states = ["secure", "vulnerable", "exploited", "patched"] 
+        try:
+            import mchmm as mc
+            self.mc = mc
+            self._library_available = True
+        except ImportError:
+            self.mc = None
+            self._library_available = False
+            logger.warning("mchmm not available, falling back to heuristic transitions")
+
+        self.states = ["secure", "vulnerable", "exploited", "patched"]
         self.state_to_index = {state: i for i, state in enumerate(self.states)}
         self.hmm_model = None
-        self._build_real_markov_model()
-    
-    def _build_real_markov_model(self):
-        """Build real Markov model using mchmm library"""
-        try:
-            # Create transition probability matrix using mchmm
-            # Define empirical transition probabilities based on security research
-            transition_matrix = np.array([
-                [0.7, 0.3, 0.0, 0.0],  # secure -> [secure, vulnerable, exploited, patched]
-                [0.1, 0.6, 0.2, 0.1],  # vulnerable -> [secure, vulnerable, exploited, patched] 
-                [0.0, 0.1, 0.4, 0.5],  # exploited -> [secure, vulnerable, exploited, patched]
-                [0.8, 0.1, 0.05, 0.05] # patched -> [secure, vulnerable, exploited, patched]
-            ])
-            
-            # Create MarkovChain using real mchmm
-            self.hmm_model = self.mc.MarkovChain().from_matrix(
-                transition_matrix, 
-                states=self.states
+        self.last_transition_matrix = self._default_matrix()
+        self._state_defaults: Dict[str, Tuple[float, float, float]] = {
+            "secure": (0.15, 7.0, 0.0),
+            "vulnerable": (0.45, 30.0, 0.1),
+            "exploited": (0.55, 20.0, 0.4),
+            "patched": (0.25, 45.0, 0.05),
+        }
+        self._global_defaults: Tuple[float, float, float] = (0.35, 30.0, 0.1)
+
+    def _default_matrix(self) -> np.ndarray:
+        """Baseline probabilities used before telemetry is available."""
+
+        return np.array([
+            [0.85, 0.14, 0.005, 0.005],
+            [0.1, 0.6, 0.2, 0.1],
+            [0.05, 0.1, 0.35, 0.5],
+            [0.7, 0.15, 0.05, 0.1],
+        ], dtype=float)
+
+    def build(
+        self,
+        markov_states: List[MarkovState],
+        reference_time: Optional[datetime] = None,
+    ) -> np.ndarray:
+        """Construct a transition matrix using mchmm for the supplied timeline."""
+
+        if reference_time is None:
+            reference_time = datetime.now(timezone.utc)
+
+        metrics_by_state: Dict[str, List[Tuple[float, float, float]]] = {
+            state: [] for state in self.states
+        }
+        global_metrics: List[Tuple[float, float, float]] = []
+
+        for state in markov_states:
+            days_open = max((reference_time - state.disclosure_date).days, 0)
+            record = (
+                float(np.clip(state.epss_score, 0.0, 1.0)),
+                float(days_open),
+                1.0 if state.kev_flag else 0.0,
             )
-            
-            logger.info("✅ Real Markov Transition Matrix initialized using mchmm")
-            
-        except Exception as e:
-            logger.error(f"Real mchmm initialization failed: {e}")
-            # Fallback to simple matrix
-            self.transition_matrix = {
-                "secure": {"secure": 0.7, "vulnerable": 0.3, "exploited": 0.0, "patched": 0.0},
-                "vulnerable": {"secure": 0.1, "vulnerable": 0.6, "exploited": 0.2, "patched": 0.1},
-                "exploited": {"secure": 0.0, "vulnerable": 0.1, "exploited": 0.4, "patched": 0.5},
-                "patched": {"secure": 0.8, "vulnerable": 0.1, "exploited": 0.05, "patched": 0.05}
-            }
-    
-    async def predict_state_evolution(self, current_states: List[MarkovState]) -> Dict[str, Any]:
-        """Predict vulnerability state evolution using REAL mchmm library"""
-        predictions = []
-        
+            global_metrics.append(record)
+            state_key = state.current_state if state.current_state in metrics_by_state else "vulnerable"
+            metrics_by_state[state_key].append(record)
+
+        global_summary = self._aggregate_metrics(global_metrics, self._global_defaults)
+
+        matrix = np.zeros((len(self.states), len(self.states)))
+        for state in self.states:
+            state_metrics = self._aggregate_metrics(
+                metrics_by_state[state], self._state_defaults[state]
+            )
+            matrix[self.state_to_index[state]] = self._construct_row(
+                state, state_metrics, global_summary
+            )
+
+        self.last_transition_matrix = matrix
+
+        if self._library_available:
+            try:
+                self.hmm_model = self.mc.MarkovChain().from_matrix(matrix, states=self.states)
+                logger.info("✅ Real Markov Transition Matrix initialized using mchmm")
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.error(f"Real mchmm initialization failed: {exc}")
+                self.hmm_model = None
+        else:
+            self.hmm_model = None
+
+        return self.last_transition_matrix
+
+    async def predict_state_evolution(
+        self,
+        current_states: List[MarkovState],
+        reference_time: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        """Predict vulnerability evolution using the most recent transition matrix."""
+
+        transition_matrix = self.build(current_states, reference_time=reference_time)
+        predictions: List[Dict[str, Any]] = []
+
         try:
             for state in current_states:
+                current_state_idx = self.state_to_index.get(state.current_state, 1)
+                base_probs = transition_matrix[current_state_idx].copy()
+                next_state_probs = self._calculate_transition_probs(base_probs, state)
+
                 if self.hmm_model:
-                    # Use real mchmm for state prediction
-                    current_state_idx = self.state_to_index.get(state.current_state, 1)
-                    
-                    # Generate sequence of next states using mchmm
-                    sequence = self.hmm_model.generate_states(length=5, start_state=current_state_idx)
-                    next_state_probs = self._calculate_transition_probs(current_state_idx, state)
-                    
-                    predictions.append({
-                        "cve_id": state.cve_id,
-                        "current_state": state.current_state,
-                        "predicted_transitions": next_state_probs,
-                        "mchmm_sequence": [self.states[idx] for idx in sequence],
-                        "epss_factor": state.epss_score,
-                        "kev_factor": state.kev_flag,
-                        "days_since_disclosure": (datetime.now(timezone.utc) - state.disclosure_date).days,
-                        "using_real_mchmm": True
-                    })
+                    sequence = self.hmm_model.generate_states(
+                        length=5, start_state=current_state_idx
+                    )
+                    generated_sequence = [self.states[idx] for idx in sequence]
+                    using_real_mchmm = True
                 else:
-                    # Fallback prediction
-                    adjusted_probs = self._adjust_transitions_fallback(state)
-                    predictions.append({
-                        "cve_id": state.cve_id,
-                        "current_state": state.current_state,
-                        "predicted_transitions": adjusted_probs,
-                        "epss_factor": state.epss_score,
-                        "kev_factor": state.kev_flag,
-                        "days_since_disclosure": (datetime.now(timezone.utc) - state.disclosure_date).days,
-                        "using_real_mchmm": False
-                    })
-            
+                    generated_sequence = self._deterministic_sequence(
+                        current_state_idx, steps=5
+                    )
+                    using_real_mchmm = False
+
+                predictions.append({
+                    "cve_id": state.cve_id,
+                    "current_state": state.current_state,
+                    "predicted_transitions": next_state_probs,
+                    "mchmm_sequence": generated_sequence,
+                    "epss_factor": state.epss_score,
+                    "kev_factor": state.kev_flag,
+                    "days_since_disclosure": (
+                        (reference_time or datetime.now(timezone.utc)) - state.disclosure_date
+                    ).days,
+                    "using_real_mchmm": using_real_mchmm,
+                })
+
             return {
                 "predictions": predictions,
                 "model_confidence": self._calculate_model_confidence(predictions),
-                "high_risk_count": len([p for p in predictions if p["predicted_transitions"].get("exploited", 0) > 0.3]),
-                "real_mchmm_used": self.hmm_model is not None
+                "high_risk_count": len(
+                    [
+                        p
+                        for p in predictions
+                        if p["predicted_transitions"].get("exploited", 0) > 0.3
+                    ]
+                ),
+                "transition_matrix": transition_matrix.tolist(),
+                "state_labels": self.states,
+                "real_mchmm_used": self.hmm_model is not None,
             }
-            
-        except Exception as e:
-            logger.error(f"mchmm prediction failed: {e}")
-            return {"error": str(e), "predictions": []}
-    
-    def _calculate_transition_probs(self, current_state_idx: int, state: MarkovState) -> Dict[str, float]:
-        """Calculate transition probabilities using real mchmm adjusted for EPSS/KEV"""
-        try:
-            # Get base transition probabilities from mchmm model
-            base_probs = self.hmm_model.tp[current_state_idx].copy()
-            
-            # Adjust based on EPSS and KEV flags
-            if state.epss_score > 0.7 and current_state_idx == 1:  # vulnerable state
-                base_probs[2] *= 2.0  # increase exploited probability
-            
-            if state.kev_flag and current_state_idx == 1:  # vulnerable state
-                base_probs[2] *= 3.0  # significantly increase exploited probability
-            
-            # Normalize
-            base_probs = base_probs / np.sum(base_probs)
-            
-            return {self.states[i]: float(prob) for i, prob in enumerate(base_probs)}
-            
-        except Exception as e:
-            logger.error(f"Transition probability calculation failed: {e}")
-            return {state: 0.25 for state in self.states}
-    
-    def _adjust_transitions_fallback(self, state: MarkovState) -> Dict[str, float]:
-        """Fallback transition adjustment when mchmm unavailable"""
-        base_probs = self.transition_matrix[state.current_state].copy()
-        
-        # Higher EPSS score increases exploitation probability
-        if state.epss_score > 0.7:
-            if "exploited" in base_probs:
-                base_probs["exploited"] *= 2.0
-        
-        # KEV flag significantly increases exploitation probability
-        if state.kev_flag and "exploited" in base_probs:
-            base_probs["exploited"] *= 3.0
-        
-        # Normalize probabilities
-        total = sum(base_probs.values())
-        return {k: v/total for k, v in base_probs.items()}
 
-    def _calculate_model_confidence(self, predictions: List[Dict]) -> float:
-        """Calculate overall model confidence based on data quality"""
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error(f"mchmm prediction failed: {exc}")
+            return {"error": str(exc), "predictions": []}
+
+    def _aggregate_metrics(
+        self,
+        metrics: List[Tuple[float, float, float]],
+        defaults: Tuple[float, float, float],
+    ) -> Tuple[float, float, float]:
+        if not metrics:
+            return defaults
+
+        arr = np.array(metrics, dtype=float)
+        epss = float(np.clip(np.mean(arr[:, 0]), 0.0, 1.0))
+        days = float(max(np.mean(arr[:, 1]), 0.0))
+        kev_ratio = float(np.clip(np.mean(arr[:, 2]), 0.0, 1.0))
+        return epss, days, kev_ratio
+
+    def _construct_row(
+        self,
+        state: str,
+        metrics: Tuple[float, float, float],
+        global_metrics: Tuple[float, float, float],
+    ) -> np.ndarray:
+        epss, days, kev_ratio = metrics
+        global_epss, global_days, global_kev = global_metrics
+
+        if state == "secure":
+            pressure = 0.2 + 0.5 * global_epss + 0.3 * global_kev + 0.2 * min(global_days / 90.0, 1.0)
+            weights = np.array(
+                [
+                    max(0.05, 1.0 - 0.6 * pressure),
+                    0.2 + 0.5 * pressure,
+                    0.05 + 0.3 * pressure * global_kev,
+                    0.1,
+                ]
+            )
+        elif state == "vulnerable":
+            days_factor = min(days / 60.0, 1.0)
+            vulnerability_pressure = 0.2 + 0.5 * epss + 0.3 * kev_ratio + 0.2 * days_factor
+            recovery_pressure = 0.1 + 0.4 * (1 - epss) + 0.2 * (1 - kev_ratio)
+            weights = np.array(
+                [
+                    0.05 + recovery_pressure * 0.3,
+                    0.25 + (1 - vulnerability_pressure) * 0.35,
+                    0.2 + vulnerability_pressure * 0.5,
+                    0.15 + recovery_pressure * 0.35 + days_factor * 0.1,
+                ]
+            )
+        elif state == "exploited":
+            days_factor = min(days / 45.0, 1.0)
+            containment = 0.3 + 0.4 * (1 - epss) + 0.3 * (1 - kev_ratio)
+            persistence = 0.3 + 0.4 * epss + 0.2 * kev_ratio
+            weights = np.array(
+                [
+                    0.05 + containment * 0.4,
+                    0.1 + kev_ratio * 0.2,
+                    0.25 + persistence * 0.5,
+                    0.2 + containment * 0.4 + days_factor * 0.2,
+                ]
+            )
+        elif state == "patched":
+            days_factor = min(days / 90.0, 1.0)
+            regression = 0.1 + epss * 0.3 + kev_ratio * 0.3
+            stability = 0.5 + (1 - epss) * 0.3 + (1 - kev_ratio) * 0.2 + days_factor * 0.2
+            weights = np.array(
+                [
+                    0.6 + stability * 0.2,
+                    0.1 + regression * 0.3,
+                    0.05 + regression * 0.2,
+                    0.25 + stability * 0.3,
+                ]
+            )
+        else:
+            weights = np.ones(len(self.states))
+
+        return self._normalize_weights(weights)
+
+    def _normalize_weights(self, weights: np.ndarray) -> np.ndarray:
+        clipped = np.clip(weights, 1e-6, None)
+        return clipped / np.sum(clipped)
+
+    def _calculate_transition_probs(
+        self, base_probs: np.ndarray, state: MarkovState
+    ) -> Dict[str, float]:
+        probs = base_probs.copy()
+
+        if state.current_state == "vulnerable":
+            if state.epss_score > 0.7:
+                probs[self.state_to_index["exploited"]] *= 1.3
+            if state.kev_flag:
+                probs[self.state_to_index["exploited"]] *= 1.5
+
+        if state.current_state == "exploited" and not state.kev_flag:
+            probs[self.state_to_index["patched"]] *= 1.2
+
+        normalized = self._normalize_weights(probs)
+        return {self.states[i]: float(prob) for i, prob in enumerate(normalized)}
+
+    def _deterministic_sequence(self, start_idx: int, steps: int) -> List[str]:
+        sequence = []
+        current_idx = start_idx
+        for _ in range(steps):
+            base_probs = self.last_transition_matrix[current_idx]
+            next_idx = int(np.argmax(base_probs))
+            sequence.append(self.states[next_idx])
+            current_idx = next_idx
+        return sequence
+
+    def _calculate_model_confidence(self, predictions: List[Dict[str, Any]]) -> float:
         if not predictions:
             return 0.0
-        
-        # Higher confidence when using real mchmm
-        base_confidence = 0.9 if any(p.get("using_real_mchmm", False) for p in predictions) else 0.6
-        
-        # Adjust based on data completeness
+
+        base_confidence = 0.9 if any(p.get("using_real_mchmm", False) for p in predictions) else 0.65
+
         confidence_factors = []
         for pred in predictions:
             factors = [
-                1.0 if pred["cve_id"] else 0.5,  # Has CVE ID
-                min(pred["epss_factor"] * 2, 1.0),  # EPSS availability
-                1.0 if pred["kev_factor"] else 0.8,  # KEV data
-                min(pred["days_since_disclosure"] / 365, 1.0)  # Maturity of disclosure
+                1.0 if pred["cve_id"] else 0.5,
+                min(pred["epss_factor"] * 2, 1.0),
+                1.0 if pred["kev_factor"] else 0.85,
+                min(pred["days_since_disclosure"] / 365, 1.0),
             ]
             confidence_factors.append(np.mean(factors))
-        
-        return base_confidence * np.mean(confidence_factors)
+
+        return float(base_confidence * np.mean(confidence_factors))
+
+    @property
+    def transition_matrix(self) -> np.ndarray:
+        return self.last_transition_matrix
+
+
+MarkovTransitionMatrixBuilder = MarkovTransitionBuilder
+
 
 class SSVCProbabilisticFusion:
     """
@@ -413,11 +537,22 @@ class SSVCProbabilisticFusion:
         """Extract risk indicator from Markov predictions"""
         if not markov_predictions.get("predictions"):
             return 0.5
-        
+
         high_risk_ratio = markov_predictions.get("high_risk_count", 0) / len(markov_predictions["predictions"])
         model_confidence = markov_predictions.get("model_confidence", 0.5)
-        
-        return high_risk_ratio * model_confidence
+        matrix = markov_predictions.get("transition_matrix")
+        labels = markov_predictions.get("state_labels", [])
+        matrix_risk = 0.0
+
+        if matrix and labels and "vulnerable" in labels and "exploited" in labels:
+            try:
+                vulnerable_idx = labels.index("vulnerable")
+                exploited_idx = labels.index("exploited")
+                matrix_risk = float(matrix[vulnerable_idx][exploited_idx]) * model_confidence
+            except (ValueError, TypeError):  # pragma: no cover - defensive
+                matrix_risk = 0.0
+
+        return max(high_risk_ratio * model_confidence, matrix_risk)
     
     def _fusion_algorithm(self, ssvc_score: float, bayesian_risk: float, markov_risk: float) -> float:
         """Fusion algorithm combining all risk components"""
@@ -728,7 +863,7 @@ class ProcessingLayer:
     
     def __init__(self):
         self.bayesian_mapper = BayesianPriorMapping()
-        self.markov_builder = MarkovTransitionMatrixBuilder()  
+        self.markov_builder = MarkovTransitionBuilder()
         self.fusion_engine = SSVCProbabilisticFusion()
         self.sarif_handler = SARIFVulnerabilityHandler()
         
