@@ -303,27 +303,35 @@ function CommandCenter() {
         color: 'white',
         padding: '2rem'
       }}>
+  return (
+    <>
+      <div style={{
+        background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 50%, #000000 100%)',
+        minHeight: '100vh',
+        color: 'white',
+        padding: '1rem'
+      }}>
       <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
         
-        {/* Mission Control Header - Softer Boundaries */}
+        {/* Compact Mission Control Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: '1.5rem',
-          marginBottom: '2rem'
+          gridTemplateColumns: '2.5fr 1.2fr',
+          gap: '1rem',
+          marginBottom: '1.5rem'
         }}>
-          {/* Left: Mission Status */}
+          {/* Left: Mission Status - Compact */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)',
-            padding: '2rem',
-            borderRadius: '12px',
+            padding: '1.5rem',
+            borderRadius: '8px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h1 style={{
-                  fontSize: '1.75rem',
+                  fontSize: '1.5rem',
                   fontWeight: '600',
                   color: 'white',
                   margin: 0,
@@ -334,9 +342,9 @@ function CommandCenter() {
                   Security Command Center
                 </h1>
                 <p style={{ 
-                  fontSize: '0.875rem', 
+                  fontSize: '0.75rem', 
                   color: '#94a3b8', 
-                  margin: '0.5rem 0 0 0',
+                  margin: '0.25rem 0 0 0',
                   fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                   fontWeight: '400',
                   lineHeight: '1.4'
@@ -346,24 +354,24 @@ function CommandCenter() {
               </div>
               
               <div style={{
-                fontSize: '2rem',
+                fontSize: '1.5rem',
                 fontWeight: '600',
                 color: getThreatColor(operationalState.threatLevel),
                 textAlign: 'center',
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
               }}>
                 <div style={{ lineHeight: '1.1' }}>{operationalState.threatLevel}</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: '500', marginTop: '0.25rem', color: '#94a3b8' }}>
+                <div style={{ fontSize: '0.625rem', fontWeight: '500', marginTop: '0.125rem', color: '#94a3b8' }}>
                   THREAT LEVEL
                 </div>
               </div>
             </div>
 
-            {/* Operational Metrics - Apiiro Style */}
+            {/* Compact Operational Metrics */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '1rem'
+              gap: '0.75rem'
             }}>
               {[
                 { label: 'Active Decisions', value: operationalState.activeDecisions, color: '#3b82f6' },
@@ -372,18 +380,14 @@ function CommandCenter() {
                 { label: 'Components', value: '6/6', color: '#16a34a' }
               ].map((metric) => (
                 <div key={metric.label} style={{
-                  padding: '1.25rem',
+                  padding: '1rem',
                   backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: `1px solid ${metric.color}30`,
-                  textAlign: 'center',
-                  minHeight: '85px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
+                  textAlign: 'center'
                 }}>
                   <div style={{
-                    fontSize: '1.5rem',
+                    fontSize: '1.25rem',
                     fontWeight: '600',
                     color: metric.color,
                     marginBottom: '0.25rem',
@@ -393,7 +397,7 @@ function CommandCenter() {
                     {metric.value}
                   </div>
                   <div style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.675rem',
                     color: '#94a3b8',
                     fontWeight: '500',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
@@ -406,25 +410,25 @@ function CommandCenter() {
             </div>
           </div>
 
-          {/* Right: System Health - Better Integrated */}
+          {/* Right: Compact System Health */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.6) 100%)',
-            padding: '2rem',
-            borderRadius: '12px',
+            padding: '1.5rem',
+            borderRadius: '8px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{
-                width: '8px',
-                height: '8px',
+                width: '6px',
+                height: '6px',
                 backgroundColor: '#10b981',
                 borderRadius: '50%',
                 animation: 'pulse 2s infinite',
-                marginRight: '0.75rem'
+                marginRight: '0.5rem'
               }}></div>
               <h2 style={{
-                fontSize: '1rem',
+                fontSize: '0.875rem',
                 fontWeight: '600',
                 margin: 0,
                 color: '#10b981',
@@ -446,13 +450,13 @@ function CommandCenter() {
                 <div key={item.component} style={{
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '0.75rem',
+                  padding: '0.5rem',
                   backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '6px',
+                  borderRadius: '4px',
                   border: `1px solid ${item.color}20`
                 }}>
                   <span style={{ 
-                    fontSize: '0.875rem', 
+                    fontSize: '0.75rem', 
                     fontWeight: '500',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                     color: 'white',
@@ -464,14 +468,14 @@ function CommandCenter() {
                   <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '0.75rem',
+                    gap: '0.5rem',
                     flexShrink: 0
                   }}>
                     <div style={{
-                      width: '40px',
-                      height: '3px',
+                      width: '30px',
+                      height: '2px',
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '2px',
+                      borderRadius: '1px',
                       overflow: 'hidden',
                       position: 'relative'
                     }}>
@@ -479,15 +483,15 @@ function CommandCenter() {
                         width: `${item.health}%`,
                         height: '100%',
                         backgroundColor: item.color,
-                        borderRadius: '2px'
+                        borderRadius: '1px'
                       }}></div>
                     </div>
                     <span style={{
-                      fontSize: '0.75rem',
+                      fontSize: '0.625rem',
                       fontWeight: '600',
                       color: item.color,
                       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                      minWidth: '65px',
+                      minWidth: '50px',
                       textAlign: 'right'
                     }}>
                       {item.status}
