@@ -303,7 +303,7 @@ function CommandCenter() {
         color: 'white',
         padding: '1rem'
       }}>
-      <div style={{ maxWidth: '1800px', margin: '0 auto' }}>>
+      <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
         
         {/* Compact Mission Control Header */}
         <div style={{
