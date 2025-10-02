@@ -415,18 +415,18 @@ function CommandCenter() {
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
           }}>
             <h2 style={{
-              fontSize: '1.25rem',
+              fontSize: '1rem',
               fontWeight: '600',
-              marginBottom: '2rem',
+              marginBottom: '1rem',
               color: '#10b981',
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
               letterSpacing: '-0.025em',
               lineHeight: '1.3'
             }}>
-              🏗️ SYSTEM HEALTH
+              🏗️ System Health
             </h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {[
                 { component: 'Decision Engine', status: 'OPERATIONAL', health: 100 },
                 { component: 'Vector Database', status: operationalState.systemMode === 'demo' ? 'DEMO' : 'OPERATIONAL', health: 95 },
@@ -438,24 +438,26 @@ function CommandCenter() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '1rem',
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '8px',
-                  border: '1px solid #374151'
+                  padding: '0.75rem 1rem',
+                  backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                  borderRadius: '6px',
+                  border: '1px solid #374151',
+                  minHeight: '45px'
                 }}>
                   <span style={{ 
                     fontSize: '0.875rem', 
-                    fontWeight: '600',
+                    fontWeight: '500',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    flex: 1
                   }}>
                     {item.component}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                     <div style={{
-                      width: '60px',
+                      width: '50px',
                       height: '4px',
                       backgroundColor: '#374151',
                       borderRadius: '2px',
@@ -470,8 +472,11 @@ function CommandCenter() {
                     </div>
                     <span style={{
                       fontSize: '0.75rem',
-                      fontWeight: '700',
-                      color: item.status === 'OPERATIONAL' ? '#10b981' : item.status === 'DEMO' ? '#a78bfa' : '#dc2626'
+                      fontWeight: '600',
+                      color: item.status === 'OPERATIONAL' ? '#10b981' : item.status === 'DEMO' ? '#a78bfa' : '#dc2626',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                      minWidth: '75px',
+                      textAlign: 'right'
                     }}>
                       {item.status}
                     </span>
