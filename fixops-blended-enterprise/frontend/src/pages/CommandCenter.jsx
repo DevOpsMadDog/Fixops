@@ -265,11 +265,41 @@ function CommandCenter() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
               {[
-                { component: 'Decision Engine', status: 'OPERATIONAL', health: 100, color: '#10b981' },
-                { component: 'Vector Database', status: isDemo ? 'DEMO' : 'OPERATIONAL', health: 95, color: isDemo ? '#f59e0b' : '#10b981' },
-                { component: 'LLM Consensus', status: 'OPERATIONAL', health: 98, color: '#10b981' },
-                { component: 'Policy Engine', status: isDemo ? 'DEMO' : 'OPERATIONAL', health: 92, color: isDemo ? '#f59e0b' : '#10b981' },
-                { component: 'Evidence Lake', status: 'OPERATIONAL', health: 100, color: '#10b981' }
+                { 
+                  component: 'Decision Engine', 
+                  status: 'OPERATIONAL', 
+                  health: 100, 
+                  color: '#10b981',
+                  required: null
+                },
+                { 
+                  component: 'Vector Database', 
+                  status: isDemo ? 'DEMO' : (operationalState.productionRequirements?.component_status?.vector_database?.status === 'READY' ? 'OPERATIONAL' : 'NEEDS_CONFIG'), 
+                  health: 95, 
+                  color: isDemo ? '#f59e0b' : (operationalState.productionRequirements?.component_status?.vector_database?.status === 'READY' ? '#10b981' : '#dc2626'),
+                  required: isDemo ? null : operationalState.productionRequirements?.component_status?.vector_database?.required
+                },
+                { 
+                  component: 'LLM Consensus', 
+                  status: isDemo ? 'DEMO' : (operationalState.productionRequirements?.component_status?.llm_consensus?.status === 'READY' ? 'OPERATIONAL' : 'NEEDS_KEYS'), 
+                  health: 98, 
+                  color: isDemo ? '#f59e0b' : '#10b981',
+                  required: isDemo ? null : 'EMERGENT_LLM_KEY'
+                },
+                { 
+                  component: 'Policy Engine', 
+                  status: isDemo ? 'DEMO' : 'NEEDS_SERVER', 
+                  health: 92, 
+                  color: isDemo ? '#f59e0b' : '#dc2626',
+                  required: isDemo ? null : 'OPA_SERVER'
+                },
+                { 
+                  component: 'Evidence Lake', 
+                  status: 'OPERATIONAL', 
+                  health: 100, 
+                  color: '#10b981',
+                  required: null
+                }
               ].map((item) => (
                 <div key={item.component} style={{
                   display: 'flex',
@@ -307,16 +337,26 @@ function CommandCenter() {
                         borderRadius: '1px'
                       }}></div>
                     </div>
-                    <span style={{
-                      fontSize: '0.625rem',
-                      fontWeight: '600',
-                      color: item.color,
-                      fontFamily: '"Inter", sans-serif',
-                      minWidth: '45px',
-                      textAlign: 'right'
-                    }}>
-                      {item.status}
-                    </span>
+                    <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                      <div style={{
+                        fontSize: '0.625rem',
+                        fontWeight: '600',
+                        color: item.color,
+                        fontFamily: '"Inter", sans-serif'
+                      }}>
+                        {item.status}
+                      </div>
+                      {item.required && !isDemo && (
+                        <div style={{
+                          fontSize: '0.5rem',
+                          color: '#dc2626',
+                          fontFamily: '"Inter", sans-serif',
+                          fontWeight: '500'
+                        }}>
+                          {item.required}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
