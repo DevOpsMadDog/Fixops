@@ -503,42 +503,36 @@ function CommandCenter() {
           </div>
         </div>
 
-        {/* Enhanced Main Operations Interface - Compact */}
+        {/* Compact Main Operations Interface */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1.8fr 1.2fr',
-          gap: '2rem'
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
         }}>
-          {/* Left: Decision Pipeline */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
-            padding: '2rem',
-            borderRadius: '12px',
-            border: '1px solid #334155',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+          <h2 style={{
+            fontSize: '1rem',
+            fontWeight: '600',
+            marginBottom: '1rem',
+            color: '#3b82f6',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+            letterSpacing: '-0.025em',
+            lineHeight: '1.3'
           }}>
-            <h2 style={{
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              marginBottom: '1rem',
-              color: '#3b82f6',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-              letterSpacing: '-0.025em',
-              lineHeight: '1.3'
-            }}>
-              Decision Pipeline
-            </h2>
+            Decision Pipeline
+          </h2>
 
-            {/* Business Context Upload - Compact */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            {/* Business Context - Ultra Compact */}
             <div style={{
-              padding: '1.25rem',
+              padding: '1rem',
               backgroundColor: 'rgba(124, 58, 237, 0.1)',
-              border: '1px solid #8b5cf6',
-              borderRadius: '8px',
-              marginBottom: '1.5rem'
+              border: '1px solid rgba(124, 58, 237, 0.3)',
+              borderRadius: '6px'
             }}>
               <h3 style={{
-                fontSize: '0.875rem',
+                fontSize: '0.75rem',
                 fontWeight: '600',
                 color: '#c4b5fd',
                 marginBottom: '0.75rem',
@@ -547,16 +541,16 @@ function CommandCenter() {
                 Business Context (Optional)
               </h3>
               
-              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <button
                   onClick={() => downloadBusinessContextSample('fixops.yaml')}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.375rem 0.5rem',
                     backgroundColor: 'rgba(124, 58, 237, 0.2)',
                     border: '1px solid #8b5cf6',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     color: '#c4b5fd',
-                    fontSize: '0.75rem',
+                    fontSize: '0.625rem',
                     fontWeight: '500',
                     cursor: 'pointer',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
@@ -567,12 +561,12 @@ function CommandCenter() {
                 <button
                   onClick={() => downloadBusinessContextSample('otm.json')}
                   style={{
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.375rem 0.5rem',
                     backgroundColor: 'rgba(124, 58, 237, 0.2)',
                     border: '1px solid #8b5cf6',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     color: '#c4b5fd',
-                    fontSize: '0.75rem',
+                    fontSize: '0.625rem',
                     fontWeight: '500',
                     cursor: 'pointer',
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
@@ -583,15 +577,142 @@ function CommandCenter() {
               </div>
               
               <p style={{
-                fontSize: '0.75rem',
+                fontSize: '0.625rem',
                 color: '#94a3b8',
                 margin: 0,
                 lineHeight: '1.4',
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
               }}>
-                Upload business context for enhanced decision accuracy with SSVC compliance
+                Upload business context for enhanced decision accuracy
               </p>
             </div>
+
+            {/* Security Scan Upload - Ultra Compact */}
+            <div style={{
+              padding: '1rem',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '6px'
+            }}>
+              <h3 style={{
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                color: '#93c5fd',
+                marginBottom: '0.75rem',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+              }}>
+                Security Scan Upload
+              </h3>
+
+              {/* Ultra Compact File Drop Zone */}
+              <div
+                style={{
+                  border: scanProcessor.dragActive ? '2px solid #3b82f6' : '1px dashed #475569',
+                  borderRadius: '4px',
+                  padding: '1rem',
+                  textAlign: 'center',
+                  backgroundColor: scanProcessor.dragActive ? 'rgba(59, 130, 246, 0.1)' : 'rgba(0, 0, 0, 0.3)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  marginBottom: '0.75rem'
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setScanProcessor(prev => ({ ...prev, dragActive: true }))
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault()
+                  setScanProcessor(prev => ({ ...prev, dragActive: false }))
+                }}
+                onDrop={handleFileDrop}
+                onClick={() => document.getElementById('scan-upload').click()}
+              >
+                <input
+                  id="scan-upload"
+                  type="file"
+                  style={{ display: 'none' }}
+                  accept=".json,.sarif,.csv,.sbom,.xml"
+                  onChange={(e) => {
+                    if (e.target.files[0]) {
+                      processSecurityScan(e.target.files[0])
+                    }
+                  }}
+                />
+                
+                <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+                  {scanProcessor.selectedFile ? '📊' : '🔒'}
+                </div>
+                <h4 style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  marginBottom: '0.375rem',
+                  color: scanProcessor.selectedFile ? '#3b82f6' : 'white',
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                  lineHeight: '1.2',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {scanProcessor.selectedFile ? 
+                    `Ready: ${scanProcessor.selectedFile.name}` : 
+                    'Drop scan or browse'
+                  }
+                </h4>
+                
+                <p style={{ 
+                  fontSize: '0.625rem', 
+                  color: '#94a3b8',
+                  margin: 0,
+                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                }}>
+                  SARIF • SBOM • CSV • JSON
+                </p>
+              </div>
+              
+              {!scanProcessor.selectedFile && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      downloadSampleSARIF()
+                    }}
+                    style={{
+                      padding: '0.375rem 0.5rem',
+                      backgroundColor: '#3b82f6',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: 'white',
+                      fontSize: '0.625rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                    }}
+                  >
+                    Sample SARIF
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      downloadSampleSBOM()
+                    }}
+                    style={{
+                      padding: '0.375rem 0.5rem',
+                      backgroundColor: '#8b5cf6',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: 'white',
+                      fontSize: '0.625rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
+                    }}
+                  >
+                    Sample SBOM
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
             {/* Step 2: Security Scan Upload */}
             <div style={{
