@@ -513,69 +513,56 @@ function CommandCenter() {
               Decision Pipeline
             </h2>
 
-            {/* Step 1: Business Context Upload */}
+            {/* Business Context Upload - Compact */}
             <div style={{
-              padding: '2rem',
+              padding: '1.25rem',
               backgroundColor: 'rgba(124, 58, 237, 0.1)',
               border: '1px solid #8b5cf6',
-              borderRadius: '16px',
-              marginBottom: '2rem'
+              borderRadius: '8px',
+              marginBottom: '1.5rem'
             }}>
               <h3 style={{
-                fontSize: '1.125rem',
+                fontSize: '0.875rem',
                 fontWeight: '600',
                 color: '#c4b5fd',
-                marginBottom: '1rem',
+                marginBottom: '0.75rem',
                 fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
               }}>
-                📋 STEP 1: Business Context (Optional but Recommended)
+                Business Context (Optional)
               </h3>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
                 <button
                   onClick={() => downloadBusinessContextSample('fixops.yaml')}
                   style={{
-                    padding: '1rem',
+                    padding: '0.5rem 0.75rem',
                     backgroundColor: 'rgba(124, 58, 237, 0.2)',
                     border: '1px solid #8b5cf6',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     color: '#c4b5fd',
                     fontSize: '0.75rem',
-                    fontWeight: '600',
-                    cursor: 'pointer'
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
                   }}
                 >
-                  📄 FIXOPS.YAML
+                  FixOps.yaml
                 </button>
                 <button
                   onClick={() => downloadBusinessContextSample('otm.json')}
                   style={{
-                    padding: '1rem',
+                    padding: '0.5rem 0.75rem',
                     backgroundColor: 'rgba(124, 58, 237, 0.2)',
                     border: '1px solid #8b5cf6',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     color: '#c4b5fd',
                     fontSize: '0.75rem',
-                    fontWeight: '600',
-                    cursor: 'pointer'
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
                   }}
                 >
-                  🏗️ OTM.JSON
-                </button>
-                <button
-                  onClick={() => downloadBusinessContextSample('ssvc.yaml')}
-                  style={{
-                    padding: '1rem',
-                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                    border: '1px solid #8b5cf6',
-                    borderRadius: '8px',
-                    color: '#c4b5fd',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  🎯 SSVC.YAML
+                  OTM.json
                 </button>
               </div>
               
@@ -583,11 +570,10 @@ function CommandCenter() {
                 fontSize: '0.75rem',
                 color: '#94a3b8',
                 margin: 0,
-                lineHeight: '1.4'
+                lineHeight: '1.4',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
               }}>
-                <strong>FixOps.yaml:</strong> Complete business context with SSVC factors, compliance requirements, and threat model integration.<br/>
-                <strong>OTM.json:</strong> Open Threat Model format - automatically converts to SSVC business context.<br/>
-                <strong>SSVC.yaml:</strong> Pure CISA/SEI SSVC framework format for compliance-first organizations.
+                Upload business context for enhanced decision accuracy with SSVC compliance
               </p>
             </div>
 
