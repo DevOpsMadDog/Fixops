@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import structlog
 
 from src.core.security import get_current_user
-from src.db.session import get_db
+from src.db.session import get_db, DatabaseManager
 from src.services.decision_engine import decision_engine, DecisionContext, DecisionOutcome
 from src.config.settings import get_settings
 
