@@ -165,11 +165,11 @@ async def get_sample_data():
                         "cwe_id": "CWE-79",
                         "cvss_score": 7.5,
                         "epss_score": 0.73,
-                        "kev_flag": false,
+                        "kev_flag": False,
                         "component": "express@4.17.1",
                         "file_path": "/app/src/routes/api.js",
                         "line_number": 42,
-                        "fix_available": true,
+                        "fix_available": True,
                         "fix_version": "4.18.2"
                     },
                     {
@@ -181,11 +181,11 @@ async def get_sample_data():
                         "cwe_id": "CWE-89", 
                         "cvss_score": 9.8,
                         "epss_score": 0.95,
-                        "kev_flag": true,
+                        "kev_flag": True,
                         "component": "mysql2@2.3.0",
                         "file_path": "/app/src/models/User.js",
                         "line_number": 128,
-                        "fix_available": true,
+                        "fix_available": True,
                         "fix_version": "2.3.3"
                     }
                 ]

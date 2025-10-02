@@ -11,7 +11,9 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
-import numpy as np
+
+from statistics import mean
+import structlog
 
 logger = structlog.get_logger()
 
@@ -106,6 +108,8 @@ class SBOMParser:
     
     def __init__(self):
         self.lib4sbom = None
+        self.parser = None
+        self.generator = None
         self._initialize_lib4sbom()
     
     def _initialize_lib4sbom(self):
@@ -118,6 +122,8 @@ class SBOMParser:
         except Exception as e:
             logger.error(f"lib4sbom initialization failed: {e}")
             self.lib4sbom = None
+            self.parser = None
+            self.generator = None
     
     async def parse_sbom(self, sbom_data: Any, sbom_format: str = "json") -> Dict[str, Any]:
         """Parse SBOM using real lib4sbom library with detailed validation"""
@@ -959,8 +965,8 @@ class SARIFProcessor:
                 "metadata_enriched": len([f for f in findings if f.get("security_metadata", {}).get("cwe_id")])
             },
             "quality_metrics": {
-                "avg_confidence": round(np.mean([
-                    f.get("security_metadata", {}).get("confidence", 0.5) 
+                "avg_confidence": round(mean([
+                    f.get("security_metadata", {}).get("confidence", 0.5)
                     for f in findings
                 ]), 3) if findings else 0,
                 "complete_locations": len([f for f in findings if f.get("location", {}).get("line", 0) > 0]),
