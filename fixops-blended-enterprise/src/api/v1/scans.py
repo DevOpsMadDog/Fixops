@@ -88,10 +88,7 @@ async def upload_scan_file(
                 findings_created.append(finding)
 
             correlation_engine = CorrelationEngine()
-            correlation_result = await correlation_engine.correlate_findings(
-                service_ids=[service.id],
-                time_window_hours=24
-            )
+            correlation_result = await correlation_engine.batch_correlate_findings([service.id])
 
             processing_time = (time.perf_counter() - start_time) * 1000
             FixOpsMetrics.record_upload(scan_type)
