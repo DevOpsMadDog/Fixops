@@ -83,8 +83,8 @@ class AdvancedLLMEngine:
             self.llm_client = None
             # Demo mode providers
             self.enabled_providers = [
-                LLMProvider.EMERGENT_GPT5.value,
-                LLMProvider.SPECIALIZED_CYBER.value
+                "emergent_gpt5",
+                "specialized_cyber"
             ]
 
     async def get_supported_llms(self) -> Dict[str, Dict[str, Any]]:
