@@ -24,6 +24,7 @@ from src.services.decision_engine import decision_engine, DecisionContext, Decis
 from src.services.fix_engine import fix_engine
 from src.services.cache_service import CacheService
 from src.services.policy_engine import PolicyContext, policy_engine
+from src.services.correlation_engine import correlation_engine
 
 logger = structlog.get_logger()
 settings = get_settings()
