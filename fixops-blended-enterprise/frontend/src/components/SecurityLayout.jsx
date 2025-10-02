@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import ModeToggle from './ModeToggle'
 
 function Layout({ children }) {
   const location = useLocation()
