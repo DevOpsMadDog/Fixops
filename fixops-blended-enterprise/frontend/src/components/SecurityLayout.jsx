@@ -135,11 +135,29 @@ function Layout({ children }) {
               color: isDemo ? '#a78bfa' : '#10b981',
               backgroundColor: isDemo ? 'rgba(167, 139, 250, 0.2)' : 'rgba(16, 185, 129, 0.2)',
               border: `1px solid ${isDemo ? '#a78bfa' : '#10b981'}`,
-              padding: '0.25rem 0.75rem',
-              borderRadius: '12px',
-              textTransform: 'uppercase'
+              padding: '0.5rem 1rem',
+              borderRadius: '20px',
+              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}>
-              {isDemo ? '🎭 DEMO ENVIRONMENT' : '🏭 PRODUCTION ENVIRONMENT'}
+              <div style={{
+                width: '6px',
+                height: '6px',
+                backgroundColor: isDemo ? '#a78bfa' : '#10b981',
+                borderRadius: '50%'
+              }}></div>
+              {isDemo ? 'DEMO ENVIRONMENT' : 'PRODUCTION ENVIRONMENT'}
+              <div style={{
+                fontSize: '0.625rem',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                padding: '0.125rem 0.375rem',
+                borderRadius: '8px',
+                marginLeft: '0.25rem'
+              }}>
+                {isDemo ? 'SHOWCASE MODE' : 'LIVE MODE'}
+              </div>
             </div>
           </div>
         </div>
