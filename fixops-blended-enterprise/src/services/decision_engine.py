@@ -6,18 +6,33 @@ Supports both Demo Mode (simulated data) and Production Mode (real integrations)
 import asyncio
 import json
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
 from dataclasses import dataclass, asdict
 import structlog
+from sqlalchemy import select
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
 from src.db.session import DatabaseManager
+from src.db.metrics_repository import DecisionMetricsRepository
+from src.models.security_sqlite import PolicyDecisionLog
 
 logger = structlog.get_logger()
 settings = get_settings()
+
+
+def _safe_json_loads(raw: Optional[str]) -> Dict[str, Any]:
+    """Parse JSON payloads from the database without raising."""
+
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return {}
 
 class DecisionOutcome(Enum):
     ALLOW = "ALLOW"
@@ -578,40 +593,42 @@ class DecisionEngine:
 
     async def get_decision_metrics(self) -> Dict[str, Any]:
         """Get decision engine metrics with mode indicator"""
-        base_metrics = {
-            "total_decisions": 234,
-            "pending_review": 18,
-            "high_confidence_rate": 0.87,
-            "context_enrichment_rate": 0.95,
-            "avg_decision_latency_us": 285,
-            "consensus_rate": 0.87,
-            "evidence_records": 847,
-            "audit_compliance": 1.0,
-            "demo_mode": self.demo_mode,
-            "mode_indicator": "🎭 DEMO MODE" if self.demo_mode else "🏭 PRODUCTION MODE"
-        }
-        
+
         if self.demo_mode:
-            base_metrics["core_components"] = {
-                "vector_db": f"demo_active ({self.demo_data['vector_db']['security_patterns']} patterns)",
-                "llm_rag": "demo_active (simulated enrichment)",
-                "consensus_checker": "demo_active (85% threshold)",
-                "golden_regression": f"demo_validated ({self.demo_data['golden_regression']['total_cases']} cases)",
-                "policy_engine": f"demo_active ({self.demo_data['policy_engine']['active_policies']} policies)",
-                "sbom_injection": "demo_active (simulated metadata)"
+            demo_metrics = {
+                "total_decisions": 234,
+                "pending_review": 18,
+                "high_confidence_rate": 0.87,
+                "context_enrichment_rate": 0.95,
+                "avg_decision_latency_us": 285,
+                "consensus_rate": 0.87,
+                "evidence_records": 847,
+                "audit_compliance": 1.0,
+                "demo_mode": True,
+                "mode_indicator": "🎭 DEMO MODE",
+                "core_components": {
+                    "vector_db": f"demo_active ({self.demo_data['vector_db']['security_patterns']} patterns)",
+                    "llm_rag": "demo_active (simulated enrichment)",
+                    "consensus_checker": "demo_active (85% threshold)",
+                    "golden_regression": f"demo_validated ({self.demo_data['golden_regression']['total_cases']} cases)",
+                    "policy_engine": f"demo_active ({self.demo_data['policy_engine']['active_policies']} policies)",
+                    "sbom_injection": "demo_active (simulated metadata)"
+                }
             }
-        else:
-            # Real production component status
-            base_metrics["core_components"] = {
-                "vector_db": f"production_active ({self.real_vector_db.get('security_patterns', 0)} patterns)" if self.real_vector_db else "not_configured",
-                "llm_rag": "production_active (gpt-5)" if self.emergent_client else "not_configured",
-                "consensus_checker": "production_active (85% threshold)",
-                "golden_regression": "production_active" if settings.SECURITY_PATTERNS_DB_URL else "not_configured",
-                "policy_engine": "production_active" if settings.JIRA_URL else "not_configured",
-                "sbom_injection": "production_active (real metadata)"
+            return demo_metrics
+
+        async with DatabaseManager.get_session_context() as session:
+            snapshot = await DecisionMetricsRepository.collect(session)
+
+        production_metrics = snapshot.to_dict()
+        production_metrics.update(
+            {
+                "demo_mode": False,
+                "mode_indicator": "🏭 PRODUCTION MODE",
+                "core_components": snapshot.component_status,
             }
-        
-        return base_metrics
+        )
+        return production_metrics
 
     def _create_error_decision(self, context: DecisionContext, start_time: float, error: str) -> DecisionResult:
         """Create error decision result"""
@@ -713,11 +730,90 @@ class DecisionEngine:
     
     async def _real_golden_regression_validation(self, context):
         """Real golden regression validation using historical decisions"""
+
+        async with DatabaseManager.get_session_context() as session:
+            result = await session.execute(
+                select(PolicyDecisionLog).order_by(PolicyDecisionLog.created_at.desc()).limit(200)
+            )
+            historical_logs = list(result.scalars())
+
+        if not historical_logs:
+            return {
+                "status": "insufficient_history",
+                "confidence": 0.0,
+                "similar_cases": 0,
+                "validation_passed": False,
+            }
+
+        target_severities = Counter(
+            (finding.get("severity") or "medium").upper() for finding in context.security_findings
+        )
+        target_total = sum(target_severities.values()) or 1
+
+        matches: List[Dict[str, Any]] = []
+        for log in historical_logs:
+            log_context = log.get_input_context() if hasattr(log, "get_input_context") else {}
+            metadata = _safe_json_loads(getattr(log, "metadata_", None))
+
+            severity_overlap = 0.0
+            logged_findings = log_context.get("security_findings") or []
+            if logged_findings and target_severities:
+                logged_counts = Counter(
+                    (item.get("severity") or "medium").upper() for item in logged_findings
+                )
+                shared = sum(
+                    min(count, logged_counts.get(severity, 0))
+                    for severity, count in target_severities.items()
+                )
+                severity_overlap = shared / target_total
+
+            service_match = 1.0 if log_context.get("service_name", "").lower() == context.service_name.lower() else 0.0
+            environment_match = (
+                0.5 if log_context.get("environment", "").lower() == context.environment.lower() else 0.0
+            )
+            consensus_bonus = 0.1 if metadata.get("consensus_reached") else 0.0
+
+            similarity_score = min(1.0, service_match * 0.4 + severity_overlap * 0.4 + environment_match + consensus_bonus)
+
+            if similarity_score == 0:
+                continue
+
+            matches.append(
+                {
+                    "score": round(similarity_score, 4),
+                    "decision": (log.decision or "DEFER").upper(),
+                    "confidence": round(log.confidence, 4),
+                    "policy_rule_id": log.policy_rule_id,
+                    "created_at": log.created_at.isoformat() if log.created_at else None,
+                    "service_id": log.service_id,
+                    "context": {
+                        "service_name": log_context.get("service_name"),
+                        "environment": log_context.get("environment"),
+                    },
+                }
+            )
+
+        if not matches:
+            return {
+                "status": "no_similar_cases",
+                "confidence": 0.0,
+                "similar_cases": 0,
+                "validation_passed": False,
+            }
+
+        matches.sort(key=lambda entry: entry["score"], reverse=True)
+        top_matches = matches[:5]
+
+        average_score = sum(match["score"] for match in top_matches) / len(top_matches)
+        max_confidence = max(match["confidence"] for match in top_matches)
+        validation_passed = any(match["decision"] == "ALLOW" for match in top_matches)
+
         return {
-            "status": "validated",
-            "confidence": 0.89,
-            "similar_cases": 23,
-            "validation_passed": True
+            "status": "validated" if validation_passed else "review_required",
+            "confidence": round(min(0.99, (average_score * 0.6) + (max_confidence * 0.4)), 4),
+            "similar_cases": len(matches),
+            "validation_passed": validation_passed,
+            "top_matches": top_matches,
         }
     
     async def _real_policy_evaluation(self, context, enriched_context):

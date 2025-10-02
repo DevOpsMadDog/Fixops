@@ -31,11 +31,25 @@ logger = structlog.get_logger()
 
 class PolicyDecision(str, Enum):
     BLOCK = "block"
-    ALLOW = "allow" 
+    ALLOW = "allow"
     DEFER = "defer"
     FIX = "fix"
     MITIGATE = "mitigate"
     ESCALATE = "escalate"
+
+    @classmethod
+    def from_value(cls, value: Any) -> "PolicyDecision":
+        """Robust conversion helper that mirrors Enum.valueOf semantics."""
+
+        if isinstance(value, cls):
+            return value
+
+        normalized = str(value).strip().lower()
+        for decision in cls:
+            if decision.value == normalized or decision.name.lower() == normalized:
+                return decision
+
+        raise ValueError(f"Unknown policy decision: {value}")
 
 
 @dataclass
@@ -348,8 +362,8 @@ class PolicyEngine:
                 }
             else:
                 return {
-                    "decision": PolicyDecision.valueOf(str(result)),
-                    "confidence": 1.0, 
+                    "decision": PolicyDecision.from_value(result),
+                    "confidence": 1.0,
                     "rationale": f"Python rule result: {result}"
                 }
                 
@@ -392,8 +406,19 @@ class PolicyEngine:
                         break
             
             if all_conditions_met:
+                decision_value = rule_config.get("decision", "allow")
+                try:
+                    decision = PolicyDecision.from_value(decision_value)
+                except ValueError:
+                    logger.warning(
+                        "Unknown decision '%s' in JSON rule %s; defaulting to DEFER",
+                        decision_value,
+                        policy.name,
+                    )
+                    decision = PolicyDecision.DEFER
+
                 return {
-                    "decision": PolicyDecision.valueOf(rule_config.get("decision", "allow")),
+                    "decision": decision,
                     "confidence": rule_config.get("confidence", 1.0),
                     "rationale": rule_config.get("rationale", "JSON rule conditions met")
                 }

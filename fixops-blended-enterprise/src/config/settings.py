@@ -57,14 +57,16 @@ class Settings(BaseSettings):
     ENABLED_RSS_SIDECAR: bool = Field(default=False)
     
     # Security Configuration  
-    SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY"))
+    SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY", "fixops-demo-secret"))
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALLOWED_HOSTS: List[str] = Field(default=["localhost", "127.0.0.1"])
     
     # Database Configuration
-    DATABASE_URL: str = Field(default=os.getenv("MONGO_URL", "mongodb://mongodb:27017/fixops_production"))
+    DATABASE_URL: str = Field(
+        default=os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./fixops_enterprise.db")
+    )
     DATABASE_POOL_SIZE: int = Field(default=10)
     DATABASE_MAX_OVERFLOW: int = Field(default=20)
     DATABASE_POOL_TIMEOUT: int = Field(default=30)
