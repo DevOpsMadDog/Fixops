@@ -323,22 +323,22 @@ function CommandCenter() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div>
                 <h1 style={{
-                  fontSize: '2.25rem',
-                  fontWeight: '700',
+                  fontSize: '1.75rem',
+                  fontWeight: '600',
                   color: 'white',
                   margin: 0,
                   letterSpacing: '-0.025em',
                   fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
                   lineHeight: '1.2'
                 }}>
-                  SECURITY COMMAND CENTER
+                  Security Command Center
                 </h1>
                 <p style={{ 
-                  fontSize: '1rem', 
+                  fontSize: '0.875rem', 
                   color: '#94a3b8', 
-                  margin: '0.75rem 0 0 0',
+                  margin: '0.5rem 0 0 0',
                   fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-                  fontWeight: '500',
+                  fontWeight: '400',
                   lineHeight: '1.4'
                 }}>
                   Enterprise DevSecOps Decision & Verification Engine
@@ -346,13 +346,14 @@ function CommandCenter() {
               </div>
               
               <div style={{
-                fontSize: '3rem',
-                fontWeight: '900',
+                fontSize: '2rem',
+                fontWeight: '600',
                 color: getThreatColor(operationalState.threatLevel),
-                textAlign: 'center'
+                textAlign: 'center',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
               }}>
-                <div>{operationalState.threatLevel}</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: '600', marginTop: '0.5rem' }}>
+                <div style={{ lineHeight: '1.1' }}>{operationalState.threatLevel}</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: '500', marginTop: '0.25rem', color: '#94a3b8' }}>
                   THREAT LEVEL
                 </div>
               </div>
