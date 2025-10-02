@@ -58,7 +58,7 @@ async def upload_scan_file(
         content = await file.read()
 
         cli = FixOpsCLI()
-        await cli.init()
+        await cli.initialize()
 
         try:
             if scan_type == 'sarif':
