@@ -132,69 +132,6 @@ function Layout({ children }) {
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <ModeToggle />
-              {isDemo ? (
-                <div style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '700',
-                  color: '#a78bfa',
-                  backgroundColor: 'rgba(167, 139, 250, 0.2)',
-                  border: '1px solid #a78bfa',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  textTransform: 'uppercase',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  <div style={{
-                    width: '6px',
-                    height: '6px',
-                    backgroundColor: '#a78bfa',
-                    borderRadius: '50%'
-                  }}></div>
-                  DEMO ENVIRONMENT
-                  <div style={{
-                    fontSize: '0.625rem',
-                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                    padding: '0.125rem 0.375rem',
-                    borderRadius: '8px',
-                    marginLeft: '0.25rem'
-                  }}>
-                    SHOWCASE MODE
-                  </div>
-                </div>
-              ) : (
-                <div style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '700',
-                  color: '#10b981',
-                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                  border: '1px solid #10b981',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  textTransform: 'uppercase',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  <div style={{
-                    width: '6px',
-                    height: '6px',
-                    backgroundColor: '#10b981',
-                    borderRadius: '50%'
-                  }}></div>
-                  PRODUCTION ENVIRONMENT
-                  <div style={{
-                    fontSize: '0.625rem',
-                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                    padding: '0.125rem 0.375rem',
-                    borderRadius: '8px',
-                    marginLeft: '0.25rem'
-                  }}>
-                    LIVE MODE
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
