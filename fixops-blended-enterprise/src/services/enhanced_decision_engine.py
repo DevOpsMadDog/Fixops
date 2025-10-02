@@ -458,7 +458,7 @@ class EnhancedDecisionEngine:
             
             # Multi-LLM analysis
             "llm_analysis": {
-                "models_used": [a.provider.value for a in llm_result.individual_analyses],
+                "models_used": [a.provider for a in llm_result.individual_analyses],
                 "consensus_confidence": llm_result.consensus_confidence,
                 "disagreement_areas": llm_result.disagreement_areas,
                 "individual_confidences": [a.confidence for a in llm_result.individual_analyses],
