@@ -212,32 +212,24 @@ async def prometheus_metrics():
         media_type="text/plain; version=0.0.4; charset=utf-8"
     )
 
-# API Routes - Free tool, no authentication required
-# app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])  # Disabled - free tool
-# app.include_router(users.router, prefix="/api/v1/users", tags=["users"])  # Disabled - free tool
-app.include_router(incidents.router, prefix="/api/v1/incidents", tags=["incidents"])
-app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
-app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monitoring"])
-app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
+# API Routes - Core Decision Engine APIs only
 app.include_router(scans.router, prefix="/api/v1", tags=["scan-ingestion"])
 app.include_router(decisions.router, prefix="/api/v1", tags=["decision-engine"])
 app.include_router(business_context.router, prefix="/api/v1", tags=["business-context"])
 app.include_router(business_context_enhanced.router, prefix="/api/v1", tags=["business-context-enhanced"])
-app.include_router(production_readiness.router, prefix="/api/v1", tags=["production-readiness"])
-app.include_router(system_mode.router, prefix="/api/v1", tags=["system-mode"])
 app.include_router(cicd.router, prefix="/api/v1", tags=["ci-cd-integration"])
 app.include_router(marketplace.router, prefix="/api/v1", tags=["marketplace"])
 app.include_router(enhanced.router, prefix="/api/v1", tags=["enhanced-multi-llm"])
 app.include_router(feeds.router, prefix="/api/v1", tags=["external-feeds"])
-app.include_router(integrations.router, prefix="/api/v1", tags=["integrations-stub"])
 app.include_router(docs.router, prefix="/api/v1", tags=["documentation"])
 app.include_router(system.router, prefix="/api/v1", tags=["system-status"])
 app.include_router(policy.router, prefix="/api/v1", tags=["policy-gates"])
-app.include_router(notifications.router, prefix="/api/v1", tags=["notifications-stub"])
 app.include_router(oss_tools.router, prefix="/api/v1", tags=["oss-integrations"])
 app.include_router(processing_layer.router, prefix="/api/v1", tags=["processing-layer"])
-app.include_router(user_workflow.router, prefix="/api/v1", tags=["user-workflow"])
 app.include_router(sample_data_demo.router, prefix="/api/v1", tags=["sample-data-demo"])
+app.include_router(production_readiness.router, prefix="/api/v1", tags=["production-readiness"])
+app.include_router(system_mode.router, prefix="/api/v1", tags=["system-mode"])
+app.include_router(monitoring.router, prefix="/api/v1", tags=["monitoring"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):
