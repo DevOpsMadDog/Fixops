@@ -72,11 +72,11 @@ class AdvancedLLMEngine:
             else:
                 logger.warning("No EMERGENT_LLM_KEY found, using demo mode")
                 self.enabled_providers = [
-                    LLMProvider.EMERGENT_GPT5.value,
-                    LLMProvider.OPENAI_GPT4.value,
-                    LLMProvider.ANTHROPIC_CLAUDE.value,
-                    LLMProvider.GOOGLE_GEMINI.value,
-                    LLMProvider.SPECIALIZED_CYBER.value
+                    "emergent_gpt5",
+                    "openai_gpt4", 
+                    "anthropic_claude",
+                    "google_gemini",
+                    "specialized_cyber"
                 ]
         except Exception as e:
             logger.error(f"LLM client initialization failed: {e}")
