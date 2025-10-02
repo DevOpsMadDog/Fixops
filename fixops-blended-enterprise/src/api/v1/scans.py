@@ -70,7 +70,19 @@ async def upload_scan_file(
             elif scan_type == 'csv':
                 scan_data = await _parse_csv(content.decode('utf-8'))
             elif scan_type == 'json':
-                scan_data = json.loads(content.decode('utf-8'))
+                parsed_json = json.loads(content.decode('utf-8'))
+                # Handle both list and dict formats
+                if isinstance(parsed_json, list):
+                    scan_data = {'findings': parsed_json}
+                else:
+                    scan_data = parsed_json
+
+            # Ensure scan_data is always a dict with 'findings' key
+            if not isinstance(scan_data, dict):
+                scan_data = {'findings': []}
+            
+            if 'findings' not in scan_data:
+                scan_data['findings'] = []
 
             service = await cli._get_or_create_service(
                 service_name=service_name,
@@ -79,7 +91,11 @@ async def upload_scan_file(
             )
 
             findings_created = []
-            for finding_data in scan_data.get('findings', []):
+            for finding_data in scan_data['findings']:
+                # Ensure finding_data is a dict
+                if not isinstance(finding_data, dict):
+                    continue
+                    
                 finding_data['service_id'] = service.id
                 finding_data['uploaded_by'] = 'system'
                 finding_data['upload_filename'] = file.filename
