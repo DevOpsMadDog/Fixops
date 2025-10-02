@@ -27,7 +27,7 @@ class LLMProvider(Enum):
 
 @dataclass
 class LLMAnalysisResult:
-    provider: LLMProvider
+    provider: str  # Changed from LLMProvider enum to string
     recommended_action: str
     confidence: float
     reasoning: str
