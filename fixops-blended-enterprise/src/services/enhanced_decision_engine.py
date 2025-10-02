@@ -157,7 +157,7 @@ class EnhancedDecisionEngine:
                     "consensus_confidence": llm_result.consensus_confidence,
                     "individual_analyses": [
                         {
-                            "provider": analysis.provider.value,
+                            "provider": analysis.provider,
                             "confidence": analysis.confidence,
                             "recommendation": analysis.recommended_action,
                             "reasoning": analysis.reasoning[:200] + "..." if len(analysis.reasoning) > 200 else analysis.reasoning
