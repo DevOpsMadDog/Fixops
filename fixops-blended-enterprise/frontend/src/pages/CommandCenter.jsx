@@ -296,12 +296,13 @@ function CommandCenter() {
   }
 
   return (
-    <div style={{
-      background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 50%, #000000 100%)',
-      minHeight: '100vh',
-      color: 'white',
-      padding: '2rem'
-    }}>
+    <>
+      <div style={{
+        background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 50%, #000000 100%)',
+        minHeight: '100vh',
+        color: 'white',
+        padding: '2rem'
+      }}>
       <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
         
         {/* Mission Control Header */}
