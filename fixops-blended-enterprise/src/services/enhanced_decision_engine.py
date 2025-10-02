@@ -530,7 +530,7 @@ class EnhancedDecisionEngine:
         return {
             "engine_type": "enhanced_multi_llm",
             "llm_providers_available": len(self.llm_engine.enabled_providers),
-            "llm_providers": [p.value for p in self.llm_engine.enabled_providers],
+            "llm_providers": [p for p in self.llm_engine.enabled_providers],
             "mitre_techniques_mapped": len(self.mitre_techniques),
             "compliance_frameworks_supported": len(self.compliance_frameworks),
             "marketplace_integration": True,
