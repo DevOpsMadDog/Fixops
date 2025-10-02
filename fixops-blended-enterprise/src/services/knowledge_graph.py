@@ -676,7 +676,7 @@ class KnowledgeGraphBuilder:
                 vuln_data = self.graph.nodes[vuln_node]
                 recommendations.append({
                     "type": "high_priority_fix",
-                    "title": f"Critical vulnerability affects multiple components",
+                    "title": "Critical vulnerability affects multiple components",
                     "description": f"Vulnerability {vuln_data.get('name')} affects {degree} components. Priority fix recommended.",
                     "affected_entity": vuln_node,
                     "priority": "high"

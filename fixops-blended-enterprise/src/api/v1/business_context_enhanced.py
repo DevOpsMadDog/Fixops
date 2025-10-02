@@ -48,7 +48,7 @@ async def upload_business_context(
             status_code=200,
             content={
                 "status": "success",
-                "message": f"Business context processed successfully",
+                "message": "Business context processed successfully",
                 "data": {
                     "service_name": ssvc_context.service_name,
                     "format_processed": format_type,
