@@ -166,7 +166,7 @@ class AdvancedLLMEngine:
         start_time = time.time()
         
         try:
-            if self.llm_client and provider == LLMProvider.EMERGENT_GPT5.value:
+            if provider == "emergent_gpt5" and self.llm_client:
                 # Real LLM analysis
                 prompt = self._build_analysis_prompt(context, findings)
                 response = await self.llm_client.generate_text(
@@ -187,7 +187,7 @@ class AdvancedLLMEngine:
             processing_time = (time.time() - start_time) * 1000
             
             return LLMAnalysisResult(
-                provider=LLMProvider(provider),
+                provider=provider,  # Just use string instead of enum
                 recommended_action=recommended_action,
                 confidence=confidence,
                 reasoning=reasoning,
