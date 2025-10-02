@@ -266,14 +266,14 @@ function EnhancedDashboard() {
       minHeight: '100vh',
       color: 'white'
     }}>
-      {/* Professional Input Panel */}
+      {/* Compact Professional Input Panel */}
       <div style={{ 
         background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)', 
-        padding: '2rem', 
-        borderRadius: '16px', 
+        padding: '1.5rem', 
+        borderRadius: '8px', 
         border: '1px solid rgba(255, 255, 255, 0.1)', 
-        marginBottom: '2rem',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#60a5fa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
