@@ -183,32 +183,31 @@ function ArchitectureCenter() {
       background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 50%, #000000 100%)',
       minHeight: '100vh',
       color: 'white',
-      padding: '2rem'
+      padding: '1rem'
     }}>
-      <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
         
-        {/* Architecture Command Center */}
+        {/* Compact Architecture Command Center */}
         <div style={{
-          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 41, 59, 0.8) 100%)',
-          padding: '3rem',
-          borderRadius: '20px',
-          border: '1px solid #3b82f6',
-          marginBottom: '3rem',
-          boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)'
+          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 41, 59, 0.6) 100%)',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          marginBottom: '1rem',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1 style={{
-                fontSize: '3rem',
-                fontWeight: '900',
+                fontSize: '1.75rem',
+                fontWeight: '700',
                 margin: 0,
-                background: 'linear-gradient(135deg, #ffffff 0%, #60a5fa 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                color: 'white',
+                fontFamily: '"Inter", sans-serif'
               }}>
-                ARCHITECTURE INTELLIGENCE
+                Architecture Intelligence
               </h1>
-              <p style={{ fontSize: '1.25rem', color: '#bfdbfe', margin: '1rem 0 0 0' }}>
+              <p style={{ fontSize: '0.875rem', color: '#bfdbfe', margin: '0.25rem 0 0 0', fontFamily: '"Inter", sans-serif' }}>
                 Technical system design and component performance analysis
               </p>
             </div>
@@ -216,30 +215,30 @@ function ArchitectureCenter() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '1rem',
+              gap: '0.75rem',
               textAlign: 'center'
             }}>
               <div style={{
-                padding: '1rem',
+                padding: '0.75rem',
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                borderRadius: '12px',
+                borderRadius: '6px',
                 border: '1px solid #3b82f6'
               }}>
-                <div style={{ fontSize: '1.75rem', fontWeight: '800', color: '#60a5fa' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '600', color: '#60a5fa', fontFamily: '"Inter", sans-serif' }}>
                   {architectureState.performanceMetrics.hotPathLatency}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>HOT PATH</div>
+                <div style={{ fontSize: '0.625rem', color: '#94a3b8', fontFamily: '"Inter", sans-serif' }}>HOT PATH</div>
               </div>
               <div style={{
-                padding: '1rem',
+                padding: '0.75rem',
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                borderRadius: '12px',
+                borderRadius: '6px',
                 border: '1px solid #3b82f6'
               }}>
-                <div style={{ fontSize: '1.75rem', fontWeight: '800', color: '#60a5fa' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '600', color: '#60a5fa', fontFamily: '"Inter", sans-serif' }}>
                   99.9%
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>UPTIME</div>
+                <div style={{ fontSize: '0.625rem', color: '#94a3b8', fontFamily: '"Inter", sans-serif' }}>UPTIME</div>
               </div>
             </div>
           </div>
