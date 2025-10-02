@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""
-Simple test script to verify frontend is accessible and working
-"""
-import requests
-import time
+"""Simple test script to verify frontend is accessible and working."""
+
+import os
+
+import pytest
+
+requests = pytest.importorskip(
+    "requests", reason="HTTP integration tests require the optional 'requests' dependency"
+)
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_FIXOPS_INTEGRATION_TESTS") != "1",
+    reason="FixOps frontend integration tests require running services",
+)
 
 def test_frontend():
     print("=== TESTING FRONTEND ACCESSIBILITY ===")
