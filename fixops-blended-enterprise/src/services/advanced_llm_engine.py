@@ -48,7 +48,15 @@ class AdvancedLLMEngine:
         self.cache = CacheService.get_instance()
         self.llm_client = None
         self.enabled_providers = []
+        self.initialized = False
         self._initialize_llm_client()
+    
+    async def initialize(self):
+        """Initialize the advanced LLM engine - required by enhanced_decision_engine"""
+        if not self.initialized:
+            self._initialize_llm_client()
+            self.initialized = True
+            logger.info("✅ Advanced LLM Engine initialized")
     
     def _initialize_llm_client(self):
         """Initialize LLM client for multi-model analysis"""
