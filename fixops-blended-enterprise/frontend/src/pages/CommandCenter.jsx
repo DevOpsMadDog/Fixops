@@ -9,6 +9,7 @@ function CommandCenter() {
     activeDecisions: 0,
     processingQueue: 0,
     systemHealth: {},
+    productionRequirements: {},
     lastActivity: null
   })
 
