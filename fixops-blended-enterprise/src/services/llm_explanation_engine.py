@@ -4,14 +4,13 @@ Purpose: Generate human-readable summaries of complex technical findings
 Uses models from Awesome-LLM4Cybersecurity for security domain expertise
 """
 
-import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 import structlog
 
-from emergentintegrations import EmergentLLM
+from src.integrations.awesome_llm_client import AwesomeLLMClient
 
 logger = structlog.get_logger()
 
@@ -43,7 +42,7 @@ class CybersecurityLLMEngine:
     """
     
     def __init__(self):
-        self.llm_client = None
+        self.llm_client: Optional[AwesomeLLMClient] = None
         self.cybersec_models = self._load_awesome_llm4cybersecurity_models()
         self._initialize_cybersecurity_llm()
         self.prompt_templates = self._load_cybersecurity_prompts()
@@ -88,14 +87,14 @@ class CybersecurityLLMEngine:
             # Use the general cybersecurity model configuration
             config = self.cybersec_models["general_cybersecurity"]
             
-            self.llm_client = EmergentLLM(
-                model=config["model"],
+            self.llm_client = AwesomeLLMClient(
+                model_name=config["model"],
                 temperature=config["temperature"],
-                max_tokens=config["max_tokens"]
+                max_tokens=config["max_tokens"],
             )
-            
+
             logger.info("✅ Awesome-LLM4Cybersecurity engine initialized with cybersecurity-optimized model")
-            
+
         except Exception as e:
             logger.error(f"Awesome-LLM4Cybersecurity initialization failed: {e}")
             self.llm_client = None
@@ -252,7 +251,7 @@ class LLMExplanationEngine:
             
             # Generate explanation using LLM
             if self.cybersec_engine.llm_client:
-                llm_response = await self._call_llm(formatted_prompt)
+                llm_response = await self._call_llm(formatted_prompt, context_type=request.context_type)
                 explanation = await self._parse_llm_response(llm_response, request)
             else:
                 # Fallback to rule-based explanation
@@ -271,17 +270,24 @@ class LLMExplanationEngine:
         """Call LLM with Awesome-LLM4Cybersecurity optimized parameters"""
         try:
             # Select appropriate model configuration based on context
-            config = self.cybersec_engine.cybersec_models.get(context_type, 
-                self.cybersec_engine.cybersec_models["general_cybersecurity"])
-            
-            response = await self.cybersec_engine.llm_client.generate_async(
-                prompt=prompt,
-                system_message=config["system_prompt"],
+            config = self.cybersec_engine.cybersec_models.get(
+                context_type,
+                self.cybersec_engine.cybersec_models["general_cybersecurity"],
             )
-            
-            logger.info(f"Generated explanation using Awesome-LLM4Cybersecurity {context_type} model")
+
+            system_prompt = config["system_prompt"]
+            response = await self.cybersec_engine.llm_client.generate(
+                prompt,
+                system_prompt=system_prompt,
+            )
+
+            logger.info(
+                "Generated explanation using Awesome-LLM4Cybersecurity model",
+                context=context_type,
+                model=config["model"],
+            )
             return response
-            
+
         except Exception as e:
             logger.error(f"Awesome-LLM4Cybersecurity call failed: {e}")
             raise

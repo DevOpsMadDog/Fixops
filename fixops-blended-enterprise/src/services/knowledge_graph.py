@@ -8,11 +8,13 @@ import asyncio
 import json
 import networkx as nx
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Tuple, Optional, Set
+from typing import Dict, List, Any, Tuple, Optional, Set, Iterable
 from dataclasses import dataclass
 import structlog
 
 logger = structlog.get_logger()
+
+from src.integrations.ctinexus_adapter import CTINexusGraphAdapter
 
 @dataclass
 class SecurityEntity:
@@ -374,11 +376,13 @@ class KnowledgeGraphBuilder:
     Builds and maintains relationships between security entities
     """
     
-    def __init__(self):
+    def __init__(self, graph_adapter: Optional[CTINexusGraphAdapter] = None):
         self.graph = nx.DiGraph()
         self.entity_extractor = CTINexusEntityExtractor()
-        self.entities = {}
-        self.relations = []
+        self.graph_adapter = graph_adapter or CTINexusGraphAdapter()
+        self.entities: Dict[str, SecurityEntity] = {}
+        self.relations: List[SecurityRelation] = []
+        self.serialized_graph: Dict[str, Any] = {}
     
     async def build_graph(self, scan_data: Dict[str, Any], context_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Build knowledge graph from scan data and context"""
@@ -387,119 +391,58 @@ class KnowledgeGraphBuilder:
             logger.info("🔍 Extracting entities from scan data...")
             entities = await self.entity_extractor.extract_entities(scan_data)
             
-            # Step 2: Add entities to graph
-            for entity in entities:
-                self.graph.add_node(
-                    entity.entity_id,
-                    **{
-                        "type": entity.entity_type,
-                        "name": entity.name,
-                        "confidence": entity.confidence,
-                        **entity.properties
-                    }
-                )
-                self.entities[entity.entity_id] = entity
-            
-            # Step 3: Infer relationships
-            logger.info("🔗 Inferring relationships between entities...")
-            relations = await self._infer_relationships(entities)
-            
-            # Step 4: Add relationships to graph
-            for relation in relations:
-                self.graph.add_edge(
-                    relation.source_id,
-                    relation.target_id,
-                    relation_type=relation.relation_type,
-                    confidence=relation.confidence,
-                    **relation.properties
-                )
-                self.relations.append(relation)
-            
-            # Step 5: Analyze graph structure
+            # Step 2: Delegate graph construction to CTINexus
+            logger.info("🔗 Delegating relationship inference to CTINexus...")
+            ctinexus_result = await self.graph_adapter.build_graph(
+                self._entities_to_payload(entities),
+                context={"scan": scan_data, "context": context_data or {}},
+            )
+
+            self.graph = ctinexus_result.graph
+            self.entities = {entity.entity_id: entity for entity in entities}
+            self.relations = [self._relation_from_dict(data) for data in ctinexus_result.relations]
+            self.serialized_graph = ctinexus_result.serialized
+
+            # Step 3: Analyze graph structure
             analysis = await self._analyze_graph()
-            
+
             return {
                 "status": "success",
                 "entities_count": len(entities),
-                "relations_count": len(relations),
+                "relations_count": len(self.relations),
                 "graph_metrics": analysis,
                 "critical_paths": await self._find_critical_paths(),
                 "risk_clusters": await self._identify_risk_clusters(),
-                "recommendations": await self._generate_recommendations()
+                "recommendations": await self._generate_recommendations(),
+                "serialized_graph": self.serialized_graph,
             }
             
         except Exception as e:
             logger.error(f"Knowledge graph construction failed: {e}")
             return {"status": "error", "error": str(e)}
     
-    async def _infer_relationships(self, entities: List[SecurityEntity]) -> List[SecurityRelation]:
-        """Infer relationships between entities"""
-        relations = []
-        
-        # Create entity lookup by type
-        entities_by_type = {}
+    def _entities_to_payload(self, entities: Iterable[SecurityEntity]) -> List[Dict[str, Any]]:
+        payload = []
         for entity in entities:
-            if entity.entity_type not in entities_by_type:
-                entities_by_type[entity.entity_type] = []
-            entities_by_type[entity.entity_type] = entity
-        
-        # Infer vulnerability -> component relationships
-        vulnerabilities = [e for e in entities if e.entity_type == "vulnerability"]
-        components = [e for e in entities if e.entity_type == "component"]
-        
-        for vuln in vulnerabilities:
-            for component in components:
-                # Check if vulnerability affects component
-                if self._entities_related(vuln, component):
-                    relation = SecurityRelation(
-                        source_id=vuln.entity_id,
-                        target_id=component.entity_id,
-                        relation_type="affects",
-                        properties={
-                            "severity": vuln.properties.get("severity", "MEDIUM"),
-                            "inference_method": "file_location_match"
-                        },
-                        confidence=0.7
-                    )
-                    relations.append(relation)
-        
-        # Infer component -> service relationships
-        services = [e for e in entities if e.entity_type == "service"]
-        for component in components:
-            for service in services:
-                if self._component_belongs_to_service(component, service):
-                    relation = SecurityRelation(
-                        source_id=component.entity_id,
-                        target_id=service.entity_id,
-                        relation_type="belongs_to",
-                        properties={
-                            "inference_method": "path_analysis"
-                        },
-                        confidence=0.6
-                    )
-                    relations.append(relation)
-        
-        return relations
-    
-    def _entities_related(self, entity1: SecurityEntity, entity2: SecurityEntity) -> bool:
-        """Check if two entities are related"""
-        # Simple heuristic: same file path or component name matching
-        if entity1.entity_type == "vulnerability" and entity2.entity_type == "component":
-            vuln_file = entity1.properties.get("file_location", "")
-            component_path = entity2.properties.get("path", "")
-            
-            if vuln_file and component_path:
-                return vuln_file == component_path
-        
-        return False
-    
-    def _component_belongs_to_service(self, component: SecurityEntity, service: SecurityEntity) -> bool:
-        """Check if component belongs to service"""
-        component_path = component.properties.get("path", "")
-        service_name = service.name
-        
-        # Simple heuristic: path contains service name
-        return service_name.lower() in component_path.lower()
+            payload.append(
+                {
+                    "id": entity.entity_id,
+                    "type": entity.entity_type,
+                    "name": entity.name,
+                    "confidence": entity.confidence,
+                    "properties": entity.properties,
+                }
+            )
+        return payload
+
+    def _relation_from_dict(self, data: Dict[str, Any]) -> SecurityRelation:
+        return SecurityRelation(
+            source_id=data.get("source") or data.get("source_id") or "unknown",
+            target_id=data.get("target") or data.get("target_id") or "unknown",
+            relation_type=data.get("type") or data.get("relation_type") or "related_to",
+            properties=data.get("properties", {}),
+            confidence=float(data.get("confidence", 0.5)),
+        )
     
     async def _analyze_graph(self) -> Dict[str, Any]:
         """Analyze graph structure and metrics"""

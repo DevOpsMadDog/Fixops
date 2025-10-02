@@ -17,6 +17,8 @@ from typing import Dict, List, Any, Tuple, Optional
 from dataclasses import dataclass, asdict
 import structlog
 
+from src.services.sarif_risk_synthesizer import SarifRiskSynthesizer, SarifRiskSummary
+
 # OSS Component Imports as per architecture
 try:
     import pgmpy
@@ -728,9 +730,10 @@ class ProcessingLayer:
     
     def __init__(self):
         self.bayesian_mapper = BayesianPriorMapping()
-        self.markov_builder = MarkovTransitionMatrixBuilder()  
+        self.markov_builder = MarkovTransitionMatrixBuilder()
         self.fusion_engine = SSVCProbabilisticFusion()
         self.sarif_handler = SARIFVulnerabilityHandler()
+        self.sarif_synthesizer = SarifRiskSynthesizer()
         
         # Initialize missing architecture components
         self.knowledge_graph = None
@@ -759,7 +762,10 @@ class ProcessingLayer:
         if sarif_data:
             logger.info("📋 Processing SARIF vulnerabilities...")
             sarif_results = await self.sarif_handler.process_sarif_findings(sarif_data)
-        
+            sarif_summary: SarifRiskSummary = await self.sarif_synthesizer.synthesize(sarif_data)
+            sarif_results = sarif_results or {}
+            sarif_results["risk_synthesis"] = asdict(sarif_summary)
+
         # 4. SSVC + Probabilistic Fusion
         logger.info("⚖️ Fusing decisions with probabilistic logic...")
         fusion_results = await self.fusion_engine.fuse_decisions(
