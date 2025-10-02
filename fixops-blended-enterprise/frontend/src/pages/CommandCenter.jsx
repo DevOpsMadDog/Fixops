@@ -487,41 +487,31 @@ function CommandCenter() {
           </div>
         </div>
 
-        {/* Enhanced Main Operations Interface */}
+        {/* Enhanced Main Operations Interface - Compact */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1.5fr 1fr',
-          gap: '3rem'
+          gridTemplateColumns: '1.8fr 1.2fr',
+          gap: '2rem'
         }}>
-          {/* Left: Complete Decision Pipeline */}
+          {/* Left: Decision Pipeline */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
-            padding: '3rem',
-            borderRadius: '20px',
+            padding: '2rem',
+            borderRadius: '12px',
             border: '1px solid #334155',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
           }}>
             <h2 style={{
-              fontSize: '1.5rem',
-              fontWeight: '700',
+              fontSize: '1.125rem',
+              fontWeight: '600',
               marginBottom: '1rem',
               color: '#3b82f6',
               fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
               letterSpacing: '-0.025em',
               lineHeight: '1.3'
             }}>
-              🎯 COMPLETE DECISION PIPELINE
+              Decision Pipeline
             </h2>
-            <p style={{
-              fontSize: '0.875rem',
-              color: '#94a3b8',
-              marginBottom: '2rem',
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-              fontWeight: '500',
-              lineHeight: '1.4'
-            }}>
-              Upload security scans + business context for AI-powered analysis and deployment decisions
-            </p>
 
             {/* Step 1: Business Context Upload */}
             <div style={{
