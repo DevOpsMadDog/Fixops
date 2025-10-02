@@ -336,13 +336,7 @@ class DecisionEngine:
             
             # Record metrics for monitoring
             from src.services.metrics import FixOpsMetrics
-            FixOpsMetrics.record_decision(
-                decision=result.decision.value,
-                environment=context.environment,
-                confidence=result.confidence_score,
-                latency_seconds=result.processing_time_us / 1_000_000,
-                service_type=_get_service_type(context.service_name)
-            )
+            FixOpsMetrics.record_decision(verdict=result.decision.value)
             
             FixOpsMetrics.record_security_findings(context.security_findings)
             FixOpsMetrics.record_evidence("decision")
