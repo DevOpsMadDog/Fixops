@@ -22,22 +22,31 @@ function ModeToggle() {
   const toggleMode = async () => {
     setSwitching(true)
     try {
-      // In a real implementation, this would call an API to switch modes
-      // For now, we'll just show what would happen
+      const response = await fetch('/api/v1/system-mode/current')
+      const currentStatus = await response.json()
+      
+      // Get production readiness
+      const reqResponse = await fetch('/api/v1/production-readiness/status')
+      const requirements = await reqResponse.json()
+      
       const newMode = currentMode === 'demo' ? 'production' : 'demo'
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (newMode === 'production' && requirements.data?.missing_requirements?.length > 0) {
+        // Show what's needed for production
+        alert(`Production mode requires:\n${requirements.data.missing_requirements.join('\n')}\n\nConfigure these and restart the service.`)
+        setSwitching(false)
+        return
+      }
       
+      // For demo purposes, just simulate the toggle
       setCurrentMode(newMode)
       
-      // Reload the page to reflect mode change
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
+      // Show restart instruction
+      alert(`Mode switched to ${newMode.toUpperCase()}.\n\nIn production: Set DEMO_MODE=${newMode === 'demo' ? 'true' : 'false'} and restart service.`)
       
     } catch (error) {
       console.error('Mode toggle failed:', error)
+      alert('Mode toggle failed. Check console for details.')
     } finally {
       setSwitching(false)
     }
