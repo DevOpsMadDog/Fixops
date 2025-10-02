@@ -25,8 +25,8 @@ from src.core.middleware import (
 )
 from src.core.exceptions import setup_exception_handlers
 from src.core.security import SecurityManager
-from src.api.v1 import auth, users, incidents, analytics, monitoring, admin, scans, decisions, business_context, cicd, marketplace, enhanced
-from src.api.v1 import feeds, integrations, docs, system, policy, notifications, oss_tools, processing_layer, user_workflow, sample_data_demo, business_context_enhanced, production_readiness, system_mode
+from src.api.v1 import scans, decisions, business_context, cicd, marketplace, enhanced
+from src.api.v1 import feeds, docs, system, policy, oss_tools, processing_layer, sample_data_demo, business_context_enhanced, production_readiness, system_mode, monitoring
 from src.db.session import DatabaseManager
 from src.services.cache_service import CacheService
 from src.utils.logger import setup_structured_logging
