@@ -128,10 +128,15 @@ class CapabilitiesResponse(BaseModel):
 async def get_enhanced_capabilities():
     try:
         metrics = await enhanced_decision_engine.get_enhanced_metrics()
+        
+        # Get supported LLMs from the LLM engine
+        supported_llms = await enhanced_decision_engine.llm_engine.get_supported_llms()
+        
         return CapabilitiesResponse(
             status="success",
             data={
                 **metrics,
+                "supported_llms": supported_llms,
                 "api_version": "enhanced_v1.1",
                 "capabilities": {
                     "multi_llm_consensus": "Analysis from multiple AI models for higher accuracy",
