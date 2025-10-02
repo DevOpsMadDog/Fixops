@@ -13,7 +13,7 @@ function App() {
     <SecurityLayout>
       <Routes>
         <Route path="/" element={<Navigate to="/enhanced" replace />} />
-        <Route path="/enhanced" element={<CommandCenter />} />
+        <Route path="/enhanced" element={<CommandCenterFixed />} />
         <Route path="/developer" element={<DeveloperOps />} />
         <Route path="/ciso" element={<ExecutiveBriefing />} />
         <Route path="/architect" element={<ArchitectureCenter />} />
