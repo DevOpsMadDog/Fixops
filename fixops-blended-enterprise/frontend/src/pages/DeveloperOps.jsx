@@ -258,45 +258,46 @@ function DeveloperOps() {
             {Object.entries(pipelineState.ssdlcStages).map(([stageKey, stage]) => (
               <div key={stageKey} style={{
                 background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%)',
-                padding: '2rem',
-                borderRadius: '16px',
-                border: '1px solid #475569'
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <div style={{
-                    width: '50px',
-                    height: '50px',
+                    width: '35px',
+                    height: '35px',
                     backgroundColor: stage.status === 'active' ? '#10b981' : '#64748b',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginRight: '1rem',
-                    fontSize: '1.5rem'
+                    marginRight: '0.75rem',
+                    fontSize: '1rem'
                   }}>
                     {stageKey === 'ingestion' ? '📥' : stageKey === 'processing' ? '🧠' : 
                      stageKey === 'consensus' ? '🤖' : stageKey === 'policy' ? '⚖️' : '📚'}
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: '700', margin: 0, color: 'white' }}>
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: '600', margin: 0, color: 'white', fontFamily: '"Inter", sans-serif' }}>
                       {stage.name}
                     </h3>
                     <div style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
+                      fontSize: '0.625rem',
+                      fontWeight: '500',
                       color: stage.status === 'active' ? '#10b981' : '#64748b',
-                      textTransform: 'uppercase'
+                      textTransform: 'uppercase',
+                      fontFamily: '"Inter", sans-serif'
                     }}>
                       {stage.status}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.25rem', fontFamily: '"Inter", sans-serif' }}>
                     Configuration:
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>
+                  <div style={{ fontSize: '0.625rem', color: '#e2e8f0', fontFamily: '"Inter", sans-serif' }}>
                     {stage.tools ? stage.tools.join(', ') : 
                      stage.components ? stage.components.join(', ') :
                      stage.models ? stage.models.join(', ') :
@@ -305,10 +306,10 @@ function DeveloperOps() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.25rem', fontFamily: '"Inter", sans-serif' }}>
                     Performance:
                   </div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#10b981' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#10b981', fontFamily: '"Inter", sans-serif' }}>
                     {stage.findings !== undefined ? `${stage.findings} findings` :
                      stage.performance || stage.accuracy || `${stage.policies || 0} policies` || 'Operational'}
                   </div>
