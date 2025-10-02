@@ -11,7 +11,7 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
-import structlog
+import numpy as np
 
 logger = structlog.get_logger()
 
