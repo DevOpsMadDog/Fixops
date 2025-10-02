@@ -305,20 +305,20 @@ function CommandCenter() {
       }}>
       <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
         
-        {/* Mission Control Header */}
+        {/* Mission Control Header - Softer Boundaries */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '2fr 1fr',
-          gap: '2rem',
-          marginBottom: '3rem'
+          gap: '1.5rem',
+          marginBottom: '2rem'
         }}>
           {/* Left: Mission Status */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
-            padding: '2.5rem',
-            borderRadius: '20px',
-            border: '1px solid #334155',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)',
+            padding: '2rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <div>
