@@ -229,7 +229,7 @@ class AdvancedLLMEngine:
                 
                 if action in ['allow', 'block', 'defer']:
                     return action, confidence, reasoning
-        except:
+        except (ValueError, IndexError):
             pass
         
         # Fallback parsing
