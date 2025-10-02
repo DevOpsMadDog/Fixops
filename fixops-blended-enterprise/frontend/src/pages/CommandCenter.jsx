@@ -27,18 +27,21 @@ function CommandCenter() {
 
   const initializeCommandCenter = async () => {
     try {
-      const [healthRes, componentsRes] = await Promise.all([
+      const [healthRes, componentsRes, prodRes] = await Promise.all([
         fetch('/api/v1/decisions/metrics'),
-        fetch('/api/v1/decisions/core-components')
+        fetch('/api/v1/decisions/core-components'),
+        fetch('/api/v1/production-readiness/status')
       ])
 
-      const [health, components] = await Promise.all([
+      const [health, components, prodReadiness] = await Promise.all([
         healthRes.json(),
-        componentsRes.json()
+        componentsRes.json(),
+        prodRes.json()
       ])
 
       const systemInfo = components.data?.system_info || {}
       const healthData = health.data || {}
+      const prodData = prodReadiness.data || {}
 
       setOperationalState({
         loading: false,
@@ -47,6 +50,7 @@ function CommandCenter() {
         activeDecisions: healthData.total_decisions || (systemInfo.mode === 'demo' ? 23 : 0),
         processingQueue: healthData.pending_review || 0,
         systemHealth: components.data || {},
+        productionRequirements: prodData,
         lastActivity: new Date()
       })
     } catch (error) {
