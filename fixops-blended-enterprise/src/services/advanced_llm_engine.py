@@ -92,31 +92,31 @@ class AdvancedLLMEngine:
         return {
             "emergent_gpt5": {
                 "name": "Emergent GPT-5",
-                "available": LLMProvider.EMERGENT_GPT5.value in self.enabled_providers,
+                "available": "emergent_gpt5" in self.enabled_providers,
                 "specialties": ["security_analysis", "code_review", "threat_modeling"],
                 "description": "Latest GPT model via Emergent platform"
             },
             "openai_gpt4": {
                 "name": "OpenAI GPT-4",
-                "available": LLMProvider.OPENAI_GPT4.value in self.enabled_providers,
+                "available": "openai_gpt4" in self.enabled_providers,
                 "specialties": ["general_analysis", "reasoning", "explanation"],
                 "description": "OpenAI's flagship model for analysis"
             },
             "anthropic_claude": {
                 "name": "Anthropic Claude",
-                "available": LLMProvider.ANTHROPIC_CLAUDE.value in self.enabled_providers,
+                "available": "anthropic_claude" in self.enabled_providers,
                 "specialties": ["safety_analysis", "risk_assessment", "compliance"],
                 "description": "Claude model specialized in safety and risk"
             },
             "google_gemini": {
                 "name": "Google Gemini",
-                "available": LLMProvider.GOOGLE_GEMINI.value in self.enabled_providers,
+                "available": "google_gemini" in self.enabled_providers,
                 "specialties": ["multimodal_analysis", "code_understanding"],
                 "description": "Google's multimodal AI model"
             },
             "specialized_cyber": {
                 "name": "Specialized Cyber LLM",
-                "available": LLMProvider.SPECIALIZED_CYBER.value in self.enabled_providers,
+                "available": "specialized_cyber" in self.enabled_providers,
                 "specialties": ["vulnerability_analysis", "exploit_detection", "remediation"],
                 "description": "Cybersecurity-specialized language model"
             }
