@@ -544,52 +544,54 @@ ${curlCompare()}
         </div>
       </div>
 
-        {/* Professional Header with Mode Indicator */}
+        {/* Compact Professional Header */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          marginBottom: '2rem',
-          padding: '2rem',
+          marginBottom: '1.5rem',
+          padding: '1.5rem',
           background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
-          borderRadius: '16px',
+          borderRadius: '8px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
         }}>
           <div>
             <h1 style={{ 
-              fontSize: '2.75rem', 
-              fontWeight: '900', 
+              fontSize: '1.5rem', 
+              fontWeight: '700', 
               color: 'white', 
               margin: 0, 
-              marginBottom: '0.5rem',
+              marginBottom: '0.25rem',
               background: 'linear-gradient(135deg, #ffffff 0%, #60a5fa 100%)',
               WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              WebkitTextFillColor: 'transparent',
+              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
             }}>
-              🎯 Decision Engine Operations
+              Decision Engine Operations
             </h1>
-            <p style={{ fontSize: '1.125rem', color: '#94a3b8', margin: 0 }}>
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0, fontFamily: '"Inter", sans-serif' }}>
               Enterprise DevSecOps Command & Control • Upload → Process → Analyze → Decide
             </p>
           </div>
           
           <div style={{ textAlign: 'right' }}>
             <div style={{
-              fontSize: '0.875rem',
+              fontSize: '0.75rem',
               fontWeight: '700',
               color: enhancedMetrics?.system_mode === 'demo' ? '#a78bfa' : '#10b981',
               backgroundColor: enhancedMetrics?.system_mode === 'demo' ? 'rgba(167, 139, 250, 0.2)' : 'rgba(16, 185, 129, 0.2)',
               border: `1px solid ${enhancedMetrics?.system_mode === 'demo' ? '#a78bfa' : '#10b981'}`,
-              padding: '0.75rem 1.25rem',
-              borderRadius: '25px',
-              marginBottom: '0.75rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '20px',
+              marginBottom: '0.5rem',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              letterSpacing: '0.05em',
+              fontFamily: '"Inter", sans-serif'
             }}>
               {enhancedMetrics?.system_mode === 'demo' ? '🎭 DEMO ENVIRONMENT' : '🏭 PRODUCTION ENVIRONMENT'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+            <div style={{ fontSize: '0.625rem', color: '#64748b', fontFamily: '"Inter", sans-serif' }}>
               Processing Layer: {enhancedMetrics?.processing_layer_available ? 'Active' : 'Demo'} • 
               OSS Integrations: {enhancedMetrics?.oss_integrations_available ? 'Active' : 'Demo'}
             </div>
