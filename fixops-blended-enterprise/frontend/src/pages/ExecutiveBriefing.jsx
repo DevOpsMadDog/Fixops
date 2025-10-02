@@ -215,86 +215,87 @@ function ExecutiveBriefing() {
           </div>
         </div>
 
-        {/* Business Impact Dashboard */}
+        {/* Compact Business Impact Dashboard */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '2rem',
-          marginBottom: '3rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1rem'
         }}>
           {[
             {
-              metric: 'Cost Avoidance',
+              title: 'Business Value',
               value: briefingData.businessImpact.costAvoidance,
-              trend: '+23%',
-              color: '#10b981',
-              icon: '💰'
+              subtitle: 'Security ROI',
+              icon: '💰',
+              color: '#16a34a'
             },
             {
-              metric: 'Time to Market',
-              value: briefingData.businessImpact.timeToMarket,
-              trend: 'Improved',
-              color: '#3b82f6',
-              icon: '🚀'
+              title: 'Decision Accuracy',
+              value: `${briefingData.securityPosture.confidenceLevel}%`,
+              subtitle: 'AI Confidence',
+              icon: '🎯',
+              color: '#2563eb'
             },
             {
-              metric: 'Dev Velocity',
-              value: briefingData.businessImpact.devVelocity,
-              trend: 'Accelerated',
-              color: '#8b5cf6',
-              icon: '⚡'
+              title: 'Response Time',
+              value: briefingData.securityPosture.mttr,
+              subtitle: 'MTTR',
+              icon: '⚡',
+              color: '#7c3aed'
             },
             {
-              metric: 'Risk Reduction',
+              title: 'Risk Reduction',
               value: briefingData.businessImpact.riskReduction,
-              trend: 'Target: 70%',
-              color: '#059669',
-              icon: '🛡️'
-            },
-            {
-              metric: 'Deployment Success',
-              value: `${briefingData.securityPosture.deploymentSuccess}%`,
-              trend: 'Target: 85%',
-              color: '#dc2626',
-              icon: '✅'
+              subtitle: 'Improvement',
+              icon: '📉',
+              color: '#059669'
             }
-          ].map((item) => (
-            <div key={item.metric} style={{
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)',
-              padding: '2rem',
-              borderRadius: '16px',
-              border: `1px solid ${item.color}40`,
-              textAlign: 'center',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          ].map((metric) => (
+            <div key={metric.title} style={{
+              padding: '1rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              textAlign: 'center'
             }}>
               <div style={{
-                fontSize: '3rem',
-                marginBottom: '1rem'
+                width: '40px',
+                height: '40px',
+                backgroundColor: metric.color,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 0.75rem auto',
+                fontSize: '1rem'
               }}>
-                {item.icon}
+                {metric.icon}
               </div>
               <div style={{
-                fontSize: '2.25rem',
-                fontWeight: '900',
-                color: item.color,
-                marginBottom: '0.75rem'
-              }}>
-                {item.value}
-              </div>
-              <div style={{
-                fontSize: '0.875rem',
+                fontSize: '1.25rem',
                 fontWeight: '700',
-                color: 'white',
-                marginBottom: '0.5rem'
+                color: metric.color,
+                marginBottom: '0.25rem',
+                fontFamily: '"Inter", sans-serif'
               }}>
-                {item.metric}
+                {metric.value}
               </div>
               <div style={{
                 fontSize: '0.75rem',
-                color: '#64748b',
-                fontWeight: '600'
+                fontWeight: '600',
+                marginBottom: '0.25rem',
+                color: 'white',
+                fontFamily: '"Inter", sans-serif'
               }}>
-                {item.trend}
+                {metric.title}
+              </div>
+              <div style={{
+                fontSize: '0.625rem',
+                color: '#64748b',
+                fontFamily: '"Inter", sans-serif'
+              }}>
+                {metric.subtitle}
               </div>
             </div>
           ))}
