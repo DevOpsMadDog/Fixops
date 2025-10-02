@@ -364,7 +364,7 @@ function CommandCenter() {
           </div>
         </div>
 
-        {/* Compact Decision Pipeline */}
+        {/* Unified Upload Center */}
         <div style={{
           background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(0, 0, 0, 0.8) 100%)',
           padding: '1.5rem',
@@ -379,94 +379,43 @@ function CommandCenter() {
             color: '#3b82f6',
             fontFamily: '"Inter", sans-serif'
           }}>
-            Decision Pipeline
+            Upload Center
           </h2>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {/* Business Context */}
+          {/* Single Upload Interface */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '1rem'
+          }}>
+            {/* Unified Drop Zone */}
             <div style={{
-              padding: '1rem',
-              backgroundColor: 'rgba(124, 58, 237, 0.1)',
-              border: '1px solid rgba(124, 58, 237, 0.3)',
-              borderRadius: '6px'
-            }}>
-              <h3 style={{
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                color: '#c4b5fd',
-                marginBottom: '0.75rem',
-                fontFamily: '"Inter", sans-serif'
-              }}>
-                Business Context (Optional)
-              </h3>
-              
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <button style={{
-                  padding: '0.375rem 0.5rem',
-                  backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                  border: '1px solid #8b5cf6',
-                  borderRadius: '4px',
-                  color: '#c4b5fd',
-                  fontSize: '0.625rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  fontFamily: '"Inter", sans-serif'
-                }}>
-                  FixOps.yaml
-                </button>
-                <button style={{
-                  padding: '0.375rem 0.5rem',
-                  backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                  border: '1px solid #8b5cf6',
-                  borderRadius: '4px',
-                  color: '#c4b5fd',
-                  fontSize: '0.625rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  fontFamily: '"Inter", sans-serif'
-                }}>
-                  OTM.json
-                </button>
-              </div>
-              
-              <p style={{
-                fontSize: '0.625rem',
-                color: '#94a3b8',
-                margin: 0,
-                lineHeight: '1.4',
-                fontFamily: '"Inter", sans-serif'
-              }}>
-                Upload business context for enhanced decision accuracy
-              </p>
-            </div>
-
-            {/* Security Scan Upload */}
-            <div style={{
-              padding: '1rem',
+              padding: '1.5rem',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               border: '1px solid rgba(59, 130, 246, 0.3)',
-              borderRadius: '6px'
+              borderRadius: '8px'
             }}>
               <h3 style={{
-                fontSize: '0.75rem',
+                fontSize: '0.875rem',
                 fontWeight: '600',
                 color: '#93c5fd',
-                marginBottom: '0.75rem',
+                marginBottom: '1rem',
                 fontFamily: '"Inter", sans-serif'
               }}>
-                Security Scan Upload
+                Security Analysis Upload
               </h3>
 
+              {/* Main File Drop Zone */}
               <div
                 style={{
                   border: scanProcessor.dragActive ? '2px solid #3b82f6' : '1px dashed #475569',
-                  borderRadius: '4px',
-                  padding: '1rem',
+                  borderRadius: '6px',
+                  padding: '2rem',
                   textAlign: 'center',
                   backgroundColor: scanProcessor.dragActive ? 'rgba(59, 130, 246, 0.1)' : 'rgba(0, 0, 0, 0.3)',
                   transition: 'all 0.3s ease',
                   cursor: 'pointer',
-                  marginBottom: '0.75rem'
+                  marginBottom: '1rem'
                 }}
                 onDragOver={(e) => {
                   e.preventDefault()
@@ -483,7 +432,7 @@ function CommandCenter() {
                   id="scan-upload"
                   type="file"
                   style={{ display: 'none' }}
-                  accept=".json,.sarif,.csv,.sbom,.xml"
+                  accept=".json,.sarif,.csv,.sbom,.xml,.yaml,.yml"
                   onChange={(e) => {
                     if (e.target.files[0]) {
                       processSecurityScan(e.target.files[0])
@@ -491,59 +440,106 @@ function CommandCenter() {
                   }}
                 />
                 
-                <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>
                   {scanProcessor.selectedFile ? '📊' : '🔒'}
                 </div>
                 <h4 style={{
-                  fontSize: '0.75rem',
+                  fontSize: '1rem',
                   fontWeight: '600',
-                  marginBottom: '0.25rem',
+                  marginBottom: '0.5rem',
                   color: scanProcessor.selectedFile ? '#3b82f6' : 'white',
                   fontFamily: '"Inter", sans-serif'
                 }}>
                   {scanProcessor.selectedFile ? 
                     `Ready: ${scanProcessor.selectedFile.name}` : 
-                    'Drop scan or browse'
+                    'Drop files or click to browse'
                   }
                 </h4>
                 
                 <p style={{ 
-                  fontSize: '0.625rem', 
+                  fontSize: '0.875rem', 
                   color: '#94a3b8',
-                  margin: 0,
+                  margin: '0 0 1rem 0',
                   fontFamily: '"Inter", sans-serif'
                 }}>
-                  SARIF • SBOM • CSV • JSON
+                  Security Scans: SARIF • SBOM • CSV • JSON<br/>
+                  Business Context: FixOps.yaml • OTM.json • SSVC.yaml
                 </p>
+                
+                {scanProcessor.selectedFile && (
+                  <div style={{
+                    padding: '1rem',
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                    color: '#e2e8f0',
+                    marginTop: '1rem'
+                  }}>
+                    <strong>File Ready:</strong> {scanProcessor.selectedFile.name} ({(scanProcessor.selectedFile.size / 1024).toFixed(1)}KB)
+                    <br/>
+                    <strong>Type:</strong> {scanProcessor.selectedFile.name.includes('.yaml') || scanProcessor.selectedFile.name.includes('.yml') ? 'Business Context' : 'Security Scan'}
+                  </div>
+                )}
               </div>
               
+              {/* Quick Samples */}
               {!scanProcessor.selectedFile && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+                  gap: '0.75rem'
+                }}>
                   <button style={{
-                    padding: '0.375rem 0.5rem',
+                    padding: '0.75rem',
                     backgroundColor: '#3b82f6',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     color: 'white',
-                    fontSize: '0.625rem',
+                    fontSize: '0.75rem',
                     fontWeight: '500',
                     cursor: 'pointer',
                     fontFamily: '"Inter", sans-serif'
                   }}>
-                    Sample SARIF
+                    📊 Sample SARIF
                   </button>
                   <button style={{
-                    padding: '0.375rem 0.5rem',
+                    padding: '0.75rem',
                     backgroundColor: '#8b5cf6',
                     border: 'none',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                     color: 'white',
-                    fontSize: '0.625rem',
+                    fontSize: '0.75rem',
                     fontWeight: '500',
                     cursor: 'pointer',
                     fontFamily: '"Inter", sans-serif'
                   }}>
-                    Sample SBOM
+                    📦 Sample SBOM
+                  </button>
+                  <button style={{
+                    padding: '0.75rem',
+                    backgroundColor: '#f59e0b',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: '"Inter", sans-serif'
+                  }}>
+                    📋 FixOps.yaml
+                  </button>
+                  <button style={{
+                    padding: '0.75rem',
+                    backgroundColor: '#10b981',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: '"Inter", sans-serif'
+                  }}>
+                    🏗️ OTM.json
                   </button>
                 </div>
               )}
