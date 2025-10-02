@@ -338,13 +338,6 @@ class DecisionEngine:
             from src.services.metrics import FixOpsMetrics
             FixOpsMetrics.record_decision(verdict=result.decision.value)
             
-            FixOpsMetrics.record_security_findings(context.security_findings)
-            FixOpsMetrics.record_evidence("decision")
-            FixOpsMetrics.record_business_impact(
-                impact_level=_assess_business_impact(context.service_name),
-                service_type=_get_service_type(context.service_name)
-            )
-            
             return result
             
         except Exception as e:
