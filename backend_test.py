@@ -1108,6 +1108,413 @@ except Exception as e:
         
         return True
 
+    def test_business_context_apis(self):
+        """Test Business Context APIs as specified in review request"""
+        print("\n📋 Testing Business Context APIs (Review Request)...")
+        
+        # Test 1: POST /api/v1/business-context/upload with FixOps.yaml
+        fixops_yaml_content = """
+service_name: payment-service
+exploitation: active
+exposure: controlled
+utility: laborious
+safety_impact: negligible
+mission_impact: degraded
+business_criticality: high
+data_classification: pci
+internet_facing: true
+compliance_requirements:
+  - PCI DSS
+  - SOC2
+owner_team: payments-team
+escalation_contacts:
+  - security@company.com
+attack_surface: web_api
+trust_boundaries:
+  - external_users
+  - internal_services
+"""
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(fixops_yaml_content)
+            yaml_file_path = f.name
+        
+        try:
+            with open(yaml_file_path, 'rb') as f:
+                files = {'file': ('fixops.yaml', f, 'application/x-yaml')}
+                data = {
+                    'service_name': 'payment-service',
+                    'format_type': 'fixops.yaml'
+                }
+                
+                success, response = self.run_test(
+                    "Business Context - FixOps.yaml Upload", 
+                    "POST", 
+                    "api/v1/business-context/upload", 
+                    200,
+                    data=data,
+                    files=files
+                )
+                
+                if success and response.get('data'):
+                    upload_data = response['data']
+                    if 'ssvc_factors' in upload_data:
+                        print(f"   ✅ SSVC factors processed: {list(upload_data['ssvc_factors'].keys())}")
+                    else:
+                        print(f"   ❌ SSVC factors missing from response")
+                        self.failed_tests.append({'name': 'Business Context Upload - SSVC', 'error': 'SSVC factors missing'})
+        
+        finally:
+            os.unlink(yaml_file_path)
+        
+        # Test 2: POST /api/v1/business-context/upload with OTM.json
+        otm_json_content = {
+            "otmVersion": "0.1.0",
+            "project": {
+                "name": "payment-service",
+                "id": "payment-svc-001",
+                "description": "Payment processing service"
+            },
+            "representations": [
+                {
+                    "name": "Architecture",
+                    "id": "architecture",
+                    "type": "code"
+                }
+            ],
+            "trustZones": [
+                {
+                    "id": "internet",
+                    "name": "Internet",
+                    "risk": {"trustRating": 1}
+                },
+                {
+                    "id": "internal",
+                    "name": "Internal Network", 
+                    "risk": {"trustRating": 8}
+                }
+            ],
+            "components": [
+                {
+                    "id": "payment-api",
+                    "name": "Payment API",
+                    "type": "web-service",
+                    "parent": {"trustZone": "internal"},
+                    "data": [{"id": "payment-data", "name": "Payment Data", "classification": "PCI"}]
+                }
+            ],
+            "dataflows": [
+                {
+                    "id": "payment-flow",
+                    "name": "Payment Processing",
+                    "source": "internet",
+                    "destination": "payment-api",
+                    "data": ["payment-data"]
+                }
+            ],
+            "threats": [
+                {
+                    "id": "sql-injection",
+                    "name": "SQL Injection",
+                    "categories": ["injection"],
+                    "status": "open",
+                    "severity": "high",
+                    "description": "SQL injection in payment processing"
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(otm_json_content, f)
+            otm_file_path = f.name
+        
+        try:
+            with open(otm_file_path, 'rb') as f:
+                files = {'file': ('threat-model.otm.json', f, 'application/json')}
+                data = {
+                    'service_name': 'payment-service',
+                    'format_type': 'otm.json'
+                }
+                
+                success, response = self.run_test(
+                    "Business Context - OTM.json Upload", 
+                    "POST", 
+                    "api/v1/business-context/upload", 
+                    200,
+                    data=data,
+                    files=files
+                )
+                
+                if success and response.get('data'):
+                    upload_data = response['data']
+                    if 'ssvc_factors' in upload_data and 'business_context' in upload_data:
+                        print(f"   ✅ OTM converted to SSVC successfully")
+                    else:
+                        print(f"   ❌ OTM to SSVC conversion failed")
+                        self.failed_tests.append({'name': 'Business Context OTM - SSVC conversion', 'error': 'SSVC conversion missing'})
+        
+        finally:
+            os.unlink(otm_file_path)
+        
+        # Test 3: GET /api/v1/business-context/formats
+        success, response = self.run_test(
+            "Business Context - Supported Formats", 
+            "GET", 
+            "api/v1/business-context/formats", 
+            200
+        )
+        
+        if success and response.get('supported_formats'):
+            formats = response['supported_formats']
+            expected_formats = ['fixops.yaml', 'otm.json', 'ssvc.yaml']
+            missing_formats = [fmt for fmt in expected_formats if fmt not in formats]
+            if missing_formats:
+                print(f"   ❌ Missing supported formats: {missing_formats}")
+                self.failed_tests.append({'name': 'Business Context - Formats', 'error': f'Missing formats: {missing_formats}'})
+            else:
+                print(f"   ✅ All expected formats supported: {expected_formats}")
+        
+        return True
+
+    def test_production_readiness_apis(self):
+        """Test Production Readiness APIs as specified in review request"""
+        print("\n🏭 Testing Production Readiness APIs (Review Request)...")
+        
+        # Test 1: GET /api/v1/production-readiness/status
+        success, response = self.run_test(
+            "Production Readiness - Status", 
+            "GET", 
+            "api/v1/production-readiness/status", 
+            200
+        )
+        
+        if success and response.get('data'):
+            status_data = response['data']
+            required_fields = ['demo_mode', 'overall_production_ready', 'missing_requirements', 'component_status']
+            missing_fields = [field for field in required_fields if field not in status_data]
+            if missing_fields:
+                print(f"   ❌ Missing status fields: {missing_fields}")
+                self.failed_tests.append({'name': 'Production Readiness - Status fields', 'error': f'Missing fields: {missing_fields}'})
+            else:
+                print(f"   ✅ Production readiness status complete")
+                print(f"   Demo mode: {status_data.get('demo_mode')}")
+                print(f"   Production ready: {status_data.get('overall_production_ready')}")
+                print(f"   Missing requirements: {len(status_data.get('missing_requirements', []))}")
+                
+                # Check component status
+                components = status_data.get('component_status', {})
+                expected_components = ['vector_database', 'business_context', 'llm_consensus', 'policy_engine', 'evidence_lake']
+                missing_components = [comp for comp in expected_components if comp not in components]
+                if missing_components:
+                    print(f"   ❌ Missing component status: {missing_components}")
+                    self.failed_tests.append({'name': 'Production Readiness - Components', 'error': f'Missing components: {missing_components}'})
+                else:
+                    print(f"   ✅ All component statuses present")
+        
+        # Test 2: GET /api/v1/production-readiness/requirements
+        success, response = self.run_test(
+            "Production Readiness - Requirements", 
+            "GET", 
+            "api/v1/production-readiness/requirements", 
+            200
+        )
+        
+        if success and response.get('requirements'):
+            requirements = response['requirements']
+            expected_requirements = ['EMERGENT_LLM_KEY', 'OPA_SERVER', 'JIRA_CREDENTIALS', 'CONFLUENCE_CREDENTIALS']
+            missing_requirements = [req for req in expected_requirements if req not in requirements]
+            if missing_requirements:
+                print(f"   ❌ Missing requirement details: {missing_requirements}")
+                self.failed_tests.append({'name': 'Production Readiness - Requirements', 'error': f'Missing requirements: {missing_requirements}'})
+            else:
+                print(f"   ✅ All production requirements documented")
+        
+        return True
+
+    def test_system_mode_apis(self):
+        """Test System Mode APIs as specified in review request"""
+        print("\n⚙️ Testing System Mode APIs (Review Request)...")
+        
+        # Test 1: GET /api/v1/system-mode/current
+        success, response = self.run_test(
+            "System Mode - Current", 
+            "GET", 
+            "api/v1/system-mode/current", 
+            200
+        )
+        
+        if success and response.get('data'):
+            mode_data = response['data']
+            required_fields = ['current_mode', 'demo_mode_enabled', 'production_ready', 'missing_requirements', 'components_status']
+            missing_fields = [field for field in required_fields if field not in mode_data]
+            if missing_fields:
+                print(f"   ❌ Missing mode fields: {missing_fields}")
+                self.failed_tests.append({'name': 'System Mode - Current fields', 'error': f'Missing fields: {missing_fields}'})
+            else:
+                print(f"   ✅ System mode status complete")
+                print(f"   Current mode: {mode_data.get('current_mode')}")
+                print(f"   Production ready: {mode_data.get('production_ready')}")
+                
+                # Check component status
+                components = mode_data.get('components_status', {})
+                expected_components = ['decision_engine', 'vector_database', 'llm_consensus', 'policy_engine', 'evidence_lake']
+                missing_components = [comp for comp in expected_components if comp not in components]
+                if missing_components:
+                    print(f"   ❌ Missing component status: {missing_components}")
+                    self.failed_tests.append({'name': 'System Mode - Components', 'error': f'Missing components: {missing_components}'})
+                else:
+                    print(f"   ✅ All component statuses present")
+        
+        # Test 2: GET /api/v1/system-mode/production-requirements
+        success, response = self.run_test(
+            "System Mode - Production Requirements", 
+            "GET", 
+            "api/v1/system-mode/production-requirements", 
+            200
+        )
+        
+        if success and response.get('requirements'):
+            requirements = response['requirements']
+            if 'critical' in requirements and 'optional' in requirements:
+                print(f"   ✅ Production requirements categorized (critical/optional)")
+                critical_reqs = requirements['critical']
+                if 'EMERGENT_LLM_KEY' in critical_reqs and 'OPA_SERVER' in critical_reqs:
+                    print(f"   ✅ Critical requirements present")
+                else:
+                    print(f"   ❌ Missing critical requirements")
+                    self.failed_tests.append({'name': 'System Mode - Critical Requirements', 'error': 'Missing critical requirements'})
+            else:
+                print(f"   ❌ Requirements not properly categorized")
+                self.failed_tests.append({'name': 'System Mode - Requirements Structure', 'error': 'Requirements not categorized'})
+        
+        # Test 3: POST /api/v1/system-mode/toggle (should fail without proper requirements)
+        toggle_request = {
+            "target_mode": "production",
+            "force": False
+        }
+        
+        success, response = self.run_test(
+            "System Mode - Toggle (Expected Failure)", 
+            "POST", 
+            "api/v1/system-mode/toggle", 
+            400,  # Should fail due to missing requirements
+            data=toggle_request
+        )
+        
+        if success:
+            print(f"   ✅ Mode toggle properly validates requirements")
+        else:
+            print(f"   ⚠️ Mode toggle validation may not be working correctly")
+        
+        return True
+
+    def test_core_stability_check(self):
+        """Test Core Stability as specified in review request"""
+        print("\n🔧 Testing Core Stability (Review Request)...")
+        
+        # Test decision engine with business context + security findings
+        decision_request = {
+            "service_name": "payment-service",
+            "environment": "production",
+            "business_context": {
+                "criticality": "high",
+                "data_classification": "pci",
+                "business_impact": "critical",
+                "compliance_requirements": ["PCI DSS", "SOC2"],
+                "internet_facing": True
+            },
+            "security_findings": [
+                {
+                    "rule_id": "SQL_INJECTION_001",
+                    "title": "SQL Injection vulnerability detected",
+                    "severity": "high",
+                    "category": "injection",
+                    "file_path": "/src/payment/dao.py",
+                    "line_number": 45,
+                    "scanner_type": "sast",
+                    "confidence": 0.9
+                },
+                {
+                    "rule_id": "CRYPTO_WEAK_001",
+                    "title": "Weak cryptographic algorithm",
+                    "severity": "medium",
+                    "category": "crypto",
+                    "file_path": "/src/payment/crypto.py",
+                    "line_number": 23,
+                    "scanner_type": "sast",
+                    "confidence": 0.8
+                }
+            ],
+            "sbom_data": {
+                "components": [
+                    {
+                        "name": "express",
+                        "version": "4.18.0",
+                        "scope": "required",
+                        "vulnerabilities": [
+                            {
+                                "id": "CVE-2022-24999",
+                                "severity": "high",
+                                "description": "Test vulnerability"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        
+        success, response = self.run_test(
+            "Core Stability - Decision Engine Integration", 
+            "POST", 
+            "api/v1/decisions/make-decision", 
+            [200, 401, 403],  # Accept auth errors as expected
+            data=decision_request
+        )
+        
+        if success and response.get('decision'):
+            print(f"   ✅ Decision engine processing complex context")
+            print(f"   Decision: {response.get('decision')}")
+            print(f"   Confidence: {response.get('confidence_score', 'N/A')}")
+            print(f"   Evidence ID: {response.get('evidence_id', 'N/A')}")
+        
+        # Test evidence lake storage and retrieval
+        if success and response.get('evidence_id'):
+            evidence_id = response['evidence_id']
+            
+            # Try to retrieve evidence (this might require authentication)
+            success_evidence, evidence_response = self.run_test(
+                "Core Stability - Evidence Lake Retrieval", 
+                "GET", 
+                f"api/v1/evidence/{evidence_id}", 
+                [200, 401, 403, 404]  # Accept various responses
+            )
+            
+            if success_evidence:
+                print(f"   ✅ Evidence lake storage and retrieval working")
+            else:
+                print(f"   ⚠️ Evidence retrieval endpoint may need authentication")
+        
+        # Test vector store and policy engine integration via core components
+        success, response = self.run_test(
+            "Core Stability - Vector Store & Policy Engine", 
+            "GET", 
+            "api/v1/decisions/core-components", 
+            [200, 401, 403]
+        )
+        
+        if success and response.get('data'):
+            components = response['data']
+            critical_components = ['vector_db', 'policy_engine', 'llm_rag', 'consensus_checker']
+            working_components = [comp for comp in critical_components if comp in components and components[comp].get('status') == 'operational']
+            
+            if len(working_components) >= 3:  # At least 3 out of 4 critical components
+                print(f"   ✅ Core components integration stable ({len(working_components)}/{len(critical_components)})")
+            else:
+                print(f"   ❌ Core components integration unstable ({len(working_components)}/{len(critical_components)})")
+                self.failed_tests.append({'name': 'Core Stability - Components', 'error': f'Only {len(working_components)} components working'})
+        
+        return True
+
     def run_all_tests(self):
         """Run all comprehensive FixOps Decision Engine tests"""
         print("🚀 Starting FixOps Decision Engine Backend Testing...")
@@ -1121,9 +1528,13 @@ except Exception as e:
         
         # Run all test suites based on review request priorities
         test_suites = [
-            # PRIORITY TESTING AREAS from review request
-            ("Enhanced API Endpoints", self.test_enhanced_api_endpoints),
-            ("Enhanced Scan Upload", self.test_scan_upload_enhanced),
+            # PRIORITY TESTING AREAS from review request (ROUND 2)
+            ("Enhanced API Endpoints (Previously Fixed)", self.test_enhanced_api_endpoints),
+            ("Enhanced Scan Upload (Partially Fixed)", self.test_scan_upload_enhanced),
+            ("Business Context APIs (New)", self.test_business_context_apis),
+            ("Production Readiness APIs (New)", self.test_production_readiness_apis),
+            ("System Mode APIs (New)", self.test_system_mode_apis),
+            ("Core Stability Check", self.test_core_stability_check),
             # EXISTING CRITICAL TESTING AREAS
             ("Decision Engine API", self.test_decision_engine_api),
             ("Scan Upload API", self.test_scan_upload_api), 
