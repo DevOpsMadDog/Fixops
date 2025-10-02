@@ -260,7 +260,7 @@ function EnhancedDashboard() {
   return (
     <div style={{ 
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', 
-      padding: '2rem', 
+      padding: '1rem', 
       maxWidth: '1600px', 
       margin: '0 auto', 
       minHeight: '100vh',
