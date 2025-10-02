@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import structlog
 
-from src.services.advanced_llm_engine import advanced_llm_engine, MultiLLMDecisionResult
+from src.services.advanced_llm_engine import enhanced_decision_engine as advanced_llm_engine, MultiLLMResult as MultiLLMDecisionResult
 from src.services.cache_service import CacheService
 from src.services.marketplace import marketplace
 from src.config.settings import get_settings
