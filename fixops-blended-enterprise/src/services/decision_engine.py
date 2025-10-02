@@ -7,10 +7,11 @@ import asyncio
 import json
 import time
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Set
 from enum import Enum
 from dataclasses import dataclass, asdict
 import structlog
+from sqlalchemy import select
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
@@ -713,11 +714,210 @@ class DecisionEngine:
     
     async def _real_golden_regression_validation(self, context):
         """Real golden regression validation using historical decisions"""
+        from src.models.security_sqlite import PolicyDecisionLog
+
+        def _normalize_finding_sets(findings: List[Dict[str, Any]]) -> Dict[str, Set[str]]:
+            categories: Set[str] = set()
+            severities: Set[str] = set()
+            cves: Set[str] = set()
+            rule_ids: Set[str] = set()
+
+            for finding in findings or []:
+                if not isinstance(finding, dict):
+                    continue
+
+                category = finding.get("category") or finding.get("type")
+                if category:
+                    categories.add(str(category).lower())
+
+                severity = finding.get("severity")
+                if severity:
+                    severities.add(str(severity).lower())
+
+                cve = finding.get("cve") or finding.get("cve_id") or finding.get("cveId")
+                if cve:
+                    cves.add(str(cve).upper())
+
+                rule_id = finding.get("rule_id") or finding.get("ruleId")
+                if rule_id:
+                    rule_ids.add(str(rule_id).lower())
+
+            return {
+                "categories": categories,
+                "severities": severities,
+                "cves": cves,
+                "rule_ids": rule_ids,
+            }
+
+        def _extract_context_features(decision_context: DecisionContext) -> Dict[str, Any]:
+            finding_sets = _normalize_finding_sets(decision_context.security_findings)
+            business_context = decision_context.business_context or {}
+            classifications = (
+                business_context.get("data_classification")
+                or business_context.get("data_classifications")
+                or []
+            )
+            if isinstance(classifications, str):
+                classifications = [classifications]
+
+            return {
+                "service": decision_context.service_name.lower() if decision_context.service_name else None,
+                "environment": decision_context.environment.lower() if decision_context.environment else None,
+                "classifications": {str(item).lower() for item in classifications},
+                **finding_sets,
+            }
+
+        def _extract_log_features(log_context: Dict[str, Any]) -> Dict[str, Any]:
+            findings = (
+                log_context.get("security_findings")
+                or log_context.get("findings")
+                or []
+            )
+            finding_sets = _normalize_finding_sets(findings)
+
+            classifications = log_context.get("data_classification") or log_context.get("data_classifications")
+            if classifications is None:
+                business_ctx = log_context.get("business_context") or {}
+                classifications = (
+                    business_ctx.get("data_classification")
+                    or business_ctx.get("data_classifications")
+                    or []
+                )
+            if isinstance(classifications, str):
+                classifications = [classifications]
+
+            service_value = log_context.get("service_name") or log_context.get("service")
+            environment_value = log_context.get("environment") or log_context.get("env")
+
+            return {
+                "service": str(service_value).lower() if service_value else None,
+                "environment": str(environment_value).lower() if environment_value else None,
+                "classifications": {str(item).lower() for item in (classifications or [])},
+                **finding_sets,
+            }
+
+        def _compute_similarity(target_features: Dict[str, Any], log_features: Dict[str, Any]) -> Tuple[float, Dict[str, Any]]:
+            weights = {
+                "service": 0.25,
+                "environment": 0.15,
+                "classifications": 0.15,
+                "categories": 0.2,
+                "severities": 0.1,
+                "cves": 0.1,
+                "rule_ids": 0.05,
+            }
+
+            similarity = 0.0
+            matched: Dict[str, Any] = {}
+
+            if target_features.get("service") and target_features.get("service") == log_features.get("service"):
+                similarity += weights["service"]
+                matched["service"] = target_features["service"]
+
+            if target_features.get("environment") and target_features.get("environment") == log_features.get("environment"):
+                similarity += weights["environment"]
+                matched["environment"] = target_features["environment"]
+
+            def _set_overlap(key: str) -> None:
+                nonlocal similarity
+                target_set: Set[str] = target_features.get(key, set())
+                log_set: Set[str] = log_features.get(key, set())
+                if not target_set or not log_set:
+                    return
+                overlap = target_set.intersection(log_set)
+                if not overlap:
+                    return
+                overlap_ratio = len(overlap) / max(len(target_set), 1)
+                similarity += weights[key] * overlap_ratio
+                matched[key] = sorted(overlap)
+
+            for key in ["classifications", "categories", "severities", "cves", "rule_ids"]:
+                _set_overlap(key)
+
+            return similarity, matched
+
+        try:
+            async with DatabaseManager.get_session_context() as session:
+                result = await session.execute(
+                    select(PolicyDecisionLog)
+                    .where(PolicyDecisionLog.is_active.is_(True))
+                    .order_by(PolicyDecisionLog.created_at.desc())
+                    .limit(250)
+                )
+                historical_logs = result.scalars().all()
+        except Exception as exc:
+            logger.error(f"Golden regression lookup failed: {exc}")
+            return {
+                "status": "error",
+                "confidence": 0.0,
+                "similar_cases": [],
+                "validation_passed": False,
+                "error": str(exc),
+            }
+
+        if not historical_logs:
+            return {
+                "status": "insufficient_history",
+                "confidence": 0.0,
+                "similar_cases": [],
+                "validation_passed": False,
+                "total_cases_considered": 0,
+            }
+
+        target_features = _extract_context_features(context)
+        evaluated_cases: List[Dict[str, Any]] = []
+
+        for log in historical_logs:
+            try:
+                log_context: Dict[str, Any] = log.get_input_context()
+            except Exception:
+                log_context = {}
+
+            log_features = _extract_log_features(log_context)
+            similarity, matched_attributes = _compute_similarity(target_features, log_features)
+
+            if similarity <= 0:
+                continue
+
+            evaluated_cases.append(
+                {
+                    "decision_id": log.id,
+                    "decision": log.decision,
+                    "historical_confidence": float(log.confidence),
+                    "similarity": round(similarity, 3),
+                    "matched_attributes": matched_attributes,
+                    "occurred_at": log.created_at.isoformat() if log.created_at else None,
+                    "policy_rule_id": log.policy_rule_id,
+                }
+            )
+
+        if not evaluated_cases:
+            return {
+                "status": "no_match",
+                "confidence": 0.0,
+                "similar_cases": [],
+                "validation_passed": False,
+                "total_cases_considered": len(historical_logs),
+            }
+
+        evaluated_cases.sort(key=lambda item: item["similarity"], reverse=True)
+        top_cases = evaluated_cases[:5]
+
+        total_similarity = sum(case["similarity"] for case in top_cases)
+        weighted_confidence = (
+            sum(case["historical_confidence"] * case["similarity"] for case in top_cases) / total_similarity
+            if total_similarity
+            else 0.0
+        )
+
+        status = "validated" if weighted_confidence >= 0.75 else "partial_match"
+
         return {
-            "status": "validated",
-            "confidence": 0.89,
-            "similar_cases": 23,
-            "validation_passed": True
+            "status": status,
+            "confidence": round(weighted_confidence, 3),
+            "similar_cases": top_cases,
+            "validation_passed": status == "validated",
+            "total_cases_considered": len(historical_logs),
         }
     
     async def _real_policy_evaluation(self, context, enriched_context):
