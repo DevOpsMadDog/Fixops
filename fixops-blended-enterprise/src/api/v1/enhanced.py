@@ -77,7 +77,7 @@ async def enhanced_analysis_standard(request: EnhancedDecisionRequest):
         for analysis in llm_result.individual_analyses:
             models.append(
                 EnhancedAnalysisModel(
-                    name=analysis.provider.value,
+                    name=analysis.provider,
                     verdict=analysis.recommended_action,
                     confidence=analysis.confidence,
                     rationale=analysis.reasoning,
