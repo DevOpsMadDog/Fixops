@@ -253,25 +253,25 @@ class AdvancedLLMEngine:
         """Generate demo analysis for providers"""
         high_severity = any(f.get('severity', '').upper() in ['CRITICAL', 'HIGH'] for f in findings)
         
-        if provider == LLMProvider.OPENAI_GPT4.value:
+        if provider == "openai_gpt4":
             if high_severity:
                 return 'defer', 0.75, 'High severity findings require manual review for business context'
             return 'allow', 0.85, 'No critical vulnerabilities detected, deployment approved'
         
-        elif provider == LLMProvider.ANTHROPIC_CLAUDE.value:
+        elif provider == "anthropic_claude":
             if high_severity:
                 return 'block', 0.9, 'Critical security risk in production environment'
             return 'allow', 0.8, 'Risk assessment completed, deployment safe'
         
-        elif provider == LLMProvider.GOOGLE_GEMINI.value:
+        elif provider == "google_gemini":
             return 'defer', 0.7, 'Multimodal analysis suggests caution for deployment'
         
-        elif provider == LLMProvider.SPECIALIZED_CYBER.value:
+        elif provider == "specialized_cyber":
             if high_severity:
                 return 'block', 0.95, 'Cybersecurity analysis identifies critical exploit risk'
             return 'allow', 0.9, 'Cyber threat assessment passed'
         
-        else:  # EMERGENT_GPT5
+        else:  # emergent_gpt5
             if high_severity:
                 return 'defer', 0.8, 'GPT-5 analysis recommends manual security review'
             return 'allow', 0.88, 'GPT-5 security analysis approved for deployment'
