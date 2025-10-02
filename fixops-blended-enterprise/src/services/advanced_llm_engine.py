@@ -199,7 +199,7 @@ class AdvancedLLMEngine:
             processing_time = (time.time() - start_time) * 1000
             
             return LLMAnalysisResult(
-                provider=LLMProvider(provider),
+                provider=provider,  # Just use string instead of enum
                 recommended_action="defer",
                 confidence=0.0,
                 reasoning=f"Analysis error: {str(e)}",
