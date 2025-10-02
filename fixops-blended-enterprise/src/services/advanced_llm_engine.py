@@ -65,8 +65,8 @@ class AdvancedLLMEngine:
                 from emergentintegrations import EmergentIntegrations
                 self.llm_client = EmergentIntegrations(api_key=settings.EMERGENT_LLM_KEY)
                 self.enabled_providers = [
-                    LLMProvider.EMERGENT_GPT5.value,
-                    LLMProvider.SPECIALIZED_CYBER.value
+                    "emergent_gpt5",
+                    "specialized_cyber"
                 ]
                 logger.info("✅ Enhanced LLM Engine initialized with Emergent LLM")
             else:
