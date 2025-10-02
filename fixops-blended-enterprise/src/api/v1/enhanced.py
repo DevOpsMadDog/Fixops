@@ -174,8 +174,8 @@ async def compare_llm_analyses(payload: CompareLLMsRequest):
             "final_decision": llm_result.final_decision,
             "individual_analyses": [
                 {
-                    "provider": a.provider.value,
-                    "provider_name": a.provider.value.replace('_', ' ').title(),
+                    "provider": a.provider,
+                    "provider_name": a.provider.replace('_', ' ').title(),
                     "confidence": a.confidence,
                     "risk_assessment": getattr(a, 'risk_assessment', 'medium'),
                     "recommended_action": a.recommended_action,
