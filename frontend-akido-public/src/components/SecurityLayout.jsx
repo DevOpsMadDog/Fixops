@@ -13,18 +13,38 @@ function SecurityLayout({ children }) {
   })
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    fetchSystemMetrics()
+    const interval = setInterval(fetchSystemMetrics, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const fetchSystemMetrics = async () => {
+    try {
+      const [metricsRes, componentsRes] = await Promise.all([
+        fetch('/api/v1/decisions/metrics').catch(() => ({ json: () => ({ data: {} }) })),
+        fetch('/api/v1/decisions/core-components').catch(() => ({ json: () => ({ data: { system_info: { mode: 'demo' } } }) }))
+      ])
+
+      const [metrics, components] = await Promise.all([
+        metricsRes.json(),
+        componentsRes.json()
+      ])
+
+      const systemInfo = components.data?.system_info || {}
+      const metricsData = metrics.data || {}
+
       setSystemMetrics({
-        mode: 'demo',
-        decisions_today: 47,
-        avg_latency_ms: 0.285,
-        confidence_rate: 94,
+        mode: systemInfo.mode || 'demo',
+        decisions_today: metricsData.total_decisions || (systemInfo.mode === 'demo' ? 47 : 0),
+        avg_latency_ms: Math.round((metricsData.avg_decision_latency_us || 285) / 1000),
+        confidence_rate: Math.round((metricsData.high_confidence_rate || 0.89) * 100),
         loading: false
       })
-    }, 600)
-
-    return () => clearTimeout(timer)
-  }, [])
+    } catch (error) {
+      console.error('Failed to fetch system metrics:', error)
+      setSystemMetrics(prev => ({ ...prev, loading: false }))
+    }
+  }
 
   const navigation = [
     {
@@ -198,112 +218,132 @@ function SecurityLayout({ children }) {
           </div>
         </div>
 
-        <nav style={{
-          borderTop: '1px solid rgba(148, 163, 184, 0.1)',
-          backgroundColor: 'rgba(10, 14, 26, 0.9)'
+        <div style={{
+          maxWidth: '1800px',
+          margin: '0 auto',
+          padding: '0 2rem 1.5rem 2rem'
         }}>
-          <div style={{
-            maxWidth: '1800px',
-            margin: '0 auto',
-            padding: '0 2rem'
+          <nav style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1rem'
           }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))`,
-              gap: '1rem',
-              padding: '1rem 0'
-            }}>
-              {navigation.map((item) => {
-                const isActive = location.pathname.startsWith(item.href)
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    style={{
-                      textDecoration: 'none'
-                    }}
-                  >
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href
+
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  style={{
+                    textDecoration: 'none',
+                    color: 'inherit'
+                  }}
+                >
+                  <div style={{
+                    padding: '1.25rem',
+                    borderRadius: '12px',
+                    border: `1px solid ${isActive ? 'rgba(96, 165, 250, 0.8)' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: isActive
+                      ? 'linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(56, 189, 248, 0.2) 100%)'
+                      : 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                    boxShadow: isActive
+                      ? '0 10px 30px rgba(37, 99, 235, 0.3)'
+                      : '0 4px 20px rgba(0, 0, 0, 0.25)',
+                    transition: 'all 0.3s ease'
+                  }}>
                     <div style={{
-                      padding: '0.75rem',
-                      borderRadius: '12px',
-                      border: isActive ? '1px solid rgba(96, 165, 250, 0.7)' : '1px solid rgba(148, 163, 184, 0.15)',
-                      background: isActive
-                        ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(14, 116, 144, 0.15) 100%)'
-                        : 'rgba(15, 23, 42, 0.6)',
-                      boxShadow: isActive ? '0 10px 20px rgba(59, 130, 246, 0.2)' : 'none',
-                      transition: 'all 0.3s ease',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.4rem',
-                      height: '100%'
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '1rem'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ fontSize: '1.25rem' }}>{item.icon}</div>
-                        <div>
-                          <div style={{
-                            fontSize: '0.875rem',
-                            fontWeight: '600',
-                            color: 'white',
-                            letterSpacing: '-0.01em'
-                          }}>
-                            {item.name}
-                          </div>
-                          <div style={{
-                            fontSize: '0.7rem',
-                            color: '#94a3b8'
-                          }}>
-                            {item.description}
-                          </div>
-                        </div>
-                      </div>
+                      <div style={{ fontSize: '1.5rem' }}>{item.icon}</div>
                       <div style={{
-                        fontSize: '0.65rem',
+                        fontSize: '0.75rem',
                         color: '#38bdf8',
-                        marginTop: 'auto'
+                        letterSpacing: '0.1em',
+                        fontWeight: '600'
                       }}>
-                        ROLE: {item.role.toUpperCase()}
+                        {item.role.toUpperCase()}
                       </div>
                     </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        </nav>
+                    <h3 style={{
+                      fontSize: '1.1rem',
+                      fontWeight: '700',
+                      color: 'white',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {item.name}
+                    </h3>
+                    <p style={{
+                      fontSize: '0.875rem',
+                      color: '#cbd5f5',
+                      margin: 0
+                    }}>
+                      {item.description}
+                    </p>
+                  </div>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
       </header>
 
-      <main>{children}</main>
+      <main>
+        {children}
+      </main>
 
       <footer style={{
         marginTop: '4rem',
         padding: '2rem 0',
-        background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(10, 14, 26, 0.95) 100%)',
-        borderTop: '1px solid rgba(148, 163, 184, 0.1)'
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.95))',
+        borderTop: '1px solid rgba(96, 165, 250, 0.2)'
       }}>
         <div style={{
-          maxWidth: '1400px',
+          maxWidth: '1600px',
           margin: '0 auto',
           padding: '0 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          color: '#94a3b8',
-          fontSize: '0.75rem'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '2rem',
+          color: 'white'
         }}>
           <div>
-            <div style={{ fontWeight: '600', color: '#38bdf8' }}>FixOps Decision Engine</div>
-            <div>Multi-LLM consensus • Policy automation • Evidence lake</div>
+            <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>FixOps Enterprise</h4>
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', lineHeight: '1.6' }}>
+              Automated security decision engine with deterministic processing layer,
+              multi-LLM consensus, and compliance-ready evidence trails.
+            </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div>Enterprise demo experience</div>
-            <div>© {new Date().getFullYear()} FixOps. All rights reserved.</div>
+
+          <div>
+            <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Core Capabilities</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.875rem', color: '#94a3b8', lineHeight: '1.8' }}>
+              <li>• Deterministic Processing Layer</li>
+              <li>• Multi-LLM Consensus Engine</li>
+              <li>• Evidence Lake & Audit Trails</li>
+              <li>• Policy Engine with OPA Integration</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Deployment Modes</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.875rem', color: '#94a3b8', lineHeight: '1.8' }}>
+              <li>• Demo Showcase Mode</li>
+              <li>• Production Hardened Mode</li>
+              <li>• Hybrid Cloud Ready</li>
+              <li>• Enterprise Integrations</li>
+            </ul>
           </div>
         </div>
       </footer>
 
       <style>{`
         @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
         }
       `}</style>
     </div>

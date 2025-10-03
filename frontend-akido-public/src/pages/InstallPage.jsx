@@ -1,20 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import installDoc from '../content/install.md?raw'
 
 function InstallPage() {
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setContent(installDoc)
-      setLoading(false)
-    }, 500)
-
-    return () => clearTimeout(timer)
+    fetchContent()
   }, [])
+
+  const fetchContent = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/v1/docs/install')
+      const data = await response.text()
+      setContent(data)
+    } catch (error) {
+      console.error('Failed to fetch install docs:', error)
+      setContent('# Installation Guide\n\nError loading content. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const downloadContent = () => {
     const blob = new Blob([content], { type: 'text/markdown' })
@@ -33,6 +41,7 @@ function InstallPage() {
       padding: '2rem'
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
         <div style={{
           textAlign: 'center',
           marginBottom: '3rem',
@@ -57,6 +66,7 @@ function InstallPage() {
           </p>
         </div>
 
+        {/* Action Button */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -83,6 +93,7 @@ function InstallPage() {
           </button>
         </div>
 
+        {/* Content */}
         <div style={{
           background: 'white',
           borderRadius: '24px',
@@ -123,7 +134,7 @@ function InstallPage() {
                   h1: ({ children }) => <h1 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '1.5rem', background: 'linear-gradient(45deg, #1f2937, #4338ca)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', paddingBottom: '0.75rem', borderBottom: '3px solid #e5e7eb' }}>{children}</h1>,
                   h2: ({ children }) => <h2 style={{ fontSize: '2rem', fontWeight: '800', marginTop: '2.5rem', marginBottom: '1rem', color: '#1f2937' }}>{children}</h2>,
                   h3: ({ children }) => <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginTop: '2rem', marginBottom: '0.75rem', color: '#374151' }}>{children}</h3>,
-                  code: ({ inline, children }) => inline
+                  code: ({ inline, children }) => inline 
                     ? <code style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.4rem', borderRadius: '6px', fontSize: '0.9rem', fontFamily: '"JetBrains Mono", "Fira Code", monospace', border: '1px solid #e2e8f0', color: '#e11d48' }}>{children}</code>
                     : <pre style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', overflow: 'auto', fontSize: '0.9rem', fontFamily: '"JetBrains Mono", "Fira Code", monospace', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}><code>{children}</code></pre>
                 }}
@@ -135,12 +146,14 @@ function InstallPage() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `
+      }} />
     </div>
   )
 }

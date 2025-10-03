@@ -1,20 +1,77 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 function ModeToggle() {
   const [currentMode, setCurrentMode] = useState('demo')
   const [switching, setSwitching] = useState(false)
 
-  const toggleMode = () => {
+  useEffect(() => {
+    fetchCurrentMode()
+  }, [])
+
+  const fetchCurrentMode = async () => {
+    try {
+      const response = await fetch('/api/v1/system-mode/current')
+      if (!response.ok) {
+        throw new Error('Failed to load current mode')
+      }
+      const data = await response.json()
+      const mode = data?.data?.current_mode || (data?.data?.demo_mode_enabled ? 'demo' : 'production')
+      setCurrentMode(mode || 'demo')
+    } catch (error) {
+      console.error('Failed to fetch current mode:', error)
+      setCurrentMode('demo')
+    }
+  }
+
+  const toggleMode = async () => {
     if (switching) return
 
+    const targetMode = currentMode === 'demo' ? 'production' : 'demo'
     setSwitching(true)
-    const nextMode = currentMode === 'demo' ? 'production' : 'demo'
 
-    setTimeout(() => {
-      setCurrentMode(nextMode)
-      alert(`Mode switched to ${nextMode.toUpperCase()} (simulation).\n\nConfigure DEMO_MODE=${nextMode === 'demo' ? 'true' : 'false'} in a real deployment.`)
+    try {
+      const response = await fetch('/api/v1/system-mode/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_mode: targetMode })
+      })
+
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const detail = payload?.detail
+        const missingRequirements = Array.isArray(detail?.missing_requirements)
+          ? detail.missing_requirements
+          : Array.isArray(payload?.missing_requirements)
+            ? payload.missing_requirements
+            : []
+
+        if (missingRequirements.length > 0) {
+          alert(`Cannot switch to production until the following are configured:\n${missingRequirements.join('\n')}`)
+        } else {
+          const message = typeof detail === 'string'
+            ? detail
+            : detail?.message || 'Unknown error occurred while toggling mode.'
+          alert(`Mode toggle failed: ${message}`)
+        }
+        return
+      }
+
+      const missingRequirements = Array.isArray(payload?.missing_requirements) ? payload.missing_requirements : []
+      if (missingRequirements.length > 0) {
+        alert(`Mode toggle registered but additional setup is required:\n${missingRequirements.join('\n')}`)
+      } else if (payload?.restart_required) {
+        alert(`Mode toggle request sent. Set DEMO_MODE=${targetMode === 'demo' ? 'true' : 'false'} and restart the service to complete the switch.`)
+      } else {
+        alert(`Mode switched to ${targetMode.toUpperCase()}.`)
+      }
+    } catch (error) {
+      console.error('Mode toggle failed:', error)
+      alert('Mode toggle failed. Check console for details.')
+    } finally {
+      await fetchCurrentMode()
       setSwitching(false)
-    }, 500)
+    }
   }
 
   return (
