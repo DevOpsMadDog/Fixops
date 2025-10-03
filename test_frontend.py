@@ -2,7 +2,11 @@
 """
 Simple test script to verify frontend is accessible and working
 """
-import requests
+import os
+if os.environ.get("FIXOPS_USE_REAL_REQUESTS") == "1":
+    import requests  # type: ignore
+else:  # pragma: no cover - offline execution path
+    from tests import offline_requests_stub as requests
 import time
 
 def test_frontend():
