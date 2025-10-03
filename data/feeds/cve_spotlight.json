@@ -1,0 +1,60 @@
+{
+  "generated_at": "2025-01-10T00:00:00Z",
+  "source": "FixOps Spotlight derived from public vendor advisories",
+  "records": [
+    {
+      "cve_id": "CVE-2024-3094",
+      "title": "XZ Utils Backdoor in liblzma",
+      "description": "A malicious backdoor introduced into liblzma releases 5.6.0 and 5.6.1 allows remote unauthenticated code execution via SSH when the compromised compression library is used.",
+      "severity": "CRITICAL",
+      "cvss_score": 10.0,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+      "cwe_id": "CWE-676",
+      "published": "2024-03-29T00:00:00Z",
+      "vendor": "XZ Utils Project",
+      "product": "liblzma",
+      "references": [
+        "https://www.openwall.com/lists/oss-security/2024/03/29/3",
+        "https://access.redhat.com/security/cve/CVE-2024-3094"
+      ],
+      "kev_flag": true,
+      "source": "FixOps Spotlight"
+    },
+    {
+      "cve_id": "CVE-2024-3400",
+      "title": "Palo Alto PAN-OS GlobalProtect Command Injection",
+      "description": "An unauthenticated command injection in the GlobalProtect portal of PAN-OS allows network-based attackers to execute arbitrary code on affected firewalls.",
+      "severity": "CRITICAL",
+      "cvss_score": 10.0,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+      "cwe_id": "CWE-77",
+      "published": "2024-04-12T00:00:00Z",
+      "vendor": "Palo Alto Networks",
+      "product": "PAN-OS",
+      "references": [
+        "https://security.paloaltonetworks.com/CVE-2024-3400",
+        "https://www.cisa.gov/news-events/alerts/2024/04/12/palo-alto-networks-releases-security-updates-pan-os"
+      ],
+      "kev_flag": true,
+      "source": "FixOps Spotlight"
+    },
+    {
+      "cve_id": "CVE-2023-34362",
+      "title": "Progress MOVEit Transfer SQL Injection",
+      "description": "Progress MOVEit Transfer contains a SQL injection vulnerability that allows remote attackers to escalate privileges and exfiltrate data from the MOVEit database.",
+      "severity": "CRITICAL",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "cwe_id": "CWE-89",
+      "published": "2023-05-31T00:00:00Z",
+      "vendor": "Progress Software",
+      "product": "MOVEit Transfer",
+      "references": [
+        "https://www.progress.com/security/moveit-transfer-and-moveit-cloud-vulnerability",
+        "https://www.cisa.gov/news-events/alerts/2023/06/01/understanding-and-mitigating-moveit-transfer-vulnerability"
+      ],
+      "kev_flag": true,
+      "source": "FixOps Spotlight"
+    }
+  ]
+}
