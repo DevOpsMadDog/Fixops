@@ -1,0 +1,106 @@
+{
+  "cases": [
+    {
+      "service": "payment-api",
+      "environment": "production",
+      "cve_id": "CVE-2024-3094",
+      "expected_decision": "BLOCK",
+      "expected_confidence": 0.94,
+      "regression_suite": "payments-critical-high",
+      "exploit_window": "2024-03-25",
+      "summary": "Backdoored XZ Utils packages detected in payment container images.",
+      "signals": {
+        "severity": "CRITICAL",
+        "kev": true,
+        "epss": 0.99,
+        "fix_available": true,
+        "attack_vector": "NETWORK"
+      }
+    },
+    {
+      "service": "payment-api",
+      "environment": "production",
+      "cve_id": "CVE-2024-3400",
+      "expected_decision": "BLOCK",
+      "expected_confidence": 0.9,
+      "regression_suite": "payments-critical-high",
+      "exploit_window": "2024-04-10",
+      "summary": "Palo Alto PAN-OS exploit observed against GlobalProtect perimeter.",
+      "signals": {
+        "severity": "CRITICAL",
+        "kev": true,
+        "epss": 0.97,
+        "fix_available": true,
+        "attack_vector": "NETWORK"
+      }
+    },
+    {
+      "service": "payment-api",
+      "environment": "production",
+      "cve_id": "CVE-2023-34362",
+      "expected_decision": "BLOCK",
+      "expected_confidence": 0.88,
+      "regression_suite": "payments-critical-high",
+      "exploit_window": "2023-06-01",
+      "summary": "MOVEit Transfer SQL injection exfiltrated customer statements.",
+      "signals": {
+        "severity": "CRITICAL",
+        "kev": true,
+        "epss": 0.93,
+        "fix_available": true,
+        "attack_vector": "NETWORK"
+      }
+    },
+    {
+      "service": "identity-service",
+      "environment": "production",
+      "cve_id": "CVE-2023-50164",
+      "expected_decision": "BLOCK",
+      "expected_confidence": 0.86,
+      "regression_suite": "auth-critical-blockers",
+      "exploit_window": "2023-12-07",
+      "summary": "Apache Struts OGNL injection allowed remote takeover of login tiers.",
+      "signals": {
+        "severity": "CRITICAL",
+        "kev": true,
+        "epss": 0.92,
+        "fix_available": true,
+        "attack_vector": "NETWORK"
+      }
+    },
+    {
+      "service": "identity-service",
+      "environment": "production",
+      "cve_id": "CVE-2024-0204",
+      "expected_decision": "BLOCK",
+      "expected_confidence": 0.87,
+      "regression_suite": "auth-critical-blockers",
+      "exploit_window": "2024-01-18",
+      "summary": "Ivanti Connect Secure auth bypass actively weaponised.",
+      "signals": {
+        "severity": "CRITICAL",
+        "kev": true,
+        "epss": 0.96,
+        "fix_available": true,
+        "attack_vector": "NETWORK"
+      }
+    },
+    {
+      "service": "data-warehouse",
+      "environment": "production",
+      "cve_id": "CVE-2024-22252",
+      "expected_decision": "BLOCK",
+      "expected_confidence": 0.82,
+      "regression_suite": "warehouse-ingress-critical",
+      "exploit_window": "2024-02-20",
+      "summary": "vCenter Server heap overflow targeted for lateral movement.",
+      "signals": {
+        "severity": "HIGH",
+        "kev": true,
+        "epss": 0.89,
+        "fix_available": true,
+        "attack_vector": "NETWORK"
+      }
+    }
+  ]
+}

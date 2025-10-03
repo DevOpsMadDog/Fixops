@@ -317,6 +317,51 @@ def build_business_context(args: argparse.Namespace) -> Dict[str, Any]:
     }
 
 
+def _print_regression_summary(regression: Dict[str, Any]) -> None:
+    status = regression.get("status", "unknown")
+    coverage = regression.get("coverage_pct", 0.0)
+    matched = regression.get("matched_cases", 0)
+    total = regression.get("total_cases", 0)
+    passed = regression.get("passed", 0)
+    print(
+        f"  - golden_regression: status={status}, coverage={coverage:.1f}%"
+        f" ({matched}/{total} cases, {passed} matched expectations)"
+    )
+    failures = regression.get("failures", [])
+    if failures:
+        for failure in failures:
+            reason = failure.get("reason", "unknown")
+            cve = failure.get("cve_id", "n/a")
+            expected = failure.get("expected")
+            predicted = failure.get("predicted")
+            detail = f"reason={reason}, cve={cve}"
+            if expected and predicted:
+                detail += f", expected={expected}, predicted={predicted}"
+            print(f"      * {detail}")
+
+
+def _print_compliance_summary(compliance: Dict[str, Any]) -> None:
+    status = compliance.get("status", "unknown")
+    overall = "pass" if compliance.get("overall_compliant") else "fail"
+    coverage = compliance.get("coverage_pct", 0.0)
+    requested = compliance.get("requested_frameworks", [])
+    print(
+        f"  - compliance: status={status}, overall={overall}, coverage={coverage:.1f}%"
+        f" (requested={', '.join(requested) or 'none'})"
+    )
+    frameworks = compliance.get("frameworks", {})
+    for name, details in frameworks.items():
+        framework_status = details.get("status", "unknown")
+        violations = details.get("violations", [])
+        controls = details.get("controls_triggered", [])
+        print(f"      * {name}: {framework_status}")
+        if violations:
+            for violation in violations:
+                print(f"          - {violation}")
+        if controls:
+            print(f"          controls: {', '.join(controls)}")
+
+
 async def run_real_playbook(args: argparse.Namespace) -> None:
     feeds_root = PROJECT_ROOT.parent / "data" / "feeds"
     enricher = CVEEnricher(feeds_root)
@@ -395,7 +440,15 @@ async def run_real_playbook(args: argparse.Namespace) -> None:
 
     if result.validation_results:
         print("\nValidation Signals:")
+        regression = result.validation_results.get("golden_regression")
+        compliance = result.validation_results.get("compliance")
+        if isinstance(regression, dict):
+            _print_regression_summary(regression)
+        if isinstance(compliance, dict):
+            _print_compliance_summary(compliance)
         for key, value in result.validation_results.items():
+            if key in {"golden_regression", "compliance"}:
+                continue
             if isinstance(value, dict):
                 print(f"  - {key}: status={value.get('status', 'n/a')}")
             else:
