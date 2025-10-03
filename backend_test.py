@@ -1,9 +1,12 @@
-import requests
+import os
+if os.environ.get("FIXOPS_USE_REAL_REQUESTS") == "1":
+    import requests  # type: ignore
+else:  # pragma: no cover - exercised in offline pytest runs
+    from tests import offline_requests_stub as requests
 import sys
 import json
 import asyncio
 import subprocess
-import os
 import tempfile
 import io
 from datetime import datetime

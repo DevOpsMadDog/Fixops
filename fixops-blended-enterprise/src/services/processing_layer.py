@@ -11,11 +11,19 @@ Based on the architecture documentation showing specific components:
 
 import asyncio
 import json
-import numpy as np
+import random
+import statistics
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Tuple, Optional
 from dataclasses import dataclass, asdict
 import structlog
+
+try:  # Optional dependency used when available for numerical helpers
+    import numpy as np  # type: ignore
+    NUMPY_AVAILABLE = True
+except ModuleNotFoundError:  # pragma: no cover - exercised in minimal environments
+    np = None  # type: ignore
+    NUMPY_AVAILABLE = False
 
 # OSS Component Imports as per architecture
 try:
@@ -24,16 +32,49 @@ try:
     from pgmpy.factors.discrete import TabularCPD
     from pgmpy.inference import VariableElimination
     PGMPY_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - exercised in environments without pgmpy
     PGMPY_AVAILABLE = False
 
 try:
     import pomegranate as pom
     POMEGRANATE_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - exercised in environments without pomegranate
     POMEGRANATE_AVAILABLE = False
 
 logger = structlog.get_logger()
+
+
+def _mean(values: List[float]) -> float:
+    """Compatibility helper that works with or without numpy."""
+    if not values:
+        return 0.0
+    if NUMPY_AVAILABLE:
+        return float(np.mean(values))  # type: ignore[arg-type]
+    try:
+        return float(statistics.fmean(values))
+    except AttributeError:  # pragma: no cover - Python <3.8 safeguard
+        return float(sum(values) / len(values))
+
+
+def _variance(values: List[float]) -> float:
+    """Compatibility helper mirroring numpy.var when numpy is unavailable."""
+    if not values:
+        return 0.0
+    if NUMPY_AVAILABLE:
+        return float(np.var(values))  # type: ignore[arg-type]
+    if len(values) < 2:
+        return 0.0
+    try:
+        return float(statistics.pvariance(values))
+    except statistics.StatisticsError:  # pragma: no cover - defensive
+        return 0.0
+
+
+def _normalise(values: List[float]) -> List[float]:
+    total = sum(values)
+    if total == 0:
+        return [0.0 for _ in values]
+    return [value / total for value in values]
 
 @dataclass
 class SSVCContext:
@@ -81,6 +122,10 @@ class BayesianPriorMapping:
         if not PGMPY_AVAILABLE:
             logger.warning("pgmpy not available, using simplified Bayesian mapping")
             return
+
+        if not NUMPY_AVAILABLE:
+            logger.warning("numpy not available, using heuristic Bayesian mapping")
+            return
             
         try:
             # Create Bayesian Network structure
@@ -108,10 +153,18 @@ class BayesianPriorMapping:
             )
             
             # Risk level depends on all factors
+            column_count = 3 * 3 * 3 * 4 * 3
+            columns: List[List[float]] = []
+            for _ in range(column_count):
+                weights = _normalise([random.random() for _ in range(4)])
+                columns.append(weights)
+
+            random_values = [list(row) for row in zip(*columns)]
+
             cpd_risk = TabularCPD(
                 variable='risk_level',
                 variable_card=4,  # low, medium, high, critical
-                values=np.random.rand(4, 3*3*3*4*3).tolist(),  # Simplified for demo
+                values=random_values,
                 evidence=['exploitation', 'exposure', 'utility', 'safety_impact', 'mission_impact'],
                 evidence_card=[3, 3, 3, 4, 3],
                 state_names={
@@ -196,12 +249,27 @@ class MarkovTransitionMatrixBuilder:
     """
     
     def __init__(self):
-        import mchmm as mc
+        try:
+            import mchmm as mc  # type: ignore
+        except ModuleNotFoundError:  # pragma: no cover - exercised in minimal environments
+            mc = None
+            logger.warning("mchmm not available, using deterministic Markov fallback")
+
         self.mc = mc
-        self.states = ["secure", "vulnerable", "exploited", "patched"] 
+        self.states = ["secure", "vulnerable", "exploited", "patched"]
         self.state_to_index = {state: i for i, state in enumerate(self.states)}
         self.hmm_model = None
-        self._build_real_markov_model()
+        self.transition_matrix = {
+            "secure": {"secure": 0.7, "vulnerable": 0.3, "exploited": 0.0, "patched": 0.0},
+            "vulnerable": {"secure": 0.1, "vulnerable": 0.6, "exploited": 0.2, "patched": 0.1},
+            "exploited": {"secure": 0.0, "vulnerable": 0.1, "exploited": 0.4, "patched": 0.5},
+            "patched": {"secure": 0.8, "vulnerable": 0.1, "exploited": 0.05, "patched": 0.05},
+        }
+
+        if self.mc and NUMPY_AVAILABLE:
+            self._build_real_markov_model()
+        elif self.mc and not NUMPY_AVAILABLE:
+            logger.warning("numpy unavailable; Markov model using deterministic fallback")
     
     def _build_real_markov_model(self):
         """Build real Markov model using mchmm library"""
@@ -225,13 +293,7 @@ class MarkovTransitionMatrixBuilder:
             
         except Exception as e:
             logger.error(f"Real mchmm initialization failed: {e}")
-            # Fallback to simple matrix
-            self.transition_matrix = {
-                "secure": {"secure": 0.7, "vulnerable": 0.3, "exploited": 0.0, "patched": 0.0},
-                "vulnerable": {"secure": 0.1, "vulnerable": 0.6, "exploited": 0.2, "patched": 0.1},
-                "exploited": {"secure": 0.0, "vulnerable": 0.1, "exploited": 0.4, "patched": 0.5},
-                "patched": {"secure": 0.8, "vulnerable": 0.1, "exploited": 0.05, "patched": 0.05}
-            }
+            self.hmm_model = None
     
     async def predict_state_evolution(self, current_states: List[MarkovState]) -> Dict[str, Any]:
         """Predict vulnerability state evolution using REAL mchmm library"""
@@ -295,9 +357,14 @@ class MarkovTransitionMatrixBuilder:
                 base_probs[2] *= 3.0  # significantly increase exploited probability
             
             # Normalize
-            base_probs = base_probs / np.sum(base_probs)
-            
-            return {self.states[i]: float(prob) for i, prob in enumerate(base_probs)}
+            if NUMPY_AVAILABLE:
+                base_probs = base_probs / np.sum(base_probs)
+                iterable = enumerate(base_probs)
+            else:  # pragma: no cover - defensive fallback
+                normalised = _normalise(list(base_probs))
+                iterable = enumerate(normalised)
+
+            return {self.states[i]: float(prob) for i, prob in iterable}
             
         except Exception as e:
             logger.error(f"Transition probability calculation failed: {e}")
@@ -337,9 +404,9 @@ class MarkovTransitionMatrixBuilder:
                 1.0 if pred["kev_factor"] else 0.8,  # KEV data
                 min(pred["days_since_disclosure"] / 365, 1.0)  # Maturity of disclosure
             ]
-            confidence_factors.append(np.mean(factors))
-        
-        return base_confidence * np.mean(confidence_factors)
+            confidence_factors.append(_mean(factors))
+
+        return base_confidence * _mean(confidence_factors)
 
 class SSVCProbabilisticFusion:
     """
@@ -446,7 +513,7 @@ class SSVCProbabilisticFusion:
     def _calculate_fusion_confidence(self, ssvc: float, bayesian: float, markov: float) -> float:
         """Calculate confidence in fusion result"""
         # Higher confidence when components agree
-        variance = np.var([ssvc, bayesian, markov])
+        variance = _variance([ssvc, bayesian, markov])
         return max(0.5, 1.0 - variance * 2)
     
     def _generate_fusion_explanation(self, decision: str, risk_score: float) -> str:
@@ -641,7 +708,7 @@ class SARIFVulnerabilityHandler:
         for cluster in clusters.values():
             instances = cluster["instances"]
             cluster["count"] = len(instances)
-            cluster["avg_confidence"] = np.mean([inst["confidence"] for inst in instances])
+            cluster["avg_confidence"] = _mean([float(inst["confidence"]) for inst in instances])
             cluster["affected_files"] = list(set([inst["file_location"] for inst in instances]))
         
         return list(clusters.values())

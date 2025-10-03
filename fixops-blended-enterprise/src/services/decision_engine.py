@@ -15,6 +15,8 @@ import structlog
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
 from src.db.session import DatabaseManager
+from src.services.golden_regression_store import GoldenRegressionStore
+from src.services.compliance_engine import ComplianceEvaluator
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -68,6 +70,8 @@ class DecisionEngine:
         self.real_threat_intel = None
         self.oss_integrations = None
         self.processing_layer = None
+        self.golden_regression_store = GoldenRegressionStore()
+        self.compliance_evaluator = ComplianceEvaluator()
         
         # Demo mode data
         self.demo_data = {}
@@ -399,24 +403,56 @@ class DecisionEngine:
         if self.processing_layer:
             try:
                 processing_results = await self._use_processing_layer(context)
+                enriched_context = await self._real_context_enrichment(context)
+                knowledge_results = await self._real_vector_db_lookup(context, enriched_context)
+                regression_results = await self._real_golden_regression_validation(context)
+                policy_results = await self._real_policy_evaluation(context, enriched_context)
+                criticality_assessment = await self._real_sbom_criticality_assessment(context)
+                compliance_results = await self._evaluate_compliance_requirements(
+                    context, regression_results
+                )
+
+                raw_metadata = processing_results.get("processing_metadata") or {}
+                if not isinstance(raw_metadata, dict):
+                    raw_metadata = {"details": raw_metadata}
+                processing_metadata = dict(raw_metadata)
+                processing_metadata.setdefault("status", "executed")
+
+                validation_payload = {
+                    "production_mode": True,
+                    "processing_layer": True,
+                    "bayesian_results": processing_results["bayesian_results"],
+                    "markov_results": processing_results["markov_results"],
+                    "ssvc_results": processing_results["ssvc_results"],
+                    "sarif_results": processing_results["sarif_results"],
+                    "processing_metadata": processing_metadata,
+                    "vector_db": knowledge_results,
+                    "golden_regression": regression_results,
+                    "policy_engine": policy_results,
+                    "criticality": criticality_assessment,
+                    "compliance": compliance_results,
+                }
+
                 processing_time_us = (time.perf_counter() - start_time) * 1_000_000
-                
+
+                context_sources = list(
+                    dict.fromkeys(
+                        ["Processing Layer Fusion"]
+                        + enriched_context.get(
+                            "sources", ["Real Business Context", "Real Security Scanners"]
+                        )
+                    )
+                )
+
                 return DecisionResult(
                     decision=processing_results["decision"]["outcome"],
-                    confidence_score=processing_results["sarif_results"].get("confidence", 0.85),
+                    confidence_score=processing_results["decision"].get("confidence", 0.85),
                     consensus_details=processing_results["sarif_results"],
                     evidence_id=processing_results["evidence_id"],
                     reasoning=processing_results["decision"]["reasoning"],
-                    validation_results={
-                        "production_mode": True,
-                        "processing_layer": True,
-                        "bayesian_results": processing_results["bayesian_results"],
-                        "markov_results": processing_results["markov_results"],
-                        "ssvc_results": processing_results["ssvc_results"],
-                        "sarif_results": processing_results["sarif_results"]
-                    },
+                    validation_results=validation_payload,
                     processing_time_us=processing_time_us,
-                    context_sources=["Processing Layer", "Bayesian Prior Mapping", "Markov Transitions", "SSVC Fusion", "SARIF Analysis"],
+                    context_sources=context_sources,
                     demo_mode=False
                 )
             except Exception as e:
@@ -428,12 +464,19 @@ class DecisionEngine:
         regression_results = await self._real_golden_regression_validation(context)
         policy_results = await self._real_policy_evaluation(context, enriched_context)
         criticality_assessment = await self._real_sbom_criticality_assessment(context)
-        
+        compliance_results = await self._evaluate_compliance_requirements(
+            context, regression_results
+        )
+
         # Real consensus checking
         consensus_result = await self._real_consensus_checking(
-            knowledge_results, regression_results, policy_results, criticality_assessment
+            knowledge_results,
+            regression_results,
+            policy_results,
+            criticality_assessment,
+            compliance_results,
         )
-        
+
         # Real decision making
         decision = await self._real_final_decision(consensus_result)
         evidence_id = await self._real_evidence_generation(context, decision, consensus_result)
@@ -452,7 +495,8 @@ class DecisionEngine:
                 "vector_db": knowledge_results,
                 "golden_regression": regression_results,
                 "policy_engine": policy_results,
-                "criticality": criticality_assessment
+                "criticality": criticality_assessment,
+                "compliance": compliance_results,
             },
             processing_time_us=processing_time_us,
             context_sources=enriched_context.get("sources", ["Real Business Context", "Real Security Scanners"]),
@@ -713,12 +757,42 @@ class DecisionEngine:
     
     async def _real_golden_regression_validation(self, context):
         """Real golden regression validation using historical decisions"""
-        return {
-            "status": "validated",
-            "confidence": 0.89,
-            "similar_cases": 23,
-            "validation_passed": True
-        }
+        try:
+            results = self.golden_regression_store.evaluate(
+                context.service_name, context.environment, context.security_findings
+            )
+            results["timestamp"] = datetime.now(timezone.utc).isoformat()
+            return results
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.error("Golden regression evaluation failed", error=str(exc))
+            return {
+                "status": "error",
+                "validation_passed": False,
+                "confidence": 0.0,
+                "failures": [{"reason": "exception", "details": str(exc)}],
+            }
+
+    async def _evaluate_compliance_requirements(self, context, regression_results):
+        """Evaluate compliance frameworks tied to the business context."""
+        frameworks = context.business_context.get("compliance_requirements", []) if context.business_context else []
+        try:
+            results = self.compliance_evaluator.evaluate(
+                frameworks,
+                context.business_context or {},
+                context.security_findings,
+                regression_results,
+            )
+            results["requested_frameworks"] = frameworks
+            return results
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.error("Compliance evaluation failed", error=str(exc))
+            return {
+                "status": "error",
+                "overall_compliant": False,
+                "coverage_pct": 0.0,
+                "frameworks": {},
+                "error": str(exc),
+            }
     
     async def _real_policy_evaluation(self, context, enriched_context):
         """Real policy evaluation using OPA and custom policies"""
@@ -912,27 +986,50 @@ class DecisionEngine:
         
         return results
     
-    async def _real_consensus_checking(self, knowledge_results, regression_results, policy_results, criticality_assessment):
+    async def _real_consensus_checking(
+        self,
+        knowledge_results,
+        regression_results,
+        policy_results,
+        criticality_assessment,
+        compliance_results,
+    ):
         """Real consensus checking across all analysis components"""
         scores = {
             "vector_db": knowledge_results.get("confidence", 0.5),
             "golden_regression": regression_results.get("confidence", 0.5),
             "policy_engine": 0.9 if policy_results.get("overall_decision", False) else 0.3,
-            "criticality": 0.9 if criticality_assessment.get("criticality") == "low" else 0.1
+            "criticality": 0.9 if criticality_assessment.get("criticality") == "low" else 0.1,
         }
-        
+
+        compliance_score = 0.5
+        status = compliance_results.get("status")
+        if status == "evaluated":
+            compliance_score = 0.9 if compliance_results.get("overall_compliant") else 0.2
+        elif status == "not_requested":
+            compliance_score = 0.7
+        scores["compliance"] = compliance_score
+
         # Weight the scores
-        weights = {"vector_db": 0.25, "golden_regression": 0.25, "policy_engine": 0.3, "criticality": 0.2}
-        
+        weights = {
+            "vector_db": 0.22,
+            "golden_regression": 0.22,
+            "policy_engine": 0.26,
+            "criticality": 0.15,
+            "compliance": 0.15,
+        }
+
         consensus_score = sum(scores[k] * weights[k] for k in scores)
-        
+
         return {
             "confidence": consensus_score,
             "threshold_met": consensus_score >= 0.75,
             "component_scores": scores,
             "weights": weights,
             "oss_tools_used": criticality_assessment.get("tools_used", []),
-            "policy_evaluations": policy_results.get("status", "not_evaluated")
+            "policy_evaluations": policy_results.get("status", "not_evaluated"),
+            "compliance_details": compliance_results,
+            "regression_summary": regression_results,
         }
     
     async def _real_final_decision(self, consensus_result):
@@ -977,6 +1074,8 @@ class DecisionEngine:
                 "runtime_data_present": bool(context.runtime_data),
                 "oss_tools_used": consensus_result.get("oss_tools_used", []),
                 "policy_evaluations": consensus_result.get("policy_evaluations", "not_evaluated"),
+                "compliance_evaluations": consensus_result.get("compliance_details", {}),
+                "regression_summary": consensus_result.get("regression_summary", {}),
                 "vector_db_matches": consensus_result.get("patterns_matched", 0),
                 "processing_mode": "production" if not self.demo_mode else "demo",
                 "compliance_data": {
@@ -1221,7 +1320,8 @@ class DecisionEngine:
                 markov_states.append(markov_state)
             
             # Extract SARIF data if available
-            sarif_data = context.scan_data.get("sarif") if context.scan_data else None
+            sarif_source = getattr(context, "scan_data", None)
+            sarif_data = sarif_source.get("sarif") if isinstance(sarif_source, dict) else None
             
             # Run Processing Layer pipeline
             processing_results = await self.processing_layer.process_security_context(

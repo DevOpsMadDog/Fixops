@@ -4,10 +4,13 @@ Focused testing for Real Components Implementation
 Tests the newly implemented real components as specified in the review request
 """
 
-import requests
+import os
+if os.environ.get("FIXOPS_USE_REAL_REQUESTS") == "1":
+    import requests  # type: ignore
+else:  # pragma: no cover - used in CI container without networked services
+    from tests import offline_requests_stub as requests
 import json
 import sys
-import os
 import asyncio
 import subprocess
 from datetime import datetime
