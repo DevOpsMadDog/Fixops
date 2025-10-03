@@ -40,25 +40,40 @@ class SSVCFramework:
     async def evaluate_ssvc_decision(self, vulnerability_data: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate SSVC decision using real framework"""
         try:
-            if not self.ssvc_client:
-                return {"status": "ssvc_unavailable", "decision": "defer"}
-            
-            # Create SSVC decision points
+            # Create SSVC decision points regardless of whether the optional
+            # dependency is installed so we can fall back to deterministic
+            # heuristics during demo execution.
             decision_points = {}
-            
-            # Map vulnerability data to SSVC decision points
+
             if "exploitation" in vulnerability_data:
                 decision_points["Exploitation"] = vulnerability_data["exploitation"]
-            
+
             if "exposure" in vulnerability_data:
-                decision_points["Exposure"] = vulnerability_data["exposure"] 
-            
+                decision_points["Exposure"] = vulnerability_data["exposure"]
+
             if "automatable" in vulnerability_data:
                 decision_points["Automatable"] = vulnerability_data["automatable"]
-            
+
             if "technical_impact" in vulnerability_data:
                 decision_points["Technical Impact"] = vulnerability_data["technical_impact"]
-            
+
+            recommendation = self._calculate_ssvc_recommendation(decision_points)
+            priority = self._calculate_priority(decision_points)
+
+            if not self.ssvc_client:
+                # Fall back to a deterministic implementation so the demo keeps
+                # full coverage even when python-ssvc is unavailable.
+                return {
+                    "status": "success",
+                    "decision_points": decision_points,
+                    "ssvc_version": "fallback-heuristic",
+                    "framework": "FixOps SSVC fallback",
+                    "recommendation": recommendation,
+                    "priority": priority,
+                    "fallback_used": True,
+                    "fallback_reason": "python-ssvc not installed; used deterministic SSVC heuristic",
+                }
+
             # Use SSVC library for decision
             # Note: Exact API may vary based on ssvc library version
             result = {
@@ -66,12 +81,12 @@ class SSVCFramework:
                 "decision_points": decision_points,
                 "ssvc_version": "1.2.3",
                 "framework": "CERT/CC SSVC",
-                "recommendation": self._calculate_ssvc_recommendation(decision_points),
-                "priority": self._calculate_priority(decision_points)
+                "recommendation": recommendation,
+                "priority": priority,
             }
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"SSVC evaluation failed: {e}")
             return {"status": "error", "error": str(e)}
@@ -128,12 +143,9 @@ class SBOMParser:
     async def parse_sbom(self, sbom_data: Any, sbom_format: str = "json") -> Dict[str, Any]:
         """Parse SBOM using real lib4sbom library with detailed validation"""
         try:
-            if not self.parser:
-                return {"status": "lib4sbom_unavailable", "components": []}
-            
             parsed_components = []
             validation_errors = []
-            
+
             # Handle different input types
             if isinstance(sbom_data, str):
                 try:
@@ -144,12 +156,12 @@ class SBOMParser:
                 sbom_dict = sbom_data
             else:
                 return {"status": "error", "error": f"Unsupported SBOM data type: {type(sbom_data)}"}
-            
+
             # Validate SBOM structure
             validation_result = self._validate_sbom_structure(sbom_dict)
             if not validation_result["valid"]:
                 validation_errors.extend(validation_result["errors"])
-            
+
             # Extract metadata
             metadata = {
                 "bom_format": sbom_dict.get("bomFormat", "unknown"),
@@ -159,7 +171,7 @@ class SBOMParser:
                 "timestamp": sbom_dict.get("metadata", {}).get("timestamp", "unknown"),
                 "tools": sbom_dict.get("metadata", {}).get("tools", [])
             }
-            
+
             # Parse components with detailed validation
             components = sbom_dict.get("components", [])
             for idx, component in enumerate(components):
@@ -169,14 +181,15 @@ class SBOMParser:
                         parsed_components.append(parsed_component)
                 except Exception as e:
                     validation_errors.append(f"Component {idx}: {str(e)}")
-            
+
             # Extract dependencies if present
             dependencies = self._extract_dependencies(sbom_dict)
-            
+
             # Calculate vulnerability exposure
             vulnerability_exposure = self._calculate_vulnerability_exposure(parsed_components)
-            
-            return {
+
+            parsed_with = "lib4sbom" if self.parser else "internal_parser"
+            result = {
                 "status": "success" if not validation_errors else "success_with_warnings",
                 "format": sbom_format,
                 "metadata": metadata,
@@ -185,14 +198,24 @@ class SBOMParser:
                 "dependencies": dependencies,
                 "vulnerability_exposure": vulnerability_exposure,
                 "validation_errors": validation_errors,
-                "parsed_with": "lib4sbom",
-                "validation_status": "valid" if not validation_errors else "warnings"
+                "parsed_with": parsed_with,
+                "validation_status": "valid" if not validation_errors else "warnings",
             }
-            
+
+            if not self.parser:
+                result.update(
+                    {
+                        "fallback_used": True,
+                        "fallback_reason": "lib4sbom not installed; used internal SBOM parser",
+                    }
+                )
+
+            return result
+
         except Exception as e:
             logger.error(f"SBOM parsing failed: {e}")
             return {
-                "status": "error", 
+                "status": "error",
                 "error": str(e),
                 "components_count": 0,
                 "components": []
@@ -1080,12 +1103,8 @@ class PomegranateEngine:
     async def create_bayesian_network(self, vulnerability_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Create Bayesian network using pomegranate"""
         try:
-            if not self.pomegranate:
-                return {"status": "pomegranate_unavailable"}
-            
-            # Create advanced Bayesian network with pomegranate
-            # This is a simplified example - real implementation would be more complex
-            
+            # Define a consistent network structure for both real and fallback
+            # executions so downstream consumers receive the same shape.
             network_structure = {
                 "nodes": [
                     {"name": "severity", "type": "categorical", "states": ["low", "medium", "high", "critical"]},
@@ -1097,10 +1116,21 @@ class PomegranateEngine:
                     {"from": "exploitability", "to": "risk_level"}
                 ]
             }
-            
+
             # Calculate probabilities from vulnerability data
             risk_assessment = self._calculate_pomegranate_probabilities(vulnerability_data)
-            
+
+            if not self.pomegranate:
+                return {
+                    "status": "success",
+                    "network_structure": network_structure,
+                    "risk_assessment": risk_assessment,
+                    "engine": "fixops_fallback",
+                    "model_confidence": 0.8,
+                    "fallback_used": True,
+                    "fallback_reason": "pomegranate not installed; used analytical probability fallback",
+                }
+
             return {
                 "status": "success",
                 "network_structure": network_structure,
@@ -1108,7 +1138,7 @@ class PomegranateEngine:
                 "engine": "pomegranate",
                 "model_confidence": 0.85
             }
-            
+
         except Exception as e:
             logger.error(f"Pomegranate Bayesian network creation failed: {e}")
             return {"status": "error", "error": str(e)}

@@ -252,7 +252,10 @@ async def _demo_input_parsing(sample_data: Dict[str, Any]) -> Dict[str, Any]:
         
         sbom_data = sample_data["2_sbom_from_npm"]["data"]
         sbom_parsed = await missing_oss_service.sbom_parser.parse_sbom(json.dumps(sbom_data))
-        
+        stage_fallbacks = []
+        if sbom_parsed.get("fallback_used"):
+            stage_fallbacks.append(sbom_parsed.get("fallback_reason", "SBOM parser fallback used"))
+
         # Use sarif-tools to process SARIF
         sarif_data = sample_data["1_sarif_from_semgrep"]["data"]
         
@@ -296,7 +299,8 @@ async def _demo_input_parsing(sample_data: Dict[str, Any]) -> Dict[str, Any]:
                     {"cve": "CVE-2024-12345", "severity": "CRITICAL", "epss": 0.95, "kev": True, "cwe": "CWE-89"}
                 ]
             },
-            "data_transformation": "Raw scanner output → Normalized security entities with relationships"
+            "data_transformation": "Raw scanner output → Normalized security entities with relationships",
+            "fallbacks": stage_fallbacks
         }
         
     except Exception as e:
@@ -319,6 +323,9 @@ async def _demo_processing_layer(sample_data: Dict[str, Any]) -> Dict[str, Any]:
         # Use python-ssvc for SSVC decision
         from src.services.missing_oss_integrations import missing_oss_service
         ssvc_result = await missing_oss_service.ssvc_framework.evaluate_ssvc_decision(ssvc_analysis)
+        stage_fallbacks = []
+        if ssvc_result.get("fallback_used"):
+            stage_fallbacks.append(ssvc_result.get("fallback_reason", "SSVC framework fallback used"))
         
         # Simulate Bayesian Prior Mapping (pgmpy)
         bayesian_priors = {
@@ -364,6 +371,8 @@ async def _demo_processing_layer(sample_data: Dict[str, Any]) -> Dict[str, Any]:
             {"severity": "critical", "cve_id": "CVE-2024-12345", "exploitability": "easy"},
             {"severity": "high", "cve_id": "CVE-2023-45678", "exploitability": "medium"}
         ])
+        if pomegranate_result.get("fallback_used"):
+            stage_fallbacks.append(pomegranate_result.get("fallback_reason", "Pomegranate fallback used"))
         
         # SSVC + Probabilistic Fusion
         fusion_result = {
@@ -389,7 +398,9 @@ async def _demo_processing_layer(sample_data: Dict[str, Any]) -> Dict[str, Any]:
                 "1_ssvc_analysis": {
                     "input": ssvc_analysis,
                     "output": ssvc_result,
-                    "recommendation": ssvc_result.get("recommendation", "Act")
+                    "recommendation": ssvc_result.get("recommendation", "Act"),
+                    "fallback_used": ssvc_result.get("fallback_used", False),
+                    "fallback_reason": ssvc_result.get("fallback_reason")
                 },
                 "2_bayesian_priors": {
                     "method": "pgmpy inference engine",
@@ -410,9 +421,11 @@ async def _demo_processing_layer(sample_data: Dict[str, Any]) -> Dict[str, Any]:
                     "critical_attack_paths": len(knowledge_graph["critical_paths"])
                 },
                 "5_advanced_bayesian": {
-                    "method": "pomegranate probabilistic modeling", 
+                    "method": "pomegranate probabilistic modeling",
                     "output": pomegranate_result,
-                    "risk_distribution": pomegranate_result.get("risk_assessment", {})
+                    "risk_distribution": pomegranate_result.get("risk_assessment", {}),
+                    "fallback_used": pomegranate_result.get("fallback_used", False),
+                    "fallback_reason": pomegranate_result.get("fallback_reason")
                 },
                 "6_fusion_logic": {
                     "method": "SSVC + Probabilistic Fusion",
@@ -421,7 +434,8 @@ async def _demo_processing_layer(sample_data: Dict[str, Any]) -> Dict[str, Any]:
                     "final_recommendation": fusion_result["final_decision"]
                 }
             },
-            "data_transformation": "Normalized entities → Risk probabilities → Composite decision"
+            "data_transformation": "Normalized entities → Risk probabilities → Composite decision",
+            "fallbacks": stage_fallbacks
         }
         
     except Exception as e:

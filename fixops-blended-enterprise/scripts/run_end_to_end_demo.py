@@ -88,6 +88,7 @@ def _collect_stage_summary(stage_key: str, stage_payload: Dict[str, Any]) -> Dic
     """Derive a human-readable summary and status for a pipeline stage."""
     status = "success"
     notes: List[str] = []
+    fallbacks: List[str] = list(stage_payload.get("fallbacks", []))
 
     if stage_payload.get("status") == "error":
         status = "error"
@@ -105,6 +106,20 @@ def _collect_stage_summary(stage_key: str, stage_payload: Dict[str, Any]) -> Dic
                 component_status = output.get("status")
             if component_status and component_status.endswith("_unavailable"):
                 notes.append(f"{component_name} missing dependency ({component_status})")
+            if component_data.get("fallback_used"):
+                fallbacks.append(
+                    component_data.get(
+                        "fallback_reason",
+                        f"{component_name} used fallback implementation",
+                    )
+                )
+            elif isinstance(output, dict) and output.get("fallback_used"):
+                fallbacks.append(
+                    output.get(
+                        "fallback_reason",
+                        f"{component_name} used fallback implementation",
+                    )
+                )
     elif stage_key == "stage_3_decision_layer":
         decision = stage_payload.get("final_decision", {})
         if decision.get("recommendation") is None:
@@ -124,11 +139,14 @@ def _collect_stage_summary(stage_key: str, stage_payload: Dict[str, Any]) -> Dic
     if status == "success" and notes:
         status = "warning"
 
+    deduped_fallbacks = list(dict.fromkeys(fallbacks)) if fallbacks else []
+
     return {
         "Stage": stage_payload.get("stage", stage_key),
         "Status": status,
         "Notes": "; ".join(notes) if notes else "",
         "_notes": notes,
+        "_fallbacks": deduped_fallbacks,
     }
 
 
@@ -161,11 +179,12 @@ def _summarize(result: Dict[str, Any]) -> None:
     errors = [summary for summary in summaries if summary["Status"] == "error"]
     completed = total - len(errors)
     success_rate = (successes / total * 100) if total else 0
+    fallbacks = [fallback for summary in summaries for fallback in summary.get("_fallbacks", [])]
 
     print("\n=== FixOps End-to-End Demo Summary ===")
     print(_render_table(summaries))
     print(f"\nCoverage: {completed}/{total} stages completed without fatal errors")
-    print(f"Testing success rate: {success_rate:.1f}% ({successes}/{total} stages without fallbacks)")
+    print(f"Testing success rate: {success_rate:.1f}% ({successes}/{total} stages without warnings)")
 
     print("\nTesting scenarios covered:")
     for summary in summaries:
@@ -178,7 +197,18 @@ def _summarize(result: Dict[str, Any]) -> None:
             for note in summary.get("_notes", []):
                 print(f"  - {summary['Stage']}: {note}")
     else:
-        print("\nNo warnings or dependency fallbacks detected.")
+        print("\nNo warnings detected.")
+
+    if fallbacks:
+        print("\nOptional dependency fallbacks used:")
+        seen_fallbacks = set()
+        for fallback in fallbacks:
+            if fallback in seen_fallbacks:
+                continue
+            seen_fallbacks.add(fallback)
+            print(f"  - {fallback}")
+    else:
+        print("\nNo optional dependency fallbacks used.")
 
     if errors:
         print("\nErrors requiring attention:")
