@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "case_id": "payment-2024-01",
+      "service_name": "payment-service",
+      "cve_id": "CVE-2024-1111",
+      "decision": "pass",
+      "confidence": 0.94,
+      "timestamp": "2024-01-15T12:00:00Z",
+      "expected_behavior": "Checkout path blocks SQL injection payloads",
+      "notes": "Validated after hotfix deployment",
+      "evidence_link": "https://fixops.example.com/evidence/payment-2024-01"
+    },
+    {
+      "case_id": "payment-2024-02",
+      "service_name": "payment-service",
+      "cve_id": "CVE-2023-9999",
+      "decision": "pass",
+      "confidence": 0.91,
+      "timestamp": "2024-03-02T08:30:00Z",
+      "expected_behavior": "Dependency patch eliminated vulnerable version",
+      "notes": "Validated against historical staging run",
+      "evidence_link": "https://fixops.example.com/evidence/payment-2024-02"
+    },
+    {
+      "case_id": "inventory-2023-05",
+      "service_name": "inventory-service",
+      "cve_id": "CVE-2024-3333",
+      "decision": "fail",
+      "confidence": 0.62,
+      "timestamp": "2023-11-18T19:45:00Z",
+      "expected_behavior": "Fix should prevent unauthenticated access to stock data",
+      "notes": "Regression detected after rollback of authorization middleware",
+      "evidence_link": "https://fixops.example.com/evidence/inventory-2023-05",
+      "failure_reason": "Regression reintroduced after service refactor"
+    },
+    {
+      "case_id": "shared-2023-09",
+      "service_name": "shared-platform",
+      "cve_id": "CVE-2023-7777",
+      "decision": "pass",
+      "confidence": 0.87,
+      "timestamp": "2023-09-27T10:10:00Z",
+      "expected_behavior": "Shared middleware rejects malicious deserialization payload",
+      "notes": "Multi-tenant validation run",
+      "evidence_link": "https://fixops.example.com/evidence/shared-2023-09"
+    }
+  ]
+}
