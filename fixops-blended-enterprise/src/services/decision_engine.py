@@ -6,6 +6,7 @@ Supports both Demo Mode (simulated data) and Production Mode (real integrations)
 import asyncio
 import json
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
@@ -452,7 +453,8 @@ class DecisionEngine:
                 "vector_db": knowledge_results,
                 "golden_regression": regression_results,
                 "policy_engine": policy_results,
-                "criticality": criticality_assessment
+                "criticality": criticality_assessment,
+                "compliance": policy_results.get("compliance_checks", {})
             },
             processing_time_us=processing_time_us,
             context_sources=enriched_context.get("sources", ["Real Business Context", "Real Security Scanners"]),
@@ -721,11 +723,11 @@ class DecisionEngine:
         }
     
     async def _real_policy_evaluation(self, context, enriched_context):
-        """Real policy evaluation using OPA and custom policies"""
+        """Real policy evaluation using OPA, custom policies, and compliance rules"""
         try:
             # Import and use real OPA engine
             from src.services.real_opa_engine import get_opa_engine
-            
+
             opa_engine = await get_opa_engine()
             
             # Check OPA health first
@@ -773,7 +775,10 @@ class DecisionEngine:
             overall_decision = "allow"
             confidence = 1.0
             rationale_parts = []
-            
+
+            # Evaluate compliance requirements against current findings
+            compliance_checks = self._evaluate_compliance_requirements(context, vulnerabilities)
+
             # Vulnerability policy result
             if vuln_result.get("decision") == "block":
                 overall_decision = "block"
@@ -800,7 +805,22 @@ class DecisionEngine:
                     rationale_parts.append(f"SBOM policy: {sbom_result.get('rationale', 'deferred')}")
                 else:
                     rationale_parts.append(f"SBOM policy: {sbom_result.get('rationale', 'allowed')}")
-            
+
+            # Compliance policy result
+            if compliance_checks.get("frameworks"):
+                if compliance_checks.get("overall_decision") == "block":
+                    overall_decision = "block"
+                    confidence = min(confidence, 0.85)
+                elif compliance_checks.get("overall_decision") == "defer" and overall_decision == "allow":
+                    overall_decision = "defer"
+                    confidence = min(confidence, 0.8)
+
+                rationale_parts.append(
+                    f"Compliance: {compliance_checks.get('summary', 'framework evaluations recorded')}"
+                )
+            elif compliance_checks.get("status") == "not_requested":
+                rationale_parts.append("Compliance: no declared frameworks")
+
             return {
                 "status": "evaluated",
                 "overall_decision": overall_decision == "allow",
@@ -808,15 +828,112 @@ class DecisionEngine:
                 "confidence": confidence,
                 "vulnerability_policy": vuln_result,
                 "sbom_policy": sbom_result,
+                "compliance_checks": compliance_checks,
                 "rationale": " | ".join(rationale_parts),
                 "opa_engine_used": True,
                 "demo_mode": vuln_result.get("demo_mode", settings.DEMO_MODE)
             }
-            
+
         except Exception as e:
             logger.error(f"Real OPA policy evaluation failed: {str(e)}")
             # Fallback to basic policy evaluation
             return await self._fallback_policy_evaluation(context, enriched_context)
+
+    def _evaluate_compliance_requirements(self, context, vulnerabilities):
+        """Derive compliance verdicts for declared frameworks"""
+        business_context = context.business_context or {}
+
+        frameworks = business_context.get("compliance_requirements") or business_context.get("compliance") or []
+
+        if isinstance(frameworks, str):
+            frameworks = [frameworks]
+        elif isinstance(frameworks, dict):
+            frameworks = list(frameworks.keys())
+
+        normalized_frameworks = []
+        for framework in frameworks:
+            if framework is None:
+                continue
+            name = str(framework).strip()
+            if name:
+                normalized_frameworks.append(name)
+
+        severity_counter = Counter()
+        for finding in vulnerabilities:
+            severity = str(finding.get("severity", "")).upper()
+            if severity:
+                severity_counter[severity] += 1
+
+        framework_results = {}
+        overall = "allow"
+        summary_parts = []
+
+        if not normalized_frameworks:
+            return {
+                "status": "not_requested",
+                "frameworks": framework_results,
+                "overall_decision": overall,
+                "summary": "No compliance frameworks supplied",
+                "severity_totals": dict(severity_counter),
+                "failed_frameworks": []
+            }
+
+        for framework in normalized_frameworks:
+            critical_count = severity_counter.get("CRITICAL", 0)
+            high_count = severity_counter.get("HIGH", 0)
+            medium_count = severity_counter.get("MEDIUM", 0)
+            low_count = severity_counter.get("LOW", 0)
+
+            if critical_count > 0:
+                decision = "block"
+                rationale = (
+                    f"{critical_count} critical finding(s) violate {framework} mandatory controls"
+                )
+            elif high_count > 0 and context.environment == "production":
+                decision = "defer"
+                rationale = (
+                    f"{high_count} high severity finding(s) require remediation before {framework} attestation"
+                )
+            else:
+                decision = "allow"
+                finding_total = critical_count + high_count + medium_count + low_count
+                if finding_total == 0:
+                    rationale = f"No outstanding findings mapped to {framework}"
+                else:
+                    rationale = (
+                        f"{framework} tolerances met with {finding_total} tracked finding(s)"
+                    )
+
+            framework_results[framework] = {
+                "decision": decision,
+                "rationale": rationale,
+                "severity_breakdown": {
+                    "critical": critical_count,
+                    "high": high_count,
+                    "medium": medium_count,
+                    "low": low_count
+                }
+            }
+
+            summary_parts.append(f"{framework}: {decision.upper()} ({rationale})")
+
+            if decision == "block":
+                overall = "block"
+            elif decision == "defer" and overall != "block":
+                overall = "defer"
+
+        failed_frameworks = [
+            name for name, result in framework_results.items() if result.get("decision") != "allow"
+        ]
+
+        return {
+            "status": "evaluated",
+            "frameworks": framework_results,
+            "overall_decision": overall,
+            "summary": " | ".join(summary_parts),
+            "severity_totals": dict(severity_counter),
+            "failed_frameworks": failed_frameworks
+        }
     
     async def _fallback_policy_evaluation(self, context, enriched_context):
         """Fallback policy evaluation when OPA is not available"""
@@ -925,14 +1042,23 @@ class DecisionEngine:
         weights = {"vector_db": 0.25, "golden_regression": 0.25, "policy_engine": 0.3, "criticality": 0.2}
         
         consensus_score = sum(scores[k] * weights[k] for k in scores)
-        
+
+        policy_summary = {
+            "status": policy_results.get("status", "not_evaluated"),
+            "decision": policy_results.get("decision_type"),
+            "overall": policy_results.get("overall_decision"),
+            "rationale": policy_results.get("rationale"),
+            "compliance": policy_results.get("compliance_checks", {})
+        }
+
         return {
             "confidence": consensus_score,
             "threshold_met": consensus_score >= 0.75,
             "component_scores": scores,
             "weights": weights,
             "oss_tools_used": criticality_assessment.get("tools_used", []),
-            "policy_evaluations": policy_results.get("status", "not_evaluated")
+            "policy_evaluations": policy_summary,
+            "compliance_checks": policy_results.get("compliance_checks", {})
         }
     
     async def _real_final_decision(self, consensus_result):
@@ -977,6 +1103,7 @@ class DecisionEngine:
                 "runtime_data_present": bool(context.runtime_data),
                 "oss_tools_used": consensus_result.get("oss_tools_used", []),
                 "policy_evaluations": consensus_result.get("policy_evaluations", "not_evaluated"),
+                "compliance_results": consensus_result.get("compliance_checks", {}),
                 "vector_db_matches": consensus_result.get("patterns_matched", 0),
                 "processing_mode": "production" if not self.demo_mode else "demo",
                 "compliance_data": {
