@@ -47,6 +47,17 @@ Each layer is modularized under `src/` with services and utilities that can be d
 | **Verify** | Decision API, marketplace recommendations | Consolidated analytics, remediation patterns | ALLOW/DEFER/BLOCK verdict with evidence bundle | SSVC fusion with Markov/Bayesian scores; automated remediation drafting |
 | **Release & Operate** | Dashboard, compliance export APIs | Deployment telemetry, marketplace submissions | Signed evidence packs, runbooks, contributor scoring | Compliance automation executes controls, content automation refreshes marketplace |
 
+### 3.1 Stage Data Contracts & Artefacts
+
+| Stage | Primary Interface | Core Input Models | Persisted / Returned Artefacts | Implementation Notes |
+| --- | --- | --- | --- | --- |
+| Plan | `api/v1/business_context.py` (`/jira-context`, `/confluence-context`, `/enrich-context`) | Free-form JSON enriched into `enriched_context` dictionaries | Cached context metadata in `business_context_processor` and policy defaults | Demo stubs ship in repo; production deployments replace simulated payloads with live Jira/Confluence connectors. |
+| Threat Modeling | `services/knowledge_graph.py`, ATT&CK feed tasks in `feeds_service.py` | Threat intelligence payloads, asset nodes, MITRE technique identifiers | NetworkX graph snapshots, ATT&CK technique scores | Graph output is stored with evidence attachments so threat-path scores influence downstream priors. |
+| Design | SBOM/IaC ingestion via `services/sbom_parser.py` and CLI | CycloneDX SBOM JSON, Terraform/Kubernetes manifests | Dependency risk badges, IaC posture assessments stored with decision cache keys | SBOM parser normalizes package metadata that `business_context_processor` cross-references against mission impact. |
+| Build & Integrate | CI/CD hook (`api/v1/cicd.py`) and Typer CLI `DecisionRequest` | `DecisionContext` (service name, findings, SBOM, threat model) | Queue entries plus cached fingerprints in `cache_service.py` | Decision cache maps request fingerprints to prior verdicts to short-circuit repeated builds. |
+| Verify | `/decisions/make-decision` FastAPI route | Same `DecisionContext` with normalized findings (`security_findings` list) | `DecisionOutcome` (decision, confidence, consensus details) and `evidence_id` | Outcome is persisted via `EvidenceLake.store_evidence()` which computes the SHA-256 `immutable_hash` signature and links compliance controls. |
+| Release & Operate | `marketplace` API, compliance export CLI, monitoring endpoints | Remediation submissions, audit export filters, telemetry | Marketplace content bundles, signed compliance packets (`audit_export` output) | Marketplace tokens signed via `SecureTokenManager`; compliance bundles packaged from evidence digests for auditors. |
+
 ---
 
 ## 4. Component Breakdown
@@ -135,3 +146,12 @@ Each layer is modularized under `src/` with services and utilities that can be d
 5. **Deepen marketplace analytics** with contributor reputation scoring and automated quality gates for submitted remediation content.
 
 This architecture brings together the tooling, processes, and modules already built in the repository while positioning the platform to deliver the “super implementation” of the FixOps enhancement roadmap.
+
+---
+
+## 10. End-to-End Flow (User Perspective)
+1. **Code pushed → CI trigger:** Git-based workflows invoke the Typer CLI or `/cicd/pipeline-callback`, uploading scanner SARIF, SBOM fragments, and service context assembled through the business-context APIs.
+2. **Context & enrichment:** `business_context_processor.py` and `knowledge_graph.py` merge business metadata, dependency relationships, and ATT&CK paths into the shared decision payload. Cached lookups in `cache_service.py` trim repetitive enrichments across pipelines.
+3. **Decision synthesis:** `processing_layer.py` orchestrates Bayesian priors, Markov transitions, SSVC fusion, and SARIF clustering before `decision_engine.py` applies policy gating and latency instrumentation.
+4. **Evidence signing & persistence:** `EvidenceLake.store_evidence()` persists the generated `DecisionOutcome`, computing the `immutable_hash` signature and attaching artefacts for compliance export. Marketplace tokens and download links are wrapped via `SecureTokenManager` for downstream consumption.
+5. **Feedback & operations:** The React dashboard and `/decisions/*` endpoints expose verdicts, confidence, evidence IDs, and remediation artefacts. Compliance exports bundle signed evidence, while the marketplace service surfaces LLM-authored remediation guidance for on-call and platform teams.
