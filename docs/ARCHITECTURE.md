@@ -147,9 +147,11 @@ graph TD
 
 - **Missing Artefacts** — If a required artefact is absent, `/pipeline/run` aborts with HTTP 400 and
   enumerates missing stages. Demo mode loosens requirements by default (`require_design_input=False`).
-- **Misconfigured Integrations** — When `enforce_ticket_sync` is `True` but Jira configuration lacks
-  `project_key`, the API raises HTTP 500 with integration metadata. This mirrors Enterprise
-  expectations where ticket synchronisation is mandatory.
+- **Misconfigured Integrations** — When `enforce_ticket_sync` is `True` but Jira or Confluence
+  credentials (`user_email`/`token_env`) are missing, the policy automation layer surfaces
+  `delivery.status="skipped"` with diagnostic reasons and the API raises HTTP 500 for critical
+  omissions. Remote API errors bubble into `delivery_results` so operators can retry or remediate
+  without losing the dispatch manifest.
 - **Parser Failures** — Upload endpoints wrap parser errors in HTTP 400 responses and log the
   exception stack trace, preventing raw payload leakage.
 - **Overlay Parsing Issues** — `load_overlay()` accepts YAML or JSON. If PyYAML is unavailable the
@@ -157,6 +159,9 @@ graph TD
 - **Unauthorised Requests** — Missing/incorrect API keys return HTTP 401; demo mode can swap to
   `auth.strategy: oidc` when identity delegation is ready.
 - **Oversized Uploads** — Exceeding overlay-defined byte caps returns HTTP 413 with guidance on limits.
+- **Stale exploit feeds** — Auto-refresh fetches KEV/EPSS sources when metadata exceeds the staleness
+  window and records refresh results under `exploit_feed_refresh`. Download failures surface as warning
+  payloads without breaking the pipeline run.
 
 ## Mode Differences (Demo vs Enterprise)
 

@@ -13,7 +13,7 @@ from fixops.onboarding import OnboardingGuide
 from fixops.policy import PolicyAutomation
 from fixops.probabilistic import ProbabilisticForecastEngine
 from fixops.ssdlc import SSDLCEvaluator
-from fixops.exploit_signals import ExploitSignalEvaluator
+from fixops.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
 from fixops.iac import IaCPostureEvaluator
 from fixops.modules import PipelineContext, execute_custom_modules
 
@@ -423,6 +423,12 @@ class PipelineOrchestrator:
 
             if overlay.is_module_enabled("exploit_signals"):
                 exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
+                refresher = ExploitFeedRefresher(overlay)
+                refresh_summary = refresher.refresh(cve, exploit_evaluator.last_refreshed)
+                if refresh_summary:
+                    result["exploit_feed_refresh"] = refresh_summary
+                    if refresh_summary.get("status") == "refreshed":
+                        exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
                 exploit_summary = exploit_evaluator.evaluate(cve)
                 if exploit_summary:
                     result["exploitability_insights"] = exploit_summary

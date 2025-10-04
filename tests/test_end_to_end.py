@@ -155,6 +155,7 @@ def test_end_to_end_demo_pipeline():
         policy_payload = pipeline_payload["policy_automation"]
         assert "execution" in policy_payload
         assert policy_payload["execution"]["status"] in {"completed", "partial"}
+        assert all("delivery" in entry for entry in policy_payload["execution"]["results"])
         assert "bundle" in pipeline_payload["evidence_bundle"]["files"]
         assert "compressed" in pipeline_payload["evidence_bundle"]
         assert "plans" in pipeline_payload["pricing_summary"]
@@ -163,6 +164,9 @@ def test_end_to_end_demo_pipeline():
         exploit_signals = pipeline_payload["exploitability_insights"]
         assert exploit_signals["overview"]["signals_configured"] >= 1
         assert exploit_signals["overview"]["matched_records"] >= 1
+        refresh_info = pipeline_payload.get("exploit_feed_refresh")
+        if refresh_info:
+            assert refresh_info["status"] in {"fresh", "refreshed", "failed"}
         probabilistic = pipeline_payload["probabilistic_forecast"]
         assert probabilistic["metrics"]["expected_high_or_critical"] >= 0
         ssdlc = pipeline_payload["ssdlc_assessment"]

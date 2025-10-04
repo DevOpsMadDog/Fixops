@@ -3,12 +3,16 @@
   "jira": {
     "url": "https://jira.example.com",
     "project_key": "FIX",
-    "default_issue_type": "Task"
+    "default_issue_type": "Task",
+    "user_email": "bot@fixops.io",
+    "token_env": "FIXOPS_JIRA_TOKEN"
   },
   "confluence": {
     "base_url": "https://confluence.example.com",
     "space_key": "FIXOPS",
-    "onboarding_page": "/display/FIXOPS/Demo+Runbook"
+    "onboarding_page": "/display/FIXOPS/Demo+Runbook",
+    "user": "fixops-bot",
+    "token_env": "FIXOPS_CONFLUENCE_TOKEN"
   },
   "git": {
     "provider": "github",
@@ -26,7 +30,9 @@
   "data": {
     "design_context_dir": "design_context/demo",
     "evidence_dir": "evidence/demo",
-    "feedback_dir": "feedback/demo"
+    "feedback_dir": "feedback/demo",
+    "automation_dir": "automation/demo",
+    "feeds_dir": "feeds/demo"
   },
   "toggles": {
     "require_design_input": false,
@@ -232,6 +238,7 @@
     }
   },
   "policy_automation": {
+    "slack_webhook_env": "FIXOPS_SLACK_WEBHOOK",
     "actions": [
       {
         "trigger": "guardrail:fail",
@@ -428,6 +435,28 @@
   "exploit_signals": {
     "last_refreshed": "2024-07-15T00:00:00Z",
     "max_age_days": 21,
+    "auto_refresh": {
+      "enabled": true,
+      "refresh_interval_hours": 12,
+      "feeds": [
+        {
+          "id": "kev",
+          "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "destination": "kev.json",
+          "cve_field": "cveID",
+          "mark_exploited": true,
+          "attributes": {"knownExploited": true}
+        },
+        {
+          "id": "epss",
+          "url": "https://api.first.org/data/v1/epss?format=json",
+          "destination": "epss.json",
+          "cve_field": "cve",
+          "score_field": "epss",
+          "attributes": {"source": "epss"}
+        }
+      ]
+    },
     "signals": {
       "kev": {
         "label": "CISA Known Exploited Vulnerability",
@@ -513,11 +542,15 @@
       "jira": {
         "project_key": "FIXOPS",
         "default_issue_type": "Security Review",
-        "workflow_scheme": "Enterprise Risk"
+        "workflow_scheme": "Enterprise Risk",
+        "user_email": "enterprise-bot@fixops.io",
+        "token_env": "FIXOPS_JIRA_TOKEN"
       },
       "confluence": {
         "space_key": "FIXOPS-ENT",
-        "onboarding_page": "/display/FIXOPS-ENT/Control+Runbook"
+        "onboarding_page": "/display/FIXOPS-ENT/Control+Runbook",
+        "user": "fixops-enterprise",
+        "token_env": "FIXOPS_CONFLUENCE_TOKEN"
       },
       "git": {
         "provider": "gitlab",
@@ -536,7 +569,9 @@
         "design_context_dir": "design_context/enterprise",
         "evidence_dir": "evidence/enterprise",
         "audit_export_dir": "audit",
-        "feedback_dir": "feedback/enterprise"
+        "feedback_dir": "feedback/enterprise",
+        "automation_dir": "automation/enterprise",
+        "feeds_dir": "feeds/enterprise"
       },
       "toggles": {
         "require_design_input": true,

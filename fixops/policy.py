@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
 from fixops.configuration import OverlayConfig
+from fixops.connectors import AutomationConnectors
 
 
 class _AutomationDispatcher:
@@ -48,6 +49,14 @@ class PolicyAutomation:
         actions = self.settings.get("actions", [])
         self.actions_config = [action for action in actions if isinstance(action, Mapping)]
         self.dispatcher = _AutomationDispatcher(overlay)
+        self.connectors = AutomationConnectors(
+            {
+                "jira": overlay.jira,
+                "confluence": overlay.confluence,
+                "policy_automation": self.settings,
+            },
+            overlay.toggles,
+        )
 
     def _render_action(
         self,
@@ -107,18 +116,25 @@ class PolicyAutomation:
         planned_actions: Sequence[Mapping[str, Any]],
     ) -> Dict[str, Any]:
         results: List[Dict[str, Any]] = []
+        remote_results: List[Dict[str, Any]] = []
         for action in planned_actions:
             try:
                 outcome = self.dispatcher.dispatch(action)
             except Exception as exc:  # pragma: no cover - defensive logging
                 outcome = {"status": "failed", "error": str(exc), "id": action.get("id")}
-            results.append(outcome)
+            delivery = self.connectors.deliver(action)
+            delivery_payload = delivery.to_dict()
+            remote_results.append(delivery_payload)
+            combined = dict(outcome)
+            combined["delivery"] = delivery_payload
+            results.append(combined)
         dispatched = [result for result in results if result.get("status") == "dispatched"]
         failed = [result for result in results if result.get("status") != "dispatched"]
         summary: MutableMapping[str, Any] = {
             "dispatched_count": len(dispatched),
             "failed_count": len(failed),
             "results": results,
+            "delivery_results": remote_results,
         }
         summary["status"] = "completed" if not failed else "partial"
         return dict(summary)

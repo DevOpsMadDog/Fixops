@@ -21,10 +21,14 @@ jira:
   url: https://jira.example.com
   project_key: FIX
   default_issue_type: Task
+  user_email: bot@fixops.io
+  token_env: FIXOPS_JIRA_TOKEN
 confluence:
   base_url: https://confluence.example.com
   space_key: FIXOPS
   onboarding_page: /display/FIXOPS/Demo+Runbook
+  user: fixops-bot
+  token_env: FIXOPS_CONFLUENCE_TOKEN
 git:
   provider: github | gitlab
   host: https://github.com
@@ -40,6 +44,10 @@ data:
   design_context_dir: design_context/demo
   evidence_dir: evidence/demo
   feedback_dir: feedback/demo
+  automation_dir: automation/demo
+  feeds_dir: feeds/demo
+  automation_dir: automation/demo
+  feeds_dir: feeds/demo
   audit_export_dir: audit
 # (relative paths resolve against the first entry in `FIXOPS_DATA_ROOT_ALLOWLIST`, defaulting to `./data`)
 toggles:
@@ -51,14 +59,11 @@ toggles:
 limits:
   max_upload_bytes:
     default: 3145728
-  evidence:
-    bundle_max_bytes: 1048576
-    compress: true
-  evidence:
-    bundle_max_bytes: 1048576
-    compress: true
     sarif: 6291456
     cve: 6291456
+  evidence:
+    bundle_max_bytes: 1048576
+    compress: true
 guardrails:
   maturity: foundational | scaling | advanced
   fail_on: (optional) critical | high | medium | low
@@ -95,6 +100,7 @@ compliance:
         - id: CC8.1
           requires: [design, guardrails, evidence]
 policy_automation:
+  slack_webhook_env: FIXOPS_SLACK_WEBHOOK
   actions:
     - trigger: guardrail:fail
       type: jira_issue
@@ -115,6 +121,14 @@ ai_agents:
         - Document tool/API access scopes
         - Require prompt/response logging
 exploit_signals:
+  auto_refresh:
+    enabled: true
+    refresh_interval_hours: 12
+    feeds:
+      - id: kev
+        destination: kev.json
+      - id: epss
+        destination: epss.json
   signals:
     kev:
       mode: boolean
@@ -160,6 +174,9 @@ All keys are optional. Missing sections default to empty dictionaries. Toggle de
   - Optional `config` mapping passed to the callable.
 - Executed module metadata is returned under `pipeline_result["modules"]` and bundled into evidence
   artefacts for troubleshooting.
+- When `toggles.enforce_ticket_sync` is true, the policy automation module will call Jira, Confluence,
+  and Slack connectors. Provide `jira.user_email`, `jira.token_env`, `confluence.user`,
+  `confluence.token_env`, and `policy_automation.slack_webhook_env` so connectors authenticate.
 
 Example:
 
@@ -214,6 +231,13 @@ iac:
       environments: [datacenter]
 ```
 
+
+### Exploit signal auto-refresh
+
+- Configure automatic KEV/EPSS ingestion with `exploit_signals.auto_refresh`.
+- Each feed entry can define `url` or `path`, a `destination` filename relative to `data.feeds_dir`, and optional `score_field` / `mark_exploited` attributes.
+- The pipeline refreshes feeds when the last download exceeds `refresh_interval_hours`, updates CVE records in-memory, and writes the raw feed for auditors to review.
+
 ## Demo Mode Example
 
 ```yaml
@@ -266,6 +290,7 @@ compliance:
         - id: CC8.1
           requires: [design, guardrails, evidence]
 policy_automation:
+  slack_webhook_env: FIXOPS_SLACK_WEBHOOK
   actions:
     - trigger: guardrail:fail
       type: jira_issue
@@ -281,6 +306,11 @@ ssdlc:
       - name: LangChain
         keywords: [langchain]
   exploit_signals:
+    auto_refresh:
+      enabled: true
+      feeds:
+        - id: kev
+        - id: epss
     signals:
       kev:
         mode: boolean
@@ -304,10 +334,14 @@ profiles:
       project_key: FIXOPS
       default_issue_type: Security Review
       workflow_scheme: Enterprise Risk
+      user_email: enterprise-bot@fixops.io
+      token_env: FIXOPS_JIRA_TOKEN
     confluence:
       base_url: https://confluence.example.com
       space_key: FIXOPS-ENT
       onboarding_page: /display/FIXOPS-ENT/Control+Runbook
+      user: fixops-enterprise
+      token_env: FIXOPS_CONFLUENCE_TOKEN
     git:
       provider: gitlab
       host: https://gitlab.example.com
@@ -323,6 +357,8 @@ profiles:
       evidence_dir: evidence/enterprise
       audit_export_dir: audit
       feedback_dir: feedback/enterprise
+      automation_dir: automation/enterprise
+      feeds_dir: feeds/enterprise
     toggles:
       require_design_input: true
       auto_attach_overlay_metadata: true

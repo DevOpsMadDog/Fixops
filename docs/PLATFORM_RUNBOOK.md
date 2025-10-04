@@ -148,11 +148,13 @@ The script leverages the blended enterprise scorer to contrast scanner severitie
    - Context summary with component counts and weighted severities
    - Compliance frameworks with satisfied/in-progress status
    - Policy automation action plans
+   - External delivery results (Jira/Confluence/Slack) with connector status
    - AI agent matches and recommendations
    - Probabilistic forecast metrics (posterior distribution, escalation candidates)
    - SSDLC stage summary and requirement rollups
    - Evidence bundle manifest paths
    - Pricing summary with active plan
+   - Exploit feed refresh status (auto-ingested KEV/EPSS snapshots)
 
 5. **Feedback capture** – if `toggles.capture_feedback` is true, post a JSON payload to `/feedback` and verify the JSONL entry appears under the overlay-configured `feedback_dir`.
 
@@ -161,7 +163,8 @@ The script leverages the blended enterprise scorer to contrast scanner severitie
 - Overlay allowlists constrain upload destinations (`FIXOPS_DATA_ROOT_ALLOWLIST`).
 - Evidence bundles include manifest + archive paths; the CVE simulation asserts both files exist when guardrails trigger bundling.
 - Feedback entries live under `data/feedback/<mode>/<run_id>/feedback.jsonl`, matching SSDLC "feedback_loop" requirements.
-- Policy automation dispatches emit JSON manifests under `data/automation/<mode>/` so Jira/Confluence actions are auditable even before external connectors are wired in.
+- Policy automation dispatches emit JSON manifests under `data/automation/<mode>/` and simultaneously call Jira, Confluence, and Slack connectors when `toggles.enforce_ticket_sync` is true. Configure `FIXOPS_JIRA_TOKEN`, `FIXOPS_CONFLUENCE_TOKEN`, and `FIXOPS_SLACK_WEBHOOK` to enable live delivery.
+- Exploit signal auto-refresh writes downloaded feeds to `data/feeds/<mode>/` and annotates CVE records when KEV/EPSS data changes.
 
 ## Quick Feature Recap
 
