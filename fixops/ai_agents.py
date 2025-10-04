@@ -73,16 +73,19 @@ class AIAgentAdvisor:
 
     def _playbooks_for(self, framework: FrameworkSignature) -> List[Mapping[str, Any]]:
         playbooks: List[Mapping[str, Any]] = []
+        framework_key = framework.name.lower()
         for playbook in self.playbooks:
             if not isinstance(playbook, Mapping):
                 continue
             frameworks = playbook.get("frameworks")
-            triggers = playbook.get("triggers")
             if frameworks and isinstance(frameworks, Iterable):
-                if framework.name not in list(frameworks):
+                normalised = {str(item).lower() for item in frameworks if isinstance(item, str)}
+                if normalised and framework_key not in normalised:
                     continue
+            triggers = playbook.get("triggers")
             if triggers and isinstance(triggers, Iterable):
-                if "agent" not in [str(trigger).lower() for trigger in triggers]:
+                trigger_flags = {str(trigger).lower() for trigger in triggers}
+                if trigger_flags and "agent" not in trigger_flags:
                     continue
             playbooks.append(playbook)
         return playbooks
