@@ -135,3 +135,33 @@ def test_pipeline_guardrail_evaluation_uses_overlay_policy():
     assert guardrail["maturity"] == "advanced"
     assert guardrail["status"] == "fail"
     assert guardrail["trigger"]["source"] in {"sarif", "cve"}
+
+
+def test_pipeline_emits_ai_agent_analysis_when_enabled():
+    orchestrator = PipelineOrchestrator()
+    design_dataset, sbom, sarif, cve = build_orchestrator_payload()
+    # Embed a LangChain reference in the design row to trigger detection
+    design_dataset["rows"][0]["notes"] = "LangChain agent handling payments"
+
+    overlay = OverlayConfig(
+        mode="enterprise",
+        ai_agents={
+            "framework_signatures": [
+                {"name": "LangChain", "keywords": ["langchain"]}
+            ],
+            "controls": {"default": {"recommended_controls": ["audit"]}},
+        },
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+        overlay=overlay,
+    )
+
+    ai_analysis = result.get("ai_agent_analysis")
+    assert ai_analysis is not None
+    assert ai_analysis["summary"]["components_with_agents"] >= 1
+    assert ai_analysis["matches"][0]["framework"] == "LangChain"

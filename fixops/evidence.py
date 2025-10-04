@@ -41,8 +41,10 @@ class EvidenceHub:
         bundle_payload: Dict[str, Any] = {
             "mode": self.overlay.mode,
             "run_id": run_id,
-            "overlay": self.overlay.to_sanitised_dict(),
         }
+
+        if self.overlay.toggles.get("include_overlay_metadata_in_bundles", True):
+            bundle_payload["overlay"] = self.overlay.to_sanitised_dict()
 
         def _include(key: str, value: Any) -> None:
             if not sections or key in sections:
@@ -54,6 +56,7 @@ class EvidenceHub:
         _include("guardrail_evaluation", pipeline_result.get("guardrail_evaluation"))
         _include("compliance_status", compliance_status)
         _include("policy_automation", policy_summary)
+        _include("ai_agent_analysis", pipeline_result.get("ai_agent_analysis"))
 
         bundle_path = base_dir / f"{self._bundle_name()}-bundle.json"
         bundle_path.write_text(json.dumps(bundle_payload, indent=2), encoding="utf-8")

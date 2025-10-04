@@ -1,6 +1,8 @@
 import json
 
 import csv
+import json
+import os
 from io import StringIO
 
 try:
@@ -17,7 +19,7 @@ from backend.pipeline import PipelineOrchestrator
 
 
 def test_end_to_end_demo_pipeline():
-    design_csv = """component,owner,criticality\npayment-service,app-team,high\nnotification-service,platform,medium\n"""
+    design_csv = """component,owner,criticality,notes\npayment-service,app-team,high,Handles card processing\nnotification-service,platform,medium,Sends emails\nai-orchestrator,ml-team,high,LangChain agent orchestrator for support bots\n"""
 
     sbom_document = {
         "bomFormat": "CycloneDX",
@@ -30,7 +32,15 @@ def test_end_to_end_demo_pipeline():
                 "version": "1.0.0",
                 "purl": "pkg:pypi/payment-service@1.0.0",
                 "licenses": [{"license": "MIT"}],
-            }
+            },
+            {
+                "type": "application",
+                "name": "ai-orchestrator",
+                "version": "0.4.0",
+                "purl": "pkg:npm/langchain-agent@0.4.0",
+                "licenses": [{"license": "Apache-2.0"}],
+                "description": "LangChain powered support agent",
+            },
         ],
     }
 
@@ -73,19 +83,22 @@ def test_end_to_end_demo_pipeline():
     }
 
     if TestClient is not None and create_app is not None:
+        os.environ["FIXOPS_API_TOKEN"] = "demo-token"
         app = create_app()
         client = TestClient(app)
 
         response = client.post(
             "/inputs/design",
+            headers={"X-API-Key": "demo-token"},
             files={"file": ("design.csv", design_csv, "text/csv")},
         )
         assert response.status_code == 200
         design_payload = response.json()
-        assert design_payload["row_count"] == 2
+        assert design_payload["row_count"] == 3
 
         response = client.post(
             "/inputs/sbom",
+            headers={"X-API-Key": "demo-token"},
             files={
                 "file": (
                     "sbom.json",
@@ -96,10 +109,11 @@ def test_end_to_end_demo_pipeline():
         )
         assert response.status_code == 200
         sbom_payload = response.json()
-        assert sbom_payload["metadata"]["component_count"] == 1
+        assert sbom_payload["metadata"]["component_count"] == 2
 
         response = client.post(
             "/inputs/cve",
+            headers={"X-API-Key": "demo-token"},
             files={
                 "file": (
                     "kev.json",
@@ -114,6 +128,7 @@ def test_end_to_end_demo_pipeline():
 
         response = client.post(
             "/inputs/sarif",
+            headers={"X-API-Key": "demo-token"},
             files={
                 "file": (
                     "scan.sarif",
@@ -126,12 +141,12 @@ def test_end_to_end_demo_pipeline():
         sarif_payload = response.json()
         assert sarif_payload["metadata"]["finding_count"] == 1
 
-        response = client.post("/pipeline/run")
+        response = client.post("/pipeline/run", headers={"X-API-Key": "demo-token"})
         assert response.status_code == 200
         pipeline_payload = response.json()
         assert pipeline_payload["status"] == "ok"
-        assert pipeline_payload["design_summary"]["row_count"] == 2
-        assert len(pipeline_payload["crosswalk"]) == 2
+        assert pipeline_payload["design_summary"]["row_count"] == 3
+        assert len(pipeline_payload["crosswalk"]) == 3
         assert pipeline_payload["crosswalk"][0]["findings"]
         assert pipeline_payload["guardrail_evaluation"]["status"] in {"pass", "warn", "fail"}
         assert pipeline_payload["context_summary"]["summary"]["components_evaluated"] >= 1
@@ -139,10 +154,13 @@ def test_end_to_end_demo_pipeline():
         assert pipeline_payload["compliance_status"]["frameworks"]
         assert "bundle" in pipeline_payload["evidence_bundle"]["files"]
         assert "plans" in pipeline_payload["pricing_summary"]
+        ai_analysis = pipeline_payload.get("ai_agent_analysis")
+        assert ai_analysis and ai_analysis["summary"]["components_with_agents"] >= 1
         overlay = pipeline_payload["overlay"]
         assert overlay["mode"] == "demo"
         assert overlay["metadata"]["profile_applied"] == "demo"
         assert "required_inputs" in overlay
+        os.environ.pop("FIXOPS_API_TOKEN", None)
     else:
         normalizer = InputNormalizer()
         reader = csv.DictReader(StringIO(design_csv))
@@ -160,6 +178,8 @@ def test_end_to_end_demo_pipeline():
         )
 
         assert pipeline_payload["status"] == "ok"
-        assert pipeline_payload["design_summary"]["row_count"] == 2
-        assert len(pipeline_payload["crosswalk"]) == 2
+        assert pipeline_payload["design_summary"]["row_count"] == 3
+        assert len(pipeline_payload["crosswalk"]) == 3
         assert isinstance(pipeline_payload["crosswalk"][0]["findings"], list)
+        if "ai_agent_analysis" in pipeline_payload:
+            assert pipeline_payload["ai_agent_analysis"]["summary"]["components_with_agents"] >= 1

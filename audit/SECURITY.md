@@ -7,18 +7,21 @@ This document enumerates how the FixOps ingestion service addresses common OWASP
 | Risk | Mitigation | Code Reference |
 | ---- | ---------- | -------------- |
 | Injection (SQL/Command) | Service does not execute database queries or shell commands. Uploaded files are parsed using trusted libraries with no dynamic evaluation. | `backend/normalizers.py` uses typed parsers and json/csv modules only. |
-| Broken Authentication | The demo service exposes unauthenticated endpoints for simplicity. Deployments should layer OAuth/API gateway auth in front of FastAPI. | `backend/app.py` (no auth); document requirement in `docs/INTEGRATIONS.md`. |
-| Sensitive Data Exposure | Overlay metadata masks secrets before they leave the backend. Upload responses include only aggregated metadata. | `fixops/configuration.py` → `OverlayConfig._mask`; `backend/app.py` attaches masked overlay block. |
+| Broken Authentication | API key enforcement protects all ingestion and pipeline endpoints when `auth.strategy` is `token`. Enterprise profiles can swap to OIDC once upstream IdP is available. | `backend/app.py` `_verify_api_key`; `config/fixops.overlay.yml` auth stanza. |
+| Sensitive Data Exposure | Overlay metadata masks secrets before they leave the backend and evidence bundles omit overlay data when toggled off. | `fixops/configuration.py` → `OverlayConfig._mask`; `fixops/evidence.py` toggle `include_overlay_metadata_in_bundles`. |
 | XML/XXE | XML documents are not ingested. SBOM, SARIF, and CVE feeds are JSON-based, parsed with safe libraries. | `backend/normalizers.py` only uses JSON parsers. |
 | SSRF | No outbound HTTP calls are made during ingestion. Future connectors should validate URLs and restrict hosts. | Documented in `docs/INTEGRATIONS.md`. |
+| DoS via Oversized Uploads | Streamed reads enforce per-stage byte limits and reject unsupported content types, throttling untrusted clients. | `backend/app.py` `_read_limited` and `_validate_content_type`; overlay `limits.max_upload_bytes`. |
 | Unsafe Deserialisation | JSON parsing uses `json.loads` and SARIF typed models; no `pickle` or dynamic eval. | `backend/normalizers.py`. |
 | Security Logging & Monitoring | Python logging captures stage names and exceptions without dumping raw payloads. Integrations doc recommends shipping to central log stores. | `backend/app.py` logger usage. |
 
 ## Secrets Management
 
-- Overlay file should not contain raw tokens. Instead, reference environment variables via `auth.token_env`.
+- Overlay file should not contain raw tokens. Reference environment variables via `auth.token_env`; loader now fails fast when the referenced variables are absent.
 - Any key containing `token`, `secret`, or `password` is automatically masked by `OverlayConfig` before
   exposure.
+- Data directories are resolved against an allowlist (`FIXOPS_DATA_ROOT_ALLOWLIST`) so overlays cannot
+  traverse outside sanctioned paths.
 
 ## Transport Security
 
@@ -33,7 +36,7 @@ This document enumerates how the FixOps ingestion service addresses common OWASP
 
 ## Next Steps
 
-1. Introduce API key/OAuth middleware in front of FastAPI.
-2. Add rate limiting at the ingress tier to deter brute-force upload attempts.
-3. Extend overlay schema with audit logging destinations (e.g., syslog, SIEM webhook) and implement
+1. Add rate limiting at the ingress tier to deter brute-force upload attempts.
+2. Extend overlay schema with audit logging destinations (e.g., syslog, SIEM webhook) and implement
    streaming of pipeline events.
+3. Integrate OIDC provider support to replace API keys for enterprise single sign-on.

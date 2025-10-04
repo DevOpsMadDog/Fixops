@@ -25,12 +25,22 @@
   },
   "data": {
     "design_context_dir": "data/design_context/demo",
-    "evidence_dir": "data/evidence/demo"
+    "evidence_dir": "data/evidence/demo",
+    "feedback_dir": "data/feedback/demo"
   },
   "toggles": {
     "require_design_input": false,
     "auto_attach_overlay_metadata": true,
-    "enforce_ticket_sync": false
+    "include_overlay_metadata_in_bundles": true,
+    "enforce_ticket_sync": false,
+    "capture_feedback": false
+  },
+  "limits": {
+    "max_upload_bytes": {
+      "default": 3145728,
+      "sarif": 6291456,
+      "cve": 6291456
+    }
   },
   "guardrails": {
     "maturity": "foundational",
@@ -79,7 +89,8 @@
       "severity_overview",
       "context_summary",
       "guardrail_evaluation",
-      "compliance_status"
+      "compliance_status",
+      "ai_agent_analysis"
     ],
     "profiles": {
       "enterprise": {
@@ -93,7 +104,8 @@
           "context_summary",
           "guardrail_evaluation",
           "compliance_status",
-          "policy_automation"
+          "policy_automation",
+          "ai_agent_analysis"
         ]
       }
     }
@@ -180,6 +192,49 @@
       }
     }
   },
+  "ai_agents": {
+    "watchlist_version": "2024-07",
+    "framework_signatures": [
+      {"name": "LangChain", "keywords": ["langchain", "llmchain"], "threat_profile": "supply_chain"},
+      {"name": "AutoGPT", "keywords": ["autogpt", "auto-gpt"], "threat_profile": "self_modifying"},
+      {"name": "CrewAI", "keywords": ["crewai"], "threat_profile": "multi_agent_coordination"},
+      {"name": "HuggingFace Agents", "keywords": ["huggingface agent", "transformers agent"], "threat_profile": "remote_tool_execution"},
+      {"name": "LlamaIndex", "keywords": ["llamaindex", "gpt index"], "threat_profile": "data_leakage"}
+    ],
+    "controls": {
+      "default": {
+        "recommended_controls": [
+          "Document tool/API access scopes",
+          "Require prompt/response audit logging",
+          "Validate model inputs for sensitive data"
+        ],
+        "residual_risks": [
+          "Prompt injection against tool-calling agents",
+          "Unbounded data exfiltration via third-party APIs"
+        ]
+      },
+      "autogpt": {
+        "recommended_controls": [
+          "Disable autonomous resource creation in production",
+          "Enforce manual approval on destructive actions"
+        ]
+      }
+    },
+    "playbooks": [
+      {
+        "name": "AI Agent Hardening",
+        "channel": "appsec-ai",
+        "triggers": ["agent"],
+        "frameworks": ["LangChain", "AutoGPT", "CrewAI"]
+      },
+      {
+        "name": "Model Supply Chain Review",
+        "channel": "sre-risk",
+        "triggers": ["agent"],
+        "frameworks": ["HuggingFace Agents", "LlamaIndex"]
+      }
+    ]
+  },
   "pricing": {
     "plans": [
       {
@@ -226,12 +281,21 @@
       "data": {
         "design_context_dir": "data/design_context/enterprise",
         "evidence_dir": "data/evidence/enterprise",
-        "audit_export_dir": "data/audit"
+        "audit_export_dir": "data/audit",
+        "feedback_dir": "data/feedback/enterprise"
       },
       "toggles": {
         "require_design_input": true,
         "enforce_ticket_sync": true,
-        "capture_feedback": true
+        "capture_feedback": true,
+        "include_overlay_metadata_in_bundles": false
+      },
+      "limits": {
+        "max_upload_bytes": {
+          "default": 7340032,
+          "sarif": 10485760,
+          "cve": 10485760
+        }
       },
       "guardrails": {
         "maturity": "advanced"

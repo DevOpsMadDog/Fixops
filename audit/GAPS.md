@@ -7,11 +7,11 @@ impact, and remediation plan.
 
 | Area | File / Snippet | Issue | Plan |
 | ---- | -------------- | ----- | ---- |
-| Authentication | `backend/app.py` (no auth middleware) | Endpoints are publicly accessible. | Introduce OAuth/API key middleware or front service with gateway before production launch. |
-| Overlay Validation | `fixops/configuration.py` (`load_overlay`) | Schema is permissive; typos (e.g., guardrail thresholds) silently accepted. | Add pydantic model or JSON schema validation to reject unexpected keys and provide actionable errors. |
-| Directory Safety | `fixops/configuration.py` `data_directories` → `fixops/evidence.py` | Overlay-controlled paths are trusted and created on disk. | Restrict overlays to whitelisted roots and reject relative traversal before provisioning directories. |
-| Upload Hardening | `backend/app.py` upload handlers | Files are fully read into memory; no size or type guardrails. | Add `UploadFile.spool_max_size`, content-length checks, and stream parsers to prevent DoS via oversized artefacts. |
-| Feedback Capture | Overlay toggle `capture_feedback` | Toggle documented but no implementation. | Implement persistence layer (database or Jira issue comments) in future iteration and honour toggle. |
+| Authentication | `backend/app.py` (API key verification) | ✅ Implemented — token strategy enforces `X-API-Key` header backed by overlay env vars. | Roll forward to multi-tenant identity (OIDC) for enterprise mode. |
+| Overlay Validation | `fixops/configuration.py` (`load_overlay`) | ✅ Implemented — pydantic schema with forbidden extras and immediate secret validation. | Extend to schema-level validation for nested sections (policy actions, compliance controls). |
+| Directory Safety | `fixops/configuration.py` `data_directories` | ✅ Implemented — allowlisted roots and resolution guards prevent traversal. | Add runtime permission checks before provisioning in hardened deployments. |
+| Upload Hardening | `backend/app.py` upload handlers | ✅ Implemented — staged reads enforce per-stage byte limits and content-type validation. | Monitor memory footprint under sustained load and consider streaming normalisers. |
+| Feedback Capture | `backend/app.py` `/feedback` | ✅ Implemented — overlay-enabled recorder persists JSONL feedback bundles. | Integrate with Jira/Confluence for long-term storage and analytics. |
 
 ## Deferred Items
 
@@ -24,9 +24,15 @@ impact, and remediation plan.
 ## Operational Risks
 
 - Overlay secrets rely on environment variables. Without secret management (Vault, AWS Secrets Manager)
-  operators might inject wrong values. Add validation checks that confirm referenced env vars exist at
-  startup.
+  operators might inject wrong values. **Status:** mitigated — loader now verifies required env vars
+  exist; still recommend managing rotation via dedicated secret store.
 - Directory creation occurs at startup without permission checks. Harden by verifying ownership and
   file-system ACLs in hardened deployments.
-- Evidence bundles embed overlay metadata (including plan limits and directory layout). Treat bundle
-  stores as sensitive, encrypt at rest, or provide an option to omit overlay details when exporting.
+- Evidence bundles embed overlay metadata (including plan limits and directory layout). **Status:**
+  mitigated — toggle `include_overlay_metadata_in_bundles` now controls exposure; encryption guidance
+  remains for regulated tenants.
+
+## New Follow-Ups
+
+- Expand policy automation to execute downstream actions (Jira/Confluence) instead of planning only.
+- Capture feedback analytics (counts, sentiment) and surface in pricing/ROI dashboards.

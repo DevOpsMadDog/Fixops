@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from simulations.cve_scenario import run_simulation
 
 
 def _build_overlay(tmp_path: Path) -> Path:
+    repo_data = Path(__file__).resolve().parents[1] / "data"
+    allowlist = [str(tmp_path), str(repo_data)]
+    os.environ["FIXOPS_DATA_ROOT_ALLOWLIST"] = os.pathsep.join(allowlist)
     overlay_path = tmp_path / "overlay.json"
     overlay_content = {
         "mode": "demo",

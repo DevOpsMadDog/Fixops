@@ -163,6 +163,8 @@ def _ensure_overlay_for_mode(
         "compliance": dict(raw.get("compliance", {})),
         "policy_automation": dict(raw.get("policy_automation", {})),
         "pricing": dict(raw.get("pricing", {})),
+        "limits": dict(raw.get("limits", {})),
+        "ai_agents": dict(raw.get("ai_agents", {})),
     }
 
     profiles = raw.get("profiles") if isinstance(raw, Mapping) else {}
@@ -200,6 +202,10 @@ def _ensure_overlay_for_mode(
         compliance=dict(base.get("compliance", {})),
         policy_automation=dict(base.get("policy_automation", {})),
         pricing=dict(base.get("pricing", {})),
+        limits=dict(base.get("limits", {})),
+        ai_agents=dict(base.get("ai_agents", {})),
+        allowed_data_roots=overlay.allowed_data_roots,
+        auth_tokens=overlay.auth_tokens,
     )
 
 

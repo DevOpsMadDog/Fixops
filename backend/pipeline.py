@@ -4,6 +4,7 @@ import json
 from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Optional
 
+from fixops.ai_agents import AIAgentAdvisor
 from fixops.configuration import OverlayConfig
 from fixops.context_engine import ContextEngine
 from fixops.evidence import EvidenceHub
@@ -346,6 +347,11 @@ class PipelineOrchestrator:
             policy_automation = PolicyAutomation(overlay)
             policy_summary = policy_automation.plan(result, context_summary, compliance_status)
             result["policy_automation"] = policy_summary
+
+            ai_advisor = AIAgentAdvisor(overlay.ai_agents)
+            ai_analysis = ai_advisor.analyse(rows, crosswalk)
+            if ai_analysis:
+                result["ai_agent_analysis"] = ai_analysis
 
             evidence_hub = EvidenceHub(overlay)
             evidence_bundle = evidence_hub.persist(result, context_summary, compliance_status, policy_summary)

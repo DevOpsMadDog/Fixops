@@ -7,12 +7,12 @@ obvious imports are grouped for readability.
 
 | Lines | Description |
 | ----- | ----------- |
-| 1-17 | Imports, logger setup, and overlay loader wiring. |
-| 20-42 | `create_app()` initialises FastAPI, configures permissive CORS, instantiates helpers, loads the overlay, and creates any declared data directories. |
-| 44-46 | `_store()` helper centralises writing artefacts into `app.state.artifacts` with debug logging. |
-| 48-66 | `/inputs/design` endpoint parses the uploaded CSV, rejects empty payloads, stores the dataset, and returns metadata plus raw rows. |
-| 68-121 | `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` normalise uploads via `InputNormalizer`, wrap parser failures in HTTP 400 responses, and return summaries for UI previews. |
-| 123-153 | `/pipeline/run` enforces overlay-driven required inputs, validates Jira configuration when ticket sync is mandatory, runs the orchestrator with the active overlay so guardrail evaluation occurs, and appends sanitised overlay metadata (including required inputs) to the response. |
+| 1-18 | Imports, logger setup, and helper wiring for overlay, feedback recorder, and security utilities. |
+| 21-61 | `create_app()` initialises FastAPI, configures CORS, loads the overlay, resolves API-key expectations, and provisions allowlisted data directories (including optional feedback archives). |
+| 62-97 | `_read_limited` and `_validate_content_type` enforce per-stage upload caps and reject unsupported MIME types before parsing. `_store()` centralises artefact caching. |
+| 102-178 | `/inputs/design`, `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` all require the API key, validate content types, stream within overlay byte limits, normalise payloads, and return preview metadata. |
+| 179-210 | `/pipeline/run` enforces overlay-required artefacts, validates Jira sync requirements, executes the orchestrator, and appends masked overlay metadata when toggled. |
+| 211-220 | `/feedback` honours the `capture_feedback` toggle and persists JSONL decisions via the feedback recorder. |
 
 ## `backend/normalizers.py`
 
@@ -38,18 +38,35 @@ obvious imports are grouped for readability.
 | 35-73 | `_extract_component_name`, `_build_finding_search_text`, `_build_record_search_text`, and `_match_components` construct design tokens and component lookups. |
 | 75-133 | Severity helpers normalise SARIF levels and CVE severities, resolve threshold rankings, and prepare guardrail evaluation utilities. |
 | 135-229 | `run()` builds the design list, precomputes lowercase tokens, indexes SBOM components, aggregates severity/exploitation statistics (including per-source counts), computes the maturity-aware guardrail evaluation when an overlay is provided, and precomputes finding/CVE matches per token using `defaultdict` caches to avoid redundant scans. |
-| 231-263 | Crosswalk assembly attaches matches to each design row and prepares the final response with summaries, severity overview, guardrail evaluation, and per-artefact breakdowns. |
+| 231-360 | Crosswalk assembly attaches matches to each design row, prepares summaries, evaluates guardrails, invokes the context engine/onboarding/compliance/policy modules, executes the AI Agent Advisor, persists evidence bundles, and attaches pricing metadata. |
 
 ## `fixops/configuration.py`
 
 | Lines | Description |
 | ----- | ----------- |
-| 1-14 | Module docstring, future import, and path constants (`DEFAULT_OVERLAY_PATH`, env override key). |
-| 17-33 | `_read_text` and `_parse_overlay` helpers read the file and parse YAML/JSON with graceful fallbacks when PyYAML is absent. |
-| 36-44 | `_deep_merge` recursively merges nested dictionaries so profile overrides can target specific keys. |
-| 47-115 | `OverlayConfig` dataclass defines integration payloads, toggle defaults, guardrail defaults (including maturity/threshold helpers), helper properties for required inputs/data directories, and `to_sanitised_dict()` masking logic that now exports guardrail policy. |
-| 118-158 | `load_overlay()` resolves the path (including environment override), merges profile-specific data, applies default toggles/metadata, instantiates `OverlayConfig`, and annotates metadata with resolved guardrail maturity and thresholds before returning the configuration. |
-| 161 | `__all__` exposes the loader and dataclass for importers. |
+| 1-58 | Module docstring, imports, constants, YAML/JSON parsing, and deep-merge helper. |
+| 61-107 | `_OverlayDocument` Pydantic schema enumerates allowed top-level keys (including limits and AI sections) and rejects unexpected fields; `_resolve_allowlisted_roots` honours `FIXOPS_DATA_ROOT_ALLOWLIST`. |
+| 109-143 | `OverlayConfig` dataclass now tracks limits, AI agent settings, allowlisted data roots, and resolved API tokens alongside existing integration metadata. |
+| 146-233 | Helper properties compute required inputs, resolve and validate data directories against the allowlist, mask secrets, and derive guardrail/context/evidence/policy/compliance/pricing settings. |
+| 234-281 | `upload_limit()` interprets stage-specific caps. `load_overlay()` validates via Pydantic, merges profile overrides, sets defaults (`include_overlay_metadata_in_bundles`), resolves API keys, enforces env-var presence, and validates directories immediately. |
+| 283 | `__all__` exposes the loader and dataclass for importers. |
+
+## `fixops/feedback.py`
+
+| Lines | Description |
+| ----- | ----------- |
+| 1-21 | Imports and class definition. Constructor resolves the feedback directory (falling back to evidence dir) and ensures it exists. |
+| 22-49 | `_validate_payload` enforces required keys (`run_id`, `decision`), normalises optional metadata, and guards against invalid types. |
+| 51-61 | `record()` writes validated entries to `<feedback_dir>/<run_id>/feedback.jsonl` and returns a manifest used by the API response. |
+
+## `fixops/ai_agents.py`
+
+| Lines | Description |
+| ----- | ----------- |
+| 1-28 | Helper functions and `FrameworkSignature` dataclass capture watchlist entries (name, keywords, optional threat profile). |
+| 31-76 | `AIAgentAdvisor.__init__` normalises signatures, control mappings, playbooks, and watchlist version metadata. |
+| 78-121 | Private helpers `_match_frameworks`, `_controls_for`, and `_playbooks_for` identify relevant signatures, merge default/specific controls, and select playbooks. |
+| 123-162 | `analyse()` scans design crosswalk entries, detects signature hits, aggregates matches, and returns a summary plus per-component recommendations when agents are detected. |
 
 ## `simulations/cve_scenario/runner.py`
 

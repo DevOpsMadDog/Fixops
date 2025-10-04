@@ -5,10 +5,14 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Mapping, MutableMapping, Optional
+from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional
+
+from pydantic import BaseModel, Field, ValidationError
 
 DEFAULT_OVERLAY_PATH = Path(__file__).resolve().parent.parent / "config" / "fixops.overlay.yml"
 _OVERRIDDEN_PATH_ENV = "FIXOPS_OVERLAY_PATH"
+_DATA_ALLOWLIST_ENV = "FIXOPS_DATA_ROOT_ALLOWLIST"
+_DEFAULT_DATA_ROOT = (Path(__file__).resolve().parent.parent / "data").resolve()
 
 
 def _read_text(path: Path) -> str:
@@ -58,6 +62,80 @@ _DEFAULT_GUARDRAIL_PROFILES: Dict[str, Dict[str, str]] = {
     "advanced": {"fail_on": "medium", "warn_on": "medium"},
 }
 
+_ALLOWED_OVERLAY_KEYS = {
+    "mode",
+    "jira",
+    "confluence",
+    "git",
+    "ci",
+    "auth",
+    "data",
+    "toggles",
+    "guardrails",
+    "metadata",
+    "context_engine",
+    "evidence_hub",
+    "onboarding",
+    "compliance",
+    "policy_automation",
+    "pricing",
+    "limits",
+    "ai_agents",
+    "profiles",
+}
+
+
+class _OverlayDocument(BaseModel):
+    """Pydantic schema for validating overlay documents."""
+
+    mode: Optional[str] = Field(default="demo")
+    jira: Optional[Dict[str, Any]] = None
+    confluence: Optional[Dict[str, Any]] = None
+    git: Optional[Dict[str, Any]] = None
+    ci: Optional[Dict[str, Any]] = None
+    auth: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, Any]] = None
+    toggles: Optional[Dict[str, Any]] = None
+    guardrails: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    context_engine: Optional[Dict[str, Any]] = None
+    evidence_hub: Optional[Dict[str, Any]] = None
+    onboarding: Optional[Dict[str, Any]] = None
+    compliance: Optional[Dict[str, Any]] = None
+    policy_automation: Optional[Dict[str, Any]] = None
+    pricing: Optional[Dict[str, Any]] = None
+    limits: Optional[Dict[str, Any]] = None
+    ai_agents: Optional[Dict[str, Any]] = None
+    profiles: Optional[Dict[str, Dict[str, Any]]] = None
+
+    class Config:
+        extra = "forbid"
+
+
+def _resolve_allowlisted_roots() -> tuple[Path, ...]:
+    raw = os.getenv(_DATA_ALLOWLIST_ENV)
+    if not raw:
+        return (_DEFAULT_DATA_ROOT,)
+    roots: list[Path] = []
+    for part in raw.split(os.pathsep):
+        candidate = Path(part).expanduser()
+        if not str(candidate).strip():
+            continue
+        roots.append(candidate.resolve())
+    return tuple(roots or (_DEFAULT_DATA_ROOT,))
+
+
+def _ensure_within_allowlist(path: Path, allowlist: Iterable[Path]) -> Path:
+    resolved = path.resolve()
+    for root in allowlist:
+        try:
+            resolved.relative_to(root)
+        except ValueError:
+            continue
+        else:
+            return resolved
+    raise ValueError(f"Data directory '{resolved}' is not within the allowed roots {allowlist}")
+
 
 @dataclass
 class OverlayConfig:
@@ -79,6 +157,10 @@ class OverlayConfig:
     compliance: Dict[str, Any] = field(default_factory=dict)
     policy_automation: Dict[str, Any] = field(default_factory=dict)
     pricing: Dict[str, Any] = field(default_factory=dict)
+    limits: Dict[str, Any] = field(default_factory=dict)
+    ai_agents: Dict[str, Any] = field(default_factory=dict)
+    allowed_data_roots: tuple[Path, ...] = field(default_factory=lambda: (_DEFAULT_DATA_ROOT,))
+    auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
 
     @property
     def required_inputs(self) -> tuple[str, ...]:
@@ -91,10 +173,16 @@ class OverlayConfig:
     @property
     def data_directories(self) -> Dict[str, Path]:
         directories: Dict[str, Path] = {}
+        allowlist = self.allowed_data_roots or (_DEFAULT_DATA_ROOT,)
+        default_root = allowlist[0]
         for key, value in self.data.items():
             if not isinstance(value, str):
                 continue
-            directories[key] = Path(value).expanduser()
+            candidate = Path(value).expanduser()
+            if not candidate.is_absolute():
+                candidate = (default_root / candidate).resolve()
+            resolved = _ensure_within_allowlist(candidate, allowlist)
+            directories[key] = resolved
         return directories
 
     def to_sanitised_dict(self) -> Dict[str, Any]:
@@ -115,6 +203,8 @@ class OverlayConfig:
             "compliance": self.compliance_settings,
             "policy_automation": self.policy_settings,
             "pricing": self.pricing,
+            "limits": self.limits,
+            "ai_agents": self.ai_agents,
         }
         return payload
 
@@ -247,6 +337,23 @@ class OverlayConfig:
             summary["active_plan"] = active
         return summary
 
+    def upload_limit(self, stage: str, fallback: int = 5 * 1024 * 1024) -> int:
+        limits = self.limits.get("max_upload_bytes") if isinstance(self.limits, Mapping) else None
+        default_limit = None
+        if isinstance(limits, Mapping):
+            specific = limits.get(stage)
+            default_limit = limits.get("default")
+            candidate = specific if isinstance(specific, int) else None
+            if candidate is None and isinstance(specific, str) and specific.isdigit():
+                candidate = int(specific)
+            if candidate is not None:
+                return candidate
+            if isinstance(default_limit, int):
+                return default_limit
+            if isinstance(default_limit, str) and default_limit.isdigit():
+                return int(default_limit)
+        return fallback
+
 
 def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     """Load the overlay configuration and merge profile overrides."""
@@ -256,35 +363,46 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     text = _read_text(candidate_path)
     raw = _parse_overlay(text)
 
-    profiles = raw.pop("profiles", {}) if isinstance(raw, dict) else {}
+    try:
+        document = _OverlayDocument(**(raw or {}))
+    except ValidationError as exc:  # pragma: no cover - exercised in tests
+        raise ValueError(f"Overlay validation failed: {exc}") from exc
+
+    unexpected = {key for key in raw.keys() if key not in _ALLOWED_OVERLAY_KEYS}
+    if unexpected:
+        raise ValueError(f"Unexpected overlay keys: {sorted(unexpected)}")
+
+    profiles = document.profiles or {}
     base = {
-        "mode": raw.get("mode", "demo"),
-        "jira": raw.get("jira", {}),
-        "confluence": raw.get("confluence", {}),
-        "git": raw.get("git", {}),
-        "ci": raw.get("ci", {}),
-        "auth": raw.get("auth", {}),
-        "data": raw.get("data", {}),
-        "toggles": raw.get("toggles", {}),
-        "guardrails": raw.get("guardrails", {}),
-        "metadata": {"source_path": str(candidate_path)},
-        "context_engine": raw.get("context_engine", {}),
-        "evidence_hub": raw.get("evidence_hub", {}),
-        "onboarding": raw.get("onboarding", {}),
-        "compliance": raw.get("compliance", {}),
-        "policy_automation": raw.get("policy_automation", {}),
-        "pricing": raw.get("pricing", {}),
+        "mode": document.mode or "demo",
+        "jira": document.jira or {},
+        "confluence": document.confluence or {},
+        "git": document.git or {},
+        "ci": document.ci or {},
+        "auth": document.auth or {},
+        "data": document.data or {},
+        "toggles": document.toggles or {},
+        "guardrails": document.guardrails or {},
+        "metadata": {"source_path": str(candidate_path)} | (document.metadata or {}),
+        "context_engine": document.context_engine or {},
+        "evidence_hub": document.evidence_hub or {},
+        "onboarding": document.onboarding or {},
+        "compliance": document.compliance or {},
+        "policy_automation": document.policy_automation or {},
+        "pricing": document.pricing or {},
+        "limits": document.limits or {},
+        "ai_agents": document.ai_agents or {},
     }
 
     selected_mode = str(base["mode"]).lower()
-    if isinstance(profiles, Mapping):
-        profile_overrides = profiles.get(selected_mode)
-        if isinstance(profile_overrides, Mapping):
-            _deep_merge(base, dict(profile_overrides))
+    profile_overrides = profiles.get(selected_mode) if isinstance(profiles, Mapping) else None
+    if isinstance(profile_overrides, Mapping):
+        _deep_merge(base, dict(profile_overrides))
 
     toggles = base.setdefault("toggles", {})
     toggles.setdefault("require_design_input", True)
     toggles.setdefault("auto_attach_overlay_metadata", True)
+    toggles.setdefault("include_overlay_metadata_in_bundles", True)
 
     metadata = base.setdefault("metadata", {})
     metadata.setdefault("profile_applied", selected_mode)
@@ -307,6 +425,9 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         compliance=dict(base.get("compliance", {})),
         policy_automation=dict(base.get("policy_automation", {})),
         pricing=dict(base.get("pricing", {})),
+        limits=dict(base.get("limits", {})),
+        ai_agents=dict(base.get("ai_agents", {})),
+        allowed_data_roots=_resolve_allowlisted_roots(),
     )
 
     policy = config.guardrail_policy
@@ -315,6 +436,31 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "guardrail_thresholds",
         {"fail_on": policy["fail_on"], "warn_on": policy["warn_on"]},
     )
+
+    # Resolve API tokens and validate secret references eagerly.
+    auth_tokens: list[str] = []
+    strategy = (config.auth.get("strategy") or "").lower()
+    if strategy == "token":
+        header_tokens = config.auth.get("tokens")
+        if isinstance(header_tokens, (list, tuple)):
+            auth_tokens.extend(str(token) for token in header_tokens if str(token).strip())
+        token_value = config.auth.get("token")
+        token_env = config.auth.get("token_env")
+        if token_value:
+            auth_tokens.append(str(token_value))
+        if token_env:
+            secret = os.getenv(str(token_env))
+            if not secret:
+                raise RuntimeError(
+                    f"Overlay auth strategy 'token' requires environment variable '{token_env}' to be set"
+                )
+            auth_tokens.append(secret)
+        if not auth_tokens:
+            raise RuntimeError("Token-based auth strategy configured without any API tokens")
+    config.auth_tokens = tuple(dict.fromkeys(auth_tokens))  # remove duplicates while preserving order
+
+    # Validate data directories are within the allowlist at load time.
+    config.data_directories
 
     return config
 

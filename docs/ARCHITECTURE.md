@@ -12,12 +12,19 @@ architecture against market promises.
      feeds, plus the `/pipeline/run` execution route.
    - Loads the overlay configuration during startup and persists it in `app.state.overlay` so every
      request has consistent mode-specific behaviour.
+   - Enforces API-key authentication when the overlay requests token strategy (`X-API-Key` by default).
+   - Streams uploads with overlay-defined byte limits and validates content types before parsing.
    - Creates any data directories declared in the overlay, ensuring Demo and Enterprise evidence
      locations exist before ingesting artefacts.
+   - Exposes a `/feedback` endpoint (when enabled) that writes JSONL decisions into allowlisted
+     directories for audit trails.
 2. **Configuration Loader (`fixops/configuration.py`)**
    - Parses `config/fixops.overlay.yml`, honours the `FIXOPS_OVERLAY_PATH` override, merges
      profile-specific overrides, and applies defaults for toggles and metadata.
-   - Normalises secrets (masking tokens/passwords) before they are exposed via API responses.
+   - Validates the document with Pydantic (rejecting unknown keys), fails fast when required
+     environment variables are missing, and masks secrets before they are exposed via API responses.
+   - Resolves data directories against `FIXOPS_DATA_ROOT_ALLOWLIST` and captures authorised API tokens
+     for the FastAPI layer.
 3. **Normalisation Layer (`backend/normalizers.py`)**
    - Converts raw uploads into rich domain objects (`NormalizedSBOM`, `NormalizedSARIF`,
      `NormalizedCVEFeed`) with helper methods for JSON serialisation.
@@ -29,6 +36,8 @@ architecture against market promises.
    - Normalises severities from SARIF and CVE artefacts, produces aggregate summaries, evaluates
      maturity-aware guardrails, and emits a per-component “crosswalk” that powers downstream evidence
      bundles.
+   - Invokes the AI Agent Advisor (overlay-driven) to flag LangChain/AutoGPT style components and
+     attach recommended controls and playbooks to the pipeline response.
 5. **Overlay-Aware State**
    - The ingestion service stores each uploaded artefact in `app.state.artifacts`. The overlay
      controls which artefacts are required (`OverlayConfig.required_inputs`) and whether metadata is
@@ -37,22 +46,24 @@ architecture against market promises.
 ## Request Lifecycle
 
 1. **Startup**
-   - `create_app()` reads the overlay file (JSON-compatible YAML) and records the active mode (Demo
-     vs Enterprise) in `app.state.overlay`. Any declared data directories are created eagerly.
+   - `create_app()` reads the overlay file (JSON-compatible YAML), validates it against the schema,
+     resolves API keys from environment variables, and records the active mode (Demo vs Enterprise) in
+     `app.state.overlay`. Any declared data directories are created eagerly.
 2. **Artefact Uploads**
-   - Each `/inputs/*` endpoint normalises the uploaded file and persists the structured output in
-     `app.state.artifacts` keyed by stage name. Responses include preview metadata to confirm the
-     upload succeeded.
+   - Each `/inputs/*` endpoint checks the `X-API-Key`, validates content type, streams the file within
+     overlay-defined byte caps, and then normalises the payload before persisting the structured output
+     in `app.state.artifacts`. Responses include preview metadata to confirm the upload succeeded.
 3. **Pipeline Execution**
    - `/pipeline/run` looks at `OverlayConfig.required_inputs`. Missing artefacts are rejected with a
      descriptive HTTP 400. Enterprise mode enforces that Jira configuration is present before
      proceeding when `enforce_ticket_sync` is enabled.
    - `PipelineOrchestrator.run()` receives the cached artefacts, builds token lookups, aggregates
      severities/exploit evidence, and computes guardrail evaluations using the overlay’s maturity
-     profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail), and a
-     crosswalk for evidence bundling.
+     profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail), AI agent
+     analysis (when configured), and a crosswalk for evidence bundling.
    - Overlay metadata is appended to the response (with secrets masked) when the
-     `auto_attach_overlay_metadata` toggle is active.
+     `auto_attach_overlay_metadata` toggle is active. Evidence bundles omit the overlay when
+     `include_overlay_metadata_in_bundles` is disabled.
 
 ## Sequence Diagram
 
@@ -120,9 +131,9 @@ graph TD
   exception stack trace, preventing raw payload leakage.
 - **Overlay Parsing Issues** — `load_overlay()` accepts YAML or JSON. If PyYAML is unavailable the
   loader falls back to JSON parsing and raises a descriptive error when neither succeeds.
-- **Guardrail Misconfiguration** — Setting `guardrails.fail_on`/`warn_on` to unexpected values falls
-  back to defaults; add validation before production so operators receive explicit errors when
-  thresholds are mistyped.
+- **Unauthorised Requests** — Missing/incorrect API keys return HTTP 401; demo mode can swap to
+  `auth.strategy: oidc` when identity delegation is ready.
+- **Oversized Uploads** — Exceeding overlay-defined byte caps returns HTTP 413 with guidance on limits.
 
 ## Mode Differences (Demo vs Enterprise)
 
@@ -131,8 +142,10 @@ graph TD
 | Required artefacts | SBOM, SARIF, CVE (design optional) | Design + SBOM + SARIF + CVE |
 | Jira enforcement | Not enforced (`enforce_ticket_sync=False`) | Enforced; missing config triggers 500 |
 | Guardrail maturity | `foundational` (fail on critical, warn on high) | `advanced` (fail on medium, warn on medium) |
-| Evidence directories | `data/evidence/demo` | `data/evidence/enterprise` + `data/audit` |
-| Metadata attachment | Overlay metadata auto-attached | Same (toggle can be disabled in overlay) |
+| Evidence directories | `data/evidence/demo` | `data/evidence/enterprise` + `data/audit` + feedback archive |
+| Metadata attachment | Overlay metadata auto-attached | Optional; can be disabled for evidence bundles |
+| Feedback capture | Disabled (`capture_feedback=False`) | Enabled; `/feedback` writes JSONL logs |
+| AI agent watchlist | Optional keywords | Expanded watchlist + stricter controls |
 
 The overlay file can be switched to Enterprise by editing `mode: "enterprise"` and adjusting the
 integration payloads. No code changes are required; the FastAPI service adapts at startup.

@@ -1,4 +1,5 @@
 import json
+import json
 from pathlib import Path
 
 import pytest
@@ -54,3 +55,33 @@ def test_guardrail_defaults_when_missing() -> None:
     assert policy["maturity"] == "scaling"
     assert policy["fail_on"] == "high"
     assert policy["warn_on"] == "medium"
+
+
+def test_overlay_rejects_unknown_keys(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    path.write_text(json.dumps({"mode": "demo", "unknown": 1}), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)
+
+
+def test_overlay_rejects_outside_data_directory(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "mode": "demo",
+        "data": {"evidence_dir": "/tmp/forbidden"},
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)
+
+
+def test_token_strategy_requires_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "mode": "demo",
+        "auth": {"strategy": "token", "token_env": "FIXOPS_API_TOKEN"},
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        load_overlay(path)
