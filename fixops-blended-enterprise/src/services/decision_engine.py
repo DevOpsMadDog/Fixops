@@ -7,7 +7,7 @@ import asyncio
 import json
 import time
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from enum import Enum
 from dataclasses import dataclass, asdict
 import structlog
@@ -15,6 +15,7 @@ import structlog
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
 from src.db.session import DatabaseManager
+from src.services.risk_scorer import ContextualRiskScorer
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -48,6 +49,7 @@ class DecisionResult:
     context_sources: List[str]
     demo_mode: bool
 
+
 class DecisionEngine:
     """
     FixOps Decision & Verification Engine - Dual Mode
@@ -60,7 +62,8 @@ class DecisionEngine:
         self.cache = CacheService.get_instance()
         self.emergent_client = None
         self.demo_mode = settings.DEMO_MODE
-        
+        self.risk_scorer = ContextualRiskScorer()
+
         # Real production components (only initialized in production mode)
         self.real_vector_db = None
         self.real_jira_client = None
@@ -325,8 +328,11 @@ class DecisionEngine:
     async def make_decision(self, context: DecisionContext) -> DecisionResult:
         """Make a security decision based on mode (demo vs production)"""
         start_time = time.perf_counter()
-        
+
         try:
+            context.security_findings = self.risk_scorer.apply(
+                context.security_findings, context.business_context
+            )
             if self.demo_mode:
                 result = await self._make_demo_decision(context, start_time)
             else:
@@ -738,7 +744,7 @@ class DecisionEngine:
             vulnerabilities = []
             for finding in context.security_findings:
                 vuln_data = {
-                    "severity": finding.get("severity", "MEDIUM").upper(),
+                    "severity": self._effective_severity(finding),
                     "fix_available": finding.get("fix_available", False),
                     "cve_id": finding.get("cve") or finding.get("cve_id"),
                     "title": finding.get("title", ""),
@@ -877,8 +883,12 @@ class DecisionEngine:
                 trivy_result = {
                     "status": "success",
                     "vulnerabilities_found": len(context.security_findings),
-                    "critical_count": len([f for f in context.security_findings if f.get("severity") == "CRITICAL"]),
-                    "high_count": len([f for f in context.security_findings if f.get("severity") == "HIGH"])
+                    "critical_count": len([
+                        f for f in context.security_findings if self._effective_severity(f) == "CRITICAL"
+                    ]),
+                    "high_count": len([
+                        f for f in context.security_findings if self._effective_severity(f) == "HIGH"
+                    ])
                 }
                 results["tools_used"].append("trivy")
                 results["trivy_results"] = trivy_result
@@ -892,7 +902,9 @@ class DecisionEngine:
                 grype_result = {
                     "status": "success", 
                     "vulnerabilities_found": len(context.security_findings),
-                    "critical_count": len([f for f in context.security_findings if f.get("severity") == "CRITICAL"])
+                    "critical_count": len([
+                        f for f in context.security_findings if self._effective_severity(f) == "CRITICAL"
+                    ])
                 }
                 results["tools_used"].append("grype")
                 results["grype_results"] = grype_result
@@ -900,8 +912,12 @@ class DecisionEngine:
                 logger.error(f"Grype SBOM scan failed: {str(e)}")
         
         # Determine overall criticality
-        critical_vulns = len([f for f in context.security_findings if f.get("severity") == "CRITICAL"])
-        high_vulns = len([f for f in context.security_findings if f.get("severity") == "HIGH"])
+        critical_vulns = len([
+            f for f in context.security_findings if self._effective_severity(f) == "CRITICAL"
+        ])
+        high_vulns = len([
+            f for f in context.security_findings if self._effective_severity(f) == "HIGH"
+        ])
         
         if critical_vulns > 0:
             results["criticality"] = "critical"
@@ -1211,8 +1227,11 @@ class DecisionEngine:
             # Create Markov states from security findings
             markov_states = []
             for finding in context.security_findings:
+                effective_severity = self._effective_severity(finding)
                 markov_state = MarkovState(
-                    current_state="vulnerable" if finding.get("severity") in ["HIGH", "CRITICAL"] else "secure",
+                    current_state="vulnerable"
+                    if effective_severity in ["HIGH", "CRITICAL"]
+                    else "secure",
                     cve_id=finding.get("cve"),
                     epss_score=finding.get("epss_score", 0.5),
                     kev_flag=finding.get("kev_flag", False),
@@ -1260,7 +1279,20 @@ class DecisionEngine:
         except Exception as e:
             logger.error(f"Processing Layer execution failed: {str(e)}")
             raise
-    
+
+    def _effective_severity(self, finding: Dict[str, Any]) -> str:
+        severity = (
+            finding.get("fixops_severity")
+            or finding.get("risk_tier")
+            or finding.get("severity")
+        )
+        if not severity:
+            return "MEDIUM"
+        normalized = str(severity).upper()
+        if normalized not in ContextualRiskScorer._SEVERITY_ORDER:
+            return "MEDIUM"
+        return normalized
+
     def _extract_exploitation_level(self, context) -> str:
         """Extract exploitation level from context for SSVC"""
         # Check if any CVE has active exploitation
@@ -1284,7 +1316,9 @@ class DecisionEngine:
     def _extract_utility_level(self, context) -> str:
         """Extract utility level from context for SSVC"""
         # Check severity of findings to determine utility
-        critical_count = len([f for f in context.security_findings if f.get("severity") == "CRITICAL"])
+        critical_count = len([
+            f for f in context.security_findings if self._effective_severity(f) == "CRITICAL"
+        ])
         if critical_count > 2:
             return "super_effective"
         elif critical_count > 0:
@@ -1307,7 +1341,9 @@ class DecisionEngine:
         """Extract mission impact from context for SSVC"""
         # Determine based on criticality and findings
         if context.environment.lower() == "production":
-            critical_findings = len([f for f in context.security_findings if f.get("severity") == "CRITICAL"])
+            critical_findings = len([
+                f for f in context.security_findings if self._effective_severity(f) == "CRITICAL"
+            ])
             if critical_findings > 3:
                 return "mev"  # Mission Essential Degraded
             elif critical_findings > 0:
