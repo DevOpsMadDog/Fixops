@@ -4,14 +4,19 @@ Handles switching between demo and production modes
 """
 
 import os
+from typing import List
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import structlog
 
-from src.config.settings import get_settings
+from src.config.settings import get_settings, reload_settings
+from src.services.decision_engine import refresh_decision_engine_settings
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/system-mode", tags=["system-management"])
+
+VALID_MODES = {"demo", "production"}
 
 class ModeToggleRequest(BaseModel):
     target_mode: str  # "demo" or "production"
@@ -24,27 +29,37 @@ class ModeToggleResponse(BaseModel):
     missing_requirements: list[str]
     restart_required: bool
 
+def _missing_production_requirements(settings) -> List[str]:
+    missing: List[str] = []
+
+    if not settings.EMERGENT_LLM_KEY:
+        missing.append("EMERGENT_LLM_KEY")
+
+    if not (settings.JIRA_URL and settings.JIRA_USERNAME and settings.JIRA_API_TOKEN):
+        missing.append("JIRA_CREDENTIALS")
+
+    if not (settings.CONFLUENCE_URL and settings.CONFLUENCE_USERNAME and settings.CONFLUENCE_API_TOKEN):
+        missing.append("CONFLUENCE_CREDENTIALS")
+
+    if not (settings.PGVECTOR_ENABLED and settings.PGVECTOR_DSN):
+        missing.append("PGVECTOR_DSN")
+
+    if not settings.THREAT_INTEL_API_KEY:
+        missing.append("THREAT_INTEL_API_KEY")
+
+    if not os.getenv("OPA_SERVER_URL"):
+        missing.append("OPA_SERVER")
+
+    return missing
+
+
 @router.get("/current")
 async def get_current_mode():
     """Get current system mode and readiness status"""
     try:
         settings = get_settings()
-        
-        # Check production readiness
-        missing_requirements = []
-        
-        if not settings.EMERGENT_LLM_KEY:
-            missing_requirements.append("EMERGENT_LLM_KEY")
-        
-        # Note: OPA server check would require actual network call
-        missing_requirements.append("OPA_SERVER")  # Assume not available
-        
-        if not (settings.JIRA_URL and settings.JIRA_USERNAME and settings.JIRA_API_TOKEN):
-            missing_requirements.append("JIRA_CREDENTIALS")
-            
-        if not (settings.CONFLUENCE_URL and settings.CONFLUENCE_USERNAME and settings.CONFLUENCE_API_TOKEN):
-            missing_requirements.append("CONFLUENCE_CREDENTIALS")
-        
+        missing_requirements = _missing_production_requirements(settings)
+
         return {
             "status": "success",
             "data": {
@@ -57,7 +72,7 @@ async def get_current_mode():
                     "decision_engine": "operational",
                     "vector_database": "demo" if settings.DEMO_MODE else ("operational" if settings.PGVECTOR_ENABLED else "needs_config"),
                     "llm_consensus": "demo" if settings.DEMO_MODE else ("operational" if settings.EMERGENT_LLM_KEY else "needs_keys"),
-                    "policy_engine": "demo" if settings.DEMO_MODE else "needs_server",
+                    "policy_engine": "demo" if settings.DEMO_MODE else ("operational" if "OPA_SERVER" not in missing_requirements else "needs_server"),
                     "evidence_lake": "operational"
                 }
             }
@@ -76,20 +91,23 @@ async def toggle_system_mode(request: ModeToggleRequest):
     try:
         settings = get_settings()
         current_mode = "demo" if settings.DEMO_MODE else "production"
-        
-        if request.target_mode == current_mode:
+        previous_mode = current_mode
+        target_mode = request.target_mode.strip().lower()
+
+        if target_mode not in VALID_MODES:
+            raise HTTPException(status_code=400, detail=f"Unsupported mode '{request.target_mode}'")
+
+        if target_mode == current_mode:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"System already in {current_mode} mode"
             )
-        
+
         # Check production readiness if switching to production
-        missing_requirements = []
-        if request.target_mode == "production":
-            if not settings.EMERGENT_LLM_KEY:
-                missing_requirements.append("EMERGENT_LLM_KEY")
-            # Add other production checks here
-            
+        missing_requirements: List[str] = []
+        if target_mode == "production":
+            missing_requirements = _missing_production_requirements(settings)
+
             if missing_requirements and not request.force:
                 raise HTTPException(
                     status_code=400,
@@ -99,19 +117,32 @@ async def toggle_system_mode(request: ModeToggleRequest):
                         "message": "Use force=true to switch anyway"
                     }
                 )
-        
-        # In container environment, mode switching requires environment variable change
-        # This would typically be handled by the deployment system
+
+        new_demo_mode = target_mode == "demo"
+
+        # Apply mode change for the current process
+        os.environ["DEMO_MODE"] = "true" if new_demo_mode else "false"
+        reloaded = reload_settings()
+        await refresh_decision_engine_settings(force=True)
+
+        updated_settings = reloaded
+        current_mode = "demo" if updated_settings.DEMO_MODE else "production"
+
         response = ModeToggleResponse(
             current_mode=current_mode,
-            previous_mode=current_mode,
+            previous_mode=previous_mode,
             requirements_met=len(missing_requirements) == 0,
             missing_requirements=missing_requirements,
-            restart_required=True
+            restart_required=len(missing_requirements) > 0
         )
-        
-        logger.info(f"Mode toggle requested: {current_mode} -> {request.target_mode}")
-        
+
+        logger.info(
+            "Mode toggle processed",
+            previous_mode=response.previous_mode,
+            current_mode=response.current_mode,
+            requirements_met=response.requirements_met,
+        )
+
         return response
         
     except HTTPException:

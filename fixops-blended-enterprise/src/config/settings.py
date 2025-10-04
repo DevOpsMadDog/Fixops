@@ -139,3 +139,10 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached application settings"""
     return Settings()
+
+
+def reload_settings() -> Settings:
+    """Clear the cached settings instance and return a fresh copy."""
+
+    get_settings.cache_clear()
+    return get_settings()

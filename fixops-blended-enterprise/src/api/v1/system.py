@@ -9,12 +9,13 @@ from src.config.settings import get_settings
 
 router = APIRouter(prefix="/system", tags=["system-status"])
 logger = structlog.get_logger()
-settings = get_settings()
 
 @router.get("/status")
 async def system_status():
     try:
         now = datetime.now(timezone.utc).isoformat()
+        settings = get_settings()
+
         return {
             "status": "ok",
             "timestamp": now,

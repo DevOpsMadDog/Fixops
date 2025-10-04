@@ -67,20 +67,40 @@ class DecisionEngine:
 
         # Real production components (only initialized in production mode)
         self.real_vector_db = None
+        self.real_vector_db_stats = {}
         self.real_jira_client = None
         self.real_confluence_client = None
         self.real_threat_intel = None
         self.oss_integrations = None
         self.processing_layer = None
-        
+
         # Demo mode data
+        self.demo_data = {}
+
+        # Track initialization mode so we can detect runtime switches
+        self._last_initialized_mode: Optional[bool] = None
+
+    def _reset_runtime_state(self) -> None:
+        """Clear runtime integrations so the engine can be re-initialised safely."""
+
+        self.emergent_client = None
+        self.real_vector_db = None
+        self.real_vector_db_stats = {}
+        self.real_jira_client = None
+        self.real_confluence_client = None
+        self.real_threat_intel = None
+        self.oss_integrations = None
+        self.processing_layer = None
         self.demo_data = {}
         
     async def initialize(self):
         """Initialize decision engine components based on mode"""
         try:
             logger.info(f"Initializing Decision Engine in {'DEMO' if self.demo_mode else 'PRODUCTION'} mode")
-            
+
+            # Reset runtime state so toggling modes doesn't leak previous integrations
+            self._reset_runtime_state()
+
             # Initialize Emergent LLM (both modes)
             if settings.EMERGENT_LLM_KEY:
                 try:
@@ -98,12 +118,22 @@ class DecisionEngine:
                 await self._initialize_demo_mode()
             else:
                 await self._initialize_production_mode()
-                
+
             logger.info("Decision Engine initialized successfully")
-            
+            self._last_initialized_mode = self.demo_mode
+
         except Exception as e:
             logger.error(f"Decision Engine initialization failed: {str(e)}")
             raise
+
+    async def apply_mode(self, demo_mode: bool, *, force: bool = False) -> None:
+        """Reconfigure the decision engine for the requested mode."""
+
+        if not force and self._last_initialized_mode == demo_mode:
+            return
+
+        self.demo_mode = demo_mode
+        await self.initialize()
 
     async def _initialize_demo_mode(self):
         """Initialize with simulated data for demo/showcase"""
@@ -1419,6 +1449,14 @@ class DecisionEngine:
 
 # Global instance
 decision_engine = DecisionEngine()
+
+
+async def refresh_decision_engine_settings(force: bool = True) -> None:
+    """Reload configuration and re-initialise the global engine instance."""
+
+    global settings
+    settings = get_settings()
+    await decision_engine.apply_mode(settings.DEMO_MODE, force=force)
 
 # Helper functions for metrics
 def _get_service_type(service_name: str) -> str:
