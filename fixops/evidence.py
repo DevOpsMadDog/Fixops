@@ -73,6 +73,7 @@ class EvidenceHub:
         _include("compliance_status", compliance_status)
         _include("policy_automation", policy_summary)
         _include("ai_agent_analysis", pipeline_result.get("ai_agent_analysis"))
+        _include("probabilistic_forecast", pipeline_result.get("probabilistic_forecast"))
         _include("exploitability_insights", pipeline_result.get("exploitability_insights"))
         _include("ssdlc_assessment", pipeline_result.get("ssdlc_assessment"))
         _include("iac_posture", pipeline_result.get("iac_posture"))

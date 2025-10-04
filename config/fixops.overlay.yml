@@ -24,9 +24,9 @@
     "token_env": "FIXOPS_API_TOKEN"
   },
   "data": {
-    "design_context_dir": "data/design_context/demo",
-    "evidence_dir": "data/evidence/demo",
-    "feedback_dir": "data/feedback/demo"
+    "design_context_dir": "design_context/demo",
+    "evidence_dir": "evidence/demo",
+    "feedback_dir": "feedback/demo"
   },
   "toggles": {
     "require_design_input": false,
@@ -45,6 +45,7 @@
     "ai_agents": {"enabled": true},
     "ssdlc": {"enabled": true},
     "exploit_signals": {"enabled": true},
+    "probabilistic": {"enabled": true},
     "pricing": {"enabled": true},
     "iac_posture": {"enabled": true},
     "custom": []
@@ -104,6 +105,7 @@
       "context_summary",
       "guardrail_evaluation",
       "compliance_status",
+      "probabilistic_forecast",
       "ai_agent_analysis",
       "ssdlc_assessment"
     ],
@@ -421,6 +423,36 @@
       }
     }
   },
+  "probabilistic": {
+    "bayesian_prior": {
+      "low": 0.4,
+      "medium": 0.9,
+      "high": 1.2,
+      "critical": 1.4
+    },
+    "markov_transitions": {
+      "low": {"low": 0.82, "medium": 0.15, "high": 0.03},
+      "medium": {"medium": 0.62, "high": 0.28, "critical": 0.1},
+      "high": {"high": 0.55, "critical": 0.3, "medium": 0.15},
+      "critical": {"critical": 0.72, "high": 0.28}
+    },
+    "component_limit": 5,
+    "escalate_from": "medium",
+    "profiles": {
+      "enterprise": {
+        "component_limit": 8,
+        "bayesian_prior": {
+          "medium": 1.1,
+          "high": 1.5,
+          "critical": 1.8
+        },
+        "markov_transitions": {
+          "medium": {"medium": 0.55, "high": 0.32, "critical": 0.13},
+          "high": {"high": 0.5, "critical": 0.35, "medium": 0.15}
+        }
+      }
+    }
+  },
   "pricing": {
     "plans": [
       {
@@ -465,10 +497,10 @@
         "client_id": "fixops-enterprise"
       },
       "data": {
-        "design_context_dir": "data/design_context/enterprise",
-        "evidence_dir": "data/evidence/enterprise",
-        "audit_export_dir": "data/audit",
-        "feedback_dir": "data/feedback/enterprise"
+        "design_context_dir": "design_context/enterprise",
+        "evidence_dir": "evidence/enterprise",
+        "audit_export_dir": "audit",
+        "feedback_dir": "feedback/enterprise"
       },
       "toggles": {
         "require_design_input": true,

@@ -85,6 +85,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "exploit_signals",
     "modules",
     "iac",
+    "probabilistic",
     "profiles",
 }
 
@@ -114,6 +115,7 @@ class _OverlayDocument(BaseModel):
     exploit_signals: Optional[Dict[str, Any]] = None
     modules: Optional[Dict[str, Any]] = None
     iac: Optional[Dict[str, Any]] = None
+    probabilistic: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     class Config:
@@ -171,6 +173,7 @@ class OverlayConfig:
     exploit_signals: Dict[str, Any] = field(default_factory=dict)
     modules: Dict[str, Any] = field(default_factory=dict)
     iac: Dict[str, Any] = field(default_factory=dict)
+    probabilistic: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(default_factory=lambda: (_DEFAULT_DATA_ROOT,))
     auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
 
@@ -221,6 +224,7 @@ class OverlayConfig:
             "exploit_signals": self.exploit_settings,
             "modules": self.module_matrix,
             "iac": self.iac_settings,
+            "probabilistic": self.probabilistic_settings,
         }
         return payload
 
@@ -403,6 +407,19 @@ class OverlayConfig:
         return metadata
 
     @property
+    def probabilistic_settings(self) -> Dict[str, Any]:
+        settings = dict(self.probabilistic)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
+    @property
     def iac_settings(self) -> Dict[str, Any]:
         settings = dict(self.iac)
         targets: list[Dict[str, Any]] = []
@@ -485,6 +502,7 @@ class OverlayConfig:
             "ai_agents",
             "ssdlc",
             "exploit_signals",
+            "probabilistic",
             "pricing",
             "iac_posture",
         ]
@@ -576,6 +594,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "exploit_signals": document.exploit_signals or {},
         "modules": document.modules or {},
         "iac": document.iac or {},
+        "probabilistic": document.probabilistic or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -599,6 +618,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "ai_agents": True,
         "ssdlc": True,
         "exploit_signals": True,
+        "probabilistic": True,
         "pricing": True,
         "iac_posture": True,
     }
@@ -640,6 +660,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         exploit_signals=dict(base.get("exploit_signals", {})),
         modules=dict(base.get("modules", {})),
         iac=dict(base.get("iac", {})),
+        probabilistic=dict(base.get("probabilistic", {})),
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

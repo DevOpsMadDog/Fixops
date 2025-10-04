@@ -36,3 +36,4 @@ impact, and remediation plan.
 
 - Expand policy automation to execute downstream actions (Jira/Confluence) instead of planning only.
 - Capture feedback analytics (counts, sentiment) and surface in pricing/ROI dashboards.
+- Add calibration tooling for the probabilistic forecast engine (Bayesian priors & Markov transitions) so tenants can tune matrices using historical incident data.

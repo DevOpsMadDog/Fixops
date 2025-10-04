@@ -11,6 +11,7 @@ from fixops.evidence import EvidenceHub
 from fixops.compliance import ComplianceEvaluator
 from fixops.onboarding import OnboardingGuide
 from fixops.policy import PolicyAutomation
+from fixops.probabilistic import ProbabilisticForecastEngine
 from fixops.ssdlc import SSDLCEvaluator
 from fixops.exploit_signals import ExploitSignalEvaluator
 from fixops.iac import IaCPostureEvaluator
@@ -425,6 +426,19 @@ class PipelineOrchestrator:
                 executed_modules.append("exploit_signals")
             else:
                 modules_status["exploit_signals"] = "disabled"
+
+            if overlay.is_module_enabled("probabilistic"):
+                probabilistic = ProbabilisticForecastEngine(overlay.probabilistic_settings)
+                forecast = probabilistic.evaluate(
+                    severity_counts=result["severity_overview"]["counts"],
+                    crosswalk=crosswalk,
+                    exploited_records=[record.to_dict() for record in cve.records],
+                )
+                result["probabilistic_forecast"] = forecast
+                modules_status["probabilistic"] = "executed"
+                executed_modules.append("probabilistic")
+            else:
+                modules_status["probabilistic"] = "disabled"
 
             if overlay.is_module_enabled("iac_posture"):
                 iac_settings = dict(overlay.iac_settings)

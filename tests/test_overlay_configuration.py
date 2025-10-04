@@ -59,12 +59,14 @@ def test_guardrail_defaults_when_missing() -> None:
     assert policy["fail_on"] == "high"
     assert policy["warn_on"] == "medium"
     assert config.is_module_enabled("guardrails") is True
+    assert config.is_module_enabled("probabilistic") is True
 
 
 def test_module_defaults_and_custom_specs() -> None:
     overlay = OverlayConfig(
         modules={
             "guardrails": {"enabled": False},
+            "probabilistic": {"enabled": False},
             "custom": [
                 {
                     "name": "demo",
@@ -75,6 +77,7 @@ def test_module_defaults_and_custom_specs() -> None:
         }
     )
     assert overlay.is_module_enabled("guardrails") is False
+    assert overlay.is_module_enabled("probabilistic") is False
     assert overlay.custom_module_specs[0]["name"] == "demo"
     assert overlay.enabled_modules and "custom:demo" not in overlay.enabled_modules
 

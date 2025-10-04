@@ -36,6 +36,8 @@ architecture against market promises.
    - Normalises severities from SARIF and CVE artefacts, produces aggregate summaries, evaluates
      maturity-aware guardrails, and emits a per-component “crosswalk” that powers downstream evidence
      bundles.
+   - Executes the probabilistic forecast engine (Bayesian prior blending + Markov transition model)
+     when enabled, generating escalation predictions and entropy metrics for the evidence bundle.
    - Invokes the AI Agent Advisor (overlay-driven) to flag LangChain/AutoGPT style components and
      attach recommended controls and playbooks to the pipeline response.
    - Runs the overlay-configured `ExploitSignalEvaluator` to surface EPSS/KEV-driven
@@ -68,7 +70,7 @@ architecture against market promises.
      SSDLC stage coverage, AI agent analysis (when configured), exploitability insights, IaC
      posture summaries, and a crosswalk for evidence bundling.
    - The overlay’s module registry toggles each feature (guardrails, context engine, compliance,
-     evidence hub, pricing, AI, exploitability, SSDLC, IaC). Execution outcomes are captured in
+     probabilistic forecasting, evidence hub, pricing, AI, exploitability, SSDLC, IaC). Execution outcomes are captured in
      `pipeline_result["modules"]` and persisted into evidence bundles for traceability.
    - Overlay metadata is appended to the response (with secrets masked) when the
      `auto_attach_overlay_metadata` toggle is active. Evidence bundles omit the overlay when
@@ -112,6 +114,7 @@ graph TD
         B[OverlayConfig]
         C[InputNormalizer]
         D[PipelineOrchestrator]
+        K[ProbabilisticForecastEngine]
         H[IaCPostureEvaluator]
         I[Custom Module Hooks]
         J[EvidenceHub]
@@ -129,6 +132,9 @@ graph TD
     A --> D
     B --> A
     B --> G
+    D --> K
+    K --> J
+    D --> J
     D --> H
     D --> I
     D --> J

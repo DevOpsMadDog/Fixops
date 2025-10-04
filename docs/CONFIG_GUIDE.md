@@ -37,10 +37,11 @@ auth:
   token_env: FIXOPS_API_TOKEN
   client_id: fixops-enterprise
 data:
-  design_context_dir: data/design_context/demo
-  evidence_dir: data/evidence/demo
-  feedback_dir: data/feedback/demo
-  audit_export_dir: data/audit
+  design_context_dir: design_context/demo
+  evidence_dir: evidence/demo
+  feedback_dir: feedback/demo
+  audit_export_dir: audit
+# (relative paths resolve against the first entry in `FIXOPS_DATA_ROOT_ALLOWLIST`, defaulting to `./data`)
 toggles:
   require_design_input: false
   auto_attach_overlay_metadata: true
@@ -117,6 +118,18 @@ exploit_signals:
       mode: probability
       fields: [epss]
       threshold: 0.5
+probabilistic:
+  bayesian_prior:
+    low: 0.4
+    medium: 0.9
+    high: 1.2
+    critical: 1.4
+  markov_transitions:
+    medium:
+      medium: 0.6
+      high: 0.3
+      critical: 0.1
+  component_limit: 5
 pricing:
   plans:
     - name: Launch
@@ -132,7 +145,7 @@ All keys are optional. Missing sections default to empty dictionaries. Toggle de
 
 ### Module registry and feature toggles
 
-- `modules.guardrails`, `modules.context_engine`, `modules.compliance`, etc. wrap each pipeline feature
+- `modules.guardrails`, `modules.context_engine`, `modules.compliance`, `modules.probabilistic`, etc.
   in a Terraform-like module switch. Set `enabled: false` to disable a feature for a profile without
   editing code. Omitted modules default to `enabled: true`.
 - `modules.custom` accepts a list of custom pipeline hooks. Each entry requires:
@@ -156,6 +169,19 @@ modules:
       config:
         channel: finops-alerts
 ```
+
+### Probabilistic risk forecasting module
+
+- Configure Bayesian priors under `probabilistic.bayesian_prior`. The loader normalises the weights so
+  relative emphasis matters more than the absolute numbers.
+- Describe Markov state transitions with `probabilistic.markov_transitions`. Each severity row should
+  sum to 1.0; the loader normalises rows if necessary.
+- `component_limit` caps how many high-risk components the forecast returns. Increase it in
+  enterprise overlays to surface broader blast-radius views.
+- Set `escalate_from` to the minimum severity that should be treated as a candidate for transition
+  analysis (defaults to `medium`).
+- Per-mode overrides live under `probabilistic.profiles.<mode>` and can refine priors or transitions
+  without touching the base profile.
 
 ### Infrastructure-as-code coverage
 
@@ -205,9 +231,9 @@ auth:
   strategy: token
   token_env: FIXOPS_API_TOKEN
 data:
-  design_context_dir: data/design_context/demo
-  evidence_dir: data/evidence/demo
-  feedback_dir: data/feedback/demo
+  design_context_dir: design_context/demo
+  evidence_dir: evidence/demo
+  feedback_dir: feedback/demo
 toggles:
   require_design_input: false
   auto_attach_overlay_metadata: true
@@ -287,10 +313,10 @@ profiles:
       strategy: oidc
       client_id: fixops-enterprise
     data:
-      design_context_dir: data/design_context/enterprise
-      evidence_dir: data/evidence/enterprise
-      audit_export_dir: data/audit
-      feedback_dir: data/feedback/enterprise
+      design_context_dir: design_context/enterprise
+      evidence_dir: evidence/enterprise
+      audit_export_dir: audit
+      feedback_dir: feedback/enterprise
     toggles:
       require_design_input: true
       auto_attach_overlay_metadata: true

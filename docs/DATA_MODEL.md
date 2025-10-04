@@ -27,6 +27,8 @@ configuration. Each description lists core fields, invariants, and persistence n
   `AIAgentAdvisor` to build governance summaries.
 - **exploit_signals** (`dict`): Signal definitions (e.g., KEV boolean checks, EPSS probability
   thresholds) merged per mode and evaluated by `ExploitSignalEvaluator`.
+- **probabilistic** (`dict`): Bayesian prior weights, Markov transition matrices, component limits,
+  and per-mode overrides feeding the `ProbabilisticForecastEngine`.
 - **ssdlc** (`dict`): Stage requirements and per-mode overrides powering lifecycle assessments.
 
 ## Normalisation Models (`backend/normalizers.py`)
@@ -76,6 +78,8 @@ configuration. Each description lists core fields, invariants, and persistence n
   compliance state.
 - `ai_agent_analysis`: Detection summary for configured AI frameworks plus residual risks and
   playbook routing.
+- `probabilistic_forecast`: Posterior severity distribution, next-state Markov projection, entropy,
+  and top component escalation probabilities produced by the probabilistic engine when enabled.
 - `exploitability_insights`: EPSS/KEV matches, thresholds, and recommended escalations emitted by the
   exploit signal evaluator when signals are configured.
 - `ssdlc_assessment`: Stage coverage summary (plan→audit) including unmet requirements.

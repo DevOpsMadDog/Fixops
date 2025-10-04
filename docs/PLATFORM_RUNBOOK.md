@@ -14,6 +14,7 @@ This runbook summarises the shipped feature set, end-to-end data flow, CLI/API t
 | Evidence hub | Persisted bundles, manifests, feedback capture integration | `fixops/evidence.py`, `fixops/feedback.py` |
 | AI agent advisor | Framework detection, control recommendations, playbook routing | `fixops/ai_agents.py` |
 | Exploitability signals | EPSS/KEV-driven exploit context and escalation hints | `fixops/exploit_signals.py`, `config/fixops.overlay.yml` |
+| Probabilistic forecast engine | Bayesian priors + Markov transitions yielding escalation metrics | `fixops/probabilistic.py`, `backend/pipeline.py` |
 | SSDLC evaluator | Stage-by-stage lifecycle coverage report | `fixops/ssdlc.py` |
 | IaC posture evaluator | Multi-cloud/on-prem coverage with artefact gap detection | `fixops/iac.py`, `config/fixops.overlay.yml` |
 | CVE contextual simulation | Log4Shell demo vs enterprise evidence bundles | `simulations/cve_scenario/runner.py` |
@@ -34,6 +35,7 @@ flowchart LR
     C -->|Results| H[SSDLCEvaluator]
     C -->|Results| P[IaC Posture Evaluator]
     C -->|Signals| O[Exploit Signal Evaluator]
+    C -->|Posterior| R[Probabilistic Forecast Engine]
     C -->|Custom specs| Q[Custom Module Hooks]
     D --> I[EvidenceHub]
     E --> I
@@ -42,6 +44,8 @@ flowchart LR
     H --> I
     P --> I
     O --> I
+    R --> I
+    R --> N
     Q --> I
     I --> J[Evidence bundle & manifest]
     C --> K[Pricing Summary]
@@ -97,7 +101,7 @@ curl -X POST \
   http://127.0.0.1:8000/pipeline/run | jq
 ```
 
-Each response includes mode, severity breakdowns, exploitability insights, context summaries, AI agent findings, SSDLC assessment, guardrail status, evidence bundle pointers, and pricing plan metadata.
+Each response includes mode, severity breakdowns, probabilistic forecasts, exploitability insights, context summaries, AI agent findings, SSDLC assessment, guardrail status, evidence bundle pointers, and pricing plan metadata.
 
 ### CVE contextual scoring simulation
 
@@ -145,6 +149,7 @@ The script leverages the blended enterprise scorer to contrast scanner severitie
    - Compliance frameworks with satisfied/in-progress status
    - Policy automation action plans
    - AI agent matches and recommendations
+   - Probabilistic forecast metrics (posterior distribution, escalation candidates)
    - SSDLC stage summary and requirement rollups
    - Evidence bundle manifest paths
    - Pricing summary with active plan
