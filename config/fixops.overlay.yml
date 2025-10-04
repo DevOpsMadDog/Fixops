@@ -32,6 +32,14 @@
     "auto_attach_overlay_metadata": true,
     "enforce_ticket_sync": false
   },
+  "guardrails": {
+    "maturity": "foundational",
+    "profiles": {
+      "foundational": {"fail_on": "critical", "warn_on": "high"},
+      "scaling": {"fail_on": "high", "warn_on": "medium"},
+      "advanced": {"fail_on": "medium", "warn_on": "medium"}
+    }
+  },
   "profiles": {
     "enterprise": {
       "mode": "enterprise",
@@ -66,6 +74,9 @@
         "require_design_input": true,
         "enforce_ticket_sync": true,
         "capture_feedback": true
+      },
+      "guardrails": {
+        "maturity": "advanced"
       }
     }
   }

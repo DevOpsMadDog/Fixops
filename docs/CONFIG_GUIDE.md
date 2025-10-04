@@ -43,6 +43,14 @@ toggles:
   auto_attach_overlay_metadata: true
   enforce_ticket_sync: false
   capture_feedback: false
+guardrails:
+  maturity: foundational | scaling | advanced
+  fail_on: (optional) critical | high | medium | low
+  warn_on: (optional) critical | high | medium | low
+  profiles:
+    scaling:
+      fail_on: high
+      warn_on: medium
 profiles:
   enterprise:
     mode: enterprise
@@ -80,6 +88,12 @@ data:
 toggles:
   require_design_input: false
   auto_attach_overlay_metadata: true
+guardrails:
+  maturity: foundational
+  profiles:
+    foundational:
+      fail_on: critical
+      warn_on: high
 ```
 
 ## Enterprise Mode Example
@@ -116,6 +130,8 @@ profiles:
       auto_attach_overlay_metadata: true
       enforce_ticket_sync: true
       capture_feedback: true
+    guardrails:
+      maturity: advanced
 ```
 
 > Tip: you can keep Demo defaults in the base document and only specify overrides inside the
@@ -129,3 +145,5 @@ profiles:
 3. **Restart the API** after modifying the overlay file to reload the configuration.
 4. **Monitor responses** — the `/pipeline/run` payload includes an `overlay` block with masked values so
    you can confirm which profile is active.
+5. **Review guardrails** — pipeline results now include `guardrail_evaluation` summarising the active
+   maturity tier, warn/fail thresholds, and whether the latest artefacts triggered an alert.

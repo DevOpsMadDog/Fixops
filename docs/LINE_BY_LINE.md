@@ -7,12 +7,12 @@ obvious imports are grouped for readability.
 
 | Lines | Description |
 | ----- | ----------- |
-| 1-16 | Imports, logger setup, and overlay loader wiring. |
-| 19-41 | `create_app()` initialises FastAPI, configures permissive CORS, instantiates helpers, loads the overlay, and creates any declared data directories. |
-| 43-45 | `_store()` helper centralises writing artefacts into `app.state.artifacts` with debug logging. |
-| 47-65 | `/inputs/design` endpoint parses the uploaded CSV, rejects empty payloads, stores the dataset, and returns metadata plus raw rows. |
-| 67-118 | `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` normalise uploads via `InputNormalizer`, wrap parser failures in HTTP 400 responses, and return summaries for UI previews. |
-| 120-149 | `/pipeline/run` enforces overlay-driven required inputs, validates Jira configuration when ticket sync is mandatory, runs the orchestrator, and appends sanitised overlay metadata (including required inputs) to the response. |
+| 1-17 | Imports, logger setup, and overlay loader wiring. |
+| 20-42 | `create_app()` initialises FastAPI, configures permissive CORS, instantiates helpers, loads the overlay, and creates any declared data directories. |
+| 44-46 | `_store()` helper centralises writing artefacts into `app.state.artifacts` with debug logging. |
+| 48-66 | `/inputs/design` endpoint parses the uploaded CSV, rejects empty payloads, stores the dataset, and returns metadata plus raw rows. |
+| 68-121 | `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` normalise uploads via `InputNormalizer`, wrap parser failures in HTTP 400 responses, and return summaries for UI previews. |
+| 123-153 | `/pipeline/run` enforces overlay-driven required inputs, validates Jira configuration when ticket sync is mandatory, runs the orchestrator with the active overlay so guardrail evaluation occurs, and appends sanitised overlay metadata (including required inputs) to the response. |
 
 ## `backend/normalizers.py`
 
@@ -34,13 +34,11 @@ obvious imports are grouped for readability.
 
 | Lines | Description |
 | ----- | ----------- |
-| 1-18 | Imports, shared `_lower` helper, and class docstring. |
-| 21-36 | `_extract_component_name` trims design row values across canonical keys. |
-| 38-58 | `_build_finding_search_text` assembles a searchable string once per SARIF finding, handling non-serialisable targets gracefully. |
-| 60-69 | `_build_record_search_text` mirrors the search-text logic for CVE records. |
-| 71-79 | `_match_components` constructs a lowercase index of SBOM components for constant-time lookups. |
-| 81-141 | `run()` builds the design list, precomputes lowercase tokens, indexes SBOM components, aggregates severity/exploitation statistics, and precomputes finding/CVE matches per token using `defaultdict` caches to avoid redundant scans. |
-| 143-162 | Crosswalk assembly attaches matches to each design row and prepares the final response with summaries for every artefact. |
+| 1-32 | Imports, severity constants, and class docstring. |
+| 35-73 | `_extract_component_name`, `_build_finding_search_text`, `_build_record_search_text`, and `_match_components` construct design tokens and component lookups. |
+| 75-133 | Severity helpers normalise SARIF levels and CVE severities, resolve threshold rankings, and prepare guardrail evaluation utilities. |
+| 135-229 | `run()` builds the design list, precomputes lowercase tokens, indexes SBOM components, aggregates severity/exploitation statistics (including per-source counts), computes the maturity-aware guardrail evaluation when an overlay is provided, and precomputes finding/CVE matches per token using `defaultdict` caches to avoid redundant scans. |
+| 231-263 | Crosswalk assembly attaches matches to each design row and prepares the final response with summaries, severity overview, guardrail evaluation, and per-artefact breakdowns. |
 
 ## `fixops/configuration.py`
 
@@ -49,17 +47,17 @@ obvious imports are grouped for readability.
 | 1-14 | Module docstring, future import, and path constants (`DEFAULT_OVERLAY_PATH`, env override key). |
 | 17-33 | `_read_text` and `_parse_overlay` helpers read the file and parse YAML/JSON with graceful fallbacks when PyYAML is absent. |
 | 36-44 | `_deep_merge` recursively merges nested dictionaries so profile overrides can target specific keys. |
-| 47-84 | `OverlayConfig` dataclass defines integration payloads, toggle defaults, helper properties for required inputs/data directories, and `to_sanitised_dict()` masking logic. |
-| 87-122 | `load_overlay()` resolves the path (including environment override), merges profile-specific data, applies default toggles/metadata, and returns a populated `OverlayConfig` instance. |
-| 125 | `__all__` exposes the loader and dataclass for importers. |
+| 47-115 | `OverlayConfig` dataclass defines integration payloads, toggle defaults, guardrail defaults (including maturity/threshold helpers), helper properties for required inputs/data directories, and `to_sanitised_dict()` masking logic that now exports guardrail policy. |
+| 118-158 | `load_overlay()` resolves the path (including environment override), merges profile-specific data, applies default toggles/metadata, instantiates `OverlayConfig`, and annotates metadata with resolved guardrail maturity and thresholds before returning the configuration. |
+| 161 | `__all__` exposes the loader and dataclass for importers. |
 
 ## `simulations/cve_scenario/runner.py`
 
 | Lines | Description |
 | ----- | ----------- |
-| 1-67 | Imports, risk-scorer resolver, CVE source constant, and `RunResult` dataclass exposing file paths and adjustment metadata. |
-| 69-131 | `_load_contexts()` reads business-context fixtures and `_build_artifacts()` constructs synthetic SBOM/SARIF/CVE inputs for CVE-2021-44228. |
-| 134-188 | `_ensure_overlay_for_mode()` replays the overlay merge logic so the runner can switch between Demo and Enterprise profiles without mutating the source file. |
-| 189-200 | `_write_design_context()` exports a CSV of the scenario-specific design rows into the overlay’s `design_context_dir`. |
-| 203-301 | `run_simulation()` loads the overlay, executes the pipeline orchestrator, applies contextual risk scoring (with per-mode scanner severities), and writes score/evidence JSON bundles. |
-| 304-332 | CLI helpers parse `--mode`/`--overlay` flags and allow manual execution with structured JSON output. |
+| 1-75 | Imports, risk-scorer resolver, CVE source constant, and `RunResult` dataclass exposing file paths, adjustment metadata, and guardrail status. |
+| 77-139 | `_load_contexts()` reads business-context fixtures and `_build_artifacts()` constructs synthetic SBOM/SARIF/CVE inputs for CVE-2021-44228. |
+| 142-196 | `_ensure_overlay_for_mode()` replays the overlay merge logic so the runner can switch between Demo and Enterprise profiles without mutating the source file. |
+| 198-209 | `_write_design_context()` exports a CSV of the scenario-specific design rows into the overlay’s `design_context_dir`. |
+| 212-321 | `run_simulation()` loads the overlay, executes the pipeline orchestrator (capturing guardrail evaluations), applies contextual risk scoring (with per-mode scanner severities), and writes score/evidence JSON bundles annotated with guardrail and severity overviews. |
+| 324-352 | CLI helpers parse `--mode`/`--overlay` flags and allow manual execution with structured JSON output. |

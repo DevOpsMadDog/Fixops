@@ -8,8 +8,8 @@ life-cycle stages.
 | Plan | Design context CSV describing services, owners, and criticality. | `require_design_input` toggle decides whether design is mandatory. Directory hints (e.g., `design_context_dir`) tell planners where to store curated context. | Stored dataset, metadata preview in `/inputs/design` response, future backlog enrichment. |
 | Code | SBOM packages derived from builds. | Git provider metadata (host/org/group) steers where repository checks run. | Normalised SBOM components with license data for developer dashboards. |
 | Build | SARIF findings produced by SAST/DAST tools. | CI configuration identifies which pipeline slug to gate; metadata is exposed via overlay for reporting. | Normalised SARIF findings, severity histogram, tool inventory. |
-| Test | CVE/KEV feeds for dependency risk. | Jira configuration indicates which project receives escalations when high-risk CVEs surface. | Normalised CVE summaries, exploited counts, validation feedback. |
-| Deploy | `/pipeline/run` crosswalk verifies that design, SBOM, SARIF, and CVE data align before promoting. | Enterprise mode enforces ticket sync; missing Jira details surface as 500 responses so release managers resolve configuration gaps. | JSON report with `crosswalk`, severity/coverage summaries, overlay metadata for auditing. |
+| Test | CVE/KEV feeds for dependency risk. | Jira configuration indicates which project receives escalations when high-risk CVEs surface; guardrail maturity controls warn/fail thresholds. | Normalised CVE summaries, exploited counts, validation feedback, guardrail status. |
+| Deploy | `/pipeline/run` crosswalk verifies that design, SBOM, SARIF, and CVE data align before promoting. | Enterprise mode enforces ticket sync; guardrail thresholds (`fail_on`/`warn_on`) adapt to maturity, preventing premature failures in Demo while tightening Enterprise releases. | JSON report with `crosswalk`, severity/coverage summaries, guardrail evaluation, overlay metadata for auditing. |
 | Run | Overlay directories (evidence/audit) are created at startup so operational scripts can deposit runtime attestation. | Data paths change per mode (`demo` vs `enterprise`) allowing isolated evidence storage. | Ready-made filesystem structure for monitoring, backup, and evidence bundling. |
 | Audit | `overlay.metadata` includes source path and profile selection. | Enterprise profiles can enable `capture_feedback` to store decision reviews (future work). | API responses double as evidence bundles; overlays provide traceable configuration context. |
 
@@ -18,7 +18,8 @@ life-cycle stages.
 1. **Ingestion** — Upload endpoints accept artefacts in any order. Each artefact is normalised and
    stored in `app.state.artifacts`.
 2. **Rescoring & Correlation** — `PipelineOrchestrator.run()` performs token-based correlation,
-   aggregates severity/exploitation indicators, and prepares the crosswalk.
+   aggregates severity/exploitation indicators, evaluates guardrails against the active maturity
+   profile, and prepares the crosswalk.
 3. **Evidence Emission** — Responses include metadata and the overlay block, enabling downstream
    systems to create compliance evidence without querying the server configuration directly.
 4. **Feedback Loop** — Enterprise overlays can enable `capture_feedback`. This will route decision

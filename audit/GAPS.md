@@ -8,7 +8,7 @@ impact, and remediation plan.
 | Area | File / Snippet | Issue | Plan |
 | ---- | -------------- | ----- | ---- |
 | Authentication | `backend/app.py` (no auth middleware) | Endpoints are publicly accessible. | Introduce OAuth/API key middleware or front service with gateway before production launch. |
-| Overlay Validation | `fixops/configuration.py` (`load_overlay`) | Schema is permissive; typos silently accepted. | Add pydantic model or JSON schema validation to reject unexpected keys and provide actionable errors. |
+| Overlay Validation | `fixops/configuration.py` (`load_overlay`) | Schema is permissive; typos (e.g., guardrail thresholds) silently accepted. | Add pydantic model or JSON schema validation to reject unexpected keys and provide actionable errors. |
 | Feedback Capture | Overlay toggle `capture_feedback` | Toggle documented but no implementation. | Implement persistence layer (database or Jira issue comments) in future iteration and honour toggle. |
 
 ## Deferred Items

@@ -26,7 +26,8 @@ architecture against market promises.
 4. **Pipeline Orchestrator (`backend/pipeline.py`)**
    - Correlates design rows with SBOM components, SARIF findings, and CVE entries using precomputed
      lowercase tokens for efficient matching.
-   - Produces aggregate summaries plus a per-component “crosswalk” that powers downstream evidence
+   - Normalises severities from SARIF and CVE artefacts, produces aggregate summaries, evaluates
+     maturity-aware guardrails, and emits a per-component “crosswalk” that powers downstream evidence
      bundles.
 5. **Overlay-Aware State**
    - The ingestion service stores each uploaded artefact in `app.state.artifacts`. The overlay
@@ -47,7 +48,9 @@ architecture against market promises.
      descriptive HTTP 400. Enterprise mode enforces that Jira configuration is present before
      proceeding when `enforce_ticket_sync` is enabled.
    - `PipelineOrchestrator.run()` receives the cached artefacts, builds token lookups, aggregates
-     severities/exploit evidence, and emits a consolidated report.
+     severities/exploit evidence, and computes guardrail evaluations using the overlay’s maturity
+     profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail), and a
+     crosswalk for evidence bundling.
    - Overlay metadata is appended to the response (with secrets masked) when the
      `auto_attach_overlay_metadata` toggle is active.
 
@@ -117,6 +120,9 @@ graph TD
   exception stack trace, preventing raw payload leakage.
 - **Overlay Parsing Issues** — `load_overlay()` accepts YAML or JSON. If PyYAML is unavailable the
   loader falls back to JSON parsing and raises a descriptive error when neither succeeds.
+- **Guardrail Misconfiguration** — Setting `guardrails.fail_on`/`warn_on` to unexpected values falls
+  back to defaults; add validation before production so operators receive explicit errors when
+  thresholds are mistyped.
 
 ## Mode Differences (Demo vs Enterprise)
 
@@ -124,6 +130,7 @@ graph TD
 | --- | --- | --- |
 | Required artefacts | SBOM, SARIF, CVE (design optional) | Design + SBOM + SARIF + CVE |
 | Jira enforcement | Not enforced (`enforce_ticket_sync=False`) | Enforced; missing config triggers 500 |
+| Guardrail maturity | `foundational` (fail on critical, warn on high) | `advanced` (fail on medium, warn on medium) |
 | Evidence directories | `data/evidence/demo` | `data/evidence/enterprise` + `data/audit` |
 | Metadata attachment | Overlay metadata auto-attached | Same (toggle can be disabled in overlay) |
 

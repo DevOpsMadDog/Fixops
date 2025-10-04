@@ -54,6 +54,7 @@ class RunResult:
     adjusted_severity: str
     risk_adjustment: int
     justification: str
+    guardrail_status: str
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -63,6 +64,7 @@ class RunResult:
             "adjusted_severity": self.adjusted_severity,
             "risk_adjustment": self.risk_adjustment,
             "justification": self.justification,
+            "guardrail_status": self.guardrail_status,
         }
 
 
@@ -229,6 +231,7 @@ def run_simulation(
         sbom=sbom,
         sarif=sarif,
         cve=cve,
+        overlay=overlay,
     )
 
     risk_scorer = _resolve_risk_scorer()
@@ -255,6 +258,8 @@ def run_simulation(
     score_path = evidence_dir / f"cve-2021-44228-{active_mode}-scores.json"
     evidence_path = evidence_dir / f"cve-2021-44228-{active_mode}-evidence.json"
 
+    guardrail_evaluation = pipeline_result.get("guardrail_evaluation")
+
     score_payload = {
         "mode": active_mode,
         "scenario": scenario["label"],
@@ -266,6 +271,8 @@ def run_simulation(
         "business_context": scenario["business_context"],
         "overlay_required_inputs": list(overlay.required_inputs),
     }
+    if guardrail_evaluation:
+        score_payload["guardrail_evaluation"] = guardrail_evaluation
 
     crosswalk_entry = next(
         (entry for entry in pipeline_result["crosswalk"] if entry["cves"]),
@@ -283,9 +290,12 @@ def run_simulation(
             "sbom": pipeline_result["sbom_summary"],
             "sarif": pipeline_result["sarif_summary"],
             "cve": pipeline_result["cve_summary"],
+            "severity": pipeline_result.get("severity_overview"),
         },
         "justification": scenario["justification"],
     }
+    if guardrail_evaluation:
+        evidence_payload["guardrail_evaluation"] = guardrail_evaluation
 
     score_path.write_text(json.dumps(score_payload, indent=2), encoding="utf-8")
     evidence_path.write_text(json.dumps(evidence_payload, indent=2), encoding="utf-8")
@@ -299,6 +309,7 @@ def run_simulation(
         adjusted_severity=adjusted["fixops_severity"],
         risk_adjustment=adjusted["risk_adjustment"],
         justification=scenario["justification"],
+        guardrail_status=(guardrail_evaluation or {}).get("status", "unknown"),
     )
 
 

@@ -15,6 +15,10 @@ configuration. Each description lists core fields, invariants, and persistence n
   - `require_design_input` (`bool`): Whether `/pipeline/run` requires a design dataset.
   - `auto_attach_overlay_metadata` (`bool`): Whether pipeline responses include overlay metadata.
   - `enforce_ticket_sync` (`bool`): If `True`, Jira configuration must include `project_key`.
+- **guardrails** (`dict`): Maturity-aware policy settings with optional overrides.
+  - `maturity` (`str`): One of `foundational`, `scaling`, `advanced`. Defaults to `scaling` when not provided.
+  - `fail_on` / `warn_on` (`str`): Optional severity thresholds overriding defaults per maturity.
+  - `profiles` (`dict`): Nested overrides keyed by maturity, enabling per-mode tuning.
 - **metadata** (`dict`): Loader-supplied diagnostics (source path, applied profile list, etc.).
 
 ## Normalisation Models (`backend/normalizers.py`)
@@ -48,6 +52,9 @@ configuration. Each description lists core fields, invariants, and persistence n
 - `sbom_summary`: Source metadata plus SBOM `format` and `document_name` (if present).
 - `sarif_summary`: Metadata, severity histogram (`severity_breakdown`), and tool names.
 - `cve_summary`: Metadata plus `exploited_count` tally.
+- `severity_overview`: Highest severity observed, aggregated counts, and per-source breakdown.
+- `guardrail_evaluation`: Resolved maturity tier, thresholds, trigger metadata, and pass/warn/fail status
+  derived from the overlay policy.
 - `crosswalk`: List of dictionaries, one per design row, containing:
   - `design_row`: Original row values.
   - `sbom_component`: Matched component dictionary (or `None`).

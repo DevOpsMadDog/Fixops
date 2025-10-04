@@ -9,6 +9,7 @@ from backend.normalizers import (
     SBOMComponent,
     SarifFinding,
 )
+from fixops.configuration import OverlayConfig
 
 
 def build_orchestrator_payload():
@@ -110,3 +111,27 @@ def test_pipeline_crosswalk_reuses_precomputed_matches():
     assert result["sarif_summary"]["severity_breakdown"]["error"] == 1
 
 
+def test_pipeline_guardrail_evaluation_uses_overlay_policy():
+    orchestrator = PipelineOrchestrator()
+    design_dataset, sbom, sarif, cve = build_orchestrator_payload()
+
+    overlay = OverlayConfig(
+        mode="enterprise",
+        guardrails={
+            "maturity": "advanced",
+            "profiles": {"advanced": {"fail_on": "medium", "warn_on": "low"}},
+        },
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+        overlay=overlay,
+    )
+
+    guardrail = result["guardrail_evaluation"]
+    assert guardrail["maturity"] == "advanced"
+    assert guardrail["status"] == "fail"
+    assert guardrail["trigger"]["source"] in {"sarif", "cve"}

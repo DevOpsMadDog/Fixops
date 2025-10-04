@@ -133,6 +133,7 @@ def test_end_to_end_demo_pipeline():
         assert pipeline_payload["design_summary"]["row_count"] == 2
         assert len(pipeline_payload["crosswalk"]) == 2
         assert pipeline_payload["crosswalk"][0]["findings"]
+        assert pipeline_payload["guardrail_evaluation"]["status"] in {"pass", "warn", "fail"}
         overlay = pipeline_payload["overlay"]
         assert overlay["mode"] == "demo"
         assert overlay["metadata"]["profile_applied"] == "demo"

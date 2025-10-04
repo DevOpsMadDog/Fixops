@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
             sbom=app.state.artifacts["sbom"],
             sarif=app.state.artifacts["sarif"],
             cve=app.state.artifacts["cve"],
+            overlay=overlay,
         )
         if overlay.toggles.get("auto_attach_overlay_metadata", True):
             result["overlay"] = overlay.to_sanitised_dict()

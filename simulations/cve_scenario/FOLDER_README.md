@@ -7,7 +7,7 @@
 
 **Data In/Out:**
 - Inputs: Overlay configuration plus synthetic design rows, SBOM component list, SARIF findings, and CVE feed defined inline.
-- Outputs: Scorecards (`*-scores.json`) and evidence bundles (`*-evidence.json`) written to the overlay evidence directory.
+- Outputs: Scorecards (`*-scores.json`) and evidence bundles (`*-evidence.json`) written to the overlay evidence directory, each annotated with severity overviews and guardrail evaluations.
 
 **Gotchas:**
 - Ensure overlay directories exist or let the runner create them before execution.

@@ -51,6 +51,14 @@ def _deep_merge(base: MutableMapping[str, Any], overrides: Mapping[str, Any]) ->
     return base
 
 
+_DEFAULT_GUARDRAIL_MATURITY = "scaling"
+_DEFAULT_GUARDRAIL_PROFILES: Dict[str, Dict[str, str]] = {
+    "foundational": {"fail_on": "critical", "warn_on": "high"},
+    "scaling": {"fail_on": "high", "warn_on": "medium"},
+    "advanced": {"fail_on": "medium", "warn_on": "medium"},
+}
+
+
 @dataclass
 class OverlayConfig:
     """Validated overlay configuration with convenience helpers."""
@@ -64,6 +72,7 @@ class OverlayConfig:
     data: Dict[str, Any] = field(default_factory=dict)
     toggles: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    guardrails: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def required_inputs(self) -> tuple[str, ...]:
@@ -93,6 +102,7 @@ class OverlayConfig:
             "data": self.data,
             "toggles": self.toggles,
             "metadata": self.metadata,
+            "guardrails": self.guardrail_policy,
         }
         return payload
 
@@ -105,6 +115,38 @@ class OverlayConfig:
             else:
                 masked[key] = value
         return masked
+
+    @property
+    def guardrail_maturity(self) -> str:
+        raw = self.guardrails.get("maturity") or self.metadata.get("guardrail_maturity")
+        value = str(raw or _DEFAULT_GUARDRAIL_MATURITY).strip().lower()
+        return value or _DEFAULT_GUARDRAIL_MATURITY
+
+    @property
+    def guardrail_policy(self) -> Dict[str, str]:
+        maturity = self.guardrail_maturity
+        defaults = _DEFAULT_GUARDRAIL_PROFILES.get(maturity) or _DEFAULT_GUARDRAIL_PROFILES[
+            _DEFAULT_GUARDRAIL_MATURITY
+        ]
+
+        fail_on: Optional[str] = self.guardrails.get("fail_on")
+        warn_on: Optional[str] = self.guardrails.get("warn_on")
+
+        profiles = self.guardrails.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(maturity)
+            if isinstance(profile, Mapping):
+                fail_on = profile.get("fail_on", fail_on)
+                warn_on = profile.get("warn_on", warn_on)
+
+        fail_value = str(fail_on or defaults.get("fail_on", "high")).strip().lower()
+        warn_value = str(warn_on or defaults.get("warn_on", "medium")).strip().lower()
+
+        return {
+            "maturity": maturity,
+            "fail_on": fail_value or defaults.get("fail_on", "high"),
+            "warn_on": warn_value or defaults.get("warn_on", "medium"),
+        }
 
 
 def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
@@ -125,6 +167,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "auth": raw.get("auth", {}),
         "data": raw.get("data", {}),
         "toggles": raw.get("toggles", {}),
+        "guardrails": raw.get("guardrails", {}),
         "metadata": {"source_path": str(candidate_path)},
     }
 
@@ -142,7 +185,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     metadata.setdefault("profile_applied", selected_mode)
     metadata.setdefault("available_profiles", sorted(profiles.keys()) if isinstance(profiles, Mapping) else [])
 
-    return OverlayConfig(
+    config = OverlayConfig(
         mode=selected_mode,
         jira=dict(base.get("jira", {})),
         confluence=dict(base.get("confluence", {})),
@@ -152,7 +195,17 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         data=dict(base.get("data", {})),
         toggles=dict(toggles),
         metadata=dict(metadata),
+        guardrails=dict(base.get("guardrails", {})),
     )
+
+    policy = config.guardrail_policy
+    config.metadata.setdefault("guardrail_maturity", policy["maturity"])
+    config.metadata.setdefault(
+        "guardrail_thresholds",
+        {"fail_on": policy["fail_on"], "warn_on": policy["warn_on"]},
+    )
+
+    return config
 
 
 __all__ = ["OverlayConfig", "load_overlay", "DEFAULT_OVERLAY_PATH"]
