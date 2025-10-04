@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from fixops.configuration import OverlayConfig
+
+
+_SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
 class EvidenceHub:
@@ -19,12 +23,22 @@ class EvidenceHub:
     def _base_directory(self) -> Path:
         directory = self.overlay.data_directories.get("evidence_dir")
         if directory is None:
-            directory = Path("data") / "evidence" / self.overlay.mode
+            root = (
+                self.overlay.allowed_data_roots[0]
+                if self.overlay.allowed_data_roots
+                else (Path("data").resolve())
+            )
+            directory = (root / "evidence" / self.overlay.mode).resolve()
         directory.mkdir(parents=True, exist_ok=True)
         return directory
 
     def _bundle_name(self) -> str:
-        return str(self.settings.get("bundle_name") or f"fixops-{self.overlay.mode}-run")
+        raw_name = str(
+            self.settings.get("bundle_name") or f"fixops-{self.overlay.mode}-run"
+        )
+        cleaned = _SAFE_BUNDLE_NAME.sub("-", raw_name)
+        cleaned = cleaned.strip("-_.")
+        return cleaned or f"fixops-{self.overlay.mode}-run"
 
     def persist(
         self,

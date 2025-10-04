@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
 from fixops.configuration import OverlayConfig
+
+
+_SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 class FeedbackRecorder:
@@ -17,7 +21,12 @@ class FeedbackRecorder:
         directories = overlay.data_directories
         base_dir = directories.get("feedback_dir") or directories.get("evidence_dir")
         if base_dir is None:
-            base_dir = Path("data") / "feedback" / overlay.mode
+            root = (
+                overlay.allowed_data_roots[0]
+                if overlay.allowed_data_roots
+                else Path("data").resolve()
+            )
+            base_dir = (root / "feedback" / overlay.mode).resolve()
         self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -47,8 +56,16 @@ class FeedbackRecorder:
         timestamp = payload.get("timestamp")
         if timestamp is not None and not isinstance(timestamp, (int, float)):
             raise ValueError("'timestamp' must be a UNIX timestamp")
+        candidate = run_id.strip()
+        if not candidate:
+            raise ValueError("Feedback 'run_id' must be non-empty")
+        if not _SAFE_IDENTIFIER.match(candidate):
+            raise ValueError(
+                "Feedback 'run_id' may only contain letters, numbers, dashes, and underscores"
+            )
+
         return {
-            "run_id": run_id.strip(),
+            "run_id": candidate,
             "decision": decision.strip(),
             "notes": notes.strip() if isinstance(notes, str) and notes.strip() else None,
             "submitted_by": submitted_by.strip()

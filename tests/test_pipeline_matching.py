@@ -165,3 +165,63 @@ def test_pipeline_emits_ai_agent_analysis_when_enabled():
     assert ai_analysis is not None
     assert ai_analysis["summary"]["components_with_agents"] >= 1
     assert ai_analysis["matches"][0]["framework"] == "LangChain"
+
+
+def test_pipeline_supports_design_rows_with_name_column():
+    orchestrator = PipelineOrchestrator()
+    design_dataset = {
+        "columns": ["name", "notes"],
+        "rows": [
+            {"name": "Agent Service", "notes": "Critical"},
+        ],
+    }
+    sbom = NormalizedSBOM(
+        format="cyclonedx",
+        document={"name": "demo"},
+        components=[SBOMComponent(name="agent service", version="1.0.0")],
+        relationships=[],
+        services=[],
+        vulnerabilities=[],
+        metadata={"component_count": 1},
+    )
+    sarif = NormalizedSARIF(
+        version="2.1.0",
+        schema_uri=None,
+        tool_names=["StaticAnalyzer"],
+        findings=[
+            SarifFinding(
+                rule_id="AI-001",
+                message="Issue in Agent Service",
+                level="error",
+                file="services/agent-service/app.py",
+                line=10,
+                raw={"analysisTarget": {"uri": "Agent Service"}},
+            )
+        ],
+        metadata={"run_count": 1, "finding_count": 1},
+    )
+    cve = NormalizedCVEFeed(
+        records=[
+            CVERecordSummary(
+                cve_id="CVE-2024-0001",
+                title="Agent Service flaw",
+                severity="high",
+                exploited=False,
+                raw={"component": "Agent Service"},
+            )
+        ],
+        errors=[],
+        metadata={"record_count": 1},
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+    )
+
+    crosswalk_entry = result["crosswalk"][0]
+    assert crosswalk_entry["sbom_component"]["name"] == "agent service"
+    assert crosswalk_entry["findings"]
+    assert crosswalk_entry["cves"]

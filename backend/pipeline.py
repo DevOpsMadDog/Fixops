@@ -53,7 +53,7 @@ class PipelineOrchestrator:
     def _extract_component_name(row: Dict[str, Any]) -> Optional[str]:
         """Return the first non-empty component identifier in a design row."""
 
-        for key in ("component", "Component", "service"):
+        for key in ("component", "Component", "service", "name"):
             value = row.get(key)
             if isinstance(value, str):
                 stripped = value.strip()

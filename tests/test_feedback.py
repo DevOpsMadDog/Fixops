@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from fixops.configuration import OverlayConfig
 from fixops.feedback import FeedbackRecorder
 
@@ -28,3 +30,20 @@ def test_feedback_recorder_writes_entries(tmp_path: Path) -> None:
     assert entry["decision"] == "accepted"
     content = feedback_file.read_text(encoding="utf-8").strip()
     assert "Reviewed guardrail outcome" in content
+
+
+def test_feedback_recorder_rejects_path_traversal(tmp_path: Path) -> None:
+    overlay = OverlayConfig(
+        data={},
+        toggles={"capture_feedback": True},
+        allowed_data_roots=(tmp_path.resolve(),),
+    )
+    recorder = FeedbackRecorder(overlay)
+
+    with pytest.raises(ValueError):
+        recorder.record(
+            {
+                "run_id": "../escape",  # attempt to traverse directories
+                "decision": "rejected",
+            }
+        )
