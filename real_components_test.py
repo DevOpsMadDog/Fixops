@@ -4,7 +4,18 @@ Focused testing for Real Components Implementation
 Tests the newly implemented real components as specified in the review request
 """
 
-import requests
+import os
+
+import pytest
+
+requests = pytest.importorskip(
+    "requests", reason="HTTP integration tests require the optional 'requests' dependency"
+)
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_FIXOPS_INTEGRATION_TESTS") != "1",
+    reason="FixOps real component integration tests require running services",
+)
 import json
 import sys
 import os

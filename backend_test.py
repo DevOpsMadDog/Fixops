@@ -1,12 +1,22 @@
-import requests
+import os
 import sys
 import json
 import asyncio
 import subprocess
-import os
 import tempfile
 import io
 from datetime import datetime
+
+import pytest
+
+requests = pytest.importorskip(
+    "requests", reason="HTTP integration tests require the optional 'requests' dependency"
+)
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_FIXOPS_INTEGRATION_TESTS") != "1",
+    reason="FixOps backend integration tests require running services",
+)
 
 # Set LLM key for testing
 os.environ['EMERGENT_LLM_KEY'] = 'sk-emergent-aD7C0E299C8FbB4B8A'
@@ -18,7 +28,17 @@ class FixOpsDecisionEngineAPITester:
         self.tests_passed = 0
         self.failed_tests = []
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None, files=None, headers=None):
+    def run_test(
+        self,
+        name,
+        method,
+        endpoint,
+        expected_status,
+        data=None,
+        params=None,
+        files=None,
+        headers=None,
+    ):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}"
         if headers is None:
@@ -41,7 +61,12 @@ class FixOpsDecisionEngineAPITester:
                 else:
                     response = requests.post(url, json=data, headers=headers, timeout=10)
 
-            success = response.status_code == expected_status
+            expected_statuses = (
+                expected_status
+                if isinstance(expected_status, (list, tuple, set))
+                else [expected_status]
+            )
+            success = response.status_code in expected_statuses
             if success:
                 self.tests_passed += 1
                 print(f"✅ Passed - Status: {response.status_code}")
