@@ -51,6 +51,41 @@ guardrails:
     scaling:
       fail_on: high
       warn_on: medium
+context_engine:
+  fields:
+    criticality: customer_impact
+    data: data_classification
+    exposure: exposure
+  criticality_weights:
+    mission_critical: 4
+    internal: 1
+  playbooks:
+    - name: Stabilise Customer Impact
+      min_score: 9
+evidence_hub:
+  bundle_name: fixops-run
+  include_sections:
+    - design_summary
+    - context_summary
+onboarding:
+  time_to_value_minutes: 30
+  checklist:
+    - step: Upload design context CSV
+      modes: [demo, enterprise]
+compliance:
+  frameworks:
+    - name: SOC 2
+      controls:
+        - id: CC8.1
+          requires: [design, guardrails, evidence]
+policy_automation:
+  actions:
+    - trigger: guardrail:fail
+      type: jira_issue
+pricing:
+  plans:
+    - name: Launch
+      mode: demo
 profiles:
   enterprise:
     mode: enterprise
@@ -90,10 +125,31 @@ toggles:
   auto_attach_overlay_metadata: true
 guardrails:
   maturity: foundational
-  profiles:
-    foundational:
-      fail_on: critical
-      warn_on: high
+context_engine:
+  fields:
+    criticality: customer_impact
+    data: data_classification
+    exposure: exposure
+  playbooks:
+    - name: Stabilise Customer Impact
+      min_score: 9
+onboarding:
+  time_to_value_minutes: 30
+compliance:
+  frameworks:
+    - name: SOC 2
+      controls:
+        - id: CC8.1
+          requires: [design, guardrails, evidence]
+policy_automation:
+  actions:
+    - trigger: guardrail:fail
+      type: jira_issue
+pricing:
+  plans:
+    - name: Launch
+      mode: demo
+      included_scans: 50
 ```
 
 ## Enterprise Mode Example
@@ -132,6 +188,31 @@ profiles:
       capture_feedback: true
     guardrails:
       maturity: advanced
+    context_engine:
+      playbooks:
+        - name: Enterprise Stabilisation
+          min_score: 8
+    onboarding:
+      time_to_value_minutes: 25
+      checklist:
+        - step: Connect Jira project
+          modes: [enterprise]
+    compliance:
+      frameworks:
+        - name: PCI DSS
+          controls:
+            - id: 6.5
+              requires: [cve, context, guardrails]
+    policy_automation:
+      actions:
+        - trigger: compliance:gap
+          type: confluence_page
+          space: FIXOPS-ENT
+    pricing:
+      plans:
+        - name: Scale
+          mode: enterprise
+          included_scans: 500
 ```
 
 > Tip: you can keep Demo defaults in the base document and only specify overrides inside the
@@ -145,5 +226,7 @@ profiles:
 3. **Restart the API** after modifying the overlay file to reload the configuration.
 4. **Monitor responses** — the `/pipeline/run` payload includes an `overlay` block with masked values so
    you can confirm which profile is active.
-5. **Review guardrails** — pipeline results now include `guardrail_evaluation` summarising the active
-   maturity tier, warn/fail thresholds, and whether the latest artefacts triggered an alert.
+5. **Review guardrails & context** — pipeline results include `guardrail_evaluation` and `context_summary`
+   so you know which playbook to activate for each component.
+6. **Pull compliance & policy outputs** — capture the `compliance_status`, `policy_automation`, and
+   `evidence_bundle` manifest to keep Jira, Confluence, and auditors aligned.

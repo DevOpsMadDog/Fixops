@@ -13,7 +13,8 @@
         "service_owner": "platform-observability",
         "customer_impact": "internal",
         "data_classification": "public",
-        "deployment_frequency": "quarterly"
+        "deployment_frequency": "quarterly",
+        "exposure": "internal"
       }
     ],
     "justification": "Scanner flags Log4Shell but the service is isolated, so FixOps downgrades to MEDIUM."
@@ -32,7 +33,8 @@
         "service_owner": "payments-observability",
         "customer_impact": "mission_critical",
         "data_classification": "pii",
-        "deployment_frequency": "continuous"
+        "deployment_frequency": "continuous",
+        "exposure": "internet"
       }
     ],
     "justification": "Business telemetry confirms customer impact, so FixOps escalates Log4Shell to HIGH."

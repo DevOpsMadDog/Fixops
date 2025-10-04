@@ -40,6 +40,164 @@
       "advanced": {"fail_on": "medium", "warn_on": "medium"}
     }
   },
+  "context_engine": {
+    "fields": {
+      "criticality": "customer_impact",
+      "data": "data_classification",
+      "exposure": "exposure"
+    },
+    "criticality_weights": {
+      "mission_critical": 4,
+      "external": 3,
+      "internal": 1
+    },
+    "data_weights": {
+      "pii": 4,
+      "financial": 4,
+      "health": 4,
+      "internal": 2,
+      "public": 1
+    },
+    "exposure_weights": {
+      "internet": 3,
+      "partner": 2,
+      "internal": 1
+    },
+    "playbooks": [
+      {"name": "Stabilise Customer Impact", "min_score": 9, "channel": "sre-pager"},
+      {"name": "Sprint Triage", "min_score": 6, "channel": "appsec-kanban"},
+      {"name": "Monitor", "min_score": 0, "channel": "platform-notifications"}
+    ]
+  },
+  "evidence_hub": {
+    "bundle_name": "fixops-run",
+    "include_sections": [
+      "design_summary",
+      "sbom_summary",
+      "sarif_summary",
+      "cve_summary",
+      "severity_overview",
+      "context_summary",
+      "guardrail_evaluation",
+      "compliance_status"
+    ],
+    "profiles": {
+      "enterprise": {
+        "bundle_name": "fixops-enterprise-run",
+        "include_sections": [
+          "design_summary",
+          "sbom_summary",
+          "sarif_summary",
+          "cve_summary",
+          "severity_overview",
+          "context_summary",
+          "guardrail_evaluation",
+          "compliance_status",
+          "policy_automation"
+        ]
+      }
+    }
+  },
+  "onboarding": {
+    "time_to_value_minutes": 30,
+    "checklist": [
+      {"step": "Upload design context CSV", "modes": ["demo", "enterprise"]},
+      {"step": "Upload SBOM JSON", "modes": ["demo", "enterprise"]},
+      {"step": "Upload SARIF scan", "modes": ["demo", "enterprise"]},
+      {"step": "Upload CVE/KEV feed", "modes": ["demo", "enterprise"]},
+      {"step": "Review context summary and guardrails", "modes": ["demo", "enterprise"]}
+    ],
+    "profiles": {
+      "enterprise": {
+        "time_to_value_minutes": 25,
+        "checklist": [
+          {"step": "Connect Jira project", "modes": ["enterprise"]},
+          {"step": "Sync Confluence evidence space", "modes": ["enterprise"]},
+          {"step": "Approve policy automation routes", "modes": ["enterprise"]}
+        ]
+      }
+    }
+  },
+  "compliance": {
+    "frameworks": [
+      {
+        "name": "SOC 2",
+        "controls": [
+          {"id": "CC8.1", "title": "Change Management Evidence", "requires": ["design", "guardrails", "evidence"]},
+          {"id": "CC7.2", "title": "Continuous Vulnerability Management", "requires": ["sarif", "cve", "context"]}
+        ]
+      },
+      {
+        "name": "ISO 27001",
+        "controls": [
+          {"id": "A.12.6.1", "title": "Application vulnerability management", "requires": ["sbom", "cve"]}
+        ]
+      }
+    ],
+    "profiles": {
+      "enterprise": {
+        "frameworks": [
+          {
+            "name": "PCI DSS",
+            "controls": [
+              {"id": "6.3.3", "title": "Secure code reviews", "requires": ["sarif", "policy"]},
+              {"id": "6.5", "title": "Vulnerability remediation", "requires": ["cve", "context", "guardrails"]}
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "policy_automation": {
+    "actions": [
+      {
+        "trigger": "guardrail:fail",
+        "type": "jira_issue",
+        "summary": "Escalate failing guardrail",
+        "priority": "Highest"
+      },
+      {
+        "trigger": "context:high",
+        "type": "slack",
+        "channel": "#fixops-critical"
+      }
+    ],
+    "profiles": {
+      "enterprise": {
+        "actions": [
+          {
+            "trigger": "guardrail:fail",
+            "type": "jira_issue",
+            "summary": "Enterprise risk exception required",
+            "priority": "Blocker"
+          },
+          {
+            "trigger": "compliance:gap",
+            "type": "confluence_page",
+            "space": "FIXOPS-ENT"
+          }
+        ]
+      }
+    }
+  },
+  "pricing": {
+    "plans": [
+      {
+        "name": "Launch",
+        "mode": "demo",
+        "included_scans": 50,
+        "evidence_storage_gb": 5,
+        "price_per_month_usd": 499
+      },
+      {
+        "name": "Scale",
+        "mode": "enterprise",
+        "included_scans": 500,
+        "evidence_storage_gb": 100,
+        "price_per_month_usd": 3999
+      }
+    ]
+  },
   "profiles": {
     "enterprise": {
       "mode": "enterprise",

@@ -5,6 +5,11 @@ from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Optional
 
 from fixops.configuration import OverlayConfig
+from fixops.context_engine import ContextEngine
+from fixops.evidence import EvidenceHub
+from fixops.compliance import ComplianceEvaluator
+from fixops.onboarding import OnboardingGuide
+from fixops.policy import PolicyAutomation
 
 from .normalizers import (
     CVERecordSummary,
@@ -323,5 +328,29 @@ class PipelineOrchestrator:
             result["guardrail_evaluation"] = self._evaluate_guardrails(
                 overlay, severity_counts, highest_severity, highest_trigger
             )
+
+            context_engine = ContextEngine(overlay.context_engine_settings)
+            context_summary = context_engine.evaluate(rows, crosswalk)
+            result["context_summary"] = context_summary
+
+            onboarding = OnboardingGuide(overlay)
+            result["onboarding"] = onboarding.build(overlay.required_inputs)
+
+            # Placeholder evidence flag so compliance packs recognise artefact availability.
+            result["evidence_bundle"] = {"status": "pending"}
+
+            compliance_evaluator = ComplianceEvaluator(overlay.compliance_settings)
+            compliance_status = compliance_evaluator.evaluate(result, context_summary)
+            result["compliance_status"] = compliance_status
+
+            policy_automation = PolicyAutomation(overlay)
+            policy_summary = policy_automation.plan(result, context_summary, compliance_status)
+            result["policy_automation"] = policy_summary
+
+            evidence_hub = EvidenceHub(overlay)
+            evidence_bundle = evidence_hub.persist(result, context_summary, compliance_status, policy_summary)
+            result["evidence_bundle"] = evidence_bundle
+
+            result["pricing_summary"] = overlay.pricing_summary
 
         return result

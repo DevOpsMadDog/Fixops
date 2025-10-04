@@ -73,6 +73,12 @@ class OverlayConfig:
     toggles: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
     guardrails: Dict[str, Any] = field(default_factory=dict)
+    context_engine: Dict[str, Any] = field(default_factory=dict)
+    evidence_hub: Dict[str, Any] = field(default_factory=dict)
+    onboarding: Dict[str, Any] = field(default_factory=dict)
+    compliance: Dict[str, Any] = field(default_factory=dict)
+    policy_automation: Dict[str, Any] = field(default_factory=dict)
+    pricing: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def required_inputs(self) -> tuple[str, ...]:
@@ -103,6 +109,12 @@ class OverlayConfig:
             "toggles": self.toggles,
             "metadata": self.metadata,
             "guardrails": self.guardrail_policy,
+            "context_engine": self.context_engine_settings,
+            "evidence_hub": self.evidence_settings,
+            "onboarding": self.onboarding_settings,
+            "compliance": self.compliance_settings,
+            "policy_automation": self.policy_settings,
+            "pricing": self.pricing,
         }
         return payload
 
@@ -148,6 +160,93 @@ class OverlayConfig:
             "warn_on": warn_value or defaults.get("warn_on", "medium"),
         }
 
+    @property
+    def context_engine_settings(self) -> Dict[str, Any]:
+        settings = dict(self.context_engine)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
+    @property
+    def evidence_settings(self) -> Dict[str, Any]:
+        settings = dict(self.evidence_hub)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
+    @property
+    def onboarding_settings(self) -> Dict[str, Any]:
+        settings = dict(self.onboarding)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
+    @property
+    def compliance_settings(self) -> Dict[str, Any]:
+        settings = dict(self.compliance)
+        frameworks: list[Any] = []
+        if settings.get("frameworks"):
+            frameworks.extend(settings.get("frameworks", []))
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                frameworks.extend(profile.get("frameworks", []))
+        base = dict(settings)
+        base["frameworks"] = frameworks
+        base.pop("profiles", None)
+        return base
+
+    @property
+    def policy_settings(self) -> Dict[str, Any]:
+        settings = dict(self.policy_automation)
+        actions: list[Any] = list(settings.get("actions", []))
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                actions.extend(profile.get("actions", []))
+        base = dict(settings)
+        base["actions"] = actions
+        base.pop("profiles", None)
+        return base
+
+    @property
+    def pricing_summary(self) -> Dict[str, Any]:
+        plans = [dict(plan) for plan in self.pricing.get("plans", []) if isinstance(plan, Mapping)]
+        active = None
+        for plan in plans:
+            modes = plan.get("modes")
+            if modes and isinstance(modes, (list, tuple, set)):
+                if self.mode in modes:
+                    active = plan
+                    break
+            elif plan.get("mode") == self.mode:
+                active = plan
+                break
+        summary = {"plans": plans}
+        if active:
+            summary["active_plan"] = active
+        return summary
+
 
 def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     """Load the overlay configuration and merge profile overrides."""
@@ -169,6 +268,12 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "toggles": raw.get("toggles", {}),
         "guardrails": raw.get("guardrails", {}),
         "metadata": {"source_path": str(candidate_path)},
+        "context_engine": raw.get("context_engine", {}),
+        "evidence_hub": raw.get("evidence_hub", {}),
+        "onboarding": raw.get("onboarding", {}),
+        "compliance": raw.get("compliance", {}),
+        "policy_automation": raw.get("policy_automation", {}),
+        "pricing": raw.get("pricing", {}),
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -196,6 +301,12 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         toggles=dict(toggles),
         metadata=dict(metadata),
         guardrails=dict(base.get("guardrails", {})),
+        context_engine=dict(base.get("context_engine", {})),
+        evidence_hub=dict(base.get("evidence_hub", {})),
+        onboarding=dict(base.get("onboarding", {})),
+        compliance=dict(base.get("compliance", {})),
+        policy_automation=dict(base.get("policy_automation", {})),
+        pricing=dict(base.get("pricing", {})),
     )
 
     policy = config.guardrail_policy

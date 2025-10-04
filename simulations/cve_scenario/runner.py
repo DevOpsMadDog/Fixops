@@ -156,6 +156,13 @@ def _ensure_overlay_for_mode(
         "data": dict(raw.get("data", {})),
         "toggles": dict(raw.get("toggles", {})),
         "metadata": {"source_path": str(candidate)},
+        "guardrails": dict(raw.get("guardrails", {})),
+        "context_engine": dict(raw.get("context_engine", {})),
+        "evidence_hub": dict(raw.get("evidence_hub", {})),
+        "onboarding": dict(raw.get("onboarding", {})),
+        "compliance": dict(raw.get("compliance", {})),
+        "policy_automation": dict(raw.get("policy_automation", {})),
+        "pricing": dict(raw.get("pricing", {})),
     }
 
     profiles = raw.get("profiles") if isinstance(raw, Mapping) else {}
@@ -186,6 +193,13 @@ def _ensure_overlay_for_mode(
         data=dict(base.get("data", {})),
         toggles=dict(toggles),
         metadata=dict(metadata),
+        guardrails=dict(base.get("guardrails", {})),
+        context_engine=dict(base.get("context_engine", {})),
+        evidence_hub=dict(base.get("evidence_hub", {})),
+        onboarding=dict(base.get("onboarding", {})),
+        compliance=dict(base.get("compliance", {})),
+        policy_automation=dict(base.get("policy_automation", {})),
+        pricing=dict(base.get("pricing", {})),
     )
 
 
@@ -259,6 +273,10 @@ def run_simulation(
     evidence_path = evidence_dir / f"cve-2021-44228-{active_mode}-evidence.json"
 
     guardrail_evaluation = pipeline_result.get("guardrail_evaluation")
+    context_summary = pipeline_result.get("context_summary")
+    compliance_status = pipeline_result.get("compliance_status")
+    policy_automation = pipeline_result.get("policy_automation")
+    evidence_bundle = pipeline_result.get("evidence_bundle", {})
 
     score_payload = {
         "mode": active_mode,
@@ -270,6 +288,9 @@ def run_simulation(
         "justification": scenario["justification"],
         "business_context": scenario["business_context"],
         "overlay_required_inputs": list(overlay.required_inputs),
+        "context_summary": context_summary,
+        "compliance_status": compliance_status,
+        "policy_automation": policy_automation,
     }
     if guardrail_evaluation:
         score_payload["guardrail_evaluation"] = guardrail_evaluation
@@ -292,6 +313,9 @@ def run_simulation(
             "cve": pipeline_result["cve_summary"],
             "severity": pipeline_result.get("severity_overview"),
         },
+        "context_summary": context_summary,
+        "compliance_status": compliance_status,
+        "policy_automation": policy_automation,
         "justification": scenario["justification"],
     }
     if guardrail_evaluation:
@@ -300,12 +324,19 @@ def run_simulation(
     score_path.write_text(json.dumps(score_payload, indent=2), encoding="utf-8")
     evidence_path.write_text(json.dumps(evidence_payload, indent=2), encoding="utf-8")
 
+    bundle_path = evidence_bundle.get("files", {}).get("bundle")
+    manifest_path = evidence_bundle.get("files", {}).get("manifest")
+    if bundle_path and manifest_path:
+        # Ensure simulation evidence references the overlay-managed bundle.
+        evidence_payload["evidence_bundle"] = evidence_bundle
+        evidence_path.write_text(json.dumps(evidence_payload, indent=2), encoding="utf-8")
+
     _write_design_context(design_rows, overlay, active_mode)
 
     return RunResult(
         mode=active_mode,
         score_path=score_path,
-        evidence_path=evidence_path,
+        evidence_path=Path(bundle_path) if bundle_path else evidence_path,
         adjusted_severity=adjusted["fixops_severity"],
         risk_adjustment=adjusted["risk_adjustment"],
         justification=scenario["justification"],

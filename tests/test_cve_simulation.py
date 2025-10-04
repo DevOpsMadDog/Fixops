@@ -21,6 +21,40 @@ def _build_overlay(tmp_path: Path) -> Path:
                 "advanced": {"fail_on": "medium", "warn_on": "medium"},
             },
         },
+        "compliance": {
+            "frameworks": [
+                {
+                    "name": "SOC 2",
+                    "controls": [
+                        {"id": "CC8.1", "requires": ["design", "guardrails", "evidence"]}
+                    ],
+                }
+            ],
+            "profiles": {
+                "enterprise": {
+                    "frameworks": [
+                        {
+                            "name": "PCI DSS",
+                            "controls": [
+                                {"id": "6.5", "requires": ["cve", "context", "guardrails"]}
+                            ],
+                        }
+                    ]
+                }
+            },
+        },
+        "policy_automation": {
+            "actions": [
+                {"trigger": "guardrail:fail", "type": "jira_issue"}
+            ],
+            "profiles": {
+                "enterprise": {
+                    "actions": [
+                        {"trigger": "compliance:gap", "type": "confluence_page"}
+                    ]
+                }
+            },
+        },
         "profiles": {
             "enterprise": {
                 "mode": "enterprise",
@@ -49,6 +83,8 @@ def test_demo_mode_downgrades_severity(tmp_path: Path) -> None:
     assert payload["scanner_severity"] == "HIGH"
     assert payload["raw_feed_severity"] == "HIGH"
     assert payload["guardrail_evaluation"]["status"] == "warn"
+    assert payload["context_summary"]["summary"]["components_evaluated"] == 1
+    assert payload["policy_automation"]["actions"] == []
 
 
 def test_enterprise_mode_escalates_severity(tmp_path: Path) -> None:
@@ -60,6 +96,8 @@ def test_enterprise_mode_escalates_severity(tmp_path: Path) -> None:
     assert result.guardrail_status == "fail"
     assert result.evidence_path.exists()
     evidence = json.loads(result.evidence_path.read_text(encoding="utf-8"))
-    assert evidence["sarif_findings"]
-    assert evidence["cve_record"][0]["cve_id"] == "CVE-2021-44228"
+    assert evidence["sarif_summary"]["finding_count"] == 1
+    assert evidence["context_summary"]["summary"]["highest_component"]["score"] >= 7
+    assert evidence["compliance_status"]["frameworks"]
+    assert evidence["policy_automation"]["actions"]
     assert evidence["guardrail_evaluation"]["status"] == "fail"
