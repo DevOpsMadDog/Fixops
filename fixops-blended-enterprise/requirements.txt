@@ -238,3 +238,9 @@ wrapt==1.17.3
 xmlschema==4.1.0
 yarl==1.20.1
 zipp==3.23.0
+
+# Optional third-party integrations for the new processing pipeline
+CTINexus @ git+https://github.com/fixops-labs/ctinexus@main ; extra == 'ctinexus'
+awesome-llm4cybersecurity-sentinelgpt @ git+https://github.com/fixops-labs/sentinel-gpt@main ; extra == 'sentinel_gpt'
+sarif-om==1.0.4
+sarif-tools==3.0.5
