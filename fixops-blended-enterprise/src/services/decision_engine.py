@@ -15,6 +15,7 @@ import structlog
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
 from src.db.session import DatabaseManager
+from src.db.decision_metrics_repository import DecisionMetricsRepository
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -578,40 +579,70 @@ class DecisionEngine:
 
     async def get_decision_metrics(self) -> Dict[str, Any]:
         """Get decision engine metrics with mode indicator"""
-        base_metrics = {
-            "total_decisions": 234,
-            "pending_review": 18,
-            "high_confidence_rate": 0.87,
-            "context_enrichment_rate": 0.95,
-            "avg_decision_latency_us": 285,
-            "consensus_rate": 0.87,
-            "evidence_records": 847,
-            "audit_compliance": 1.0,
-            "demo_mode": self.demo_mode,
-            "mode_indicator": "🎭 DEMO MODE" if self.demo_mode else "🏭 PRODUCTION MODE"
-        }
-        
+
         if self.demo_mode:
-            base_metrics["core_components"] = {
-                "vector_db": f"demo_active ({self.demo_data['vector_db']['security_patterns']} patterns)",
-                "llm_rag": "demo_active (simulated enrichment)",
-                "consensus_checker": "demo_active (85% threshold)",
-                "golden_regression": f"demo_validated ({self.demo_data['golden_regression']['total_cases']} cases)",
-                "policy_engine": f"demo_active ({self.demo_data['policy_engine']['active_policies']} policies)",
-                "sbom_injection": "demo_active (simulated metadata)"
+            demo_metrics = {
+                "total_decisions": 234,
+                "pending_review": 18,
+                "high_confidence_rate": 0.87,
+                "context_enrichment_rate": 0.95,
+                "avg_decision_latency_us": 285,
+                "consensus_rate": 0.87,
+                "evidence_records": 847,
+                "audit_compliance": 1.0,
+                "demo_mode": True,
+                "mode_indicator": "🎭 DEMO MODE",
+                "latency_percentiles_us": {
+                    "p50": 250.0,
+                    "p95": 325.0,
+                    "p99": 350.0
+                },
+                "core_components": {
+                    "vector_db": f"demo_active ({self.demo_data['vector_db']['security_patterns']} patterns)",
+                    "llm_rag": "demo_active (simulated enrichment)",
+                    "consensus_checker": "demo_active (85% threshold)",
+                    "golden_regression": f"demo_validated ({self.demo_data['golden_regression']['total_cases']} cases)",
+                    "policy_engine": f"demo_active ({self.demo_data['policy_engine']['active_policies']} policies)",
+                    "sbom_injection": "demo_active (simulated metadata)"
+                }
             }
-        else:
-            # Real production component status
-            base_metrics["core_components"] = {
-                "vector_db": f"production_active ({self.real_vector_db.get('security_patterns', 0)} patterns)" if self.real_vector_db else "not_configured",
-                "llm_rag": "production_active (gpt-5)" if self.emergent_client else "not_configured",
-                "consensus_checker": "production_active (85% threshold)",
-                "golden_regression": "production_active" if settings.SECURITY_PATTERNS_DB_URL else "not_configured",
-                "policy_engine": "production_active" if settings.JIRA_URL else "not_configured",
-                "sbom_injection": "production_active (real metadata)"
-            }
-        
-        return base_metrics
+            return demo_metrics
+
+        metrics: Dict[str, Any] = {
+            "demo_mode": False,
+            "mode_indicator": "🏭 PRODUCTION MODE",
+        }
+
+        try:
+            async with DatabaseManager.get_session_context() as session:
+                repo_metrics = await DecisionMetricsRepository.get_metrics(session)
+            metrics.update(repo_metrics)
+        except Exception as exc:
+            logger.error("Failed to load decision metrics from database", exc_info=exc)
+            metrics.update(
+                {
+                    "total_decisions": 0,
+                    "pending_review": 0,
+                    "high_confidence_rate": 0.0,
+                    "context_enrichment_rate": 0.0,
+                    "avg_decision_latency_us": 0.0,
+                    "consensus_rate": 0.0,
+                    "evidence_records": 0,
+                    "audit_compliance": 0.0,
+                    "latency_percentiles_us": {"p50": 0.0, "p95": 0.0, "p99": 0.0},
+                }
+            )
+
+        metrics["core_components"] = {
+            "vector_db": "production_active" if self.real_vector_db else "not_configured",
+            "llm_rag": "production_active (gpt-5)" if self.emergent_client else "not_configured",
+            "consensus_checker": "production_active (85% threshold)",
+            "golden_regression": "production_active" if settings.SECURITY_PATTERNS_DB_URL else "not_configured",
+            "policy_engine": "production_active" if settings.JIRA_URL else "not_configured",
+            "sbom_injection": "production_active (real metadata)",
+        }
+
+        return metrics
 
     def _create_error_decision(self, context: DecisionContext, start_time: float, error: str) -> DecisionResult:
         """Create error decision result"""
