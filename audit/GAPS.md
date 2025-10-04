@@ -9,6 +9,8 @@ impact, and remediation plan.
 | ---- | -------------- | ----- | ---- |
 | Authentication | `backend/app.py` (no auth middleware) | Endpoints are publicly accessible. | Introduce OAuth/API key middleware or front service with gateway before production launch. |
 | Overlay Validation | `fixops/configuration.py` (`load_overlay`) | Schema is permissive; typos (e.g., guardrail thresholds) silently accepted. | Add pydantic model or JSON schema validation to reject unexpected keys and provide actionable errors. |
+| Directory Safety | `fixops/configuration.py` `data_directories` → `fixops/evidence.py` | Overlay-controlled paths are trusted and created on disk. | Restrict overlays to whitelisted roots and reject relative traversal before provisioning directories. |
+| Upload Hardening | `backend/app.py` upload handlers | Files are fully read into memory; no size or type guardrails. | Add `UploadFile.spool_max_size`, content-length checks, and stream parsers to prevent DoS via oversized artefacts. |
 | Feedback Capture | Overlay toggle `capture_feedback` | Toggle documented but no implementation. | Implement persistence layer (database or Jira issue comments) in future iteration and honour toggle. |
 
 ## Deferred Items
@@ -26,3 +28,5 @@ impact, and remediation plan.
   startup.
 - Directory creation occurs at startup without permission checks. Harden by verifying ownership and
   file-system ACLs in hardened deployments.
+- Evidence bundles embed overlay metadata (including plan limits and directory layout). Treat bundle
+  stores as sensitive, encrypt at rest, or provide an option to omit overlay details when exporting.
