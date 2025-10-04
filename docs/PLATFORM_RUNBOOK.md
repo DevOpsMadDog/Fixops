@@ -12,6 +12,7 @@ This runbook summarises the shipped feature set, end-to-end data flow, CLI/API t
 | Compliance packs | Framework scoring, audit-ready summaries | `fixops/compliance.py` |
 | Evidence hub | Persisted bundles, manifests, feedback capture integration | `fixops/evidence.py`, `fixops/feedback.py` |
 | AI agent advisor | Framework detection, control recommendations, playbook routing | `fixops/ai_agents.py` |
+| Exploitability signals | EPSS/KEV-driven exploit context and escalation hints | `fixops/exploit_signals.py`, `config/fixops.overlay.yml` |
 | SSDLC evaluator | Stage-by-stage lifecycle coverage report | `fixops/ssdlc.py` |
 | CVE contextual simulation | Log4Shell demo vs enterprise evidence bundles | `simulations/cve_scenario/runner.py` |
 
@@ -29,7 +30,13 @@ flowchart LR
     C -->|Results| F[Compliance Packs]
     C -->|Results| G[Policy Automation]
     C -->|Results| H[SSDLCEvaluator]
-    {D,E,F,G,H} --> I[EvidenceHub]
+    C -->|Signals| O[Exploit Signal Evaluator]
+    D --> I[EvidenceHub]
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+    O --> I
     I --> J[Evidence bundle & manifest]
     C --> K[Pricing Summary]
     C --> L[AIAgentAdvisor]
@@ -37,7 +44,7 @@ flowchart LR
     C --> N[API Response / CLI Output]
 ```
 
-The FastAPI service wires this chain during startup by loading the overlay, provisioning allowlisted data directories, and enforcing authentication. The orchestrator reuses cached lowercase tokens to avoid repeated SBOM/SARIF scans and passes a single enriched payload through guardrails, context, compliance, policy, AI, SSDLC, and evidence modules before responding.
+The FastAPI service wires this chain during startup by loading the overlay, provisioning allowlisted data directories, and enforcing authentication. The orchestrator reuses cached lowercase tokens to avoid repeated SBOM/SARIF scans and passes a single enriched payload through guardrails, context, compliance, policy, exploitability, AI, SSDLC, and evidence modules before responding.
 
 ## CLI & API Touchpoints
 
@@ -77,7 +84,7 @@ curl -X POST \
   http://127.0.0.1:8000/pipeline/run | jq
 ```
 
-Each response includes mode, severity breakdowns, context summaries, AI agent findings, SSDLC assessment, guardrail status, evidence bundle pointers, and pricing plan metadata.
+Each response includes mode, severity breakdowns, exploitability insights, context summaries, AI agent findings, SSDLC assessment, guardrail status, evidence bundle pointers, and pricing plan metadata.
 
 ### CVE contextual scoring simulation
 

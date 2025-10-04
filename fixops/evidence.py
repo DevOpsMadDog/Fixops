@@ -73,6 +73,7 @@ class EvidenceHub:
         _include("compliance_status", compliance_status)
         _include("policy_automation", policy_summary)
         _include("ai_agent_analysis", pipeline_result.get("ai_agent_analysis"))
+        _include("exploitability_insights", pipeline_result.get("exploitability_insights"))
         _include("ssdlc_assessment", pipeline_result.get("ssdlc_assessment"))
 
         bundle_path = base_dir / f"{self._bundle_name()}-bundle.json"

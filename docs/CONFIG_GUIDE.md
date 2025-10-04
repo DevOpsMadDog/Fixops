@@ -107,6 +107,16 @@ ai_agents:
       recommended_controls:
         - Document tool/API access scopes
         - Require prompt/response logging
+exploit_signals:
+  signals:
+    kev:
+      mode: boolean
+      fields: [knownExploited, kev]
+      escalate_to: critical
+    epss:
+      mode: probability
+      fields: [epss]
+      threshold: 0.5
 pricing:
   plans:
     - name: Launch
@@ -181,13 +191,19 @@ ssdlc:
       requirements:
         - key: design
         - key: threat_model
-ai_agents:
-  watchlist_version: 2024-07
-  framework_signatures:
-    - name: LangChain
-      keywords: [langchain]
-pricing:
-  plans:
+  ai_agents:
+    watchlist_version: 2024-07
+    framework_signatures:
+      - name: LangChain
+        keywords: [langchain]
+  exploit_signals:
+    signals:
+      kev:
+        mode: boolean
+        fields: [knownExploited]
+        escalate_to: critical
+  pricing:
+    plans:
     - name: Launch
       mode: demo
       included_scans: 50
@@ -262,15 +278,25 @@ profiles:
           requirements:
             - key: compliance
             - key: deploy_approvals
-    ai_agents:
-      watchlist_version: 2024-07
-      framework_signatures:
-        - name: LangChain
-          keywords: [langchain, llmchain]
-        - name: AutoGPT
-          keywords: [autogpt]
-    pricing:
-      plans:
+      ai_agents:
+        watchlist_version: 2024-07
+        framework_signatures:
+          - name: LangChain
+            keywords: [langchain, llmchain]
+          - name: AutoGPT
+            keywords: [autogpt]
+      exploit_signals:
+        signals:
+          kev:
+            mode: boolean
+            fields: [knownExploited, kev]
+            escalate_to: critical
+          epss:
+            mode: probability
+            fields: [epss]
+            threshold: 0.3
+      pricing:
+        plans:
         - name: Scale
           mode: enterprise
           included_scans: 500
@@ -286,6 +312,16 @@ profiles:
 - Populate `ai_agents.controls` to describe mandatory mitigations (prompt logging, tool allowlists).
 - Use `ai_agents.playbooks` to map detected frameworks to response channels (e.g., `appsec-ai`). The
   pipeline emits an `ai_agent_analysis` section and evidence bundles include it when requested.
+
+## Exploitability Signals
+
+- Configure `exploit_signals.signals` with identifiers such as `kev` (boolean truthy detection of CISA
+  KEV catalogue fields) and `epss` (numeric probability from FIRST EPSS feeds).
+- Specify `threshold` for probability modes and `escalate_to` or `severity_floor` for boolean
+  detectors so guardrail and policy automation modules can react to high-risk CVEs automatically.
+- Override `profiles.<mode>.signals` to enforce stricter Enterprise thresholds without copying the
+  entire configuration; pipeline responses emit `exploitability_insights` and evidence bundles capture
+  the summary whenever the section is allowed.
 
 ## SSDLC Assessment
 

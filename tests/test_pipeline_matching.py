@@ -167,6 +167,68 @@ def test_pipeline_emits_ai_agent_analysis_when_enabled():
     assert ai_analysis["matches"][0]["framework"] == "LangChain"
 
 
+def test_pipeline_emits_exploitability_summary():
+    orchestrator = PipelineOrchestrator()
+    design_dataset = {
+        "columns": ["component"],
+        "rows": [{"component": "RiskService"}],
+    }
+    sbom = NormalizedSBOM(
+        format="cyclonedx",
+        document={"name": "demo"},
+        components=[SBOMComponent(name="riskservice", version="1.0.0")],
+        relationships=[],
+        services=[],
+        vulnerabilities=[],
+        metadata={"component_count": 1},
+    )
+    sarif = NormalizedSARIF(
+        version="2.1.0",
+        schema_uri=None,
+        tool_names=["Analyzer"],
+        findings=[],
+        metadata={"run_count": 1, "finding_count": 0},
+    )
+    cve = NormalizedCVEFeed(
+        records=[
+            CVERecordSummary(
+                cve_id="CVE-2024-9999",
+                title="RiskService flaw",
+                severity="medium",
+                exploited=True,
+                raw={"knownExploited": True, "epss": 0.72},
+            )
+        ],
+        errors=[],
+        metadata={"record_count": 1},
+    )
+
+    overlay = OverlayConfig(
+        exploit_signals={
+            "signals": {
+                "kev": {"mode": "boolean", "fields": ["knownExploited"], "escalate_to": "critical"},
+                "epss": {"mode": "probability", "fields": ["epss"], "threshold": 0.5},
+            }
+        }
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+        overlay=overlay,
+    )
+
+    exploitability = result.get("exploitability_insights")
+    assert exploitability is not None
+    assert exploitability["overview"]["signals_configured"] == 2
+    assert exploitability["overview"]["matched_records"] >= 2
+    assert exploitability["signals"]["kev"]["match_count"] == 1
+    assert exploitability["signals"]["epss"]["match_count"] == 1
+    assert any(entry["recommended_severity"] == "critical" for entry in exploitability.get("escalations", []))
+
+
 def test_pipeline_supports_design_rows_with_name_column():
     orchestrator = PipelineOrchestrator()
     design_dataset = {

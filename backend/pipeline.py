@@ -12,6 +12,7 @@ from fixops.compliance import ComplianceEvaluator
 from fixops.onboarding import OnboardingGuide
 from fixops.policy import PolicyAutomation
 from fixops.ssdlc import SSDLCEvaluator
+from fixops.exploit_signals import ExploitSignalEvaluator
 
 from .normalizers import (
     CVERecordSummary,
@@ -367,6 +368,11 @@ class PipelineOrchestrator:
             ai_analysis = ai_advisor.analyse(rows, crosswalk)
             if ai_analysis:
                 result["ai_agent_analysis"] = ai_analysis
+
+            exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
+            exploit_summary = exploit_evaluator.evaluate(cve)
+            if exploit_summary:
+                result["exploitability_insights"] = exploit_summary
 
             evidence_hub = EvidenceHub(overlay)
             evidence_bundle = evidence_hub.persist(result, context_summary, compliance_status, policy_summary)

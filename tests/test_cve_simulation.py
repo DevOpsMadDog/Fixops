@@ -65,6 +65,20 @@ def _build_overlay(tmp_path: Path) -> Path:
                 {"id": "deploy", "requirements": ["compliance"]}
             ]
         },
+        "exploit_signals": {
+            "signals": {
+                "kev": {
+                    "mode": "boolean",
+                    "fields": ["knownExploited", "kev"],
+                    "escalate_to": "critical"
+                },
+                "epss": {
+                    "mode": "probability",
+                    "fields": ["epss"],
+                    "threshold": 0.4
+                }
+            }
+        },
         "profiles": {
             "enterprise": {
                 "mode": "enterprise",
@@ -96,6 +110,7 @@ def test_demo_mode_downgrades_severity(tmp_path: Path) -> None:
     assert payload["context_summary"]["summary"]["components_evaluated"] == 1
     assert payload["policy_automation"]["actions"] == []
     assert payload["ssdlc_assessment"]["summary"]["total_stages"] >= 1
+    assert payload["exploitability_insights"]["overview"]["matched_records"] >= 1
 
 
 def test_enterprise_mode_escalates_severity(tmp_path: Path) -> None:
@@ -113,3 +128,4 @@ def test_enterprise_mode_escalates_severity(tmp_path: Path) -> None:
     assert evidence["policy_automation"]["actions"]
     assert evidence["guardrail_evaluation"]["status"] == "fail"
     assert evidence["ssdlc_assessment"]["summary"]["total_stages"] >= 1
+    assert evidence["exploitability_insights"]["overview"]["signals_configured"] >= 1

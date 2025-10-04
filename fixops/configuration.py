@@ -82,6 +82,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "limits",
     "ai_agents",
     "ssdlc",
+    "exploit_signals",
     "profiles",
 }
 
@@ -108,6 +109,7 @@ class _OverlayDocument(BaseModel):
     limits: Optional[Dict[str, Any]] = None
     ai_agents: Optional[Dict[str, Any]] = None
     ssdlc: Optional[Dict[str, Any]] = None
+    exploit_signals: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     class Config:
@@ -162,6 +164,7 @@ class OverlayConfig:
     limits: Dict[str, Any] = field(default_factory=dict)
     ai_agents: Dict[str, Any] = field(default_factory=dict)
     ssdlc: Dict[str, Any] = field(default_factory=dict)
+    exploit_signals: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(default_factory=lambda: (_DEFAULT_DATA_ROOT,))
     auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
 
@@ -209,6 +212,7 @@ class OverlayConfig:
             "limits": self.limits,
             "ai_agents": self.ai_agents,
             "ssdlc": self.ssdlc_settings,
+            "exploit_signals": self.exploit_settings,
         }
         return payload
 
@@ -362,6 +366,35 @@ class OverlayConfig:
         return {"stages": merged_stages, **metadata}
 
     @property
+    def exploit_settings(self) -> Dict[str, Any]:
+        settings = dict(self.exploit_signals)
+        signals: Dict[str, Dict[str, Any]] = {}
+        base_signals = settings.get("signals")
+        if isinstance(base_signals, Mapping):
+            for identifier, payload in base_signals.items():
+                if isinstance(payload, Mapping):
+                    signals[str(identifier)] = dict(payload)
+
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                overrides = profile.get("signals")
+                if isinstance(overrides, Mapping):
+                    for identifier, payload in overrides.items():
+                        if not isinstance(payload, Mapping):
+                            continue
+                        key = str(identifier)
+                        if key in signals:
+                            signals[key].update(payload)
+                        else:
+                            signals[key] = dict(payload)
+
+        metadata = {k: v for k, v in settings.items() if k not in {"signals", "profiles"}}
+        metadata["signals"] = signals
+        return metadata
+
+    @property
     def pricing_summary(self) -> Dict[str, Any]:
         plans = [dict(plan) for plan in self.pricing.get("plans", []) if isinstance(plan, Mapping)]
         active = None
@@ -435,6 +468,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "limits": document.limits or {},
         "ai_agents": document.ai_agents or {},
         "ssdlc": document.ssdlc or {},
+        "exploit_signals": document.exploit_signals or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -471,6 +505,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         limits=dict(base.get("limits", {})),
         ai_agents=dict(base.get("ai_agents", {})),
         ssdlc=dict(base.get("ssdlc", {})),
+        exploit_signals=dict(base.get("exploit_signals", {})),
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

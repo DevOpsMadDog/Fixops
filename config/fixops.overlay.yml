@@ -326,6 +326,38 @@
       }
     ]
   },
+  "exploit_signals": {
+    "signals": {
+      "kev": {
+        "label": "CISA Known Exploited Vulnerability",
+        "mode": "boolean",
+        "fields": ["knownExploited", "kev", "knownRansomwareCampaignUse"],
+        "truthy": [true, "true", "yes", 1],
+        "escalate_to": "critical",
+        "rationale": "CISA KEV catalogue mandates expedited remediation for actively exploited vulnerabilities."
+      },
+      "epss": {
+        "label": "Exploit Prediction Scoring System",
+        "mode": "probability",
+        "fields": ["epss", "epssScore", "exploitability.epss"],
+        "threshold": 0.5,
+        "severity_floor": "high",
+        "rationale": "FIRST EPSS research indicates probabilities above 0.5 correlate with imminent exploitation risk."
+      }
+    },
+    "references": [
+      "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+      "https://www.first.org/epss"
+    ],
+    "profiles": {
+      "enterprise": {
+        "signals": {
+          "epss": {"threshold": 0.3},
+          "kev": {"escalate_to": "critical"}
+        }
+      }
+    }
+  },
   "pricing": {
     "plans": [
       {

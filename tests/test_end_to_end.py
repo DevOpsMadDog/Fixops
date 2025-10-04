@@ -156,6 +156,9 @@ def test_end_to_end_demo_pipeline():
         assert "plans" in pipeline_payload["pricing_summary"]
         ai_analysis = pipeline_payload.get("ai_agent_analysis")
         assert ai_analysis and ai_analysis["summary"]["components_with_agents"] >= 1
+        exploit_signals = pipeline_payload["exploitability_insights"]
+        assert exploit_signals["overview"]["signals_configured"] >= 1
+        assert exploit_signals["overview"]["matched_records"] >= 1
         ssdlc = pipeline_payload["ssdlc_assessment"]
         assert ssdlc["summary"]["total_stages"] >= 1
         assert any(stage["id"] == "plan" for stage in ssdlc["stages"])
@@ -187,3 +190,5 @@ def test_end_to_end_demo_pipeline():
         assert isinstance(pipeline_payload["crosswalk"][0]["findings"], list)
         if "ai_agent_analysis" in pipeline_payload:
             assert pipeline_payload["ai_agent_analysis"]["summary"]["components_with_agents"] >= 1
+        if "exploitability_insights" in pipeline_payload:
+            assert pipeline_payload["exploitability_insights"]["overview"]["signals_configured"] >= 1

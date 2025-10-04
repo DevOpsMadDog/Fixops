@@ -20,6 +20,14 @@ configuration. Each description lists core fields, invariants, and persistence n
   - `fail_on` / `warn_on` (`str`): Optional severity thresholds overriding defaults per maturity.
   - `profiles` (`dict`): Nested overrides keyed by maturity, enabling per-mode tuning.
 - **metadata** (`dict`): Loader-supplied diagnostics (source path, applied profile list, etc.).
+- **context_engine / evidence_hub / onboarding / compliance / policy_automation / pricing / limits**
+  (`dict`): Sub-configurations merged with per-mode overrides to drive contextual scoring, evidence
+  bundling, onboarding checklists, compliance packs, policy actions, billing, and upload limits.
+- **ai_agents** (`dict`): Watchlist signatures, control recommendations, and playbooks used by
+  `AIAgentAdvisor` to build governance summaries.
+- **exploit_signals** (`dict`): Signal definitions (e.g., KEV boolean checks, EPSS probability
+  thresholds) merged per mode and evaluated by `ExploitSignalEvaluator`.
+- **ssdlc** (`dict`): Stage requirements and per-mode overrides powering lifecycle assessments.
 
 ## Normalisation Models (`backend/normalizers.py`)
 
@@ -60,6 +68,19 @@ configuration. Each description lists core fields, invariants, and persistence n
   - `sbom_component`: Matched component dictionary (or `None`).
   - `findings`: SARIF findings matched by token.
   - `cves`: CVE summaries matched by token.
+- `context_summary`: Output of the business-aware context engine (scores, playbooks, component
+  highlights).
+- `onboarding`: Overlay-driven checklist of integrations/artefacts still outstanding.
+- `compliance_status`: Framework-by-framework control coverage, including unmet requirements.
+- `policy_automation`: Planned Jira/Confluence/notification actions derived from guardrails and
+  compliance state.
+- `ai_agent_analysis`: Detection summary for configured AI frameworks plus residual risks and
+  playbook routing.
+- `exploitability_insights`: EPSS/KEV matches, thresholds, and recommended escalations emitted by the
+  exploit signal evaluator when signals are configured.
+- `ssdlc_assessment`: Stage coverage summary (plan→audit) including unmet requirements.
+- `evidence_bundle`: Manifest describing persisted bundle paths and included sections.
+- `pricing_summary`: Available plans plus the active plan for the current mode.
 - `overlay`: Present when `auto_attach_overlay_metadata` is enabled. Contains sanitized integration
   payloads and `required_inputs` describing the mode-specific prerequisites.
 

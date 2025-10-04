@@ -38,6 +38,9 @@ architecture against market promises.
      bundles.
    - Invokes the AI Agent Advisor (overlay-driven) to flag LangChain/AutoGPT style components and
      attach recommended controls and playbooks to the pipeline response.
+   - Runs the overlay-configured `ExploitSignalEvaluator` to surface EPSS/KEV-driven
+     `exploitability_insights`, feeding policy automation and evidence bundles with exploitability
+     context.
    - Calls the overlay-configured SSDLC evaluator to grade each lifecycle stage against the uploaded
      artefacts and automation outcomes, surfacing the `ssdlc_assessment` block for audits.
 5. **Overlay-Aware State**
@@ -60,9 +63,10 @@ architecture against market promises.
      descriptive HTTP 400. Enterprise mode enforces that Jira configuration is present before
      proceeding when `enforce_ticket_sync` is enabled.
    - `PipelineOrchestrator.run()` receives the cached artefacts, builds token lookups, aggregates
-     severities/exploit evidence, and computes guardrail evaluations using the overlay’s maturity
-     profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail), SSDLC stage
-     coverage, AI agent analysis (when configured), and a crosswalk for evidence bundling.
+     severities and exploitability signals, and computes guardrail evaluations using the overlay’s
+     maturity profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail),
+     SSDLC stage coverage, AI agent analysis (when configured), exploitability insights, and a
+     crosswalk for evidence bundling.
    - Overlay metadata is appended to the response (with secrets masked) when the
      `auto_attach_overlay_metadata` toggle is active. Evidence bundles omit the overlay when
      `include_overlay_metadata_in_bundles` is disabled.

@@ -127,6 +127,8 @@ def _build_artifacts() -> tuple[NormalizedSBOM, NormalizedSARIF, NormalizedCVEFe
             "cvssV3Severity": "CRITICAL",
             "cvssV3Score": 10.0,
             "affected_component": "logging-service",
+            "knownExploited": True,
+            "epss": 0.73,
         },
     )
 
@@ -166,6 +168,7 @@ def _ensure_overlay_for_mode(
         "limits": dict(raw.get("limits", {})),
         "ai_agents": dict(raw.get("ai_agents", {})),
         "ssdlc": dict(raw.get("ssdlc", {})),
+        "exploit_signals": dict(raw.get("exploit_signals", {})),
     }
 
     profiles = raw.get("profiles") if isinstance(raw, Mapping) else {}
@@ -206,6 +209,7 @@ def _ensure_overlay_for_mode(
         limits=dict(base.get("limits", {})),
         ai_agents=dict(base.get("ai_agents", {})),
         ssdlc=dict(base.get("ssdlc", {})),
+        exploit_signals=dict(base.get("exploit_signals", {})),
         allowed_data_roots=overlay.allowed_data_roots,
         auth_tokens=overlay.auth_tokens,
     )
@@ -300,6 +304,7 @@ def run_simulation(
         "compliance_status": compliance_status,
         "policy_automation": policy_automation,
         "ssdlc_assessment": pipeline_result.get("ssdlc_assessment"),
+        "exploitability_insights": pipeline_result.get("exploitability_insights"),
     }
     if guardrail_evaluation:
         score_payload["guardrail_evaluation"] = guardrail_evaluation
@@ -326,6 +331,7 @@ def run_simulation(
         "compliance_status": compliance_status,
         "policy_automation": policy_automation,
         "ssdlc_assessment": pipeline_result.get("ssdlc_assessment"),
+        "exploitability_insights": pipeline_result.get("exploitability_insights"),
         "justification": scenario["justification"],
     }
     if guardrail_evaluation:
