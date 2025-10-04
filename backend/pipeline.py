@@ -208,8 +208,8 @@ class PipelineOrchestrator:
         ]
 
         design_components: List[str] = []
-        tokens: Dict[str, str] = {}
-        for row in rows:
+        token_by_index: Dict[int, str] = {}
+        for index, row in enumerate(rows):
             name = self._extract_component_name(row)
             if not name:
                 continue
@@ -217,9 +217,9 @@ class PipelineOrchestrator:
             if not normalised:
                 continue
             design_components.append(name)
-            tokens[name] = normalised
+            token_by_index[index] = normalised
 
-        lookup_tokens = set(tokens.values())
+        lookup_tokens = set(token_by_index.values())
         sbom_lookup = self._match_components(sbom.components)
 
         findings_by_level = Counter(
@@ -286,9 +286,9 @@ class PipelineOrchestrator:
                         cve_matches[token].append(dict(payload))
 
         crosswalk: List[dict[str, Any]] = []
-        for row in rows:
+        for index, row in enumerate(rows):
             component_name = self._extract_component_name(row)
-            token = tokens.get(component_name) if component_name else None
+            token = token_by_index.get(index)
             match = sbom_lookup.get(token) if token else None
 
             crosswalk.append(
@@ -297,6 +297,7 @@ class PipelineOrchestrator:
                     "sbom_component": match.to_dict() if match else None,
                     "findings": list(finding_matches.get(token, [])),
                     "cves": list(cve_matches.get(token, [])),
+                    "design_index": index,
                 }
             )
 
@@ -381,7 +382,10 @@ class PipelineOrchestrator:
 
             if overlay.is_module_enabled("policy_automation"):
                 policy_automation = PolicyAutomation(overlay)
-                policy_summary = policy_automation.plan(result, context_summary, compliance_status)
+                policy_plan = policy_automation.plan(result, context_summary, compliance_status)
+                execution_summary = policy_automation.execute(policy_plan["actions"])
+                policy_summary = dict(policy_plan)
+                policy_summary["execution"] = execution_summary
                 result["policy_automation"] = policy_summary
                 modules_status["policy_automation"] = "executed"
                 executed_modules.append("policy_automation")

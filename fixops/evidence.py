@@ -1,6 +1,7 @@
 """Evidence hub responsible for persisting contextual bundles."""
 from __future__ import annotations
 
+import gzip
 import json
 import re
 import uuid
@@ -19,6 +20,14 @@ class EvidenceHub:
     def __init__(self, overlay: OverlayConfig):
         self.overlay = overlay
         self.settings = overlay.evidence_settings
+        limits = overlay.evidence_limits
+        max_bytes = limits.get("bundle_max_bytes") if isinstance(limits, Mapping) else None
+        try:
+            self.max_bundle_bytes = int(max_bytes) if max_bytes is not None else 2 * 1024 * 1024
+        except (TypeError, ValueError):
+            self.max_bundle_bytes = 2 * 1024 * 1024
+        compress_flag = limits.get("compress") if isinstance(limits, Mapping) else False
+        self.compress_bundles = bool(compress_flag)
 
     def _base_directory(self) -> Path:
         directory = self.overlay.data_directories.get("evidence_dir")
@@ -79,8 +88,33 @@ class EvidenceHub:
         _include("iac_posture", pipeline_result.get("iac_posture"))
         _include("module_execution", pipeline_result.get("modules"))
 
+        bundle_json = json.dumps(bundle_payload, indent=2)
+        bundle_bytes = bundle_json.encode("utf-8")
         bundle_path = base_dir / f"{self._bundle_name()}-bundle.json"
-        bundle_path.write_text(json.dumps(bundle_payload, indent=2), encoding="utf-8")
+        compressed = False
+
+        def _write_compressed(data: bytes) -> None:
+            nonlocal bundle_path, compressed
+            bundle_path = bundle_path.with_suffix(".json.gz")
+            bundle_path.write_bytes(data)
+            compressed = True
+
+        if self.compress_bundles and self.max_bundle_bytes:
+            compressed_data = gzip.compress(bundle_bytes)
+            if len(compressed_data) > self.max_bundle_bytes:
+                raise ValueError(
+                    "Compressed evidence bundle exceeds configured size limit; increase bundle_max_bytes"
+                )
+            _write_compressed(compressed_data)
+        elif not self.max_bundle_bytes or len(bundle_bytes) <= self.max_bundle_bytes:
+            bundle_path.write_bytes(bundle_bytes)
+        else:
+            compressed_data = gzip.compress(bundle_bytes)
+            if len(compressed_data) > self.max_bundle_bytes:
+                raise ValueError(
+                    "Evidence bundle exceeds configured size limit even after compression; increase bundle_max_bytes"
+                )
+            _write_compressed(compressed_data)
 
         manifest = {
             "run_id": run_id,
@@ -91,6 +125,7 @@ class EvidenceHub:
                 for key in bundle_payload.keys()
                 if key not in {"mode", "run_id", "overlay"}
             ],
+            "compressed": compressed,
         }
         manifest_path = base_dir / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -103,6 +138,7 @@ class EvidenceHub:
                 "manifest": str(manifest_path),
             },
             "sections": included_sections,
+            "compressed": compressed,
         }
 
 

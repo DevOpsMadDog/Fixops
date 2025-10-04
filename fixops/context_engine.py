@@ -182,15 +182,18 @@ class ContextEngine:
         crosswalk: Sequence[Mapping[str, Any]],
     ) -> Dict[str, Any]:
         components: List[ComponentContext] = []
-        crosswalk_by_component = {
-            self._extract_component_name(item.get("design_row", {})): item for item in crosswalk
-            if isinstance(item, Mapping)
-        }
-        for row in design_rows:
+        crosswalk_by_index = {}
+        for item in crosswalk:
+            if not isinstance(item, Mapping):
+                continue
+            index = item.get("design_index")
+            if isinstance(index, int):
+                crosswalk_by_index[index] = item
+
+        for index, row in enumerate(design_rows):
             if not isinstance(row, Mapping):
                 continue
-            name = self._extract_component_name(row)
-            crosswalk_entry = crosswalk_by_component.get(name, {"findings": [], "cves": []})
+            crosswalk_entry = crosswalk_by_index.get(index, {"findings": [], "cves": []})
             component_context = self._derive_component_context(row, crosswalk_entry)
             components.append(component_context)
 

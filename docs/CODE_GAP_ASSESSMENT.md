@@ -2,26 +2,20 @@
 
 This review consolidates the line-level findings from the latest code audit and highlights the gaps most likely to erode FixOps’ competitive position if left unresolved.
 
-## Recently remediated criticals
-- **Evidence bundle path traversal** – evidence bundles now resolve inside the overlay allowlist and sanitise custom bundle names before writing to disk, preventing attackers from overwriting arbitrary paths via crafted configuration values. 【F:fixops/evidence.py†L1-L95】
-- **Feedback directory escape** – feedback submissions now validate API payload identifiers, blocking attempts to traverse outside the allowed feedback directory. 【F:fixops/feedback.py†L1-L96】
-- **Design crosswalk misalignment** – ingestion recognises `name` columns in design CSVs, so crosswalk matching no longer drops components labelled without the `component` header. 【F:backend/pipeline.py†L32-L77】
-- **Exploit signal blind spots** – the pipeline now evaluates overlay-configured EPSS and KEV signals, exposing `exploitability_insights` in API responses and evidence bundles so exploit intelligence feeds harden guardrail decisions. 【F:fixops/exploit_signals.py†L1-L189】【F:backend/pipeline.py†L367-L379】
+## Newly remediated gaps
+- **Exploit signal drift detection** – overlay metadata now records feed freshness and flags stale configurations so operators cannot unknowingly rely on outdated EPSS/KEV thresholds. 【F:config/fixops.overlay.yml†L53-L63】【F:fixops/exploit_signals.py†L1-L170】
+- **Policy automation execution** – automation runs dispatch to an audited spool with per-action manifests, ensuring Jira/Confluence payloads are persisted and counted for compliance checks. 【F:fixops/policy.py†L1-L168】【F:backend/pipeline.py†L252-L284】
+- **AI agent evasion hardening** – signature matching now tokenises aliases, package indicators, and scanner context to detect renamed frameworks without relying on raw substrings. 【F:fixops/ai_agents.py†L1-L176】【F:config/fixops.overlay.yml†L66-L107】
+- **Compliance & SSDLC rigour** – control checks require dispatched automations, satisfied frameworks, and pass-or-warn guardrail status before awarding credit, preventing checkbox compliance. 【F:fixops/compliance.py†L1-L77】【F:fixops/ssdlc.py†L280-L360】
+- **Crosswalk fidelity** – crosswalk entries retain the originating row index, avoiding duplicate-component overwrites when evaluating context or guardrails. 【F:backend/pipeline.py†L62-L143】【F:fixops/context_engine.py†L94-L178】
+- **Overlay and evidence hygiene** – sanitisation redacts API/client keys and evidence bundles enforce byte limits with automatic compression, keeping exported artefacts safe for sharing. 【F:fixops/configuration.py†L200-L242】【F:fixops/evidence.py†L1-L127】
 
-## Remaining high-priority risks
-- **Exploit signal drift** – EPSS/KEV thresholds live in configuration and require manual curation; without scheduled updates or feed sync the accuracy of exploitability insights will degrade, risking false reassurance. Automating feed refresh and threshold recommendation remains a priority. 【F:config/fixops.overlay.yml†L320-L354】【F:fixops/exploit_signals.py†L1-L189】
-- **Policy automation stops at planning** – `PolicyAutomation.plan` only templates Jira/Confluence payloads; it never enforces SLAs or writes back to ticketing systems, so the promised automation remains manual effort. We need delivery adapters (Jira REST, Confluence API, change-management webhooks) with retries and audit logging to close the feature gap versus Apiiro. 【F:fixops/policy.py†L1-L60】
-- **AI agent detection is easy to evade** – agent analysis relies on simple substring searches across design text and SBOM metadata. A competitor can trivially miss renamed or obfuscated frameworks, undermining the “agent governance” differentiator. We should introduce signature normalisation (e.g. package hashes, Git metadata) and configurable false-positive suppression. 【F:fixops/ai_agents.py†L1-L98】
-- **Compliance scoring lacks depth** – compliance evaluation marks controls as satisfied whenever an artefact exists, without validating quality (e.g. ensuring SARIF findings are triaged or evidence bundles contain specific attachments). Buyers seeking audit-ready assurance will view this as checkbox compliance. 【F:fixops/compliance.py†L1-L68】
+## Residual risks to monitor
+- **Automation delivery adapters** – dispatched policy actions persist to disk but do not yet call Jira/Confluence REST APIs. Building authenticated connectors with retries will close the final automation gap. 【F:fixops/policy.py†L1-L168】
+- **Exploit feed refresh cadence** – staleness warnings surface expired thresholds, yet automated feed import and threshold tuning are still manual workflows. Scheduling ingest jobs remains on the roadmap. 【F:fixops/exploit_signals.py†L118-L170】
 
-## Medium-priority technical gaps
-- **Guardrail triggers lose duplicate components** – the crosswalk dictionary overwrites entries when duplicate component names exist, so multi-region services share one context evaluation. We should key crosswalk entries by a stable identifier (e.g. CSV row index) to preserve per-instance context. 【F:fixops/context_engine.py†L94-L166】
-- **Overlay sanitisation misses API keys** – `OverlayConfig._mask` redacts tokens, secrets, and passwords, but leaves keys like `api_key` or `client_id` exposed in responses. Broaden the mask vocabulary before marketing “safe overlay exports.” 【F:fixops/configuration.py†L107-L182】
-- **Evidence bundles lack size governance** – evidence persistence eagerly writes full summaries without enforcing size limits or compression, which risks storage blow-ups on large enterprise runs. Add per-section caps and optional gzip packaging. 【F:fixops/evidence.py†L28-L109】
-- **SSDLC checks rely on presence, not outcome** – lifecycle evaluators treat any policy action or compliance pack as success, even if the generated actions are empty or the compliance gap list is non-zero. Tighten acceptance criteria before branding the workflow “audit grade.” 【F:fixops/ssdlc.py†L1-L206】
+## Test & observability coverage
+- FastAPI integration tests now assert API-key enforcement and reject unsafe feedback payloads, aligning runtime security with the hardened upload layer. 【F:tests/test_end_to_end.py†L146-L226】
+- Evidence bundles report compression state and section coverage, enabling auditors to validate artefact completeness run by run. 【F:fixops/evidence.py†L60-L127】
 
-## Observability & testing follow-ups
-- Extend FastAPI integration tests to cover API-key failure paths and feedback rejection scenarios to keep parity with the new security guards. 【F:backend/app.py†L1-L211】【F:tests/test_feedback.py†L1-L54】
-- Exercise evidence bundle sanitisation through end-to-end simulations to ensure demo and enterprise overlays both emit compliant paths. 【F:tests/test_evidence.py†L1-L48】
-
-Addressing the highlighted risks keeps FixOps’ differentiators defensible and removes blockers surfaced during the competitive review.
+Ongoing focus on the residual risks will ensure FixOps’ enterprise differentiators remain defensible as connectors and feed automation reach full production maturity.

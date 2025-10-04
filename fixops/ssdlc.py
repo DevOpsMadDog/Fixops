@@ -292,7 +292,10 @@ class SSDLCEvaluator:
     def _check_guardrails(**kwargs: Any) -> Tuple[str, str]:
         evaluation = kwargs.get("pipeline_result", {}).get("guardrail_evaluation")
         if evaluation:
-            return "satisfied", f"Guardrail status: {evaluation.get('status')}"
+            status = evaluation.get("status")
+            if status == "fail":
+                return "gap", "Guardrail failure requires remediation"
+            return "satisfied", f"Guardrail status: {status}"
         return "gap", "Guardrail evaluation missing"
 
     @staticmethod
@@ -307,19 +310,33 @@ class SSDLCEvaluator:
     @staticmethod
     def _check_policy_automation(**kwargs: Any) -> Tuple[str, str]:
         policy = kwargs.get("policy_summary") or {}
-        actions = policy.get("actions") if isinstance(policy, Mapping) else []
+        if not isinstance(policy, Mapping):
+            return "in_progress", "Policy automation not evaluated"
+        actions = policy.get("actions") if isinstance(policy.get("actions"), list) else []
+        execution = policy.get("execution") if isinstance(policy.get("execution"), Mapping) else {}
+        dispatched = execution.get("dispatched_count")
+        try:
+            dispatched_count = int(dispatched)
+        except (TypeError, ValueError):
+            dispatched_count = 0
+        if dispatched_count > 0:
+            return "satisfied", f"{dispatched_count} policy actions dispatched"
         if actions:
-            return "satisfied", f"{len(actions)} policy actions generated"
+            return "in_progress", "Policy actions planned but not dispatched"
         return "in_progress", "No policy automations triggered"
 
     @staticmethod
     def _check_compliance(**kwargs: Any) -> Tuple[str, str]:
         compliance = kwargs.get("compliance_status") or {}
         frameworks = compliance.get("frameworks") if isinstance(compliance, Mapping) else []
-        if frameworks:
-            satisfied = sum(1 for framework in frameworks if framework.get("status") == "satisfied")
-            return "satisfied", f"{satisfied}/{len(frameworks)} compliance packs satisfied"
-        return "in_progress", "No compliance packs evaluated"
+        if not frameworks:
+            return "in_progress", "No compliance packs evaluated"
+        statuses = [framework.get("status") for framework in frameworks]
+        if any(status == "gap" for status in statuses):
+            return "gap", "Compliance gaps detected"
+        if all(status == "satisfied" for status in statuses):
+            return "satisfied", "All compliance controls satisfied"
+        return "in_progress", "Compliance remediation in progress"
 
     @staticmethod
     def _check_deploy_approvals(**kwargs: Any) -> Tuple[str, str]:
@@ -340,7 +357,7 @@ class SSDLCEvaluator:
     def _check_evidence(**kwargs: Any) -> Tuple[str, str]:
         bundle = kwargs.get("pipeline_result", {}).get("evidence_bundle") or {}
         files = bundle.get("files") if isinstance(bundle, Mapping) else {}
-        if files and files.get("bundle"):
+        if files and files.get("bundle") and bundle.get("sections"):
             return "satisfied", "Evidence bundle persisted"
         return "gap", "Evidence bundle unavailable"
 
@@ -348,7 +365,12 @@ class SSDLCEvaluator:
     def _check_observability(**kwargs: Any) -> Tuple[str, str]:
         bundle = kwargs.get("pipeline_result", {}).get("evidence_bundle") or {}
         sections = bundle.get("sections") if isinstance(bundle, Mapping) else []
-        if sections and {"context_summary", "guardrail_evaluation"}.intersection(set(sections)):
+        guardrail = kwargs.get("pipeline_result", {}).get("guardrail_evaluation") or {}
+        if (
+            sections
+            and {"context_summary", "guardrail_evaluation"}.intersection(set(sections))
+            and guardrail.get("status") in {"pass", "warn"}
+        ):
             return "satisfied", "Observability artefacts captured in evidence"
         return "in_progress", "No observability artefacts attached"
 

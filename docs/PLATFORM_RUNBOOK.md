@@ -161,6 +161,7 @@ The script leverages the blended enterprise scorer to contrast scanner severitie
 - Overlay allowlists constrain upload destinations (`FIXOPS_DATA_ROOT_ALLOWLIST`).
 - Evidence bundles include manifest + archive paths; the CVE simulation asserts both files exist when guardrails trigger bundling.
 - Feedback entries live under `data/feedback/<mode>/<run_id>/feedback.jsonl`, matching SSDLC "feedback_loop" requirements.
+- Policy automation dispatches emit JSON manifests under `data/automation/<mode>/` so Jira/Confluence actions are auditable even before external connectors are wired in.
 
 ## Quick Feature Recap
 

@@ -55,6 +55,10 @@
       "default": 3145728,
       "sarif": 6291456,
       "cve": 6291456
+    },
+    "evidence": {
+      "bundle_max_bytes": 1048576,
+      "compress": true
     }
   },
   "guardrails": {
@@ -351,11 +355,41 @@
   "ai_agents": {
     "watchlist_version": "2024-07",
     "framework_signatures": [
-      {"name": "LangChain", "keywords": ["langchain", "llmchain"], "threat_profile": "supply_chain"},
-      {"name": "AutoGPT", "keywords": ["autogpt", "auto-gpt"], "threat_profile": "self_modifying"},
-      {"name": "CrewAI", "keywords": ["crewai"], "threat_profile": "multi_agent_coordination"},
-      {"name": "HuggingFace Agents", "keywords": ["huggingface agent", "transformers agent"], "threat_profile": "remote_tool_execution"},
-      {"name": "LlamaIndex", "keywords": ["llamaindex", "gpt index"], "threat_profile": "data_leakage"}
+      {
+        "name": "LangChain",
+        "keywords": ["langchain", "llmchain"],
+        "aliases": ["lang chain", "lang-chain"],
+        "package_indicators": ["langchain", "langchain-core"],
+        "threat_profile": "supply_chain"
+      },
+      {
+        "name": "AutoGPT",
+        "keywords": ["autogpt", "auto-gpt"],
+        "aliases": ["auto gpt"],
+        "package_indicators": ["autogpt", "autonomous-gpt"],
+        "threat_profile": "self_modifying"
+      },
+      {
+        "name": "CrewAI",
+        "keywords": ["crewai"],
+        "aliases": ["crew ai"],
+        "package_indicators": ["crewai"],
+        "threat_profile": "multi_agent_coordination"
+      },
+      {
+        "name": "HuggingFace Agents",
+        "keywords": ["huggingface agent", "transformers agent"],
+        "aliases": ["hugging face agent"],
+        "package_indicators": ["huggingface-agent", "transformers-agents"],
+        "threat_profile": "remote_tool_execution"
+      },
+      {
+        "name": "LlamaIndex",
+        "keywords": ["llamaindex", "gpt index"],
+        "aliases": ["llama index", "gpt-index"],
+        "package_indicators": ["llama-index", "gpt-index"],
+        "threat_profile": "data_leakage"
+      }
     ],
     "controls": {
       "default": {
@@ -392,6 +426,8 @@
     ]
   },
   "exploit_signals": {
+    "last_refreshed": "2024-07-15T00:00:00Z",
+    "max_age_days": 21,
     "signals": {
       "kev": {
         "label": "CISA Known Exploited Vulnerability",

@@ -111,6 +111,48 @@ def test_pipeline_crosswalk_reuses_precomputed_matches():
     assert result["sarif_summary"]["severity_breakdown"]["error"] == 1
 
 
+def test_crosswalk_retains_design_indices_for_duplicates():
+    orchestrator = PipelineOrchestrator()
+    design_dataset = {
+        "columns": ["component", "owner"],
+        "rows": [
+            {"component": "api-gateway", "owner": "team-a"},
+            {"component": "api-gateway", "owner": "team-b"},
+        ],
+    }
+    sbom = NormalizedSBOM(
+        format="cyclonedx",
+        document={"name": "duplicate"},
+        components=[
+            SBOMComponent(name="api-gateway", version="1.0.0", raw={}),
+        ],
+        relationships=[],
+        services=[],
+        vulnerabilities=[],
+        metadata={"component_count": 1},
+    )
+    sarif = NormalizedSARIF(
+        version="2.1.0",
+        schema_uri=None,
+        findings=[],
+        tool_names=[],
+        metadata={"finding_count": 0},
+    )
+    cve = NormalizedCVEFeed(records=[], errors=[], metadata={})
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+    )
+
+    indices = [entry.get("design_index") for entry in result["crosswalk"]]
+    assert indices == [0, 1]
+    owners = [entry["design_row"]["owner"] for entry in result["crosswalk"]]
+    assert owners == ["team-a", "team-b"]
+
+
 def test_pipeline_guardrail_evaluation_uses_overlay_policy():
     orchestrator = PipelineOrchestrator()
     design_dataset, sbom, sarif, cve = build_orchestrator_payload()

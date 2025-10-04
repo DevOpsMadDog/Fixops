@@ -231,8 +231,20 @@ class OverlayConfig:
     @staticmethod
     def _mask(section: Mapping[str, Any]) -> Dict[str, Any]:
         masked: Dict[str, Any] = {}
+        sensitive_tokens = (
+            "secret",
+            "token",
+            "password",
+            "apikey",
+            "api_key",
+            "client_secret",
+            "client_id",
+            "access_key",
+            "private_key",
+        )
         for key, value in section.items():
-            if any(token in key.lower() for token in ("secret", "token", "password")):
+            lower_key = key.lower()
+            if any(token in lower_key for token in sensitive_tokens):
                 masked[key] = "***"
             else:
                 masked[key] = value
@@ -534,6 +546,14 @@ class OverlayConfig:
         if active:
             summary["active_plan"] = active
         return summary
+
+    @property
+    def evidence_limits(self) -> Dict[str, Any]:
+        if isinstance(self.limits, Mapping):
+            evidence_limits = self.limits.get("evidence")
+            if isinstance(evidence_limits, Mapping):
+                return dict(evidence_limits)
+        return {}
 
     def upload_limit(self, stage: str, fallback: int = 5 * 1024 * 1024) -> int:
         limits = self.limits.get("max_upload_bytes") if isinstance(self.limits, Mapping) else None

@@ -1,8 +1,9 @@
 """Advisor for AI-agent components detected in design artefacts."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+import re
+from dataclasses import dataclass, field
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set
 
 
 def _extract_component_name(design_row: Mapping[str, Any]) -> Optional[str]:
@@ -13,11 +14,33 @@ def _extract_component_name(design_row: Mapping[str, Any]) -> Optional[str]:
     return None
 
 
+_TOKEN_SPLITTER = re.compile(r"[^a-z0-9]+")
+
+
+def _tokenise(text: str) -> Set[str]:
+    if not text:
+        return set()
+    return {chunk for chunk in _TOKEN_SPLITTER.split(text.lower()) if chunk}
+
+
 @dataclass
 class FrameworkSignature:
     name: str
     keywords: List[str]
     threat_profile: Optional[str] = None
+    aliases: List[str] = field(default_factory=list)
+    package_indicators: List[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.match_terms = set()
+        for token in self.keywords + self.aliases:
+            self.match_terms.update(_tokenise(token))
+        self.package_terms = set()
+        for token in self.package_indicators:
+            self.package_terms.update(_tokenise(token))
+
+    match_terms: Set[str] = field(init=False, repr=False)
+    package_terms: Set[str] = field(init=False, repr=False)
 
 
 class AIAgentAdvisor:
@@ -37,11 +60,23 @@ class AIAgentAdvisor:
             ]
             if not name or not keywords:
                 continue
+            aliases = [
+                str(token).lower()
+                for token in entry.get("aliases", [])
+                if isinstance(token, str) and token.strip()
+            ]
+            package_indicators = [
+                str(token).lower()
+                for token in entry.get("package_indicators", [])
+                if isinstance(token, str) and token.strip()
+            ]
             signatures.append(
                 FrameworkSignature(
                     name=str(name),
                     keywords=keywords,
                     threat_profile=entry.get("threat_profile"),
+                    aliases=aliases,
+                    package_indicators=package_indicators,
                 )
             )
         self.signatures = signatures
@@ -52,11 +87,21 @@ class AIAgentAdvisor:
     def enabled(self) -> bool:
         return bool(self.signatures)
 
-    def _match_frameworks(self, text: str) -> List[FrameworkSignature]:
+    def _match_frameworks(
+        self,
+        text: str,
+        tokens: Set[str],
+    ) -> List[FrameworkSignature]:
         matches: List[FrameworkSignature] = []
         lowered = text.lower()
         for signature in self.signatures:
-            if any(keyword in lowered for keyword in signature.keywords):
+            term_match = bool(signature.match_terms.intersection(tokens)) or any(
+                keyword in lowered for keyword in signature.keywords
+            )
+            package_match = not signature.package_terms or bool(
+                signature.package_terms.intersection(tokens)
+            )
+            if term_match and package_match:
                 matches.append(signature)
         return matches
 
@@ -122,13 +167,27 @@ class AIAgentAdvisor:
                     for value in sbom_component.values()
                     if isinstance(value, str)
                 )
+                properties = sbom_component.get("properties")
+                if isinstance(properties, Mapping):
+                    haystack_parts.extend(
+                        str(value)
+                        for value in properties.values()
+                        if isinstance(value, str)
+                    )
             haystack = " ".join(haystack_parts)
-            signature_matches = self._match_frameworks(haystack)
-            if not signature_matches:
-                continue
-
+            tokens = set()
+            for part in haystack_parts:
+                tokens.update(_tokenise(part))
             findings = item.get("findings") if isinstance(item, Mapping) else None
             cves = item.get("cves") if isinstance(item, Mapping) else None
+            if isinstance(findings, Iterable):
+                for finding in findings:
+                    if isinstance(finding, Mapping):
+                        tokens.update(_tokenise(str(finding.get("rule_id", ""))))
+                        tokens.update(_tokenise(str(finding.get("message", ""))))
+            signature_matches = self._match_frameworks(haystack, tokens)
+            if not signature_matches:
+                continue
             for signature in signature_matches:
                 frameworks_detected[signature.name] = frameworks_detected.get(signature.name, 0) + 1
                 components_flagged.add(component_name)

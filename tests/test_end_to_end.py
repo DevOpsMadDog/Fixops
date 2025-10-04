@@ -152,7 +152,11 @@ def test_end_to_end_demo_pipeline():
         assert pipeline_payload["context_summary"]["summary"]["components_evaluated"] >= 1
         assert pipeline_payload["onboarding"]["mode"] == "demo"
         assert pipeline_payload["compliance_status"]["frameworks"]
+        policy_payload = pipeline_payload["policy_automation"]
+        assert "execution" in policy_payload
+        assert policy_payload["execution"]["status"] in {"completed", "partial"}
         assert "bundle" in pipeline_payload["evidence_bundle"]["files"]
+        assert "compressed" in pipeline_payload["evidence_bundle"]
         assert "plans" in pipeline_payload["pricing_summary"]
         ai_analysis = pipeline_payload.get("ai_agent_analysis")
         assert ai_analysis and ai_analysis["summary"]["components_with_agents"] >= 1
@@ -198,3 +202,53 @@ def test_end_to_end_demo_pipeline():
             assert pipeline_payload["exploitability_insights"]["overview"]["signals_configured"] >= 1
         if "probabilistic_forecast" in pipeline_payload:
             assert pipeline_payload["probabilistic_forecast"]["metrics"]["expected_high_or_critical"] >= 0
+
+
+def test_api_rejects_missing_token(tmp_path):
+    if TestClient is None or create_app is None:
+        return
+
+    os.environ["FIXOPS_API_TOKEN"] = "demo-token"
+    try:
+        app = create_app()
+        client = TestClient(app)
+        response = client.post(
+            "/inputs/design",
+            files={"file": ("design.csv", "component,owner\nsvc,team\n", "text/csv")},
+        )
+        assert response.status_code == 401
+    finally:
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+
+def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
+    if TestClient is None or create_app is None:
+        return
+
+    overlay_payload = {
+        "mode": "demo",
+        "auth": {"strategy": "token", "tokens": ["demo-token"]},
+        "data": {"feedback_dir": str(tmp_path / "feedback")},
+        "toggles": {"capture_feedback": True},
+    }
+    overlay_path = tmp_path / "overlay.json"
+    overlay_path.write_text(json.dumps(overlay_payload), encoding="utf-8")
+
+    monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_path))
+    monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(tmp_path))
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+
+    try:
+        app = create_app()
+        client = TestClient(app)
+        response = client.post(
+            "/feedback",
+            headers={"X-API-Key": "demo-token"},
+            json={"run_id": "../escape", "decision": "accepted"},
+        )
+        assert response.status_code == 400
+        assert "run_id" in response.json()["detail"].lower()
+    finally:
+        monkeypatch.delenv("FIXOPS_OVERLAY_PATH", raising=False)
+        monkeypatch.delenv("FIXOPS_DATA_ROOT_ALLOWLIST", raising=False)
+        monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)

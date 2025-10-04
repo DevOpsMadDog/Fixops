@@ -31,7 +31,17 @@ class ComplianceEvaluator:
         if requirement == "evidence":
             return bool(pipeline_result.get("evidence_bundle"))
         if requirement == "policy":
-            return bool(pipeline_result.get("policy_automation", {}).get("actions"))
+            policy_payload = pipeline_result.get("policy_automation", {})
+            if not isinstance(policy_payload, Mapping):
+                return False
+            actions = policy_payload.get("actions") if isinstance(policy_payload.get("actions"), list) else []
+            execution = policy_payload.get("execution") if isinstance(policy_payload.get("execution"), Mapping) else {}
+            dispatched = execution.get("dispatched_count")
+            try:
+                dispatched_count = int(dispatched)
+            except (TypeError, ValueError):
+                dispatched_count = 0
+            return bool(actions and dispatched_count > 0 and execution.get("status") in {"completed", "partial"})
         return False
 
     def evaluate(

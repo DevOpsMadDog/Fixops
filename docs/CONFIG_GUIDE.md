@@ -51,6 +51,12 @@ toggles:
 limits:
   max_upload_bytes:
     default: 3145728
+  evidence:
+    bundle_max_bytes: 1048576
+    compress: true
+  evidence:
+    bundle_max_bytes: 1048576
+    compress: true
     sarif: 6291456
     cve: 6291456
 guardrails:
@@ -328,6 +334,9 @@ profiles:
         default: 7340032
         sarif: 10485760
         cve: 10485760
+      evidence:
+        bundle_max_bytes: 2097152
+        compress: true
     guardrails:
       maturity: advanced
     context_engine:
