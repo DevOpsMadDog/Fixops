@@ -1450,13 +1450,16 @@ class DecisionEngine:
 # Global instance
 decision_engine = DecisionEngine()
 
+_refresh_lock = asyncio.Lock()
+
 
 async def refresh_decision_engine_settings(force: bool = True) -> None:
     """Reload configuration and re-initialise the global engine instance."""
 
     global settings
-    settings = get_settings()
-    await decision_engine.apply_mode(settings.DEMO_MODE, force=force)
+    async with _refresh_lock:
+        settings = get_settings()
+        await decision_engine.apply_mode(settings.DEMO_MODE, force=force)
 
 # Helper functions for metrics
 def _get_service_type(service_name: str) -> str:

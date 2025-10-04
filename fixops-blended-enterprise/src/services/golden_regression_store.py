@@ -1,20 +1,25 @@
 """Golden regression dataset loader for historical validation results."""
 from __future__ import annotations
 
+import contextlib
+import importlib
+import importlib.util
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, Iterable, List, Optional
 from types import SimpleNamespace
 
-try:  # pragma: no cover - structlog is optional in tests
-    import structlog
+_structlog_spec = None
+with contextlib.suppress(ValueError):
+    _structlog_spec = importlib.util.find_spec("structlog")
 
+if _structlog_spec:  # pragma: no branch - deterministic at import time
+    structlog = importlib.import_module("structlog")
     logger = structlog.get_logger(__name__)
-except ModuleNotFoundError:  # pragma: no cover
-    import logging
-
+else:  # pragma: no cover - executed only when structlog missing
     logger = logging.getLogger(__name__)
 
 

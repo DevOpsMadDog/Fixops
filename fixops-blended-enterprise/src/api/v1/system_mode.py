@@ -1,56 +1,62 @@
-"""
-System Mode Management API
-Handles switching between demo and production modes
-"""
+"""System Mode Management API for demo vs production orchestration."""
+
+from __future__ import annotations
 
 import os
 from typing import List
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import structlog
 
-from src.config.settings import get_settings, reload_settings
+from src.config.settings import RuntimeMode, Settings, get_settings, reload_settings
 from src.services.decision_engine import refresh_decision_engine_settings
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/system-mode", tags=["system-management"])
 
-VALID_MODES = {"demo", "production"}
+
+def _component_status(
+    settings: Settings,
+    missing: List[str],
+    requirement: str,
+    *,
+    demo_value: str,
+    production_value: str,
+    missing_value: str,
+) -> str:
+    """Return a consistent component status string for the dashboard."""
+
+    if settings.runtime_mode is RuntimeMode.DEMO:
+        return demo_value
+    if requirement in missing:
+        return missing_value
+    return production_value
+
 
 class ModeToggleRequest(BaseModel):
-    target_mode: str  # "demo" or "production"
-    force: bool = False
+    """Payload for switching between runtime modes."""
+
+    target_mode: str = Field(description="demo or production")
+    force: bool = Field(default=False, description="Override readiness checks")
+
+    @field_validator("target_mode")
+    @classmethod
+    def normalise_target_mode(cls, value: str) -> str:
+        try:
+            return RuntimeMode(value.strip().lower()).value
+        except ValueError as exc:  # pragma: no cover - validation error path
+            raise ValueError(f"Unsupported mode '{value}'") from exc
+
 
 class ModeToggleResponse(BaseModel):
+    """Shape of the mode toggle API response."""
+
     current_mode: str
     previous_mode: str
     requirements_met: bool
-    missing_requirements: list[str]
+    missing_requirements: List[str]
     restart_required: bool
-
-def _missing_production_requirements(settings) -> List[str]:
-    missing: List[str] = []
-
-    if not settings.EMERGENT_LLM_KEY:
-        missing.append("EMERGENT_LLM_KEY")
-
-    if not (settings.JIRA_URL and settings.JIRA_USERNAME and settings.JIRA_API_TOKEN):
-        missing.append("JIRA_CREDENTIALS")
-
-    if not (settings.CONFLUENCE_URL and settings.CONFLUENCE_USERNAME and settings.CONFLUENCE_API_TOKEN):
-        missing.append("CONFLUENCE_CREDENTIALS")
-
-    if not (settings.PGVECTOR_ENABLED and settings.PGVECTOR_DSN):
-        missing.append("PGVECTOR_DSN")
-
-    if not settings.THREAT_INTEL_API_KEY:
-        missing.append("THREAT_INTEL_API_KEY")
-
-    if not os.getenv("OPA_SERVER_URL"):
-        missing.append("OPA_SERVER")
-
-    return missing
 
 
 @router.get("/current")
@@ -58,21 +64,42 @@ async def get_current_mode():
     """Get current system mode and readiness status"""
     try:
         settings = get_settings()
-        missing_requirements = _missing_production_requirements(settings)
+        missing_requirements = settings.missing_production_requirements()
 
         return {
             "status": "success",
             "data": {
-                "current_mode": "demo" if settings.DEMO_MODE else "production",
+                "current_mode": settings.runtime_mode.value,
                 "demo_mode_enabled": settings.DEMO_MODE,
-                "production_ready": len(missing_requirements) == 0,
+                "production_ready": not missing_requirements,
                 "missing_requirements": missing_requirements,
-                "can_switch_to_production": len(missing_requirements) == 0,
+                "can_switch_to_production": not missing_requirements,
                 "components_status": {
                     "decision_engine": "operational",
-                    "vector_database": "demo" if settings.DEMO_MODE else ("operational" if settings.PGVECTOR_ENABLED else "needs_config"),
-                    "llm_consensus": "demo" if settings.DEMO_MODE else ("operational" if settings.EMERGENT_LLM_KEY else "needs_keys"),
-                    "policy_engine": "demo" if settings.DEMO_MODE else ("operational" if "OPA_SERVER" not in missing_requirements else "needs_server"),
+                    "vector_database": _component_status(
+                        settings,
+                        missing_requirements,
+                        "PGVECTOR_DSN",
+                        demo_value="demo",
+                        production_value="operational",
+                        missing_value="needs_config",
+                    ),
+                    "llm_consensus": _component_status(
+                        settings,
+                        missing_requirements,
+                        "EMERGENT_LLM_KEY",
+                        demo_value="demo",
+                        production_value="operational",
+                        missing_value="needs_keys",
+                    ),
+                    "policy_engine": _component_status(
+                        settings,
+                        missing_requirements,
+                        "OPA_SERVER",
+                        demo_value="demo",
+                        production_value="operational",
+                        missing_value="needs_server",
+                    ),
                     "evidence_lake": "operational"
                 }
             }
@@ -90,12 +117,9 @@ async def toggle_system_mode(request: ModeToggleRequest):
     """
     try:
         settings = get_settings()
-        current_mode = "demo" if settings.DEMO_MODE else "production"
+        current_mode = settings.runtime_mode.value
         previous_mode = current_mode
-        target_mode = request.target_mode.strip().lower()
-
-        if target_mode not in VALID_MODES:
-            raise HTTPException(status_code=400, detail=f"Unsupported mode '{request.target_mode}'")
+        target_mode = request.target_mode
 
         if target_mode == current_mode:
             raise HTTPException(
@@ -105,8 +129,8 @@ async def toggle_system_mode(request: ModeToggleRequest):
 
         # Check production readiness if switching to production
         missing_requirements: List[str] = []
-        if target_mode == "production":
-            missing_requirements = _missing_production_requirements(settings)
+        if target_mode == RuntimeMode.PRODUCTION.value:
+            missing_requirements = settings.missing_production_requirements()
 
             if missing_requirements and not request.force:
                 raise HTTPException(
@@ -118,7 +142,7 @@ async def toggle_system_mode(request: ModeToggleRequest):
                     }
                 )
 
-        new_demo_mode = target_mode == "demo"
+        new_demo_mode = target_mode == RuntimeMode.DEMO.value
 
         # Apply mode change for the current process
         os.environ["DEMO_MODE"] = "true" if new_demo_mode else "false"
@@ -126,14 +150,14 @@ async def toggle_system_mode(request: ModeToggleRequest):
         await refresh_decision_engine_settings(force=True)
 
         updated_settings = reloaded
-        current_mode = "demo" if updated_settings.DEMO_MODE else "production"
+        current_mode = updated_settings.runtime_mode.value
 
         response = ModeToggleResponse(
             current_mode=current_mode,
             previous_mode=previous_mode,
-            requirements_met=len(missing_requirements) == 0,
+            requirements_met=not missing_requirements,
             missing_requirements=missing_requirements,
-            restart_required=len(missing_requirements) > 0
+            restart_required=(target_mode == RuntimeMode.PRODUCTION.value and bool(missing_requirements))
         )
 
         logger.info(
