@@ -11,9 +11,22 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
-import numpy as np
+import structlog
+
+try:  # pragma: no cover - optional dependency
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    NUMPY_AVAILABLE = False
+    np = None  # type: ignore
 
 logger = structlog.get_logger()
+
+
+def _mean(values: List[float]) -> float:
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
 
 class SSVCFramework:
     """
@@ -959,8 +972,8 @@ class SARIFProcessor:
                 "metadata_enriched": len([f for f in findings if f.get("security_metadata", {}).get("cwe_id")])
             },
             "quality_metrics": {
-                "avg_confidence": round(np.mean([
-                    f.get("security_metadata", {}).get("confidence", 0.5) 
+                "avg_confidence": round(_mean([
+                    f.get("security_metadata", {}).get("confidence", 0.5)
                     for f in findings
                 ]), 3) if findings else 0,
                 "complete_locations": len([f for f in findings if f.get("location", {}).get("line", 0) > 0]),
