@@ -1,0 +1,4 @@
+control_id,exploitation,system_exposure,utility,human_impact
+control-1,none,small,laborious,low
+control-2,public_poc,controlled,efficient,high
+control-3,active,open,super_effective,very_high

@@ -6,13 +6,28 @@ Uses CTINexus for entity extraction and graph visualization
 
 import asyncio
 import json
-import networkx as nx
+from collections import defaultdict, deque
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Tuple, Optional, Set
+from typing import Dict, List, Any, Tuple, Optional, Set, Iterable
 from dataclasses import dataclass
 import structlog
 
+try:  # pragma: no cover - optional dependency
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:  # pragma: no cover - executed in minimal envs
+    nx = None  # type: ignore
+    NETWORKX_AVAILABLE = False
+
 logger = structlog.get_logger()
+
+
+class NoPathError(Exception):
+    """Fallback exception mirroring networkx.NetworkXNoPath."""
+
+
+if NETWORKX_AVAILABLE:  # pragma: no cover - simple aliasing
+    NoPathError = nx.NetworkXNoPath  # type: ignore
 
 @dataclass
 class SecurityEntity:
@@ -375,10 +390,176 @@ class KnowledgeGraphBuilder:
     """
     
     def __init__(self):
-        self.graph = nx.DiGraph()
+        self.graph = nx.DiGraph() if NETWORKX_AVAILABLE else None
         self.entity_extractor = CTINexusEntityExtractor()
         self.entities = {}
         self.relations = []
+        self._node_store: Dict[str, Dict[str, Any]] = {}
+        self._edge_store: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(dict)
+        self._reverse_edges: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(dict)
+
+    # ------------------------------------------------------------------
+    # Internal helpers to support both NetworkX and fallback operation
+    # ------------------------------------------------------------------
+    def _add_node(self, entity: SecurityEntity) -> None:
+        attrs = {
+            "type": entity.entity_type,
+            "name": entity.name,
+            "confidence": entity.confidence,
+            **entity.properties,
+        }
+        self._node_store[entity.entity_id] = attrs
+        self._edge_store.setdefault(entity.entity_id, {})
+        self._reverse_edges.setdefault(entity.entity_id, {})
+
+        if self.graph is not None:
+            self.graph.add_node(entity.entity_id, **attrs)
+
+    def _add_edge(self, relation: SecurityRelation) -> None:
+        edge_attrs = {
+            "relation_type": relation.relation_type,
+            "confidence": relation.confidence,
+            **relation.properties,
+        }
+        self._edge_store[relation.source_id][relation.target_id] = edge_attrs
+        self._reverse_edges[relation.target_id][relation.source_id] = edge_attrs
+        if self.graph is not None:
+            self.graph.add_edge(
+                relation.source_id,
+                relation.target_id,
+                **edge_attrs,
+            )
+
+    def _number_of_nodes(self) -> int:
+        if self.graph is not None:
+            return self.graph.number_of_nodes()
+        return len(self._node_store)
+
+    def _number_of_edges(self) -> int:
+        if self.graph is not None:
+            return self.graph.number_of_edges()
+        return sum(len(targets) for targets in self._edge_store.values())
+
+    def _iter_nodes(self, data: bool = False) -> Iterable:
+        if self.graph is not None:
+            return self.graph.nodes(data=data)
+        if data:
+            return list(self._node_store.items())
+        return list(self._node_store.keys())
+
+    def _degree(self, node_id: str) -> int:
+        if self.graph is not None:
+            return self.graph.degree(node_id)
+        out_degree = len(self._edge_store.get(node_id, {}))
+        in_degree = len(self._reverse_edges.get(node_id, {}))
+        return out_degree + in_degree
+
+    def _node_data(self, node_id: str) -> Dict[str, Any]:
+        if self.graph is not None:
+            return dict(self.graph.nodes[node_id])
+        return self._node_store.get(node_id, {})
+
+    def _neighbors(self, node_id: str) -> Set[str]:
+        neighbours = set(self._edge_store.get(node_id, {}).keys())
+        neighbours.update(self._reverse_edges.get(node_id, {}).keys())
+        return neighbours
+
+    def _has_path(self, source: str, target: str) -> bool:
+        if self.graph is not None:
+            return nx.has_path(self.graph, source, target)
+        return target in self._shortest_path(source, target, return_path=False)
+
+    def _shortest_path(self, source: str, target: str, return_path: bool = True):
+        if self.graph is not None:
+            try:
+                path = nx.shortest_path(self.graph, source, target)
+            except NoPathError:
+                if return_path:
+                    raise
+                return []
+            return path if return_path else set(path)
+
+        # Simple BFS for fallback operation
+        visited = {source: None}
+        queue: deque[str] = deque([source])
+        while queue:
+            current = queue.popleft()
+            if current == target:
+                break
+            for neighbour in self._edge_store.get(current, {}):
+                if neighbour not in visited:
+                    visited[neighbour] = current
+                    queue.append(neighbour)
+        if target not in visited:
+            if return_path:
+                raise NoPathError()
+            return []
+
+        path: List[str] = []
+        node = target
+        while node is not None:
+            path.append(node)
+            node = visited[node]
+        path.reverse()
+        return path if return_path else set(path)
+
+    def _weakly_connected_components(self) -> List[Set[str]]:
+        if self.graph is not None:
+            return list(nx.weakly_connected_components(self.graph))
+
+        visited: Set[str] = set()
+        components: List[Set[str]] = []
+
+        for node in self._node_store:
+            if node in visited:
+                continue
+            component = set()
+            queue: deque[str] = deque([node])
+            visited.add(node)
+            while queue:
+                current = queue.popleft()
+                component.add(current)
+                for neighbour in self._neighbors(current):
+                    if neighbour not in visited:
+                        visited.add(neighbour)
+                        queue.append(neighbour)
+            components.append(component)
+        return components
+
+    def _connected_components(self) -> List[Set[str]]:
+        if self.graph is not None:
+            undirected = self.graph.to_undirected()
+            return list(nx.connected_components(undirected))
+        return self._weakly_connected_components()
+
+    def _density(self) -> float:
+        nodes = self._number_of_nodes()
+        if nodes <= 1:
+            return 0.0
+        edges = self._number_of_edges()
+        return edges / (nodes * (nodes - 1))
+
+    def _average_clustering(self) -> float:
+        if self.graph is not None:
+            return nx.average_clustering(self.graph.to_undirected())
+
+        # Fallback heuristic: ratio of triangles to possible triangles is 0 in simple mode
+        return 0.0
+
+    def _degree_centrality(self) -> Dict[str, float]:
+        if self.graph is not None:
+            return nx.degree_centrality(self.graph)
+        nodes = self._number_of_nodes()
+        if nodes <= 1:
+            return {node: 0.0 for node in self._node_store}
+        scale = 1 / (nodes - 1)
+        return {node: self._degree(node) * scale for node in self._node_store}
+
+    def _betweenness_centrality(self) -> Dict[str, float]:
+        if self.graph is not None:
+            return nx.betweenness_centrality(self.graph)
+        # Fallback: return zeros to keep structure predictable
+        return {node: 0.0 for node in self._node_store}
     
     async def build_graph(self, scan_data: Dict[str, Any], context_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Build knowledge graph from scan data and context"""
@@ -389,15 +570,7 @@ class KnowledgeGraphBuilder:
             
             # Step 2: Add entities to graph
             for entity in entities:
-                self.graph.add_node(
-                    entity.entity_id,
-                    **{
-                        "type": entity.entity_type,
-                        "name": entity.name,
-                        "confidence": entity.confidence,
-                        **entity.properties
-                    }
-                )
+                self._add_node(entity)
                 self.entities[entity.entity_id] = entity
             
             # Step 3: Infer relationships
@@ -406,13 +579,7 @@ class KnowledgeGraphBuilder:
             
             # Step 4: Add relationships to graph
             for relation in relations:
-                self.graph.add_edge(
-                    relation.source_id,
-                    relation.target_id,
-                    relation_type=relation.relation_type,
-                    confidence=relation.confidence,
-                    **relation.properties
-                )
+                self._add_edge(relation)
                 self.relations.append(relation)
             
             # Step 5: Analyze graph structure
@@ -504,24 +671,25 @@ class KnowledgeGraphBuilder:
     async def _analyze_graph(self) -> Dict[str, Any]:
         """Analyze graph structure and metrics"""
         try:
+            node_count = self._number_of_nodes()
             metrics = {
-                "nodes": self.graph.number_of_nodes(),
-                "edges": self.graph.number_of_edges(),
-                "density": nx.density(self.graph) if self.graph.number_of_nodes() > 0 else 0,
-                "connected_components": nx.number_weakly_connected_components(self.graph),
-                "avg_clustering": nx.average_clustering(self.graph.to_undirected()),
+                "nodes": node_count,
+                "edges": self._number_of_edges(),
+                "density": self._density(),
+                "connected_components": len(self._weakly_connected_components()),
+                "avg_clustering": self._average_clustering(),
                 "centrality_scores": {}
             }
-            
+
             # Calculate centrality scores for key nodes
-            if self.graph.number_of_nodes() > 0:
-                degree_centrality = nx.degree_centrality(self.graph)
-                betweenness_centrality = nx.betweenness_centrality(self.graph)
-                
+            if node_count > 0:
+                degree_centrality = self._degree_centrality()
+                betweenness_centrality = self._betweenness_centrality()
+
                 # Get top 5 most central nodes
                 top_degree = sorted(degree_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
                 top_betweenness = sorted(betweenness_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
-                
+
                 metrics["centrality_scores"] = {
                     "top_degree_centrality": top_degree,
                     "top_betweenness_centrality": top_betweenness
@@ -539,27 +707,25 @@ class KnowledgeGraphBuilder:
         
         try:
             # Find paths from vulnerabilities to high-value components/services
-            vulnerabilities = [node for node, data in self.graph.nodes(data=True) 
-                             if data.get("type") == "vulnerability"]
-            services = [node for node, data in self.graph.nodes(data=True) 
-                       if data.get("type") == "service"]
-            
+            vulnerabilities = [node for node, data in self._iter_nodes(data=True)
+                               if data.get("type") == "vulnerability"]
+            services = [node for node, data in self._iter_nodes(data=True)
+                        if data.get("type") == "service"]
+
             for vuln in vulnerabilities:
                 for service in services:
                     try:
-                        # Find shortest path
-                        if nx.has_path(self.graph, vuln, service):
-                            path = nx.shortest_path(self.graph, vuln, service)
-                            if len(path) > 1:  # Actual path exists
-                                path_info = {
+                        if self._has_path(vuln, service):
+                            path = self._shortest_path(vuln, service)
+                            if len(path) > 1:
+                                critical_paths.append({
                                     "source": vuln,
                                     "target": service,
                                     "path": path,
                                     "length": len(path) - 1,
                                     "risk_score": self._calculate_path_risk(path)
-                                }
-                                critical_paths.append(path_info)
-                    except nx.NetworkXNoPath:
+                                })
+                    except NoPathError:
                         continue
             
             # Sort by risk score
@@ -573,10 +739,10 @@ class KnowledgeGraphBuilder:
     def _calculate_path_risk(self, path: List[str]) -> float:
         """Calculate risk score for a path"""
         total_risk = 0
-        
+
         for node_id in path:
-            node_data = self.graph.nodes[node_id]
-            
+            node_data = self._node_data(node_id)
+
             # Base risk from node type
             type_risk = {
                 "vulnerability": 0.8,
@@ -604,28 +770,22 @@ class KnowledgeGraphBuilder:
         clusters = []
         
         try:
-            # Use community detection to find clusters
-            undirected_graph = self.graph.to_undirected()
-            
-            if undirected_graph.number_of_nodes() > 0:
-                # Simple clustering based on connected components
-                components = list(nx.connected_components(undirected_graph))
-                
-                for i, component in enumerate(components):
-                    if len(component) > 1:  # Only multi-node clusters
-                        cluster_nodes = list(component)
-                        cluster_info = {
-                            "cluster_id": f"cluster_{i}",
-                            "nodes": cluster_nodes,
-                            "size": len(cluster_nodes),
-                            "risk_level": self._calculate_cluster_risk(cluster_nodes),
-                            "types": list(set([self.graph.nodes[node].get("type") for node in cluster_nodes]))
-                        }
-                        clusters.append(cluster_info)
-                
-                # Sort by risk level
-                clusters.sort(key=lambda x: x["risk_level"], reverse=True)
-            
+            components = self._connected_components()
+
+            for i, component in enumerate(components):
+                if len(component) > 1:
+                    cluster_nodes = list(component)
+                    cluster_info = {
+                        "cluster_id": f"cluster_{i}",
+                        "nodes": cluster_nodes,
+                        "size": len(cluster_nodes),
+                        "risk_level": self._calculate_cluster_risk(cluster_nodes),
+                        "types": list({self._node_data(node).get("type") for node in cluster_nodes})
+                    }
+                    clusters.append(cluster_info)
+
+            clusters.sort(key=lambda x: x["risk_level"], reverse=True)
+
             return clusters
             
         except Exception as e:
@@ -635,9 +795,9 @@ class KnowledgeGraphBuilder:
     def _calculate_cluster_risk(self, nodes: List[str]) -> float:
         """Calculate risk level for a cluster"""
         total_risk = 0
-        
+
         for node in nodes:
-            node_data = self.graph.nodes[node]
+            node_data = self._node_data(node)
             node_type = node_data.get("type", "unknown")
             
             # Risk scoring by type
@@ -667,13 +827,13 @@ class KnowledgeGraphBuilder:
         recommendations = []
         
         # Find highly connected vulnerability nodes
-        vulnerability_nodes = [node for node, data in self.graph.nodes(data=True) 
-                              if data.get("type") == "vulnerability"]
-        
+        vulnerability_nodes = [node for node, data in self._iter_nodes(data=True)
+                                if data.get("type") == "vulnerability"]
+
         for vuln_node in vulnerability_nodes:
-            degree = self.graph.degree(vuln_node)
+            degree = self._degree(vuln_node)
             if degree > 2:  # Highly connected vulnerability
-                vuln_data = self.graph.nodes[vuln_node]
+                vuln_data = self._node_data(vuln_node)
                 recommendations.append({
                     "type": "high_priority_fix",
                     "title": "Critical vulnerability affects multiple components",
@@ -681,14 +841,14 @@ class KnowledgeGraphBuilder:
                     "affected_entity": vuln_node,
                     "priority": "high"
                 })
-        
+
         # Find isolated components (potential blind spots)
-        component_nodes = [node for node, data in self.graph.nodes(data=True) 
-                          if data.get("type") == "component"]
-        
+        component_nodes = [node for node, data in self._iter_nodes(data=True)
+                            if data.get("type") == "component"]
+
         for comp_node in component_nodes:
-            if self.graph.degree(comp_node) == 0:  # Isolated component
-                comp_data = self.graph.nodes[comp_node]
+            if self._degree(comp_node) == 0:  # Isolated component
+                comp_data = self._node_data(comp_node)
                 recommendations.append({
                     "type": "security_gap",
                     "title": "Unmonitored component detected",

@@ -11,7 +11,12 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 import structlog
 
-from emergentintegrations import EmergentLLM
+try:  # pragma: no cover - optional dependency
+    from emergentintegrations import EmergentLLM
+    LLM_AVAILABLE = True
+except ImportError:  # pragma: no cover - executed in constrained envs
+    EmergentLLM = None  # type: ignore
+    LLM_AVAILABLE = False
 
 logger = structlog.get_logger()
 
@@ -84,10 +89,15 @@ class CybersecurityLLMEngine:
     
     def _initialize_cybersecurity_llm(self):
         """Initialize LLM client optimized for cybersecurity from Awesome-LLM4Cybersecurity"""
+        if not LLM_AVAILABLE:
+            logger.warning("EmergentLLM not available, using rule-based explanation fallback")
+            self.llm_client = None
+            return
+
         try:
             # Use the general cybersecurity model configuration
             config = self.cybersec_models["general_cybersecurity"]
-            
+
             self.llm_client = EmergentLLM(
                 model=config["model"],
                 temperature=config["temperature"],

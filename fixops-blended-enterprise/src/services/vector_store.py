@@ -10,7 +10,6 @@ import uuid
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
 import structlog
-import numpy as np
 
 from src.config.settings import get_settings
 
