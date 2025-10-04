@@ -5,14 +5,21 @@ Browse, purchase, contribute, update, download; file-backed persistence
 
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Form, UploadFile, File
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import structlog
 import json
 
-from src.services.marketplace import marketplace, ContentType, PricingModel
+from src.services.marketplace import marketplace, ContentType, PricingModel, QAStatus
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/marketplace", tags=["marketplace"])
+
+
+def _serialize_item(item) -> Dict[str, Any]:
+    data = {**item.__dict__}
+    if isinstance(data.get("qa_status"), QAStatus):
+        data["qa_status"] = data["qa_status"].value
+    return data
 
 class MarketplaceSearchRequest(BaseModel):
     content_type: Optional[str] = None
@@ -32,6 +39,11 @@ class ContentContributionRequest(BaseModel):
     tags: List[str] = []
     metadata: Dict[str, Any] = {}
     version: str = "1.0.0"
+
+
+class RatingRequest(BaseModel):
+    rating: float = Field(..., ge=1, le=5)
+    reviewer: str
 
 @router.get("/browse")
 async def browse_marketplace(
@@ -58,7 +70,7 @@ async def browse_marketplace(
         return {
             "status": "success",
             "data": {
-                "items": [i.__dict__ for i in items],
+                "items": [_serialize_item(i) for i in items],
                 "total": len(items)
             }
         }
@@ -78,9 +90,9 @@ async def get_recommendations(
             compliance_requirements=frameworks
         )
         return {
-            "status": "success", 
+            "status": "success",
             "data": {
-                "recommendations": [i.__dict__ for i in recommendations],
+                "recommendations": [_serialize_item(i) for i in recommendations],
                 "organization_type": organization_type,
                 "compliance_requirements": frameworks
             }
@@ -108,6 +120,9 @@ async def contribute_content(
             "metadata": {**contribution.metadata, "author": author, "organization": organization, "content": content_json}
         }
         content_id = await marketplace.contribute_content(content, author, organization)
+        contributed_item = await marketplace.get_item(content_id)
+        contributor_profile = await marketplace.get_contributor_metrics(author=author, organization=organization)
+        profile = contributor_profile[0] if contributor_profile else None
         return {
             "status": "success",
             "data": {
@@ -115,7 +130,11 @@ async def contribute_content(
                 "message": f"Content '{contribution.name}' contributed successfully",
                 "author": author,
                 "organization": organization,
-                "review_status": "pending"
+                "review_status": "pending",
+                "qa_status": contributed_item.qa_status.value if contributed_item else QAStatus.warning.value,
+                "qa_summary": contributed_item.qa_summary if contributed_item else "Pending automated review",
+                "quality_checks": contributed_item.qa_checks if contributed_item else {},
+                "contributor_profile": profile,
             }
         }
     except ValueError as e:
@@ -133,6 +152,18 @@ async def update_content(item_id: str, patch: Dict[str, Any]):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Content update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/content/{item_id}/rate")
+async def rate_content(item_id: str, rating_request: RatingRequest):
+    try:
+        result = await marketplace.rate_content(item_id, rating_request.rating, rating_request.reviewer)
+        return {"status": "success", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Content rating failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/purchase/{item_id}")
@@ -159,6 +190,26 @@ async def download_content(token: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Download failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/contributors")
+async def get_contributors(
+    author: Optional[str] = Query(None),
+    organization: Optional[str] = Query(None),
+    limit: int = Query(10, ge=1, le=50),
+):
+    try:
+        metrics = await marketplace.get_contributor_metrics(author=author, organization=organization)
+        return {
+            "status": "success",
+            "data": {
+                "contributors": metrics[:limit],
+                "total": len(metrics),
+            },
+        }
+    except Exception as e:
+        logger.error(f"Contributor metrics failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/compliance-content/{stage}")
@@ -194,6 +245,15 @@ async def get_marketplace_stats():
             stats["pricing_models"][pm] = stats["pricing_models"].get(pm, 0) + 1
             for framework in item.compliance_frameworks:
                 stats["top_frameworks"][framework] = stats["top_frameworks"].get(framework, 0) + 1
+        quality_summary = await marketplace.get_quality_summary()
+        contributor_metrics = await marketplace.get_contributor_metrics()
+        stats["quality"] = quality_summary
+        stats["top_contributors"] = contributor_metrics[:5]
+        stats["average_reputation"] = (
+            sum(profile["reputation_score"] for profile in contributor_metrics) / len(contributor_metrics)
+            if contributor_metrics
+            else 0
+        )
         return {"status": "success", "data": stats}
     except Exception as e:
         logger.error(f"Marketplace stats failed: {str(e)}")
