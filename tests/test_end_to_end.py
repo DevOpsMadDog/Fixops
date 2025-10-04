@@ -133,6 +133,10 @@ def test_end_to_end_demo_pipeline():
         assert pipeline_payload["design_summary"]["row_count"] == 2
         assert len(pipeline_payload["crosswalk"]) == 2
         assert pipeline_payload["crosswalk"][0]["findings"]
+        overlay = pipeline_payload["overlay"]
+        assert overlay["mode"] == "demo"
+        assert overlay["metadata"]["profile_applied"] == "demo"
+        assert "required_inputs" in overlay
     else:
         normalizer = InputNormalizer()
         reader = csv.DictReader(StringIO(design_csv))

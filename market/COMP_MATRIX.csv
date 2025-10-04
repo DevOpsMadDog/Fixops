@@ -1,0 +1,11 @@
+Capability,Aikido Security,Apiiro,FixOps (Current),FixOps (Target),Notes/Evidence
+Ingestion breadth,"SAST, SCA, IaC, containers, CSPM via SaaS connectors","Code-to-cloud risk graph, IaC, runtime posture","Limited scanner normalization","Pluggable ingestion for scanners, cloud, identity, ticketing","[^1] Aikido platform; [^3] Apiiro platform"
+Risk graph/context,"Basic prioritization dashboard","Full risk graph with policy controls","Ad-hoc scoring","Context fusion engine with business metadata","FixOps to auto-tag critical assets"
+Policy & gates,"CI checks with severity filters","Policy-as-code with workflows","Manual gates","Adaptive policy overlay with maturity-based thresholds","Guided setup ensures <30 min to first gate"
+Workflow automation,"Ticketing into Jira/GitHub","Playbooks, approvals, risk register","Manual exports","Opinionated workflows, waiver lifecycle, automated evidence","Evidence bundles push to Confluence"
+Reporting & compliance,"Unified dashboard, limited audit reports","Compliance mapping (SOC2, ISO)","Static spreadsheets","Compliance packs w/ evidence bundles","Exportable auditor kits"
+Deployment model,"SaaS, EU data residency, no self-host","SaaS + private deployment","Prototype SaaS only","SaaS with private data plane option","Overlay toggles for demo vs enterprise"
+Pricing & packaging,"Seat-based, transparent pricing, free tier","Enterprise contract, custom pricing","Undefined","Modular bundles (Demo, Enterprise, Evidence add-on)","Fast ROI messaging"
+Onboarding friction,"OAuth-based, minutes","Requires guided implementation","Manual setup","Wizard + overlay templates","Assisted mode for enterprise"
+Developer adoption,"High due to UX","Mixed due to process overhead","Low awareness","Dev-first flows with IDE + PR insights","Noise reduction goals communicated"
+Evidence automation,"Manual exports","Risk register + docs","None","Automated bundles, API push","Supports audits & regulators"

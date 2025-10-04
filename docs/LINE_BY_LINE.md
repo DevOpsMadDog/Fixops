@@ -1,20 +1,18 @@
 # Line-by-Line Commentary
 
-This document summarises every meaningful line in the FixOps ingestion backend. Blank lines and
+This commentary highlights the meaningful sections of the FixOps ingestion backend. Blank lines and
 obvious imports are grouped for readability.
 
 ## `backend/app.py`
 
 | Lines | Description |
 | ----- | ----------- |
-| 1-15 | Future import, stdlib modules, FastAPI primitives, local dependencies, and logger set-up. |
-| 18-31 | `create_app()` initialises FastAPI with permissive CORS, instantiates the normaliser and orchestrator, and prepares `app.state` storage. |
-| 33-36 | `_store()` helper centralises writing artefacts to `app.state.artifacts` with debug logging. |
-| 38-55 | `/inputs/design` endpoint reads the uploaded CSV, strips empty rows, enforces non-empty payloads, stores the dataset, and returns metadata plus raw rows. |
-| 57-74 | `/inputs/sbom` endpoint normalises SBOM bytes through `InputNormalizer.load_sbom`, stores the result, and returns metadata plus a preview of the first five components. Exceptions are wrapped in HTTP 400 responses. |
-| 76-91 | `/inputs/cve` endpoint normalises CVE/KEV JSON, stores the canonical feed, and responds with record counts and validation errors. |
-| 93-108 | `/inputs/sarif` endpoint loads SARIF JSON (including optional Snyk conversion), stores the result, and returns metadata alongside tool names. |
-| 110-126 | `/pipeline/run` validates that all artefacts have been uploaded, invokes the orchestrator, and streams the correlation output. Missing artefacts trigger an HTTP 400 with a structured `missing` list. |
+| 1-16 | Imports, logger setup, and overlay loader wiring. |
+| 19-41 | `create_app()` initialises FastAPI, configures permissive CORS, instantiates helpers, loads the overlay, and creates any declared data directories. |
+| 43-45 | `_store()` helper centralises writing artefacts into `app.state.artifacts` with debug logging. |
+| 47-65 | `/inputs/design` endpoint parses the uploaded CSV, rejects empty payloads, stores the dataset, and returns metadata plus raw rows. |
+| 67-118 | `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` normalise uploads via `InputNormalizer`, wrap parser failures in HTTP 400 responses, and return summaries for UI previews. |
+| 120-149 | `/pipeline/run` enforces overlay-driven required inputs, validates Jira configuration when ticket sync is mandatory, runs the orchestrator, and appends sanitised overlay metadata (including required inputs) to the response. |
 
 ## `backend/normalizers.py`
 
@@ -44,3 +42,13 @@ obvious imports are grouped for readability.
 | 81-137 | `run()` builds the design list, precomputes lowercase tokens, indexes SBOM components, aggregates severity/exploitation statistics, and precomputes finding/CVE matches per token to avoid redundant scans. |
 | 139-158 | Crosswalk assembly attaches matches to each design row and prepares the final response with summaries for every artefact. |
 
+## `fixops/configuration.py`
+
+| Lines | Description |
+| ----- | ----------- |
+| 1-14 | Module docstring, future import, and path constants (`DEFAULT_OVERLAY_PATH`, env override key). |
+| 17-33 | `_read_text` and `_parse_overlay` helpers read the file and parse YAML/JSON with graceful fallbacks when PyYAML is absent. |
+| 36-44 | `_deep_merge` recursively merges nested dictionaries so profile overrides can target specific keys. |
+| 47-84 | `OverlayConfig` dataclass defines integration payloads, toggle defaults, helper properties for required inputs/data directories, and `to_sanitised_dict()` masking logic. |
+| 87-122 | `load_overlay()` resolves the path (including environment override), merges profile-specific data, applies default toggles/metadata, and returns a populated `OverlayConfig` instance. |
+| 125 | `__all__` exposes the loader and dataclass for importers. |

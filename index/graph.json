@@ -1,0 +1,39 @@
+{
+  "backend/__init__.py": [],
+  "backend/app.py": [
+    "fixops/configuration.py"
+  ],
+  "backend/normalizers.py": [],
+  "backend/pipeline.py": [],
+  "fixops/__init__.py": [],
+  "fixops/configuration.py": [],
+  "fixops/design_context_injector.py": [],
+  "new_backend/__init__.py": [],
+  "new_backend/api.py": [],
+  "new_backend/processing/__init__.py": [],
+  "new_backend/processing/explanation.py": [],
+  "new_backend/processing/knowledge_graph.py": [],
+  "new_backend/processing/sarif.py": [],
+  "tests/__init__.py": [],
+  "tests/conftest.py": [],
+  "tests/test_design_context_injector.py": [],
+  "tests/test_end_to_end.py": [
+    "backend/app.py",
+    "backend/normalizers.py",
+    "backend/pipeline.py"
+  ],
+  "tests/test_golden_regression.py": [],
+  "tests/test_golden_regression_store.py": [],
+  "tests/test_new_backend_api.py": [
+    "new_backend/api.py"
+  ],
+  "tests/test_new_backend_processing.py": [],
+  "tests/test_overlay_configuration.py": [
+    "fixops/configuration.py"
+  ],
+  "tests/test_pipeline_matching.py": [
+    "backend/normalizers.py",
+    "backend/pipeline.py"
+  ],
+  "tests/test_risk_adjustment.py": []
+}

@@ -1,0 +1,72 @@
+{
+  "mode": "demo",
+  "jira": {
+    "url": "https://jira.example.com",
+    "project_key": "FIX",
+    "default_issue_type": "Task"
+  },
+  "confluence": {
+    "base_url": "https://confluence.example.com",
+    "space_key": "FIXOPS",
+    "onboarding_page": "/display/FIXOPS/Demo+Runbook"
+  },
+  "git": {
+    "provider": "github",
+    "host": "https://github.com",
+    "default_org": "fixops-demo"
+  },
+  "ci": {
+    "provider": "github_actions",
+    "pipeline_slug": "fixops/demo-pipeline"
+  },
+  "auth": {
+    "strategy": "token",
+    "token_env": "FIXOPS_API_TOKEN"
+  },
+  "data": {
+    "design_context_dir": "data/design_context/demo",
+    "evidence_dir": "data/evidence/demo"
+  },
+  "toggles": {
+    "require_design_input": false,
+    "auto_attach_overlay_metadata": true,
+    "enforce_ticket_sync": false
+  },
+  "profiles": {
+    "enterprise": {
+      "mode": "enterprise",
+      "jira": {
+        "project_key": "FIXOPS",
+        "default_issue_type": "Security Review",
+        "workflow_scheme": "Enterprise Risk"
+      },
+      "confluence": {
+        "space_key": "FIXOPS-ENT",
+        "onboarding_page": "/display/FIXOPS-ENT/Control+Runbook"
+      },
+      "git": {
+        "provider": "gitlab",
+        "host": "https://gitlab.example.com",
+        "default_group": "fixops"
+      },
+      "ci": {
+        "provider": "gitlab_ci",
+        "pipeline_slug": "fixops/enterprise/security"
+      },
+      "auth": {
+        "strategy": "oidc",
+        "client_id": "fixops-enterprise"
+      },
+      "data": {
+        "design_context_dir": "data/design_context/enterprise",
+        "evidence_dir": "data/evidence/enterprise",
+        "audit_export_dir": "data/audit"
+      },
+      "toggles": {
+        "require_design_input": true,
+        "enforce_ticket_sync": true,
+        "capture_feedback": true
+      }
+    }
+  }
+}

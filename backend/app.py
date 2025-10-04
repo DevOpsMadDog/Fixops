@@ -8,6 +8,8 @@ from typing import Any, Dict
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
+from fixops.configuration import OverlayConfig, load_overlay
+
 from .normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
 from .pipeline import PipelineOrchestrator
 
@@ -28,10 +30,15 @@ def create_app() -> FastAPI:
 
     normalizer = InputNormalizer()
     orchestrator = PipelineOrchestrator()
+    overlay = load_overlay()
+
+    for directory in overlay.data_directories.values():
+        directory.mkdir(parents=True, exist_ok=True)
 
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
     app.state.artifacts: Dict[str, Any] = {}
+    app.state.overlay = overlay
 
     def _store(stage: str, payload: Any) -> None:
         logger.debug("Storing stage %s", stage)
@@ -112,7 +119,8 @@ def create_app() -> FastAPI:
 
     @app.post("/pipeline/run")
     async def run_pipeline() -> Dict[str, Any]:
-        required = ("design", "sbom", "sarif", "cve")
+        overlay: OverlayConfig = app.state.overlay
+        required = overlay.required_inputs
         missing = [stage for stage in required if stage not in app.state.artifacts]
         if missing:
             raise HTTPException(
@@ -120,12 +128,24 @@ def create_app() -> FastAPI:
                 detail={"message": "Missing required artefacts", "missing": missing},
             )
 
+        if overlay.toggles.get("enforce_ticket_sync") and not overlay.jira.get("project_key"):
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Ticket synchronisation enforced but Jira project_key missing",
+                    "integration": overlay.jira,
+                },
+            )
+
         result = orchestrator.run(
-            design_dataset=app.state.artifacts["design"],
+            design_dataset=app.state.artifacts.get("design", {"columns": [], "rows": []}),
             sbom=app.state.artifacts["sbom"],
             sarif=app.state.artifacts["sarif"],
             cve=app.state.artifacts["cve"],
         )
+        if overlay.toggles.get("auto_attach_overlay_metadata", True):
+            result["overlay"] = overlay.to_sanitised_dict()
+            result["overlay"]["required_inputs"] = list(required)
         return result
 
     return app

@@ -1,0 +1,25 @@
+path,sloc,language,role
+backend/__init__.py,7,Python,Support
+backend/app.py,126,Python,API
+backend/normalizers.py,301,Python,Parsing
+backend/pipeline.py,152,Python,Correlation
+fixops/__init__.py,3,Python,Support
+fixops/configuration.py,132,Python,Config
+fixops/design_context_injector.py,229,Python,SSVC
+new_backend/__init__.py,0,Python,Support
+new_backend/api.py,62,Python,Decision API
+new_backend/processing/__init__.py,12,Python,Support
+new_backend/processing/explanation.py,163,Python,Support
+new_backend/processing/knowledge_graph.py,199,Python,Support
+new_backend/processing/sarif.py,195,Python,Support
+tests/__init__.py,0,Python,Support
+tests/conftest.py,8,Python,Support
+tests/test_design_context_injector.py,58,Python,Support
+tests/test_end_to_end.py,143,Python,Support
+tests/test_golden_regression.py,142,Python,Support
+tests/test_golden_regression_store.py,99,Python,Support
+tests/test_new_backend_api.py,63,Python,Support
+tests/test_new_backend_processing.py,147,Python,Support
+tests/test_overlay_configuration.py,34,Python,Support
+tests/test_pipeline_matching.py,96,Python,Support
+tests/test_risk_adjustment.py,72,Python,Support
