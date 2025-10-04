@@ -39,6 +39,8 @@ def test_load_overlay_merges_profile_and_defaults(overlay_file: Path) -> None:
     assert exported["guardrails"]["maturity"] == "advanced"
     assert exported["guardrails"]["fail_on"] in {"medium", "high", "critical"}
     assert "ssdlc" in exported
+    assert "modules" in exported
+    assert exported["modules"]["guardrails"]["enabled"] is True
 
 
 def test_environment_variable_override(monkeypatch: pytest.MonkeyPatch, overlay_file: Path) -> None:
@@ -56,6 +58,25 @@ def test_guardrail_defaults_when_missing() -> None:
     assert policy["maturity"] == "scaling"
     assert policy["fail_on"] == "high"
     assert policy["warn_on"] == "medium"
+    assert config.is_module_enabled("guardrails") is True
+
+
+def test_module_defaults_and_custom_specs() -> None:
+    overlay = OverlayConfig(
+        modules={
+            "guardrails": {"enabled": False},
+            "custom": [
+                {
+                    "name": "demo",
+                    "entrypoint": "tests.sample_modules:record_outcome",
+                    "enabled": False,
+                }
+            ],
+        }
+    )
+    assert overlay.is_module_enabled("guardrails") is False
+    assert overlay.custom_module_specs[0]["name"] == "demo"
+    assert overlay.enabled_modules and "custom:demo" not in overlay.enabled_modules
 
 
 def test_overlay_rejects_unknown_keys(tmp_path: Path) -> None:

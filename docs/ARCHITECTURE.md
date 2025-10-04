@@ -65,8 +65,11 @@ architecture against market promises.
    - `PipelineOrchestrator.run()` receives the cached artefacts, builds token lookups, aggregates
      severities and exploitability signals, and computes guardrail evaluations using the overlay’s
      maturity profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail),
-     SSDLC stage coverage, AI agent analysis (when configured), exploitability insights, and a
-     crosswalk for evidence bundling.
+     SSDLC stage coverage, AI agent analysis (when configured), exploitability insights, IaC
+     posture summaries, and a crosswalk for evidence bundling.
+   - The overlay’s module registry toggles each feature (guardrails, context engine, compliance,
+     evidence hub, pricing, AI, exploitability, SSDLC, IaC). Execution outcomes are captured in
+     `pipeline_result["modules"]` and persisted into evidence bundles for traceability.
    - Overlay metadata is appended to the response (with secrets masked) when the
      `auto_attach_overlay_metadata` toggle is active. Evidence bundles omit the overlay when
      `include_overlay_metadata_in_bundles` is disabled.
@@ -109,6 +112,9 @@ graph TD
         B[OverlayConfig]
         C[InputNormalizer]
         D[PipelineOrchestrator]
+        H[IaCPostureEvaluator]
+        I[Custom Module Hooks]
+        J[EvidenceHub]
     end
     subgraph External
         E[Upload Clients]
@@ -123,7 +129,12 @@ graph TD
     A --> D
     B --> A
     B --> G
-    D --> A
+    D --> H
+    D --> I
+    D --> J
+    H --> J
+    I --> J
+    J --> A
 ```
 
 ## Failure Modes & Mitigations

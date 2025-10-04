@@ -162,6 +162,8 @@ def test_end_to_end_demo_pipeline():
         ssdlc = pipeline_payload["ssdlc_assessment"]
         assert ssdlc["summary"]["total_stages"] >= 1
         assert any(stage["id"] == "plan" for stage in ssdlc["stages"])
+        assert "iac_posture" in pipeline_payload
+        assert pipeline_payload["modules"]["status"]["iac_posture"] == "executed"
         assert pipeline_payload["evidence_bundle"]["sections"]
         overlay = pipeline_payload["overlay"]
         assert overlay["mode"] == "demo"

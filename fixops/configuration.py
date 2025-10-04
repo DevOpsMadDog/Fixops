@@ -83,6 +83,8 @@ _ALLOWED_OVERLAY_KEYS = {
     "ai_agents",
     "ssdlc",
     "exploit_signals",
+    "modules",
+    "iac",
     "profiles",
 }
 
@@ -110,6 +112,8 @@ class _OverlayDocument(BaseModel):
     ai_agents: Optional[Dict[str, Any]] = None
     ssdlc: Optional[Dict[str, Any]] = None
     exploit_signals: Optional[Dict[str, Any]] = None
+    modules: Optional[Dict[str, Any]] = None
+    iac: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     class Config:
@@ -165,6 +169,8 @@ class OverlayConfig:
     ai_agents: Dict[str, Any] = field(default_factory=dict)
     ssdlc: Dict[str, Any] = field(default_factory=dict)
     exploit_signals: Dict[str, Any] = field(default_factory=dict)
+    modules: Dict[str, Any] = field(default_factory=dict)
+    iac: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(default_factory=lambda: (_DEFAULT_DATA_ROOT,))
     auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
 
@@ -213,6 +219,8 @@ class OverlayConfig:
             "ai_agents": self.ai_agents,
             "ssdlc": self.ssdlc_settings,
             "exploit_signals": self.exploit_settings,
+            "modules": self.module_matrix,
+            "iac": self.iac_settings,
         }
         return payload
 
@@ -395,6 +403,103 @@ class OverlayConfig:
         return metadata
 
     @property
+    def iac_settings(self) -> Dict[str, Any]:
+        settings = dict(self.iac)
+        targets: list[Dict[str, Any]] = []
+        raw_targets = settings.get("targets")
+        if isinstance(raw_targets, Iterable):
+            for entry in raw_targets:
+                if isinstance(entry, Mapping):
+                    targets.append(dict(entry))
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                overrides = profile.get("targets")
+                if isinstance(overrides, Iterable):
+                    for entry in overrides:
+                        if not isinstance(entry, Mapping):
+                            continue
+                        targets.append(dict(entry))
+        base = {k: v for k, v in settings.items() if k not in {"targets", "profiles"}}
+        base["targets"] = targets
+        return base
+
+    def module_config(self, name: str) -> Dict[str, Any]:
+        raw = self.modules.get(name)
+        if isinstance(raw, Mapping):
+            payload = dict(raw)
+            payload.pop("enabled", None)
+            return payload
+        return {}
+
+    def is_module_enabled(self, name: str, default: bool = True) -> bool:
+        raw = self.modules.get(name)
+        if isinstance(raw, Mapping):
+            if "enabled" in raw:
+                return bool(raw["enabled"])
+            if "disabled" in raw:
+                return not bool(raw["disabled"])
+        if isinstance(raw, bool):
+            return raw
+        return default
+
+    @property
+    def custom_module_specs(self) -> list[Dict[str, Any]]:
+        raw = self.modules.get("custom")
+        specs: list[Dict[str, Any]] = []
+        if isinstance(raw, Iterable):
+            for entry in raw:
+                if isinstance(entry, Mapping):
+                    spec = dict(entry)
+                    specs.append(spec)
+        return specs
+
+    @property
+    def module_matrix(self) -> Dict[str, Any]:
+        matrix: Dict[str, Any] = {}
+        for key, value in self.modules.items():
+            if key == "custom":
+                if isinstance(value, Iterable):
+                    matrix[key] = [
+                        {k: v for k, v in spec.items() if k != "config"}
+                        for spec in value
+                        if isinstance(spec, Mapping)
+                    ]
+                continue
+            if isinstance(value, Mapping):
+                matrix[key] = {k: v for k, v in value.items() if k != "config"}
+            else:
+                matrix[key] = value
+        return matrix
+
+    @property
+    def enabled_modules(self) -> list[str]:
+        known_modules = [
+            "guardrails",
+            "context_engine",
+            "onboarding",
+            "compliance",
+            "policy_automation",
+            "evidence",
+            "ai_agents",
+            "ssdlc",
+            "exploit_signals",
+            "pricing",
+            "iac_posture",
+        ]
+        enabled: list[str] = []
+        for name in known_modules:
+            if self.is_module_enabled(name, default=(name != "pricing")):
+                enabled.append(name)
+        for spec in self.custom_module_specs:
+            if spec.get("enabled", True):
+                identifier = spec.get("name") or spec.get("entrypoint")
+                if identifier:
+                    enabled.append(f"custom:{identifier}")
+        return enabled
+
+    @property
     def pricing_summary(self) -> Dict[str, Any]:
         plans = [dict(plan) for plan in self.pricing.get("plans", []) if isinstance(plan, Mapping)]
         active = None
@@ -469,6 +574,8 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "ai_agents": document.ai_agents or {},
         "ssdlc": document.ssdlc or {},
         "exploit_signals": document.exploit_signals or {},
+        "modules": document.modules or {},
+        "iac": document.iac or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -480,6 +587,31 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     toggles.setdefault("require_design_input", True)
     toggles.setdefault("auto_attach_overlay_metadata", True)
     toggles.setdefault("include_overlay_metadata_in_bundles", True)
+
+    modules = base.setdefault("modules", {})
+    default_module_flags = {
+        "guardrails": True,
+        "context_engine": True,
+        "onboarding": True,
+        "compliance": True,
+        "policy_automation": True,
+        "evidence": True,
+        "ai_agents": True,
+        "ssdlc": True,
+        "exploit_signals": True,
+        "pricing": True,
+        "iac_posture": True,
+    }
+    for key, enabled in default_module_flags.items():
+        value = modules.get(key)
+        if isinstance(value, Mapping):
+            payload = dict(value)
+            payload.setdefault("enabled", enabled)
+            modules[key] = payload
+        elif isinstance(value, bool):
+            modules[key] = {"enabled": value}
+        elif value is None:
+            modules[key] = {"enabled": enabled}
 
     metadata = base.setdefault("metadata", {})
     metadata.setdefault("profile_applied", selected_mode)
@@ -506,6 +638,8 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         ai_agents=dict(base.get("ai_agents", {})),
         ssdlc=dict(base.get("ssdlc", {})),
         exploit_signals=dict(base.get("exploit_signals", {})),
+        modules=dict(base.get("modules", {})),
+        iac=dict(base.get("iac", {})),
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

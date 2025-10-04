@@ -35,6 +35,20 @@
     "enforce_ticket_sync": false,
     "capture_feedback": false
   },
+  "modules": {
+    "guardrails": {"enabled": true},
+    "context_engine": {"enabled": true},
+    "onboarding": {"enabled": true},
+    "compliance": {"enabled": true},
+    "policy_automation": {"enabled": true},
+    "evidence": {"enabled": true},
+    "ai_agents": {"enabled": true},
+    "ssdlc": {"enabled": true},
+    "exploit_signals": {"enabled": true},
+    "pricing": {"enabled": true},
+    "iac_posture": {"enabled": true},
+    "custom": []
+  },
   "limits": {
     "max_upload_bytes": {
       "default": 3145728,
@@ -157,6 +171,55 @@
               {"id": "6.3.3", "title": "Secure code reviews", "requires": ["sarif", "policy"]},
               {"id": "6.5", "title": "Vulnerability remediation", "requires": ["cve", "context", "guardrails"]}
             ]
+          },
+          {
+            "name": "NIST 800-53",
+            "controls": [
+              {"id": "RA-5", "title": "Vulnerability scanning", "requires": ["sarif", "cve", "exploit"]},
+              {"id": "CA-7", "title": "Continuous monitoring", "requires": ["context", "ssdlc", "iac_posture"]}
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "iac": {
+    "targets": [
+      {
+        "id": "aws",
+        "display_name": "AWS Cloud",
+        "match": ["aws", "lambda", "s3"],
+        "required_artifacts": ["policy_automation", "evidence_bundle"],
+        "recommended_controls": ["iam-hardening", "network-segmentation"],
+        "environments": ["prod", "production"]
+      },
+      {
+        "id": "gcp",
+        "display_name": "Google Cloud",
+        "match": ["gcp", "gke", "cloud run"],
+        "required_artifacts": ["context_summary", "compliance_status"],
+        "recommended_controls": ["artifact-signing", "runtime-policy"],
+        "environments": ["prod", "stage"]
+      },
+      {
+        "id": "on_prem",
+        "display_name": "On-Premises",
+        "match": ["on-prem", "vmware", "bare metal"],
+        "required_artifacts": ["context_summary"],
+        "recommended_controls": ["patching-window", "backup-testing"],
+        "environments": ["datacenter", "colo"]
+      }
+    ],
+    "profiles": {
+      "enterprise": {
+        "targets": [
+          {
+            "id": "azure",
+            "display_name": "Azure Cloud",
+            "match": ["azure", "aks", "app service"],
+            "required_artifacts": ["policy_automation", "compliance_status", "evidence_bundle"],
+            "recommended_controls": ["defender-integration", "policy-enforcement"],
+            "environments": ["prod", "dr"]
           }
         ]
       }

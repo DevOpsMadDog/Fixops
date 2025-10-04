@@ -130,6 +130,58 @@ profiles:
 All keys are optional. Missing sections default to empty dictionaries. Toggle defaults are applied by
 `load_overlay()` when absent.
 
+### Module registry and feature toggles
+
+- `modules.guardrails`, `modules.context_engine`, `modules.compliance`, etc. wrap each pipeline feature
+  in a Terraform-like module switch. Set `enabled: false` to disable a feature for a profile without
+  editing code. Omitted modules default to `enabled: true`.
+- `modules.custom` accepts a list of custom pipeline hooks. Each entry requires:
+  - `name`: identifier for reporting.
+  - `entrypoint`: Python import path (`package.module:function` or `package.module:function` syntax).
+  - Optional `config` mapping passed to the callable.
+- Executed module metadata is returned under `pipeline_result["modules"]` and bundled into evidence
+  artefacts for troubleshooting.
+
+Example:
+
+```yaml
+modules:
+  context_engine:
+    enabled: true
+  ai_agents:
+    enabled: false   # disable AI advisor for lightweight profiles
+  custom:
+    - name: notify-finops
+      entrypoint: integrations.finops:emit_cost_report
+      config:
+        channel: finops-alerts
+```
+
+### Infrastructure-as-code coverage
+
+- Configure multi-cloud/on-prem posture evaluation via the `iac` section.
+- Each target block accepts `id`, optional `display_name`, `match` keywords, `required_artifacts`,
+  `recommended_controls`, and `environments` lists.
+- Additional targets can be layered per profile under `iac.profiles.<mode>.targets`.
+- The pipeline emits an `iac_posture` summary describing matched targets, missing artefacts,
+  detected environments, and unmatched components.
+
+Example:
+
+```yaml
+iac:
+  targets:
+    - id: aws
+      match: [aws, lambda]
+      required_artifacts: [policy_automation, evidence_bundle]
+      recommended_controls: [iam-hardening, network-segmentation]
+      environments: [prod]
+    - id: on_prem
+      match: [on-prem, vmware]
+      recommended_controls: [patching-window]
+      environments: [datacenter]
+```
+
 ## Demo Mode Example
 
 ```yaml

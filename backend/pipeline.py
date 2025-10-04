@@ -13,6 +13,8 @@ from fixops.onboarding import OnboardingGuide
 from fixops.policy import PolicyAutomation
 from fixops.ssdlc import SSDLCEvaluator
 from fixops.exploit_signals import ExploitSignalEvaluator
+from fixops.iac import IaCPostureEvaluator
+from fixops.modules import PipelineContext, execute_custom_modules
 
 from .normalizers import (
     CVERecordSummary,
@@ -328,56 +330,159 @@ class PipelineOrchestrator:
         }
 
         if overlay is not None:
-            result["guardrail_evaluation"] = self._evaluate_guardrails(
-                overlay, severity_counts, highest_severity, highest_trigger
-            )
+            modules_status: Dict[str, str] = {}
+            executed_modules: List[str] = []
+            custom_outcomes: List[Dict[str, Any]] = []
 
-            context_engine = ContextEngine(overlay.context_engine_settings)
-            context_summary = context_engine.evaluate(rows, crosswalk)
-            result["context_summary"] = context_summary
+            context_summary: Optional[Dict[str, Any]] = None
+            compliance_status: Optional[Dict[str, Any]] = None
+            policy_summary: Optional[Dict[str, Any]] = None
+            ssdlc_assessment: Optional[Dict[str, Any]] = None
 
-            onboarding = OnboardingGuide(overlay)
-            result["onboarding"] = onboarding.build(overlay.required_inputs)
+            if overlay.is_module_enabled("guardrails"):
+                result["guardrail_evaluation"] = self._evaluate_guardrails(
+                    overlay, severity_counts, highest_severity, highest_trigger
+                )
+                modules_status["guardrails"] = "executed"
+                executed_modules.append("guardrails")
+            else:
+                modules_status["guardrails"] = "disabled"
 
-            # Placeholder evidence flag so compliance packs recognise artefact availability.
-            result["evidence_bundle"] = {"status": "pending"}
+            if overlay.is_module_enabled("context_engine"):
+                context_engine = ContextEngine(overlay.context_engine_settings)
+                context_summary = context_engine.evaluate(rows, crosswalk)
+                result["context_summary"] = context_summary
+                modules_status["context_engine"] = "executed"
+                executed_modules.append("context_engine")
+            else:
+                modules_status["context_engine"] = "disabled"
 
-            compliance_evaluator = ComplianceEvaluator(overlay.compliance_settings)
-            compliance_status = compliance_evaluator.evaluate(result, context_summary)
-            result["compliance_status"] = compliance_status
+            if overlay.is_module_enabled("onboarding"):
+                onboarding = OnboardingGuide(overlay)
+                result["onboarding"] = onboarding.build(overlay.required_inputs)
+                modules_status["onboarding"] = "executed"
+                executed_modules.append("onboarding")
+            else:
+                modules_status["onboarding"] = "disabled"
 
-            policy_automation = PolicyAutomation(overlay)
-            policy_summary = policy_automation.plan(result, context_summary, compliance_status)
-            result["policy_automation"] = policy_summary
+            if overlay.is_module_enabled("evidence"):
+                # Placeholder so compliance checks recognise evidence availability before persistence.
+                result["evidence_bundle"] = {"status": "pending"}
 
-            ssdlc_evaluator = SSDLCEvaluator(overlay.ssdlc_settings)
-            ssdlc_assessment = ssdlc_evaluator.evaluate(
-                design_rows=rows,
-                sbom=sbom,
-                sarif=sarif,
-                cve=cve,
-                pipeline_result=result,
-                context_summary=context_summary,
-                compliance_status=compliance_status,
-                policy_summary=policy_summary,
-                overlay=overlay,
-            )
-            result["ssdlc_assessment"] = ssdlc_assessment
+            if overlay.is_module_enabled("compliance"):
+                compliance_evaluator = ComplianceEvaluator(overlay.compliance_settings)
+                compliance_status = compliance_evaluator.evaluate(result, context_summary)
+                result["compliance_status"] = compliance_status
+                modules_status["compliance"] = "executed"
+                executed_modules.append("compliance")
+            else:
+                modules_status["compliance"] = "disabled"
 
-            ai_advisor = AIAgentAdvisor(overlay.ai_agents)
-            ai_analysis = ai_advisor.analyse(rows, crosswalk)
-            if ai_analysis:
-                result["ai_agent_analysis"] = ai_analysis
+            if overlay.is_module_enabled("policy_automation"):
+                policy_automation = PolicyAutomation(overlay)
+                policy_summary = policy_automation.plan(result, context_summary, compliance_status)
+                result["policy_automation"] = policy_summary
+                modules_status["policy_automation"] = "executed"
+                executed_modules.append("policy_automation")
+            else:
+                modules_status["policy_automation"] = "disabled"
 
-            exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
-            exploit_summary = exploit_evaluator.evaluate(cve)
-            if exploit_summary:
-                result["exploitability_insights"] = exploit_summary
+            if overlay.is_module_enabled("ssdlc"):
+                ssdlc_evaluator = SSDLCEvaluator(overlay.ssdlc_settings)
+                ssdlc_assessment = ssdlc_evaluator.evaluate(
+                    design_rows=rows,
+                    sbom=sbom,
+                    sarif=sarif,
+                    cve=cve,
+                    pipeline_result=result,
+                    context_summary=context_summary,
+                    compliance_status=compliance_status,
+                    policy_summary=policy_summary,
+                    overlay=overlay,
+                )
+                result["ssdlc_assessment"] = ssdlc_assessment
+                modules_status["ssdlc"] = "executed"
+                executed_modules.append("ssdlc")
+            else:
+                modules_status["ssdlc"] = "disabled"
 
-            evidence_hub = EvidenceHub(overlay)
-            evidence_bundle = evidence_hub.persist(result, context_summary, compliance_status, policy_summary)
-            result["evidence_bundle"] = evidence_bundle
+            if overlay.is_module_enabled("ai_agents"):
+                ai_advisor = AIAgentAdvisor(overlay.ai_agents)
+                ai_analysis = ai_advisor.analyse(rows, crosswalk)
+                if ai_analysis:
+                    result["ai_agent_analysis"] = ai_analysis
+                modules_status["ai_agents"] = "executed"
+                executed_modules.append("ai_agents")
+            else:
+                modules_status["ai_agents"] = "disabled"
 
-            result["pricing_summary"] = overlay.pricing_summary
+            if overlay.is_module_enabled("exploit_signals"):
+                exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
+                exploit_summary = exploit_evaluator.evaluate(cve)
+                if exploit_summary:
+                    result["exploitability_insights"] = exploit_summary
+                modules_status["exploit_signals"] = "executed"
+                executed_modules.append("exploit_signals")
+            else:
+                modules_status["exploit_signals"] = "disabled"
+
+            if overlay.is_module_enabled("iac_posture"):
+                iac_settings = dict(overlay.iac_settings)
+                module_overrides = overlay.module_config("iac_posture")
+                if module_overrides:
+                    iac_settings.update(module_overrides)
+                iac_evaluator = IaCPostureEvaluator(iac_settings)
+                iac_posture = iac_evaluator.evaluate(rows, crosswalk, result)
+                if iac_posture:
+                    result["iac_posture"] = iac_posture
+                modules_status["iac_posture"] = "executed"
+                executed_modules.append("iac_posture")
+            else:
+                modules_status["iac_posture"] = "disabled"
+
+            if overlay.is_module_enabled("evidence"):
+                evidence_hub = EvidenceHub(overlay)
+                evidence_bundle = evidence_hub.persist(
+                    result, context_summary, compliance_status, policy_summary
+                )
+                result["evidence_bundle"] = evidence_bundle
+                modules_status["evidence"] = "executed"
+                executed_modules.append("evidence")
+            else:
+                modules_status["evidence"] = "disabled"
+
+            if overlay.is_module_enabled("pricing", default=True):
+                result["pricing_summary"] = overlay.pricing_summary
+                modules_status["pricing"] = "executed"
+                executed_modules.append("pricing")
+            else:
+                modules_status["pricing"] = "disabled"
+
+            if overlay.custom_module_specs:
+                context = PipelineContext(
+                    design_rows=rows,
+                    crosswalk=crosswalk,
+                    sbom=sbom,
+                    sarif=sarif,
+                    cve=cve,
+                    overlay=overlay,
+                    result=result,
+                    context_summary=context_summary,
+                    compliance_status=compliance_status,
+                    policy_summary=policy_summary,
+                    ssdlc_assessment=ssdlc_assessment,
+                )
+                custom_outcomes = execute_custom_modules(overlay.custom_module_specs, context)
+                custom_executed = any(
+                    outcome.get("status") == "executed" for outcome in custom_outcomes
+                )
+                modules_status["custom"] = "executed" if custom_executed else "skipped"
+            result["modules"] = {
+                "configured": overlay.module_matrix,
+                "enabled": overlay.enabled_modules,
+                "status": modules_status,
+                "executed": executed_modules,
+                "custom": custom_outcomes,
+            }
 
         return result

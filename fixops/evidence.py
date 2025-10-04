@@ -75,6 +75,8 @@ class EvidenceHub:
         _include("ai_agent_analysis", pipeline_result.get("ai_agent_analysis"))
         _include("exploitability_insights", pipeline_result.get("exploitability_insights"))
         _include("ssdlc_assessment", pipeline_result.get("ssdlc_assessment"))
+        _include("iac_posture", pipeline_result.get("iac_posture"))
+        _include("module_execution", pipeline_result.get("modules"))
 
         bundle_path = base_dir / f"{self._bundle_name()}-bundle.json"
         bundle_path.write_text(json.dumps(bundle_payload, indent=2), encoding="utf-8")

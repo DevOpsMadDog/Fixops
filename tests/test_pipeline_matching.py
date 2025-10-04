@@ -287,3 +287,123 @@ def test_pipeline_supports_design_rows_with_name_column():
     assert crosswalk_entry["sbom_component"]["name"] == "agent service"
     assert crosswalk_entry["findings"]
     assert crosswalk_entry["cves"]
+
+
+def test_pipeline_respects_module_toggles():
+    orchestrator = PipelineOrchestrator()
+    design_dataset, sbom, sarif, cve = build_orchestrator_payload()
+
+    overlay = OverlayConfig(
+        modules={
+            "context_engine": {"enabled": False},
+            "ai_agents": {"enabled": False},
+        }
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+        overlay=overlay,
+    )
+
+    assert "context_summary" not in result
+    assert "ai_agent_analysis" not in result
+    assert result["modules"]["status"]["context_engine"] == "disabled"
+
+
+def test_pipeline_executes_custom_modules():
+    orchestrator = PipelineOrchestrator()
+    design_dataset, sbom, sarif, cve = build_orchestrator_payload()
+
+    overlay = OverlayConfig(
+        modules={
+            "custom": [
+                {
+                    "name": "marker",
+                    "entrypoint": "tests.sample_modules:record_outcome",
+                    "config": {"marker": "observed"},
+                }
+            ]
+        }
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+        overlay=overlay,
+    )
+
+    assert result["custom_markers"] == ["observed"]
+    custom_status = result["modules"]["custom"][0]
+    assert custom_status["status"] == "executed"
+
+
+def test_pipeline_emits_iac_posture_summary():
+    orchestrator = PipelineOrchestrator()
+    design_dataset = {
+        "columns": ["component", "cloud", "environment"],
+        "rows": [
+            {"component": "Payments", "cloud": "aws", "environment": "prod"},
+            {"component": "Analytics", "cloud": "gcp", "environment": "stage"},
+            {"component": "Legacy", "cloud": "on-prem", "environment": "datacenter"},
+        ],
+    }
+    sbom = NormalizedSBOM(
+        format="cyclonedx",
+        document={"name": "demo"},
+        components=[],
+        relationships=[],
+        services=[],
+        vulnerabilities=[],
+        metadata={"component_count": 0},
+    )
+    sarif = NormalizedSARIF(
+        version="2.1.0",
+        schema_uri=None,
+        tool_names=["Analyzer"],
+        findings=[],
+        metadata={"run_count": 1, "finding_count": 0},
+    )
+    cve = NormalizedCVEFeed(records=[], errors=[], metadata={"record_count": 0})
+
+    overlay = OverlayConfig(
+        modules={"iac_posture": {"enabled": True}},
+        iac={
+            "targets": [
+                {
+                    "id": "aws",
+                    "match": ["aws"],
+                    "required_artifacts": ["policy_automation"],
+                    "recommended_controls": ["iam"],
+                    "environments": ["prod"],
+                },
+                {
+                    "id": "on_prem",
+                    "match": ["on-prem"],
+                    "required_artifacts": [],
+                    "recommended_controls": ["patching"],
+                    "environments": ["datacenter"],
+                },
+            ]
+        },
+    )
+
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+        overlay=overlay,
+    )
+
+    iac_posture = result.get("iac_posture")
+    assert iac_posture is not None
+    aws_entry = next(entry for entry in iac_posture["targets"] if entry["id"] == "aws")
+    assert aws_entry["matched"] is True
+    assert "Payments" in aws_entry["matched_components"]
+    assert aws_entry["artifacts_missing"] == []
+    assert iac_posture["unmatched_components"]
