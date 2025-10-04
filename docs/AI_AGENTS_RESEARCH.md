@@ -69,6 +69,33 @@ FixOps can now demonstrate tangible CTEM coverage for agentic workloads:
 - **Agent Observability** — open-source projects like LangSmith or Weights & Biases traces provide
   telemetry FixOps could ingest for richer evidence bundles.
 
+## Secure SDLC (SSDLc) Gaps in Agentic Stacks
+
+While the leading frameworks accelerate experimentation, most teams building AI agents or Model
+Context Protocol (MCP) services leave material SSDLc gaps unaddressed:
+
+1. **Plan / Threat Modelling** — Few projects document attacker goals (prompt injection, tool
+   escalation, model theft). FixOps can require design artefacts that catalogue agent roles, tool
+   scopes, and threat assumptions so the context engine can flag omissions during the planning stage.
+2. **Code / Dependency Hygiene** — Agent repos often pin neither model SDK versions nor tool plugins,
+   so supply-chain drift is common. Guardrail policies should enforce SBOM uploads plus licensing and
+   vulnerability scans per agent component.
+3. **Build / Test Gates** — CI pipelines rarely exercise adversarial prompts or fail when agents call
+   prohibited tools. FixOps policy automation can mark such gaps and emit Jira tasks until adversarial
+   test suites (red-teaming, jailbreak prompts) are wired in.
+4. **Deploy Controls** — Runtime approvals for high-risk tools or external API calls are often missing.
+   Overlay-driven playbooks can insist on human-in-the-loop approval or access tokens scoped to
+   read-only actions before Enterprise promotion.
+5. **Run / Monitoring** — Teams seldom record tool invocations, prompt/response history, or data flow
+   provenance. The evidence hub can ensure observability feeds (logs, LangSmith traces) are attached to
+   each release package and retained for audits.
+6. **Audit & Feedback** — Waivers for risky behaviours are typically ad hoc. FixOps’ feedback capture
+   provides structured review trails so CISOs can correlate override reasons with future rescoring.
+
+By enforcing these artefacts through the overlay configuration, FixOps complements the raw agentic
+capabilities with a defensible SSDLc spine that Apiiro and Aikido have not yet optimised for
+agent-focused workloads.
+
 The overlay-driven approach ensures these integrations remain configuration-first: teams extend the
 watchlist or control sets without redeploying the service, while FixOps centralises visibility across
 traditional vulnerability data and emerging agentic workloads.
