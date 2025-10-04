@@ -48,7 +48,20 @@ python simulations/cve_scenario/runner.py --mode demo
 python simulations/cve_scenario/runner.py --mode enterprise
 ```
 
-The CLI writes contextual scorecards and evidence JSON files to the `evidence_dir` configured by your overlay.
+Use the bundled CLI to exercise the entire pipeline without FastAPI:
+
+```bash
+python -m fixops.cli run \
+  --overlay config/fixops.overlay.yml \
+  --sbom path/to/sbom.json \
+  --sarif path/to/scan.sarif \
+  --cve path/to/cve.json \
+  --output tmp/pipeline.json \
+  --evidence-dir tmp/evidence \
+  --offline
+```
+
+The CLI writes contextual scorecards and evidence JSON files to the `evidence_dir` configured by your overlay and honours module toggles provided via command-line overrides.
 
 ## Linting & Formatting
 

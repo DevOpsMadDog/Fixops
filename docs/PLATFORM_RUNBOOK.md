@@ -101,6 +101,35 @@ each persona. Use the following checklists to script role-specific workflows:
   - Inject synthetic SARIF findings and rerun the pipeline to confirm downgrades/escalations recorded under `.context_summary.adjusted_severity`.
   - Review the SSDLC assessment (`.ssdlc`) for stages lacking security tests and feed back via the `/feedback` endpoint when toggled on.
 
+### CLI quickstart
+
+Run the full pipeline without standing up FastAPI by invoking the overlay-aware CLI. The CLI honours module toggles, copies evidence bundles, and can operate offline by disabling exploit-feed refreshes.
+
+```bash
+export FIXOPS_API_TOKEN="demo-token"
+
+python -m fixops.cli run \
+  --overlay config/fixops.overlay.yml \
+  --design artefacts/design.csv \
+  --sbom artefacts/sbom.json \
+  --sarif artefacts/scan.sarif \
+  --cve artefacts/cve.json \
+  --output out/pipeline.json \
+  --evidence-dir out/evidence \
+  --offline
+
+# View the active overlay with secrets masked
+python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml --pretty
+```
+
+Key switches:
+
+- `--env KEY=VALUE` – supply API tokens or connector credentials without exporting them globally.
+- `--disable MODULE` / `--enable MODULE` – toggle overlay modules (e.g. disable `policy_automation` for smoke tests).
+- `--offline` – prevent exploit feed auto-refresh when running in restricted environments.
+- `--include-overlay` – embed the sanitised overlay in the result JSON for downstream tooling.
+- Replace `artefacts/...` with paths to your own uploaded files.
+
 ### FastAPI ingestion workflow
 
 ```bash

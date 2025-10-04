@@ -73,6 +73,30 @@
     </table>
   </section>
 
+  <section id="cli">
+    <h2>Command-line Quickstart</h2>
+    <p>Skip the API bootstrap and run the full overlay-driven pipeline locally with the bundled CLI. Replace the <code>artefacts/…</code> paths with your own files. The helper honours module toggles, masks secrets, and can copy evidence bundles for quick sharing.</p>
+    <pre><code>export FIXOPS_API_TOKEN="demo-token"
+
+python -m fixops.cli run \
+  --overlay config/fixops.overlay.yml \
+  --design artefacts/design.csv \
+  --sbom artefacts/sbom.json \
+  --sarif artefacts/scan.sarif \
+  --cve artefacts/cve.json \
+  --output out/pipeline.json \
+  --evidence-dir out/evidence \
+  --offline
+
+python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml --pretty</code></pre>
+    <ul>
+      <li><code>--env KEY=VALUE</code> injects tokens (API, Jira, Confluence, Slack) just for this run.</li>
+      <li><code>--disable MODULE</code> / <code>--enable MODULE</code> override overlay defaults without editing YAML.</li>
+      <li><code>--offline</code> suspends exploit-feed refreshes in air-gapped environments.</li>
+      <li><code>--include-overlay</code> embeds the sanitised overlay in the JSON output for downstream tools.</li>
+    </ul>
+  </section>
+
   <section id="start">
     <h2>Five-Minute Quick Start</h2>
     <div class="timeline">
