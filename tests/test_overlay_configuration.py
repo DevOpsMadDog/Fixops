@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from pathlib import Path
-
 import pytest
 
 from fixops.configuration import OverlayConfig, load_overlay

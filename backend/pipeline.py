@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Optional
 
 from .normalizers import (
@@ -93,20 +93,23 @@ class PipelineOrchestrator:
         sarif: NormalizedSARIF,
         cve: NormalizedCVEFeed,
     ) -> Dict[str, Any]:
-        rows: List[Dict[str, Any]] = list(design_dataset.get("rows", []))
+        rows = [
+            row for row in design_dataset.get("rows", []) if isinstance(row, dict)
+        ]
 
         design_components: List[str] = []
-        tokens: Dict[str, Optional[str]] = {}
+        tokens: Dict[str, str] = {}
         for row in rows:
             name = self._extract_component_name(row)
-            if name:
-                design_components.append(name)
-                tokens[name] = _lower(name)
+            if not name:
+                continue
+            normalised = _lower(name)
+            if not normalised:
+                continue
+            design_components.append(name)
+            tokens[name] = normalised
 
-        lookup_tokens = {
-            token for token in tokens.values() if token
-        }
-
+        lookup_tokens = set(tokens.values())
         sbom_lookup = self._match_components(sbom.components)
 
         findings_by_level = Counter(
@@ -114,25 +117,29 @@ class PipelineOrchestrator:
         )
         exploited_count = sum(1 for record in cve.records if record.exploited)
 
-        finding_matches: Dict[str, List[dict[str, Any]]] = {
-            token: [] for token in lookup_tokens
-        }
-        for finding in sarif.findings:
-            payload = finding.to_dict()
-            haystack = self._build_finding_search_text(finding).lower()
-            for token in lookup_tokens:
-                if token in haystack:
-                    finding_matches[token].append(dict(payload))
+        finding_matches: Dict[str, List[dict[str, Any]]] = defaultdict(list)
+        if lookup_tokens:
+            for finding in sarif.findings:
+                haystack = self._build_finding_search_text(finding)
+                if not haystack:
+                    continue
+                haystack = haystack.lower()
+                payload = finding.to_dict()
+                for token in lookup_tokens:
+                    if token in haystack:
+                        finding_matches[token].append(dict(payload))
 
-        cve_matches: Dict[str, List[dict[str, Any]]] = {
-            token: [] for token in lookup_tokens
-        }
-        for record in cve.records:
-            payload = record.to_dict()
-            haystack = self._build_record_search_text(record).lower()
-            for token in lookup_tokens:
-                if token in haystack:
-                    cve_matches[token].append(dict(payload))
+        cve_matches: Dict[str, List[dict[str, Any]]] = defaultdict(list)
+        if lookup_tokens:
+            for record in cve.records:
+                haystack = self._build_record_search_text(record)
+                if not haystack:
+                    continue
+                haystack = haystack.lower()
+                payload = record.to_dict()
+                for token in lookup_tokens:
+                    if token in haystack:
+                        cve_matches[token].append(dict(payload))
 
         crosswalk: List[dict[str, Any]] = []
         for row in rows:

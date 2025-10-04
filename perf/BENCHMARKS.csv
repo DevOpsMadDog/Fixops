@@ -1,0 +1,2 @@
+test_name,input_description,before_time_ms,after_time_ms,before_mem_kb,after_mem_kb,delta_time_pct,delta_mem_pct
+pipeline_crosswalk,"40 design rows, 100 SARIF findings, 60 CVE records",6.84,6.70,155.01,150.65,-2.1%,-2.8%

@@ -32,6 +32,16 @@ Key test suites:
 - `tests/test_end_to_end.py` — exercises the FastAPI endpoints end-to-end.
 - `tests/test_new_backend_*` — covers the decision-engine subset in `new_backend/`.
 - `tests/test_overlay_configuration.py` — verifies overlay parsing, defaults, and environment overrides.
+- `tests/test_cve_simulation.py` — runs the Log4Shell contextual scoring simulation for Demo and Enterprise overlays.
+
+To execute the CVE simulation manually and capture the generated evidence bundles:
+
+```bash
+python simulations/cve_scenario/runner.py --mode demo
+python simulations/cve_scenario/runner.py --mode enterprise
+```
+
+The CLI writes contextual scorecards and evidence JSON files to the `evidence_dir` configured by your overlay.
 
 ## Linting & Formatting
 
