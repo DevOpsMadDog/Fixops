@@ -11,29 +11,58 @@ Based on the architecture documentation showing specific components:
 
 import asyncio
 import json
-import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Tuple, Optional
 from dataclasses import dataclass, asdict
 import structlog
 
+# Optional scientific stack -------------------------------------------------
+try:  # pragma: no cover - optional dependency
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:  # pragma: no cover - exercised in constrained envs
+    NUMPY_AVAILABLE = False
+    np = None  # type: ignore
+
 # OSS Component Imports as per architecture
-try:
+try:  # pragma: no cover - optional dependency
     import pgmpy
     from pgmpy.models import BayesianNetwork
     from pgmpy.factors.discrete import TabularCPD
     from pgmpy.inference import VariableElimination
     PGMPY_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - exercised when pgmpy missing
     PGMPY_AVAILABLE = False
 
-try:
+try:  # pragma: no cover - optional dependency
     import pomegranate as pom
     POMEGRANATE_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - exercised when pomegranate missing
     POMEGRANATE_AVAILABLE = False
 
+try:  # pragma: no cover - optional dependency
+    import mchmm as mc
+    MCHMM_AVAILABLE = True
+except ImportError:  # pragma: no cover - executed in minimal envs
+    mc = None  # type: ignore
+    MCHMM_AVAILABLE = False
+
 logger = structlog.get_logger()
+
+
+def _mean(values: List[float]) -> float:
+    """Lightweight mean helper that avoids hard dependency on numpy."""
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
+
+
+def _variance(values: List[float]) -> float:
+    """Population variance helper compatible with single-value lists."""
+    if len(values) < 2:
+        return 0.0
+    avg = _mean(values)
+    return sum((value - avg) ** 2 for value in values) / len(values)
 
 @dataclass
 class SSVCContext:
@@ -78,10 +107,12 @@ class BayesianPriorMapping:
     
     def _initialize_network(self):
         """Initialize Bayesian network with SSVC variables"""
-        if not PGMPY_AVAILABLE:
-            logger.warning("pgmpy not available, using simplified Bayesian mapping")
+        if not PGMPY_AVAILABLE or not NUMPY_AVAILABLE:
+            logger.warning(
+                "pgmpy/numpy not available, using simplified Bayesian mapping"
+            )
             return
-            
+
         try:
             # Create Bayesian Network structure
             model = BayesianNetwork([
@@ -108,10 +139,17 @@ class BayesianPriorMapping:
             )
             
             # Risk level depends on all factors
+            # Build a deterministic CPD so inference remains reproducible
+            columns = 3 * 3 * 3 * 4 * 3
+            base_distribution = [0.25, 0.35, 0.25, 0.15]
+            values = []
+            for risk_weight in base_distribution:
+                values.append([risk_weight for _ in range(columns)])
+
             cpd_risk = TabularCPD(
                 variable='risk_level',
                 variable_card=4,  # low, medium, high, critical
-                values=np.random.rand(4, 3*3*3*4*3).tolist(),  # Simplified for demo
+                values=values,
                 evidence=['exploitation', 'exposure', 'utility', 'safety_impact', 'mission_impact'],
                 evidence_card=[3, 3, 3, 4, 3],
                 state_names={
@@ -196,12 +234,24 @@ class MarkovTransitionMatrixBuilder:
     """
     
     def __init__(self):
-        import mchmm as mc
-        self.mc = mc
-        self.states = ["secure", "vulnerable", "exploited", "patched"] 
+        self.mc = mc if MCHMM_AVAILABLE else None
+        self.states = ["secure", "vulnerable", "exploited", "patched"]
         self.state_to_index = {state: i for i, state in enumerate(self.states)}
         self.hmm_model = None
-        self._build_real_markov_model()
+        # Fallback transition matrix is always available for deterministic paths
+        self.transition_matrix = {
+            "secure": {"secure": 0.7, "vulnerable": 0.3, "exploited": 0.0, "patched": 0.0},
+            "vulnerable": {"secure": 0.1, "vulnerable": 0.6, "exploited": 0.2, "patched": 0.1},
+            "exploited": {"secure": 0.0, "vulnerable": 0.1, "exploited": 0.4, "patched": 0.5},
+            "patched": {"secure": 0.8, "vulnerable": 0.1, "exploited": 0.05, "patched": 0.05}
+        }
+
+        if self.mc and NUMPY_AVAILABLE:
+            self._build_real_markov_model()
+        else:
+            logger.warning(
+                "mchmm/numpy not available, using deterministic transition matrix"
+            )
     
     def _build_real_markov_model(self):
         """Build real Markov model using mchmm library"""
@@ -209,10 +259,10 @@ class MarkovTransitionMatrixBuilder:
             # Create transition probability matrix using mchmm
             # Define empirical transition probabilities based on security research
             transition_matrix = np.array([
-                [0.7, 0.3, 0.0, 0.0],  # secure -> [secure, vulnerable, exploited, patched]
-                [0.1, 0.6, 0.2, 0.1],  # vulnerable -> [secure, vulnerable, exploited, patched] 
-                [0.0, 0.1, 0.4, 0.5],  # exploited -> [secure, vulnerable, exploited, patched]
-                [0.8, 0.1, 0.05, 0.05] # patched -> [secure, vulnerable, exploited, patched]
+                [0.7, 0.3, 0.0, 0.0],
+                [0.1, 0.6, 0.2, 0.1],
+                [0.0, 0.1, 0.4, 0.5],
+                [0.8, 0.1, 0.05, 0.05]
             ])
             
             # Create MarkovChain using real mchmm
@@ -225,13 +275,7 @@ class MarkovTransitionMatrixBuilder:
             
         except Exception as e:
             logger.error(f"Real mchmm initialization failed: {e}")
-            # Fallback to simple matrix
-            self.transition_matrix = {
-                "secure": {"secure": 0.7, "vulnerable": 0.3, "exploited": 0.0, "patched": 0.0},
-                "vulnerable": {"secure": 0.1, "vulnerable": 0.6, "exploited": 0.2, "patched": 0.1},
-                "exploited": {"secure": 0.0, "vulnerable": 0.1, "exploited": 0.4, "patched": 0.5},
-                "patched": {"secure": 0.8, "vulnerable": 0.1, "exploited": 0.05, "patched": 0.05}
-            }
+            self.hmm_model = None
     
     async def predict_state_evolution(self, current_states: List[MarkovState]) -> Dict[str, Any]:
         """Predict vulnerability state evolution using REAL mchmm library"""
@@ -294,10 +338,16 @@ class MarkovTransitionMatrixBuilder:
             if state.kev_flag and current_state_idx == 1:  # vulnerable state
                 base_probs[2] *= 3.0  # significantly increase exploited probability
             
-            # Normalize
-            base_probs = base_probs / np.sum(base_probs)
-            
-            return {self.states[i]: float(prob) for i, prob in enumerate(base_probs)}
+            # Normalize without assuming numpy availability at runtime
+            if NUMPY_AVAILABLE:
+                total = float(np.sum(base_probs))
+                normalized = [float(prob) / total for prob in base_probs]
+            else:
+                base_list = [float(prob) for prob in base_probs]
+                total = sum(base_list) or 1.0
+                normalized = [prob / total for prob in base_list]
+
+            return {self.states[i]: normalized[i] for i in range(len(normalized))}
             
         except Exception as e:
             logger.error(f"Transition probability calculation failed: {e}")
@@ -337,9 +387,9 @@ class MarkovTransitionMatrixBuilder:
                 1.0 if pred["kev_factor"] else 0.8,  # KEV data
                 min(pred["days_since_disclosure"] / 365, 1.0)  # Maturity of disclosure
             ]
-            confidence_factors.append(np.mean(factors))
-        
-        return base_confidence * np.mean(confidence_factors)
+            confidence_factors.append(_mean(factors))
+
+        return base_confidence * _mean(confidence_factors)
 
 class SSVCProbabilisticFusion:
     """
@@ -446,7 +496,7 @@ class SSVCProbabilisticFusion:
     def _calculate_fusion_confidence(self, ssvc: float, bayesian: float, markov: float) -> float:
         """Calculate confidence in fusion result"""
         # Higher confidence when components agree
-        variance = np.var([ssvc, bayesian, markov])
+        variance = _variance([ssvc, bayesian, markov])
         return max(0.5, 1.0 - variance * 2)
     
     def _generate_fusion_explanation(self, decision: str, risk_score: float) -> str:
@@ -641,7 +691,7 @@ class SARIFVulnerabilityHandler:
         for cluster in clusters.values():
             instances = cluster["instances"]
             cluster["count"] = len(instances)
-            cluster["avg_confidence"] = np.mean([inst["confidence"] for inst in instances])
+            cluster["avg_confidence"] = _mean([inst["confidence"] for inst in instances])
             cluster["affected_files"] = list(set([inst["file_location"] for inst in instances]))
         
         return list(clusters.values())
