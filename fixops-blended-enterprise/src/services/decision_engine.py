@@ -14,6 +14,7 @@ import structlog
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
+from src.services.golden_regression_store import GoldenRegressionStore
 from src.db.session import DatabaseManager
 from src.services.risk_scorer import ContextualRiskScorer
 
@@ -718,12 +719,75 @@ class DecisionEngine:
             }
     
     async def _real_golden_regression_validation(self, context):
-        """Real golden regression validation using historical decisions"""
+        """Real golden regression validation using historical decisions."""
+        store = GoldenRegressionStore.get_instance()
+
+        cve_ids = []
+        for finding in context.security_findings:
+            cve_value = finding.get("cve") or finding.get("cve_id") or finding.get("cveId")
+            if cve_value:
+                cve_ids.append(str(cve_value))
+
+        lookup = store.lookup_cases(service_name=context.service_name, cve_ids=cve_ids)
+        matched_cases = lookup.get("cases", [])
+        total_matches = len(matched_cases)
+
+        if total_matches == 0:
+            coverage_map = {
+                "service": False,
+                "cves": {cve: False for cve in cve_ids},
+            }
+            return {
+                "status": "no_coverage",
+                "confidence": 0.0,
+                "validation_passed": False,
+                "matched_cases": [],
+                "counts": {
+                    "total_matches": 0,
+                    "service_matches": lookup.get("service_matches", 0),
+                    "cve_matches": lookup.get("cve_matches", {}),
+                    "passes": 0,
+                    "failures": 0,
+                },
+                "failures": [],
+                "coverage": coverage_map,
+            }
+
+        pass_cases: List[Dict[str, Any]] = []
+        fail_cases: List[Dict[str, Any]] = []
+        total_confidence = 0.0
+
+        for case in matched_cases:
+            total_confidence += float(case.get("confidence", 0.0))
+            decision = str(case.get("decision", "")).lower()
+            if decision == "pass":
+                pass_cases.append(case)
+            elif decision == "fail":
+                fail_cases.append(case)
+
+        average_confidence = total_confidence / total_matches if total_matches else 0.0
+        validation_passed = len(fail_cases) == 0
+        status = "validated" if validation_passed else "regression_failed"
+
+        coverage_map = {
+            "service": lookup.get("service_matches", 0) > 0,
+            "cves": {cve: lookup.get("cve_matches", {}).get(cve, 0) > 0 for cve in cve_ids},
+        }
+
         return {
-            "status": "validated",
-            "confidence": 0.89,
-            "similar_cases": 23,
-            "validation_passed": True
+            "status": status,
+            "confidence": average_confidence,
+            "validation_passed": validation_passed,
+            "matched_cases": matched_cases,
+            "counts": {
+                "total_matches": total_matches,
+                "service_matches": lookup.get("service_matches", 0),
+                "cve_matches": lookup.get("cve_matches", {}),
+                "passes": len(pass_cases),
+                "failures": len(fail_cases),
+            },
+            "failures": fail_cases,
+            "coverage": coverage_map,
         }
     
     async def _real_policy_evaluation(self, context, enriched_context):
