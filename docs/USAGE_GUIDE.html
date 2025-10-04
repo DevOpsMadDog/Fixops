@@ -158,6 +158,66 @@ curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -F "file=@samples/kev.json;type=applica
     <p>Override any value using environment variables with the <code>FIXOPS_OVERLAY_*</code> prefix or by pointing <code>FIXOPS_OVERLAY_PATH</code> at a custom YAML file.</p>
   </section>
 
+  <section id="personas">
+    <h2>Persona Quick Paths</h2>
+    <p>Every FixOps stakeholder shares the same push API but focuses on different response blocks and evidence artefacts. Use the
+ following cheat sheet to tailor CLI automation and dashboards.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Primary Goals</th>
+          <th>API / CLI Focus</th>
+          <th>Overlay Toggles</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CISO / Risk Executive</td>
+          <td>Enterprise readiness, pricing exposure, audit artefacts</td>
+          <td><code>/pipeline/run</code> → <code>.guardrails</code>, <code>.pricing</code>, evidence bundle download</td>
+          <td><code>pricing.disclosure</code>, <code>guardrails.escalate_on_fail</code></td>
+        </tr>
+        <tr>
+          <td>CTEM Lead</td>
+          <td>Attack surface evolution, exploit intelligence, module coverage</td>
+          <td><code>/inputs/cve</code>, <code>/pipeline/run</code> → <code>.exploitability</code>, <code>.probabilistic</code>, <code>.modules.execution_matrix</code></td>
+          <td><code>exploit_signals.enabled</code>, <code>probabilistic.enabled</code></td>
+        </tr>
+        <tr>
+          <td>Security Operations / SIEM Owner</td>
+          <td>Alert routing, evidence streaming</td>
+          <td><code>/pipeline/run</code> → <code>.policy_automation.deliveries</code>, evidence manifests under <code>data/automation</code></td>
+          <td><code>policy.actions.slack</code>, <code>toggles.capture_feedback</code></td>
+        </tr>
+        <tr>
+          <td>DevSecOps Engineer</td>
+          <td>Guardrail enforcement, ticket orchestration, CI readiness</td>
+          <td><code>/inputs/*</code> uploads, <code>/pipeline/run</code> → <code>.guardrails.failures</code>, <code>.policy_automation.jira</code>; CVE simulation CLI</td>
+          <td><code>guardrails.level</code>, <code>policy.actions.jira</code></td>
+        </tr>
+        <tr>
+          <td>Cloud / Platform Engineer</td>
+          <td>Terraform/Terragrunt validation, multi-cloud posture</td>
+          <td><code>/inputs/design</code>, <code>/pipeline/run</code> → <code>.iac.targets</code>, <code>.modules.custom</code></td>
+          <td><code>iac.targets</code>, <code>modules.custom</code></td>
+        </tr>
+        <tr>
+          <td>Enterprise Architect</td>
+          <td>Solution blueprinting, integration planning</td>
+          <td><code>/pipeline/run</code> → <code>.modules</code>, <code>.onboarding</code>; overlay exports for customer proposals</td>
+          <td><code>directories</code>, <code>onboarding.checklists</code>, <code>pricing.plans</code></td>
+        </tr>
+        <tr>
+          <td>Security Tester / Red Team</td>
+          <td>Control validation, SSDLC coverage</td>
+          <td><code>/inputs/sarif</code> to inject findings, <code>/pipeline/run</code> → <code>.context_summary.adjusted_severity</code>, <code>.ssdlc</code></td>
+          <td><code>ssdlc.enabled</code>, <code>guardrails.warn_on_gap</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
   <section id="api">
     <h2>API Reference Cheat Sheet</h2>
     <table>

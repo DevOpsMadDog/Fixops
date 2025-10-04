@@ -65,6 +65,42 @@ The FastAPI service wires this chain during startup by loading the overlay, prov
 
 ## CLI & API Touchpoints
 
+### Persona-driven usage recipes
+
+The push-model API stays consistent for every stakeholder, but the overlay toggles expose different artefacts and automation to
+each persona. Use the following checklists to script role-specific workflows:
+
+- **CISO / Risk Executive**
+  - Ensure the overlay profile enables `pricing.disclosure` and `guardrails.escalate_on_fail`.
+  - Execute `curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -X POST http://127.0.0.1:8000/pipeline/run | jq '.guardrails,.pricing,.context_summary'`
+    to review governance posture and commercial usage.
+  - Download the latest evidence bundle listed in `.evidence.bundle_path` to brief audit/compliance teams.
+
+- **CTEM Lead**
+  - Upload fresh KEV/EPSS feeds via `/inputs/cve` and trigger the run; inspect `.exploitability.signals` for hot spots.
+  - Use `jq '.probabilistic.posterior, .modules.execution_matrix'` to identify escalation forecasts and module coverage per asset.
+  - Reference the IaC posture findings in `.iac` to align exposure-driven mitigation plans.
+
+- **Security Operations / SIEM Owner**
+  - Enable Slack automation in the overlay and run the pipeline; confirm `.policy_automation.deliveries[] | select(.target=="slack")` entries for alert routing.
+  - Tail the evidence manifest directory for JSON dispatch files that can be ingested into the SIEM.
+
+- **DevSecOps Engineer**
+  - Use the CLI uploads plus `/pipeline/run` output to triage `.guardrails.failures` and `.policy_automation.jira` tickets.
+  - Invoke the CVE simulation (`python -m simulations.cve_scenario.runner --mode demo`) to validate playbooks before pushing policies to CI/CD.
+
+- **Cloud Developer / Platform Engineer**
+  - Provide Terraform/Terragrunt manifests to `/inputs/design` and enable IaC posture in the overlay.
+  - Query `.iac.targets` from the pipeline output to uncover missing guardrails per cloud and adopt suggested modules.
+
+- **Solutions / Enterprise Architect**
+  - Leverage `FIXOPS_OVERLAY_PATH` overrides to model customer-specific integrations.
+  - Use the module matrix (`.modules`) to validate which enterprise packs (policy automation, SSDLC, probabilistic) will execute in each configuration.
+
+- **Security Tester / Red Team**
+  - Inject synthetic SARIF findings and rerun the pipeline to confirm downgrades/escalations recorded under `.context_summary.adjusted_severity`.
+  - Review the SSDLC assessment (`.ssdlc`) for stages lacking security tests and feed back via the `/feedback` endpoint when toggled on.
+
 ### FastAPI ingestion workflow
 
 ```bash
