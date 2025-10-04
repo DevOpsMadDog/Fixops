@@ -11,6 +11,7 @@ from fixops.evidence import EvidenceHub
 from fixops.compliance import ComplianceEvaluator
 from fixops.onboarding import OnboardingGuide
 from fixops.policy import PolicyAutomation
+from fixops.ssdlc import SSDLCEvaluator
 
 from .normalizers import (
     CVERecordSummary,
@@ -347,6 +348,20 @@ class PipelineOrchestrator:
             policy_automation = PolicyAutomation(overlay)
             policy_summary = policy_automation.plan(result, context_summary, compliance_status)
             result["policy_automation"] = policy_summary
+
+            ssdlc_evaluator = SSDLCEvaluator(overlay.ssdlc_settings)
+            ssdlc_assessment = ssdlc_evaluator.evaluate(
+                design_rows=rows,
+                sbom=sbom,
+                sarif=sarif,
+                cve=cve,
+                pipeline_result=result,
+                context_summary=context_summary,
+                compliance_status=compliance_status,
+                policy_summary=policy_summary,
+                overlay=overlay,
+            )
+            result["ssdlc_assessment"] = ssdlc_assessment
 
             ai_advisor = AIAgentAdvisor(overlay.ai_agents)
             ai_analysis = ai_advisor.analyse(rows, crosswalk)

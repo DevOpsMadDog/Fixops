@@ -156,6 +156,10 @@ def test_end_to_end_demo_pipeline():
         assert "plans" in pipeline_payload["pricing_summary"]
         ai_analysis = pipeline_payload.get("ai_agent_analysis")
         assert ai_analysis and ai_analysis["summary"]["components_with_agents"] >= 1
+        ssdlc = pipeline_payload["ssdlc_assessment"]
+        assert ssdlc["summary"]["total_stages"] >= 1
+        assert any(stage["id"] == "plan" for stage in ssdlc["stages"])
+        assert pipeline_payload["evidence_bundle"]["sections"]
         overlay = pipeline_payload["overlay"]
         assert overlay["mode"] == "demo"
         assert overlay["metadata"]["profile_applied"] == "demo"

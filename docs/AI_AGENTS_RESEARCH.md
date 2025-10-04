@@ -96,6 +96,10 @@ By enforcing these artefacts through the overlay configuration, FixOps complemen
 capabilities with a defensible SSDLc spine that Apiiro and Aikido have not yet optimised for
 agent-focused workloads.
 
+The platform now encodes those checkpoints directly in the overlay (`ssdlc.stages`) and the pipeline
+emits an `ssdlc_assessment` block that highlights satisfied, in-progress, and missing lifecycle
+controls alongside guardrails, policy automation, and evidence bundles.
+
 The overlay-driven approach ensures these integrations remain configuration-first: teams extend the
 watchlist or control sets without redeploying the service, while FixOps centralises visibility across
 traditional vulnerability data and emerging agentic workloads.

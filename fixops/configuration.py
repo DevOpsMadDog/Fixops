@@ -81,6 +81,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "pricing",
     "limits",
     "ai_agents",
+    "ssdlc",
     "profiles",
 }
 
@@ -106,6 +107,7 @@ class _OverlayDocument(BaseModel):
     pricing: Optional[Dict[str, Any]] = None
     limits: Optional[Dict[str, Any]] = None
     ai_agents: Optional[Dict[str, Any]] = None
+    ssdlc: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     class Config:
@@ -159,6 +161,7 @@ class OverlayConfig:
     pricing: Dict[str, Any] = field(default_factory=dict)
     limits: Dict[str, Any] = field(default_factory=dict)
     ai_agents: Dict[str, Any] = field(default_factory=dict)
+    ssdlc: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(default_factory=lambda: (_DEFAULT_DATA_ROOT,))
     auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
 
@@ -205,6 +208,7 @@ class OverlayConfig:
             "pricing": self.pricing,
             "limits": self.limits,
             "ai_agents": self.ai_agents,
+            "ssdlc": self.ssdlc_settings,
         }
         return payload
 
@@ -320,6 +324,44 @@ class OverlayConfig:
         return base
 
     @property
+    def ssdlc_settings(self) -> Dict[str, Any]:
+        settings = dict(self.ssdlc)
+        stages: list[Dict[str, Any]] = []
+        stage_order: list[str] = []
+        raw_stages = settings.get("stages")
+        if isinstance(raw_stages, Iterable):
+            for entry in raw_stages:
+                if not isinstance(entry, Mapping):
+                    continue
+                identifier = str(entry.get("id") or entry.get("name") or "").strip()
+                if not identifier:
+                    continue
+                stage_order.append(identifier)
+                stages.append({"id": identifier, **{k: v for k, v in entry.items() if k != "id"}})
+        stage_map: Dict[str, Dict[str, Any]] = {stage["id"]: dict(stage) for stage in stages}
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                overrides = profile.get("stages")
+                if isinstance(overrides, Iterable):
+                    for entry in overrides:
+                        if not isinstance(entry, Mapping):
+                            continue
+                        identifier = str(entry.get("id") or entry.get("name") or "").strip()
+                        if not identifier:
+                            continue
+                        payload = {k: v for k, v in entry.items() if k != "id"}
+                        if identifier in stage_map:
+                            stage_map[identifier].update(payload)
+                        else:
+                            stage_map[identifier] = {"id": identifier, **payload}
+                            stage_order.append(identifier)
+        merged_stages = [stage_map[identifier] for identifier in stage_order if identifier in stage_map]
+        metadata = {k: v for k, v in settings.items() if k not in {"stages", "profiles"}}
+        return {"stages": merged_stages, **metadata}
+
+    @property
     def pricing_summary(self) -> Dict[str, Any]:
         plans = [dict(plan) for plan in self.pricing.get("plans", []) if isinstance(plan, Mapping)]
         active = None
@@ -392,6 +434,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "pricing": document.pricing or {},
         "limits": document.limits or {},
         "ai_agents": document.ai_agents or {},
+        "ssdlc": document.ssdlc or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -427,6 +470,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         pricing=dict(base.get("pricing", {})),
         limits=dict(base.get("limits", {})),
         ai_agents=dict(base.get("ai_agents", {})),
+        ssdlc=dict(base.get("ssdlc", {})),
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

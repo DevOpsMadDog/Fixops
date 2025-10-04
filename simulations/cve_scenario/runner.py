@@ -165,6 +165,7 @@ def _ensure_overlay_for_mode(
         "pricing": dict(raw.get("pricing", {})),
         "limits": dict(raw.get("limits", {})),
         "ai_agents": dict(raw.get("ai_agents", {})),
+        "ssdlc": dict(raw.get("ssdlc", {})),
     }
 
     profiles = raw.get("profiles") if isinstance(raw, Mapping) else {}
@@ -204,6 +205,7 @@ def _ensure_overlay_for_mode(
         pricing=dict(base.get("pricing", {})),
         limits=dict(base.get("limits", {})),
         ai_agents=dict(base.get("ai_agents", {})),
+        ssdlc=dict(base.get("ssdlc", {})),
         allowed_data_roots=overlay.allowed_data_roots,
         auth_tokens=overlay.auth_tokens,
     )
@@ -297,6 +299,7 @@ def run_simulation(
         "context_summary": context_summary,
         "compliance_status": compliance_status,
         "policy_automation": policy_automation,
+        "ssdlc_assessment": pipeline_result.get("ssdlc_assessment"),
     }
     if guardrail_evaluation:
         score_payload["guardrail_evaluation"] = guardrail_evaluation
@@ -322,6 +325,7 @@ def run_simulation(
         "context_summary": context_summary,
         "compliance_status": compliance_status,
         "policy_automation": policy_automation,
+        "ssdlc_assessment": pipeline_result.get("ssdlc_assessment"),
         "justification": scenario["justification"],
     }
     if guardrail_evaluation:

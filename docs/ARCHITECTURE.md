@@ -38,6 +38,8 @@ architecture against market promises.
      bundles.
    - Invokes the AI Agent Advisor (overlay-driven) to flag LangChain/AutoGPT style components and
      attach recommended controls and playbooks to the pipeline response.
+   - Calls the overlay-configured SSDLC evaluator to grade each lifecycle stage against the uploaded
+     artefacts and automation outcomes, surfacing the `ssdlc_assessment` block for audits.
 5. **Overlay-Aware State**
    - The ingestion service stores each uploaded artefact in `app.state.artifacts`. The overlay
      controls which artefacts are required (`OverlayConfig.required_inputs`) and whether metadata is
@@ -59,8 +61,8 @@ architecture against market promises.
      proceeding when `enforce_ticket_sync` is enabled.
    - `PipelineOrchestrator.run()` receives the cached artefacts, builds token lookups, aggregates
      severities/exploit evidence, and computes guardrail evaluations using the overlay’s maturity
-     profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail), AI agent
-     analysis (when configured), and a crosswalk for evidence bundling.
+     profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail), SSDLC stage
+     coverage, AI agent analysis (when configured), and a crosswalk for evidence bundling.
    - Overlay metadata is appended to the response (with secrets masked) when the
      `auto_attach_overlay_metadata` toggle is active. Evidence bundles omit the overlay when
      `include_overlay_metadata_in_bundles` is disabled.

@@ -91,6 +91,12 @@ policy_automation:
   actions:
     - trigger: guardrail:fail
       type: jira_issue
+ssdlc:
+  stages:
+    - id: plan
+      requirements:
+        - key: design
+        - key: threat_model
 ai_agents:
   watchlist_version: 2024-07
   framework_signatures:
@@ -169,6 +175,12 @@ policy_automation:
   actions:
     - trigger: guardrail:fail
       type: jira_issue
+ssdlc:
+  stages:
+    - id: plan
+      requirements:
+        - key: design
+        - key: threat_model
 ai_agents:
   watchlist_version: 2024-07
   framework_signatures:
@@ -244,6 +256,12 @@ profiles:
         - trigger: compliance:gap
           type: confluence_page
           space: FIXOPS-ENT
+    ssdlc:
+      stages:
+        - id: deploy
+          requirements:
+            - key: compliance
+            - key: deploy_approvals
     ai_agents:
       watchlist_version: 2024-07
       framework_signatures:
@@ -268,6 +286,17 @@ profiles:
 - Populate `ai_agents.controls` to describe mandatory mitigations (prompt logging, tool allowlists).
 - Use `ai_agents.playbooks` to map detected frameworks to response channels (e.g., `appsec-ai`). The
   pipeline emits an `ai_agent_analysis` section and evidence bundles include it when requested.
+
+## SSDLC Assessment
+
+- Define `ssdlc.stages` to map lifecycle checkpoints (Plan, Code, Build, Test, Deploy, Run, Audit) to
+  concrete requirements such as `design`, `threat_model`, `dependency_pinning`, or
+  `deploy_approvals`.
+- Each requirement is evaluated during `/pipeline/run`; results are returned as
+  `ssdlc_assessment` and persisted in the evidence bundle when `ssdlc_assessment` appears in
+  `evidence_hub.include_sections`.
+- Enterprise profiles can override stages to tighten expectations (e.g., requiring deployment
+  approvals or feedback capture) without modifying the core application.
 
 ## Operational Checklist
 

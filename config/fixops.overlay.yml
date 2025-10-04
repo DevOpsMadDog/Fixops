@@ -90,7 +90,8 @@
       "context_summary",
       "guardrail_evaluation",
       "compliance_status",
-      "ai_agent_analysis"
+      "ai_agent_analysis",
+      "ssdlc_assessment"
     ],
     "profiles": {
       "enterprise": {
@@ -105,7 +106,8 @@
           "guardrail_evaluation",
           "compliance_status",
           "policy_automation",
-          "ai_agent_analysis"
+          "ai_agent_analysis",
+          "ssdlc_assessment"
         ]
       }
     }
@@ -187,6 +189,95 @@
             "trigger": "compliance:gap",
             "type": "confluence_page",
             "space": "FIXOPS-ENT"
+          }
+        ]
+      }
+    }
+  },
+  "ssdlc": {
+    "stages": [
+      {
+        "id": "plan",
+        "name": "Plan & Threat Modelling",
+        "description": "Design artefacts, agent inventory, and threat modelling captured during planning.",
+        "requirements": [
+          {"key": "design", "title": "Design artefact uploaded"},
+          {"key": "threat_model", "title": "Threat modelling documented"},
+          {"key": "ai_register", "title": "Agent frameworks registered"}
+        ]
+      },
+      {
+        "id": "code",
+        "name": "Code & Dependency Hygiene",
+        "description": "Source composition analysed with pinned dependencies for agent services.",
+        "requirements": [
+          {"key": "sbom", "title": "SBOM provided"},
+          {"key": "dependency_pinning", "title": "Dependencies pinned"}
+        ]
+      },
+      {
+        "id": "build",
+        "name": "Build & Static Testing",
+        "description": "Static analysis and guardrails executed in CI pipelines.",
+        "requirements": [
+          {"key": "sarif", "title": "Static scan ingested"},
+          {"key": "guardrails", "title": "Guardrail evaluation completed"}
+        ]
+      },
+      {
+        "id": "test",
+        "name": "Threat Testing & CTEM",
+        "description": "Threat intelligence and contextual rescoring drive automation outcomes.",
+        "requirements": [
+          {"key": "cve", "title": "CVE or KEV feed analysed"},
+          {"key": "policy_automation", "title": "Policy automation triggered"}
+        ]
+      },
+      {
+        "id": "deploy",
+        "name": "Deploy Approvals",
+        "description": "Change management approvals aligned to contextual risk.",
+        "requirements": [
+          {"key": "compliance", "title": "Compliance pack coverage"},
+          {"key": "deploy_approvals", "title": "Approval hooks configured"}
+        ]
+      },
+      {
+        "id": "run",
+        "name": "Run & Observability",
+        "description": "Runtime artefacts captured for operational observability.",
+        "requirements": [
+          {"key": "evidence", "title": "Evidence bundle persisted"},
+          {"key": "observability", "title": "Context and guardrail telemetry"}
+        ]
+      },
+      {
+        "id": "audit",
+        "name": "Audit & Feedback",
+        "description": "Audit-ready packaging and structured waiver capture.",
+        "requirements": [
+          {"key": "evidence", "title": "Evidence bundle available"},
+          {"key": "feedback_loop", "title": "Feedback capture enabled"}
+        ]
+      }
+    ],
+    "profiles": {
+      "enterprise": {
+        "stages": [
+          {
+            "id": "deploy",
+            "description": "Enterprise deployments require ticketing and documentation hand-offs.",
+            "requirements": [
+              {"key": "compliance", "title": "Enterprise compliance packs satisfied"},
+              {"key": "deploy_approvals", "title": "Enterprise approval hooks configured"}
+            ]
+          },
+          {
+            "id": "audit",
+            "requirements": [
+              {"key": "evidence", "title": "Enterprise evidence bundle"},
+              {"key": "feedback_loop", "title": "Feedback capture enabled"}
+            ]
           }
         ]
       }

@@ -38,6 +38,7 @@ def test_load_overlay_merges_profile_and_defaults(overlay_file: Path) -> None:
     assert exported["auth"] == {}
     assert exported["guardrails"]["maturity"] == "advanced"
     assert exported["guardrails"]["fail_on"] in {"medium", "high", "critical"}
+    assert "ssdlc" in exported
 
 
 def test_environment_variable_override(monkeypatch: pytest.MonkeyPatch, overlay_file: Path) -> None:

@@ -59,6 +59,12 @@ def _build_overlay(tmp_path: Path) -> Path:
                 }
             },
         },
+        "ssdlc": {
+            "stages": [
+                {"id": "plan", "requirements": ["design"]},
+                {"id": "deploy", "requirements": ["compliance"]}
+            ]
+        },
         "profiles": {
             "enterprise": {
                 "mode": "enterprise",
@@ -89,6 +95,7 @@ def test_demo_mode_downgrades_severity(tmp_path: Path) -> None:
     assert payload["guardrail_evaluation"]["status"] == "warn"
     assert payload["context_summary"]["summary"]["components_evaluated"] == 1
     assert payload["policy_automation"]["actions"] == []
+    assert payload["ssdlc_assessment"]["summary"]["total_stages"] >= 1
 
 
 def test_enterprise_mode_escalates_severity(tmp_path: Path) -> None:
@@ -105,3 +112,4 @@ def test_enterprise_mode_escalates_severity(tmp_path: Path) -> None:
     assert evidence["compliance_status"]["frameworks"]
     assert evidence["policy_automation"]["actions"]
     assert evidence["guardrail_evaluation"]["status"] == "fail"
+    assert evidence["ssdlc_assessment"]["summary"]["total_stages"] >= 1
