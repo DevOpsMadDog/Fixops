@@ -6,10 +6,31 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, Iterable, List, Optional
+from types import SimpleNamespace
 
-import structlog
+try:  # pragma: no cover - structlog is optional in tests
+    import structlog
 
-logger = structlog.get_logger(__name__)
+    logger = structlog.get_logger(__name__)
+except ModuleNotFoundError:  # pragma: no cover
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+
+def _log(method: str, message: str, **kwargs: Any) -> None:
+    """Log helper compatible with structlog and stdlib logging."""
+
+    handler = getattr(logger, method)
+    if hasattr(logger, "bind"):
+        handler(message, **kwargs)
+        return
+
+    if kwargs:
+        extras = ", ".join(f"{key}={value!r}" for key, value in kwargs.items())
+        handler(f"{message} ({extras})")
+    else:
+        handler(message)
 
 
 @dataclass
@@ -27,6 +48,7 @@ class RegressionCase:
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "RegressionCase":
         """Create a regression case from a raw payload."""
+
         base_fields = {
             "case_id",
             "service_name",
@@ -36,19 +58,53 @@ class RegressionCase:
             "timestamp",
         }
 
-        missing = [field for field in ("case_id", "service_name", "decision") if not payload.get(field)]
-        if missing:
+        service_name = payload.get("service_name")
+        if not service_name and isinstance(payload.get("context"), dict):
+            service_name = payload["context"].get("service_name")
+
+        raw_decision: Any = payload.get("decision")
+        if raw_decision is None and isinstance(payload.get("expected"), dict):
+            raw_decision = payload["expected"].get("decision")
+
+        if not payload.get("case_id") or not service_name or raw_decision is None:
+            missing = []
+            if not payload.get("case_id"):
+                missing.append("case_id")
+            if not service_name:
+                missing.append("service_name")
+            if raw_decision is None:
+                missing.append("decision")
             raise ValueError(f"Regression case missing required fields: {', '.join(missing)}")
 
-        decision = str(payload.get("decision", "")).strip().lower()
-        if decision not in {"pass", "fail"}:
-            raise ValueError(f"Unsupported regression decision '{decision}'")
+        decision_raw = str(raw_decision).strip().lower()
+        decision_map = {
+            "pass": "pass",
+            "allow": "pass",
+            "approve": "pass",
+            "success": "pass",
+            "fail": "fail",
+            "block": "fail",
+            "reject": "fail",
+            "defer": "fail",
+        }
+        try:
+            decision = decision_map[decision_raw]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported regression decision '{decision_raw}'") from exc
+
+        if payload.get("confidence") is not None:
+            confidence = float(payload.get("confidence", 0.0))
+        elif isinstance(payload.get("expected"), dict) and payload["expected"].get("confidence") is not None:
+            confidence = float(payload["expected"]["confidence"])
+        else:
+            confidence = 0.0
 
         metadata = {k: v for k, v in payload.items() if k not in base_fields}
-        confidence = float(payload.get("confidence", 0.0))
+        if decision_raw != decision:
+            metadata.setdefault("original_decision", decision_raw)
         return cls(
             case_id=str(payload.get("case_id")),
-            service_name=str(payload.get("service_name")),
+            service_name=str(service_name),
             cve_id=payload.get("cve_id"),
             decision=decision,
             confidence=confidence,
@@ -58,6 +114,7 @@ class RegressionCase:
 
     def to_response(self) -> Dict[str, Any]:
         """Convert to a serializable representation for API responses."""
+
         return {
             "case_id": self.case_id,
             "service_name": self.service_name,
@@ -65,52 +122,8 @@ class RegressionCase:
             "decision": self.decision,
             "confidence": self.confidence,
             "timestamp": self.timestamp,
-"""Utilities for replaying FixOps golden regression cases."""
-
-from __future__ import annotations
-
-import json
-from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
-
-try:  # pragma: no cover - exercised in integration environments
-    from src.services.decision_engine import (
-        DecisionContext,
-        DecisionEngine,
-        DecisionOutcome,
-        DecisionResult,
-    )
-except ModuleNotFoundError:  # pragma: no cover - lightweight fallback for tests
-    DecisionEngine = Any  # type: ignore
-
-    class DecisionOutcome(str, Enum):
-        ALLOW = "ALLOW"
-        BLOCK = "BLOCK"
-        DEFER = "DEFER"
-
-    @dataclass
-    class DecisionContext:  # type: ignore[no-redef]
-        service_name: str
-        environment: str
-        business_context: Dict[str, Any]
-        security_findings: List[Dict[str, Any]]
-        threat_model: Optional[Dict[str, Any]] = None
-        sbom_data: Optional[Dict[str, Any]] = None
-        runtime_data: Optional[Dict[str, Any]] = None
-
-    @dataclass
-    class DecisionResult:  # type: ignore[no-redef]
-        decision: Any
-        confidence_score: float
-        consensus_details: Dict[str, Any]
-        evidence_id: Optional[str]
-        reasoning: str
-        validation_results: Dict[str, Any]
-        processing_time_us: float = 0.0
-        context_sources: Optional[List[str]] = None
-        demo_mode: bool = False
+            **({"metadata": self.metadata} if self.metadata else {}),
+        }
 
 
 @dataclass
@@ -148,11 +161,13 @@ class GoldenRegressionStore:
         self._cases_by_id: Dict[str, RegressionCase] = {}
         self._cases_by_service: Dict[str, List[RegressionCase]] = {}
         self._cases_by_cve: Dict[str, List[RegressionCase]] = {}
+        self._raw_cases: List[Dict[str, Any]] = []
         self._load_dataset()
 
     @classmethod
     def get_instance(cls, dataset_path: Optional[Path] = None) -> "GoldenRegressionStore":
         """Return a singleton instance, reloading if a new dataset path is provided."""
+
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls(dataset_path)
@@ -163,6 +178,7 @@ class GoldenRegressionStore:
     @classmethod
     def reset_instance(cls) -> None:
         """Reset the singleton instance (useful for tests)."""
+
         with cls._lock:
             cls._instance = None
 
@@ -172,6 +188,7 @@ class GoldenRegressionStore:
         cve_ids: Optional[Iterable[str]] = None,
     ) -> Dict[str, Any]:
         """Return cases that match the provided service or CVE identifiers."""
+
         matched_cases: Dict[str, Dict[str, Any]] = {}
         service_match_count = 0
         cve_match_counts: Dict[str, int] = {}
@@ -195,10 +212,13 @@ class GoldenRegressionStore:
                 _add_case(case, "service", service_name)
 
         if cve_ids:
-            for cve in cve_ids:
+            for raw_cve in cve_ids:
+                if not raw_cve:
+                    continue
+                cve = str(raw_cve).strip()
                 if not cve:
                     continue
-                normalized = cve.strip().lower()
+                normalized = cve.lower()
                 cases = self._cases_by_cve.get(normalized, [])
                 cve_match_counts[cve] = len(cases)
                 for case in cases:
@@ -210,102 +230,18 @@ class GoldenRegressionStore:
             "cve_matches": cve_match_counts,
         }
 
-    def _load_dataset(self) -> None:
-        """Load regression cases from the dataset file."""
-        self._cases_by_id.clear()
-        self._cases_by_service.clear()
-        self._cases_by_cve.clear()
-
-        if not self.dataset_path.exists():
-            logger.warning(
-                "Golden regression dataset not found; regression validation will have no coverage",
-                path=str(self.dataset_path),
-            )
-            return
-
-        try:
-            with self.dataset_path.open("r", encoding="utf-8") as handle:
-                raw = json.load(handle)
-        except Exception as exc:
-            logger.error("Failed to load golden regression dataset", error=str(exc))
-            return
-
-        cases_payload = raw.get("cases") if isinstance(raw, dict) else raw
-        if not isinstance(cases_payload, list):
-            logger.error("Golden regression dataset is malformed", path=str(self.dataset_path))
-            return
-
-        for entry in cases_payload:
-            try:
-                case = RegressionCase.from_dict(entry)
-            except Exception as exc:
-                logger.warning("Skipping invalid regression case", error=str(exc), entry=entry)
-                continue
-
-            self._cases_by_id[case.case_id] = case
-
-            service_key = case.service_name.strip().lower()
-            self._cases_by_service.setdefault(service_key, []).append(case)
-
-            if case.cve_id:
-                cve_key = str(case.cve_id).strip().lower()
-                self._cases_by_cve.setdefault(cve_key, []).append(case)
-
-        logger.info(
-            "Golden regression dataset loaded",
-            path=str(self.dataset_path),
-            cases=len(self._cases_by_id),
-            services=len(self._cases_by_service),
-            cves=len(self._cases_by_cve),
-        )
-
-    @staticmethod
-    def _default_dataset_path() -> Path:
-        return Path(__file__).resolve().parents[2] / "data" / "golden_regression_cases.json"
-
-
-__all__ = ["GoldenRegressionStore", "RegressionCase"]
-    """Access and evaluate the golden regression dataset."""
-
-    def __init__(self, dataset_path: Optional[Path] = None) -> None:
-        default_path = (
-            Path(__file__).resolve().parents[3]
-            / "data"
-            / "feeds"
-            / "golden_regression_cases.json"
-        )
-        self.dataset_path = Path(dataset_path) if dataset_path else default_path
-        self._cases: Optional[List[Dict[str, Any]]] = None
-
     def load_cases(self) -> List[Dict[str, Any]]:
-        """Load golden regression cases from disk."""
-        if self._cases is None:
-            with self.dataset_path.open("r", encoding="utf-8") as handle:
-                data = json.load(handle)
-            if not isinstance(data, list):
-                raise ValueError("Golden regression dataset must be a list of cases")
-            self._cases = data
-        return list(self._cases)
+        """Return the raw case payloads as loaded from disk."""
+
+        return list(self._raw_cases)
 
     async def evaluate(
         self,
-        decision_engine: Optional[DecisionEngine] = None,
+        decision_engine: Optional[Any] = None,
         *,
         initialize_engine: bool = False,
     ) -> Dict[str, Any]:
-        """Replay every regression case and capture real outcomes.
-
-        Args:
-            decision_engine: When provided, run each case through the actual
-                FixOps :class:`DecisionEngine`. When omitted, fall back to the
-                historical heuristic predictor.
-            initialize_engine: If ``True`` and a decision engine is provided,
-                :meth:`DecisionEngine.initialize` will be awaited before the
-                first evaluation.
-
-        Returns:
-            A dictionary containing summary statistics and per-case results.
-        """
+        """Replay every regression case and capture real outcomes."""
 
         cases = self.load_cases()
         results: List[RegressionCaseResult] = []
@@ -313,7 +249,7 @@ __all__ = ["GoldenRegressionStore", "RegressionCase"]
 
         engine_initialized = not initialize_engine
         for raw_case in cases:
-            case_id = raw_case.get("id") or raw_case.get("case_id") or "unknown"
+            case_id = str(raw_case.get("id") or raw_case.get("case_id") or "unknown")
             context = self._build_context(raw_case.get("context", {}), case_id)
             expected = self._normalise_expected(raw_case.get("expected", {}))
 
@@ -358,10 +294,101 @@ __all__ = ["GoldenRegressionStore", "RegressionCase"]
             "cases": [case.to_dict() for case in results],
         }
 
-    def _build_context(self, context: Dict[str, Any], case_id: str) -> DecisionContext:
-        """Convert persisted context into a :class:`DecisionContext`."""
+    def iter_case_ids(self) -> Iterable[str]:
+        """Yield case identifiers for convenience."""
+
+        for case in self._raw_cases:
+            yield str(case.get("id") or case.get("case_id") or "unknown")
+
+    def _load_dataset(self) -> None:
+        """Load regression cases from the dataset file."""
+
+        self._cases_by_id.clear()
+        self._cases_by_service.clear()
+        self._cases_by_cve.clear()
+        self._raw_cases.clear()
+
+        if not self.dataset_path.exists():
+            _log(
+                "warning",
+                "Golden regression dataset not found; regression validation will have no coverage",
+                path=str(self.dataset_path),
+            )
+            return
+
+        try:
+            with self.dataset_path.open("r", encoding="utf-8") as handle:
+                raw = json.load(handle)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            _log("error", "Failed to load golden regression dataset", error=str(exc))
+            return
+
+        cases_payload = raw.get("cases") if isinstance(raw, dict) else raw
+        if not isinstance(cases_payload, list):
+            _log("error", "Golden regression dataset is malformed", path=str(self.dataset_path))
+            return
+
+        for entry in cases_payload:
+            if not isinstance(entry, dict):
+                _log("warning", "Skipping invalid regression case", entry=entry)
+                continue
+
+            case_data = dict(entry)
+            if "case_id" not in case_data and "id" in case_data:
+                case_data["case_id"] = case_data["id"]
+
+            try:
+                case = RegressionCase.from_dict(case_data)
+            except Exception as exc:
+                _log("warning", "Skipping invalid regression case", error=str(exc), entry=entry)
+                continue
+
+            self._cases_by_id[case.case_id] = case
+
+            service_key = case.service_name.strip().lower()
+            self._cases_by_service.setdefault(service_key, []).append(case)
+
+            if case.cve_id:
+                cve_key = str(case.cve_id).strip().lower()
+                self._cases_by_cve.setdefault(cve_key, []).append(case)
+
+            # Preserve the original payload for evaluation routines.
+            normalised_entry = dict(entry)
+            normalised_entry.setdefault("case_id", case.case_id)
+            normalised_entry.setdefault("service_name", case.service_name)
+            normalised_entry.setdefault("cve_id", case.cve_id)
+            self._raw_cases.append(normalised_entry)
+
+        _log(
+            "info",
+            "Golden regression dataset loaded",
+            path=str(self.dataset_path),
+            cases=len(self._cases_by_id),
+            services=len(self._cases_by_service),
+            cves=len(self._cases_by_cve),
+        )
+
+    def _build_context(self, context: Dict[str, Any], case_id: str) -> Any:
+        """Convert persisted context into a decision context instance."""
+
+        try:
+            from src.services.decision_engine import DecisionContext
+        except ModuleNotFoundError:  # pragma: no cover - tests supply a stub
+            DecisionContext = None  # type: ignore
+
         business_context = dict(context.get("business_context", {}))
         business_context.setdefault("regression_case_id", case_id)
+
+        if DecisionContext is None:
+            return SimpleNamespace(
+                service_name=context.get("service_name", "unknown-service"),
+                environment=context.get("environment", "development"),
+                business_context=business_context,
+                security_findings=list(context.get("security_findings", [])),
+                threat_model=context.get("threat_model"),
+                sbom_data=context.get("sbom_data"),
+                runtime_data=context.get("runtime_data"),
+            )
 
         return DecisionContext(
             service_name=context.get("service_name", "unknown-service"),
@@ -375,44 +402,50 @@ __all__ = ["GoldenRegressionStore", "RegressionCase"]
 
     def _normalise_expected(self, expected: Dict[str, Any]) -> Dict[str, Any]:
         decision = expected.get("decision")
-        if isinstance(decision, DecisionOutcome):
-            decision_value = decision.value
+        if hasattr(decision, "value"):
+            decision_value = str(decision.value)
         elif isinstance(decision, str):
             decision_value = decision.upper()
         else:
-            decision_value = str(decision) if decision is not None else "UNKNOWN"
+            decision_value = str(decision).upper() if decision is not None else "UNKNOWN"
 
         normalised = dict(expected)
         normalised["decision"] = decision_value
         if "confidence" in normalised and normalised["confidence"] is not None:
-            normalised["confidence"] = float(normalised["confidence"])
+            try:
+                normalised["confidence"] = float(normalised["confidence"])
+            except (TypeError, ValueError):
+                normalised["confidence"] = None
         else:
             normalised["confidence"] = None
         return normalised
 
-    def _serialise_decision_result(self, result: DecisionResult) -> Dict[str, Any]:
-        """Convert a :class:`DecisionResult` into serialisable primitives."""
-        decision_value = (
-            result.decision.value
-            if isinstance(result.decision, DecisionOutcome)
-            else str(result.decision)
-        )
+    def _serialise_decision_result(self, result: Any) -> Dict[str, Any]:
+        """Convert a decision result into serialisable primitives."""
+
+        decision = getattr(result, "decision", None)
+        if hasattr(decision, "value"):
+            decision_value = str(decision.value)
+        else:
+            decision_value = str(decision)
+
         return {
-            "decision": decision_value,
-            "confidence": result.confidence_score,
-            "reasoning": result.reasoning,
-            "evidence_id": result.evidence_id,
-            "consensus_details": result.consensus_details,
-            "validation_results": result.validation_results,
+            "decision": decision_value.upper(),
+            "confidence": getattr(result, "confidence_score", None),
+            "reasoning": getattr(result, "reasoning", ""),
+            "evidence_id": getattr(result, "evidence_id", None),
+            "consensus_details": getattr(result, "consensus_details", {}),
+            "validation_results": getattr(result, "validation_results", {}),
         }
 
     def _predict_decision(self, case: Dict[str, Any]) -> Dict[str, Any]:
         """Heuristic decision used when the real engine is unavailable."""
+
         expected = case.get("expected", {})
         decision = expected.get("decision", "UNKNOWN")
         confidence = expected.get("confidence")
         return {
-            "decision": decision,
+            "decision": str(decision).upper(),
             "confidence": confidence,
             "reasoning": "heuristic fallback",
             "evidence_id": None,
@@ -427,15 +460,22 @@ __all__ = ["GoldenRegressionStore", "RegressionCase"]
         match: bool,
     ) -> Dict[str, Any]:
         confidence_delta: Optional[float] = None
-        if expected.get("confidence") is not None and actual.get("confidence") is not None:
-            confidence_delta = actual["confidence"] - expected["confidence"]
+        expected_conf = expected.get("confidence")
+        actual_conf = actual.get("confidence")
+        if expected_conf is not None and actual_conf is not None:
+            try:
+                confidence_delta = float(actual_conf) - float(expected_conf)
+            except (TypeError, ValueError):
+                confidence_delta = None
 
         return {
             "decision_changed": not match,
             "confidence_delta": confidence_delta,
         }
 
-    def iter_case_ids(self) -> Iterable[str]:
-        """Yield case identifiers for convenience."""
-        for case in self.load_cases():
-            yield case.get("id") or case.get("case_id") or "unknown"
+    @staticmethod
+    def _default_dataset_path() -> Path:
+        return Path(__file__).resolve().parents[2] / "data" / "golden_regression_cases.json"
+
+
+__all__ = ["GoldenRegressionStore", "RegressionCase", "RegressionCaseResult"]

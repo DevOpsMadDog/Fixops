@@ -1,0 +1,1 @@
+"""SSVC plugin namespace."""
