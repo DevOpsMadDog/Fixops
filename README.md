@@ -36,6 +36,20 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
+### Local Docker demo setup
+* The `fixops-blended-enterprise/docker-compose.yml` bundle gives you a three-service stack: MongoDB, the FastAPI backend, and the optional React frontend, each with health checks and environment defaults suitable for a laptop demo. Start it with `docker-compose up -d` to get ports `8001` (API) and `3000` (UI) exposed locally.
+
+* After the containers are up, seed the bundled SQLite database and create a demo admin account by running `python quick_start.py`; it provisions schema and demo credentials (`admin@fixops.com` / `FixOpsAdmin123!`) that you can use in the browser for an investor walkthrough.
+
+* For presentation polish, Option C in the enterprise deployment guide walks through the same docker-compose flow and reminds you to tailor `.env.enterprise` so the UI reflects the buyer’s industry before inviting the VC to visit `http://localhost:3000`. Health checks at `http://localhost:8001/health` let you prove everything is live on the spot.
+
+### Enterprise IaC (Terraform-only)
+* The production path is modeled entirely in Terraform under `fixops-blended-enterprise/terraform/`. The root module pins Terraform ≥ 1.5, enables the Kubernetes and Helm providers, and expects an S3 remote state backend—useful if you want to demo an “upgrade from laptop to cluster” story.
+
+* `deployment.tf` composes namespace, RBAC, storage, MongoDB, Redis, backend, frontend, and ingress modules, wiring in replica counts, secrets, health probes, and HA defaults so an enterprise prospect sees bank-grade hardening out of the box.
+
+* Outputs expose URLs, kube commands, and compliance posture, which makes it easy to hand over state or plug the stack into CI/CD during diligence.
+
 ### Prerequisites
 - Python 3.10+ (tested with CPython 3.11)
 - `pip` and `virtualenv`
