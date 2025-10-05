@@ -32,6 +32,13 @@ except ImportError as exc:  # pragma: no cover - sarif-om is declared but highli
         "sarif-om must be available to normalise SARIF inputs."
     ) from exc
 
+SUPPORTED_SARIF_SCHEMAS = {
+    "https://json.schemastore.org/sarif-2.1.0.json",
+    "http://json.schemastore.org/sarif-2.1.0.json",
+    "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+}
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -363,24 +370,56 @@ class InputNormalizer:
 
         payload = self._prepare_text(raw)
         data = json.loads(payload)
+        original_data = data
 
         runs = data.get("runs") if isinstance(data, dict) else None
+        schema_uri = data.get("$schema") if isinstance(data, dict) else None
+
+        if (not runs) and isinstance(data, dict):
+            for key in ("sarif", "sarifLog", "sarif_log"):
+                if key not in data:
+                    continue
+                embedded = data[key]
+                if isinstance(embedded, str):
+                    try:
+                        embedded = json.loads(embedded)
+                    except json.JSONDecodeError:
+                        logger.debug(
+                            "Failed to parse embedded SARIF payload", extra={"source_key": key}
+                        )
+                        continue
+                if isinstance(embedded, dict):
+                    data = embedded
+                    runs = data.get("runs")
+                    schema_uri = schema_uri or data.get("$schema")
+                    break
 
         if (not runs) and snyk_converter is not None:
             convert = getattr(snyk_converter, "convert", None) or getattr(
                 snyk_converter, "to_sarif", None
             )
             if convert:
-                data = convert(data)  # type: ignore[misc]
+                data = convert(original_data)  # type: ignore[misc]
                 runs = data.get("runs") if isinstance(data, dict) else None
+                if not schema_uri and isinstance(data, dict):
+                    schema_uri = data.get("$schema")
 
         if not runs:
+            if isinstance(original_data, dict) and snyk_converter is None:
+                snyk_markers = {"issues", "vulnerabilities", "applications", "projects", "ok"}
+                matched = snyk_markers.intersection(original_data.keys())
+                if matched:
+                    logger.error(
+                        "Snyk JSON payload detected but snyk-to-sarif is not installed. "
+                        "Install it via `pip install snyk-to-sarif` or upload SARIF directly.",
+                        extra={"markers": sorted(matched)},
+                    )
             raise ValueError("The provided document is not a valid SARIF log")
 
         sarif_log = SarifLog(
             runs=runs,
             version=data.get("version", "2.1.0"),
-            schema_uri=data.get("$schema"),
+            schema_uri=schema_uri or data.get("$schema"),
             properties=data.get("properties"),
         )
 
@@ -422,6 +461,9 @@ class InputNormalizer:
             "run_count": len(runs),
             "finding_count": len(findings),
         }
+        schema_key = sarif_log.schema_uri
+        if isinstance(schema_key, str):
+            metadata["supported_schema"] = schema_key.lower() in SUPPORTED_SARIF_SCHEMAS
         if tool_names:
             metadata["tool_count"] = len(tool_names)
 
