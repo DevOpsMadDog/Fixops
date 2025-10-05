@@ -12,7 +12,7 @@ FixOps Demo primarily interacts with two categories of integrations:
 | ----------- | ------- | ---------------- | ----------------------- |
 | `lib4sbom` | Parses SPDX/CycloneDX SBOM documents into a common representation. | `InputNormalizer.load_sbom()` instantiates `SBOMParser`, reads the SBOM string, and extracts packages/relationships/services. | Propagates parser exceptions; the API converts them to HTTP 400 responses. |
 | `cvelib` | Validates CVE/KEV records against the official schema. | `InputNormalizer.load_cve_feed()` calls `CveRecord.validate()` when available. | Missing library downgrades to best-effort ingestion; validation errors are reported in the response payload. |
-| `snyk-to-sarif` | Converts proprietary Snyk JSON payloads into SARIF. | `InputNormalizer.load_sarif()` detects missing `runs` and calls `convert`/`to_sarif` if present. | Absent converter causes non-SARIF payloads to be rejected via `ValueError`, surfaced as HTTP 400. |
+| `snyk-to-sarif` | Converts proprietary Snyk JSON payloads into SARIF. | `InputNormalizer.load_sarif()` detects missing `runs` and calls `convert`/`to_sarif` if present, falling back to embedded SARIF logs when available. | When the converter is absent the service logs actionable guidance and only rejects payloads that cannot be converted, still accepting supported SARIF schemas. |
 | `sarif-om` | Provides typed SARIF models for introspection. | `InputNormalizer.load_sarif()` instantiates `SarifLog` to expose metadata and simplify traversal. | Missing dependency raises a `RuntimeError` during import, signalling a deployment misconfiguration. |
 
 All parsers run synchronously during request handling. Retry logic is unnecessary because failures are
