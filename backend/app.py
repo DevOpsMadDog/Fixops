@@ -3,8 +3,11 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from contextlib import suppress
 from pathlib import Path
-from typing import Any, Dict, Optional
+from tempfile import SpooledTemporaryFile
+from types import SimpleNamespace
+from typing import Any, Dict, Optional, Tuple
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +28,8 @@ def create_app() -> FastAPI:
     """Create the FastAPI application with file-upload ingestion endpoints."""
 
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
+    if not hasattr(app, "state"):
+        app.state = SimpleNamespace()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -74,30 +79,46 @@ def create_app() -> FastAPI:
         else None
     )
 
-    async def _read_limited(file: UploadFile, stage: str) -> bytes:
+    _CHUNK_SIZE = 1024 * 1024
+    _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
+
+    async def _read_limited(file: UploadFile, stage: str) -> Tuple[SpooledTemporaryFile, int]:
+        """Stream an upload into a spooled file respecting the configured limit."""
+
         limit = overlay.upload_limit(stage)
         total = 0
-        chunks: list[bytes] = []
-        while True:
-            remaining = limit - total
-            if remaining <= 0:
-                break
-            chunk = await file.read(min(1024 * 1024, remaining))
-            if not chunk:
-                break
-            total += len(chunk)
-            if total > limit:
-                raise HTTPException(
-                    status_code=413,
-                    detail={
-                        "message": f"Upload for stage '{stage}' exceeded limit",
-                        "max_bytes": limit,
-                    },
-                )
-            chunks.append(chunk)
-            if total == limit:
-                break
-        return b"".join(chunks)
+        buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
+        try:
+            while total < limit:
+                remaining = limit - total
+                chunk = await file.read(min(_CHUNK_SIZE, remaining))
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > limit:
+                    raise HTTPException(
+                        status_code=413,
+                        detail={
+                            "message": f"Upload for stage '{stage}' exceeded limit",
+                            "max_bytes": limit,
+                        },
+                    )
+                buffer.write(chunk)
+        except Exception:
+            buffer.close()
+            raise
+        buffer.seek(0)
+        return buffer, total
+
+    def _maybe_materialise_raw(
+        buffer: SpooledTemporaryFile, total: int, *, threshold: int = _RAW_BYTES_THRESHOLD
+    ) -> Optional[bytes]:
+        if total > threshold:
+            return None
+        buffer.seek(0)
+        data = buffer.read()
+        buffer.seek(0)
+        return data
 
     def _validate_content_type(file: UploadFile, expected: tuple[str, ...]) -> None:
         if file.content_type and file.content_type not in expected:
@@ -134,23 +155,36 @@ def create_app() -> FastAPI:
     @app.post("/inputs/design", dependencies=[Depends(_verify_api_key)])
     async def ingest_design(file: UploadFile = File(...)) -> Dict[str, Any]:
         _validate_content_type(file, ("text/csv", "application/vnd.ms-excel", "application/csv"))
-        raw_bytes = await _read_limited(file, "design")
-        text = raw_bytes.decode("utf-8", errors="ignore")
-        reader = csv.DictReader(io.StringIO(text))
-        rows = [row for row in reader if any((value or "").strip() for value in row.values())]
+        buffer, total = await _read_limited(file, "design")
+        try:
+            text_stream = io.TextIOWrapper(buffer, encoding="utf-8", errors="ignore", newline="")
+            try:
+                reader = csv.DictReader(text_stream)
+                rows = [
+                    row
+                    for row in reader
+                    if any((value or "").strip() for value in row.values())
+                ]
+                columns = reader.fieldnames or []
+            finally:
+                buffer = text_stream.detach()
 
-        if not rows:
-            raise HTTPException(status_code=400, detail="Design CSV contained no rows")
+            if not rows:
+                raise HTTPException(status_code=400, detail="Design CSV contained no rows")
 
-        dataset = {"columns": reader.fieldnames or [], "rows": rows}
-        _store("design", dataset, original_filename=file.filename, raw_bytes=raw_bytes)
-        return {
-            "stage": "design",
-            "input_filename": file.filename,
-            "row_count": len(rows),
-            "columns": dataset["columns"],
-            "data": dataset,
-        }
+            dataset = {"columns": columns, "rows": rows}
+            raw_bytes = _maybe_materialise_raw(buffer, total)
+            _store("design", dataset, original_filename=file.filename, raw_bytes=raw_bytes)
+            return {
+                "stage": "design",
+                "input_filename": file.filename,
+                "row_count": len(rows),
+                "columns": dataset["columns"],
+                "data": dataset,
+            }
+        finally:
+            with suppress(Exception):
+                buffer.close()
 
     @app.post("/inputs/sbom", dependencies=[Depends(_verify_api_key)])
     async def ingest_sbom(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -164,22 +198,26 @@ def create_app() -> FastAPI:
                 "application/gzip",
             ),
         )
-        raw_bytes = await _read_limited(file, "sbom")
+        buffer, total = await _read_limited(file, "sbom")
         try:
-            sbom: NormalizedSBOM = normalizer.load_sbom(raw_bytes)
+            sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
         except Exception as exc:  # pragma: no cover - FastAPI will serialise the message
             logger.exception("SBOM normalisation failed")
             raise HTTPException(status_code=400, detail=f"Failed to parse SBOM: {exc}") from exc
-
-        _store("sbom", sbom, original_filename=file.filename, raw_bytes=raw_bytes)
-        return {
-            "stage": "sbom",
-            "input_filename": file.filename,
-            "metadata": sbom.metadata,
-            "component_preview": [
-                component.to_dict() for component in sbom.components[:5]
-            ],
-        }
+        else:
+            raw_bytes = _maybe_materialise_raw(buffer, total)
+            _store("sbom", sbom, original_filename=file.filename, raw_bytes=raw_bytes)
+            return {
+                "stage": "sbom",
+                "input_filename": file.filename,
+                "metadata": sbom.metadata,
+                "component_preview": [
+                    component.to_dict() for component in sbom.components[:5]
+                ],
+            }
+        finally:
+            with suppress(Exception):
+                buffer.close()
 
     @app.post("/inputs/cve", dependencies=[Depends(_verify_api_key)])
     async def ingest_cve(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -193,20 +231,24 @@ def create_app() -> FastAPI:
                 "application/gzip",
             ),
         )
-        raw_bytes = await _read_limited(file, "cve")
+        buffer, total = await _read_limited(file, "cve")
         try:
-            cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(raw_bytes)
+            cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
         except Exception as exc:  # pragma: no cover - FastAPI will serialise the message
             logger.exception("CVE feed normalisation failed")
             raise HTTPException(status_code=400, detail=f"Failed to parse CVE feed: {exc}") from exc
-
-        _store("cve", cve_feed, original_filename=file.filename, raw_bytes=raw_bytes)
-        return {
-            "stage": "cve",
-            "input_filename": file.filename,
-            "record_count": cve_feed.metadata.get("record_count", 0),
-            "validation_errors": cve_feed.errors,
-        }
+        else:
+            raw_bytes = _maybe_materialise_raw(buffer, total)
+            _store("cve", cve_feed, original_filename=file.filename, raw_bytes=raw_bytes)
+            return {
+                "stage": "cve",
+                "input_filename": file.filename,
+                "record_count": cve_feed.metadata.get("record_count", 0),
+                "validation_errors": cve_feed.errors,
+            }
+        finally:
+            with suppress(Exception):
+                buffer.close()
 
     @app.post("/inputs/sarif", dependencies=[Depends(_verify_api_key)])
     async def ingest_sarif(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -220,20 +262,24 @@ def create_app() -> FastAPI:
                 "application/gzip",
             ),
         )
-        raw_bytes = await _read_limited(file, "sarif")
+        buffer, total = await _read_limited(file, "sarif")
         try:
-            sarif: NormalizedSARIF = normalizer.load_sarif(raw_bytes)
+            sarif: NormalizedSARIF = normalizer.load_sarif(buffer)
         except Exception as exc:  # pragma: no cover - FastAPI will serialise the message
             logger.exception("SARIF normalisation failed")
             raise HTTPException(status_code=400, detail=f"Failed to parse SARIF: {exc}") from exc
-
-        _store("sarif", sarif, original_filename=file.filename, raw_bytes=raw_bytes)
-        return {
-            "stage": "sarif",
-            "input_filename": file.filename,
-            "metadata": sarif.metadata,
-            "tools": sarif.tool_names,
-        }
+        else:
+            raw_bytes = _maybe_materialise_raw(buffer, total)
+            _store("sarif", sarif, original_filename=file.filename, raw_bytes=raw_bytes)
+            return {
+                "stage": "sarif",
+                "input_filename": file.filename,
+                "metadata": sarif.metadata,
+                "tools": sarif.tool_names,
+            }
+        finally:
+            with suppress(Exception):
+                buffer.close()
 
     @app.post("/pipeline/run", dependencies=[Depends(_verify_api_key)])
     async def run_pipeline() -> Dict[str, Any]:
