@@ -1,11 +1,16 @@
 import json
 
+import base64
 import csv
 import gzip
+import hashlib
+import hmac
 import json
 import os
+import time
 import zipfile
 from io import BytesIO, StringIO
+from pathlib import Path
 
 try:
     from fastapi.testclient import TestClient  # type: ignore
@@ -18,6 +23,21 @@ except Exception:  # pragma: no cover - allow environments without FastAPI
     create_app = None  # type: ignore
 from backend.normalizers import InputNormalizer
 from backend.pipeline import PipelineOrchestrator
+
+
+def _make_hs256_token(secret: bytes, payload: dict, *, kid: str = "demo") -> str:
+    header = {"alg": "HS256", "typ": "JWT", "kid": kid}
+    segments = []
+    for part in (header, payload):
+        encoded = base64.urlsafe_b64encode(
+            json.dumps(part, separators=(",", ":")).encode("utf-8")
+        ).rstrip(b"=")
+        segments.append(encoded.decode("ascii"))
+    signing_input = ".".join(segments).encode("ascii")
+    signature = hmac.new(secret, signing_input, hashlib.sha256).digest()
+    signature_segment = base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
+    segments.append(signature_segment)
+    return ".".join(segments)
 
 
 def test_end_to_end_demo_pipeline():
@@ -278,3 +298,227 @@ def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
         monkeypatch.delenv("FIXOPS_OVERLAY_PATH", raising=False)
         monkeypatch.delenv("FIXOPS_DATA_ROOT_ALLOWLIST", raising=False)
         monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)
+
+
+def test_oidc_rbac_enforced(monkeypatch, tmp_path):
+    if TestClient is None or create_app is None:
+        return
+
+    secret = b"super-secret-key"
+    jwk_secret = base64.urlsafe_b64encode(secret).decode("ascii").rstrip("=")
+    overlay_payload = {
+        "mode": "demo",
+        "auth": {"strategy": "oidc", "tenant_header": "X-FixOps-Tenant"},
+        "data": {"archive_dir": str(tmp_path / "archive_default")},
+        "tenancy": {
+            "defaults": {
+                "identity": {
+                    "allowed_audiences": ["fixops-api"],
+                    "roles": {
+                        "upload": ["fixops:upload"],
+                        "pipeline": ["fixops:pipeline"],
+                    },
+                },
+                "identity_provider": "demo-idp",
+            },
+            "identity_providers": {
+                "demo-idp": {
+                    "issuer": "https://idp.example.com",
+                    "allowed_audiences": ["fixops-api"],
+                    "jwks": {
+                        "keys": [
+                            {
+                                "kty": "oct",
+                                "k": jwk_secret,
+                                "kid": "demo-key",
+                                "alg": "HS256",
+                            }
+                        ]
+                    },
+                }
+            },
+            "tenants": [
+                {
+                    "id": "tenant-one",
+                    "name": "Tenant One",
+                    "identity": {
+                        "provider": "demo-idp",
+                        "allowed_audiences": ["fixops-api"],
+                        "roles": {
+                            "upload": ["fixops:upload"],
+                            "pipeline": ["fixops:pipeline"],
+                        },
+                    },
+                }
+            ],
+            "directories": {
+                "tenant-one": str(tmp_path / "tenants" / "tenant-one" / "archive")
+            },
+        },
+    }
+
+    overlay_path = tmp_path / "overlay.json"
+    overlay_path.write_text(json.dumps(overlay_payload), encoding="utf-8")
+
+    monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_path))
+    monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(tmp_path))
+
+    app = create_app()
+    client = TestClient(app)
+
+    design_csv = "component,owner\nsvc,team\n"
+    sbom_document = {
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.4",
+        "version": 1,
+        "components": [
+            {
+                "type": "library",
+                "name": "svc",
+                "version": "1.0.0",
+                "purl": "pkg:pypi/svc@1.0.0",
+            }
+        ],
+    }
+    cve_feed = {"vulnerabilities": [{"cveID": "CVE-2024-0001", "severity": "high"}]}
+    sarif_document = {
+        "version": "2.1.0",
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "runs": [
+            {
+                "tool": {"driver": {"name": "DemoScanner"}},
+                "results": [
+                    {
+                        "ruleId": "DEMO001",
+                        "message": {"text": "Issue"},
+                        "level": "error",
+                    }
+                ],
+            }
+        ],
+    }
+
+    wrong_audience_token = _make_hs256_token(
+        secret,
+        {
+            "iss": "https://idp.example.com",
+            "sub": "user@example.com",
+            "aud": "other-api",
+            "exp": int(time.time()) + 300,
+            "roles": ["fixops:upload"],
+        },
+        kid="demo-key",
+    )
+
+    response = client.post(
+        "/inputs/design",
+        headers={
+            "X-FixOps-Tenant": "tenant-one",
+            "Authorization": f"Bearer {wrong_audience_token}",
+        },
+        files={"file": ("design.csv", design_csv, "text/csv")},
+    )
+    assert response.status_code == 403
+
+    response = client.post(
+        "/inputs/design",
+        headers={"X-FixOps-Tenant": "tenant-one"},
+        files={"file": ("design.csv", design_csv, "text/csv")},
+    )
+    assert response.status_code == 401
+
+    upload_token = _make_hs256_token(
+        secret,
+        {
+            "iss": "https://idp.example.com",
+            "sub": "user@example.com",
+            "aud": "fixops-api",
+            "exp": int(time.time()) + 300,
+            "roles": ["fixops:upload"],
+        },
+        kid="demo-key",
+    )
+
+    headers = {
+        "X-FixOps-Tenant": "tenant-one",
+        "Authorization": f"Bearer {upload_token}",
+    }
+
+    response = client.post(
+        "/inputs/design",
+        headers=headers,
+        files={"file": ("design.csv", design_csv, "text/csv")},
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        "/inputs/sbom",
+        headers=headers,
+        files={
+            "file": (
+                "sbom.json",
+                json.dumps(sbom_document),
+                "application/json",
+            )
+        },
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        "/inputs/cve",
+        headers=headers,
+        files={
+            "file": (
+                "cve.json",
+                json.dumps(cve_feed),
+                "application/json",
+            )
+        },
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        "/inputs/sarif",
+        headers=headers,
+        files={
+            "file": (
+                "scan.sarif",
+                json.dumps(sarif_document),
+                "application/json",
+            )
+        },
+    )
+    assert response.status_code == 200
+
+    response = client.post(
+        "/pipeline/run",
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+    full_token = _make_hs256_token(
+        secret,
+        {
+            "iss": "https://idp.example.com",
+            "sub": "user@example.com",
+            "aud": "fixops-api",
+            "exp": int(time.time()) + 300,
+            "roles": ["fixops:upload", "fixops:pipeline"],
+        },
+        kid="demo-key",
+    )
+
+    response = client.post(
+        "/pipeline/run",
+        headers={
+            "X-FixOps-Tenant": "tenant-one",
+            "Authorization": f"Bearer {full_token}",
+        },
+    )
+    assert response.status_code == 200
+    pipeline_payload = response.json()
+    archive_info = pipeline_payload.get("artifact_archive")
+    assert archive_info and "sbom" in archive_info
+    sbom_path = Path(archive_info["sbom"]["normalized_path"])
+    assert sbom_path.exists()
+    assert "tenant-one" in sbom_path.parts

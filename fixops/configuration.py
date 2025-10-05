@@ -55,6 +55,28 @@ def _deep_merge(base: MutableMapping[str, Any], overrides: Mapping[str, Any]) ->
     return base
 
 
+def _normalise_string_sequence(value: Any) -> list[str]:
+    """Normalise a value representing a sequence of strings."""
+
+    if value is None:
+        return []
+    if isinstance(value, str):
+        candidates = [candidate for candidate in value.replace(",", " ").split() if candidate]
+        return list(dict.fromkeys(candidates))
+    if isinstance(value, Iterable):
+        normalised: list[str] = []
+        for entry in value:
+            if isinstance(entry, str):
+                candidate = entry.strip()
+                if candidate:
+                    normalised.append(candidate)
+            elif entry is not None:
+                normalised.append(str(entry))
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(normalised))
+    return [str(value)]
+
+
 _DEFAULT_GUARDRAIL_MATURITY = "scaling"
 _DEFAULT_GUARDRAIL_PROFILES: Dict[str, Dict[str, str]] = {
     "foundational": {"fail_on": "critical", "warn_on": "high"},
@@ -503,21 +525,150 @@ class OverlayConfig:
                 profile_overrides = dict(profile)
         tenants: list[Dict[str, Any]] = []
 
+        defaults = settings.get("defaults") if isinstance(settings.get("defaults"), Mapping) else {}
+        default_identity: Dict[str, Any] = {}
+        if isinstance(defaults, Mapping):
+            identity_defaults = defaults.get("identity")
+            if isinstance(identity_defaults, Mapping):
+                default_identity = dict(identity_defaults)
+
         def _extend(raw: Any) -> None:
             if isinstance(raw, Iterable):
                 for entry in raw:
                     if isinstance(entry, Mapping):
-                        tenants.append(dict(entry))
+                        payload = {k: v for k, v in entry.items() if k != "identity"}
+                        identity_payload: Dict[str, Any] = {}
+                        if default_identity:
+                            identity_payload.update(default_identity)
+                        identity_overrides = entry.get("identity")
+                        if isinstance(identity_overrides, Mapping):
+                            identity_payload.update(dict(identity_overrides))
+                        if identity_payload:
+                            audiences = identity_payload.get("allowed_audiences")
+                            identity_payload["allowed_audiences"] = _normalise_string_sequence(
+                                audiences
+                            )
+                            roles = identity_payload.get("roles") or identity_payload.get("rbac")
+                            normalised_roles: Dict[str, list[str]] = {}
+                            if isinstance(roles, Mapping):
+                                for action, value in roles.items():
+                                    normalised_roles[str(action)] = _normalise_string_sequence(value)
+                            else:
+                                role_candidates = _normalise_string_sequence(roles)
+                                if role_candidates:
+                                    normalised_roles["default"] = role_candidates
+                            if normalised_roles:
+                                identity_payload["roles"] = normalised_roles
+                            else:
+                                identity_payload.pop("roles", None)
+                        if identity_payload:
+                            payload["identity"] = identity_payload
+                        tenants.append(payload)
 
         _extend(settings.get("tenants"))
-        _extend(profile_overrides.pop("tenants", None))
+        tenant_overrides = profile_overrides.pop("tenants", None)
+        _extend(tenant_overrides)
 
         merged = dict(settings)
         merged.pop("tenants", None)
         merged.pop("profiles", None)
+        identity_override = profile_overrides.pop("identity_providers", None)
+        directory_override = profile_overrides.pop("directories", None)
         merged = dict(_deep_merge(merged, profile_overrides))
+
+        def _merge_directories(raw: Any) -> Dict[str, str]:
+            directories: Dict[str, str] = {}
+            if isinstance(raw, Mapping):
+                for tenant_id, path in raw.items():
+                    if isinstance(path, str) and path.strip():
+                        directories[str(tenant_id)] = path
+            return directories
+
+        directories = _merge_directories(settings.get("directories"))
+        directories.update(_merge_directories(directory_override))
+
+        def _merge_identity_providers(raw: Any) -> Dict[str, Dict[str, Any]]:
+            providers: Dict[str, Dict[str, Any]] = {}
+            if isinstance(raw, Mapping):
+                items = raw.items()
+            elif isinstance(raw, Iterable):
+                items = []
+                for entry in raw:
+                    if isinstance(entry, Mapping):
+                        identifier = entry.get("id")
+                        if identifier:
+                            items.append((identifier, entry))
+            else:
+                return providers
+
+            for identifier, payload in items:  # type: ignore[assignment]
+                if not isinstance(payload, Mapping):
+                    continue
+                provider_payload = {k: v for k, v in payload.items() if k != "id"}
+                audiences = provider_payload.get("allowed_audiences") or provider_payload.get("audiences")
+                provider_payload["allowed_audiences"] = _normalise_string_sequence(audiences)
+                providers[str(identifier)] = provider_payload
+            return providers
+
+        identity_providers = _merge_identity_providers(settings.get("identity_providers"))
+        identity_providers.update(_merge_identity_providers(identity_override))
+
+        merged["directories"] = directories
+        merged["identity_providers"] = identity_providers
         merged["tenants"] = tenants
         return merged
+
+    def get_tenant(self, tenant_id: str) -> Dict[str, Any]:
+        settings = self.tenancy_settings
+        tenants = settings.get("tenants", [])
+        if isinstance(tenants, Iterable):
+            for entry in tenants:
+                if isinstance(entry, Mapping) and str(entry.get("id")) == tenant_id:
+                    return dict(entry)
+        return {}
+
+    @property
+    def tenant_identity_providers(self) -> Dict[str, Dict[str, Any]]:
+        settings = self.tenancy_settings
+        providers = settings.get("identity_providers", {})
+        if not isinstance(providers, Mapping):
+            return {}
+        return {str(identifier): dict(payload) for identifier, payload in providers.items() if isinstance(payload, Mapping)}
+
+    def tenant_archive_directory(self, tenant_id: str) -> Path:
+        settings = self.tenancy_settings
+        directories = settings.get("directories") if isinstance(settings.get("directories"), Mapping) else {}
+        allowlist = self.allowed_data_roots or (_DEFAULT_DATA_ROOT,)
+        default_root = allowlist[0]
+
+        target: Optional[str] = None
+        if isinstance(directories, Mapping):
+            candidate = directories.get(tenant_id)
+            if isinstance(candidate, str) and candidate.strip():
+                target = candidate
+            else:
+                default_candidate = directories.get("default")
+                if isinstance(default_candidate, str) and default_candidate.strip():
+                    target = default_candidate
+
+        if target:
+            path = Path(target).expanduser()
+            if not path.is_absolute():
+                path = (default_root / path).resolve()
+        else:
+            fallback = default_root / "tenants" / tenant_id / "archive"
+            path = fallback.resolve()
+
+        # If the overlay explicitly configured a data archive directory use it for the default tenant.
+        if tenant_id == "default" and not target:
+            archive_dir = self.data.get("archive_dir") if isinstance(self.data, Mapping) else None
+            if isinstance(archive_dir, str) and archive_dir.strip():
+                candidate = Path(archive_dir).expanduser()
+                if not candidate.is_absolute():
+                    candidate = (default_root / candidate).resolve()
+                path = candidate
+
+        return _ensure_within_allowlist(path, allowlist)
 
     def module_config(self, name: str) -> Dict[str, Any]:
         raw = self.modules.get(name)
