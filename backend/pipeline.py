@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter, defaultdict
+from re import Pattern
 from typing import Any, Dict, Iterable, List, Optional
 
 from fixops.ai_agents import AIAgentAdvisor
@@ -120,6 +122,19 @@ class PipelineOrchestrator:
             if key:
                 lookup[key] = component
         return lookup
+
+    @staticmethod
+    def _compile_token_pattern(tokens: Iterable[str]) -> Optional[Pattern[str]]:
+        """Build a compiled regex for substring lookups across artefacts."""
+
+        cleaned = [token for token in tokens if token]
+        if not cleaned:
+            return None
+        # Sort by length (descending) so the regex prefers longer tokens over
+        # substrings. Escaping protects special characters in component names.
+        sorted_tokens = sorted(cleaned, key=len, reverse=True)
+        pattern = "|".join(re.escape(token) for token in sorted_tokens)
+        return re.compile(pattern)
 
     @staticmethod
     def _normalise_sarif_severity(level: Optional[str]) -> str:
@@ -265,28 +280,28 @@ class PipelineOrchestrator:
                 }
 
         finding_matches: Dict[str, List[dict[str, Any]]] = defaultdict(list)
-        if lookup_tokens:
+        token_pattern = self._compile_token_pattern(lookup_tokens)
+
+        if token_pattern:
             for finding in sarif.findings:
                 haystack = self._build_finding_search_text(finding)
                 if not haystack:
                     continue
                 haystack = haystack.lower()
                 payload = finding.to_dict()
-                for token in lookup_tokens:
-                    if token in haystack:
-                        finding_matches[token].append(dict(payload))
+                for token in set(token_pattern.findall(haystack)):
+                    finding_matches[token].append(dict(payload))
 
         cve_matches: Dict[str, List[dict[str, Any]]] = defaultdict(list)
-        if lookup_tokens:
+        if token_pattern:
             for record in cve.records:
                 haystack = self._build_record_search_text(record)
                 if not haystack:
                     continue
                 haystack = haystack.lower()
                 payload = record.to_dict()
-                for token in lookup_tokens:
-                    if token in haystack:
-                        cve_matches[token].append(dict(payload))
+                for token in set(token_pattern.findall(haystack)):
+                    cve_matches[token].append(dict(payload))
 
         crosswalk: List[dict[str, Any]] = []
         for index, row in enumerate(rows):
