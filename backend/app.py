@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from fixops.configuration import OverlayConfig, load_overlay
-from fixops.paths import ensure_secure_directory
+from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 from fixops.storage import ArtefactArchive
 from fixops.feedback import FeedbackRecorder
 
@@ -49,18 +49,18 @@ def create_app() -> FastAPI:
         if not api_key or api_key not in expected_tokens:
             raise HTTPException(status_code=401, detail="Invalid or missing API token")
 
+    allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
     for directory in overlay.data_directories.values():
-        ensure_secure_directory(directory)
+        secure_path = verify_allowlisted_path(directory, allowlist)
+        ensure_secure_directory(secure_path)
 
     archive_dir = overlay.data_directories.get("archive_dir")
     if archive_dir is None:
-        root = (
-            overlay.allowed_data_roots[0]
-            if overlay.allowed_data_roots
-            else Path("data").resolve()
-        )
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
         archive_dir = (root / "archive" / overlay.mode).resolve()
-    archive = ArtefactArchive(archive_dir)
+    archive_dir = verify_allowlisted_path(archive_dir, allowlist)
+    archive = ArtefactArchive(archive_dir, allowlist=allowlist)
 
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator

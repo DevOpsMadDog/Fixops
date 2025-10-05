@@ -5,9 +5,9 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
-from fixops.paths import ensure_secure_directory
+from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 
 
 def _serialise_payload(payload: Any) -> Any:
@@ -27,11 +27,23 @@ def _serialise_payload(payload: Any) -> Any:
 class ArtefactArchive:
     """Persist normalised artefacts on disk for post-run analysis."""
 
-    def __init__(self, base_directory: Path) -> None:
+    def __init__(
+        self, base_directory: Path, *, allowlist: Optional[Iterable[Path]] = None
+    ) -> None:
+        self._allowlist: tuple[Path, ...] = (
+            tuple(Path(entry).resolve() for entry in allowlist)
+            if allowlist
+            else tuple()
+        )
+        if self._allowlist:
+            base_directory = verify_allowlisted_path(base_directory, self._allowlist)
         self.base_directory = ensure_secure_directory(base_directory)
 
     def _stage_directory(self, stage: str) -> Path:
-        return ensure_secure_directory(self.base_directory / stage)
+        candidate = self.base_directory / stage
+        if self._allowlist:
+            candidate = verify_allowlisted_path(candidate, self._allowlist)
+        return ensure_secure_directory(candidate)
 
     def persist(
         self,
