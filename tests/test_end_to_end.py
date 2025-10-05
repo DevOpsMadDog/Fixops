@@ -1,16 +1,22 @@
-import json
-
+import base64
 import csv
 import gzip
+import inspect
 import json
 import os
+import shutil
 import zipfile
 from io import BytesIO, StringIO
+from pathlib import Path
+from tempfile import SpooledTemporaryFile
 
 try:
     from fastapi.testclient import TestClient  # type: ignore
 except Exception:  # pragma: no cover - fastapi is optional in some environments
     TestClient = None  # type: ignore
+else:  # pragma: no cover - degrade gracefully when using the lightweight stub
+    if "files" not in inspect.signature(TestClient.post).parameters:  # type: ignore[arg-type]
+        TestClient = None  # type: ignore
 
 try:
     from backend.app import create_app
@@ -210,6 +216,21 @@ def test_end_to_end_demo_pipeline():
         sarif_zip = normalizer.load_sarif(zip_buffer.getvalue())
         assert sarif_zip.metadata["finding_count"] == 1
 
+        spooled = SpooledTemporaryFile(max_size=1024, mode="w+b")
+        spooled.write(gzip.compress(json.dumps(sbom_document).encode("utf-8")))
+        spooled.seek(0)
+        sbom_spooled = normalizer.load_sbom(spooled)
+        assert sbom_spooled.metadata["component_count"] == 2
+        spooled.close()
+
+        sarif_zip_buffer = SpooledTemporaryFile(max_size=1024, mode="w+b")
+        with zipfile.ZipFile(sarif_zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("scan.sarif", json.dumps(sarif_document))
+        sarif_zip_buffer.seek(0)
+        sarif_spooled = normalizer.load_sarif(sarif_zip_buffer)
+        assert sarif_spooled.metadata["finding_count"] == 1
+        sarif_zip_buffer.close()
+
         orchestrator = PipelineOrchestrator()
         pipeline_payload = orchestrator.run(
             design_dataset=design_dataset,
@@ -251,17 +272,20 @@ def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
     if TestClient is None or create_app is None:
         return
 
+    safe_root = (Path(__file__).resolve().parent / "tmp_feedback" / tmp_path.name).resolve()
+    safe_root.mkdir(parents=True, exist_ok=True)
+
     overlay_payload = {
         "mode": "demo",
         "auth": {"strategy": "token", "tokens": ["demo-token"]},
-        "data": {"feedback_dir": str(tmp_path / "feedback")},
+        "data": {"feedback_dir": str(safe_root / "feedback")},
         "toggles": {"capture_feedback": True},
     }
     overlay_path = tmp_path / "overlay.json"
     overlay_path.write_text(json.dumps(overlay_payload), encoding="utf-8")
 
     monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_path))
-    monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(tmp_path))
+    monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(safe_root))
     monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
 
     try:
@@ -278,3 +302,205 @@ def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
         monkeypatch.delenv("FIXOPS_OVERLAY_PATH", raising=False)
         monkeypatch.delenv("FIXOPS_DATA_ROOT_ALLOWLIST", raising=False)
         monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)
+        shutil.rmtree(safe_root, ignore_errors=True)
+
+
+def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
+    if TestClient is None or create_app is None:
+        normalizer = InputNormalizer()
+
+        components = []
+        sbom_document = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "version": 1,
+            "components": components,
+        }
+        gz_sbom = b""
+        for idx in range(800):
+            components.append(
+                {
+                    "type": "library",
+                    "name": f"component-{idx}",
+                    "version": "1.0.0",
+                    "purl": f"pkg:pypi/component-{idx}@1.0.0",
+                    "licenses": [{"license": "MIT"}],
+                    "description": base64.b64encode(os.urandom(4096)).decode("ascii"),
+                }
+            )
+            gz_sbom = gzip.compress(json.dumps(sbom_document).encode("utf-8"))
+            if len(gz_sbom) > 1024 * 1024:
+                break
+        assert len(gz_sbom) > 1024 * 1024
+
+        sbom_spool = SpooledTemporaryFile(max_size=1024, mode="w+b")
+        sbom_spool.write(gz_sbom)
+        sbom_spool.seek(0)
+        sbom = normalizer.load_sbom(sbom_spool)
+        assert sbom.metadata["component_count"] == len(components)
+        sbom_spool.close()
+
+        cve_entries = [
+            {
+                "cveID": f"CVE-2024-{idx:04d}",
+                "title": base64.b64encode(os.urandom(512)).decode("ascii"),
+                "severity": "high",
+            }
+            for idx in range(300)
+        ]
+        cve_zip = BytesIO()
+        with zipfile.ZipFile(cve_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("kev.json", json.dumps({"vulnerabilities": cve_entries}))
+        cve_zip.seek(0)
+        cve_spool = SpooledTemporaryFile(max_size=1024, mode="w+b")
+        cve_spool.write(cve_zip.getvalue())
+        cve_spool.seek(0)
+        cve_norm = normalizer.load_cve_feed(cve_spool)
+        assert cve_norm.metadata["record_count"] == len(cve_entries)
+        cve_spool.close()
+
+        sarif_results = [
+            {
+                "ruleId": f"RULE-{idx}",
+                "level": "warning",
+                "message": {"text": base64.b64encode(os.urandom(256)).decode("ascii")},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": f"src/module_{idx}.py"},
+                            "region": {"startLine": idx + 1},
+                        }
+                    }
+                ],
+            }
+            for idx in range(200)
+        ]
+        sarif_document = {"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "HeavyScanner"}}, "results": sarif_results}]}
+        sarif_zip = BytesIO()
+        with zipfile.ZipFile(sarif_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("scan.sarif", json.dumps(sarif_document))
+        sarif_zip.seek(0)
+        sarif_spool = SpooledTemporaryFile(max_size=1024, mode="w+b")
+        sarif_spool.write(sarif_zip.getvalue())
+        sarif_spool.seek(0)
+        sarif = normalizer.load_sarif(sarif_spool)
+        assert sarif.metadata["finding_count"] == len(sarif_results)
+        sarif_spool.close()
+        return
+
+    safe_root = (Path(__file__).resolve().parent / "tmp_stream" / tmp_path.name).resolve()
+    safe_root.mkdir(parents=True, exist_ok=True)
+
+    overlay_payload = {
+        "mode": "demo",
+        "auth": {"strategy": "token", "tokens": ["demo-token"]},
+        "data": {"archive_dir": str((safe_root / "archive").resolve())},
+        "limits": {
+            "max_upload_bytes": {
+                "default": 16 * 1024 * 1024,
+                "sbom": 16 * 1024 * 1024,
+                "sarif": 16 * 1024 * 1024,
+                "cve": 16 * 1024 * 1024,
+            }
+        },
+    }
+    overlay_path = tmp_path / "overlay.json"
+    overlay_path.write_text(json.dumps(overlay_payload), encoding="utf-8")
+
+    monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_path))
+    monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(safe_root))
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+
+    try:
+        app = create_app()
+        client = TestClient(app)
+        headers = {"X-API-Key": "demo-token"}
+
+        components = []
+        sbom_document = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "version": 1,
+            "components": components,
+        }
+        gz_sbom = b""
+        for idx in range(800):
+            components.append(
+                {
+                    "type": "library",
+                    "name": f"component-{idx}",
+                    "version": "1.0.0",
+                    "purl": f"pkg:pypi/component-{idx}@1.0.0",
+                    "licenses": [{"license": "MIT"}],
+                    "description": base64.b64encode(os.urandom(4096)).decode("ascii"),
+                }
+            )
+            gz_sbom = gzip.compress(json.dumps(sbom_document).encode("utf-8"))
+            if len(gz_sbom) > 1024 * 1024:
+                break
+        assert len(components) >= 1
+        assert len(gz_sbom) > 1024 * 1024
+
+        response = client.post(
+            "/inputs/sbom",
+            headers=headers,
+            files={"file": ("sbom.json.gz", gz_sbom, "application/gzip")},
+        )
+        assert response.status_code == 200
+        assert response.json()["metadata"]["component_count"] == len(components)
+
+        cve_entries = [
+            {
+                "cveID": f"CVE-2024-{idx:04d}",
+                "title": base64.b64encode(os.urandom(512)).decode("ascii"),
+                "severity": "high",
+            }
+            for idx in range(300)
+        ]
+        cve_zip = BytesIO()
+        with zipfile.ZipFile(cve_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("kev.json", json.dumps({"vulnerabilities": cve_entries}))
+        cve_zip.seek(0)
+
+        response = client.post(
+            "/inputs/cve",
+            headers=headers,
+            files={"file": ("kev.zip", cve_zip.getvalue(), "application/zip")},
+        )
+        assert response.status_code == 200
+        assert response.json()["record_count"] == len(cve_entries)
+
+        sarif_results = [
+            {
+                "ruleId": f"RULE-{idx}",
+                "level": "warning",
+                "message": {"text": base64.b64encode(os.urandom(256)).decode("ascii")},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": f"src/module_{idx}.py"},
+                            "region": {"startLine": idx + 1},
+                        }
+                    }
+                ],
+            }
+            for idx in range(200)
+        ]
+        sarif_document = {"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "HeavyScanner"}}, "results": sarif_results}]}
+        sarif_zip = BytesIO()
+        with zipfile.ZipFile(sarif_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("scan.sarif", json.dumps(sarif_document))
+        sarif_zip.seek(0)
+
+        response = client.post(
+            "/inputs/sarif",
+            headers=headers,
+            files={"file": ("scan.zip", sarif_zip.getvalue(), "application/zip")},
+        )
+        assert response.status_code == 200
+        assert response.json()["metadata"]["finding_count"] == len(sarif_results)
+    finally:
+        monkeypatch.delenv("FIXOPS_OVERLAY_PATH", raising=False)
+        monkeypatch.delenv("FIXOPS_DATA_ROOT_ALLOWLIST", raising=False)
+        monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)
+        shutil.rmtree(safe_root, ignore_errors=True)

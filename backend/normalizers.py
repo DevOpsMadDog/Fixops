@@ -9,6 +9,7 @@ import io
 import json
 import logging
 import zipfile
+from contextlib import suppress
 from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable, List, Optional
 
@@ -150,13 +151,34 @@ class InputNormalizer:
 
     @staticmethod
     def _ensure_bytes(content: Any) -> bytes:
-        if isinstance(content, bytes):
-            return content
+        if isinstance(content, (bytes, bytearray)):
+            return bytes(content)
+        if isinstance(content, memoryview):
+            return content.tobytes()
         if hasattr(content, "read"):
-            data = content.read()
-            if isinstance(data, bytes):
-                return data
-            return str(data).encode("utf-8")
+            handle = content  # type: ignore[assignment]
+            chunk_size = 1024 * 1024
+            data = bytearray()
+            start = None
+            try:
+                start = handle.tell()  # type: ignore[attr-defined]
+            except Exception:  # pragma: no cover - not all streams support tell
+                start = None
+            while True:
+                chunk = handle.read(chunk_size)
+                if not chunk:
+                    break
+                if isinstance(chunk, str):
+                    chunk = chunk.encode("utf-8")
+                elif isinstance(chunk, memoryview):
+                    chunk = chunk.tobytes()
+                elif not isinstance(chunk, (bytes, bytearray)):
+                    chunk = str(chunk).encode("utf-8")
+                data.extend(chunk)
+            if start is not None:
+                with suppress(Exception):  # pragma: no cover - best effort reset
+                    handle.seek(start)  # type: ignore[attr-defined]
+            return bytes(data)
         if isinstance(content, str):
             return content.encode("utf-8")
         return str(content).encode("utf-8")
