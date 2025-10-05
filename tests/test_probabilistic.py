@@ -48,3 +48,40 @@ def test_probabilistic_engine_respects_component_limit() -> None:
 
     payload = engine.evaluate({"high": 1}, crosswalk, [])
     assert len(payload["components"]) == 1
+
+
+def test_probabilistic_calibration_updates_priors_and_transitions() -> None:
+    engine = ProbabilisticForecastEngine()
+    baseline_prior_high = engine.prior["high"]
+    baseline_transition_high = engine.transitions["medium"]["high"]
+
+    incidents = [
+        {
+            "timeline": ["low", "medium", "high", "critical"],
+            "final_severity": "critical",
+        },
+        {
+            "states": [
+                {"severity": "medium"},
+                {"severity": "high"},
+                {"severity": "high"},
+            ],
+            "resolved_severity": "high",
+        },
+    ]
+
+    result = engine.calibrate(incidents)
+
+    assert result.incident_count == 2
+    assert result.transition_observations >= 3
+    assert engine.prior["high"] > baseline_prior_high
+    assert result.transitions["medium"]["high"] > baseline_transition_high
+    assert result.validation["valid"]
+
+
+def test_probabilistic_transition_validation_detects_invalid() -> None:
+    engine = ProbabilisticForecastEngine()
+    engine.transitions = {"medium": {"unknown": 1.0}}
+    report = engine.validate_transitions()
+    assert report["valid"] is False
+    assert "unknown" in report["rows"]["medium"]["invalid_targets"]
