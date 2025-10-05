@@ -15,6 +15,9 @@ This runbook summarises the shipped feature set, end-to-end data flow, CLI/API t
 | AI agent advisor | Framework detection, control recommendations, playbook routing | `fixops/ai_agents.py` |
 | Exploitability signals | EPSS/KEV-driven exploit context and escalation hints | `fixops/exploit_signals.py`, `config/fixops.overlay.yml` |
 | Probabilistic forecast engine | Bayesian priors + Markov transitions yielding escalation metrics | `fixops/probabilistic.py`, `backend/pipeline.py` |
+| ROI analytics dashboard | ROI estimates, MTTR deltas, automation savings per module | `fixops/analytics.py`, `backend/pipeline.py` |
+| Tenant lifecycle orchestration | Tenant inventories, lifecycle stages, module coverage gaps | `fixops/tenancy.py`, `config/fixops.overlay.yml` |
+| Performance simulator | Near real-time latency forecasts, throughput targets, backlog guidance | `fixops/performance.py`, `backend/pipeline.py` |
 | SSDLC evaluator | Stage-by-stage lifecycle coverage report | `fixops/ssdlc.py` |
 | IaC posture evaluator | Multi-cloud/on-prem coverage with artefact gap detection | `fixops/iac.py`, `config/fixops.overlay.yml` |
 | CVE contextual simulation | Log4Shell demo vs enterprise evidence bundles | `simulations/cve_scenario/runner.py` |
@@ -36,6 +39,9 @@ flowchart LR
     C -->|Results| P[IaC Posture Evaluator]
     C -->|Signals| O[Exploit Signal Evaluator]
     C -->|Posterior| R[Probabilistic Forecast Engine]
+    C -->|ROI| S[Analytics Dashboard]
+    C -->|Tenants| T[Tenant Lifecycle]
+    C -->|Performance| U[Performance Simulator]
     C -->|Custom specs| Q[Custom Module Hooks]
     D --> I[EvidenceHub]
     E --> I
@@ -45,6 +51,9 @@ flowchart LR
     P --> I
     O --> I
     R --> I
+    S --> I
+    T --> I
+    U --> I
     R --> N
     Q --> I
     I --> J[Evidence bundle & manifest]
@@ -54,7 +63,7 @@ flowchart LR
     C --> N[API Response / CLI Output]
 ```
 
-The FastAPI service wires this chain during startup by loading the overlay, provisioning allowlisted data directories, and enforcing authentication. The orchestrator reuses cached lowercase tokens to avoid repeated SBOM/SARIF scans and passes a single enriched payload through guardrails, context, compliance, policy, exploitability, AI, SSDLC, and evidence modules before responding.
+The FastAPI service wires this chain during startup by loading the overlay, provisioning allowlisted data directories, and enforcing authentication. The orchestrator reuses cached lowercase tokens to avoid repeated SBOM/SARIF scans and passes a single enriched payload through guardrails, context, compliance, policy, exploitability, AI, SSDLC, analytics, tenancy, performance, and evidence modules before responding.
 
 ### Module execution lifecycle
 
@@ -70,34 +79,39 @@ The FastAPI service wires this chain during startup by loading the overlay, prov
 The push-model API stays consistent for every stakeholder, but the overlay toggles expose different artefacts and automation to
 each persona. Use the following checklists to script role-specific workflows:
 
-- **CISO / Risk Executive**
-  - Ensure the overlay profile enables `pricing.disclosure` and `guardrails.escalate_on_fail`.
-  - Execute `curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -X POST http://127.0.0.1:8000/pipeline/run | jq '.guardrails,.pricing,.context_summary'`
-    to review governance posture and commercial usage.
-  - Download the latest evidence bundle listed in `.evidence.bundle_path` to brief audit/compliance teams.
+  - **CISO / Risk Executive**
+    - Ensure the overlay profile enables `modules.analytics`, `modules.performance`, `pricing.disclosure`, and `guardrails.escalate_on_fail`.
+    - Execute `curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -X POST http://127.0.0.1:8000/pipeline/run | jq '.guardrails,.analytics.overview,.performance_profile.summary,.pricing_summary'`
+      to review governance posture, ROI value, and latency status.
+    - Download the latest evidence bundle listed in `.evidence_bundle.files.bundle` to brief audit/compliance teams with embedded analytics sections.
 
-- **CTEM Lead**
-  - Upload fresh KEV/EPSS feeds via `/inputs/cve` and trigger the run; inspect `.exploitability.signals` for hot spots.
-  - Use `jq '.probabilistic.posterior, .modules.execution_matrix'` to identify escalation forecasts and module coverage per asset.
-  - Reference the IaC posture findings in `.iac` to align exposure-driven mitigation plans.
+  - **CTEM Lead**
+    - Upload fresh KEV/EPSS feeds via `/inputs/cve` and trigger the run; inspect `.exploitability.signals` for hot spots and `.analytics.insights` for contextualised savings.
+    - Use `jq '.probabilistic.posterior, .modules.status'` to identify escalation forecasts and module coverage per asset.
+    - Reference the IaC posture findings in `.iac_posture` and performance outputs in `.performance_profile.recommendations` when sequencing mitigation.
 
-- **Security Operations / SIEM Owner**
+  - **Security Operations / SIEM Owner**
   - Enable Slack automation in the overlay and run the pipeline; confirm `.policy_automation.deliveries[] | select(.target=="slack")` entries for alert routing.
   - Tail the evidence manifest directory for JSON dispatch files that can be ingested into the SIEM.
 
-- **DevSecOps Engineer**
+  - **DevSecOps Engineer**
   - Use the CLI uploads plus `/pipeline/run` output to triage `.guardrails.failures` and `.policy_automation.jira` tickets.
   - Invoke the CVE simulation (`python -m simulations.cve_scenario.runner --mode demo`) to validate playbooks before pushing policies to CI/CD.
 
-- **Cloud Developer / Platform Engineer**
+  - **Cloud Developer / Platform Engineer**
   - Provide Terraform/Terragrunt manifests to `/inputs/design` and enable IaC posture in the overlay.
   - Query `.iac.targets` from the pipeline output to uncover missing guardrails per cloud and adopt suggested modules.
 
-- **Solutions / Enterprise Architect**
+  - **Solutions / Enterprise Architect**
   - Leverage `FIXOPS_OVERLAY_PATH` overrides to model customer-specific integrations.
   - Use the module matrix (`.modules`) to validate which enterprise packs (policy automation, SSDLC, probabilistic) will execute in each configuration.
 
-- **Security Tester / Red Team**
+  - **Security Tester / Red Team**
+
+  - **Tenant Operations / Platform PMO**
+    - Enable `modules.tenancy` and populate `tenancy.tenants` with each internal or customer tenant.
+    - Run `python -m fixops.cli run --enable tenancy --enable performance --output out/tenant.json` and inspect `.tenant_lifecycle.summary` for stage counts and `.performance_profile.summary` for latency posture.
+    - Feed `.analytics.value_by_module` into stakeholder scorecards to show the savings each module delivers for shared tenants.
   - Inject synthetic SARIF findings and rerun the pipeline to confirm downgrades/escalations recorded under `.context_summary.adjusted_severity`.
   - Review the SSDLC assessment (`.ssdlc`) for stages lacking security tests and feed back via the `/feedback` endpoint when toggled on.
 

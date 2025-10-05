@@ -132,6 +132,9 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
     compliance = result.get("compliance_status", {})
     pricing = result.get("pricing_summary", {})
     modules = result.get("modules", {})
+    analytics = result.get("analytics", {})
+    performance = result.get("performance_profile", {})
+    tenancy = result.get("tenant_lifecycle", {})
 
     highest = severity_overview.get("highest", "unknown")
     guardrail_status = guardrail.get("status", "n/a")
@@ -149,6 +152,25 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
         print(f"  Pricing plan: {pricing_plan}")
     if executed:
         print(f"  Modules executed: {', '.join(executed)}")
+    roi_overview = analytics.get("overview") if isinstance(analytics, dict) else None
+    if isinstance(roi_overview, dict):
+        currency = roi_overview.get("currency", "USD")
+        estimated_value = roi_overview.get("estimated_value")
+        if estimated_value is not None:
+            print(f"  Estimated ROI: {currency} {estimated_value}")
+    perf_summary = performance.get("summary") if isinstance(performance, dict) else None
+    if isinstance(perf_summary, dict):
+        status = perf_summary.get("status")
+        total_latency = perf_summary.get("total_estimated_latency_ms")
+        if status and total_latency is not None:
+            print(
+                f"  Performance status: {status} (approx {total_latency} ms per run)"
+            )
+    tenancy_summary = tenancy.get("summary") if isinstance(tenancy, dict) else None
+    if isinstance(tenancy_summary, dict):
+        total_tenants = tenancy_summary.get("total_tenants")
+        if total_tenants:
+            print(f"  Tenants tracked: {total_tenants}")
     if output is not None:
         print(f"  Result saved to: {output}")
     if evidence_path is not None:

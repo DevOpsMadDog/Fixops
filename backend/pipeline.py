@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Optional
 
 from fixops.ai_agents import AIAgentAdvisor
+from fixops.analytics import ROIDashboard
 from fixops.configuration import OverlayConfig
 from fixops.context_engine import ContextEngine
 from fixops.evidence import EvidenceHub
@@ -16,6 +17,8 @@ from fixops.ssdlc import SSDLCEvaluator
 from fixops.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
 from fixops.iac import IaCPostureEvaluator
 from fixops.modules import PipelineContext, execute_custom_modules
+from fixops.tenancy import TenantLifecycleManager
+from fixops.performance import PerformanceSimulator
 
 from .normalizers import (
     CVERecordSummary,
@@ -340,6 +343,9 @@ class PipelineOrchestrator:
             compliance_status: Optional[Dict[str, Any]] = None
             policy_summary: Optional[Dict[str, Any]] = None
             ssdlc_assessment: Optional[Dict[str, Any]] = None
+            analytics_summary: Optional[Dict[str, Any]] = None
+            tenant_overview: Optional[Dict[str, Any]] = None
+            performance_profile: Optional[Dict[str, Any]] = None
 
             if overlay.is_module_enabled("guardrails"):
                 result["guardrail_evaluation"] = self._evaluate_guardrails(
@@ -449,6 +455,39 @@ class PipelineOrchestrator:
                 executed_modules.append("probabilistic")
             else:
                 modules_status["probabilistic"] = "disabled"
+
+            if overlay.is_module_enabled("analytics"):
+                analytics_engine = ROIDashboard(overlay.analytics_settings)
+                analytics_summary = analytics_engine.evaluate(
+                    result,
+                    overlay,
+                    context_summary=context_summary,
+                    compliance_status=compliance_status,
+                    policy_summary=policy_summary,
+                )
+                result["analytics"] = analytics_summary
+                modules_status["analytics"] = "executed"
+                executed_modules.append("analytics")
+            else:
+                modules_status["analytics"] = "disabled"
+
+            if overlay.is_module_enabled("tenancy"):
+                tenancy_manager = TenantLifecycleManager(overlay.tenancy_settings)
+                tenant_overview = tenancy_manager.evaluate(result, overlay)
+                result["tenant_lifecycle"] = tenant_overview
+                modules_status["tenancy"] = "executed"
+                executed_modules.append("tenancy")
+            else:
+                modules_status["tenancy"] = "disabled"
+
+            if overlay.is_module_enabled("performance"):
+                performance_simulator = PerformanceSimulator(overlay.performance_settings)
+                performance_profile = performance_simulator.simulate(result, overlay)
+                result["performance_profile"] = performance_profile
+                modules_status["performance"] = "executed"
+                executed_modules.append("performance")
+            else:
+                modules_status["performance"] = "disabled"
 
             if overlay.is_module_enabled("iac_posture"):
                 iac_settings = dict(overlay.iac_settings)

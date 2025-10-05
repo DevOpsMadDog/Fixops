@@ -175,6 +175,13 @@ def test_end_to_end_demo_pipeline():
         assert "iac_posture" in pipeline_payload
         assert pipeline_payload["modules"]["status"]["iac_posture"] == "executed"
         assert pipeline_payload["evidence_bundle"]["sections"]
+        analytics = pipeline_payload["analytics"]
+        assert analytics["overview"]["estimated_value"] >= 0
+        assert analytics["overlay"]["mode"] == "demo"
+        tenant_view = pipeline_payload["tenant_lifecycle"]
+        assert tenant_view["summary"]["total_tenants"] >= 1
+        performance = pipeline_payload["performance_profile"]
+        assert performance["summary"]["total_estimated_latency_ms"] >= 0
         overlay = pipeline_payload["overlay"]
         assert overlay["mode"] == "demo"
         assert overlay["metadata"]["profile_applied"] == "demo"

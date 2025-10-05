@@ -198,15 +198,15 @@ curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -F "file=@samples/kev.json;type=applica
       <tbody>
         <tr>
           <td>CISO / Risk Executive</td>
-          <td>Enterprise readiness, pricing exposure, audit artefacts</td>
-          <td><code>/pipeline/run</code> → <code>.guardrails</code>, <code>.pricing</code>, evidence bundle download</td>
-          <td><code>pricing.disclosure</code>, <code>guardrails.escalate_on_fail</code></td>
+          <td>Enterprise readiness, ROI value, latency posture, audit artefacts</td>
+          <td><code>/pipeline/run</code> → <code>.guardrails</code>, <code>.analytics.overview</code>, <code>.performance_profile.summary</code>, <code>.pricing_summary</code>, evidence bundle download</td>
+          <td><code>modules.analytics</code>, <code>modules.performance</code>, <code>pricing.disclosure</code>, <code>guardrails.escalate_on_fail</code></td>
         </tr>
         <tr>
           <td>CTEM Lead</td>
           <td>Attack surface evolution, exploit intelligence, module coverage</td>
-          <td><code>/inputs/cve</code>, <code>/pipeline/run</code> → <code>.exploitability</code>, <code>.probabilistic</code>, <code>.modules.execution_matrix</code></td>
-          <td><code>exploit_signals.enabled</code>, <code>probabilistic.enabled</code></td>
+          <td><code>/inputs/cve</code>, <code>/pipeline/run</code> → <code>.exploitability_insights</code>, <code>.probabilistic_forecast</code>, <code>.analytics.insights</code>, <code>.modules.status</code></td>
+          <td><code>exploit_signals.enabled</code>, <code>probabilistic.enabled</code>, <code>modules.analytics</code></td>
         </tr>
         <tr>
           <td>Security Operations / SIEM Owner</td>
@@ -229,8 +229,14 @@ curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -F "file=@samples/kev.json;type=applica
         <tr>
           <td>Enterprise Architect</td>
           <td>Solution blueprinting, integration planning</td>
-          <td><code>/pipeline/run</code> → <code>.modules</code>, <code>.onboarding</code>; overlay exports for customer proposals</td>
-          <td><code>directories</code>, <code>onboarding.checklists</code>, <code>pricing.plans</code></td>
+          <td><code>/pipeline/run</code> → <code>.modules</code>, <code>.tenant_lifecycle</code>, <code>.onboarding</code>; overlay exports for customer proposals</td>
+          <td><code>modules.tenancy</code>, <code>onboarding.checklists</code>, <code>pricing.plans</code></td>
+        </tr>
+        <tr>
+          <td>Tenant Operations / Platform PMO</td>
+          <td>Tenant health, module adoption, performance targets</td>
+          <td><code>/pipeline/run</code> → <code>.tenant_lifecycle.summary</code>, <code>.analytics.value_by_module</code>, <code>.performance_profile.recommendations</code></td>
+          <td><code>modules.tenancy</code>, <code>modules.performance</code>, <code>tenancy.defaults</code></td>
         </tr>
         <tr>
           <td>Security Tester / Red Team</td>

@@ -40,6 +40,9 @@ def test_load_overlay_merges_profile_and_defaults(overlay_file: Path) -> None:
     assert exported["guardrails"]["fail_on"] in {"medium", "high", "critical"}
     assert "ssdlc" in exported
     assert "modules" in exported
+    assert "analytics" in exported
+    assert "tenancy" in exported
+    assert "performance" in exported
     assert exported["modules"]["guardrails"]["enabled"] is True
 
 

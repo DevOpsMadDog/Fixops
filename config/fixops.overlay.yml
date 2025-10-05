@@ -54,6 +54,9 @@
     "probabilistic": {"enabled": true},
     "pricing": {"enabled": true},
     "iac_posture": {"enabled": true},
+    "analytics": {"enabled": true},
+    "tenancy": {"enabled": true},
+    "performance": {"enabled": true},
     "custom": []
   },
   "limits": {
@@ -115,6 +118,9 @@
       "context_summary",
       "guardrail_evaluation",
       "compliance_status",
+      "analytics",
+      "tenant_lifecycle",
+      "performance_profile",
       "probabilistic_forecast",
       "ai_agent_analysis",
       "ssdlc_assessment"
@@ -132,6 +138,9 @@
           "guardrail_evaluation",
           "compliance_status",
           "policy_automation",
+          "analytics",
+          "tenant_lifecycle",
+          "performance_profile",
           "ai_agent_analysis",
           "ssdlc_assessment"
         ]
@@ -267,6 +276,146 @@
             "space": "FIXOPS-ENT"
           }
         ]
+      }
+    }
+  },
+  "analytics": {
+    "baseline": {
+      "findings_per_interval": 120,
+      "review_minutes_per_finding": 12,
+      "mttr_hours": 72,
+      "audit_hours": 40
+    },
+    "targets": {
+      "mttr_hours": 24,
+      "audit_hours": 16
+    },
+    "costs": {
+      "currency": "USD",
+      "hourly_rate": 160
+    },
+    "time_to_value_minutes": 25,
+    "automation_hours_saved": 10,
+    "module_weights": {
+      "guardrails": 3,
+      "context_engine": 2,
+      "policy_automation": 2,
+      "evidence": 1,
+      "analytics": 1
+    },
+    "metrics": {
+      "noise_reduction_goal_percent": 60,
+      "audit_hours_saved_goal": 24
+    },
+    "profiles": {
+      "enterprise": {
+        "automation_hours_saved": 16,
+        "targets": {"mttr_hours": 16, "audit_hours": 12},
+        "costs": {"hourly_rate": 220, "currency": "USD"},
+        "module_weights": {
+          "guardrails": 4,
+          "context_engine": 3,
+          "policy_automation": 3,
+          "evidence": 2,
+          "analytics": 2
+        }
+      }
+    }
+  },
+  "tenancy": {
+    "defaults": {
+      "modules": ["guardrails", "context_engine", "analytics", "performance"],
+      "support": {"email": "support@fixops.io"},
+      "billing": {"model": "usage", "plans": ["demo", "enterprise"]}
+    },
+    "tenants": [
+      {
+        "id": "demo-sandbox",
+        "name": "Demo Sandbox",
+        "status": "active",
+        "stage": "onboarding",
+        "environments": ["sandbox"],
+        "notes": "Default sandbox tenant for FixOps demo runs"
+      },
+      {
+        "id": "internal-shared",
+        "name": "Internal Shared Services",
+        "status": "active",
+        "stage": "expansion",
+        "environments": ["dev", "stage"],
+        "modules": ["policy_automation", "analytics"],
+        "notes": "Internal services used for continuous CTEM validation"
+      }
+    ],
+    "lifecycle": {
+      "stages": [
+        {"id": "onboarding", "name": "Onboarding"},
+        {"id": "expansion", "name": "Expansion"},
+        {"id": "steady_state", "name": "Steady State"}
+      ],
+      "stage_defaults": {
+        "onboarding": ["onboarding", "analytics"],
+        "expansion": ["policy_automation", "compliance"],
+        "steady_state": ["performance", "analytics"]
+      },
+      "transitions": {
+        "onboarding": ["expansion"],
+        "expansion": ["steady_state"],
+        "steady_state": []
+      }
+    },
+    "profiles": {
+      "enterprise": {
+        "defaults": {
+          "modules": [
+            "guardrails",
+            "context_engine",
+            "policy_automation",
+            "analytics",
+            "performance"
+          ],
+          "support": {"email": "support@fixops.io", "slack": "#fixops-enterprise"}
+        },
+        "tenants": [
+          {
+            "id": "customer-production",
+            "name": "Enterprise Production",
+            "status": "active",
+            "stage": "steady_state",
+            "environments": ["prod", "dr"],
+            "modules": ["policy_automation", "analytics", "performance"],
+            "notes": "Represents a production tenant with full automation coverage"
+          }
+        ]
+      }
+    }
+  },
+  "performance": {
+    "baseline": {"per_module_ms": 250},
+    "module_latency_ms": {
+      "guardrails": 180,
+      "context_engine": 220,
+      "compliance": 200,
+      "policy_automation": 260,
+      "analytics": 160,
+      "evidence": 240,
+      "performance": 150
+    },
+    "ingestion_throughput_per_minute": 45,
+    "near_real_time_threshold_ms": 5000,
+    "capacity": {"concurrent_runs": 3, "burst_runs": 6},
+    "profiles": {
+      "enterprise": {
+        "module_latency_ms": {
+          "guardrails": 220,
+          "context_engine": 260,
+          "policy_automation": 320,
+          "analytics": 180,
+          "evidence": 280
+        },
+        "ingestion_throughput_per_minute": 60,
+        "near_real_time_threshold_ms": 7000,
+        "capacity": {"concurrent_runs": 5, "burst_runs": 10}
       }
     }
   },

@@ -86,6 +86,9 @@ _ALLOWED_OVERLAY_KEYS = {
     "modules",
     "iac",
     "probabilistic",
+    "analytics",
+    "tenancy",
+    "performance",
     "profiles",
 }
 
@@ -116,6 +119,9 @@ class _OverlayDocument(BaseModel):
     modules: Optional[Dict[str, Any]] = None
     iac: Optional[Dict[str, Any]] = None
     probabilistic: Optional[Dict[str, Any]] = None
+    analytics: Optional[Dict[str, Any]] = None
+    tenancy: Optional[Dict[str, Any]] = None
+    performance: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     class Config:
@@ -174,6 +180,9 @@ class OverlayConfig:
     modules: Dict[str, Any] = field(default_factory=dict)
     iac: Dict[str, Any] = field(default_factory=dict)
     probabilistic: Dict[str, Any] = field(default_factory=dict)
+    analytics: Dict[str, Any] = field(default_factory=dict)
+    tenancy: Dict[str, Any] = field(default_factory=dict)
+    performance: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(default_factory=lambda: (_DEFAULT_DATA_ROOT,))
     auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
 
@@ -225,6 +234,9 @@ class OverlayConfig:
             "modules": self.module_matrix,
             "iac": self.iac_settings,
             "probabilistic": self.probabilistic_settings,
+            "analytics": self.analytics_settings,
+            "tenancy": self.tenancy_settings,
+            "performance": self.performance_settings,
         }
         return payload
 
@@ -454,6 +466,59 @@ class OverlayConfig:
         base["targets"] = targets
         return base
 
+    @property
+    def analytics_settings(self) -> Dict[str, Any]:
+        settings = dict(self.analytics)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
+    @property
+    def performance_settings(self) -> Dict[str, Any]:
+        settings = dict(self.performance)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
+    @property
+    def tenancy_settings(self) -> Dict[str, Any]:
+        settings = dict(self.tenancy)
+        profiles = settings.get("profiles")
+        profile_overrides: Dict[str, Any] = {}
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                profile_overrides = dict(profile)
+        tenants: list[Dict[str, Any]] = []
+
+        def _extend(raw: Any) -> None:
+            if isinstance(raw, Iterable):
+                for entry in raw:
+                    if isinstance(entry, Mapping):
+                        tenants.append(dict(entry))
+
+        _extend(settings.get("tenants"))
+        _extend(profile_overrides.pop("tenants", None))
+
+        merged = dict(settings)
+        merged.pop("tenants", None)
+        merged.pop("profiles", None)
+        merged = dict(_deep_merge(merged, profile_overrides))
+        merged["tenants"] = tenants
+        return merged
+
     def module_config(self, name: str) -> Dict[str, Any]:
         raw = self.modules.get(name)
         if isinstance(raw, Mapping):
@@ -517,6 +582,9 @@ class OverlayConfig:
             "probabilistic",
             "pricing",
             "iac_posture",
+            "analytics",
+            "tenancy",
+            "performance",
         ]
         enabled: list[str] = []
         for name in known_modules:
@@ -615,6 +683,9 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "modules": document.modules or {},
         "iac": document.iac or {},
         "probabilistic": document.probabilistic or {},
+        "analytics": document.analytics or {},
+        "tenancy": document.tenancy or {},
+        "performance": document.performance or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -641,6 +712,9 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "probabilistic": True,
         "pricing": True,
         "iac_posture": True,
+        "analytics": True,
+        "tenancy": True,
+        "performance": True,
     }
     for key, enabled in default_module_flags.items():
         value = modules.get(key)
@@ -681,6 +755,9 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         modules=dict(base.get("modules", {})),
         iac=dict(base.get("iac", {})),
         probabilistic=dict(base.get("probabilistic", {})),
+        analytics=dict(base.get("analytics", {})),
+        tenancy=dict(base.get("tenancy", {})),
+        performance=dict(base.get("performance", {})),
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

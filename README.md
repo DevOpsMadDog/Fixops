@@ -8,6 +8,7 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 - **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, and Bayesian/Markov forecasts in a single pass (`backend/pipeline.py`).
 - **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`fixops/compliance.py`, `fixops/policy.py`, `fixops/evidence.py`, `fixops/feedback.py`).
 - **Analytics & ROI telemetry** – Pipeline responses surface pricing tiers, guardrail progress, exploit refresh health, and contextual noise-reduction metrics that feed executive dashboards and ROI storytelling (`perf/BENCHMARKS.csv`, `market/ENTERPRISE_READINESS.md`).
+- **Tenant lifecycle & performance intelligence** – Overlay-governed ROI dashboards, tenant lifecycle summaries, and near real-time performance simulations help CISOs, CTEM leads, and platform teams prove value and spot bottlenecks without bespoke code (`fixops/analytics.py`, `fixops/tenancy.py`, `fixops/performance.py`).
 - **Modular & extensible** – Toggle modules, adjust weights, or register custom hooks without touching code; every run reports configured, enabled, and executed modules plus outcomes to keep integrators in control (`fixops/modules.py`).
 
 ## System architecture at a glance
@@ -29,9 +30,9 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 ## End-to-end data flow
 1. **Load configuration** – `load_overlay()` merges defaults with demo or enterprise overrides, validates directories, registers tokens, and prepares module toggles (`fixops/configuration.py`).
 2. **Upload artefacts** – Push CSV/SBOM/SARIF/CVE data through FastAPI or point the CLI at local files; the normaliser caches parsers to reuse tokens and reduce I/O (`backend/normalizers.py`).
-3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts), and tracks custom module outcomes.
+3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts, ROI analytics, tenant lifecycle, performance simulation), and tracks custom module outcomes.
 4. **Persist outputs** – Evidence hub writes compressed bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data.
-5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, module matrices, feedback endpoints, and sanitized overlay metadata.
+5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
 ### Prerequisites
@@ -94,11 +95,12 @@ Use `python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml` to i
 All endpoints require the `X-API-Key` header. See `docs/PLATFORM_RUNBOOK.md` for persona-specific examples and `docs/INTEGRATIONS.md` for connector payload details.
 
 ## CLI workflows by persona
-- **CISO & Executive Reporting** – `python -m fixops.cli run --overlay config/fixops.overlay.yml --enable probabilistic --enable compliance --output out/ciso.json` surfaces guardrail status, compliance posture, pricing tier utilisation, and ROI telemetry.
+- **CISO & Executive Reporting** – `python -m fixops.cli run --overlay config/fixops.overlay.yml --enable probabilistic --enable compliance --enable analytics --output out/ciso.json` surfaces guardrail status, compliance posture, tenant coverage, ROI telemetry, and performance posture for board reporting.
 - **CTEM & Vulnerability Ops** – `python -m fixops.cli run --enable exploit_signals --enable policy_automation --design ... --sbom ... --sarif ... --cve ...` contextualises findings, executes policy automations, and refreshes exploit intelligence.
 - **DevSecOps / Platform** – `python -m fixops.cli run --enable ssdlc --enable iac --custom-module modules/custom.py:main` enforces pipeline gates across IaC scans and SSDLC targets.
 - **SIEM & Incident Responders** – `python -m fixops.cli run --enable ai_agents --enable probabilistic --output out/siem.json` generates AI-agent detections and probabilistic breach forecasts for downstream correlation.
 - **Security Testers** – Combine `--offline` with curated artefacts to validate guardrail outcomes pre-deployment.
+- **Enterprise Architects & Tenant Ops** – `python -m fixops.cli run --enable tenancy --enable performance --output out/tenant-summary.json` produces tenant lifecycle health, module coverage gaps, and near real-time performance status for shared platforms.
 
 Use `python -m fixops.cli help` for the full command reference and flags.
 
@@ -114,23 +116,26 @@ Use `python -m fixops.cli help` for the full command reference and flags.
 | AI agent advisor | Detects agentic frameworks and prescribes controls. | `modules.ai_agents.enabled`
 | Exploit signals | Merges EPSS, KEV, and overlay refresh schedules to score exploitability. | `modules.exploit_signals.enabled`
 | Probabilistic forecasts | Bayesian/Markov projections of breach likelihood based on crosswalk. | `modules.probabilistic.enabled`
-| ROI telemetry | Surfaces pricing tier usage, artefact freshness, and automation savings estimates. | Always on (in pricing schema)
+| ROI analytics | Computes noise reduction, MTTR deltas, automation savings, and assigns ROI value per module. | `modules.analytics.enabled`
+| Tenant lifecycle | Summarises tenant health, stage transitions, and module coverage gaps. | `modules.tenancy.enabled`
+| Performance simulation | Estimates near real-time latency, throughput, and backlog recommendations. | `modules.performance.enabled`
 | Evidence hub | Compresses artefacts, redacts secrets, persists manifests. | `modules.evidence.enabled`
 | Module registry | Supports organisation-specific hooks and toggles. | `modules.custom`
 
 ## Analytics, dashboards & ROI storytelling
-- Pipeline responses include `pricing_summary`, `guardrail_overview`, `exploit_refresh`, and `automation_results` blocks that roll into ROI dashboards described in `market/DEMO_STORY.md` and `market/ENTERPRISE_READINESS.md`.
-- Evidence bundles carry per-run manifest metadata suitable for executive scorecards.
-- Roadmap: historical analytics warehouse and interactive ROI dashboards (noise reduction, MTTR delta, audit hours saved) are slated for implementation per `audit/GAPS.md`.
+- Pipeline responses include dedicated `analytics`, `pricing_summary`, `performance_profile`, and `tenant_lifecycle` blocks that feed executive dashboards outlined in `market/DEMO_STORY.md` and `market/ENTERPRISE_READINESS.md`.
+- Evidence bundles automatically embed ROI, tenant, and performance sections when the corresponding modules are enabled, giving CISOs auditable proof of value per run.
+- Roadmap: extend analytics with historical warehousing, interactive ROI dashboards, and connector-level cost attribution (tracked in `audit/GAPS.md`).
 
 ## Multi-tenant lifecycle tooling
-- Current state: overlay loader validates a single profile per deployment, with API-key enforcement and directory allowlists. Operators can maintain separate overlays per tenant and switch via CLI/API flags.
-- Roadmap: build overlay versioning, RBAC, and approval workflows for managed multi-tenant environments (tracked in `audit/GAPS.md` and `docs/PR_SUMMARY.md`).
+- Overlay-driven tenancy settings now define tenant inventories, lifecycle stages, stage defaults, and module expectations (`tenancy` section in `config/fixops.overlay.yml`).
+- Pipeline runs emit `tenant_lifecycle` summaries highlighting stage distribution, module gaps, and support/billing metadata for each tenant.
+- Roadmap: add overlay versioning, tenant-specific RBAC, and approval workflows for managed multi-tenant environments (tracked in `audit/GAPS.md` and `docs/PR_SUMMARY.md`).
 
 ## Performance simulation & observability
-- **Near real-time simulation** – `python -m simulations.cve_scenario.runner --mode {demo,enterprise}` mirrors production flows (context engine, automation connectors, evidence bundling) against CVE-2021-44228 to validate severity shifts in seconds.
-- **Benchmarks & profiling** – `perf/BENCHMARKS.csv` captures timing; extend via `python scripts/generate_index.py --bench` to aggregate additional profiles.
-- **Runtime metrics** – Overlay hooks expose module execution durations and automation manifest status in pipeline responses for lightweight monitoring integrations.
+- **Pipeline performance module** – The `performance_profile` block computes cumulative latency, throughput, and backlog recommendations based on overlay targets for demo and enterprise runs.
+- **Scenario replay** – `python -m simulations.cve_scenario.runner --mode {demo,enterprise}` still mirrors production flows (context, automation, evidence) against CVE-2021-44228, now capturing ROI and performance outputs alongside severity shifts.
+- **Benchmarks & profiling** – `perf/BENCHMARKS.csv` captures timing; extend via `python scripts/generate_index.py --bench` to aggregate additional profiles while aligning with overlay thresholds.
 
 ## Troubleshooting & support
 - Verify artefact cache health with `python -m fixops.cli show-overlay` and inspect `data/uploads/` for sanitized filenames.

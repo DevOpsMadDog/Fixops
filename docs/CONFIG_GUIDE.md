@@ -238,6 +238,30 @@ iac:
 - Each feed entry can define `url` or `path`, a `destination` filename relative to `data.feeds_dir`, and optional `score_field` / `mark_exploited` attributes.
 - The pipeline refreshes feeds when the last download exceeds `refresh_interval_hours`, updates CVE records in-memory, and writes the raw feed for auditors to review.
 
+### Analytics and ROI configuration
+
+- Define ROI assumptions under `analytics.baseline` (`findings_per_interval`, `review_minutes_per_finding`, `mttr_hours`, `audit_hours`).
+- Capture improvement goals in `analytics.targets` (e.g., `mttr_hours`, `audit_hours`) and monetary assumptions under `analytics.costs` (`currency`, `hourly_rate`).
+- `analytics.module_weights` assigns proportional ROI value to each enabled module; weights auto-normalise when omitted.
+- Optional `analytics.metrics` can store custom KPIs that downstream dashboards render alongside the computed ROI summary.
+- Per-mode overrides under `analytics.profiles.<mode>` let enterprise deployments increase automation savings or change hourly rates without touching the base profile.
+
+### Tenant lifecycle settings
+
+- `tenancy.defaults` lists modules that every tenant should execute plus support/billing contacts surfaced in pipeline responses.
+- `tenancy.tenants` enumerates known tenants with `id`, `name`, `status`, `stage`, `environments`, optional `modules` overrides, and free-form `notes` for contextualisation.
+- `tenancy.lifecycle` defines lifecycle `stages`, optional `stage_defaults` module expectations, and allowed `transitions` between stages.
+- Enterprise overlays can append tenants or adjust defaults via `tenancy.profiles.<mode>`. Entries are appended to the base list so demo and enterprise inventories can coexist.
+- Pipeline runs emit `tenant_lifecycle` summaries highlighting stage counts, module gaps, and operational metadata for each tenant; evidence bundles include the same payload when the tenancy module is enabled.
+
+### Performance simulation thresholds
+
+- `performance.baseline.per_module_ms` sets the fallback duration applied when a module-specific latency is not provided.
+- `performance.module_latency_ms` maps each module to a nominal execution time in milliseconds, enabling realistic per-module and cumulative timelines.
+- Throughput and latency targets live under `performance.ingestion_throughput_per_minute` and `performance.near_real_time_threshold_ms`.
+- `performance.capacity` declares expected `concurrent_runs` and optional `burst_runs` so the simulator can flag backlogs.
+- Profiles can override any of the above via `performance.profiles.<mode>`—enterprise overlays typically increase throughput thresholds and adjust module timings for heavier automations.
+
 ## Demo Mode Example
 
 ```yaml

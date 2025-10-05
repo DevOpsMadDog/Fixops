@@ -122,6 +122,9 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
     summary_output = capsys.readouterr().out
     assert "FixOps pipeline summary" in summary_output
     assert "Highest severity" in summary_output
+    assert "Estimated ROI" in summary_output
+    assert "Performance status" in summary_output
+    assert "Tenants tracked" in summary_output
 
 
 def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
