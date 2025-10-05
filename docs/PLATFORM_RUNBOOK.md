@@ -15,7 +15,7 @@ This runbook summarises the shipped feature set, end-to-end data flow, CLI/API t
 | AI agent advisor | Framework detection, control recommendations, playbook routing | `fixops/ai_agents.py` |
 | Exploitability signals | EPSS/KEV-driven exploit context and escalation hints | `fixops/exploit_signals.py`, `config/fixops.overlay.yml` |
 | Probabilistic forecast engine | Bayesian priors + Markov transitions yielding escalation metrics | `fixops/probabilistic.py`, `backend/pipeline.py` |
-| ROI analytics dashboard | ROI estimates, MTTR deltas, automation savings per module | `fixops/analytics.py`, `backend/pipeline.py` |
+| ROI analytics & history | ROI estimates, MTTR deltas, automation savings, historical dashboards | `fixops/analytics.py`, `backend/pipeline.py`, `backend/app.py` |
 | Tenant lifecycle orchestration | Tenant inventories, lifecycle stages, module coverage gaps | `fixops/tenancy.py`, `config/fixops.overlay.yml` |
 | Performance simulator | Near real-time latency forecasts, throughput targets, backlog guidance | `fixops/performance.py`, `backend/pipeline.py` |
 | SSDLC evaluator | Stage-by-stage lifecycle coverage report | `fixops/ssdlc.py` |
@@ -80,10 +80,11 @@ The push-model API stays consistent for every stakeholder, but the overlay toggl
 each persona. Use the following checklists to script role-specific workflows:
 
   - **CISO / Risk Executive**
-    - Ensure the overlay profile enables `modules.analytics`, `modules.performance`, `pricing.disclosure`, and `guardrails.escalate_on_fail`.
-    - Execute `curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -X POST http://127.0.0.1:8000/pipeline/run | jq '.guardrails,.analytics.overview,.performance_profile.summary,.pricing_summary'`
-      to review governance posture, ROI value, and latency status.
-    - Download the latest evidence bundle listed in `.evidence_bundle.files.bundle` to brief audit/compliance teams with embedded analytics sections.
+  - Ensure the overlay profile enables `modules.analytics`, `modules.performance`, `pricing.disclosure`, and `guardrails.escalate_on_fail`.
+  - Execute `curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -X POST http://127.0.0.1:8000/pipeline/run | jq '.guardrails,.analytics.overview,.performance_profile.summary,.pricing_summary'`
+    to review governance posture, ROI value, and latency status.
+  - Capture the `run_id` and `.analytics_persistence` fields from `/pipeline/run`, then query `curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" http://127.0.0.1:8000/analytics/dashboard` and `.../analytics/runs/$run_id` for persisted forecasts, exploit snapshots, ticket metrics, and feedback summaries.
+  - Download the latest evidence bundle listed in `.evidence_bundle.files.bundle` to brief audit/compliance teams with embedded analytics sections.
 
   - **CTEM Lead**
     - Upload fresh KEV/EPSS feeds via `/inputs/cve` and trigger the run; inspect `.exploitability.signals` for hot spots and `.analytics.insights` for contextualised savings.
@@ -237,14 +238,23 @@ The script leverages the blended enterprise scorer to contrast scanner severitie
    - Evidence bundle manifest paths
    - Pricing summary with active plan
    - Exploit feed refresh status (auto-ingested KEV/EPSS snapshots)
+   - Analytics persistence pointers (`run_id`, `.analytics_persistence`, `/analytics/runs/{run_id}` dashboards)
 
 5. **Feedback capture** – if `toggles.capture_feedback` is true, post a JSON payload to `/feedback` and verify the JSONL entry appears under the overlay-configured `feedback_dir`.
+
+6. **Analytics dashboards** – capture the `run_id` from `/pipeline/run`, then call:
+   ```bash
+   curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" http://127.0.0.1:8000/analytics/dashboard | jq '.forecasts.recent[0]' \
+     && curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" http://127.0.0.1:8000/analytics/runs/$RUN_ID | jq '.forecasts[0].summary'
+   ```
+   Validate that forecasts, exploit snapshots, ticket metrics, and feedback decisions were persisted for the latest run.
 
 ## Data & Evidence Handling
 
 - Overlay allowlists constrain upload destinations (`FIXOPS_DATA_ROOT_ALLOWLIST`).
 - Evidence bundles include manifest + archive paths; the CVE simulation asserts both files exist when guardrails trigger bundling.
 - Feedback entries live under `data/feedback/<mode>/<run_id>/feedback.jsonl`, matching SSDLC "feedback_loop" requirements.
+- Analytics artefacts (forecasts, exploit snapshots, ticket metrics, feedback outcomes) persist under `data/analytics/<mode>/` unless `data.analytics_dir` overrides it. Responses now include `run_id` and `analytics_persistence` so operators can fetch `/analytics/dashboard` or `/analytics/runs/{run_id}` for historical reviews.
 - Policy automation dispatches emit JSON manifests under `data/automation/<mode>/` and simultaneously call Jira, Confluence, and Slack connectors when `toggles.enforce_ticket_sync` is true. Configure `FIXOPS_JIRA_TOKEN`, `FIXOPS_CONFLUENCE_TOKEN`, and `FIXOPS_SLACK_WEBHOOK` to enable live delivery.
 - Exploit signal auto-refresh writes downloaded feeds to `data/feeds/<mode>/` and annotates CVE records when KEV/EPSS data changes.
 

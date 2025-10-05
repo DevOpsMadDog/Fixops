@@ -9,7 +9,7 @@ from html import escape
 from pathlib import Path
 from typing import Any, Dict, Mapping, MutableMapping, Optional
 
-from fixops.analytics import FeedbackOutcomeStore
+from fixops.analytics import AnalyticsStore, FeedbackOutcomeStore
 from fixops.configuration import OverlayConfig
 from fixops.connectors import ConfluenceConnector, ConnectorOutcome, JiraConnector
 from fixops.paths import ensure_secure_directory
@@ -30,6 +30,7 @@ class FeedbackRecorder:
         *,
         connectors: Optional[Mapping[str, Any]] = None,
         outcome_store: Optional[FeedbackOutcomeStore] = None,
+        analytics_store: Optional[AnalyticsStore] = None,
     ):
         self.overlay = overlay
         directories = overlay.data_directories
@@ -52,7 +53,12 @@ class FeedbackRecorder:
                     "confluence": ConfluenceConnector(overlay.confluence),
                 }
             )
-        self._outcome_store = outcome_store or FeedbackOutcomeStore(self.base_dir)
+        if outcome_store is not None:
+            self._outcome_store = outcome_store
+        else:
+            self._outcome_store = FeedbackOutcomeStore(
+                self.base_dir, analytics_store=analytics_store
+            )
 
     def _validate_payload(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         run_id = payload.get("run_id")
@@ -109,6 +115,10 @@ class FeedbackRecorder:
         with feedback_path.open("a", encoding="utf-8") as handle:
             handle.write(line + "\n")
         connectors = self._forward_to_connectors(entry)
+        try:
+            self._outcome_store.record_feedback_event(entry)
+        except Exception:  # pragma: no cover - persistence best effort
+            logger.exception("Failed to persist feedback analytics for run %s", entry["run_id"])
         if connectors:
             try:
                 self._outcome_store.record(entry["run_id"], connectors)
