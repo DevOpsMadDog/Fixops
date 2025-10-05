@@ -93,6 +93,290 @@ _ALLOWED_OVERLAY_KEYS = {
 }
 
 
+def _require_mapping(value: Any, location: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{location} must be a mapping")
+    return value
+
+
+def _require_string(value: Any, location: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{location} must be a string")
+    text = value.strip()
+    if not text:
+        raise ValueError(f"{location} cannot be empty")
+    return text
+
+
+def _optional_string(value: Any, location: str) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{location} must be a string")
+    text = value.strip()
+    return text or None
+
+
+def _string_list(value: Any, location: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"{location} must be a list of strings")
+    cleaned: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            raise ValueError(f"{location}[{index}] must be a string")
+        text = item.strip()
+        if not text:
+            raise ValueError(f"{location}[{index}] cannot be empty")
+        cleaned.append(text)
+    return cleaned
+
+
+def _validate_compliance_frameworks(raw: Any, location: str) -> list[Dict[str, Any]]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"{location} must be a list of frameworks")
+    frameworks: list[Dict[str, Any]] = []
+    for index, entry in enumerate(raw):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"{location}[{index}] must be a mapping")
+        unexpected = set(entry) - {"name", "description", "version", "controls", "metadata"}
+        if unexpected:
+            raise ValueError(
+                f"{location}[{index}] contains unexpected keys: {sorted(unexpected)}"
+            )
+        framework: Dict[str, Any] = {"name": _require_string(entry.get("name"), f"{location}[{index}].name")}
+        description = _optional_string(entry.get("description"), f"{location}[{index}].description")
+        if description:
+            framework["description"] = description
+        version = _optional_string(entry.get("version"), f"{location}[{index}].version")
+        if version:
+            framework["version"] = version
+        controls = _validate_compliance_controls(
+            entry.get("controls"), f"{location}[{index}].controls"
+        )
+        framework["controls"] = controls
+        metadata = entry.get("metadata")
+        if metadata is not None:
+            framework["metadata"] = dict(_require_mapping(metadata, f"{location}[{index}].metadata"))
+        frameworks.append(framework)
+    return frameworks
+
+
+def _validate_compliance_controls(raw: Any, location: str) -> list[Dict[str, Any]]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"{location} must be a list of controls")
+    controls: list[Dict[str, Any]] = []
+    for index, entry in enumerate(raw):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"{location}[{index}] must be a mapping")
+        unexpected = set(entry) - {"id", "title", "description", "requires", "tags", "metadata"}
+        if unexpected:
+            raise ValueError(
+                f"{location}[{index}] contains unexpected keys: {sorted(unexpected)}"
+            )
+        control: Dict[str, Any] = {"id": _require_string(entry.get("id"), f"{location}[{index}].id")}
+        title = _optional_string(entry.get("title"), f"{location}[{index}].title")
+        if title:
+            control["title"] = title
+        description = _optional_string(entry.get("description"), f"{location}[{index}].description")
+        if description:
+            control["description"] = description
+        control["requires"] = _string_list(entry.get("requires"), f"{location}[{index}].requires")
+        tags = _string_list(entry.get("tags"), f"{location}[{index}].tags")
+        if tags:
+            control["tags"] = tags
+        metadata = entry.get("metadata")
+        if metadata is not None:
+            control["metadata"] = dict(
+                _require_mapping(metadata, f"{location}[{index}].metadata")
+            )
+        controls.append(control)
+    return controls
+
+
+def _validate_compliance_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    if not raw:
+        return {}
+    _require_mapping(raw, "compliance")
+    unexpected = set(raw) - {"frameworks", "profiles"}
+    if unexpected:
+        raise ValueError(f"compliance contains unexpected keys: {sorted(unexpected)}")
+    config: Dict[str, Any] = {}
+    frameworks = _validate_compliance_frameworks(raw.get("frameworks"), "compliance.frameworks")
+    config["frameworks"] = frameworks
+    profiles_raw = raw.get("profiles")
+    if profiles_raw is not None:
+        profiles_mapping = _require_mapping(profiles_raw, "compliance.profiles")
+        profiles: Dict[str, Any] = {}
+        for profile_name, profile_value in profiles_mapping.items():
+            profile_key = _require_string(profile_name, "compliance.profiles key")
+            profile_mapping = _require_mapping(
+                profile_value, f"compliance.profiles['{profile_key}']"
+            )
+            unexpected_profile = set(profile_mapping) - {"frameworks"}
+            if unexpected_profile:
+                raise ValueError(
+                    "compliance.profiles['{profile}'] contains unexpected keys: {keys}".format(
+                        profile=profile_key, keys=sorted(unexpected_profile)
+                    )
+                )
+            profile_frameworks = _validate_compliance_frameworks(
+                profile_mapping.get("frameworks"),
+                f"compliance.profiles['{profile_key}'].frameworks",
+            )
+            profiles[profile_key] = {"frameworks": profile_frameworks}
+        if profiles:
+            config["profiles"] = profiles
+    return config
+
+
+def _validate_policy_actions(raw: Any, location: str) -> list[Dict[str, Any]]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"{location} must be a list of actions")
+    allowed_fields = {
+        "id",
+        "trigger",
+        "type",
+        "summary",
+        "description",
+        "priority",
+        "project_key",
+        "issue_type",
+        "force_delivery",
+        "space",
+        "title",
+        "body",
+        "content",
+        "representation",
+        "parent_page_id",
+        "webhook_url",
+        "channel",
+        "text",
+        "metadata",
+    }
+    allowed_triggers = {"guardrail:fail", "guardrail:warn", "context:high", "compliance:gap"}
+    allowed_types = {"jira_issue", "confluence_page", "slack"}
+    actions: list[Dict[str, Any]] = []
+    for index, entry in enumerate(raw):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"{location}[{index}] must be a mapping")
+        unexpected = set(entry) - allowed_fields
+        if unexpected:
+            raise ValueError(
+                f"{location}[{index}] contains unexpected keys: {sorted(unexpected)}"
+            )
+        trigger = _require_string(entry.get("trigger"), f"{location}[{index}].trigger").lower()
+        if trigger not in allowed_triggers:
+            raise ValueError(
+                f"{location}[{index}].trigger must be one of {sorted(allowed_triggers)}"
+            )
+        action_type = _require_string(entry.get("type"), f"{location}[{index}].type").lower()
+        if action_type not in allowed_types:
+            raise ValueError(
+                f"{location}[{index}].type must be one of {sorted(allowed_types)}"
+            )
+        action: Dict[str, Any] = {"trigger": trigger, "type": action_type}
+        optional_fields = {
+            "id",
+            "summary",
+            "description",
+            "priority",
+            "project_key",
+            "issue_type",
+            "space",
+            "title",
+            "body",
+            "content",
+            "representation",
+            "parent_page_id",
+            "webhook_url",
+            "channel",
+            "text",
+        }
+        for field in optional_fields:
+            if field in entry and entry[field] is not None:
+                value = entry[field]
+                if field == "parent_page_id" and isinstance(value, (int, float)):
+                    action[field] = str(int(value))
+                else:
+                    action[field] = _require_string(value, f"{location}[{index}].{field}")
+        if "force_delivery" in entry and entry["force_delivery"] is not None:
+            value = entry["force_delivery"]
+            if isinstance(value, bool):
+                action["force_delivery"] = value
+            else:
+                raise ValueError(f"{location}[{index}].force_delivery must be a boolean")
+        metadata = entry.get("metadata")
+        if metadata is not None:
+            action["metadata"] = dict(
+                _require_mapping(metadata, f"{location}[{index}].metadata")
+            )
+        actions.append(action)
+    return actions
+
+
+def _validate_policy_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    if not raw:
+        return {}
+    _require_mapping(raw, "policy_automation")
+    allowed_keys = {
+        "slack_webhook_env",
+        "webhook_env",
+        "webhook_url",
+        "context_high_threshold",
+        "actions",
+        "profiles",
+    }
+    unexpected = set(raw) - allowed_keys
+    if unexpected:
+        raise ValueError(f"policy_automation contains unexpected keys: {sorted(unexpected)}")
+    config: Dict[str, Any] = {}
+    for key in {"slack_webhook_env", "webhook_env", "webhook_url"}:
+        if key in raw and raw[key] is not None:
+            config[key] = _require_string(raw[key], f"policy_automation.{key}")
+    if "context_high_threshold" in raw and raw["context_high_threshold"] is not None:
+        threshold = raw["context_high_threshold"]
+        if isinstance(threshold, str):
+            if not threshold.strip().isdigit():
+                raise ValueError("policy_automation.context_high_threshold must be an integer")
+            config["context_high_threshold"] = int(threshold.strip())
+        elif isinstance(threshold, (int, float)):
+            config["context_high_threshold"] = int(threshold)
+        else:
+            raise ValueError("policy_automation.context_high_threshold must be an integer")
+    actions = _validate_policy_actions(raw.get("actions"), "policy_automation.actions")
+    config["actions"] = actions
+    profiles_raw = raw.get("profiles")
+    if profiles_raw is not None:
+        profiles_mapping = _require_mapping(profiles_raw, "policy_automation.profiles")
+        profiles: Dict[str, Any] = {}
+        for profile_name, profile_value in profiles_mapping.items():
+            profile_key = _require_string(profile_name, "policy_automation.profiles key")
+            profile_mapping = _require_mapping(
+                profile_value, f"policy_automation.profiles['{profile_key}']"
+            )
+            unexpected_profile = set(profile_mapping) - {"actions"}
+            if unexpected_profile:
+                raise ValueError(
+                    "policy_automation.profiles['{profile}'] contains unexpected keys: {keys}".format(
+                        profile=profile_key, keys=sorted(unexpected_profile)
+                    )
+                )
+            profile_actions = _validate_policy_actions(
+                profile_mapping.get("actions"),
+                f"policy_automation.profiles['{profile_key}'].actions",
+            )
+            profiles[profile_key] = {"actions": profile_actions}
+        if profiles:
+            config["profiles"] = profiles
+    return config
 class _OverlayDocument(BaseModel):
     """Pydantic schema for validating overlay documents."""
 
@@ -692,6 +976,12 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     profile_overrides = profiles.get(selected_mode) if isinstance(profiles, Mapping) else None
     if isinstance(profile_overrides, Mapping):
         _deep_merge(base, dict(profile_overrides))
+
+    try:
+        base["compliance"] = _validate_compliance_config(base.get("compliance"))
+        base["policy_automation"] = _validate_policy_config(base.get("policy_automation"))
+    except ValueError as exc:
+        raise ValueError(f"Overlay validation failed: {exc}") from exc
 
     toggles = base.setdefault("toggles", {})
     toggles.setdefault("require_design_input", True)

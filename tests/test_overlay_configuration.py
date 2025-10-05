@@ -1,5 +1,4 @@
 import json
-import json
 from pathlib import Path
 
 import pytest
@@ -113,3 +112,63 @@ def test_token_strategy_requires_environment(monkeypatch: pytest.MonkeyPatch, tm
     path.write_text(json.dumps(overlay_content), encoding="utf-8")
     with pytest.raises(RuntimeError):
         load_overlay(path)
+
+
+def test_compliance_controls_reject_unknown_fields(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "compliance": {
+            "frameworks": [
+                {
+                    "name": "SOC 2",
+                    "controls": [
+                        {
+                            "id": "CC8.1",
+                            "requires": ["design"],
+                            "unexpected": True,
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)
+
+
+def test_policy_actions_reject_unknown_fields(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "policy_automation": {
+            "actions": [
+                {
+                    "trigger": "guardrail:fail",
+                    "type": "jira_issue",
+                    "unknown": "value",
+                }
+            ]
+        }
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)
+
+
+def test_policy_action_triggers_normalised(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "policy_automation": {
+            "actions": [
+                {
+                    "trigger": "Guardrail:Fail",
+                    "type": "JIRA_Issue",
+                }
+            ]
+        }
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    config = load_overlay(path)
+    actions = config.policy_settings["actions"]
+    assert actions and actions[0]["trigger"] == "guardrail:fail"
+    assert actions[0]["type"] == "jira_issue"
