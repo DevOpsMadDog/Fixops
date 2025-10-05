@@ -1,78 +1,97 @@
-# Data Model Reference
+# Data Model
 
-The backend works with a handful of lightweight dataclasses that wrap the parsed artefacts. This
-section translates those models into plain language and explains key invariants.
+This reference summarises the primary domain models used by the ingestion service and the overlay
+configuration. Each description lists core fields, invariants, and persistence notes.
 
-## SBOM Normalisation
+## Overlay Configuration (`fixops.configuration.OverlayConfig`)
 
-- **`SBOMComponent`** (`backend/normalizers.py`)
-  - Represents a single software component from the SBOM.
-  - Fields:
-    - `name` (string, required): component identifier.
-    - `version` (string, optional): semantic version.
-    - `purl` (string, optional): Package URL when provided.
-    - `licenses` (list of strings): flattened licence names.
-    - `supplier` (string, optional): supplier name; may come from nested dicts.
-    - `raw` (dict): full package object for traceability.
-  - Invariants: `raw` always contains the original SBOM entry to avoid data loss.
+- **mode** (`str`): Lower-case identifier for the active profile (`demo` or `enterprise`). Always
+  stored in metadata for auditing.
+- **jira / confluence / git / ci / auth** (`dict`): Integration payloads keyed by integration name.
+  Secrets are masked when exported via `to_sanitised_dict()`.
+- **data** (`dict`): Maps logical directories (`design_context_dir`, `evidence_dir`, etc.) to paths.
+  `OverlayConfig.data_directories` expands and normalises them to `Path` objects.
+- **toggles** (`dict`): Feature flags controlling runtime behaviour. Defaults:
+  - `require_design_input` (`bool`): Whether `/pipeline/run` requires a design dataset.
+  - `auto_attach_overlay_metadata` (`bool`): Whether pipeline responses include overlay metadata.
+  - `enforce_ticket_sync` (`bool`): If `True`, Jira configuration must include `project_key`.
+- **guardrails** (`dict`): Maturity-aware policy settings with optional overrides.
+  - `maturity` (`str`): One of `foundational`, `scaling`, `advanced`. Defaults to `scaling` when not provided.
+  - `fail_on` / `warn_on` (`str`): Optional severity thresholds overriding defaults per maturity.
+  - `profiles` (`dict`): Nested overrides keyed by maturity, enabling per-mode tuning.
+- **metadata** (`dict`): Loader-supplied diagnostics (source path, applied profile list, etc.).
+- **context_engine / evidence_hub / onboarding / compliance / policy_automation / pricing / limits**
+  (`dict`): Sub-configurations merged with per-mode overrides to drive contextual scoring, evidence
+  bundling, onboarding checklists, compliance packs, policy actions, billing, and upload limits.
+- **ai_agents** (`dict`): Watchlist signatures, control recommendations, and playbooks used by
+  `AIAgentAdvisor` to build governance summaries.
+- **exploit_signals** (`dict`): Signal definitions (e.g., KEV boolean checks, EPSS probability
+  thresholds) merged per mode and evaluated by `ExploitSignalEvaluator`.
+- **probabilistic** (`dict`): Bayesian prior weights, Markov transition matrices, component limits,
+  and per-mode overrides feeding the `ProbabilisticForecastEngine`.
+- **ssdlc** (`dict`): Stage requirements and per-mode overrides powering lifecycle assessments.
 
-- **`NormalizedSBOM`**
-  - Bundles the full parsed SBOM document, component list, relationships, services, vulnerabilities,
-    and metadata counters.
-  - Metadata includes `component_count`, `relationship_count`, `service_count`, and
-    `vulnerability_count` for quick dashboards.
+## Normalisation Models (`backend/normalizers.py`)
 
-## CVE / KEV Feeds
+- **SBOMComponent**
+  - Fields: `name`, `version`, `purl`, `licenses`, `raw` (original package record).
+  - Invariants: `name` is preserved as provided; `to_dict()` always includes `raw` for traceability.
+- **NormalizedSBOM**
+  - Fields: `format`, `document`, `components` (`List[SBOMComponent]`), `metadata` (counts).
+  - Invariants: `metadata['component_count']` matches `len(components)`.
+- **CVERecordSummary**
+  - Fields: `cve_id`, `title`, `severity`, `exploited`, `raw`.
+  - Invariants: `severity` normalised to lowercase strings; `exploited` is boolean.
+- **NormalizedCVEFeed**
+  - Fields: `records` (`List[CVERecordSummary]`), `metadata` (record counts), `errors` (validation
+    messages).
+  - Invariants: `metadata['record_count']` equals `len(records)`.
+- **SarifFinding**
+  - Fields: `rule_id`, `level`, `file`, `message`, `raw`.
+  - Invariants: `raw` retains the original SARIF result for audit evidence.
+- **NormalizedSARIF**
+  - Fields: `tool_names`, `metadata` (finding counts), `findings` (`List[SarifFinding]`).
+  - Invariants: `metadata['finding_count']` equals `len(findings)`.
 
-- **`CVERecordSummary`**
-  - Focuses on correlation-friendly fields: `cve_id`, `title`, `severity`, `exploited`, and `raw`.
-  - `exploited` is derived from several possible boolean flags for broad feed compatibility.
+## Pipeline Output (`backend/pipeline.py`)
 
-- **`NormalizedCVEFeed`**
-  - Contains the list of `CVERecordSummary` objects, any validation errors, and metadata such as
-    `record_count` and optional `validation_errors` counts.
-  - Records may include validation issues even if ingestion succeeded; callers should inspect both
-    `records` and `errors`.
+`PipelineOrchestrator.run()` produces a dictionary with:
 
-## SARIF Findings
+- `status`: Always `"ok"` on success.
+- `design_summary`: `row_count` and `unique_components` (sorted, deduplicated list).
+- `sbom_summary`: Source metadata plus SBOM `format` and `document_name` (if present).
+- `sarif_summary`: Metadata, severity histogram (`severity_breakdown`), and tool names.
+- `cve_summary`: Metadata plus `exploited_count` tally.
+- `severity_overview`: Highest severity observed, aggregated counts, and per-source breakdown.
+- `guardrail_evaluation`: Resolved maturity tier, thresholds, trigger metadata, and pass/warn/fail status
+  derived from the overlay policy.
+- `crosswalk`: List of dictionaries, one per design row, containing:
+  - `design_row`: Original row values.
+  - `sbom_component`: Matched component dictionary (or `None`).
+  - `findings`: SARIF findings matched by token.
+  - `cves`: CVE summaries matched by token.
+- `context_summary`: Output of the business-aware context engine (scores, playbooks, component
+  highlights).
+- `onboarding`: Overlay-driven checklist of integrations/artefacts still outstanding.
+- `compliance_status`: Framework-by-framework control coverage, including unmet requirements.
+- `policy_automation`: Planned Jira/Confluence/notification actions derived from guardrails and
+  compliance state.
+- `ai_agent_analysis`: Detection summary for configured AI frameworks plus residual risks and
+  playbook routing.
+- `probabilistic_forecast`: Posterior severity distribution, next-state Markov projection, entropy,
+  and top component escalation probabilities produced by the probabilistic engine when enabled.
+- `exploitability_insights`: EPSS/KEV matches, thresholds, and recommended escalations emitted by the
+  exploit signal evaluator when signals are configured.
+- `ssdlc_assessment`: Stage coverage summary (plan→audit) including unmet requirements.
+- `evidence_bundle`: Manifest describing persisted bundle paths and included sections.
+- `pricing_summary`: Available plans plus the active plan for the current mode.
+- `overlay`: Present when `auto_attach_overlay_metadata` is enabled. Contains sanitized integration
+  payloads and `required_inputs` describing the mode-specific prerequisites.
 
-- **`SarifFinding`**
-  - Stores the fields needed for quick inspection: `rule_id`, `message`, `level`, `file`, `line`,
-    and the original `raw` SARIF result.
+## Persistence Rules
 
-- **`NormalizedSARIF`**
-  - Tracks SARIF `version`, optional `$schema` URI, a list of tool names, extracted findings, and
-    metadata counters for runs and findings.
-
-## Design Dataset
-
-- Captured as a plain dictionary: `{ "columns": [..], "rows": [ {"component": ...}, ... ] }`.
-- Rows can use any of the keys `component`, `Component`, or `service`. The orchestrator trims white
-  space and handles case-insensitive matching.
-
-## Crosswalk Output
-
-- Each entry returned by `PipelineOrchestrator.run()` looks like:
-
-```json
-{
-  "design_row": {"component": "Payment-Service"},
-  "sbom_component": {
-    "name": "payment-service",
-    "version": "1.0.0",
-    "licenses": [],
-    "supplier": null,
-    "purl": null,
-    "raw": {"name": "payment-service", "version": "1.0.0"}
-  },
-  "findings": [{"rule_id": "CWE-79", "message": "…"}],
-  "cves": [{"cve_id": "CVE-2023-0001", "severity": "HIGH"}]
-}
-```
-
-- Summaries in the response provide quick statistics without reprocessing:
-  - `design_summary`: total rows and unique component names.
-  - `sbom_summary`: SBOM metadata plus source document name.
-  - `sarif_summary`: run/finding counts, severity histogram, and tools used.
-  - `cve_summary`: record counts and exploited record tally.
-
+- Artefacts are cached in-memory (`app.state.artifacts`) for the lifetime of the FastAPI process.
+- Overlay directories are created on startup but no files are written automatically. Downstream
+  evidence exporters should respect `OverlayConfig.data_directories` for durable storage.
+- No relational database is used in this demo; persistence responsibilities are intentionally left to
+  downstream modules (to be implemented in Enterprise mode).

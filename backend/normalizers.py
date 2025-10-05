@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+from __future__ import annotations
+
+import base64
+import binascii
+import gzip
+import io
 import json
 import logging
+import zipfile
 from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable, List, Optional
 
@@ -142,58 +149,118 @@ class InputNormalizer:
         self.sbom_type = sbom_type
 
     @staticmethod
-    def _ensure_text(content: Any) -> str:
+    def _ensure_bytes(content: Any) -> bytes:
         if isinstance(content, bytes):
-            return content.decode("utf-8", errors="ignore")
+            return content
         if hasattr(content, "read"):
             data = content.read()
             if isinstance(data, bytes):
-                return data.decode("utf-8", errors="ignore")
-            return str(data)
-        return str(content)
+                return data
+            return str(data).encode("utf-8")
+        if isinstance(content, str):
+            return content.encode("utf-8")
+        return str(content).encode("utf-8")
+
+    @staticmethod
+    def _maybe_decode_base64(data: bytes) -> bytes:
+        stripped = data.strip()
+        if not stripped or len(stripped) % 4 != 0:
+            return data
+        try:
+            decoded = base64.b64decode(stripped, validate=True)
+        except (binascii.Error, ValueError):
+            return data
+        return decoded or data
+
+    @staticmethod
+    def _maybe_decompress(data: bytes) -> bytes:
+        if data.startswith(b"\x1f\x8b"):
+            try:
+                return gzip.decompress(data)
+            except OSError:
+                return data
+        buffer = io.BytesIO(data)
+        if zipfile.is_zipfile(buffer):
+            with zipfile.ZipFile(buffer) as archive:
+                names = [name for name in archive.namelist() if not name.endswith("/")]
+                priority = (
+                    ".json",
+                    ".sarif",
+                    ".cdx",
+                    ".spdx.json",
+                    ".xml",
+                )
+                chosen: Optional[str] = None
+                for suffix in priority:
+                    for name in names:
+                        if name.lower().endswith(suffix):
+                            chosen = name
+                            break
+                    if chosen:
+                        break
+                if not chosen and names:
+                    chosen = names[0]
+                if chosen:
+                    return archive.read(chosen)
+        return data
+
+    def _prepare_text(self, raw: Any) -> str:
+        data = self._ensure_bytes(raw)
+        data = self._maybe_decode_base64(data)
+        data = self._maybe_decompress(data)
+        return data.decode("utf-8", errors="ignore")
 
     def load_sbom(self, raw: Any) -> NormalizedSBOM:
         """Normalise an SBOM using lib4sbom."""
 
-        payload = self._ensure_text(raw)
+        payload = self._prepare_text(raw)
         parser = sbom_parser.SBOMParser(self.sbom_type)
         parser.parse_string(payload)
 
         packages = parser.get_packages() or []
         components = []
+        append_component = components.append
         for package in packages:
             licenses: Iterable[Any] = package.get("licenses", [])
             license_values = [
                 item.get("license") if isinstance(item, dict) else str(item)
                 for item in licenses
             ]
-            components.append(
+            supplier = package.get("supplier")
+            if isinstance(supplier, dict):
+                supplier_name = supplier.get("name")
+            else:
+                supplier_name = supplier
+
+            append_component(
                 SBOMComponent(
                     name=package.get("name", "unknown"),
                     version=package.get("version"),
                     purl=package.get("package_url") or package.get("purl"),
                     licenses=license_values,
-                    supplier=(package.get("supplier") or {}).get("name")
-                    if isinstance(package.get("supplier"), dict)
-                    else package.get("supplier"),
+                    supplier=supplier_name,
                     raw=package,
                 )
             )
 
+        relationships = parser.get_relationships() or []
+        services = parser.get_services() or []
+        vulnerabilities = parser.get_vulnerabilities() or []
+
         metadata = {
             "component_count": len(components),
-            "relationship_count": len(parser.get_relationships() or []),
-            "service_count": len(parser.get_services() or []),
-            "vulnerability_count": len(parser.get_vulnerabilities() or []),
+            "relationship_count": len(relationships),
+            "service_count": len(services),
+            "vulnerability_count": len(vulnerabilities),
         }
 
         normalized = NormalizedSBOM(
             format=parser.get_type(),
             document=parser.get_document() or {},
             components=components,
-            relationships=parser.get_relationships() or [],
-            services=parser.get_services() or [],
-            vulnerabilities=parser.get_vulnerabilities() or [],
+            relationships=relationships,
+            services=services,
+            vulnerabilities=vulnerabilities,
             metadata=metadata,
         )
         logger.debug("Normalised SBOM", extra={"metadata": metadata})
@@ -202,16 +269,16 @@ class InputNormalizer:
     def load_cve_feed(self, raw: Any) -> NormalizedCVEFeed:
         """Normalise CVE/KEV feeds using cvelib for schema validation."""
 
-        payload = self._ensure_text(raw)
+        payload = self._prepare_text(raw)
         data = json.loads(payload)
 
         if isinstance(data, dict):
-            if "vulnerabilities" in data:
-                entries = data["vulnerabilities"]
-            elif "cves" in data:
-                entries = data["cves"]
-            else:
-                entries = data.get("data", [])
+            entries = (
+                data.get("vulnerabilities")
+                or data.get("cves")
+                or data.get("data")
+                or []
+            )
         elif isinstance(data, list):
             entries = data
         else:
@@ -260,13 +327,13 @@ class InputNormalizer:
                 if isinstance(entry.get("cve"), dict)
                 else None
             )
-            severity = (
-                entry.get("severity")
-                or entry.get("cvssV3Severity")
-                or entry.get("impact", {})
-                .get("baseMetricV3", {})
-                .get("baseSeverity")
-            )
+            severity = entry.get("severity") or entry.get("cvssV3Severity")
+            if not severity:
+                impact = entry.get("impact", {})
+                if isinstance(impact, dict):
+                    metric = impact.get("baseMetricV3", {})
+                    if isinstance(metric, dict):
+                        severity = metric.get("baseSeverity")
             exploited = bool(
                 entry.get("knownRansomwareCampaignUse")
                 or entry.get("knownExploited")
@@ -294,21 +361,24 @@ class InputNormalizer:
     def load_sarif(self, raw: Any) -> NormalizedSARIF:
         """Normalise SARIF logs via sarif-om with optional Snyk conversion."""
 
-        payload = self._ensure_text(raw)
+        payload = self._prepare_text(raw)
         data = json.loads(payload)
 
-        if "runs" not in data and snyk_converter is not None:
+        runs = data.get("runs") if isinstance(data, dict) else None
+
+        if (not runs) and snyk_converter is not None:
             convert = getattr(snyk_converter, "convert", None) or getattr(
                 snyk_converter, "to_sarif", None
             )
             if convert:
                 data = convert(data)  # type: ignore[misc]
+                runs = data.get("runs") if isinstance(data, dict) else None
 
-        if "runs" not in data:
+        if not runs:
             raise ValueError("The provided document is not a valid SARIF log")
 
         sarif_log = SarifLog(
-            runs=data.get("runs", []),
+            runs=runs,
             version=data.get("version", "2.1.0"),
             schema_uri=data.get("$schema"),
             properties=data.get("properties"),
@@ -317,13 +387,14 @@ class InputNormalizer:
         findings: List[SarifFinding] = []
         tool_names: List[str] = []
 
-        for run in data.get("runs", []):
-            tool = run.get("tool", {}).get("driver", {})
+        for run in runs:
+            tool = (run.get("tool") or {}).get("driver", {}) if isinstance(run, dict) else {}
             tool_name = tool.get("name")
             if tool_name:
                 tool_names.append(tool_name)
 
-            for result in run.get("results", []) or []:
+            results = run.get("results") if isinstance(run, dict) else None
+            for result in results or []:
                 message = None
                 if "message" in result:
                     if isinstance(result["message"], dict):
@@ -348,7 +419,7 @@ class InputNormalizer:
                 )
 
         metadata = {
-            "run_count": len(data.get("runs", [])),
+            "run_count": len(runs),
             "finding_count": len(findings),
         }
         if tool_names:
