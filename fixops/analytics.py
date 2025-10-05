@@ -1,7 +1,12 @@
 """Analytics and ROI computations for FixOps pipeline runs."""
 from __future__ import annotations
 
+import json
+import time
+from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Optional, TYPE_CHECKING
+
+from fixops.paths import ensure_secure_directory
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from fixops.configuration import OverlayConfig
@@ -192,4 +197,35 @@ class ROIDashboard:
         return analytics_summary
 
 
-__all__ = ["ROIDashboard"]
+class FeedbackOutcomeStore:
+    """Persist connector delivery outcomes for ROI analytics correlation."""
+
+    def __init__(self, base_directory: Path):
+        self.base_directory = ensure_secure_directory(base_directory)
+
+    def record(self, run_id: str, outcomes: Mapping[str, Mapping[str, Any]]) -> Path:
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise ValueError("run_id must be a non-empty string for outcome persistence")
+
+        serialised: Dict[str, Dict[str, Any]] = {}
+        for name, outcome in outcomes.items():
+            if isinstance(outcome, Mapping):
+                data = dict(outcome)
+            else:
+                data = {"result": str(outcome)}
+            data.setdefault("status", data.get("status", "unknown"))
+            serialised[str(name)] = data
+
+        run_directory = ensure_secure_directory(self.base_directory / run_id.strip())
+        record_path = run_directory / "feedback_forwarding.jsonl"
+        payload = {
+            "run_id": run_id.strip(),
+            "timestamp": int(time.time()),
+            "outcomes": serialised,
+        }
+        with record_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+        return record_path
+
+
+__all__ = ["FeedbackOutcomeStore", "ROIDashboard"]
