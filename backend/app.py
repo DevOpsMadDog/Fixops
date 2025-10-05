@@ -3,16 +3,18 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import uuid
 from contextlib import suppress
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
+from fixops.analytics import AnalyticsStore
 from fixops.configuration import OverlayConfig, load_overlay
 from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 from fixops.storage import ArtefactArchive
@@ -67,14 +69,23 @@ def create_app() -> FastAPI:
     archive_dir = verify_allowlisted_path(archive_dir, allowlist)
     archive = ArtefactArchive(archive_dir, allowlist=allowlist)
 
+    analytics_dir = overlay.data_directories.get("analytics_dir")
+    if analytics_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        analytics_dir = (root / "analytics" / overlay.mode).resolve()
+    analytics_dir = verify_allowlisted_path(analytics_dir, allowlist)
+    analytics_store = AnalyticsStore(analytics_dir, allowlist=allowlist)
+
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
     app.state.artifacts: Dict[str, Any] = {}
     app.state.overlay = overlay
     app.state.archive = archive
     app.state.archive_records: Dict[str, Dict[str, Any]] = {}
+    app.state.analytics_store = analytics_store
     app.state.feedback = (
-        FeedbackRecorder(overlay)
+        FeedbackRecorder(overlay, analytics_store=analytics_store)
         if overlay.toggles.get("capture_feedback")
         else None
     )
@@ -301,6 +312,8 @@ def create_app() -> FastAPI:
                 },
             )
 
+        run_id = uuid.uuid4().hex
+
         result = orchestrator.run(
             design_dataset=app.state.artifacts.get("design", {"columns": [], "rows": []}),
             sbom=app.state.artifacts["sbom"],
@@ -308,6 +321,19 @@ def create_app() -> FastAPI:
             cve=app.state.artifacts["cve"],
             overlay=overlay,
         )
+        result["run_id"] = run_id
+        analytics_store = getattr(app.state, "analytics_store", None)
+        if analytics_store is not None:
+            try:
+                persistence = analytics_store.persist_run(run_id, result)
+            except Exception:  # pragma: no cover - analytics persistence must not block pipeline
+                logger.exception("Failed to persist analytics artefacts for run %s", run_id)
+                persistence = {}
+            if persistence:
+                result["analytics_persistence"] = persistence
+                analytics_section = result.get("analytics")
+                if isinstance(analytics_section, dict):
+                    analytics_section["persistence"] = persistence
         if app.state.archive_records:
             result["artifact_archive"] = ArtefactArchive.summarise(app.state.archive_records)
             app.state.archive_records = {}
@@ -315,6 +341,43 @@ def create_app() -> FastAPI:
             result["overlay"] = overlay.to_sanitised_dict()
             result["overlay"]["required_inputs"] = list(required)
         return result
+
+    @app.get("/analytics/dashboard", dependencies=[Depends(_verify_api_key)])
+    async def analytics_dashboard(limit: int = 10) -> Dict[str, Any]:
+        store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
+        if store is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Analytics persistence disabled for this profile",
+            )
+        try:
+            return store.load_dashboard(limit=limit)
+        except ValueError as exc:  # pragma: no cover - defensive guard
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/analytics/runs/{run_id}", dependencies=[Depends(_verify_api_key)])
+    async def analytics_run(run_id: str) -> Dict[str, Any]:
+        store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
+        if store is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Analytics persistence disabled for this profile",
+            )
+        try:
+            data = store.load_run(run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        has_content = bool(
+            data.get("forecasts") or data.get("exploit_snapshots") or data.get("ticket_metrics")
+        )
+        feedback_section = data.get("feedback")
+        if isinstance(feedback_section, Mapping):
+            has_content = has_content or bool(
+                feedback_section.get("events") or feedback_section.get("outcomes")
+            )
+        if not has_content:
+            raise HTTPException(status_code=404, detail="No analytics persisted for run")
+        return data
 
     @app.post("/feedback", dependencies=[Depends(_verify_api_key)])
     async def submit_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:

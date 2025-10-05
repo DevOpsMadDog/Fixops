@@ -3,13 +3,413 @@ from __future__ import annotations
 
 import json
 import time
+import uuid
+from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, TYPE_CHECKING
 
-from fixops.paths import ensure_secure_directory
+from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from fixops.configuration import OverlayConfig
+
+
+_SAFE_RUN_ID_CHARACTERS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+
+
+def _validate_run_id(run_id: str) -> str:
+    if not isinstance(run_id, str) or not run_id.strip():
+        raise ValueError("run_id must be a non-empty string for analytics persistence")
+    candidate = run_id.strip()
+    if not set(candidate) <= _SAFE_RUN_ID_CHARACTERS:
+        raise ValueError("run_id contains unsupported characters for analytics persistence")
+    return candidate
+
+
+class AnalyticsStore:
+    """Persist analytics artefacts (forecasts, exploit snapshots, tickets, feedback)."""
+
+    _FORECASTS = "forecasts"
+    _EXPLOIT = "exploit_snapshots"
+    _TICKETS = "ticket_metrics"
+    _FEEDBACK_EVENTS = "feedback_events"
+    _FEEDBACK_OUTCOMES = "feedback_outcomes"
+
+    def __init__(
+        self,
+        base_directory: Path,
+        *,
+        allowlist: Optional[Sequence[Path]] = None,
+    ) -> None:
+        self._allowlist: tuple[Path, ...] = (
+            tuple(Path(entry).resolve() for entry in allowlist)
+            if allowlist
+            else tuple()
+        )
+        if self._allowlist:
+            base_directory = verify_allowlisted_path(base_directory, self._allowlist)
+        self.base_directory = ensure_secure_directory(base_directory)
+
+    # ------------------------------------------------------------------
+    # Generic helpers
+    # ------------------------------------------------------------------
+    def _category_directory(self, category: str, run_id: Optional[str] = None) -> Path:
+        directory = self.base_directory / category
+        if self._allowlist:
+            directory = verify_allowlisted_path(directory, self._allowlist)
+        directory = ensure_secure_directory(directory)
+        if run_id is not None:
+            safe_run_id = _validate_run_id(run_id)
+            directory = directory / safe_run_id
+            if self._allowlist:
+                directory = verify_allowlisted_path(directory, self._allowlist)
+            directory = ensure_secure_directory(directory)
+        return directory
+
+    @staticmethod
+    def _timestamp() -> int:
+        return int(time.time())
+
+    def _write_entry(
+        self,
+        category: str,
+        run_id: str,
+        payload: Mapping[str, Any],
+    ) -> Path:
+        directory = self._category_directory(category, run_id)
+        filename = f"{self._timestamp()}-{uuid.uuid4().hex}.json"
+        path = directory / filename
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        return path
+
+    def _load_entries(self, category: str) -> List[Dict[str, Any]]:
+        directory = self._category_directory(category)
+        entries: List[Dict[str, Any]] = []
+        if not directory.exists():
+            return entries
+        for run_dir in directory.iterdir():
+            if not run_dir.is_dir():
+                continue
+            for path in run_dir.glob("*.json"):
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                except Exception:  # pragma: no cover - corrupted entry ignored
+                    continue
+                if isinstance(data, Mapping):
+                    record = dict(data)
+                    record.setdefault("_path", str(path))
+                    entries.append(record)  # type: ignore[arg-type]
+        entries.sort(key=lambda entry: entry.get("timestamp", 0), reverse=True)
+        return entries
+
+    def _load_run_entries(self, category: str, run_id: str) -> List[Dict[str, Any]]:
+        directory = self._category_directory(category, run_id)
+        entries: List[Dict[str, Any]] = []
+        if not directory.exists():
+            return entries
+        for path in directory.glob("*.json"):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:  # pragma: no cover - corrupted entry ignored
+                continue
+            if isinstance(data, Mapping):
+                record = dict(data)
+                record.setdefault("_path", str(path))
+                entries.append(record)  # type: ignore[arg-type]
+        entries.sort(key=lambda entry: entry.get("timestamp", 0), reverse=True)
+        return entries
+
+    @staticmethod
+    def _slice(entries: Sequence[Mapping[str, Any]], limit: int) -> List[Dict[str, Any]]:
+        limited: List[Dict[str, Any]] = []
+        for entry in entries[: max(limit, 0)]:
+            limited.append({
+                key: value
+                for key, value in entry.items()
+                if key not in {"_path"}
+            })
+        return limited
+
+    # ------------------------------------------------------------------
+    # Record helpers
+    # ------------------------------------------------------------------
+    def record_forecast(
+        self,
+        run_id: str,
+        forecast: Mapping[str, Any],
+        *,
+        severity_overview: Optional[Mapping[str, Any]] = None,
+    ) -> Path:
+        safe_run_id = _validate_run_id(run_id)
+        metrics = forecast.get("metrics") if isinstance(forecast.get("metrics"), Mapping) else {}
+        components = forecast.get("components")
+        component_count = len(components) if isinstance(components, Sequence) else 0
+        hotspots = [
+            entry
+            for entry in components
+            if isinstance(entry, Mapping) and entry.get("escalation_probability", 0) >= 0.2
+        ] if isinstance(components, Sequence) else []
+        summary = {
+            "expected_high_or_critical": float(metrics.get("expected_high_or_critical", 0.0)),
+            "expected_critical_next_cycle": float(metrics.get("expected_critical_next_cycle", 0.0)),
+            "entropy_bits": float(metrics.get("entropy_bits", 0.0)),
+            "exploited_records": int(metrics.get("exploited_records", 0)),
+            "component_count": component_count,
+            "hotspot_count": len(hotspots),
+        }
+        payload = {
+            "run_id": safe_run_id,
+            "timestamp": self._timestamp(),
+            "forecast": dict(forecast),
+            "summary": summary,
+            "severity_overview": dict(severity_overview) if isinstance(severity_overview, Mapping) else None,
+        }
+        return self._write_entry(self._FORECASTS, safe_run_id, payload)
+
+    def record_exploit_snapshot(
+        self,
+        run_id: str,
+        snapshot: Mapping[str, Any],
+    ) -> Path:
+        safe_run_id = _validate_run_id(run_id)
+        overview = snapshot.get("overview") if isinstance(snapshot.get("overview"), Mapping) else {}
+        signals = snapshot.get("signals") if isinstance(snapshot.get("signals"), Mapping) else {}
+        escalations = snapshot.get("escalations") if isinstance(snapshot.get("escalations"), Sequence) else []
+        summary = {
+            "signals_configured": int(overview.get("signals_configured", len(signals))),
+            "matched_records": int(overview.get("matched_records", 0)),
+            "status": overview.get("status", "unknown"),
+            "escalation_count": len(escalations),
+        }
+        payload = {
+            "run_id": safe_run_id,
+            "timestamp": self._timestamp(),
+            "snapshot": dict(snapshot),
+            "summary": summary,
+        }
+        return self._write_entry(self._EXPLOIT, safe_run_id, payload)
+
+    def record_ticket_metrics(
+        self,
+        run_id: str,
+        policy_summary: Mapping[str, Any],
+    ) -> Path:
+        safe_run_id = _validate_run_id(run_id)
+        execution = policy_summary.get("execution") if isinstance(policy_summary.get("execution"), Mapping) else {}
+        delivered = execution.get("delivery_results")
+        delivery_results = delivered if isinstance(delivered, Sequence) else []
+        status_counts: Counter[str] = Counter()
+        connectors: Counter[str] = Counter()
+        for entry in delivery_results:
+            if not isinstance(entry, Mapping):
+                continue
+            status = str(entry.get("status") or "unknown")
+            status_counts[status] += 1
+            provider = str(entry.get("provider") or entry.get("type") or "unknown")
+            connectors[provider] += 1
+        summary = {
+            "planned_actions": len(policy_summary.get("actions", [])),
+            "dispatched_count": int(execution.get("dispatched_count", 0)),
+            "failed_count": int(execution.get("failed_count", 0)),
+            "execution_status": execution.get("status", "unknown"),
+            "delivery_status": dict(status_counts),
+            "connector_usage": dict(connectors),
+        }
+        payload = {
+            "run_id": safe_run_id,
+            "timestamp": self._timestamp(),
+            "policy_summary": dict(policy_summary),
+            "summary": summary,
+        }
+        return self._write_entry(self._TICKETS, safe_run_id, payload)
+
+    def record_feedback_event(self, entry: Mapping[str, Any]) -> Path:
+        run_id = entry.get("run_id")
+        safe_run_id = _validate_run_id(str(run_id))
+        tags = entry.get("tags") if isinstance(entry.get("tags"), Sequence) else []
+        summary = {
+            "decision": entry.get("decision"),
+            "submitted_by": entry.get("submitted_by"),
+            "tag_count": len(tags),
+        }
+        payload = {
+            "run_id": safe_run_id,
+            "timestamp": int(entry.get("timestamp") or self._timestamp()),
+            "feedback": {key: entry.get(key) for key in ("decision", "notes", "submitted_by", "tags")},
+            "summary": summary,
+        }
+        return self._write_entry(self._FEEDBACK_EVENTS, safe_run_id, payload)
+
+    def record_feedback_outcomes(
+        self,
+        run_id: str,
+        outcomes: Mapping[str, Mapping[str, Any]],
+    ) -> Path:
+        safe_run_id = _validate_run_id(run_id)
+        status_counts: Counter[str] = Counter()
+        for outcome in outcomes.values():
+            if not isinstance(outcome, Mapping):
+                continue
+            status_counts[str(outcome.get("status") or "unknown")] += 1
+        payload = {
+            "run_id": safe_run_id,
+            "timestamp": self._timestamp(),
+            "outcomes": {name: dict(value) for name, value in outcomes.items()},
+            "summary": {"delivery_status": dict(status_counts)},
+        }
+        return self._write_entry(self._FEEDBACK_OUTCOMES, safe_run_id, payload)
+
+    def persist_run(
+        self,
+        run_id: str,
+        pipeline_result: Mapping[str, Any],
+    ) -> Dict[str, str]:
+        """Persist supported analytics artefacts from a pipeline result."""
+
+        records: MutableMapping[str, str] = {}
+        forecast = pipeline_result.get("probabilistic_forecast")
+        if isinstance(forecast, Mapping):
+            severity_overview = pipeline_result.get("severity_overview")
+            path = self.record_forecast(run_id, forecast, severity_overview=severity_overview)
+            records["forecasts"] = str(path)
+
+        exploit_snapshot = pipeline_result.get("exploitability_insights")
+        if isinstance(exploit_snapshot, Mapping):
+            path = self.record_exploit_snapshot(run_id, exploit_snapshot)
+            records["exploit_snapshots"] = str(path)
+
+        policy_summary = pipeline_result.get("policy_automation")
+        if isinstance(policy_summary, Mapping):
+            path = self.record_ticket_metrics(run_id, policy_summary)
+            records["ticket_metrics"] = str(path)
+
+        return dict(records)
+
+    # ------------------------------------------------------------------
+    # Dashboard helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _average(values: Iterable[float]) -> float:
+        items = [float(value) for value in values]
+        if not items:
+            return 0.0
+        return sum(items) / len(items)
+
+    def _forecast_dashboard(self, limit: int) -> Dict[str, Any]:
+        entries = self._load_entries(self._FORECASTS)
+        recent = self._slice(entries, limit)
+        averages = {
+            "expected_high_or_critical": round(
+                self._average(entry.get("summary", {}).get("expected_high_or_critical", 0.0) for entry in entries),
+                4,
+            ),
+            "entropy_bits": round(
+                self._average(entry.get("summary", {}).get("entropy_bits", 0.0) for entry in entries),
+                4,
+            ),
+        }
+        hotspots = sum(entry.get("summary", {}).get("hotspot_count", 0) for entry in entries)
+        return {
+            "recent": recent,
+            "totals": {
+                "entries": len(entries),
+                "aggregate_hotspots": hotspots,
+            },
+            "averages": averages,
+        }
+
+    def _exploit_dashboard(self, limit: int) -> Dict[str, Any]:
+        entries = self._load_entries(self._EXPLOIT)
+        recent = self._slice(entries, limit)
+        status_counts: Counter[str] = Counter(
+            str(entry.get("summary", {}).get("status", "unknown")) for entry in entries
+        )
+        matches = sum(entry.get("summary", {}).get("matched_records", 0) for entry in entries)
+        return {
+            "recent": recent,
+            "totals": {
+                "entries": len(entries),
+                "matched_records": matches,
+            },
+            "statuses": dict(status_counts),
+        }
+
+    def _ticket_dashboard(self, limit: int) -> Dict[str, Any]:
+        entries = self._load_entries(self._TICKETS)
+        recent = self._slice(entries, limit)
+        dispatched = sum(entry.get("summary", {}).get("dispatched_count", 0) for entry in entries)
+        failed = sum(entry.get("summary", {}).get("failed_count", 0) for entry in entries)
+        status_counts: Counter[str] = Counter()
+        connector_usage: Counter[str] = Counter()
+        for entry in entries:
+            summary = entry.get("summary", {})
+            if isinstance(summary, Mapping):
+                status_counts.update(summary.get("delivery_status", {}))
+                connector_usage.update(summary.get("connector_usage", {}))
+        return {
+            "recent": recent,
+            "totals": {
+                "entries": len(entries),
+                "dispatched": dispatched,
+                "failed": failed,
+            },
+            "delivery_status": dict(status_counts),
+            "connector_usage": dict(connector_usage),
+        }
+
+    def _feedback_dashboard(self, limit: int) -> Dict[str, Any]:
+        events = self._load_entries(self._FEEDBACK_EVENTS)
+        outcomes = self._load_entries(self._FEEDBACK_OUTCOMES)
+        recent_events = self._slice(events, limit)
+        decision_counts: Counter[str] = Counter(
+            str(entry.get("summary", {}).get("decision", "unknown")) for entry in events
+        )
+        delivery_counts: Counter[str] = Counter()
+        for entry in outcomes:
+            summary = entry.get("summary", {})
+            if isinstance(summary, Mapping):
+                delivery_counts.update(summary.get("delivery_status", {}))
+        return {
+            "events": {
+                "recent": recent_events,
+                "totals": {
+                    "entries": len(events),
+                },
+                "decisions": dict(decision_counts),
+            },
+            "outcomes": {
+                "totals": {
+                    "entries": len(outcomes),
+                },
+                "delivery_status": dict(delivery_counts),
+            },
+        }
+
+    def load_dashboard(self, limit: int = 10) -> Dict[str, Any]:
+        """Return aggregated analytics dashboard data."""
+
+        limit = max(limit, 1)
+        return {
+            "forecasts": self._forecast_dashboard(limit),
+            "exploit_snapshots": self._exploit_dashboard(limit),
+            "ticket_metrics": self._ticket_dashboard(limit),
+            "feedback": self._feedback_dashboard(limit),
+        }
+
+    def load_run(self, run_id: str) -> Dict[str, Any]:
+        """Return analytics artefacts for a specific run."""
+
+        safe_run_id = _validate_run_id(run_id)
+        return {
+            "run_id": safe_run_id,
+            "forecasts": self._load_run_entries(self._FORECASTS, safe_run_id),
+            "exploit_snapshots": self._load_run_entries(self._EXPLOIT, safe_run_id),
+            "ticket_metrics": self._load_run_entries(self._TICKETS, safe_run_id),
+            "feedback": {
+                "events": self._load_run_entries(self._FEEDBACK_EVENTS, safe_run_id),
+                "outcomes": self._load_run_entries(self._FEEDBACK_OUTCOMES, safe_run_id),
+            },
+        }
 
 
 class ROIDashboard:
@@ -200,12 +600,17 @@ class ROIDashboard:
 class FeedbackOutcomeStore:
     """Persist connector delivery outcomes for ROI analytics correlation."""
 
-    def __init__(self, base_directory: Path):
+    def __init__(
+        self,
+        base_directory: Path,
+        *,
+        analytics_store: Optional[AnalyticsStore] = None,
+    ) -> None:
         self.base_directory = ensure_secure_directory(base_directory)
+        self._analytics_store = analytics_store
 
     def record(self, run_id: str, outcomes: Mapping[str, Mapping[str, Any]]) -> Path:
-        if not isinstance(run_id, str) or not run_id.strip():
-            raise ValueError("run_id must be a non-empty string for outcome persistence")
+        safe_run_id = _validate_run_id(run_id)
 
         serialised: Dict[str, Dict[str, Any]] = {}
         for name, outcome in outcomes.items():
@@ -216,16 +621,30 @@ class FeedbackOutcomeStore:
             data.setdefault("status", data.get("status", "unknown"))
             serialised[str(name)] = data
 
-        run_directory = ensure_secure_directory(self.base_directory / run_id.strip())
+        run_directory = ensure_secure_directory(self.base_directory / safe_run_id)
         record_path = run_directory / "feedback_forwarding.jsonl"
         payload = {
-            "run_id": run_id.strip(),
+            "run_id": safe_run_id,
             "timestamp": int(time.time()),
             "outcomes": serialised,
         }
         with record_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+        if self._analytics_store is not None:
+            try:  # pragma: no cover - analytics persistence is best-effort
+                self._analytics_store.record_feedback_outcomes(safe_run_id, serialised)
+            except Exception:
+                pass
         return record_path
 
+    def record_feedback_event(self, entry: Mapping[str, Any]) -> Optional[Path]:
+        if self._analytics_store is None:
+            return None
+        try:
+            return self._analytics_store.record_feedback_event(entry)
+        except Exception:  # pragma: no cover - best-effort persistence
+            return None
 
-__all__ = ["FeedbackOutcomeStore", "ROIDashboard"]
+
+__all__ = ["AnalyticsStore", "FeedbackOutcomeStore", "ROIDashboard"]

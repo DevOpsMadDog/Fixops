@@ -152,6 +152,11 @@ def test_end_to_end_demo_pipeline():
         response = client.post("/pipeline/run", headers={"X-API-Key": "demo-token"})
         assert response.status_code == 200
         pipeline_payload = response.json()
+        assert "run_id" in pipeline_payload
+        run_id = pipeline_payload["run_id"]
+        assert isinstance(run_id, str) and run_id
+        assert pipeline_payload.get("analytics_persistence")
+        assert "forecasts" in pipeline_payload["analytics_persistence"]
         assert pipeline_payload["status"] == "ok"
         assert pipeline_payload["design_summary"]["row_count"] == 3
         assert len(pipeline_payload["crosswalk"]) == 3
@@ -187,8 +192,22 @@ def test_end_to_end_demo_pipeline():
         assert archive_info and "sbom" in archive_info
         assert archive_info["sbom"].get("normalized_path")
         analytics = pipeline_payload["analytics"]
+        assert analytics.get("persistence") == pipeline_payload["analytics_persistence"]
         assert analytics["overview"]["estimated_value"] >= 0
         assert analytics["overlay"]["mode"] == "demo"
+        dashboard_response = client.get(
+            "/analytics/dashboard", headers={"X-API-Key": "demo-token"}
+        )
+        assert dashboard_response.status_code == 200
+        dashboard = dashboard_response.json()
+        assert dashboard["forecasts"]["totals"]["entries"] >= 1
+        run_response = client.get(
+            f"/analytics/runs/{run_id}", headers={"X-API-Key": "demo-token"}
+        )
+        assert run_response.status_code == 200
+        run_details = run_response.json()
+        assert run_details["run_id"] == run_id
+        assert run_details["forecasts"]
         tenant_view = pipeline_payload["tenant_lifecycle"]
         assert tenant_view["summary"]["total_tenants"] >= 1
         performance = pipeline_payload["performance_profile"]
