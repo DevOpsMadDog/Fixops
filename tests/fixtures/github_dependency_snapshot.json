@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "ref": "refs/heads/main",
+  "detectedManifests": {
+    "package.json": {
+      "file": {"sourceLocation": {"path": "services/payment-service/package.json"}},
+      "resolved": {
+        "npm:payments-service@1.0.0": {
+          "name": "payments-service",
+          "version": "1.0.0",
+          "packageUrl": "pkg:npm/payments-service@1.0.0",
+          "licenses": ["MIT"],
+          "publisher": "Payments Team"
+        },
+        "npm:inventory-service@2.3.1": {
+          "name": "inventory-service",
+          "version": "2.3.1",
+          "packageUrl": "pkg:npm/inventory-service@2.3.1",
+          "licenses": ["Apache-2.0"]
+        }
+      }
+    }
+  }
+}

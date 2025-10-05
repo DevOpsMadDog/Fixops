@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from backend.pipeline import PipelineOrchestrator
 from backend.normalizers import (
     CVERecordSummary,
+    InputNormalizer,
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
@@ -10,6 +15,9 @@ from backend.normalizers import (
     SarifFinding,
 )
 from fixops.configuration import OverlayConfig
+
+
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 
 def build_orchestrator_payload():
@@ -82,6 +90,108 @@ def build_orchestrator_payload():
     )
 
     return design_dataset, sbom, sarif, cve
+
+
+def test_provider_specific_sbom_parser_enables_pipeline(monkeypatch):
+    monkeypatch.setattr("backend.normalizers.sbom_parser", None, raising=False)
+    monkeypatch.setattr(
+        "backend.normalizers.LIB4SBOM_IMPORT_ERROR",
+        ImportError("lib4sbom not installed"),
+        raising=False,
+    )
+
+    normalizer = InputNormalizer()
+    payload = (FIXTURE_DIR / "github_dependency_snapshot.json").read_text()
+    sbom = normalizer.load_sbom(payload)
+
+    assert sbom.format == "github-dependency-snapshot"
+    assert sbom.metadata["component_count"] == 2
+    assert sbom.metadata["parser"] == "github-dependency-snapshot"
+
+    design_dataset = {
+        "columns": ["component"],
+        "rows": [
+            {"component": "payments-service"},
+            {"component": "inventory-service"},
+        ],
+    }
+
+    sarif = NormalizedSARIF(
+        version="2.1.0",
+        schema_uri=None,
+        tool_names=["StaticAnalyzer"],
+        findings=[
+            SarifFinding(
+                rule_id="CWE-89",
+                message="SQL injection risk",
+                level="error",
+                file="services/payments-service/app.py",
+                line=12,
+                raw={"analysisTarget": {"uri": "payments-service"}},
+            )
+        ],
+        metadata={"run_count": 1, "finding_count": 1},
+    )
+
+    cve = NormalizedCVEFeed(
+        records=[
+            CVERecordSummary(
+                cve_id="CVE-2024-1111",
+                title="Inventory flaw",
+                severity="high",
+                exploited=False,
+                raw={"component": "inventory-service"},
+            )
+        ],
+        errors=[],
+        metadata={"record_count": 1},
+    )
+
+    orchestrator = PipelineOrchestrator()
+    result = orchestrator.run(
+        design_dataset=design_dataset,
+        sbom=sbom,
+        sarif=sarif,
+        cve=cve,
+    )
+
+    crosswalk = result["crosswalk"]
+    assert crosswalk[0]["sbom_component"]["name"] == "payments-service"
+    assert crosswalk[0]["findings"][0]["rule_id"] == "CWE-89"
+    assert crosswalk[1]["cves"][0]["cve_id"] == "CVE-2024-1111"
+
+
+def test_provider_specific_syft_parser(monkeypatch):
+    monkeypatch.setattr("backend.normalizers.sbom_parser", None, raising=False)
+    monkeypatch.setattr(
+        "backend.normalizers.LIB4SBOM_IMPORT_ERROR",
+        ImportError("lib4sbom unavailable"),
+        raising=False,
+    )
+
+    normalizer = InputNormalizer()
+    payload = (FIXTURE_DIR / "syft_sample_sbom.json").read_text()
+    sbom = normalizer.load_sbom(payload)
+
+    component_names = {component.name for component in sbom.components}
+    assert sbom.format == "syft-json"
+    assert component_names == {"openssl", "libssl"}
+    assert sbom.metadata["parser"] == "syft-json"
+
+
+def test_provider_parser_surfaces_error_code(monkeypatch):
+    monkeypatch.setattr("backend.normalizers.sbom_parser", None, raising=False)
+    monkeypatch.setattr(
+        "backend.normalizers.LIB4SBOM_IMPORT_ERROR",
+        ImportError("lib4sbom missing for tests"),
+        raising=False,
+    )
+
+    normalizer = InputNormalizer()
+    with pytest.raises(RuntimeError) as excinfo:
+        normalizer.load_sbom("{}")
+
+    assert "SBOM_PARSER_MISSING" in str(excinfo.value)
 
 
 def test_pipeline_crosswalk_reuses_precomputed_matches():

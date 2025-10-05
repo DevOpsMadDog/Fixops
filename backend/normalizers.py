@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from __future__ import annotations
-
 import base64
 import binascii
 import gzip
@@ -12,7 +10,13 @@ import zipfile
 from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable, List, Optional
 
-from lib4sbom import parser as sbom_parser
+try:  # Optional dependency for rich SBOM parsing
+    from lib4sbom import parser as sbom_parser  # type: ignore
+except ImportError as exc:  # pragma: no cover - optional runtime dependency
+    sbom_parser = None  # type: ignore[assignment]
+    LIB4SBOM_IMPORT_ERROR: Exception | None = exc
+else:
+    LIB4SBOM_IMPORT_ERROR = None
 
 try:  # Optional dependency for CVE schema validation
     from cvelib.cve_api import CveRecord, CveRecordValidationError
@@ -211,9 +215,41 @@ class InputNormalizer:
         return data.decode("utf-8", errors="ignore")
 
     def load_sbom(self, raw: Any) -> NormalizedSBOM:
-        """Normalise an SBOM using lib4sbom."""
+        """Normalise an SBOM using lib4sbom or provider fallbacks."""
 
         payload = self._prepare_text(raw)
+        last_error: Exception | None = None
+
+        if sbom_parser is not None:
+            try:
+                return self._load_sbom_with_lib4sbom(payload)
+            except Exception as exc:  # pragma: no cover - surface provider fallback
+                last_error = exc
+
+        provider_result = self._load_sbom_from_provider(payload)
+        if provider_result is not None:
+            logger.debug(
+                "Normalised SBOM via provider parser",
+                extra={"metadata": provider_result.metadata, "format": provider_result.format},
+            )
+            return provider_result
+
+        if sbom_parser is None:
+            error_detail = "lib4sbom is not installed"
+            if LIB4SBOM_IMPORT_ERROR is not None:
+                error_detail = f"{error_detail}: {LIB4SBOM_IMPORT_ERROR}"
+            raise RuntimeError(
+                f"SBOM_PARSER_MISSING: Unable to parse SBOM without lib4sbom ({error_detail})."
+            )
+
+        if last_error is not None:
+            raise last_error
+        raise ValueError("Failed to parse SBOM document")
+
+    def _load_sbom_with_lib4sbom(self, payload: str) -> NormalizedSBOM:
+        if sbom_parser is None:  # pragma: no cover - defensive guard
+            raise RuntimeError("lib4sbom is not available")
+
         parser = sbom_parser.SBOMParser(self.sbom_type)
         parser.parse_string(payload)
 
@@ -265,6 +301,169 @@ class InputNormalizer:
         )
         logger.debug("Normalised SBOM", extra={"metadata": metadata})
         return normalized
+
+    def _load_sbom_from_provider(self, payload: str) -> NormalizedSBOM | None:
+        try:
+            document = json.loads(payload)
+        except json.JSONDecodeError:
+            return None
+
+        for parser in (self._parse_github_dependency_snapshot, self._parse_syft_json):
+            result = parser(document)
+            if result is not None:
+                return result
+        return None
+
+    def _parse_github_dependency_snapshot(self, document: dict[str, Any]) -> NormalizedSBOM | None:
+        manifests = document.get("detectedManifests")
+        if not isinstance(manifests, dict) or not manifests:
+            return None
+
+        components: list[SBOMComponent] = []
+        manifest_count = 0
+        for manifest in manifests.values():
+            if not isinstance(manifest, dict):
+                continue
+            manifest_count += 1
+            resolved = manifest.get("resolved")
+            if not isinstance(resolved, dict):
+                continue
+            for entry in resolved.values():
+                if not isinstance(entry, dict):
+                    continue
+                name = (
+                    entry.get("name")
+                    or entry.get("packageName")
+                    or entry.get("package")
+                    or entry.get("packageIdentifier")
+                )
+                if not name:
+                    continue
+                version = entry.get("version") or entry.get("packageVersion")
+                purl = entry.get("packageUrl") or entry.get("packageURL")
+
+                licenses: Iterable[Any]
+                license_value = entry.get("licenses") or entry.get("license")
+                if isinstance(license_value, list):
+                    licenses = [str(item) for item in license_value]
+                elif license_value:
+                    licenses = [str(license_value)]
+                else:
+                    licenses = []
+
+                supplier_info = entry.get("source") or entry.get("publisher")
+                supplier = None
+                if isinstance(supplier_info, dict):
+                    supplier = supplier_info.get("name")
+                elif supplier_info:
+                    supplier = str(supplier_info)
+
+                components.append(
+                    SBOMComponent(
+                        name=str(name),
+                        version=str(version) if version is not None else None,
+                        purl=str(purl) if purl else None,
+                        licenses=list(licenses),
+                        supplier=supplier,
+                        raw=entry,
+                    )
+                )
+
+        if not components:
+            return None
+
+        metadata = {
+            "component_count": len(components),
+            "manifest_count": manifest_count,
+            "parser": "github-dependency-snapshot",
+        }
+        return NormalizedSBOM(
+            format="github-dependency-snapshot",
+            document=document,
+            components=components,
+            relationships=[],
+            services=[],
+            vulnerabilities=document.get("vulnerabilities") or [],
+            metadata=metadata,
+        )
+
+    def _parse_syft_json(self, document: dict[str, Any]) -> NormalizedSBOM | None:
+        artifacts = document.get("artifacts")
+        if not isinstance(artifacts, list) or not artifacts:
+            return None
+
+        components: list[SBOMComponent] = []
+        for artifact in artifacts:
+            if not isinstance(artifact, dict):
+                continue
+            name = artifact.get("name")
+            if not name:
+                continue
+            version = artifact.get("version")
+            purl = artifact.get("purl") or artifact.get("packageURL")
+
+            licenses_raw = artifact.get("licenses")
+            licenses: list[str] = []
+            if isinstance(licenses_raw, list):
+                for item in licenses_raw:
+                    if isinstance(item, dict):
+                        license_name = (
+                            item.get("value")
+                            or item.get("spdx-id")
+                            or item.get("spdxId")
+                        )
+                        if license_name:
+                            licenses.append(str(license_name))
+                    elif item:
+                        licenses.append(str(item))
+            elif licenses_raw:
+                licenses.append(str(licenses_raw))
+
+            supplier = artifact.get("supplier") or artifact.get("origin")
+            if isinstance(supplier, dict):
+                supplier = supplier.get("name")
+
+            components.append(
+                SBOMComponent(
+                    name=str(name),
+                    version=str(version) if version is not None else None,
+                    purl=str(purl) if purl else None,
+                    licenses=licenses,
+                    supplier=str(supplier) if supplier else None,
+                    raw=artifact,
+                )
+            )
+
+        if not components:
+            return None
+
+        relationships = document.get("artifactRelationships")
+        if not isinstance(relationships, list):
+            relationships = []
+
+        vulnerabilities = document.get("vulnerabilities")
+        if not isinstance(vulnerabilities, list):
+            vulnerabilities = []
+
+        metadata = {
+            "component_count": len(components),
+            "relationship_count": len(relationships),
+            "parser": "syft-json",
+        }
+        if descriptor := document.get("descriptor"):
+            if isinstance(descriptor, dict):
+                metadata["descriptor_name"] = descriptor.get("name")
+                metadata["descriptor_version"] = descriptor.get("version")
+
+        return NormalizedSBOM(
+            format="syft-json",
+            document=document,
+            components=components,
+            relationships=relationships,
+            services=[],
+            vulnerabilities=vulnerabilities,
+            metadata=metadata,
+        )
 
     def load_cve_feed(self, raw: Any) -> NormalizedCVEFeed:
         """Normalise CVE/KEV feeds using cvelib for schema validation."""
