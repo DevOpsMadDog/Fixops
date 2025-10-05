@@ -5,7 +5,8 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 ## Why teams adopt FixOps
 - **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
 - **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m fixops.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`backend/app.py`, `fixops/cli.py`).
-- **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, and Bayesian/Markov forecasts in a single pass (`backend/pipeline.py`).
+- **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, Bayesian/Markov forecasts, and knowledge graph analytics in a single pass (`backend/pipeline.py`, `new_backend/processing/knowledge_graph.py`).
+- **Multi-LLM consensus & transparency** – The enhanced decision engine fans out to GPT-5, Claude, Gemini, and vertical cyber models, reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`fixops-blended-enterprise/src/services/enhanced_decision_engine.py`, `fixops-blended-enterprise/src/api/v1/enhanced.py`).
 - **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`fixops/compliance.py`, `fixops/policy.py`, `fixops/evidence.py`, `fixops/feedback.py`).
 - **Artefact archiving & regulated storage** – Every upload is normalised, persisted with metadata, and summarised via the artefact archive while secure directory enforcement and optional bundle encryption keep regulated tenants compliant (`fixops/storage.py`, `fixops/paths.py`).
 - **Analytics & ROI telemetry** – Pipeline responses surface pricing tiers, guardrail progress, exploit refresh health, and contextual noise-reduction metrics that feed executive dashboards and ROI storytelling (`perf/BENCHMARKS.csv`, `market/ENTERPRISE_READINESS.md`).
@@ -14,14 +15,14 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 
 ## System architecture at a glance
 ```
-┌────────────┐   uploads    ┌───────────────┐   overlay + artefacts   ┌─────────────────────────┐   evidence + automations   ┌────────────────┐
-│  Clients    │ ───────────▶│ FastAPI (ing) │────────────────────────▶│ Pipeline orchestrator   │──────────────────────────▶│ Destinations    │
-│ (CLI/API)   │             │  /inputs/*    │                         │ (context, guardrails,   │                          │ (Jira, bundle,  │
-│             │◀────────────│ /pipeline/run │◀────────────────────────│ compliance, policies,   │◀──────────────────────────│ Slack, storage) │
-└────────────┘  JSON status └───────────────┘  overlay metadata       │ SSDLC, IaC, AI, prob.)  │  overlay module matrix   └────────────────┘
-                                                   │                 └─────────────────────────┘
+┌────────────┐   uploads    ┌───────────────┐   overlay + artefacts   ┌────────────────────────────┐   multi-LLM + context   ┌──────────────────────┐   evidence + automations   ┌──────────────┐
+│  Clients    │ ───────────▶│ FastAPI (ing) │────────────────────────▶│ Pipeline orchestrator     │────────────────────────▶│ Enhanced decisioning │──────────────────────────▶│ Destinations    │
+│ (CLI/API)   │             │  /inputs/*    │                         │ (context, guardrails,     │                        │ (consensus, MITRE,   │                          │ (Jira, bundle,  │
+│             │◀────────────│ /pipeline/run │◀────────────────────────│ SSDLC, IaC, probabilistic)│◀───────────────────────│ compliance, KG, LLM) │◀──────────────────────────│ Slack, storage) │
+└────────────┘  JSON status └───────────────┘  overlay metadata       │ overlay module matrix     │                        └──────────────────────┘                            └──────────────┘
+                                                   │                   └────────────────────────────┘
                                                    ▼
-                                   Evidence hub, pricing, feedback, docs
+                                   Evidence hub, pricing, knowledge graph, feedback, docs
 ```
 
 ### Component interaction diagram
@@ -40,12 +41,21 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
          │ module toggles              │ orchestrate()                       ▼                │
          │                             ▼                             ┌─────────────┐        │
          │                     ┌───────────────────┐                 │ Destinations│◀───────┘
-         └────────────────────▶│ Pipeline modules  │───────────────▶ │ Jira/Slack │   automation manifests
-                               │ context/guardrail │  ROI & telemetry │ GRC repos │
-                               └───────────────────┘                 └─────────────┘
+         ├────────────────────▶│ Pipeline modules  │───────────────▶ │ Jira/Slack │   automation manifests
+         │                     │ context/guardrail │  ROI & telemetry │ GRC repos │
+         │                     └────────┬──────────┘                 └─────────────┘
+         │                              │ enhanced_run()
+         │                              ▼
+         │                     ┌───────────────────┐
+         └────────────────────▶│ Enhanced decision │
+                               │ multi-LLM + KG    │
+                               │ explanations      │
+                               └───────────────────┘
 ```
 
 The overlay registry feeds both the CLI and FastAPI surfaces with runtime configuration. Artefacts ingested through the API are cached under `data/uploads`, normalised, and handed to modular pipeline stages that emit automation payloads, evidence bundles, and ROI telemetry to downstream destinations.
+
+The enhanced decisioning layer augments the classic pipeline by invoking the multi-LLM ensemble, SentinelGPT explanations, and CTINexus-style knowledge graph analytics before returning consensus decisions and reasoning metadata for executive dashboards.
 
 ### Sequence diagram (demo → enterprise hand-off)
 ```
@@ -58,6 +68,10 @@ Module registry -> Guardrails: evaluate maturity thresholds
 Module registry -> Automation pack: dispatch Jira/Slack/Confluence
 Module registry -> Evidence hub: build encrypted bundle
 Module registry -> Analytics: compute ROI + performance profile
+Pipeline orchestrator -> Enhanced decisioning: invoke multi-LLM consensus + explanations
+Enhanced decisioning -> Knowledge graph processor: map attack paths and entities
+Enhanced decisioning -> Explanation engine: craft SentinelGPT executive summary
+Enhanced decisioning -> Pipeline orchestrator: return consensus, MITRE, compliance, KG
 Pipeline orchestrator -> FastAPI ingestion: return aggregated response
 FastAPI ingestion -> Client/CLI: JSON with summaries + bundle paths
 Client/CLI -> Enterprise Terraform: promote overlay + secrets
@@ -129,6 +143,10 @@ FixOps Platform
 ├── AI & probabilistic
 │   ├── AI agent advisor
 │   └── Probabilistic forecasts
+├── Multi-LLM & knowledge graph
+│   ├── Multi-model consensus + MITRE mapping
+│   ├── SentinelGPT explanations
+│   └── CTINexus knowledge graph analytics
 └── Deployment
     ├── Docker demo
     └── Terraform enterprise
@@ -144,8 +162,16 @@ FixOps Platform
 | Compliance packs | Overlay compliance packs, evidence hub config | `modules.compliance.enabled` | SOC2/ISO bundles, attestations | Provides audit-ready evidence per run. |
 | Policy automation | Automation connectors, Jira/Slack secrets | `modules.policy_automation.enabled` | Tickets, pages, chat receipts | Automates remediation and documentation workflows. |
 | Evidence hub | Any uploaded artefact | `modules.evidence.enabled` | Compressed, optionally encrypted bundles | Centralises artefacts for hand-off without manual effort. |
-| AI agent advisor | SBOM, SARIF, overlay AI toggles | `modules.ai_agents.enabled` | AI agent detection notes, control guidance | Highlights autonomous agents requiring new guardrails. |
-| Exploit signals | CVE feeds, EPSS/KEV overlays | `modules.exploit_signals.enabled` | Exploitability scores, refresh SLAs | Keeps remediation focused on weaponised threats. |
+| AI agent advisor | SBOM, SARIF, overlay AI toggles | `modules.ai_agents.enabled` | AI agent detection notes, control guidance
+| Highlights autonomous agents requiring new guardrails. |
+| Multi-LLM consensus | Enhanced API payloads, CLI overrides, marketplace context | Enhanced decision engine toggles | Consensus verdict, MITRE & compliance overlays, disagreement map
+| Provides transparent GPT-5/Claude/Gemini decision audits with reasoning and expert escalation flags. |
+| SentinelGPT explanations | Pipeline findings, business context | Enhanced decision engine | Narrative summary, mitigation guidance
+| Generates executive-ready narratives from multi-LLM output without manual editing. |
+| Knowledge graph analytics | Normalised entities, relationships from scans | Enhanced decision engine | Graph metrics, attack path highlights
+| Surfaces CTINexus attack path intelligence and entity clusters for responders. |
+| Exploit signals | CVE feeds, EPSS/KEV overlays | `modules.exploit_signals.enabled` | Exploitability scores, refresh SLAs
+| Keeps remediation focused on weaponised threats. |
 | Probabilistic forecasts | Correlated crosswalk, historical refresh | `modules.probabilistic.enabled` | Bayesian/Markov risk projections | Quantifies breach likelihood for planning and VC narratives. |
 | ROI analytics | Pipeline telemetry, automation success | `modules.analytics.enabled` | Cost savings, MTTR deltas, executive KPIs | Substantiates FixOps value in investor demos. |
 | Tenant lifecycle | Tenant registry, stage definitions | `modules.tenancy.enabled` | Stage transitions, module gaps | Guides shared-service owners through onboarding and renewals. |
@@ -171,9 +197,9 @@ Each row outlines the stage of the customer journey, the surface to invoke, the 
 ## End-to-end data flow
 1. **Load configuration** – `load_overlay()` merges defaults with demo or enterprise overrides, validates directories, registers tokens, and prepares module toggles (`fixops/configuration.py`).
 2. **Upload artefacts** – Push CSV/SBOM/SARIF/CVE data (plain JSON or gzip/zip archives) through FastAPI or point the CLI at local files; the normaliser caches parsers to reuse tokens and reduce I/O (`backend/normalizers.py`).
-3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts, ROI analytics, tenant lifecycle, performance simulation), and tracks custom module outcomes.
-4. **Persist outputs** – Artefact archives capture raw and normalised inputs, evidence hub writes compressed/encrypted bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data.
-5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, module matrices, feedback endpoints, and sanitized overlay metadata.
+3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts, ROI analytics, tenant lifecycle, performance simulation), invokes the enhanced decision engine for multi-LLM consensus, knowledge graph analytics, and SentinelGPT explanations, and tracks custom module outcomes.
+4. **Persist outputs** – Artefact archives capture raw and normalised inputs, evidence hub writes compressed/encrypted bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data. Enhanced responses also persist consensus telemetry, MITRE mapping, and knowledge graph payloads for replay.
+5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, knowledge graph analytics, SentinelGPT narratives, multi-LLM disagreement matrices, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
 ### Local Docker demo setup
@@ -220,6 +246,11 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json;type=applicat
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/cve.json;type=application/json" http://127.0.0.1:8000/inputs/cve
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/scan.sarif;type=application/json" http://127.0.0.1:8000/inputs/sarif
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/pipeline/run | jq
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/api/v1/enhanced/capabilities | jq
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{\"service_name\":\"demo-app\",\"security_findings\":[{\"rule_id\":\"SAST001\",\"severity\":\"high\",\"description\":\"SQL injection\"}],\"business_context\":{\"environment\":\"demo\",\"criticality\":\"high\"}}' \
+  http://127.0.0.1:8000/api/v1/enhanced/compare-llms | jq
 ```
 
 ### 4. Run the CLI (enterprise profile + module overrides)
@@ -247,6 +278,9 @@ Use `python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml` to i
 | `/inputs/sarif` | `POST` | Upload scanner findings (SARIF). | Accepts JSON, gzip, or zip archives; deduplicates rule IDs and severity labels before crosswalk building. |
 | `/pipeline/run` | `POST`/`GET` | Execute pipeline using cached artefacts. | Returns guardrails, context summaries, SSDLC/IaC/AI/exploit/probabilistic insights, automation manifests, pricing telemetry, module matrix, sanitized overlay, and evidence bundle paths. |
 | `/feedback` | `POST` | (Enterprise toggle) Persist review decisions tied to pipeline runs. | Requires `capture_feedback` enabled; identifiers are sanitized and stored within allowlisted audit directories. |
+| `/api/v1/enhanced/capabilities` | `GET` | Discover multi-LLM, MITRE, compliance, and marketplace readiness. | Surfaces enabled LLM providers, ATT&CK coverage, feed status, and consensus telemetry for Enhanced mode. |
+| `/api/v1/enhanced/compare-llms` | `POST` | Compare individual model verdicts and consensus reasoning. | Accepts security findings payload, returns disagreement analysis, MITRE/ATT&CK mapping, and expert validation flags. |
+| `/api/v1/enhanced/analysis` | `POST` | Retrieve standardised multi-LLM schema for CI/CD gating. | Streams consensus verdict, model rationales, evidence, SSVC label, and timing metadata for automated pipelines. |
 
 All endpoints require the `X-API-Key` header. See `docs/PLATFORM_RUNBOOK.md` for persona-specific examples and `docs/INTEGRATIONS.md` for connector payload details.
 
@@ -270,6 +304,9 @@ Use `python -m fixops.cli help` for the full command reference and flags.
 | SSDLC evaluator | Scores plan→audit stages and flags gaps per component. | `modules.ssdlc.enabled`
 | IaC posture | Maps Terraform/Kubernetes findings into guardrail outputs. | `modules.iac.enabled`
 | AI agent advisor | Detects agentic frameworks and prescribes controls. | `modules.ai_agents.enabled`
+| Multi-LLM consensus | Fuses GPT-5, Claude, Gemini, and vertical models with variance checks and expert escalation. | Enhanced decision engine (`api/v1/enhanced/*`)
+| SentinelGPT explanations | Generates natural-language narratives and mitigation guidance from findings. | Enhanced decision engine (`new_backend/processing/explanation.py`)
+| Knowledge graph analytics | Builds CTINexus graphs to expose attack paths and clustered risk. | Enhanced decision engine (`new_backend/processing/knowledge_graph.py`)
 | Exploit signals | Merges EPSS, KEV, and overlay refresh schedules to score exploitability. | `modules.exploit_signals.enabled`
 | Probabilistic forecasts | Bayesian/Markov projections of breach likelihood based on crosswalk. | `modules.probabilistic.enabled`
 | ROI analytics | Computes noise reduction, MTTR deltas, automation savings, and assigns ROI value per module. | `modules.analytics.enabled`
