@@ -7,13 +7,14 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
 from backend.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
 from backend.pipeline import PipelineOrchestrator
 from fixops.configuration import OverlayConfig, load_overlay
 from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 from fixops.storage import ArtefactArchive
+from fixops.probabilistic import ProbabilisticForecastEngine
 
 
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
@@ -64,6 +65,30 @@ def _load_inputs(
         payload["cve"] = normalizer.load_cve_feed(_load_file(cve_path) or b"")
 
     return payload
+
+
+def _load_incident_history(path: Path) -> Sequence[Dict[str, Any]]:
+    raw_text = path.read_text(encoding="utf-8")
+    payload = json.loads(raw_text)
+    if isinstance(payload, list):
+        records = payload
+    elif isinstance(payload, dict):
+        candidates = (
+            payload.get("incidents")
+            or payload.get("records")
+            or payload.get("data")
+            or payload.get("history")
+        )
+        if isinstance(candidates, list):
+            records = candidates
+        else:
+            records = [payload]
+    else:
+        raise ValueError("Incident history must be a JSON list or object")
+    incidents = [record for record in records if isinstance(record, dict)]
+    if not incidents:
+        raise ValueError("Incident history file did not contain any usable records")
+    return incidents
 
 
 def _ensure_inputs(
@@ -295,6 +320,38 @@ def _handle_show_overlay(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_train_forecast(args: argparse.Namespace) -> int:
+    config_payload: Dict[str, Any] = {}
+    if args.config:
+        config_payload = json.loads(args.config.read_text(encoding="utf-8"))
+        if not isinstance(config_payload, Mapping):
+            raise ValueError("Forecast configuration must be a JSON object")
+    incidents = _load_incident_history(args.incidents)
+    engine = ProbabilisticForecastEngine(config_payload)
+    result = engine.calibrate(incidents, enforce_validation=args.enforce_validation)
+    payload = result.to_dict()
+
+    if args.output:
+        ensure_secure_directory(args.output.parent)
+        with args.output.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if not args.quiet:
+        metrics = payload["metrics"]
+        validation = metrics.get("validation", {})
+        print("Probabilistic calibration complete:")
+        print(f"  Incidents processed: {metrics.get('incidents')}")
+        print(f"  Transition samples: {metrics.get('transition_observations')}")
+        print(
+            "  Transition matrix validation: "
+            + ("passed" if validation.get("valid") else "needs review")
+        )
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -359,6 +416,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     overlay_parser.add_argument("--pretty", action="store_true", help="Pretty-print the overlay JSON")
     overlay_parser.set_defaults(func=_handle_show_overlay)
+
+    train_parser = subparsers.add_parser(
+        "train-forecast",
+        help="Calibrate the probabilistic severity forecast engine using incident history",
+    )
+    train_parser.add_argument(
+        "--incidents",
+        type=Path,
+        required=True,
+        help="Path to a JSON file containing historical incident records",
+    )
+    train_parser.add_argument(
+        "--config",
+        type=Path,
+        help="Optional JSON file providing the base forecast configuration",
+    )
+    train_parser.add_argument(
+        "--output",
+        type=Path,
+        help="File to write the calibrated priors and transitions to",
+    )
+    train_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output when saving calibration results",
+    )
+    train_parser.add_argument(
+        "--enforce-validation",
+        action="store_true",
+        help="Fail the calibration if the transition matrix does not validate",
+    )
+    train_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress the calibration summary",
+    )
+    train_parser.set_defaults(func=_handle_train_forecast)
 
     return parser
 

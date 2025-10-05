@@ -145,3 +145,33 @@ def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
     overlay_payload = json.loads(output)
     assert overlay_payload["mode"] in {"demo", "enterprise"}
     assert "guardrails" in overlay_payload
+
+
+def test_cli_train_forecast(tmp_path: Path, capsys):
+    incidents = [
+        {
+            "timeline": ["low", "medium", "high"],
+            "final_severity": "high",
+        }
+    ]
+    incidents_path = tmp_path / "incidents.json"
+    _write_json(incidents_path, incidents)
+
+    output_path = tmp_path / "calibrated.json"
+    exit_code = cli.main(
+        [
+            "train-forecast",
+            "--incidents",
+            str(incidents_path),
+            "--output",
+            str(output_path),
+            "--pretty",
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["metrics"]["incidents"] == 1
+    assert payload["bayesian_prior"]["high"] > payload["bayesian_prior"]["low"]
+    summary = capsys.readouterr().out
+    assert "Probabilistic calibration complete" in summary
