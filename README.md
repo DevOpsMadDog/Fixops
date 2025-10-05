@@ -24,6 +24,146 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
                                    Evidence hub, pricing, feedback, docs
 ```
 
+### Component interaction diagram
+```
+             ┌────────────────────┐
+             │ Overlay registry   │
+             │ config/*.yml       │
+             └────────┬───────────┘
+                      │
+                      ▼ load_overlay()
+┌────────────┐   auth/token   ┌───────────────────┐    artefact cache     ┌───────────────────────┐
+│ CLI runner │──────────────▶│ FastAPI ingestion │──────────────────────▶│ Storage + evidence    │
+│ fixops.cli │               │  backend/app.py   │◀──────────────────────│ data/uploads/*        │
+└────────────┘               └────────┬──────────┘     archive bundles    └──────────┬────────────┘
+         ▲                             │                                    decrypt/compress │
+         │ module toggles              │ orchestrate()                       ▼                │
+         │                             ▼                             ┌─────────────┐        │
+         │                     ┌───────────────────┐                 │ Destinations│◀───────┘
+         └────────────────────▶│ Pipeline modules  │───────────────▶ │ Jira/Slack │   automation manifests
+                               │ context/guardrail │  ROI & telemetry │ GRC repos │
+                               └───────────────────┘                 └─────────────┘
+```
+
+The overlay registry feeds both the CLI and FastAPI surfaces with runtime configuration. Artefacts ingested through the API are cached under `data/uploads`, normalised, and handed to modular pipeline stages that emit automation payloads, evidence bundles, and ROI telemetry to downstream destinations.
+
+### Sequence diagram (demo → enterprise hand-off)
+```
+Client/CLI -> FastAPI ingestion: POST /inputs/* (design, sbom, cve, sarif)
+FastAPI ingestion -> Artefact cache: store + normalise artefacts
+FastAPI ingestion -> Pipeline orchestrator: invoke /pipeline/run
+Pipeline orchestrator -> Module registry: resolve enabled modules
+Module registry -> Context engine: enrich with business signals
+Module registry -> Guardrails: evaluate maturity thresholds
+Module registry -> Automation pack: dispatch Jira/Slack/Confluence
+Module registry -> Evidence hub: build encrypted bundle
+Module registry -> Analytics: compute ROI + performance profile
+Pipeline orchestrator -> FastAPI ingestion: return aggregated response
+FastAPI ingestion -> Client/CLI: JSON with summaries + bundle paths
+Client/CLI -> Enterprise Terraform: promote overlay + secrets
+Enterprise Terraform -> Kubernetes cluster: deploy services + ingress
+```
+
+### UML overview
+```
+@startuml
+class OverlayLoader {
+  +load_overlay(path)
+  +resolve_tokens()
+}
+
+class IngestionService {
+  +accept_design()
+  +accept_sbom()
+  +accept_cve()
+  +accept_sarif()
+  +run_pipeline()
+}
+
+class PipelineOrchestrator {
+  +correlate_artefacts()
+  +execute_modules()
+  +emit_outputs()
+}
+
+class ModuleRegistry {
+  +enable(name)
+  +disable(name)
+  +register(hook)
+}
+
+class EvidenceHub {
+  +archive()
+  +encrypt()
+  +handoff()
+}
+
+OverlayLoader --> IngestionService
+IngestionService --> PipelineOrchestrator
+PipelineOrchestrator --> ModuleRegistry
+ModuleRegistry --> EvidenceHub
+PipelineOrchestrator --> Destinations
+@enduml
+```
+
+The UML block highlights the primary classes composing FixOps: configuration loaders, the ingestion facade, the orchestrator, the modular execution surface, and evidence management.
+
+### Feature mind map
+```
+FixOps Platform
+├── Ingestion
+│   ├── FastAPI endpoints
+│   └── CLI parity
+├── Contextual intelligence
+│   ├── Context engine
+│   ├── Guardrails
+│   └── SSDLC + IaC posture
+├── Automation
+│   ├── Policy automation
+│   ├── Compliance packs
+│   └── Evidence hub
+├── Analytics
+│   ├── ROI telemetry
+│   ├── Tenant lifecycle
+│   └── Performance simulation
+├── AI & probabilistic
+│   ├── AI agent advisor
+│   └── Probabilistic forecasts
+└── Deployment
+    ├── Docker demo
+    └── Terraform enterprise
+```
+
+### Detailed feature list
+| Feature | Inputs | Runtime toggles | Outputs | Value delivered |
+| --- | --- | --- | --- | --- |
+| Context engine | Design CSV, SBOM, CVE, SARIF | `modules.context_engine.enabled` | Enriched component scores, prioritised findings | Correlates business impact with exposure to cut remediation noise. |
+| Guardrails | Overlay maturity targets, SSDLC/IaC artefacts | `modules.guardrails.enabled` | Pass/fail gates, downgrade logic | Demonstrates readiness to executives and reduces false positives. |
+| SSDLC evaluator | Design CSV, overlay stage metadata | `modules.ssdlc.enabled` | Stage coverage map, control gaps | Shows pipeline health for governance reviews. |
+| IaC posture | Terraform/K8s scan results | `modules.iac.enabled` | IaC findings embedded in pipeline report | Connects infrastructure risk to application context. |
+| Compliance packs | Overlay compliance packs, evidence hub config | `modules.compliance.enabled` | SOC2/ISO bundles, attestations | Provides audit-ready evidence per run. |
+| Policy automation | Automation connectors, Jira/Slack secrets | `modules.policy_automation.enabled` | Tickets, pages, chat receipts | Automates remediation and documentation workflows. |
+| Evidence hub | Any uploaded artefact | `modules.evidence.enabled` | Compressed, optionally encrypted bundles | Centralises artefacts for hand-off without manual effort. |
+| AI agent advisor | SBOM, SARIF, overlay AI toggles | `modules.ai_agents.enabled` | AI agent detection notes, control guidance | Highlights autonomous agents requiring new guardrails. |
+| Exploit signals | CVE feeds, EPSS/KEV overlays | `modules.exploit_signals.enabled` | Exploitability scores, refresh SLAs | Keeps remediation focused on weaponised threats. |
+| Probabilistic forecasts | Correlated crosswalk, historical refresh | `modules.probabilistic.enabled` | Bayesian/Markov risk projections | Quantifies breach likelihood for planning and VC narratives. |
+| ROI analytics | Pipeline telemetry, automation success | `modules.analytics.enabled` | Cost savings, MTTR deltas, executive KPIs | Substantiates FixOps value in investor demos. |
+| Tenant lifecycle | Tenant registry, stage definitions | `modules.tenancy.enabled` | Stage transitions, module gaps | Guides shared-service owners through onboarding and renewals. |
+| Performance simulation | Overlay latency targets, benchmark profiles | `modules.performance.enabled` | Backlog predictions, throughput advice | Ensures capacity planning for enterprise pilots. |
+
+### CLI/API usage by stage
+| Stage | Interface | Command / Endpoint | Required inputs | Primary value |
+| --- | --- | --- | --- | --- |
+| Demo discovery | CLI | `python -m fixops.cli run --overlay config/demo.overlay.yml --design samples/design.csv --sbom samples/sbom.json --sarif samples/scan.sarif --cve samples/cve.json --output out/demo.json` | Demo overlay, curated artefacts | Fast investor narrative with contextual scoring and ROI headlines. |
+| Demo discovery | API | `POST /inputs/*`, `GET /pipeline/run` | Same artefacts via multipart uploads | Live walkthrough showing ingestion health checks and guardrail outputs. |
+| Enterprise onboarding | CLI | `python -m fixops.cli run --overlay config/fixops.overlay.yml --enable compliance --enable policy_automation --evidence-dir out/evidence` | Enterprise overlay, connector secrets | Proves compliance and automation readiness for procurement teams. |
+| Enterprise onboarding | API | `POST /pipeline/run` with `X-API-Key` | Cached artefacts, overlay toggles | Enables integration tests and CI gating. |
+| Operations steady state | CLI | `python -m fixops.cli run --enable exploit_signals --enable analytics --output out/ops.json` | Latest artefacts, exploit feeds | Keeps vuln management prioritised around active threats and ROI metrics. |
+| Operations steady state | API | `POST /feedback` (if enabled) | Review payloads linked to run IDs | Captures analyst decisions for continuous improvement. |
+| Scale-out deployment | Terraform | `terraform -chdir=fixops-blended-enterprise/terraform apply` | AWS credentials, S3 backend, overlay secrets | Launches Kubernetes-backed enterprise stack with same overlays. |
+| Scale-out deployment | Helm (via Terraform) | Automated by module | Helm charts, Kubernetes context | Ensures parity between local demo and production footprint. |
+
+Each row outlines the stage of the customer journey, the surface to invoke, the exact commands or endpoints, the minimal inputs required, and the resulting business value to emphasise during demos or enterprise rollouts.
 - **Ingestion service (`backend/app.py`)** – Loads the overlay at startup, prepares allowlisted directories, enforces API tokens, validates MIME types, caps uploads, and accepts artefacts at `/inputs/design`, `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` before orchestrating `/pipeline/run`.
 - **Pipeline orchestrator (`backend/pipeline.py`)** – Normalises severities, builds the design ↔ SBOM ↔ findings ↔ CVE crosswalk, evaluates guardrails and contextual modules, executes automation connectors, and emits the module matrix alongside summaries, evidence bundles, pricing, and sanitized overlay metadata.
 - **Extension surface (`fixops/modules.py`)** – Overlay-declared modules and custom hooks allow integrators to disable, enable, or extend behaviour (e.g., IaC posture checks, exploit refresh, probabilistic forecasts) without code changes.
@@ -36,6 +176,20 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
+### Local Docker demo setup
+* The `fixops-blended-enterprise/docker-compose.yml` bundle gives you a three-service stack: MongoDB, the FastAPI backend, and the optional React frontend, each with health checks and environment defaults suitable for a laptop demo. Start it with `docker-compose up -d` to get ports `8001` (API) and `3000` (UI) exposed locally.
+
+* After the containers are up, seed the bundled SQLite database and create a demo admin account by running `python quick_start.py`; it provisions schema and demo credentials (`admin@fixops.com` / `FixOpsAdmin123!`) that you can use in the browser for an investor walkthrough.
+
+* For presentation polish, Option C in the enterprise deployment guide walks through the same docker-compose flow and reminds you to tailor `.env.enterprise` so the UI reflects the buyer’s industry before inviting the VC to visit `http://localhost:3000`. Health checks at `http://localhost:8001/health` let you prove everything is live on the spot.
+
+### Enterprise IaC (Terraform-only)
+* The production path is modeled entirely in Terraform under `fixops-blended-enterprise/terraform/`. The root module pins Terraform ≥ 1.5, enables the Kubernetes and Helm providers, and expects an S3 remote state backend—useful if you want to demo an “upgrade from laptop to cluster” story.
+
+* `deployment.tf` composes namespace, RBAC, storage, MongoDB, Redis, backend, frontend, and ingress modules, wiring in replica counts, secrets, health probes, and HA defaults so an enterprise prospect sees bank-grade hardening out of the box.
+
+* Outputs expose URLs, kube commands, and compliance posture, which makes it easy to hand over state or plug the stack into CI/CD during diligence.
+
 ### Prerequisites
 - Python 3.10+ (tested with CPython 3.11)
 - `pip` and `virtualenv`
