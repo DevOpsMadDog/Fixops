@@ -8,6 +8,65 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 
 
+def _coerce_severity(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    label = str(value).strip().lower()
+    if not label:
+        return None
+    synonym_map = {
+        "sev1": "critical",
+        "sev2": "high",
+        "sev3": "medium",
+        "sev4": "low",
+        "warning": "medium",
+        "error": "high",
+        "critical": "critical",
+    }
+    label = synonym_map.get(label, label)
+    if label not in _SEVERITY_ORDER:
+        return None
+    return label
+
+
+def _extract_state_sequence(incident: Mapping[str, Any]) -> list[str]:
+    states: list[str] = []
+    timeline = (
+        incident.get("states")
+        or incident.get("timeline")
+        or incident.get("progression")
+        or incident.get("transition_history")
+    )
+    if isinstance(timeline, Sequence) and not isinstance(timeline, (str, bytes)):
+        for entry in timeline:
+            if isinstance(entry, Mapping):
+                candidate = (
+                    entry.get("state")
+                    or entry.get("severity")
+                    or entry.get("level")
+                    or entry.get("name")
+                )
+            else:
+                candidate = entry
+            severity = _coerce_severity(candidate)
+            if severity:
+                states.append(severity)
+    if not states:
+        start = _coerce_severity(
+            incident.get("initial_severity") or incident.get("start_severity")
+        )
+        end = _coerce_severity(
+            incident.get("final_severity")
+            or incident.get("resolved_severity")
+            or incident.get("severity")
+        )
+        if start and end:
+            states = [start, end]
+        elif end:
+            states = [end]
+    return states
+
+
 def _severity_index(severity: str) -> int:
     try:
         return _SEVERITY_ORDER.index(severity)
@@ -121,6 +180,29 @@ class ComponentForecast:
         }
 
 
+@dataclass
+class CalibrationResult:
+    prior: Dict[str, float]
+    transitions: Dict[str, Dict[str, float]]
+    incident_count: int
+    transition_observations: int
+    validation: Dict[str, Any]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "bayesian_prior": {key: round(value, 4) for key, value in self.prior.items()},
+            "markov_transitions": {
+                state: {target: round(weight, 4) for target, weight in row.items()}
+                for state, row in self.transitions.items()
+            },
+            "metrics": {
+                "incidents": self.incident_count,
+                "transition_observations": self.transition_observations,
+                "validation": self.validation,
+            },
+        }
+
+
 class ProbabilisticForecastEngine:
     """Combine Bayesian priors and Markov transitions for severity forecasting."""
 
@@ -153,6 +235,114 @@ class ProbabilisticForecastEngine:
             "high": {"high": 0.6, "critical": 0.25, "medium": 0.15},
             "critical": {"critical": 0.7, "high": 0.3},
         }
+
+    def validate_transitions(
+        self, transitions: Optional[Mapping[str, Mapping[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        rows: Dict[str, Dict[str, Any]] = {}
+        payload = transitions or self.transitions
+        all_valid = True
+        for state, row in payload.items():
+            invalid_targets: list[str] = []
+            total = 0.0
+            for target, weight in row.items():
+                target_key = _coerce_severity(target)
+                if target_key is None:
+                    invalid_targets.append(str(target))
+                    continue
+                try:
+                    total += float(weight)
+                except (TypeError, ValueError):
+                    invalid_targets.append(str(target))
+            valid_row = not invalid_targets and abs(total - 1.0) <= 1e-3
+            rows[str(state)] = {
+                "total": round(total, 6),
+                "invalid_targets": invalid_targets,
+                "valid": valid_row,
+            }
+            if not valid_row:
+                all_valid = False
+        return {"valid": all_valid, "rows": rows}
+
+    def _calibrate_transitions(
+        self, transition_counts: Mapping[str, Mapping[str, float]]
+    ) -> Dict[str, Dict[str, float]]:
+        updated: Dict[str, Dict[str, float]] = {}
+        baseline = dict(self.transitions)
+        for state, baseline_row in baseline.items():
+            state_key = _coerce_severity(state)
+            if state_key is None:
+                continue
+            updated[state_key] = dict(baseline_row)
+        for state, counts in transition_counts.items():
+            state_key = _coerce_severity(state)
+            if state_key is None:
+                continue
+            updated.setdefault(state_key, dict(self._default_transitions().get(state_key, {})))
+            for target, value in counts.items():
+                target_key = _coerce_severity(target)
+                if target_key is None:
+                    continue
+                updated[state_key][target_key] = updated[state_key].get(target_key, 0.0) + value
+        for state in _SEVERITY_ORDER:
+            if state not in updated:
+                updated[state] = dict(self._default_transitions().get(state, {}))
+        calibrated: Dict[str, Dict[str, float]] = {}
+        for state, row in updated.items():
+            calibrated[state] = _normalise_transition_row(row)
+        return calibrated
+
+    def calibrate(
+        self,
+        incidents: Sequence[Mapping[str, Any]],
+        *,
+        enforce_validation: bool = False,
+    ) -> CalibrationResult:
+        severity_counts: Dict[str, float] = {severity: 0.0 for severity in _SEVERITY_ORDER}
+        transition_counts: Dict[str, Dict[str, float]] = {}
+        incident_count = 0
+        transition_observations = 0
+        for incident in incidents:
+            if not isinstance(incident, Mapping):
+                continue
+            states = _extract_state_sequence(incident)
+            if not states:
+                continue
+            incident_count += 1
+            final_state = states[-1]
+            if final_state in severity_counts:
+                severity_counts[final_state] += 1.0
+            if len(states) >= 2:
+                for source, target in zip(states, states[1:]):
+                    source_key = _coerce_severity(source)
+                    target_key = _coerce_severity(target)
+                    if source_key is None or target_key is None:
+                        continue
+                    transition_counts.setdefault(source_key, {})
+                    transition_counts[source_key][target_key] = (
+                        transition_counts[source_key].get(target_key, 0.0) + 1.0
+                    )
+                    transition_observations += 1
+
+        if incident_count == 0:
+            raise ValueError("No valid incidents were provided for calibration")
+
+        posterior = self._posterior(severity_counts)
+        calibrated_transitions = self._calibrate_transitions(transition_counts)
+        validation = self.validate_transitions(calibrated_transitions)
+        if enforce_validation and not validation["valid"]:
+            raise ValueError("Calibrated transition matrix failed validation checks")
+
+        self.prior = posterior
+        self.transitions = calibrated_transitions
+
+        return CalibrationResult(
+            prior=posterior,
+            transitions=calibrated_transitions,
+            incident_count=incident_count,
+            transition_observations=transition_observations,
+            validation=validation,
+        )
 
     def _posterior(self, counts: Mapping[str, Any]) -> Dict[str, float]:
         totals: Dict[str, float] = {severity: self.prior.get(severity, 0.25) for severity in _SEVERITY_ORDER}
@@ -262,4 +452,4 @@ class ProbabilisticForecastEngine:
         }
 
 
-__all__ = ["ProbabilisticForecastEngine"]
+__all__ = ["ProbabilisticForecastEngine", "CalibrationResult"]
