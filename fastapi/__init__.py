@@ -18,6 +18,31 @@ class HTTPException(Exception):
         self.detail = detail
 
 
+def Depends(dependency: Callable[..., Any] | None = None) -> Callable[..., Any] | None:
+    return dependency
+
+
+def File(default: Any) -> Any:
+    return default
+
+
+class UploadFile:
+    def __init__(self, filename: str | None = None, content_type: str | None = None) -> None:
+        self.filename = filename or ""
+        self.content_type = content_type
+        self._buffer = bytearray()
+
+    async def read(self, size: int = -1) -> bytes:  # pragma: no cover - simple stub
+        if size is None or size < 0:
+            size = len(self._buffer)
+        data = self._buffer[:size]
+        if size >= len(self._buffer):
+            self._buffer.clear()
+        else:
+            del self._buffer[:size]
+        return bytes(data)
+
+
 class RequestValidationError(Exception):
     def __init__(self, errors: List[Dict[str, Any]]) -> None:
         super().__init__("Validation failed")
@@ -89,12 +114,16 @@ class FastAPI:
         self.title = title
         self.version = version
         self._routes: List[_Route] = []
+        self._middleware: List[tuple[Any, Dict[str, Any]]] = []
 
     def post(self, path: str, summary: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("POST", path)
 
     def get(self, path: str, summary: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("GET", path)
+
+    def add_middleware(self, middleware_class: Any, **options: Any) -> None:
+        self._middleware.append((middleware_class, options))
 
     def _register(self, method: str, path: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -114,4 +143,12 @@ class FastAPI:
 
 from .testclient import TestClient  # noqa: E402  (import after FastAPI definition)
 
-__all__ = ["FastAPI", "HTTPException", "RequestValidationError", "TestClient"]
+__all__ = [
+    "FastAPI",
+    "HTTPException",
+    "Depends",
+    "File",
+    "UploadFile",
+    "RequestValidationError",
+    "TestClient",
+]
