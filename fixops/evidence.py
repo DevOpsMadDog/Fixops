@@ -3,12 +3,19 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from fixops.configuration import OverlayConfig
+from fixops.paths import ensure_secure_directory
+
+try:  # Optional dependency used when regulated tenants request encryption
+    from cryptography.fernet import Fernet
+except Exception:  # pragma: no cover - cryptography is optional
+    Fernet = None  # type: ignore[assignment]
 
 
 _SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -28,6 +35,30 @@ class EvidenceHub:
             self.max_bundle_bytes = 2 * 1024 * 1024
         compress_flag = limits.get("compress") if isinstance(limits, Mapping) else False
         self.compress_bundles = bool(compress_flag)
+        encrypt_flag = limits.get("encrypt") if isinstance(limits, Mapping) else False
+        self.encrypt_bundles = bool(encrypt_flag)
+        encryption_env = (
+            limits.get("encryption_env") if isinstance(limits, Mapping) else None
+        )
+        self._fernet: Optional[Fernet] = None
+        if self.encrypt_bundles:
+            if not encryption_env:
+                raise RuntimeError(
+                    "Evidence encryption enabled but no 'encryption_env' was provided"
+                )
+            if Fernet is None:
+                raise RuntimeError(
+                    "Evidence encryption requires the 'cryptography' package to be installed"
+                )
+            key = os.getenv(str(encryption_env))
+            if not key:
+                raise RuntimeError(
+                    f"Evidence encryption requested but environment variable '{encryption_env}' is not set"
+                )
+            try:
+                self._fernet = Fernet(key.encode("utf-8"))
+            except Exception as exc:  # pragma: no cover - invalid key handling
+                raise RuntimeError("Invalid evidence encryption key supplied") from exc
 
     def _base_directory(self) -> Path:
         directory = self.overlay.data_directories.get("evidence_dir")
@@ -38,8 +69,7 @@ class EvidenceHub:
                 else (Path("data").resolve())
             )
             directory = (root / "evidence" / self.overlay.mode).resolve()
-        directory.mkdir(parents=True, exist_ok=True)
-        return directory
+        return ensure_secure_directory(directory)
 
     def _bundle_name(self) -> str:
         raw_name = str(
@@ -57,8 +87,7 @@ class EvidenceHub:
         policy_summary: Optional[Mapping[str, Any]],
     ) -> Dict[str, Any]:
         run_id = uuid.uuid4().hex
-        base_dir = self._base_directory() / run_id
-        base_dir.mkdir(parents=True, exist_ok=True)
+        base_dir = ensure_secure_directory(self._base_directory() / run_id)
 
         sections = self.settings.get("include_sections", [])
         included_sections: list[str] = []
@@ -96,11 +125,8 @@ class EvidenceHub:
         bundle_path = base_dir / f"{self._bundle_name()}-bundle.json"
         compressed = False
 
-        def _write_compressed(data: bytes) -> None:
-            nonlocal bundle_path, compressed
-            bundle_path = bundle_path.with_suffix(".json.gz")
-            bundle_path.write_bytes(data)
-            compressed = True
+        final_bytes = bundle_bytes
+        final_path = bundle_path
 
         if self.compress_bundles and self.max_bundle_bytes:
             compressed_data = gzip.compress(bundle_bytes)
@@ -108,27 +134,40 @@ class EvidenceHub:
                 raise ValueError(
                     "Compressed evidence bundle exceeds configured size limit; increase bundle_max_bytes"
                 )
-            _write_compressed(compressed_data)
+            final_bytes = compressed_data
+            final_path = bundle_path.with_suffix(".json.gz")
+            compressed = True
         elif not self.max_bundle_bytes or len(bundle_bytes) <= self.max_bundle_bytes:
-            bundle_path.write_bytes(bundle_bytes)
+            final_bytes = bundle_bytes
         else:
             compressed_data = gzip.compress(bundle_bytes)
             if len(compressed_data) > self.max_bundle_bytes:
                 raise ValueError(
                     "Evidence bundle exceeds configured size limit even after compression; increase bundle_max_bytes"
                 )
-            _write_compressed(compressed_data)
+            final_bytes = compressed_data
+            final_path = bundle_path.with_suffix(".json.gz")
+            compressed = True
+
+        encrypted = False
+        if self._fernet is not None:
+            final_bytes = self._fernet.encrypt(final_bytes)
+            final_path = final_path.with_suffix(final_path.suffix + ".enc")
+            encrypted = True
+
+        final_path.write_bytes(final_bytes)
 
         manifest = {
             "run_id": run_id,
             "mode": self.overlay.mode,
-            "bundle": str(bundle_path),
+            "bundle": str(final_path),
             "sections": [
                 key
                 for key in bundle_payload.keys()
                 if key not in {"mode", "run_id", "overlay"}
             ],
             "compressed": compressed,
+            "encrypted": encrypted,
         }
         manifest_path = base_dir / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -137,11 +176,12 @@ class EvidenceHub:
             "bundle_id": run_id,
             "directory": str(base_dir),
             "files": {
-                "bundle": str(bundle_path),
+                "bundle": str(final_path),
                 "manifest": str(manifest_path),
             },
             "sections": included_sections,
             "compressed": compressed,
+            "encrypted": encrypted,
         }
 
 

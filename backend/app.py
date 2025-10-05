@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
@@ -10,6 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from fixops.configuration import OverlayConfig, load_overlay
+from fixops.paths import ensure_secure_directory
+from fixops.storage import ArtefactArchive
 from fixops.feedback import FeedbackRecorder
 
 from .normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
@@ -47,12 +50,24 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=401, detail="Invalid or missing API token")
 
     for directory in overlay.data_directories.values():
-        directory.mkdir(parents=True, exist_ok=True)
+        ensure_secure_directory(directory)
+
+    archive_dir = overlay.data_directories.get("archive_dir")
+    if archive_dir is None:
+        root = (
+            overlay.allowed_data_roots[0]
+            if overlay.allowed_data_roots
+            else Path("data").resolve()
+        )
+        archive_dir = (root / "archive" / overlay.mode).resolve()
+    archive = ArtefactArchive(archive_dir)
 
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
     app.state.artifacts: Dict[str, Any] = {}
     app.state.overlay = overlay
+    app.state.archive = archive
+    app.state.archive_records: Dict[str, Dict[str, Any]] = {}
     app.state.feedback = (
         FeedbackRecorder(overlay)
         if overlay.toggles.get("capture_feedback")
@@ -95,9 +110,26 @@ def create_app() -> FastAPI:
                 },
             )
 
-    def _store(stage: str, payload: Any) -> None:
+    def _store(
+        stage: str,
+        payload: Any,
+        *,
+        original_filename: Optional[str] = None,
+        raw_bytes: Optional[bytes] = None,
+    ) -> None:
         logger.debug("Storing stage %s", stage)
         app.state.artifacts[stage] = payload
+        try:
+            record = app.state.archive.persist(
+                stage,
+                payload,
+                original_filename=original_filename,
+                raw_bytes=raw_bytes,
+            )
+        except Exception as exc:  # pragma: no cover - persistence must not break ingestion
+            logger.exception("Failed to persist artefact stage %s", stage)
+            record = {"stage": stage, "error": str(exc)}
+        app.state.archive_records[stage] = record
 
     @app.post("/inputs/design", dependencies=[Depends(_verify_api_key)])
     async def ingest_design(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -111,7 +143,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail="Design CSV contained no rows")
 
         dataset = {"columns": reader.fieldnames or [], "rows": rows}
-        _store("design", dataset)
+        _store("design", dataset, original_filename=file.filename, raw_bytes=raw_bytes)
         return {
             "stage": "design",
             "input_filename": file.filename,
@@ -122,7 +154,16 @@ def create_app() -> FastAPI:
 
     @app.post("/inputs/sbom", dependencies=[Depends(_verify_api_key)])
     async def ingest_sbom(file: UploadFile = File(...)) -> Dict[str, Any]:
-        _validate_content_type(file, ("application/json", "text/json"))
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/gzip",
+            ),
+        )
         raw_bytes = await _read_limited(file, "sbom")
         try:
             sbom: NormalizedSBOM = normalizer.load_sbom(raw_bytes)
@@ -130,7 +171,7 @@ def create_app() -> FastAPI:
             logger.exception("SBOM normalisation failed")
             raise HTTPException(status_code=400, detail=f"Failed to parse SBOM: {exc}") from exc
 
-        _store("sbom", sbom)
+        _store("sbom", sbom, original_filename=file.filename, raw_bytes=raw_bytes)
         return {
             "stage": "sbom",
             "input_filename": file.filename,
@@ -142,7 +183,16 @@ def create_app() -> FastAPI:
 
     @app.post("/inputs/cve", dependencies=[Depends(_verify_api_key)])
     async def ingest_cve(file: UploadFile = File(...)) -> Dict[str, Any]:
-        _validate_content_type(file, ("application/json", "text/json"))
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/gzip",
+            ),
+        )
         raw_bytes = await _read_limited(file, "cve")
         try:
             cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(raw_bytes)
@@ -150,7 +200,7 @@ def create_app() -> FastAPI:
             logger.exception("CVE feed normalisation failed")
             raise HTTPException(status_code=400, detail=f"Failed to parse CVE feed: {exc}") from exc
 
-        _store("cve", cve_feed)
+        _store("cve", cve_feed, original_filename=file.filename, raw_bytes=raw_bytes)
         return {
             "stage": "cve",
             "input_filename": file.filename,
@@ -160,7 +210,16 @@ def create_app() -> FastAPI:
 
     @app.post("/inputs/sarif", dependencies=[Depends(_verify_api_key)])
     async def ingest_sarif(file: UploadFile = File(...)) -> Dict[str, Any]:
-        _validate_content_type(file, ("application/json", "text/json"))
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/gzip",
+            ),
+        )
         raw_bytes = await _read_limited(file, "sarif")
         try:
             sarif: NormalizedSARIF = normalizer.load_sarif(raw_bytes)
@@ -168,7 +227,7 @@ def create_app() -> FastAPI:
             logger.exception("SARIF normalisation failed")
             raise HTTPException(status_code=400, detail=f"Failed to parse SARIF: {exc}") from exc
 
-        _store("sarif", sarif)
+        _store("sarif", sarif, original_filename=file.filename, raw_bytes=raw_bytes)
         return {
             "stage": "sarif",
             "input_filename": file.filename,
@@ -203,6 +262,9 @@ def create_app() -> FastAPI:
             cve=app.state.artifacts["cve"],
             overlay=overlay,
         )
+        if app.state.archive_records:
+            result["artifact_archive"] = ArtefactArchive.summarise(app.state.archive_records)
+            app.state.archive_records = {}
         if overlay.toggles.get("auto_attach_overlay_metadata", True):
             result["overlay"] = overlay.to_sanitised_dict()
             result["overlay"]["required_inputs"] = list(required)

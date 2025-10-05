@@ -44,7 +44,7 @@ class _BaseConnector:
 
 
 class JiraConnector(_BaseConnector):
-    """Create Jira issues for guardrail automation."""
+    """Create Jira issues for guardrail automation via `/rest/api/3/issue` (Atlassian Cloud/Server)."""
 
     def __init__(self, settings: Mapping[str, Any]):
         super().__init__(timeout=float(settings.get("timeout", 10.0) or 10.0))
@@ -120,7 +120,7 @@ class JiraConnector(_BaseConnector):
 
 
 class ConfluenceConnector(_BaseConnector):
-    """Publish Confluence pages for audit evidence."""
+    """Publish Confluence pages for audit evidence via `/rest/api/content` (storage representation)."""
 
     def __init__(self, settings: Mapping[str, Any]):
         super().__init__(timeout=float(settings.get("timeout", 10.0) or 10.0))

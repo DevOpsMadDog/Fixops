@@ -116,6 +116,8 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
     result_payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert result_payload["status"] == "ok"
     assert result_payload["modules"]["executed"]
+    archive_info = result_payload.get("artifact_archive")
+    assert archive_info and "cve" in archive_info
     copied_files = list(evidence_dir.iterdir())
     assert copied_files, "evidence bundle was not copied"
 

@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional,
 
 from fixops.configuration import OverlayConfig
 from fixops.connectors import AutomationConnectors
+from fixops.paths import ensure_secure_directory
 
 
 class _AutomationDispatcher:
@@ -20,10 +21,13 @@ class _AutomationDispatcher:
         directories = overlay.data_directories
         base = directories.get("automation_dir")
         if base is None:
-            root = overlay.allowed_data_roots[0] if overlay.allowed_data_roots else Path("data").resolve()
+            root = (
+                overlay.allowed_data_roots[0]
+                if overlay.allowed_data_roots
+                else Path("data").resolve()
+            )
             base = (root / "automation" / overlay.mode).resolve()
-        self.base_dir = base
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.base_dir = ensure_secure_directory(base)
 
     def dispatch(self, action: Mapping[str, Any]) -> Dict[str, Any]:
         identifier = action.get("id") or uuid.uuid4().hex

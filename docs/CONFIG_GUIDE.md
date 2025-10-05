@@ -46,10 +46,10 @@ data:
   feedback_dir: feedback/demo
   automation_dir: automation/demo
   feeds_dir: feeds/demo
-  automation_dir: automation/demo
-  feeds_dir: feeds/demo
+  archive_dir: archive/demo
   audit_export_dir: audit
 # (relative paths resolve against the first entry in `FIXOPS_DATA_ROOT_ALLOWLIST`, defaulting to `./data`)
+# `archive_dir` persists raw and normalised artefacts for post-run analysis; paths are validated against the allowlist and created with restrictive permissions.
 toggles:
   require_design_input: false
   auto_attach_overlay_metadata: true
@@ -64,6 +64,9 @@ limits:
   evidence:
     bundle_max_bytes: 1048576
     compress: true
+    encrypt: false
+    encryption_env: FIXOPS_EVIDENCE_KEY
+# When `encrypt` is true the evidence hub expects `FIXOPS_EVIDENCE_KEY` (Fernet-compatible) to be set and will emit `.enc` bundles.
 guardrails:
   maturity: foundational | scaling | advanced
   fail_on: (optional) critical | high | medium | low
@@ -288,6 +291,9 @@ data:
   design_context_dir: design_context/demo
   evidence_dir: evidence/demo
   feedback_dir: feedback/demo
+  automation_dir: automation/demo
+  feeds_dir: feeds/demo
+  archive_dir: archive/demo
 toggles:
   require_design_input: false
   auto_attach_overlay_metadata: true
@@ -295,6 +301,13 @@ toggles:
 limits:
   max_upload_bytes:
     default: 3145728
+    sarif: 6291456
+    cve: 6291456
+  evidence:
+    bundle_max_bytes: 1048576
+    compress: true
+    encrypt: false
+    encryption_env: FIXOPS_EVIDENCE_KEY
 guardrails:
   maturity: foundational
 context_engine:
@@ -383,6 +396,7 @@ profiles:
       feedback_dir: feedback/enterprise
       automation_dir: automation/enterprise
       feeds_dir: feeds/enterprise
+      archive_dir: archive/enterprise
     toggles:
       require_design_input: true
       auto_attach_overlay_metadata: true
@@ -397,6 +411,8 @@ profiles:
       evidence:
         bundle_max_bytes: 2097152
         compress: true
+        encrypt: true
+        encryption_env: FIXOPS_EVIDENCE_KEY
     guardrails:
       maturity: advanced
     context_engine:

@@ -136,6 +136,9 @@ python -m fixops.cli run \
 python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml --pretty
 ```
 
+- The CLI mirrors the API’s artefact archive and appends an `artifact_archive` section pointing to raw and normalised inputs under the mode-specific `data.archive_dir`.
+- Provide `--evidence-dir` to copy the encrypted/compressed bundle into a separate operator-controlled folder while the original remains in the allowlisted evidence directory.
+
 Key switches:
 
 - `--env KEY=VALUE` – supply API tokens or connector credentials without exporting them globally.

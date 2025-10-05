@@ -12,6 +12,8 @@ from typing import Any, Dict, Iterable, Optional
 from backend.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
 from backend.pipeline import PipelineOrchestrator
 from fixops.configuration import OverlayConfig, load_overlay
+from fixops.paths import ensure_secure_directory
+from fixops.storage import ArtefactArchive
 
 
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
@@ -34,10 +36,10 @@ def _load_design(path: Path) -> Dict[str, Any]:
     return {"columns": reader.fieldnames or [], "rows": rows}
 
 
-def _load_file(path: Optional[Path]) -> Optional[str]:
+def _load_file(path: Optional[Path]) -> Optional[bytes]:
     if path is None:
         return None
-    return path.read_text(encoding="utf-8")
+    return path.read_bytes()
 
 
 def _load_inputs(
@@ -53,13 +55,13 @@ def _load_inputs(
         payload["design"] = _load_design(design_path)
 
     if sbom_path is not None:
-        payload["sbom"] = normalizer.load_sbom(_load_file(sbom_path) or "")
+        payload["sbom"] = normalizer.load_sbom(_load_file(sbom_path) or b"")
 
     if sarif_path is not None:
-        payload["sarif"] = normalizer.load_sarif(_load_file(sarif_path) or "")
+        payload["sarif"] = normalizer.load_sarif(_load_file(sarif_path) or b"")
 
     if cve_path is not None:
-        payload["cve"] = normalizer.load_cve_feed(_load_file(cve_path) or "")
+        payload["cve"] = normalizer.load_cve_feed(_load_file(cve_path) or b"")
 
     return payload
 
@@ -120,7 +122,7 @@ def _copy_evidence(result: Dict[str, Any], destination: Optional[Path]) -> Optio
     if not bundle:
         return None
     bundle_path = Path(bundle)
-    destination.mkdir(parents=True, exist_ok=True)
+    ensure_secure_directory(destination)
     target = destination / bundle_path.name
     target.write_bytes(bundle_path.read_bytes())
     return target
@@ -197,7 +199,17 @@ def _handle_run(args: argparse.Namespace) -> int:
         if isinstance(auto_refresh, dict):
             auto_refresh["enabled"] = False
     for directory in overlay.data_directories.values():
-        directory.mkdir(parents=True, exist_ok=True)
+        ensure_secure_directory(directory)
+
+    archive_dir = overlay.data_directories.get("archive_dir")
+    if archive_dir is None:
+        root = (
+            overlay.allowed_data_roots[0]
+            if overlay.allowed_data_roots
+            else Path("data").resolve()
+        )
+        archive_dir = (root / "archive" / overlay.mode).resolve()
+    archive = ArtefactArchive(archive_dir)
 
     normalizer = InputNormalizer()
     inputs = _load_inputs(
@@ -217,13 +229,49 @@ def _handle_run(args: argparse.Namespace) -> int:
         cve_path=args.cve,
     )
 
+    archive_records: Dict[str, Dict[str, Any]] = {}
+    try:
+        if args.design is not None and "design" in inputs:
+            archive_records["design"] = archive.persist(
+                "design",
+                prepared["design_dataset"],
+                original_filename=args.design.name,
+                raw_bytes=args.design.read_bytes(),
+            )
+        if args.sbom is not None:
+            archive_records["sbom"] = archive.persist(
+                "sbom",
+                prepared["sbom"],
+                original_filename=args.sbom.name,
+                raw_bytes=args.sbom.read_bytes(),
+            )
+        if args.sarif is not None:
+            archive_records["sarif"] = archive.persist(
+                "sarif",
+                prepared["sarif"],
+                original_filename=args.sarif.name,
+                raw_bytes=args.sarif.read_bytes(),
+            )
+        if args.cve is not None:
+            archive_records["cve"] = archive.persist(
+                "cve",
+                prepared["cve"],
+                original_filename=args.cve.name,
+                raw_bytes=args.cve.read_bytes(),
+            )
+    except Exception as exc:  # pragma: no cover - archival should not abort CLI runs
+        print(f"Warning: failed to persist artefacts locally: {exc}", file=sys.stderr)
+
     result = orchestrator.run(overlay=overlay, **prepared)
     if args.include_overlay:
         result["overlay"] = overlay.to_sanitised_dict()
 
+    if archive_records:
+        result["artifact_archive"] = ArtefactArchive.summarise(archive_records)
+
     output_path: Optional[Path] = args.output
     if output_path:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_secure_directory(output_path.parent)
         with output_path.open("w", encoding="utf-8") as handle:
             json.dump(result, handle, indent=2 if args.pretty else None)
             if args.pretty:

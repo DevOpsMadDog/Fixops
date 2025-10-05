@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Mapping
 
 from fixops.configuration import OverlayConfig
+from fixops.paths import ensure_secure_directory
 
 
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -27,8 +28,7 @@ class FeedbackRecorder:
                 else Path("data").resolve()
             )
             base_dir = (root / "feedback" / overlay.mode).resolve()
-        self.base_dir = base_dir
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.base_dir = ensure_secure_directory(base_dir)
 
     def _validate_payload(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         run_id = payload.get("run_id")
@@ -79,8 +79,7 @@ class FeedbackRecorder:
         """Write a validated feedback entry to disk."""
 
         entry = self._validate_payload(payload)
-        run_dir = self.base_dir / entry["run_id"]
-        run_dir.mkdir(parents=True, exist_ok=True)
+        run_dir = ensure_secure_directory(self.base_dir / entry["run_id"])
         feedback_path = run_dir / "feedback.jsonl"
         line = json.dumps(entry, sort_keys=True)
         with feedback_path.open("a", encoding="utf-8") as handle:

@@ -7,6 +7,7 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 - **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m fixops.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`backend/app.py`, `fixops/cli.py`).
 - **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, and Bayesian/Markov forecasts in a single pass (`backend/pipeline.py`).
 - **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`fixops/compliance.py`, `fixops/policy.py`, `fixops/evidence.py`, `fixops/feedback.py`).
+- **Artefact archiving & regulated storage** – Every upload is normalised, persisted with metadata, and summarised via the artefact archive while secure directory enforcement and optional bundle encryption keep regulated tenants compliant (`fixops/storage.py`, `fixops/paths.py`).
 - **Analytics & ROI telemetry** – Pipeline responses surface pricing tiers, guardrail progress, exploit refresh health, and contextual noise-reduction metrics that feed executive dashboards and ROI storytelling (`perf/BENCHMARKS.csv`, `market/ENTERPRISE_READINESS.md`).
 - **Tenant lifecycle & performance intelligence** – Overlay-governed ROI dashboards, tenant lifecycle summaries, and near real-time performance simulations help CISOs, CTEM leads, and platform teams prove value and spot bottlenecks without bespoke code (`fixops/analytics.py`, `fixops/tenancy.py`, `fixops/performance.py`).
 - **Modular & extensible** – Toggle modules, adjust weights, or register custom hooks without touching code; every run reports configured, enabled, and executed modules plus outcomes to keep integrators in control (`fixops/modules.py`).
@@ -29,9 +30,9 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 
 ## End-to-end data flow
 1. **Load configuration** – `load_overlay()` merges defaults with demo or enterprise overrides, validates directories, registers tokens, and prepares module toggles (`fixops/configuration.py`).
-2. **Upload artefacts** – Push CSV/SBOM/SARIF/CVE data through FastAPI or point the CLI at local files; the normaliser caches parsers to reuse tokens and reduce I/O (`backend/normalizers.py`).
+2. **Upload artefacts** – Push CSV/SBOM/SARIF/CVE data (plain JSON or gzip/zip archives) through FastAPI or point the CLI at local files; the normaliser caches parsers to reuse tokens and reduce I/O (`backend/normalizers.py`).
 3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts, ROI analytics, tenant lifecycle, performance simulation), and tracks custom module outcomes.
-4. **Persist outputs** – Evidence hub writes compressed bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data.
+4. **Persist outputs** – Artefact archives capture raw and normalised inputs, evidence hub writes compressed/encrypted bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data.
 5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
@@ -39,6 +40,7 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 - Python 3.10+ (tested with CPython 3.11)
 - `pip` and `virtualenv`
 - Optional: `uvicorn` for serving the FastAPI application, `jq` for response inspection
+- Optional: `cryptography` if enabling evidence bundle encryption (`limits.evidence.encrypt: true`)
 
 ### 1. Install dependencies
 ```bash
@@ -86,9 +88,9 @@ Use `python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml` to i
 | Endpoint | Method | Purpose | Notes |
 | --- | --- | --- | --- |
 | `/inputs/design` | `POST` | Upload design intent CSV (`component_id`, `service`, `owner`, `criticality`, optional `name`). | Enforces MIME, size, and API key; caches artefacts under overlay-approved directories. |
-| `/inputs/sbom` | `POST` | Upload SBOM JSON. | Normalises component tokens and retains version metadata. |
-| `/inputs/cve` | `POST` | Upload CVE or KEV advisories. | Accepts NVD-style JSON; exploit refresh annotates staleness and EPSS scores. |
-| `/inputs/sarif` | `POST` | Upload scanner findings (SARIF). | Deduplicates rule IDs and severity labels before crosswalk building. |
+| `/inputs/sbom` | `POST` | Upload SBOM JSON. | Accepts JSON, gzip, or zip archives; normalises component tokens and retains version metadata. |
+| `/inputs/cve` | `POST` | Upload CVE or KEV advisories. | Accepts JSON, gzip, or zip archives; exploit refresh annotates staleness and EPSS scores. |
+| `/inputs/sarif` | `POST` | Upload scanner findings (SARIF). | Accepts JSON, gzip, or zip archives; deduplicates rule IDs and severity labels before crosswalk building. |
 | `/pipeline/run` | `POST`/`GET` | Execute pipeline using cached artefacts. | Returns guardrails, context summaries, SSDLC/IaC/AI/exploit/probabilistic insights, automation manifests, pricing telemetry, module matrix, sanitized overlay, and evidence bundle paths. |
 | `/feedback` | `POST` | (Enterprise toggle) Persist review decisions tied to pipeline runs. | Requires `capture_feedback` enabled; identifiers are sanitized and stored within allowlisted audit directories. |
 

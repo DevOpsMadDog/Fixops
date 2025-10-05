@@ -21,7 +21,10 @@ This document enumerates how the FixOps ingestion service addresses common OWASP
 - Any key containing `token`, `secret`, or `password` is automatically masked by `OverlayConfig` before
   exposure.
 - Data directories are resolved against an allowlist (`FIXOPS_DATA_ROOT_ALLOWLIST`) so overlays cannot
-  traverse outside sanctioned paths.
+  traverse outside sanctioned paths, and runtime helpers enforce non-world-writable permissions when
+  creating evidence, feedback, automation, feed, and archive directories (`fixops/paths.py`).
+- Evidence bundles can be encrypted using Fernet-compatible keys supplied via `limits.evidence.encryption_env`
+  to satisfy regulated tenant requirements; encrypted bundles are emitted with `.enc` suffixes (`fixops/evidence.py`).
 
 ## Transport Security
 

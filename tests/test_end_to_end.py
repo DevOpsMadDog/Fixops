@@ -1,9 +1,11 @@
 import json
 
 import csv
+import gzip
 import json
 import os
-from io import StringIO
+import zipfile
+from io import BytesIO, StringIO
 
 try:
     from fastapi.testclient import TestClient  # type: ignore
@@ -175,6 +177,9 @@ def test_end_to_end_demo_pipeline():
         assert "iac_posture" in pipeline_payload
         assert pipeline_payload["modules"]["status"]["iac_posture"] == "executed"
         assert pipeline_payload["evidence_bundle"]["sections"]
+        archive_info = pipeline_payload.get("artifact_archive")
+        assert archive_info and "sbom" in archive_info
+        assert archive_info["sbom"].get("normalized_path")
         analytics = pipeline_payload["analytics"]
         assert analytics["overview"]["estimated_value"] >= 0
         assert analytics["overlay"]["mode"] == "demo"
@@ -194,6 +199,16 @@ def test_end_to_end_demo_pipeline():
         sbom = normalizer.load_sbom(json.dumps(sbom_document))
         cve_norm = normalizer.load_cve_feed(json.dumps(cve_feed))
         sarif_norm = normalizer.load_sarif(json.dumps(sarif_document))
+
+        gz_sbom = gzip.compress(json.dumps(sbom_document).encode("utf-8"))
+        sbom_gz = normalizer.load_sbom(gz_sbom)
+        assert sbom_gz.metadata["component_count"] == 2
+
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, mode="w") as archive:
+            archive.writestr("scan.sarif", json.dumps(sarif_document))
+        sarif_zip = normalizer.load_sarif(zip_buffer.getvalue())
+        assert sarif_zip.metadata["finding_count"] == 1
 
         orchestrator = PipelineOrchestrator()
         pipeline_payload = orchestrator.run(

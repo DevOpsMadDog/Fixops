@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+from __future__ import annotations
+
+import base64
+import binascii
+import gzip
+import io
 import json
 import logging
+import zipfile
 from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable, List, Optional
 
@@ -142,20 +149,71 @@ class InputNormalizer:
         self.sbom_type = sbom_type
 
     @staticmethod
-    def _ensure_text(content: Any) -> str:
+    def _ensure_bytes(content: Any) -> bytes:
         if isinstance(content, bytes):
-            return content.decode("utf-8", errors="ignore")
+            return content
         if hasattr(content, "read"):
             data = content.read()
             if isinstance(data, bytes):
-                return data.decode("utf-8", errors="ignore")
-            return str(data)
-        return str(content)
+                return data
+            return str(data).encode("utf-8")
+        if isinstance(content, str):
+            return content.encode("utf-8")
+        return str(content).encode("utf-8")
+
+    @staticmethod
+    def _maybe_decode_base64(data: bytes) -> bytes:
+        stripped = data.strip()
+        if not stripped or len(stripped) % 4 != 0:
+            return data
+        try:
+            decoded = base64.b64decode(stripped, validate=True)
+        except (binascii.Error, ValueError):
+            return data
+        return decoded or data
+
+    @staticmethod
+    def _maybe_decompress(data: bytes) -> bytes:
+        if data.startswith(b"\x1f\x8b"):
+            try:
+                return gzip.decompress(data)
+            except OSError:
+                return data
+        buffer = io.BytesIO(data)
+        if zipfile.is_zipfile(buffer):
+            with zipfile.ZipFile(buffer) as archive:
+                names = [name for name in archive.namelist() if not name.endswith("/")]
+                priority = (
+                    ".json",
+                    ".sarif",
+                    ".cdx",
+                    ".spdx.json",
+                    ".xml",
+                )
+                chosen: Optional[str] = None
+                for suffix in priority:
+                    for name in names:
+                        if name.lower().endswith(suffix):
+                            chosen = name
+                            break
+                    if chosen:
+                        break
+                if not chosen and names:
+                    chosen = names[0]
+                if chosen:
+                    return archive.read(chosen)
+        return data
+
+    def _prepare_text(self, raw: Any) -> str:
+        data = self._ensure_bytes(raw)
+        data = self._maybe_decode_base64(data)
+        data = self._maybe_decompress(data)
+        return data.decode("utf-8", errors="ignore")
 
     def load_sbom(self, raw: Any) -> NormalizedSBOM:
         """Normalise an SBOM using lib4sbom."""
 
-        payload = self._ensure_text(raw)
+        payload = self._prepare_text(raw)
         parser = sbom_parser.SBOMParser(self.sbom_type)
         parser.parse_string(payload)
 
@@ -211,7 +269,7 @@ class InputNormalizer:
     def load_cve_feed(self, raw: Any) -> NormalizedCVEFeed:
         """Normalise CVE/KEV feeds using cvelib for schema validation."""
 
-        payload = self._ensure_text(raw)
+        payload = self._prepare_text(raw)
         data = json.loads(payload)
 
         if isinstance(data, dict):
@@ -303,7 +361,7 @@ class InputNormalizer:
     def load_sarif(self, raw: Any) -> NormalizedSARIF:
         """Normalise SARIF logs via sarif-om with optional Snyk conversion."""
 
-        payload = self._ensure_text(raw)
+        payload = self._prepare_text(raw)
         data = json.loads(payload)
 
         runs = data.get("runs") if isinstance(data, dict) else None
