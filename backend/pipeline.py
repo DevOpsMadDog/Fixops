@@ -16,6 +16,7 @@ from fixops.probabilistic import ProbabilisticForecastEngine
 from fixops.ssdlc import SSDLCEvaluator
 from fixops.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
 from fixops.iac import IaCPostureEvaluator
+from fixops.feature_matrix import build_feature_matrix
 from fixops.modules import PipelineContext, execute_custom_modules
 from fixops.tenancy import TenantLifecycleManager
 from fixops.performance import PerformanceSimulator
@@ -547,5 +548,6 @@ class PipelineOrchestrator:
                 "executed": executed_modules,
                 "custom": custom_outcomes,
             }
+            result["feature_matrix"] = build_feature_matrix(result)
 
         return result
