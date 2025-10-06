@@ -90,3 +90,48 @@ def test_cors_wildcard_disables_credentials(monkeypatch: pytest.MonkeyPatch, tmp
     assert cors is not None
     assert cors.options["allow_origins"] == ["*"]
     assert cors.options["allow_credentials"] is False
+
+
+def test_enterprise_mode_rejects_wildcard_cors(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    overlay = _make_overlay(tmp_path)
+    overlay.mode = "enterprise"
+    overlay.api = {"cors": {"allow_origins": ["*"]}}
+    monkeypatch.setattr(backend_app, "load_overlay", lambda: overlay)
+    monkeypatch.setattr(backend_app, "ensure_secure_directory", lambda path, mode=0o750: Path(path).resolve())
+    monkeypatch.setattr(
+        backend_app,
+        "verify_allowlisted_path",
+        lambda path, allowlist: Path(path).resolve(),
+    )
+
+    with pytest.raises(RuntimeError):
+        backend_app.create_app()
+
+
+def test_duplicate_stage_upload_requires_new_run(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    overlay = _make_overlay(tmp_path)
+    overlay.mode = "enterprise"
+    overlay.api = {"cors": {"allow_origins": ["https://console.fixops.bank"], "allow_credentials": False}}
+    overlay.auth = {"strategy": "token", "header": "X-API-Key"}
+    overlay.auth_tokens = ("unit-token",)
+    monkeypatch.setattr(backend_app, "load_overlay", lambda: overlay)
+    monkeypatch.setattr(backend_app, "ensure_secure_directory", lambda path, mode=0o750: Path(path).resolve())
+    monkeypatch.setattr(
+        backend_app,
+        "verify_allowlisted_path",
+        lambda path, allowlist: Path(path).resolve(),
+    )
+
+    app = backend_app.create_app()
+    client = TestClient(app)
+    headers = {"X-Fixops-Run-Id": "demo-session", "X-API-Key": "unit-token"}
+    payload = {"file": ("design.csv", "component,owner\nsvc,team\n", "text/csv")}
+
+    first = client.post("/inputs/design", files=payload, headers=headers)
+    assert first.status_code == 200
+
+    second = client.post("/inputs/design", files=payload, headers=headers)
+    assert second.status_code == 409
+    detail = second.json()["detail"]
+    assert detail["stage"] == "design"
+    assert detail["run_id"] == "demo-session"

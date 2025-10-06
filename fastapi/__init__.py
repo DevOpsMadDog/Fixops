@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, get_type_hints
 
 _REQUEST_HEADERS: Dict[str, str] = {}
+_REQUEST_FILES: Dict[str, "UploadFile"] = {}
 
 
 @dataclass
@@ -19,6 +20,11 @@ def set_request_headers(headers: Dict[str, str]) -> None:
     _REQUEST_HEADERS.clear()
     # Preserve original casing for introspection while also allowing case-insensitive lookup.
     _REQUEST_HEADERS.update(headers)
+
+
+def set_request_files(files: Dict[str, "UploadFile"]) -> None:
+    _REQUEST_FILES.clear()
+    _REQUEST_FILES.update(files)
 
 try:  # pragma: no cover - optional dependency for typing checks
     from pydantic import BaseModel, ValidationError
@@ -120,6 +126,22 @@ class _Route:
                     kwargs[name] = annotation(**model_data)
                 except ValidationError as exc:
                     raise RequestValidationError(exc.errors()) from exc
+                continue
+
+            if annotation is UploadFile or isinstance(parameter.default, UploadFile):
+                upload = _REQUEST_FILES.get(name)
+                if upload is None:
+                    raise HTTPException(status_code=422, detail=f"Missing upload for field '{name}'")
+                kwargs[name] = upload
+                continue
+
+            origin = getattr(annotation, "__origin__", None)
+            if body is not None and (
+                annotation in {dict, Dict, Mapping}
+                or origin in {dict, Dict, Mapping}
+            ):
+                kwargs[name] = body
+                body = None
                 continue
 
             if name == "body":

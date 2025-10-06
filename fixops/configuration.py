@@ -1003,6 +1003,25 @@ class OverlayConfig:
                 return int(default_limit)
         return fallback
 
+    def upload_read_timeout(self, stage: Optional[str] = None, fallback: int = 15) -> int:
+        limits = self.limits.get("upload_timeouts") if isinstance(self.limits, Mapping) else None
+        timeout_value: Any = None
+        if isinstance(limits, Mapping):
+            if stage and stage in limits:
+                timeout_value = limits.get(stage)
+            if timeout_value is None:
+                timeout_value = limits.get("default")
+        if isinstance(timeout_value, (int, float)):
+            return max(1, int(timeout_value))
+        if isinstance(timeout_value, str):
+            try:
+                parsed = int(timeout_value)
+            except ValueError:
+                parsed = fallback
+            else:
+                return max(1, parsed)
+        return max(1, fallback)
+
 
 def load_overlay(
     path: Optional[Path | str] = None,

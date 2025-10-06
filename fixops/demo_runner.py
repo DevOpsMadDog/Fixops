@@ -1,11 +1,13 @@
 """Utilities for running the FixOps pipeline with bundled demo fixtures."""
 from __future__ import annotations
 
+import base64
 import csv
 import json
 import os
+import secrets
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from backend.normalizers import InputNormalizer
 from backend.pipeline import PipelineOrchestrator
@@ -13,11 +15,21 @@ from fixops.configuration import OverlayConfig, load_overlay
 from fixops.evidence import Fernet  # type: ignore
 from fixops.paths import ensure_secure_directory
 
-_DEMO_ENV_DEFAULTS: Dict[str, str] = {
-    "FIXOPS_API_TOKEN": "demo-api-token",
-    "FIXOPS_JIRA_TOKEN": "demo-jira-token",
-    "FIXOPS_CONFLUENCE_TOKEN": "demo-confluence-token",
-    "FIXOPS_EVIDENCE_KEY": "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=",
+def _random_token(prefix: str = "demo") -> str:
+    return f"{prefix}-{secrets.token_urlsafe(16)}"
+
+
+def _random_fernet_key() -> str:
+    if Fernet is not None:
+        return Fernet.generate_key().decode("utf-8")
+    return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("utf-8")
+
+
+_DEMO_ENV_GENERATORS: Dict[str, Callable[[], str]] = {
+    "FIXOPS_API_TOKEN": _random_token,
+    "FIXOPS_JIRA_TOKEN": lambda: _random_token("jira-demo"),
+    "FIXOPS_CONFLUENCE_TOKEN": lambda: _random_token("confluence-demo"),
+    "FIXOPS_EVIDENCE_KEY": _random_fernet_key,
 }
 
 _FIXTURE_DIR = Path(__file__).resolve().parent.parent / "demo" / "fixtures"
@@ -27,8 +39,8 @@ def _ensure_env_defaults(mode: str) -> None:
     if mode != "demo":
         reused = [
             key
-            for key, value in _DEMO_ENV_DEFAULTS.items()
-            if os.getenv(key) == value
+            for key in _DEMO_ENV_GENERATORS
+            if (value := os.getenv(key)) and value.lower().startswith("demo-")
         ]
         if reused:
             joined = ", ".join(sorted(reused))
@@ -36,7 +48,7 @@ def _ensure_env_defaults(mode: str) -> None:
                 "Demo credentials detected in secure mode; replace the following environment"
                 f" variables: {joined}"
             )
-        missing = [key for key in _DEMO_ENV_DEFAULTS if not os.getenv(key)]
+        missing = [key for key in _DEMO_ENV_GENERATORS if not os.getenv(key)]
         if missing:
             joined = ", ".join(sorted(missing))
             raise RuntimeError(
@@ -45,8 +57,9 @@ def _ensure_env_defaults(mode: str) -> None:
             )
         return
 
-    for key, value in _DEMO_ENV_DEFAULTS.items():
-        os.environ.setdefault(key, value)
+    for key, generator in _DEMO_ENV_GENERATORS.items():
+        if not os.getenv(key):
+            os.environ[key] = generator()
 
 
 def _read_design(path: Path) -> Dict[str, Any]:

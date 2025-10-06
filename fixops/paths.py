@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import stat
+import tempfile
 from pathlib import Path
 from typing import Iterable, Tuple
 
@@ -83,12 +84,16 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
 
     uid = _current_uid()
     ancestor = matched_root
-    _validate_directory_security(ancestor, uid)
+    if ancestor.resolve() not in _TRUSTED_WORLD_WRITABLE_ROOTS:
+        _validate_directory_security(ancestor, uid)
     for parent in resolved.parents:
         if matched_root in {parent, parent.resolve()}:
             break
         if parent.exists():
-            _validate_directory_security(parent, uid)
+            resolved_parent = parent.resolve()
+            if resolved_parent in _TRUSTED_WORLD_WRITABLE_ROOTS:
+                continue
+            _validate_directory_security(resolved_parent, uid)
     if resolved.exists():
         _validate_directory_security(resolved, uid)
 
@@ -96,3 +101,5 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
 
 
 __all__ = ["ensure_secure_directory", "verify_allowlisted_path"]
+_TRUSTED_WORLD_WRITABLE_ROOTS: Tuple[Path, ...] = (Path(tempfile.gettempdir()).resolve(),)
+

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import logging
@@ -34,6 +35,39 @@ class _SessionState:
     archive_records: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
 
+@dataclass
+class SessionHandle:
+    run_id: str
+    state: _SessionState
+    lock: asyncio.Lock
+
+
+class SessionRegistry:
+    """Coordinate access to in-flight ingestion sessions."""
+
+    def __init__(self) -> None:
+        self._sessions: Dict[str, _SessionState] = {}
+        self._locks: Dict[str, asyncio.Lock] = {}
+        self._registry_lock = asyncio.Lock()
+
+    async def acquire(self, run_id: str) -> SessionHandle:
+        async with self._registry_lock:
+            session = self._sessions.get(run_id)
+            if session is None:
+                session = _SessionState(run_id=run_id)
+                self._sessions[run_id] = session
+                self._locks[run_id] = asyncio.Lock()
+            lock = self._locks[run_id]
+        return SessionHandle(run_id=run_id, state=session, lock=lock)
+
+    async def clear(self, run_id: str) -> None:
+        async with self._registry_lock:
+            if self._locks.get(run_id) and self._locks[run_id].locked():
+                return
+            self._sessions.pop(run_id, None)
+            self._locks.pop(run_id, None)
+
+
 _RUN_ID_HEADER = "X-Fixops-Run-Id"
 _CORS_ENV = "FIXOPS_CORS_ALLOW_ORIGINS"
 _SESSION_ALLOWED_CHARS = frozenset(
@@ -55,7 +89,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()
-    app.state.sessions: Dict[str, _SessionState] = {}
+    app.state.sessions = SessionRegistry()
 
     cors_settings = dict(overlay.cors_settings)
     env_override = _parse_origins(os.getenv(_CORS_ENV))
@@ -64,6 +98,10 @@ def create_app() -> FastAPI:
 
     allow_origins = cors_settings.get("allow_origins", [])
     if allow_origins:
+        if "*" in allow_origins and overlay.mode != "demo":
+            raise RuntimeError(
+                "Wildcard CORS origins are not permitted outside demo mode. Set explicit origins via FIXOPS_CORS_ALLOW_ORIGINS or overlay api.cors.allow_origins."
+            )
         allow_credentials = bool(cors_settings.get("allow_credentials", False))
         if "*" in allow_origins:
             allow_credentials = False
@@ -98,32 +136,30 @@ def create_app() -> FastAPI:
         if not provided or provided not in expected_tokens:
             raise HTTPException(status_code=401, detail="Invalid or missing API token")
 
-    def _get_session(run_id: Optional[str]) -> _SessionState:
+    async def _get_session(run_id: Optional[str]) -> tuple[SessionHandle, bool]:
+        issued = False
         if run_id is None:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": f"{_RUN_ID_HEADER} header is required"},
-            )
-        token = run_id.strip()
-        if not token:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": f"{_RUN_ID_HEADER} header cannot be empty"},
-            )
-        if any(character not in _SESSION_ALLOWED_CHARS for character in token):
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "message": (
-                        f"{_RUN_ID_HEADER} may only contain alphanumeric characters, '-' or '_'"
-                    )
-                },
-            )
-        session = app.state.sessions.get(token)
-        if session is None:
-            session = _SessionState(run_id=token)
-            app.state.sessions[token] = session
-        return session
+            token = uuid.uuid4().hex
+            issued = True
+        else:
+            token = run_id.strip()
+            if not token:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"message": f"{_RUN_ID_HEADER} header cannot be empty"},
+                )
+            if any(character not in _SESSION_ALLOWED_CHARS for character in token):
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "message": (
+                            f"{_RUN_ID_HEADER} may only contain alphanumeric characters, '-' or '_'"
+                        )
+                    },
+                )
+        registry: SessionRegistry = app.state.sessions
+        handle = await registry.acquire(token)
+        return handle, issued
 
     allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
     for directory in overlay.data_directories.values():
@@ -164,12 +200,24 @@ def create_app() -> FastAPI:
         """Stream an upload into a spooled file respecting the configured limit."""
 
         limit = overlay.upload_limit(stage)
+        timeout_seconds = max(1, overlay.upload_read_timeout(stage))
         total = 0
         buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
         try:
             while total < limit:
                 remaining = limit - total
-                chunk = await file.read(min(_CHUNK_SIZE, remaining))
+                try:
+                    chunk = await asyncio.wait_for(
+                        file.read(min(_CHUNK_SIZE, remaining)), timeout=timeout_seconds
+                    )
+                except asyncio.TimeoutError as exc:
+                    raise HTTPException(
+                        status_code=408,
+                        detail={
+                            "message": f"Upload for stage '{stage}' timed out",
+                            "timeout_seconds": timeout_seconds,
+                        },
+                    ) from exc
                 if not chunk:
                     break
                 total += len(chunk)
@@ -209,16 +257,26 @@ def create_app() -> FastAPI:
                 },
             )
 
-    def _store(
-        session: _SessionState,
+    async def _store(
+        session: SessionHandle,
         stage: str,
         payload: Any,
         *,
         original_filename: Optional[str] = None,
         raw_bytes: Optional[bytes] = None,
     ) -> None:
-        logger.debug("Storing stage %s for run %s", stage, session.run_id)
-        session.artifacts[stage] = payload
+        async with session.lock:
+            if stage in session.state.artifacts:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "message": f"Stage '{stage}' has already been uploaded for this run",
+                        "run_id": session.run_id,
+                        "stage": stage,
+                    },
+                )
+            logger.debug("Storing stage %s for run %s", stage, session.run_id)
+            session.state.artifacts[stage] = payload
         try:
             record = app.state.archive.persist(
                 stage,
@@ -229,7 +287,8 @@ def create_app() -> FastAPI:
         except Exception as exc:  # pragma: no cover - persistence must not break ingestion
             logger.exception("Failed to persist artefact stage %s", stage)
             record = {"stage": stage, "error": str(exc)}
-        session.archive_records[stage] = record
+        async with session.lock:
+            session.state.archive_records[stage] = record
 
     @app.post("/inputs/design")
     async def ingest_design(
@@ -238,7 +297,7 @@ def create_app() -> FastAPI:
         api_key: Optional[str] = Header(default=None, alias=header_name),
     ) -> Dict[str, Any]:
         _verify_api_key(api_key)
-        session = _get_session(run_id)
+        session, issued = await _get_session(run_id)
         _validate_content_type(file, ("text/csv", "application/vnd.ms-excel", "application/csv"))
         buffer, total = await _read_limited(file, "design")
         try:
@@ -259,7 +318,7 @@ def create_app() -> FastAPI:
 
             dataset = {"columns": columns, "rows": rows}
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store(
+            await _store(
                 session,
                 "design",
                 dataset,
@@ -272,6 +331,8 @@ def create_app() -> FastAPI:
                 "row_count": len(rows),
                 "columns": dataset["columns"],
                 "data": dataset,
+                "session_id": session.run_id,
+                "issued_session": issued,
             }
         finally:
             with suppress(Exception):
@@ -284,7 +345,7 @@ def create_app() -> FastAPI:
         api_key: Optional[str] = Header(default=None, alias=header_name),
     ) -> Dict[str, Any]:
         _verify_api_key(api_key)
-        session = _get_session(run_id)
+        session, issued = await _get_session(run_id)
         _validate_content_type(
             file,
             (
@@ -303,7 +364,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Failed to parse SBOM: {exc}") from exc
         else:
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store(
+            await _store(
                 session,
                 "sbom",
                 sbom,
@@ -317,6 +378,8 @@ def create_app() -> FastAPI:
                 "component_preview": [
                     component.to_dict() for component in sbom.components[:5]
                 ],
+                "session_id": session.run_id,
+                "issued_session": issued,
             }
         finally:
             with suppress(Exception):
@@ -329,7 +392,7 @@ def create_app() -> FastAPI:
         api_key: Optional[str] = Header(default=None, alias=header_name),
     ) -> Dict[str, Any]:
         _verify_api_key(api_key)
-        session = _get_session(run_id)
+        session, issued = await _get_session(run_id)
         _validate_content_type(
             file,
             (
@@ -348,7 +411,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Failed to parse CVE feed: {exc}") from exc
         else:
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store(
+            await _store(
                 session,
                 "cve",
                 cve_feed,
@@ -360,6 +423,8 @@ def create_app() -> FastAPI:
                 "input_filename": file.filename,
                 "record_count": cve_feed.metadata.get("record_count", 0),
                 "validation_errors": cve_feed.errors,
+                "session_id": session.run_id,
+                "issued_session": issued,
             }
         finally:
             with suppress(Exception):
@@ -372,7 +437,7 @@ def create_app() -> FastAPI:
         api_key: Optional[str] = Header(default=None, alias=header_name),
     ) -> Dict[str, Any]:
         _verify_api_key(api_key)
-        session = _get_session(run_id)
+        session, issued = await _get_session(run_id)
         _validate_content_type(
             file,
             (
@@ -391,7 +456,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Failed to parse SARIF: {exc}") from exc
         else:
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store(
+            await _store(
                 session,
                 "sarif",
                 sarif,
@@ -403,6 +468,8 @@ def create_app() -> FastAPI:
                 "input_filename": file.filename,
                 "metadata": sarif.metadata,
                 "tools": sarif.tool_names,
+                "session_id": session.run_id,
+                "issued_session": issued,
             }
         finally:
             with suppress(Exception):
@@ -414,10 +481,16 @@ def create_app() -> FastAPI:
         api_key: Optional[str] = Header(default=None, alias=header_name),
     ) -> Dict[str, Any]:
         _verify_api_key(api_key)
-        session = _get_session(run_id)
+        session, issued = await _get_session(run_id)
+        if issued:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": f"{_RUN_ID_HEADER} header is required"},
+            )
         overlay: OverlayConfig = app.state.overlay
         required = overlay.required_inputs
-        missing = [stage for stage in required if stage not in session.artifacts]
+        async with session.lock:
+            missing = [stage for stage in required if stage not in session.state.artifacts]
         if missing:
             raise HTTPException(
                 status_code=400,
@@ -435,16 +508,23 @@ def create_app() -> FastAPI:
 
         run_id = uuid.uuid4().hex
 
+        registry: SessionRegistry = app.state.sessions
+
         try:
-            result = orchestrator.run(
-                design_dataset=session.artifacts.get("design", {"columns": [], "rows": []}),
-                sbom=session.artifacts["sbom"],
-                sarif=session.artifacts["sarif"],
-                cve=session.artifacts["cve"],
-                overlay=overlay,
-            )
+            async with session.lock:
+                result = orchestrator.run(
+                    design_dataset=session.state.artifacts.get("design", {"columns": [], "rows": []}),
+                    sbom=session.state.artifacts["sbom"],
+                    sarif=session.state.artifacts["sarif"],
+                    cve=session.state.artifacts["cve"],
+                    overlay=overlay,
+                )
+                session_id = session.run_id
+                archive_records = dict(session.state.archive_records)
+                session.state.archive_records = {}
+                session.state.artifacts.clear()
             result["run_id"] = run_id
-            result["session_id"] = session.run_id
+            result["session_id"] = session_id
             analytics_store = getattr(app.state, "analytics_store", None)
             if analytics_store is not None:
                 try:
@@ -457,15 +537,14 @@ def create_app() -> FastAPI:
                     analytics_section = result.get("analytics")
                     if isinstance(analytics_section, dict):
                         analytics_section["persistence"] = persistence
-            if session.archive_records:
-                result["artifact_archive"] = ArtefactArchive.summarise(session.archive_records)
-                session.archive_records = {}
+            if archive_records:
+                result["artifact_archive"] = ArtefactArchive.summarise(archive_records)
             if overlay.toggles.get("auto_attach_overlay_metadata", True):
                 result["overlay"] = overlay.to_sanitised_dict()
                 result["overlay"]["required_inputs"] = list(required)
             return result
         finally:
-            app.state.sessions.pop(session.run_id, None)
+            await registry.clear(session.run_id)
 
     @app.get("/analytics/dashboard")
     async def analytics_dashboard(

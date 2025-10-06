@@ -1,2 +1,2 @@
 # Optional integrations for the backend. Install explicitly when needed.
-snyk-to-sarif @ git+https://github.com/snyk/snyk-to-sarif.git
+snyk-to-sarif @ git+https://github.com/snyk/snyk-to-sarif.git@v2.1.0

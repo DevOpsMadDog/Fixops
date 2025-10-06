@@ -13,8 +13,14 @@ terraform {
       version = "~> 2.11"
     }
   }
-  
-  backend "s3" {}
+
+  backend "s3" {
+    bucket         = "REPLACE_ME_FIXOPS_STATE_BUCKET"
+    key            = "fixops/${terraform.workspace}/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "REPLACE_ME_FIXOPS_STATE_LOCK_TABLE"
+    encrypt        = true
+  }
 }
 
 # Configure the S3 backend per-environment via `terraform init -backend-config` to

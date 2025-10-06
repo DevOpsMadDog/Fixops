@@ -12,3 +12,4 @@ if [[ -z "${FIXOPS_API_TOKEN:-}" && -z "${FIXOPS_API_TOKENS:-}" ]]; then
 fi
 
 exec python -m uvicorn src.main:app --host 0.0.0.0 --port 8001 --workers 1 --loop uvloop
+

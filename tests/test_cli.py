@@ -11,7 +11,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "enterprise-token")
 
     design_csv = (
         "component,owner,criticality,notes\n"
@@ -178,7 +178,7 @@ def test_cli_train_forecast(tmp_path: Path, capsys):
 
 
 def test_cli_demo_command(tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "enterprise-token")
     monkeypatch.setenv("FIXOPS_JIRA_TOKEN", "jira-enterprise-token")
     monkeypatch.setenv("FIXOPS_CONFLUENCE_TOKEN", "confluence-enterprise-token")
     monkeypatch.setenv("FIXOPS_EVIDENCE_KEY", "1GqS5v+fJNUzA5gsiuoJ7X3wqKpFou18oXGoy5rP6uQ=")

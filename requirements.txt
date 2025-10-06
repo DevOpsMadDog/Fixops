@@ -1,5 +1,6 @@
-fastapi>=0.110,<0.112
-pydantic>=2.6,<3.0
-pytest>=8.3,<9.0
-requests>=2.32,<3.0
+# Managed by pip-compile; update via `pip-compile requirements.in`.
+fastapi==0.110.1
+pydantic==2.7.1
+pytest==8.3.2
+requests==2.32.3
 pgmpy==0.1.24
