@@ -3,7 +3,6 @@ FixOps Correlation Engine - Core intelligence for noise reduction and finding co
 Performance-optimized for 299μs hot path operations with AI-powered insights
 """
 
-import os
 import asyncio
 import time
 import json
@@ -16,8 +15,7 @@ import structlog
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
+from src.services.chatgpt_client import ChatGPTChatSession, UserMessage, get_primary_llm_api_key
 from src.db.session import DatabaseManager
 from src.models.security_sqlite import SecurityFinding, FindingCorrelation, Service
 from src.services.cache_service import CacheService
@@ -62,27 +60,29 @@ class CorrelationEngine:
     def _initialize_llm(self):
         """Initialize LLM for advanced correlation analysis"""
         try:
-            api_key = os.getenv('EMERGENT_LLM_KEY')
+            api_key = get_primary_llm_api_key()
             if api_key:
-                self.llm_chat = LlmChat(
+                self.llm_chat = ChatGPTChatSession(
                     api_key=api_key,
                     session_id="correlation_engine_session",
-                    system_message="""You are an expert DevSecOps analyst specialized in security finding correlation and deduplication. 
+                    system_message="""You are an expert DevSecOps analyst specialized in security finding correlation and deduplication.
                     Your role is to analyze security findings and provide:
                     1. Correlation insights between findings
                     2. Risk assessment and prioritization
                     3. Root cause analysis suggestions
                     4. Noise reduction recommendations
-                    
-                    Always provide concise, actionable analysis focused on reducing security alert fatigue."""
-                ).with_model("openai", "gpt-5")
-                
-                logger.info("LLM correlation engine initialized successfully with gpt-5")
+
+                    Always provide concise, actionable analysis focused on reducing security alert fatigue.""",
+                    model="gpt-4o-mini",
+                    max_tokens=700,
+                    temperature=0.25,
+                )
+                logger.info("LLM correlation engine initialized successfully with ChatGPT")
             else:
-                logger.warning("No EMERGENT_LLM_KEY found, using rule-based correlation only")
-                
+                logger.warning("No ChatGPT API key found, using rule-based correlation only")
+
         except Exception as e:
-            logger.error(f"Failed to initialize LLM: {str(e)}")
+            logger.error(f"Failed to initialize ChatGPT correlation helper: {str(e)}")
             self.llm_chat = None
     
     async def correlate_finding(self, finding_id: str, force_refresh: bool = False) -> Optional[CorrelationResult]:

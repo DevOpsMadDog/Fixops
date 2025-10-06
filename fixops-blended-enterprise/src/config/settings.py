@@ -122,7 +122,13 @@ class Settings(BaseSettings):
     LLM_MAX_RETRIES: int = Field(default=3)
     LLM_CONSENSUS_THRESHOLD: float = Field(default=0.75)
     ENABLE_MULTI_LLM: bool = Field(default=True)
-    
+
+    @property
+    def primary_llm_api_key(self) -> Optional[str]:
+        """Return the preferred API key for ChatGPT-backed features."""
+
+        return self.OPENAI_API_KEY or self.EMERGENT_LLM_KEY
+
     @field_validator("CORS_ORIGINS", "ALLOWED_HOSTS", mode="before")
     @classmethod
     def parse_list_fields(cls, v):

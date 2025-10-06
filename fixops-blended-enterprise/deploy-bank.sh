@@ -143,7 +143,7 @@ async def test():
     await decision_engine.initialize()
     print('✅ Decision Engine initialized')
     print(f'   Mode: {'DEMO' if decision_engine.demo_mode else 'PRODUCTION'}')
-    print(f'   LLM Available: {decision_engine.emergent_client is not None}')
+    print(f'   LLM Available: {decision_engine.chatgpt_client is not None}')
 
 asyncio.run(test())
 "

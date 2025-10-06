@@ -54,14 +54,14 @@ async def get_production_readiness():
             readiness_status["missing_requirements"].append("CONFLUENCE_CREDENTIALS")
         
         # LLM Integration Readiness
-        llm_ready = bool(settings.EMERGENT_LLM_KEY or (settings.OPENAI_API_KEY and settings.ANTHROPIC_API_KEY))
+        llm_ready = bool(settings.primary_llm_api_key)
         readiness_status["component_status"]["llm_consensus"] = {
             "status": "READY" if llm_ready else "NEEDS_KEYS",
-            "required": "LLM_API_KEYS" if not llm_ready else None,
-            "description": "Emergent LLM or OpenAI+Anthropic keys" if not llm_ready else "Multi-LLM consensus active"
+            "required": "OPENAI_API_KEY" if not llm_ready else None,
+            "description": "OpenAI API key for ChatGPT" if not llm_ready else "ChatGPT consensus active"
         }
         if not llm_ready:
-            readiness_status["missing_requirements"].append("LLM_API_KEYS")
+            readiness_status["missing_requirements"].append("OPENAI_API_KEY")
         
         # Policy Engine Readiness (OPA Server)
         opa_ready = False  # Assume OPA server not running by default
@@ -97,7 +97,7 @@ async def get_production_readiness():
         # Quick setup guide
         readiness_status["quick_setup"] = {
             "priority_1": "Set DEMO_MODE=false in environment",
-            "priority_2": "Configure EMERGENT_LLM_KEY for AI consensus", 
+            "priority_2": "Configure OPENAI_API_KEY for ChatGPT consensus",
             "priority_3": "Setup OPA server for policy evaluation",
             "priority_4": "Configure Jira/Confluence for business context",
             "priority_5": "Setup pgvector for vector database"
@@ -118,10 +118,10 @@ async def get_production_requirements():
     return {
         "status": "success",
         "requirements": {
-            "EMERGENT_LLM_KEY": {
-                "component": "Multi-LLM Consensus",
-                "description": "API key for GPT-5, Claude, Gemini consensus analysis",
-                "setup": "Get key from Emergent platform",
+            "OPENAI_API_KEY": {
+                "component": "ChatGPT Consensus",
+                "description": "OpenAI API key powering ChatGPT-based analysis",
+                "setup": "Create an API key in the OpenAI console",
                 "priority": "HIGH"
             },
             "OPA_SERVER": {

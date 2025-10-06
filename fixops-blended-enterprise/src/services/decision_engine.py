@@ -17,6 +17,7 @@ from src.services.cache_service import CacheService
 from src.services.golden_regression_store import GoldenRegressionStore
 from src.db.session import DatabaseManager
 from src.services.risk_scorer import ContextualRiskScorer
+from src.services.chatgpt_client import ChatGPTClient
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -61,7 +62,7 @@ class DecisionEngine:
     
     def __init__(self):
         self.cache = CacheService.get_instance()
-        self.emergent_client = None
+        self.chatgpt_client: Optional[ChatGPTClient] = None
         self.demo_mode = settings.DEMO_MODE
         self.risk_scorer = ContextualRiskScorer()
 
@@ -81,19 +82,15 @@ class DecisionEngine:
         try:
             logger.info(f"Initializing Decision Engine in {'DEMO' if self.demo_mode else 'PRODUCTION'} mode")
             
-            # Initialize Emergent LLM (both modes)
-            if settings.EMERGENT_LLM_KEY:
+            api_key = settings.primary_llm_api_key
+            if api_key:
                 try:
-                    from emergentintegrations import EmergentIntegrations
-                    self.emergent_client = EmergentIntegrations(api_key=settings.EMERGENT_LLM_KEY)
-                    logger.info("✅ Real Emergent LLM integration initialized")
-                except ImportError:
-                    logger.warning("EmergentIntegrations not available, using fallback")
-                    self.emergent_client = None
-                except Exception as e:
-                    logger.error(f"Emergent LLM initialization failed: {str(e)}")
-                    self.emergent_client = None
-            
+                    self.chatgpt_client = ChatGPTClient(api_key=api_key)
+                    logger.info("✅ ChatGPT integration initialized")
+                except Exception as exc:
+                    logger.error(f"ChatGPT initialization failed: {str(exc)}")
+                    self.chatgpt_client = None
+
             if self.demo_mode:
                 await self._initialize_demo_mode()
             else:
@@ -490,10 +487,10 @@ class DecisionEngine:
                 enriched["sources"].append("Real Confluence API")
             
             # Real LLM enrichment
-            if self.emergent_client:
+            if self.chatgpt_client:
                 llm_context = await self._real_llm_enrichment(context, enriched)
                 enriched.update(llm_context)
-                enriched["sources"].append("Real LLM+RAG")
+                enriched["sources"].append("ChatGPT Analysis")
             
             return enriched
             
@@ -523,10 +520,10 @@ class DecisionEngine:
         }
 
     async def _real_llm_enrichment(self, context: DecisionContext, base_context: Dict) -> Dict[str, Any]:
-        """Real LLM-based context enrichment using Emergent LLM"""
-        if not self.emergent_client:
+        """Real LLM-based context enrichment using ChatGPT"""
+        if not self.chatgpt_client:
             return {"sources": ["No LLM Available"]}
-            
+
         try:
             prompt = f"""
             Security Decision Context Analysis for CI/CD Pipeline:
@@ -554,13 +551,13 @@ class DecisionEngine:
             Focus on bank/financial context and regulatory compliance.
             """
             
-            response = await self.emergent_client.generate_text(
-                model="gpt-5",
+            response = await self.chatgpt_client.generate_text(
                 prompt=prompt,
                 max_tokens=400,
-                temperature=0.3  # Lower temperature for consistent risk assessment
+                temperature=0.3,
+                system_message="You are a cybersecurity decision analyst providing precise risk assessments.",
             )
-            
+
             llm_assessment = json.loads(response.get("content", "{}"))
             
             return {
@@ -572,8 +569,8 @@ class DecisionEngine:
                 "llm_risk_reasoning": llm_assessment.get("risk_reasoning", ""),
                 "llm_compliance_concerns": llm_assessment.get("compliance_concerns", []),
                 "llm_mitigation_required": llm_assessment.get("mitigation_required", True),
-                "llm_model": "gpt-5",
-                "sources": ["Real LLM+RAG Analysis"]
+                "llm_model": response.get("model", "gpt-4o-mini"),
+                "sources": ["ChatGPT Analysis"]
             }
             
         except json.JSONDecodeError as e:
@@ -611,7 +608,7 @@ class DecisionEngine:
             # Real production component status
             base_metrics["core_components"] = {
                 "vector_db": f"production_active ({self.real_vector_db.get('security_patterns', 0)} patterns)" if self.real_vector_db else "not_configured",
-                "llm_rag": "production_active (gpt-5)" if self.emergent_client else "not_configured",
+                "llm_rag": "production_active (ChatGPT)" if self.chatgpt_client else "not_configured",
                 "consensus_checker": "production_active (85% threshold)",
                 "golden_regression": "production_active" if settings.SECURITY_PATTERNS_DB_URL else "not_configured",
                 "policy_engine": "production_active" if settings.JIRA_URL else "not_configured",

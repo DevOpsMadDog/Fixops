@@ -11,12 +11,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 import structlog
 
-try:  # pragma: no cover - optional dependency
-    from emergentintegrations import EmergentLLM
-    LLM_AVAILABLE = True
-except ImportError:  # pragma: no cover - executed in constrained envs
-    EmergentLLM = None  # type: ignore
-    LLM_AVAILABLE = False
+from src.services.chatgpt_client import ChatGPTClient, get_primary_llm_api_key
 
 logger = structlog.get_logger()
 
@@ -48,7 +43,7 @@ class CybersecurityLLMEngine:
     """
     
     def __init__(self):
-        self.llm_client = None
+        self.llm_client: Optional[ChatGPTClient] = None
         self.cybersec_models = self._load_awesome_llm4cybersecurity_models()
         self._initialize_cybersecurity_llm()
         self.prompt_templates = self._load_cybersecurity_prompts()
@@ -89,25 +84,26 @@ class CybersecurityLLMEngine:
     
     def _initialize_cybersecurity_llm(self):
         """Initialize LLM client optimized for cybersecurity from Awesome-LLM4Cybersecurity"""
-        if not LLM_AVAILABLE:
-            logger.warning("EmergentLLM not available, using rule-based explanation fallback")
+        api_key = get_primary_llm_api_key()
+        if not api_key:
+            logger.warning("ChatGPT API key not available, using rule-based explanation fallback")
             self.llm_client = None
             return
 
         try:
-            # Use the general cybersecurity model configuration
             config = self.cybersec_models["general_cybersecurity"]
 
-            self.llm_client = EmergentLLM(
-                model=config["model"],
+            self.llm_client = ChatGPTClient(
+                api_key=api_key,
+                model="gpt-4o-mini",
                 temperature=config["temperature"],
-                max_tokens=config["max_tokens"]
+                max_tokens=config["max_tokens"],
             )
-            
-            logger.info("✅ Awesome-LLM4Cybersecurity engine initialized with cybersecurity-optimized model")
-            
+
+            logger.info("✅ Cybersecurity explanation engine initialized with ChatGPT")
+
         except Exception as e:
-            logger.error(f"Awesome-LLM4Cybersecurity initialization failed: {e}")
+            logger.error(f"ChatGPT initialization for explanations failed: {e}")
             self.llm_client = None
     
     def _load_cybersecurity_prompts(self) -> Dict[str, str]:
@@ -284,13 +280,15 @@ class LLMExplanationEngine:
             config = self.cybersec_engine.cybersec_models.get(context_type, 
                 self.cybersec_engine.cybersec_models["general_cybersecurity"])
             
-            response = await self.cybersec_engine.llm_client.generate_async(
+            response = await self.cybersec_engine.llm_client.generate_text(
                 prompt=prompt,
                 system_message=config["system_prompt"],
+                max_tokens=config["max_tokens"],
+                temperature=config["temperature"],
             )
-            
-            logger.info(f"Generated explanation using Awesome-LLM4Cybersecurity {context_type} model")
-            return response
+
+            logger.info(f"Generated explanation using ChatGPT {context_type} profile")
+            return response.get("content", "")
             
         except Exception as e:
             logger.error(f"Awesome-LLM4Cybersecurity call failed: {e}")

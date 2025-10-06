@@ -68,7 +68,7 @@ async def get_processing_layer_status():
                 "ctinexus_approach": "LLM-based entity extraction with in-context learning",
                 "awesome_llm4cybersecurity": "Cybersecurity-specialized LLM models and prompts",
                 "networkx": "Graph construction and analysis",
-                "emergent_llm": "Real LLM integration for explanations"
+                "chatgpt_llm": "Real ChatGPT integration for explanations"
             }
         }
     except Exception as e:

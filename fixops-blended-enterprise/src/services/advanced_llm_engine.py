@@ -14,13 +14,13 @@ import structlog
 
 from src.config.settings import get_settings
 from src.services.cache_service import CacheService
+from src.services.chatgpt_client import ChatGPTClient
 
 logger = structlog.get_logger()
 settings = get_settings()
 
 class LLMProvider(Enum):
-    EMERGENT_GPT5 = "emergent_gpt5"
-    OPENAI_GPT4 = "openai_gpt4"
+    OPENAI_CHATGPT = "openai_chatgpt"
     ANTHROPIC_CLAUDE = "anthropic_claude"
     GOOGLE_GEMINI = "google_gemini"
     SPECIALIZED_CYBER = "specialized_cyber"
@@ -46,7 +46,7 @@ class AdvancedLLMEngine:
     
     def __init__(self):
         self.cache = CacheService.get_instance()
-        self.llm_client = None
+        self.llm_client: Optional[ChatGPTClient] = None
         self.enabled_providers = []
         self.initialized = False
         self._initialize_llm_client()
@@ -60,47 +60,37 @@ class AdvancedLLMEngine:
     
     def _initialize_llm_client(self):
         """Initialize LLM client for multi-model analysis"""
-        try:
-            if settings.EMERGENT_LLM_KEY:
-                from emergentintegrations import EmergentIntegrations
-                self.llm_client = EmergentIntegrations(api_key=settings.EMERGENT_LLM_KEY)
+        api_key = settings.primary_llm_api_key
+        if api_key:
+            try:
+                self.llm_client = ChatGPTClient(api_key=api_key)
                 self.enabled_providers = [
-                    "emergent_gpt5",
-                    "specialized_cyber"
+                    LLMProvider.OPENAI_CHATGPT.value,
+                    LLMProvider.SPECIALIZED_CYBER.value,
                 ]
-                logger.info("✅ Enhanced LLM Engine initialized with Emergent LLM")
-            else:
-                logger.warning("No EMERGENT_LLM_KEY found, using demo mode")
-                self.enabled_providers = [
-                    "emergent_gpt5",
-                    "openai_gpt4", 
-                    "anthropic_claude",
-                    "google_gemini",
-                    "specialized_cyber"
-                ]
-        except Exception as e:
-            logger.error(f"LLM client initialization failed: {e}")
-            self.llm_client = None
-            # Demo mode providers
+                logger.info("✅ Enhanced LLM Engine initialized with ChatGPT")
+            except Exception as exc:
+                logger.error(f"ChatGPT client initialization failed: {exc}")
+                self.llm_client = None
+        else:
+            logger.warning("No ChatGPT API key configured, using demo providers")
+
+        if not self.enabled_providers:
             self.enabled_providers = [
-                "emergent_gpt5",
-                "specialized_cyber"
+                LLMProvider.OPENAI_CHATGPT.value,
+                LLMProvider.ANTHROPIC_CLAUDE.value,
+                LLMProvider.GOOGLE_GEMINI.value,
+                LLMProvider.SPECIALIZED_CYBER.value,
             ]
 
     async def get_supported_llms(self) -> Dict[str, Dict[str, Any]]:
         """Get supported LLM providers and their capabilities"""
         return {
-            "emergent_gpt5": {
-                "name": "Emergent GPT-5",
-                "available": "emergent_gpt5" in self.enabled_providers,
+            LLMProvider.OPENAI_CHATGPT.value: {
+                "name": "OpenAI ChatGPT",
+                "available": LLMProvider.OPENAI_CHATGPT.value in self.enabled_providers,
                 "specialties": ["security_analysis", "code_review", "threat_modeling"],
-                "description": "Latest GPT model via Emergent platform"
-            },
-            "openai_gpt4": {
-                "name": "OpenAI GPT-4",
-                "available": "openai_gpt4" in self.enabled_providers,
-                "specialties": ["general_analysis", "reasoning", "explanation"],
-                "description": "OpenAI's flagship model for analysis"
+                "description": "ChatGPT (GPT-4o) via OpenAI"
             },
             "anthropic_claude": {
                 "name": "Anthropic Claude",
@@ -166,17 +156,14 @@ class AdvancedLLMEngine:
         start_time = time.time()
         
         try:
-            if provider == "emergent_gpt5" and self.llm_client:
-                # Real LLM analysis
+            if provider == LLMProvider.OPENAI_CHATGPT.value and self.llm_client:
                 prompt = self._build_analysis_prompt(context, findings)
                 response = await self.llm_client.generate_text(
-                    model="gpt-5",
                     prompt=prompt,
                     max_tokens=500,
-                    temperature=0.3
+                    temperature=0.3,
                 )
-                
-                # Parse LLM response
+
                 analysis_text = response.get("content", "")
                 recommended_action, confidence, reasoning = self._parse_llm_response(analysis_text)
                 
@@ -253,11 +240,11 @@ class AdvancedLLMEngine:
         """Generate demo analysis for providers"""
         high_severity = any(f.get('severity', '').upper() in ['CRITICAL', 'HIGH'] for f in findings)
         
-        if provider == "openai_gpt4":
+        if provider == LLMProvider.OPENAI_CHATGPT.value:
             if high_severity:
-                return 'defer', 0.75, 'High severity findings require manual review for business context'
-            return 'allow', 0.85, 'No critical vulnerabilities detected, deployment approved'
-        
+                return 'defer', 0.78, 'ChatGPT recommends manual review due to high severity findings'
+            return 'allow', 0.88, 'ChatGPT assessment approves deployment with no critical blockers'
+
         elif provider == "anthropic_claude":
             if high_severity:
                 return 'block', 0.9, 'Critical security risk in production environment'
@@ -271,10 +258,10 @@ class AdvancedLLMEngine:
                 return 'block', 0.95, 'Cybersecurity analysis identifies critical exploit risk'
             return 'allow', 0.9, 'Cyber threat assessment passed'
         
-        else:  # emergent_gpt5
+        else:  # specialized cyber demo
             if high_severity:
-                return 'defer', 0.8, 'GPT-5 analysis recommends manual security review'
-            return 'allow', 0.88, 'GPT-5 security analysis approved for deployment'
+                return 'defer', 0.8, 'Specialized cyber heuristics recommend manual security review'
+            return 'allow', 0.86, 'Specialized cyber heuristics approved for deployment'
 
     def _generate_consensus(self, analyses: List[LLMAnalysisResult]) -> Tuple[str, float, List[str]]:
         """Generate consensus from multiple LLM analyses"""
