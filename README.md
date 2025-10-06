@@ -20,6 +20,8 @@ The repository ships with a pair of curated fixtures and overlay profiles so you
 
    ```bash
    pip install -r requirements.txt
+   # Optional: install backend extras when you have access to private repos
+   pip install -r backend/requirements-optional.txt
    ```
 
 2. **Run the bundled demo experience**

@@ -16,7 +16,10 @@ FixOps Demo primarily interacts with two categories of integrations:
 | `sarif-om` | Provides typed SARIF models for introspection. | `InputNormalizer.load_sarif()` instantiates `SarifLog` to expose metadata and simplify traversal. | Missing dependency raises a `RuntimeError` during import, signalling a deployment misconfiguration. |
 
 All parsers run synchronously during request handling. Retry logic is unnecessary because failures are
-caused by malformed uploads or missing dependencies rather than transient network issues.
+caused by malformed uploads or missing dependencies rather than transient network issues. The Snyk
+converter currently ships from a private Git repository; teams that have access can install it via
+`backend/requirements-optional.txt`. When absent, FixOps continues to accept native SARIF uploads and
+surfaces actionable log guidance to operators.
 
 ## Overlay-Defined Operational Systems
 
