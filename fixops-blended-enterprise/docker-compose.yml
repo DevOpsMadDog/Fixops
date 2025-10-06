@@ -9,9 +9,11 @@ services:
     image: mongo:7.0
     container_name: fixops-mongodb
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: fixops
-      MONGO_INITDB_ROOT_PASSWORD: fixops-dev-password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-fixops}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-fixops-dev-password}
       MONGO_INITDB_DATABASE: fixops_production
     ports:
       - "27017:27017"
@@ -30,15 +32,19 @@ services:
     restart: unless-stopped
     ports:
       - "8001:8001"
+    env_file:
+      - .env
     environment:
-      - MONGO_URL=mongodb://fixops:fixops-dev-password@mongodb:27017/fixops_production?authSource=admin
-      - REDIS_URL=memory://
-      - SECRET_KEY=${SECRET_KEY:-fixops-dev-secret-key}
-      - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY}
-      - FIXOPS_ENVIRONMENT=development
-      - FIXOPS_LOG_LEVEL=debug
-      - FIXOPS_DEMO_MODE=false
-      - FIXOPS_AUTH_DISABLED=true
+      - MONGO_URL=${MONGO_URL:-mongodb://${MONGO_INITDB_ROOT_USERNAME:-fixops}:${MONGO_INITDB_ROOT_PASSWORD:-fixops-dev-password}@mongodb:27017/fixops_production?authSource=admin}
+      - REDIS_URL=${REDIS_URL:-memory://}
+      - SECRET_KEY=${SECRET_KEY:-changeme-local-secret}
+      - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY:-}
+      - FIXOPS_ENVIRONMENT=${FIXOPS_ENVIRONMENT:-development}
+      - FIXOPS_LOG_LEVEL=${FIXOPS_LOG_LEVEL:-debug}
+      - FIXOPS_DEMO_MODE=${FIXOPS_DEMO_MODE:-false}
+      - FIXOPS_AUTH_DISABLED=${FIXOPS_AUTH_DISABLED:-true}
+      - FIXOPS_API_TOKENS=${FIXOPS_API_TOKENS:-dev-api-token}
+      - FIXOPS_UVICORN_WORKERS=${FIXOPS_UVICORN_WORKERS:-2}
     depends_on:
       - mongodb
     networks:
@@ -59,10 +65,12 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - BACKEND_URL=http://fixops-backend:8001
-      - VITE_API_BASE_URL=https://api.fixops.devops.ai
-      - REACT_APP_API_BASE_URL=https://api.fixops.devops.ai
+      - BACKEND_URL=${BACKEND_URL:-http://fixops-backend:8001}
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://api.fixops.devops.ai}
+      - REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL:-https://api.fixops.devops.ai}
     depends_on:
       - fixops-backend
     networks:

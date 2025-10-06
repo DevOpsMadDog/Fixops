@@ -11,5 +11,11 @@ if [[ -z "${FIXOPS_API_TOKEN:-}" && -z "${FIXOPS_API_TOKENS:-}" ]]; then
   exit 2
 fi
 
-exec python -m uvicorn src.main:app --host 0.0.0.0 --port 8001 --workers 1 --loop uvloop
+WORKERS="${FIXOPS_UVICORN_WORKERS:-1}"
+if ! [[ "$WORKERS" =~ ^[0-9]+$ ]] || [ "$WORKERS" -lt 1 ]; then
+  echo "Invalid FIXOPS_UVICORN_WORKERS value '$WORKERS'; must be a positive integer" >&2
+  exit 3
+fi
+
+exec python -m uvicorn src.main:app --host 0.0.0.0 --port 8001 --workers "$WORKERS" --loop uvloop
 
