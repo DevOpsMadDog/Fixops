@@ -1,0 +1,3 @@
+component,customer_impact,data_classification,exposure,owner
+customer-api,mission_critical,pii,internet,Application Platform
+payments-gateway,external,financial,partner,Payments Guild

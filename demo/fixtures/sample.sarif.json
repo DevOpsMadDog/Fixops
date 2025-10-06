@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "CodeQL",
+          "informationUri": "https://codeql.github.com"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "js/sql-injection",
+          "message": {"text": "Potential SQL injection in customer-api query builder"},
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "services/customer-api/db.js"},
+                "region": {"startLine": 87}
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "js/request-timeout",
+          "message": {"text": "Slow request handling in payments-gateway HTTP handler"},
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "services/payments-gateway/routes.js"},
+                "region": {"startLine": 34}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -253,6 +253,24 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
   http://127.0.0.1:8000/api/v1/enhanced/compare-llms | jq
 ```
 
+### 3b. Try the bundled demo & enterprise fixtures
+Skip manual artefact preparation and run the overlay-driven demo or
+enterprise walkthrough in a single command. The CLI seeds required
+environment variables (API token, Jira/Confluence tokens, and an
+encryption key) with safe defaults.
+
+```bash
+# Demo profile (non-encrypted evidence bundle)
+python -m fixops.cli demo --mode demo --output out/pipeline-demo.json --pretty
+
+# Enterprise profile (encryption enabled when `cryptography` is installed)
+python -m fixops.cli demo --mode enterprise --output out/pipeline-enterprise.json --pretty
+```
+
+Both commands emit a short textual summary, persist the full pipeline
+response (if `--output` is supplied), and drop evidence bundles inside the
+overlay-approved directories under `data/`.
+
 ### 4. Run the CLI (enterprise profile + module overrides)
 ```bash
 python -m fixops.cli run \

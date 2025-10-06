@@ -925,13 +925,31 @@ class OverlayConfig:
         return fallback
 
 
-def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
-    """Load the overlay configuration and merge profile overrides."""
+def load_overlay(
+    path: Optional[Path | str] = None,
+    *,
+    mode_override: Optional[str] = None,
+) -> OverlayConfig:
+    """Load the overlay configuration and merge profile overrides.
+
+    The optional ``mode_override`` parameter allows callers to select a
+    specific overlay profile (for example, switching between the bundled
+    ``demo`` and ``enterprise`` presets) without mutating the source
+    configuration file on disk. When provided, the override takes
+    precedence over the ``mode`` value declared in the file and ensures
+    the downstream profile merge logic operates on the desired mode.
+    """
 
     override_path = os.getenv(_OVERRIDDEN_PATH_ENV)
     candidate_path = Path(path or override_path or DEFAULT_OVERLAY_PATH)
     text = _read_text(candidate_path)
     raw = _parse_overlay(text)
+
+    if mode_override is not None:
+        if not isinstance(raw, MutableMapping):
+            raw = {}
+        raw = dict(raw)
+        raw["mode"] = str(mode_override)
 
     try:
         document = _OverlayDocument(**(raw or {}))

@@ -12,6 +12,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 from backend.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
 from backend.pipeline import PipelineOrchestrator
 from fixops.configuration import OverlayConfig, load_overlay
+from fixops.demo_runner import run_demo_pipeline
 from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 from fixops.storage import ArtefactArchive
 from fixops.probabilistic import ProbabilisticForecastEngine
@@ -352,6 +353,21 @@ def _handle_train_forecast(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_demo(args: argparse.Namespace) -> int:
+    _result, summary_lines = run_demo_pipeline(
+        mode=args.mode,
+        output_path=args.output,
+        pretty=args.pretty,
+        include_summary=False,
+    )
+    if not args.quiet:
+        for line in summary_lines:
+            print(line)
+    if args.output is not None and not args.output.exists():
+        raise FileNotFoundError(f"Failed to persist demo output to {args.output}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -453,6 +469,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress the calibration summary",
     )
     train_parser.set_defaults(func=_handle_train_forecast)
+
+    demo_parser = subparsers.add_parser(
+        "demo",
+        help="Run the FixOps pipeline with bundled demo or enterprise fixtures",
+    )
+    demo_parser.add_argument(
+        "--mode",
+        choices=["demo", "enterprise"],
+        default="demo",
+        help="Overlay profile to apply when running the bundled fixtures",
+    )
+    demo_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write the pipeline response JSON",
+    )
+    demo_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output when saving to disk",
+    )
+    demo_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress the demo summary",
+    )
+    demo_parser.set_defaults(func=_handle_demo)
 
     return parser
 
