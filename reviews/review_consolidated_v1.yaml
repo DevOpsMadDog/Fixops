@@ -1,0 +1,120 @@
+ReviewReport_v1:
+  global_findings:
+    - key: cors_csrf
+      severity: high
+      area: security
+      description: "Backend FastAPI app enables credentialed CORS for all origins, undermining token-based auth." 
+      evidence:
+        - "F:backend/app.py†L35-L58"
+      recommendation: "Restrict origins, disable credentials for public requests, and require a front-end gateway or CSRF protections."
+    - key: demo_secret_bleed
+      severity: high
+      area: secret_management
+      description: "Demo runner backfills API tokens and encryption key literals that can propagate into real deployments." 
+      evidence:
+        - "F:fixops/demo_runner.py†L16-L29"
+      recommendation: "Separate demo env vars, enforce mode checks, and load secrets from managed stores in production."
+    - key: enterprise_auth_disabled
+      severity: high
+      area: infra
+      description: "Enterprise container and manifests disable auth and ship placeholder credentials with `:latest` images." 
+      evidence:
+        - "F:fixops-blended-enterprise/Dockerfile†L56-L71"
+        - "F:fixops-blended-enterprise/kubernetes/secret.yaml†L7-L18"
+        - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L27-L32"
+      recommendation: "Use immutable image tags, fail fast when auth is disabled outside sandbox, and integrate with secret managers."
+    - key: missing_ci
+      severity: high
+      area: ci_cd
+      description: "No CI/CD workflows are present; lint, tests, and scans are unenforced." 
+      evidence:
+        - "983253†L1-L2"
+      recommendation: "Add protected workflows for lint/test/scan/build, require reviews, and publish artefacts with provenance."
+    - key: decision_engine_auth
+      severity: high
+      area: application_auth
+      description: "`new_backend` exposes decision endpoints without authentication or rate controls." 
+      evidence:
+        - "F:new_backend/api.py†L41-L80"
+      recommendation: "Introduce auth middleware (API keys/JWT) and throttle/limit exposure or confine the service."
+    - key: supply_chain
+      severity: medium
+      area: dependency_integrity
+      description: "Python requirements are loosely pinned and include a Git URL, impeding reproducible builds." 
+      evidence:
+        - "F:backend/requirements.txt†L1-L7"
+      recommendation: "Adopt hash-locked dependency manifests and replace VCS dependencies with published packages."
+    - key: iac_surface
+      severity: medium
+      area: infra
+      description: "Terraform shares a generic S3 backend and ingress exposes multiple public hosts without WAF or rate limits." 
+      evidence:
+        - "F:fixops-blended-enterprise/terraform/main.tf†L17-L53"
+        - "F:fixops-blended-enterprise/kubernetes/ingress.yaml†L19-L56"
+      recommendation: "Parameterise state backends per environment and harden ingress with WAF/rate-limit annotations or private networking."
+    - key: blocking_refresh
+      severity: medium
+      area: performance
+      description: "Exploit feed refresh runs synchronous HTTP calls in the request path, risking latency spikes." 
+      evidence:
+        - "F:fixops/exploit_signals.py†L227-L352"
+      recommendation: "Move refresh to background jobs or async clients with bounded retries and timeouts."
+    - key: shared_artifact_state
+      severity: medium
+      area: reliability
+      description: "`app.state.artifacts` is global per-process; concurrent uploads can overwrite each other before pipeline execution." 
+      evidence:
+        - "F:backend/app.py†L80-L165"
+      recommendation: "Assign per-run IDs or persist uploads atomically per request token before pipeline invocation."
+    - key: testing_gaps
+      severity: high
+      area: testing
+      description: "Test suite lacks coverage for auth failures/CORS and infra validation despite strong happy-path coverage." 
+      evidence:
+        - "F:tests/test_end_to_end.py†L29-L200"
+        - "F:backend/app.py†L47-L58"
+        - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L1-L101"
+      recommendation: "Add negative tests for auth headers, concurrent runs, and integrate kubeval/terraform linters into CI."
+  component_findings:
+    - component: backend
+      findings:
+        - severity: medium
+          area: resilience
+          description: "Upload streaming lacks request-level timeouts and concurrency controls, enabling slow-loris style uploads."
+          evidence:
+            - "F:backend/app.py†L93-L123"
+          recommendation: "Configure server timeouts, rate limits, or background tasks for large files."
+        - severity: low
+          area: operability
+          description: "Analytics persistence errors are swallowed, reducing visibility into storage health." 
+          evidence:
+            - "F:backend/app.py†L326-L338"
+          recommendation: "Emit structured error events/metrics and surface status via health endpoints."
+    - component: fixops
+      findings:
+        - severity: medium
+          area: configuration
+          description: "Overlay deep-merge allows unvetted keys to toggle modules silently." 
+          evidence:
+            - "F:fixops/configuration.py†L45-L99"
+          recommendation: "Validate overrides through explicit schemas and reject unexpected keys."
+        - severity: low
+          area: data_safety
+          description: "CLI overwrites archive bundles without confirmation, risking loss of prior demo evidence." 
+          evidence:
+            - "F:fixops/cli.py†L258-L307"
+          recommendation: "Store artefacts under timestamped directories or require `--force` before overwrite."
+    - component: fixops-blended-enterprise
+      findings:
+        - severity: medium
+          area: deployment
+          description: "Backend deployment lacks autoscaling/disruption budgets and uses static `replicas: 3`." 
+          evidence:
+            - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L9-L101"
+          recommendation: "Add HPA and PodDisruptionBudget aligned with load tests." 
+        - severity: medium
+          area: secret_management
+          description: "Kubernetes Secret manifest stores base64 placeholders that resemble production credentials." 
+          evidence:
+            - "F:fixops-blended-enterprise/kubernetes/secret.yaml†L7-L18"
+          recommendation: "Replace with templated secrets referencing Vault/SecretsManager and ensure placeholders cannot deploy."

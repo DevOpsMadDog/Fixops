@@ -1,0 +1,8 @@
+{
+  "id": "7f875a64bb024bb08dad1a1ce000e886",
+  "stage": "sarif",
+  "stored_at": "2025-10-06T12:20:18.012034Z",
+  "original_filename": "scan.sarif",
+  "raw_path": "/workspace/Fixops/data/archive/demo/sarif/2025-10-06T122018.012034Z-7f875a64bb024bb08dad1a1ce000e886.raw",
+  "normalized_path": "/workspace/Fixops/data/archive/demo/sarif/2025-10-06T122018.012034Z-7f875a64bb024bb08dad1a1ce000e886.json"
+}

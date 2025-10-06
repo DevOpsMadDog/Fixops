@@ -1,0 +1,20 @@
+{
+  "records": [
+    {
+      "cve_id": "CVE-2024-0001",
+      "title": null,
+      "severity": "high",
+      "exploited": true,
+      "raw": {
+        "cveID": "CVE-2024-0001",
+        "title": "Example vulnerability in payment-service",
+        "knownExploited": true,
+        "severity": "high"
+      }
+    }
+  ],
+  "errors": [],
+  "metadata": {
+    "record_count": 1
+  }
+}

@@ -3,16 +3,17 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import os
 import uuid
 from contextlib import suppress
+from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
 from typing import Any, Dict, Mapping, Optional, Tuple
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
 
 from fixops.analytics import AnalyticsStore
 from fixops.configuration import OverlayConfig, load_overlay
@@ -26,35 +27,103 @@ from .pipeline import PipelineOrchestrator
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class _SessionState:
+    run_id: str
+    artifacts: Dict[str, Any] = field(default_factory=dict)
+    archive_records: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
+
+_RUN_ID_HEADER = "X-Fixops-Run-Id"
+_CORS_ENV = "FIXOPS_CORS_ALLOW_ORIGINS"
+_SESSION_ALLOWED_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+)
+
+
+def _parse_origins(raw: Optional[str]) -> list[str]:
+    if not raw:
+        return []
+    return [origin.strip() for origin in raw.split(",") if origin and origin.strip()]
+
+
 def create_app() -> FastAPI:
     """Create the FastAPI application with file-upload ingestion endpoints."""
+
+    overlay = load_overlay()
 
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    app.state.sessions: Dict[str, _SessionState] = {}
+
+    cors_settings = dict(overlay.cors_settings)
+    env_override = _parse_origins(os.getenv(_CORS_ENV))
+    if env_override:
+        cors_settings["allow_origins"] = env_override
+
+    allow_origins = cors_settings.get("allow_origins", [])
+    if allow_origins:
+        allow_credentials = bool(cors_settings.get("allow_credentials", False))
+        if "*" in allow_origins:
+            allow_credentials = False
+        allow_methods = cors_settings.get("allow_methods") or ["GET", "POST", "OPTIONS"]
+        allow_headers = cors_settings.get("allow_headers") or [
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "X-Requested-With",
+        ]
+        max_age = int(cors_settings.get("max_age", 600))
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_credentials=allow_credentials,
+            allow_methods=allow_methods,
+            allow_headers=allow_headers,
+            max_age=max_age,
+        )
 
     normalizer = InputNormalizer()
     orchestrator = PipelineOrchestrator()
-    overlay = load_overlay()
 
     # API authentication setup
     auth_strategy = overlay.auth.get("strategy", "").lower()
     header_name = overlay.auth.get("header", "X-API-Key")
-    api_key_header = APIKeyHeader(name=header_name, auto_error=False)
     expected_tokens = overlay.auth_tokens if auth_strategy == "token" else tuple()
 
-    async def _verify_api_key(api_key: Optional[str] = Depends(api_key_header)) -> None:
+    def _verify_api_key(provided: Optional[str]) -> None:
         if auth_strategy != "token":
             return
-        if not api_key or api_key not in expected_tokens:
+        if not provided or provided not in expected_tokens:
             raise HTTPException(status_code=401, detail="Invalid or missing API token")
+
+    def _get_session(run_id: Optional[str]) -> _SessionState:
+        if run_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": f"{_RUN_ID_HEADER} header is required"},
+            )
+        token = run_id.strip()
+        if not token:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": f"{_RUN_ID_HEADER} header cannot be empty"},
+            )
+        if any(character not in _SESSION_ALLOWED_CHARS for character in token):
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": (
+                        f"{_RUN_ID_HEADER} may only contain alphanumeric characters, '-' or '_'"
+                    )
+                },
+            )
+        session = app.state.sessions.get(token)
+        if session is None:
+            session = _SessionState(run_id=token)
+            app.state.sessions[token] = session
+        return session
 
     allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
     for directory in overlay.data_directories.values():
@@ -79,10 +148,8 @@ def create_app() -> FastAPI:
 
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
-    app.state.artifacts: Dict[str, Any] = {}
     app.state.overlay = overlay
     app.state.archive = archive
-    app.state.archive_records: Dict[str, Dict[str, Any]] = {}
     app.state.analytics_store = analytics_store
     app.state.feedback = (
         FeedbackRecorder(overlay, analytics_store=analytics_store)
@@ -143,14 +210,15 @@ def create_app() -> FastAPI:
             )
 
     def _store(
+        session: _SessionState,
         stage: str,
         payload: Any,
         *,
         original_filename: Optional[str] = None,
         raw_bytes: Optional[bytes] = None,
     ) -> None:
-        logger.debug("Storing stage %s", stage)
-        app.state.artifacts[stage] = payload
+        logger.debug("Storing stage %s for run %s", stage, session.run_id)
+        session.artifacts[stage] = payload
         try:
             record = app.state.archive.persist(
                 stage,
@@ -161,10 +229,16 @@ def create_app() -> FastAPI:
         except Exception as exc:  # pragma: no cover - persistence must not break ingestion
             logger.exception("Failed to persist artefact stage %s", stage)
             record = {"stage": stage, "error": str(exc)}
-        app.state.archive_records[stage] = record
+        session.archive_records[stage] = record
 
-    @app.post("/inputs/design", dependencies=[Depends(_verify_api_key)])
-    async def ingest_design(file: UploadFile = File(...)) -> Dict[str, Any]:
+    @app.post("/inputs/design")
+    async def ingest_design(
+        file: UploadFile = File(...),
+        run_id: Optional[str] = Header(default=None, alias=_RUN_ID_HEADER),
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
+        session = _get_session(run_id)
         _validate_content_type(file, ("text/csv", "application/vnd.ms-excel", "application/csv"))
         buffer, total = await _read_limited(file, "design")
         try:
@@ -185,7 +259,13 @@ def create_app() -> FastAPI:
 
             dataset = {"columns": columns, "rows": rows}
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store("design", dataset, original_filename=file.filename, raw_bytes=raw_bytes)
+            _store(
+                session,
+                "design",
+                dataset,
+                original_filename=file.filename,
+                raw_bytes=raw_bytes,
+            )
             return {
                 "stage": "design",
                 "input_filename": file.filename,
@@ -197,8 +277,14 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 buffer.close()
 
-    @app.post("/inputs/sbom", dependencies=[Depends(_verify_api_key)])
-    async def ingest_sbom(file: UploadFile = File(...)) -> Dict[str, Any]:
+    @app.post("/inputs/sbom")
+    async def ingest_sbom(
+        file: UploadFile = File(...),
+        run_id: Optional[str] = Header(default=None, alias=_RUN_ID_HEADER),
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
+        session = _get_session(run_id)
         _validate_content_type(
             file,
             (
@@ -217,7 +303,13 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Failed to parse SBOM: {exc}") from exc
         else:
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store("sbom", sbom, original_filename=file.filename, raw_bytes=raw_bytes)
+            _store(
+                session,
+                "sbom",
+                sbom,
+                original_filename=file.filename,
+                raw_bytes=raw_bytes,
+            )
             return {
                 "stage": "sbom",
                 "input_filename": file.filename,
@@ -230,8 +322,14 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 buffer.close()
 
-    @app.post("/inputs/cve", dependencies=[Depends(_verify_api_key)])
-    async def ingest_cve(file: UploadFile = File(...)) -> Dict[str, Any]:
+    @app.post("/inputs/cve")
+    async def ingest_cve(
+        file: UploadFile = File(...),
+        run_id: Optional[str] = Header(default=None, alias=_RUN_ID_HEADER),
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
+        session = _get_session(run_id)
         _validate_content_type(
             file,
             (
@@ -250,7 +348,13 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Failed to parse CVE feed: {exc}") from exc
         else:
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store("cve", cve_feed, original_filename=file.filename, raw_bytes=raw_bytes)
+            _store(
+                session,
+                "cve",
+                cve_feed,
+                original_filename=file.filename,
+                raw_bytes=raw_bytes,
+            )
             return {
                 "stage": "cve",
                 "input_filename": file.filename,
@@ -261,8 +365,14 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 buffer.close()
 
-    @app.post("/inputs/sarif", dependencies=[Depends(_verify_api_key)])
-    async def ingest_sarif(file: UploadFile = File(...)) -> Dict[str, Any]:
+    @app.post("/inputs/sarif")
+    async def ingest_sarif(
+        file: UploadFile = File(...),
+        run_id: Optional[str] = Header(default=None, alias=_RUN_ID_HEADER),
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
+        session = _get_session(run_id)
         _validate_content_type(
             file,
             (
@@ -281,7 +391,13 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Failed to parse SARIF: {exc}") from exc
         else:
             raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store("sarif", sarif, original_filename=file.filename, raw_bytes=raw_bytes)
+            _store(
+                session,
+                "sarif",
+                sarif,
+                original_filename=file.filename,
+                raw_bytes=raw_bytes,
+            )
             return {
                 "stage": "sarif",
                 "input_filename": file.filename,
@@ -292,11 +408,16 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 buffer.close()
 
-    @app.post("/pipeline/run", dependencies=[Depends(_verify_api_key)])
-    async def run_pipeline() -> Dict[str, Any]:
+    @app.post("/pipeline/run")
+    async def run_pipeline(
+        run_id: Optional[str] = Header(default=None, alias=_RUN_ID_HEADER),
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
+        session = _get_session(run_id)
         overlay: OverlayConfig = app.state.overlay
         required = overlay.required_inputs
-        missing = [stage for stage in required if stage not in app.state.artifacts]
+        missing = [stage for stage in required if stage not in session.artifacts]
         if missing:
             raise HTTPException(
                 status_code=400,
@@ -314,36 +435,44 @@ def create_app() -> FastAPI:
 
         run_id = uuid.uuid4().hex
 
-        result = orchestrator.run(
-            design_dataset=app.state.artifacts.get("design", {"columns": [], "rows": []}),
-            sbom=app.state.artifacts["sbom"],
-            sarif=app.state.artifacts["sarif"],
-            cve=app.state.artifacts["cve"],
-            overlay=overlay,
-        )
-        result["run_id"] = run_id
-        analytics_store = getattr(app.state, "analytics_store", None)
-        if analytics_store is not None:
-            try:
-                persistence = analytics_store.persist_run(run_id, result)
-            except Exception:  # pragma: no cover - analytics persistence must not block pipeline
-                logger.exception("Failed to persist analytics artefacts for run %s", run_id)
-                persistence = {}
-            if persistence:
-                result["analytics_persistence"] = persistence
-                analytics_section = result.get("analytics")
-                if isinstance(analytics_section, dict):
-                    analytics_section["persistence"] = persistence
-        if app.state.archive_records:
-            result["artifact_archive"] = ArtefactArchive.summarise(app.state.archive_records)
-            app.state.archive_records = {}
-        if overlay.toggles.get("auto_attach_overlay_metadata", True):
-            result["overlay"] = overlay.to_sanitised_dict()
-            result["overlay"]["required_inputs"] = list(required)
-        return result
+        try:
+            result = orchestrator.run(
+                design_dataset=session.artifacts.get("design", {"columns": [], "rows": []}),
+                sbom=session.artifacts["sbom"],
+                sarif=session.artifacts["sarif"],
+                cve=session.artifacts["cve"],
+                overlay=overlay,
+            )
+            result["run_id"] = run_id
+            result["session_id"] = session.run_id
+            analytics_store = getattr(app.state, "analytics_store", None)
+            if analytics_store is not None:
+                try:
+                    persistence = analytics_store.persist_run(run_id, result)
+                except Exception:  # pragma: no cover - analytics persistence must not block pipeline
+                    logger.exception("Failed to persist analytics artefacts for run %s", run_id)
+                    persistence = {}
+                if persistence:
+                    result["analytics_persistence"] = persistence
+                    analytics_section = result.get("analytics")
+                    if isinstance(analytics_section, dict):
+                        analytics_section["persistence"] = persistence
+            if session.archive_records:
+                result["artifact_archive"] = ArtefactArchive.summarise(session.archive_records)
+                session.archive_records = {}
+            if overlay.toggles.get("auto_attach_overlay_metadata", True):
+                result["overlay"] = overlay.to_sanitised_dict()
+                result["overlay"]["required_inputs"] = list(required)
+            return result
+        finally:
+            app.state.sessions.pop(session.run_id, None)
 
-    @app.get("/analytics/dashboard", dependencies=[Depends(_verify_api_key)])
-    async def analytics_dashboard(limit: int = 10) -> Dict[str, Any]:
+    @app.get("/analytics/dashboard")
+    async def analytics_dashboard(
+        limit: int = 10,
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
         store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
         if store is None:
             raise HTTPException(
@@ -355,8 +484,11 @@ def create_app() -> FastAPI:
         except ValueError as exc:  # pragma: no cover - defensive guard
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    @app.get("/analytics/runs/{run_id}", dependencies=[Depends(_verify_api_key)])
-    async def analytics_run(run_id: str) -> Dict[str, Any]:
+    @app.get("/analytics/runs/{run_id}")
+    async def analytics_run(
+        run_id: str, api_key: Optional[str] = Header(default=None, alias=header_name)
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
         store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
         if store is None:
             raise HTTPException(
@@ -379,8 +511,12 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail="No analytics persisted for run")
         return data
 
-    @app.post("/feedback", dependencies=[Depends(_verify_api_key)])
-    async def submit_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
+    @app.post("/feedback")
+    async def submit_feedback(
+        payload: Dict[str, Any],
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _verify_api_key(api_key)
         recorder: Optional[FeedbackRecorder] = app.state.feedback
         if recorder is None:
             raise HTTPException(status_code=400, detail="Feedback capture disabled in this profile")

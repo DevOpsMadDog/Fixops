@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 
 import pytest
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.testclient import TestClient
 
 from backend import app as backend_app
 from fixops.configuration import OverlayConfig
@@ -27,3 +29,64 @@ def test_create_app_rejects_insecure_allowlisted_root(monkeypatch, tmp_path: Pat
 
     with pytest.raises(PermissionError):
         backend_app.create_app()
+
+
+def test_pipeline_requires_session_header(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    overlay = _make_overlay(tmp_path)
+    overlay.api = {"cors": {"allow_origins": ["https://example.com"], "allow_credentials": False}}
+    monkeypatch.setattr(backend_app, "load_overlay", lambda: overlay)
+    monkeypatch.setattr(backend_app, "ensure_secure_directory", lambda path, mode=0o750: Path(path).resolve())
+    monkeypatch.setattr(
+        backend_app,
+        "verify_allowlisted_path",
+        lambda path, allowlist: Path(path).resolve(),
+    )
+
+    app = backend_app.create_app()
+    client = TestClient(app)
+
+    response = client.post("/pipeline/run")
+    assert response.status_code == 400
+    assert response.json()["detail"]["message"].startswith("X-Fixops-Run-Id")
+
+    response = client.post("/pipeline/run", headers={"X-Fixops-Run-Id": "demo-session"})
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["message"] == "Missing required artefacts"
+    assert detail["missing"] == ["design", "sbom", "sarif", "cve"]
+
+
+def test_cors_configuration_honours_overlay(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    overlay = _make_overlay(tmp_path)
+    overlay.api = {"cors": {"allow_origins": ["https://console.fixops.bank"], "allow_credentials": False}}
+    monkeypatch.setattr(backend_app, "load_overlay", lambda: overlay)
+    monkeypatch.setattr(backend_app, "ensure_secure_directory", lambda path, mode=0o750: Path(path).resolve())
+    monkeypatch.setattr(
+        backend_app,
+        "verify_allowlisted_path",
+        lambda path, allowlist: Path(path).resolve(),
+    )
+
+    app = backend_app.create_app()
+    cors = next((middleware for middleware in app.user_middleware if middleware.cls is CORSMiddleware), None)
+    assert cors is not None
+    assert cors.options["allow_origins"] == ["https://console.fixops.bank"]
+    assert cors.options["allow_credentials"] is False
+
+
+def test_cors_wildcard_disables_credentials(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    overlay = _make_overlay(tmp_path)
+    overlay.api = {"cors": {"allow_origins": ["*"], "allow_credentials": True}}
+    monkeypatch.setattr(backend_app, "load_overlay", lambda: overlay)
+    monkeypatch.setattr(backend_app, "ensure_secure_directory", lambda path, mode=0o750: Path(path).resolve())
+    monkeypatch.setattr(
+        backend_app,
+        "verify_allowlisted_path",
+        lambda path, allowlist: Path(path).resolve(),
+    )
+
+    app = backend_app.create_app()
+    cors = next((middleware for middleware in app.user_middleware if middleware.cls is CORSMiddleware), None)
+    assert cors is not None
+    assert cors.options["allow_origins"] == ["*"]
+    assert cors.options["allow_credentials"] is False

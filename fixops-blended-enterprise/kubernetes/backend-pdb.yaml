@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fixops-backend-pdb
+  namespace: fixops
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: fixops-backend

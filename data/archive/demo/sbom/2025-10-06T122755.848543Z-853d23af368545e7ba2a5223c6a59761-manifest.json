@@ -1,0 +1,8 @@
+{
+  "id": "853d23af368545e7ba2a5223c6a59761",
+  "stage": "sbom",
+  "stored_at": "2025-10-06T12:27:55.848543Z",
+  "original_filename": "sbom.json",
+  "raw_path": "/workspace/Fixops/data/archive/demo/sbom/2025-10-06T122755.848543Z-853d23af368545e7ba2a5223c6a59761.raw",
+  "normalized_path": "/workspace/Fixops/data/archive/demo/sbom/2025-10-06T122755.848543Z-853d23af368545e7ba2a5223c6a59761.json"
+}

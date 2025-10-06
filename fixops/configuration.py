@@ -69,6 +69,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "git",
     "ci",
     "auth",
+    "api",
     "data",
     "toggles",
     "guardrails",
@@ -354,9 +355,9 @@ def _validate_policy_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     actions = _validate_policy_actions(raw.get("actions"), "policy_automation.actions")
     config["actions"] = actions
     profiles_raw = raw.get("profiles")
+    profiles: Dict[str, Any] = {}
     if profiles_raw is not None:
         profiles_mapping = _require_mapping(profiles_raw, "policy_automation.profiles")
-        profiles: Dict[str, Any] = {}
         for profile_name, profile_value in profiles_mapping.items():
             profile_key = _require_string(profile_name, "policy_automation.profiles key")
             profile_mapping = _require_mapping(
@@ -374,9 +375,78 @@ def _validate_policy_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
                 f"policy_automation.profiles['{profile_key}'].actions",
             )
             profiles[profile_key] = {"actions": profile_actions}
-        if profiles:
-            config["profiles"] = profiles
+    if profiles:
+        config["profiles"] = profiles
     return config
+
+
+def _validate_api_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    if not raw:
+        return {}
+
+    mapping = _require_mapping(raw, "api")
+    unexpected = set(mapping) - {"cors"}
+    if unexpected:
+        raise ValueError(f"api contains unexpected keys: {sorted(unexpected)}")
+
+    config: Dict[str, Any] = {}
+    cors_raw = mapping.get("cors")
+    if cors_raw is not None:
+        cors_mapping = _require_mapping(cors_raw, "api.cors")
+        allowed_cors_keys = {
+            "allow_origins",
+            "allow_credentials",
+            "allow_methods",
+            "allow_headers",
+            "max_age",
+        }
+        unexpected_cors = set(cors_mapping) - allowed_cors_keys
+        if unexpected_cors:
+            raise ValueError(
+                f"api.cors contains unexpected keys: {sorted(unexpected_cors)}"
+            )
+
+        allow_origins = _string_list(
+            cors_mapping.get("allow_origins"), "api.cors.allow_origins"
+        )
+        allow_credentials = bool(cors_mapping.get("allow_credentials", False))
+        if "*" in allow_origins and allow_credentials:
+            raise ValueError(
+                "api.cors.allow_credentials cannot be true when allow_origins contains '*'"
+            )
+
+        allow_methods = _string_list(
+            cors_mapping.get("allow_methods"), "api.cors.allow_methods"
+        )
+        allow_headers = _string_list(
+            cors_mapping.get("allow_headers"), "api.cors.allow_headers"
+        )
+
+        max_age = cors_mapping.get("max_age", 600)
+        if isinstance(max_age, str):
+            if not max_age.strip().isdigit():
+                raise ValueError(
+                    "api.cors.max_age must be an integer if provided as a string"
+                )
+            max_age_value = int(max_age.strip())
+        elif isinstance(max_age, (int, float)):
+            max_age_value = int(max_age)
+        else:
+            raise ValueError("api.cors.max_age must be an integer")
+
+        cors_config: Dict[str, Any] = {"allow_origins": allow_origins, "max_age": max_age_value}
+        if allow_methods:
+            cors_config["allow_methods"] = allow_methods
+        if allow_headers:
+            cors_config["allow_headers"] = allow_headers
+        if allow_credentials:
+            cors_config["allow_credentials"] = True
+
+        config["cors"] = cors_config
+
+    return config
+
+
 class _OverlayDocument(BaseModel):
     """Pydantic schema for validating overlay documents."""
 
@@ -386,6 +456,7 @@ class _OverlayDocument(BaseModel):
     git: Optional[Dict[str, Any]] = None
     ci: Optional[Dict[str, Any]] = None
     auth: Optional[Dict[str, Any]] = None
+    api: Optional[Dict[str, Any]] = None
     data: Optional[Dict[str, Any]] = None
     toggles: Optional[Dict[str, Any]] = None
     guardrails: Optional[Dict[str, Any]] = None
@@ -447,6 +518,7 @@ class OverlayConfig:
     git: Dict[str, Any] = field(default_factory=dict)
     ci: Dict[str, Any] = field(default_factory=dict)
     auth: Dict[str, Any] = field(default_factory=dict)
+    api: Dict[str, Any] = field(default_factory=dict)
     data: Dict[str, Any] = field(default_factory=dict)
     toggles: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -501,6 +573,7 @@ class OverlayConfig:
             "git": self._mask(self.git),
             "ci": self._mask(self.ci),
             "auth": self._mask(self.auth),
+            "api": self.api,
             "data": self.data,
             "toggles": self.toggles,
             "metadata": self.metadata,
@@ -907,6 +980,12 @@ class OverlayConfig:
                 return dict(evidence_limits)
         return {}
 
+    @property
+    def cors_settings(self) -> Dict[str, Any]:
+        api_config = self.api if isinstance(self.api, Mapping) else {}
+        cors = api_config.get("cors") if isinstance(api_config, Mapping) else None
+        return dict(cors) if isinstance(cors, Mapping) else {}
+
     def upload_limit(self, stage: str, fallback: int = 5 * 1024 * 1024) -> int:
         limits = self.limits.get("max_upload_bytes") if isinstance(self.limits, Mapping) else None
         default_limit = None
@@ -925,13 +1004,31 @@ class OverlayConfig:
         return fallback
 
 
-def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
-    """Load the overlay configuration and merge profile overrides."""
+def load_overlay(
+    path: Optional[Path | str] = None,
+    *,
+    mode_override: Optional[str] = None,
+) -> OverlayConfig:
+    """Load the overlay configuration and merge profile overrides.
+
+    The optional ``mode_override`` parameter allows callers to select a
+    specific overlay profile (for example, switching between the bundled
+    ``demo`` and ``enterprise`` presets) without mutating the source
+    configuration file on disk. When provided, the override takes
+    precedence over the ``mode`` value declared in the file and ensures
+    the downstream profile merge logic operates on the desired mode.
+    """
 
     override_path = os.getenv(_OVERRIDDEN_PATH_ENV)
     candidate_path = Path(path or override_path or DEFAULT_OVERLAY_PATH)
     text = _read_text(candidate_path)
     raw = _parse_overlay(text)
+
+    if mode_override is not None:
+        if not isinstance(raw, MutableMapping):
+            raw = {}
+        raw = dict(raw)
+        raw["mode"] = str(mode_override)
 
     try:
         document = _OverlayDocument(**(raw or {}))
@@ -950,6 +1047,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         "git": document.git or {},
         "ci": document.ci or {},
         "auth": document.auth or {},
+        "api": document.api or {},
         "data": document.data or {},
         "toggles": document.toggles or {},
         "guardrails": document.guardrails or {},
@@ -980,6 +1078,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
     try:
         base["compliance"] = _validate_compliance_config(base.get("compliance"))
         base["policy_automation"] = _validate_policy_config(base.get("policy_automation"))
+        base["api"] = _validate_api_config(base.get("api"))
     except ValueError as exc:
         raise ValueError(f"Overlay validation failed: {exc}") from exc
 
@@ -1028,6 +1127,7 @@ def load_overlay(path: Optional[Path | str] = None) -> OverlayConfig:
         git=dict(base.get("git", {})),
         ci=dict(base.get("ci", {})),
         auth=dict(base.get("auth", {})),
+        api=dict(base.get("api", {})),
         data=dict(base.get("data", {})),
         toggles=dict(toggles),
         metadata=dict(metadata),

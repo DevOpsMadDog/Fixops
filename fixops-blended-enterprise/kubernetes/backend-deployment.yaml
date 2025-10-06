@@ -25,10 +25,18 @@ spec:
         fsGroup: 1000
       containers:
       - name: fixops-backend
-        image: fixops/decision-engine:latest
+        image: fixops/decision-engine:v1.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8001
           name: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
         env:
         - name: MONGO_URL
           valueFrom:
@@ -50,6 +58,13 @@ spec:
             secretKeyRef:
               name: fixops-secrets
               key: EMERGENT_LLM_KEY
+        - name: FIXOPS_API_TOKENS
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: FIXOPS_API_TOKENS
+        - name: FIXOPS_AUTH_DISABLED
+          value: "false"
         envFrom:
         - configMapRef:
             name: fixops-config

@@ -1,10 +1,49 @@
 """FastAPI application for decision engine endpoints."""
 from __future__ import annotations
 
-from typing import Any, Dict
+import os
+from typing import Any, Dict, Iterable, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel, Field
+
+
+_TOKEN_ENV_VARS = (
+    "DECISION_ENGINE_API_TOKEN",
+    "DECISION_ENGINE_API_TOKENS",
+    "FIXOPS_DECISION_ENGINE_TOKEN",
+    "FIXOPS_DECISION_ENGINE_TOKENS",
+)
+_HEADER_ENV = "DECISION_ENGINE_API_HEADER"
+_DEFAULT_HEADER = "X-API-Key"
+
+
+def _load_tokens() -> tuple[str, ...]:
+    tokens: list[str] = []
+    for env_var in _TOKEN_ENV_VARS:
+        raw = os.getenv(env_var)
+        if not raw:
+            continue
+        if "TOKENS" in env_var:
+            parts: Iterable[str] = (part.strip() for part in raw.split(","))
+        else:
+            parts = (raw.strip(),)
+        for part in parts:
+            if not part:
+                continue
+            if part.lower().startswith("demo-"):
+                raise RuntimeError(
+                    "Demo decision engine tokens cannot be used for authenticated endpoints"
+                )
+            tokens.append(part)
+
+    unique = tuple(dict.fromkeys(tokens))
+    if not unique:
+        raise RuntimeError(
+            "Decision engine API tokens are not configured. Set one of "
+            + ", ".join(_TOKEN_ENV_VARS)
+        )
+    return unique
 
 
 class DecisionRequest(BaseModel):
@@ -38,8 +77,21 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="FixOps Decision Engine", version="1.0.0")
 
-    @app.post("/decisions", summary="Issue a decision for a service change")
-    def make_decision(request: DecisionRequest) -> Dict[str, Any]:
+    tokens = _load_tokens()
+    header_name = (os.getenv(_HEADER_ENV) or _DEFAULT_HEADER).strip() or _DEFAULT_HEADER
+
+    def _require_token(api_key: Optional[str]) -> None:
+        if api_key is None or api_key not in tokens:
+            raise HTTPException(status_code=401, detail="Invalid or missing API token")
+
+    @app.post(
+        "/decisions",
+        summary="Issue a decision for a service change",
+    )
+    def make_decision(
+        request: DecisionRequest, api_key: Optional[str] = Header(default=None, alias=header_name)
+    ) -> Dict[str, Any]:
+        _require_token(api_key)
         """Return a decision based on the provided risk score."""
 
         if request.risk_score >= 0.85:
@@ -59,8 +111,16 @@ def create_app() -> FastAPI:
 
         return decision_payload
 
-    @app.post("/decisions/{decision_id}/feedback", summary="Submit feedback for a prior decision")
-    def submit_feedback(decision_id: str, feedback: FeedbackRequest) -> Dict[str, Any]:
+    @app.post(
+        "/decisions/{decision_id}/feedback",
+        summary="Submit feedback for a prior decision",
+    )
+    def submit_feedback(
+        decision_id: str,
+        feedback: FeedbackRequest,
+        api_key: Optional[str] = Header(default=None, alias=header_name),
+    ) -> Dict[str, Any]:
+        _require_token(api_key)
         """Record feedback and guard against mismatched identifiers."""
 
         if decision_id != feedback.decision_id:

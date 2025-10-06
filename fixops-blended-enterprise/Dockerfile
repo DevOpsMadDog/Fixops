@@ -2,7 +2,7 @@
 # Multi-stage build for bank-grade deployment
 
 # Stage 1: Build stage
-FROM python:3.11-slim as builder
+FROM python:3.11.7-slim-bullseye as builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Production stage
-FROM python:3.11-slim
+FROM python:3.11.7-slim-bullseye
 
 # Create non-root user for security
 RUN groupadd --gid 1000 fixops && \
@@ -57,8 +57,9 @@ ENV PYTHONPATH=/app
 ENV FIXOPS_ENVIRONMENT=production
 ENV FIXOPS_LOG_LEVEL=info
 ENV FIXOPS_DEMO_MODE=false
-ENV FIXOPS_AUTH_DISABLED=true
+ENV FIXOPS_AUTH_DISABLED=false
 ENV FIXOPS_UI_ENABLED=true
+ENV FIXOPS_API_TOKEN_HEADER=X-API-Key
 
 # Health check for Kubernetes
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
@@ -67,5 +68,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Expose ports
 EXPOSE 8001
 
-# Production startup command
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "uvloop"]
+COPY --chown=fixops:fixops scripts/entrypoint.sh ./scripts/entrypoint.sh
+RUN chmod 0755 ./scripts/entrypoint.sh
+
+ENTRYPOINT ["./scripts/entrypoint.sh"]

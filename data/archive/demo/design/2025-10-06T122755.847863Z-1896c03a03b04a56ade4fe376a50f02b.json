@@ -1,0 +1,28 @@
+{
+  "columns": [
+    "component",
+    "owner",
+    "criticality",
+    "notes"
+  ],
+  "rows": [
+    {
+      "component": "payment-service",
+      "owner": "app-team",
+      "criticality": "high",
+      "notes": "Handles card processing"
+    },
+    {
+      "component": "notification-service",
+      "owner": "platform",
+      "criticality": "medium",
+      "notes": "Sends emails"
+    },
+    {
+      "component": "ai-orchestrator",
+      "owner": "ml-team",
+      "criticality": "high",
+      "notes": "LangChain agent orchestrator for support bots"
+    }
+  ]
+}

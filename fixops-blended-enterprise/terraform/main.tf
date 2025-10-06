@@ -14,12 +14,11 @@ terraform {
     }
   }
   
-  backend "s3" {
-    bucket = "bank-terraform-state"
-    key    = "fixops/terraform.tfstate"
-    region = "us-east-1"
-  }
+  backend "s3" {}
 }
+
+# Configure the S3 backend per-environment via `terraform init -backend-config` to
+# avoid sharing state buckets across tenants or deployments.
 
 # Variables
 variable "environment" {
