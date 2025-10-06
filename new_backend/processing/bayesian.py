@@ -25,6 +25,8 @@ except ModuleNotFoundError as exc:  # pragma: no cover - handled at runtime
 else:  # pragma: no cover - trivial branch exercised in tests
     _IMPORT_ERROR = None
 
+_HAS_PGMPY = BayesianNetwork is not None and TabularCPD is not None and VariableElimination is not None
+
 
 class BayesianProcessorError(RuntimeError):
     """Raised when the Bayesian network cannot be constructed or queried."""
@@ -47,8 +49,8 @@ class NodeSpecification:
         with the ``states`` order.
     """
 
-    states: Iterable[str]
-    parents: Iterable[str] | None
+    states: tuple[str, ...]
+    parents: tuple[str, ...] | None
     cpt: Any
 
 
@@ -70,7 +72,8 @@ def _normalise_node_specifications(
             raise BayesianProcessorError(f"Node '{node}' is missing a 'states' definition") from exc
         if not states:
             raise BayesianProcessorError(f"Node '{node}' must declare at least one state")
-        parents = tuple(spec.get("parents", ())) or None
+        parents_tuple = tuple(spec.get("parents", ()))
+        parents = parents_tuple or None
         cpt = spec.get("cpt")
         if cpt is None:
             raise BayesianProcessorError(f"Node '{node}' is missing a 'cpt' definition")
@@ -147,6 +150,82 @@ def _build_network(nodes: Mapping[str, Mapping[str, Any]]) -> "BayesianNetwork":
     return model
 
 
+def _coerce_key(candidate: Any) -> Optional[tuple[str, ...]]:
+    if candidate is None:
+        return None
+    if isinstance(candidate, tuple):
+        return tuple(candidate)
+    if isinstance(candidate, list):
+        return tuple(str(item) for item in candidate)
+    return None
+
+
+def _distribution_for_states(
+    node: str,
+    spec: NodeSpecification,
+    parent_assignment: Optional[Mapping[str, str]] = None,
+) -> List[float]:
+    states = spec.states
+    if not spec.parents:
+        distribution = spec.cpt
+    else:
+        if parent_assignment is None:
+            raise BayesianProcessorError(
+                f"Parent assignment required to evaluate conditional distribution for '{node}'"
+            )
+        key = tuple(parent_assignment[parent] for parent in spec.parents)
+        distribution = None
+        if isinstance(spec.cpt, Mapping):
+            # attempt direct lookup first
+            distribution = spec.cpt.get(key)
+            if distribution is None:
+                for candidate_key, candidate_distribution in spec.cpt.items():
+                    coerced = _coerce_key(candidate_key)
+                    if coerced == key:
+                        distribution = candidate_distribution
+                        break
+        if distribution is None:
+            raise BayesianProcessorError(
+                f"Node '{node}' missing CPT entry for parent state combination {key}"
+            )
+
+    values = [float(value) for value in distribution]
+    if len(values) != len(states):
+        raise BayesianProcessorError(
+            f"Node '{node}' probability distribution has incorrect length"
+        )
+    total = sum(values)
+    if total <= 0:
+        raise BayesianProcessorError(
+            f"Node '{node}' distribution must contain positive probabilities"
+        )
+    if abs(total - 1.0) > 1e-6:
+        values = [value / total for value in values]
+    return values
+
+
+def _assignment_probability(
+    assignment: Mapping[str, str],
+    node_specs: Mapping[str, NodeSpecification],
+) -> float:
+    probability = 1.0
+    for node, spec in node_specs.items():
+        state = assignment[node]
+        if spec.parents:
+            parent_assignment = {parent: assignment[parent] for parent in spec.parents}
+        else:
+            parent_assignment = None
+        distribution = _distribution_for_states(node, spec, parent_assignment)
+        try:
+            index = spec.states.index(state)
+        except ValueError as exc:
+            raise BayesianProcessorError(
+                f"State '{state}' is not valid for node '{node}'"
+            ) from exc
+        probability *= distribution[index]
+    return probability
+
+
 def _extract_evidence(
     components: Iterable[Mapping[str, Any]],
     node_specs: Mapping[str, NodeSpecification],
@@ -208,8 +287,6 @@ def update_probabilities(
         raise BayesianProcessorError("Network specification must include a 'nodes' mapping")
 
     node_specs = _normalise_node_specifications(network["nodes"])
-    model = _build_network(network["nodes"])
-    inference = VariableElimination(model)
 
     combined_evidence = _extract_evidence(components, node_specs)
     if evidence:
@@ -224,25 +301,62 @@ def update_probabilities(
                 )
             combined_evidence[node] = state
 
-    results: Dict[str, Dict[str, float]] = {}
-    for component in components:
-        node = component["id"]
-        if node in combined_evidence:
-            observed_state = combined_evidence[node]
+    if _HAS_PGMPY:
+        model = _build_network(network["nodes"])
+        inference = VariableElimination(model)
+
+        results: Dict[str, Dict[str, float]] = {}
+        for component in components:
+            node = component["id"]
+            if node in combined_evidence:
+                observed_state = combined_evidence[node]
+                results[node] = {
+                    state: 1.0 if state == observed_state else 0.0
+                    for state in node_specs[node].states
+                }
+                continue
+
+            query = inference.query(
+                variables=[node], evidence=combined_evidence or None, show_progress=False
+            )
+            probabilities = query.values.reshape(-1)
+            states = query.state_names[node]
             results[node] = {
-                state: 1.0 if state == observed_state else 0.0
-                for state in node_specs[node].states
+                state: float(prob)
+                for state, prob in zip(states, probabilities)
             }
+
+        return results
+
+    nodes_in_order = list(node_specs.keys())
+    state_accumulators: Dict[str, Dict[str, float]] = {
+        node: {state: 0.0 for state in spec.states}
+        for node, spec in node_specs.items()
+    }
+    totals: Dict[str, float] = {node: 0.0 for node in node_specs}
+
+    state_space = [node_specs[node].states for node in nodes_in_order]
+    for combination in product(*state_space):
+        assignment = {node: state for node, state in zip(nodes_in_order, combination)}
+        if any(assignment[node] != state for node, state in combined_evidence.items()):
             continue
 
-        query = inference.query(
-            variables=[node], evidence=combined_evidence or None, show_progress=False
-        )
-        probabilities = query.values.reshape(-1)
-        states = query.state_names[node]
+        weight = _assignment_probability(assignment, node_specs)
+        if weight == 0.0:
+            continue
+        for node, state in assignment.items():
+            state_accumulators[node][state] += weight
+            totals[node] += weight
+
+    results: Dict[str, Dict[str, float]] = {}
+    for node, accumulator in state_accumulators.items():
+        if totals[node] == 0.0:
+            raise BayesianProcessorError(
+                "Evidence configuration resulted in zero probability mass; check CPT definitions"
+            )
         results[node] = {
-            state: float(prob)
-            for state, prob in zip(states, probabilities)
+            state: probability / totals[node]
+            for state, probability in accumulator.items()
         }
 
     return results

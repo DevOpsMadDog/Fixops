@@ -3,7 +3,28 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, get_type_hints
+
+_REQUEST_HEADERS: Dict[str, str] = {}
+_REQUEST_FILES: Dict[str, "UploadFile"] = {}
+
+
+@dataclass
+class _HeaderParameter:
+    alias: str | None
+    default: Any
+
+
+def set_request_headers(headers: Dict[str, str]) -> None:
+    _REQUEST_HEADERS.clear()
+    # Preserve original casing for introspection while also allowing case-insensitive lookup.
+    _REQUEST_HEADERS.update(headers)
+
+
+def set_request_files(files: Dict[str, "UploadFile"]) -> None:
+    _REQUEST_FILES.clear()
+    _REQUEST_FILES.update(files)
 
 try:  # pragma: no cover - optional dependency for typing checks
     from pydantic import BaseModel, ValidationError
@@ -24,6 +45,14 @@ def Depends(dependency: Callable[..., Any] | None = None) -> Callable[..., Any] 
 
 def File(default: Any) -> Any:
     return default
+
+
+def Header(default: Any | None = None, *, alias: str | None = None) -> _HeaderParameter:
+    return _HeaderParameter(alias=alias, default=default)
+
+
+def Security(dependency: Callable[..., Any] | None = None) -> Callable[..., Any] | None:
+    return dependency
 
 
 class UploadFile:
@@ -99,14 +128,53 @@ class _Route:
                     raise RequestValidationError(exc.errors()) from exc
                 continue
 
+            if annotation is UploadFile or isinstance(parameter.default, UploadFile):
+                upload = _REQUEST_FILES.get(name)
+                if upload is None:
+                    raise HTTPException(status_code=422, detail=f"Missing upload for field '{name}'")
+                kwargs[name] = upload
+                continue
+
+            origin = getattr(annotation, "__origin__", None)
+            if body is not None and (
+                annotation in {dict, Dict, Mapping}
+                or origin in {dict, Dict, Mapping}
+            ):
+                kwargs[name] = body
+                body = None
+                continue
+
             if name == "body":
                 kwargs[name] = body
             elif parameter.default is not inspect._empty:
-                kwargs[name] = parameter.default
+                default_value = parameter.default
+                if isinstance(default_value, _HeaderParameter):
+                    alias = default_value.alias
+                    if alias is None:
+                        kwargs[name] = default_value.default
+                    else:
+                        if alias in _REQUEST_HEADERS:
+                            kwargs[name] = _REQUEST_HEADERS[alias]
+                        else:
+                            lower_alias = alias.lower()
+                            for key, value in _REQUEST_HEADERS.items():
+                                if key.lower() == lower_alias:
+                                    kwargs[name] = value
+                                    break
+                            else:
+                                kwargs[name] = default_value.default
+                    continue
+
+                kwargs[name] = default_value
             else:
                 kwargs[name] = None
 
-        return self.endpoint(**kwargs)
+        result = self.endpoint(**kwargs)
+        if inspect.isawaitable(result):
+            import asyncio
+
+            return asyncio.run(result)
+        return result
 
 
 class FastAPI:
@@ -115,15 +183,21 @@ class FastAPI:
         self.version = version
         self._routes: List[_Route] = []
         self._middleware: List[tuple[Any, Dict[str, Any]]] = []
+        self.user_middleware: List[SimpleNamespace] = []
 
-    def post(self, path: str, summary: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def post(
+        self, path: str, summary: str | None = None, **_: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("POST", path)
 
-    def get(self, path: str, summary: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def get(
+        self, path: str, summary: str | None = None, **_: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("GET", path)
 
     def add_middleware(self, middleware_class: Any, **options: Any) -> None:
         self._middleware.append((middleware_class, options))
+        self.user_middleware.append(SimpleNamespace(cls=middleware_class, options=options))
 
     def _register(self, method: str, path: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -147,6 +221,9 @@ __all__ = [
     "FastAPI",
     "HTTPException",
     "Depends",
+    "set_request_headers",
+    "Header",
+    "Security",
     "File",
     "UploadFile",
     "RequestValidationError",

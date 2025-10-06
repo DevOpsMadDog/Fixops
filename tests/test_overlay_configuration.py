@@ -172,3 +172,23 @@ def test_policy_action_triggers_normalised(tmp_path: Path) -> None:
     actions = config.policy_settings["actions"]
     assert actions and actions[0]["trigger"] == "guardrail:fail"
     assert actions[0]["type"] == "jira_issue"
+
+
+def test_api_cors_validation(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "api": {"cors": {"allow_origins": ["https://console.fixops.bank"]}},
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    config = load_overlay(path)
+    assert config.cors_settings["allow_origins"] == ["https://console.fixops.bank"]
+
+
+def test_api_cors_rejects_wildcard_credentials(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "api": {"cors": {"allow_origins": ["*"], "allow_credentials": True}},
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)

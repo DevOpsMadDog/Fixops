@@ -1,7 +1,6 @@
-fastapi>=0.110
-uvicorn[standard]>=0.30
-lib4sbom>=0.8.8
-sarif-om>=1.0.4
-cvelib>=1.8.0
-# Optional dependency: install from source until published on PyPI
-snyk-to-sarif @ git+https://github.com/snyk/snyk-to-sarif.git
+# Generated lockfile for backend services. Update via `pip-compile` or bump versions here deliberately.
+fastapi==0.110.1
+uvicorn[standard]==0.30.1
+lib4sbom==0.8.8
+sarif-om==1.0.4
+cvelib==1.8.0
