@@ -189,3 +189,49 @@ def test_sarif_analyzer_clusters_and_scores(monkeypatch):
     assert report["clusters"][0]["rule_id"] == "R1"
     result_id = report["clusters"][0]["results"][0]["id"]
     assert report["probabilities"][result_id] > 0.5
+
+
+def test_bayesian_network_inference_produces_posteriors():
+    module = importlib.import_module("new_backend.processing.bayesian")
+
+    network = {
+        "nodes": {
+            "Firewall": {
+                "states": ["secure", "breached"],
+                "cpt": [0.9, 0.1],
+            },
+            "Database": {
+                "states": ["healthy", "compromised"],
+                "parents": ["Firewall"],
+                "cpt": {
+                    ("secure",): [0.95, 0.05],
+                    ("breached",): [0.4, 0.6],
+                },
+            },
+            "Service": {
+                "states": ["operational", "degraded"],
+                "parents": ["Database"],
+                "cpt": {
+                    ("healthy",): [0.9, 0.1],
+                    ("compromised",): [0.3, 0.7],
+                },
+            },
+        }
+    }
+
+    components = [
+        {"id": "Firewall", "observed_state": "breached"},
+        {"id": "Database"},
+        {"id": "Service"},
+    ]
+
+    posteriors = module.update_probabilities(components, network)
+
+    assert posteriors["Firewall"]["breached"] == pytest.approx(1.0)
+    assert posteriors["Database"]["compromised"] == pytest.approx(0.6, abs=1e-6)
+    assert posteriors["Service"]["degraded"] == pytest.approx(0.46, abs=1e-6)
+
+    annotated = module.attach_component_posterior(components, posteriors)
+
+    assert components[0].get("posterior") is None  # ensure originals untouched
+    assert annotated[1]["posterior"]["compromised"] == pytest.approx(0.6, abs=1e-6)
