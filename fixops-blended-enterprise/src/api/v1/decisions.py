@@ -172,9 +172,9 @@ async def get_core_components_status(
             
             # Real LLM integration status
             components["llm_rag"] = {
-                "status": "production_active" if decision_engine.emergent_client else "not_configured",
-                "model": "gpt-5" if decision_engine.emergent_client else "not_available",
-                "integration_type": "Emergent LLM"
+                "status": "production_active" if decision_engine.chatgpt_client else "not_configured",
+                "model": "ChatGPT" if decision_engine.chatgpt_client else "not_available",
+                "integration_type": "OpenAI ChatGPT"
             }
             
             # Real consensus checker status

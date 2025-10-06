@@ -12,6 +12,8 @@ from typing import Dict, List, Any, Tuple, Optional, Set, Iterable
 from dataclasses import dataclass
 import structlog
 
+from src.services.chatgpt_client import ChatGPTClient, get_primary_llm_api_key
+
 try:  # pragma: no cover - optional dependency
     import networkx as nx
     NETWORKX_AVAILABLE = True
@@ -55,23 +57,28 @@ class CTINexusEntityExtractor:
     """
     
     def __init__(self):
-        self.llm_client = None
+        self.llm_client: Optional[ChatGPTClient] = None
         self._initialize_llm_client()
         self.cybersecurity_ontology = self._load_cybersecurity_ontology()
         self.demonstration_examples = self._load_demonstration_examples()
-    
+
     def _initialize_llm_client(self):
         """Initialize LLM client for CTINexus-style entity extraction"""
+        api_key = get_primary_llm_api_key()
+        if not api_key:
+            logger.warning("ChatGPT API key not configured – CTINexus will use heuristic fallback")
+            return
+
         try:
-            from emergentintegrations import EmergentLLM
-            self.llm_client = EmergentLLM(
-                model="gpt-5",
-                temperature=0.1,  # Low temperature for consistent entity extraction
-                max_tokens=1500
+            self.llm_client = ChatGPTClient(
+                api_key=api_key,
+                model="gpt-4o-mini",
+                temperature=0.1,
+                max_tokens=1500,
             )
-            logger.info("✅ CTINexus LLM client initialized for entity extraction")
+            logger.info("✅ CTINexus LLM client initialized with ChatGPT")
         except Exception as e:
-            logger.error(f"CTINexus LLM initialization failed: {e}")
+            logger.error(f"CTINexus ChatGPT initialization failed: {e}")
             self.llm_client = None
 
     def _load_cybersecurity_ontology(self) -> Dict[str, List[str]]:
@@ -134,13 +141,12 @@ class CTINexusEntityExtractor:
             prompt = self._create_ctinexus_prompt(cti_text)
             
             # Call LLM for entity extraction
-            response = await self.llm_client.generate_async(
+            response = await self.llm_client.generate_text(
                 prompt=prompt,
-                system_message="You are a cybersecurity expert extracting entities and relations from cyber threat intelligence reports. Follow the demonstration format exactly."
+                system_message="You are a cybersecurity expert extracting entities and relations from cyber threat intelligence reports. Follow the demonstration format exactly.",
             )
-            
-            # Parse LLM response into entities
-            entities = self._parse_ctinexus_response(response)
+
+            entities = self._parse_ctinexus_response(response.get("content", ""))
             
             return entities
             

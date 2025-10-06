@@ -3,7 +3,6 @@ System Mode Management API
 Handles switching between demo and production modes
 """
 
-import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import structlog
@@ -33,8 +32,8 @@ async def get_current_mode():
         # Check production readiness
         missing_requirements = []
         
-        if not settings.EMERGENT_LLM_KEY:
-            missing_requirements.append("EMERGENT_LLM_KEY")
+        if not settings.primary_llm_api_key:
+            missing_requirements.append("OPENAI_API_KEY")
         
         # Note: OPA server check would require actual network call
         missing_requirements.append("OPA_SERVER")  # Assume not available
@@ -56,7 +55,7 @@ async def get_current_mode():
                 "components_status": {
                     "decision_engine": "operational",
                     "vector_database": "demo" if settings.DEMO_MODE else ("operational" if settings.PGVECTOR_ENABLED else "needs_config"),
-                    "llm_consensus": "demo" if settings.DEMO_MODE else ("operational" if settings.EMERGENT_LLM_KEY else "needs_keys"),
+                    "llm_consensus": "demo" if settings.DEMO_MODE else ("operational" if settings.primary_llm_api_key else "needs_keys"),
                     "policy_engine": "demo" if settings.DEMO_MODE else "needs_server",
                     "evidence_lake": "operational"
                 }
@@ -86,8 +85,8 @@ async def toggle_system_mode(request: ModeToggleRequest):
         # Check production readiness if switching to production
         missing_requirements = []
         if request.target_mode == "production":
-            if not settings.EMERGENT_LLM_KEY:
-                missing_requirements.append("EMERGENT_LLM_KEY")
+            if not settings.primary_llm_api_key:
+                missing_requirements.append("OPENAI_API_KEY")
             # Add other production checks here
             
             if missing_requirements and not request.force:
@@ -127,10 +126,10 @@ async def get_production_requirements():
         "status": "success",
         "requirements": {
             "critical": {
-                "EMERGENT_LLM_KEY": {
-                    "description": "API key for multi-LLM consensus (GPT-5, Claude, Gemini)",
-                    "setup": "Get from Emergent platform → Profile → Universal Key",
-                    "component": "Multi-LLM Consensus Engine",
+                "OPENAI_API_KEY": {
+                    "description": "OpenAI API key for ChatGPT-backed consensus and explanations",
+                    "setup": "Create an API key in the OpenAI console and set OPENAI_API_KEY",
+                    "component": "ChatGPT Decision Engine",
                     "impact": "No AI-powered decision analysis without this key"
                 },
                 "OPA_SERVER": {
@@ -162,7 +161,7 @@ async def get_production_requirements():
             },
             "setup_guide": {
                 "step_1": "Set DEMO_MODE=false in environment variables",
-                "step_2": "Configure EMERGENT_LLM_KEY for AI functionality",
+                "step_2": "Configure OPENAI_API_KEY for ChatGPT functionality",
                 "step_3": "Start OPA server: docker run -p 8181:8181 openpolicyagent/opa:latest run --server",
                 "step_4": "Optional: Configure Jira/Confluence for business context",
                 "step_5": "Optional: Setup PostgreSQL with pgvector extension",

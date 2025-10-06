@@ -77,7 +77,7 @@ function EnhancedDashboard() {
   }
 
   const getLLMIcon = (provider) => {
-    const icons = { emergent_gpt5: '🧠', openai_gpt4: '🤖', anthropic_claude: '🧮', google_gemini: '💎', specialized_cyber: '🛡️' }
+    const icons = { openai_chatgpt: '🧠', openai_gpt4: '🤖', anthropic_claude: '🧮', google_gemini: '💎', specialized_cyber: '🛡️' }
     return icons[provider] || '🤖'
   }
 

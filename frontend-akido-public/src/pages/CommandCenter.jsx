@@ -284,7 +284,7 @@ function CommandCenter() {
                   status: isDemo ? 'DEMO' : (operationalState.productionRequirements?.component_status?.llm_consensus?.status === 'READY' ? 'OPERATIONAL' : 'NEEDS_KEYS'), 
                   health: 98, 
                   color: isDemo ? '#f59e0b' : '#10b981',
-                  required: isDemo ? null : 'EMERGENT_LLM_KEY'
+                  required: isDemo ? null : 'OPENAI_API_KEY'
                 },
                 { 
                   component: 'Policy Engine', 
