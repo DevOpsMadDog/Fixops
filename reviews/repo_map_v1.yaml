@@ -1,0 +1,75 @@
+RepoMap_v1:
+  languages:
+    - name: Python
+      evidence:
+        - "F:backend/requirements.txt†L1-L7"
+    - name: TypeScript/React
+      evidence:
+        - "F:frontend-akido-public/package.json†L1-L25"
+    - name: Terraform/IaC
+      evidence:
+        - "F:fixops-blended-enterprise/terraform/main.tf†L4-L53"
+  important_directories:
+    - path: fixops/
+      summary: "Core FixOps library providing overlay configuration, CLI tooling, analytics, exploit signals, and demo runner helpers."
+      evidence:
+        - "F:fixops/FOLDER_README.md†L1-L20"
+        - "F:fixops/cli.py†L371-L520"
+    - path: backend/
+      summary: "FastAPI ingestion service handling artefact uploads, orchestration, analytics persistence, and feedback capture."
+      evidence:
+        - "F:backend/FOLDER_README.md†L1-L23"
+        - "F:backend/app.py†L29-L393"
+    - path: new_backend/
+      summary: "Decision engine prototype with FastAPI endpoints for risk decisions and feedback."
+      evidence:
+        - "F:new_backend/FOLDER_README.md†L1-L21"
+        - "F:new_backend/api.py†L36-L82"
+    - path: fixops-blended-enterprise/
+      summary: "Enterprise reference stack with Dockerfile, Kubernetes manifests, Terraform, and documentation."
+      evidence:
+        - "F:fixops-blended-enterprise/FOLDER_README.md†L1-L10"
+        - "F:fixops-blended-enterprise/Dockerfile†L4-L71"
+    - path: demo/fixtures/
+      summary: "Bundled SBOM, SARIF, CVE, and design artefacts for the scripted demo pipeline."
+      evidence:
+        - "F:fixops/demo_runner.py†L129-L188"
+        - "F:demo/fixtures/sample.sbom.json†L1-L22"
+  key_files:
+    - path: config/fixops.overlay.yml
+      notes: "Default overlay enabling modules, secrets references, and limits for demo vs. enterprise profiles."
+      evidence:
+        - "F:config/fixops.overlay.yml†L1-L152"
+    - path: fixops-blended-enterprise/Dockerfile
+      notes: "Two-stage Python image with non-root user, health check, and production defaults."
+      evidence:
+        - "F:fixops-blended-enterprise/Dockerfile†L4-L71"
+    - path: fixops-blended-enterprise/kubernetes/backend-deployment.yaml
+      notes: "Stateful decision-engine deployment with probes, secrets, and PVC mounts."
+      evidence:
+        - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L1-L101"
+    - path: fixops-blended-enterprise/kubernetes/secret.yaml
+      notes: "Opaque secret manifest populated with base64-encoded placeholder credentials."
+      evidence:
+        - "F:fixops-blended-enterprise/kubernetes/secret.yaml†L1-L18"
+  suspected_hotspots:
+    - path: backend/app.py
+      reasons:
+        - "Central ingestion endpoints combine auth, storage, analytics, and long-running uploads."
+      evidence:
+        - "F:backend/app.py†L29-L345"
+    - path: fixops/exploit_signals.py
+      reasons:
+        - "Implements network-backed exploit feed refresh and CVE escalation logic with external requests."
+      evidence:
+        - "F:fixops/exploit_signals.py†L10-L320"
+    - path: fixops/demo_runner.py
+      reasons:
+        - "Sets default API tokens, manages evidence bundles, and orchestrates demo pipeline writes."
+      evidence:
+        - "F:fixops/demo_runner.py†L16-L188"
+    - path: fixops-blended-enterprise/terraform/main.tf
+      reasons:
+        - "Defines remote state, sensitive variables, and cluster providers for enterprise deployments."
+      evidence:
+        - "F:fixops-blended-enterprise/terraform/main.tf†L4-L90"
