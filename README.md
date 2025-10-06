@@ -233,7 +233,7 @@ Each row outlines the stage of the customer journey, the surface to invoke, the 
 
 ## Installation & setup
 ### Local Docker demo setup
-* The `fixops-blended-enterprise/docker-compose.yml` bundle gives you a three-service stack: MongoDB, the FastAPI backend, and the optional React frontend, each with health checks and environment defaults suitable for a laptop demo. Copy `.env.example` to `.env`, set non-demo secrets (API token, MongoDB password, SECRET_KEY), and then start everything with `docker-compose up -d` to get ports `8001` (API) and `3000` (UI) exposed locally.
+* The `fixops-blended-enterprise/docker-compose.yml` bundle gives you a three-service stack: MongoDB, the FastAPI backend, and the optional React frontend, each with health checks and environment defaults suitable for a laptop demo. Copy `.env.example` to `.env`, set non-demo secrets (API token, MongoDB password, SECRET_KEY), and then start everything with `docker-compose up -d` to get ports `8001` (API) and `3000` (UI) exposed locally. Authentication stays enabled by default (`FIXOPS_AUTH_DISABLED=false`) so local runs mirror production posture.
 
 * After the containers are up, seed the bundled SQLite database and create a demo admin account by running `python quick_start.py`; it provisions schema and demo credentials (`admin@fixops.com` / `FixOpsAdmin123!`) that you can use in the browser for an investor walkthrough.
 
