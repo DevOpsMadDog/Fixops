@@ -2,6 +2,36 @@
 
 FixOps turns raw security artefacts into contextual risk, compliance, and automation outputs in minutes. A lightweight FastAPI service and a parity CLI accept push-style uploads, hydrate an overlay-driven pipeline, and emit guardrail verdicts, context summaries, evidence bundles, pricing signals, and automation manifests that match demo or enterprise guardrails without code changes.
 
+## Quick start
+
+The repository ships with a pair of curated fixtures and overlay profiles so you can experience the full pipeline without wiring external systems or secrets.
+
+1. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run the bundled demo experience**
+
+   ```bash
+   python -m fixops.cli demo --mode demo --output out/demo.json --pretty
+   ```
+
+   The command seeds deterministic tokens, loads the curated design/SBOM/SARIF/CVE fixtures, and executes the same pipeline that powers the API. The JSON result is saved to `out/demo.json` and the console summary highlights severity, guardrail status, compliance frameworks, executed modules, and the active pricing tier.
+
+3. **Switch to the enterprise overlay**
+
+   ```bash
+   python -m fixops.cli demo --mode enterprise --output out/enterprise.json --pretty
+   ```
+
+   Enterprise mode applies the hardened profile from `config/fixops.overlay.yml`, demonstrating how additional guardrails, automation destinations, and evidence retention settings change the output without touching code. Evidence bundles, cache directories, and automation payloads are created under the allow-listed paths declared in the overlay.
+
+4. **Iterate locally**
+
+   You can point the CLI at your own artefacts with `python -m fixops.cli run` or import `fixops.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m fixops.cli show-overlay --pretty` to inspect the merged overlay for each profile.
+
 ## Why teams adopt FixOps
 - **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
 - **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m fixops.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`backend/app.py`, `fixops/cli.py`).
@@ -252,6 +282,24 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
   -d '{\"service_name\":\"demo-app\",\"security_findings\":[{\"rule_id\":\"SAST001\",\"severity\":\"high\",\"description\":\"SQL injection\"}],\"business_context\":{\"environment\":\"demo\",\"criticality\":\"high\"}}' \
   http://127.0.0.1:8000/api/v1/enhanced/compare-llms | jq
 ```
+
+### 3b. Try the bundled demo & enterprise fixtures
+Skip manual artefact preparation and run the overlay-driven demo or
+enterprise walkthrough in a single command. The CLI seeds required
+environment variables (API token, Jira/Confluence tokens, and an
+encryption key) with safe defaults.
+
+```bash
+# Demo profile (non-encrypted evidence bundle)
+python -m fixops.cli demo --mode demo --output out/pipeline-demo.json --pretty
+
+# Enterprise profile (encryption enabled when `cryptography` is installed)
+python -m fixops.cli demo --mode enterprise --output out/pipeline-enterprise.json --pretty
+```
+
+Both commands emit a short textual summary, persist the full pipeline
+response (if `--output` is supplied), and drop evidence bundles inside the
+overlay-approved directories under `data/`.
 
 ### 4. Run the CLI (enterprise profile + module overrides)
 ```bash
