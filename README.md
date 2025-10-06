@@ -4,6 +4,15 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 
 ## Quick start
 
+For a fully reproducible setup run the bootstrap helper (installs runtime + dev tooling, pre-commit, and fixtures) or use the Makefile targets:
+
+```bash
+$ ./scripts/bootstrap.sh
+$ make fmt lint typecheck test
+$ make demo
+$ make demo-enterprise
+```
+
 The repository ships with a pair of curated fixtures and overlay profiles so you can experience the full pipeline without wiring external systems or secrets.
 
 1. **Install dependencies**

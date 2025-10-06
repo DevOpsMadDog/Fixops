@@ -85,6 +85,7 @@ frontend/node_modules/.cache/default-development/0.pack
 -e 
 # Environment files
 *.env
+!.env.example
 *.env.*
 -e 
 # Environment files
@@ -290,3 +291,4 @@ frontend/node_modules/.cache/default-development/0.pack
 # Environment files
 *.env
 *.env.*
+!/.env.example
