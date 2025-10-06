@@ -9,7 +9,6 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    curl \
     git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,11 +26,8 @@ RUN groupadd --gid 1000 fixops && \
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Install runtime dependencies only (keep image slim)
+RUN apt-get update && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Copy Python packages from builder
 COPY --from=builder /root/.local /home/fixops/.local
@@ -57,15 +53,16 @@ ENV PYTHONPATH=/app
 ENV FIXOPS_ENVIRONMENT=production
 ENV FIXOPS_LOG_LEVEL=info
 ENV FIXOPS_DEMO_MODE=false
-ENV FIXOPS_AUTH_DISABLED=true
+ENV FIXOPS_AUTH_DISABLED=false
 ENV FIXOPS_UI_ENABLED=true
+ENV UVICORN_WORKERS=4
 
 # Health check for Kubernetes
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8001/health || exit 1
+    CMD python -c "import sys, http.client; conn = http.client.HTTPConnection('localhost', 8001); conn.request('GET', '/health'); sys.exit(0) if conn.getresponse().status == 200 else sys.exit(1)"
 
 # Expose ports
 EXPOSE 8001
 
-# Production startup command
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--loop", "uvloop"]
+# Production startup command (configurable worker count)
+CMD ["/bin/sh", "-c", "python -m uvicorn src.main:app --host 0.0.0.0 --port 8001 --loop uvloop --workers ${UVICORN_WORKERS:-4}"]

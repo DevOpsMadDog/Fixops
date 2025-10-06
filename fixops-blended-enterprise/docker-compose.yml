@@ -9,9 +9,11 @@ services:
     image: mongo:7.0
     container_name: fixops-mongodb
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: fixops
-      MONGO_INITDB_ROOT_PASSWORD: fixops-dev-password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:?Set MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?Set MONGO_INITDB_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: fixops_production
     ports:
       - "27017:27017"
@@ -28,23 +30,26 @@ services:
       dockerfile: Dockerfile
     container_name: fixops-backend
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "8001:8001"
     environment:
-      - MONGO_URL=mongodb://fixops:fixops-dev-password@mongodb:27017/fixops_production?authSource=admin
+      - MONGO_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME:?Set MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD:?Set MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/fixops_production?authSource=admin
       - REDIS_URL=memory://
-      - SECRET_KEY=${SECRET_KEY:-fixops-dev-secret-key}
-      - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY}
+      - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY:-}
       - FIXOPS_ENVIRONMENT=development
       - FIXOPS_LOG_LEVEL=debug
       - FIXOPS_DEMO_MODE=false
-      - FIXOPS_AUTH_DISABLED=true
+      - FIXOPS_AUTH_DISABLED=${FIXOPS_AUTH_DISABLED:-false}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-4}
     depends_on:
       - mongodb
     networks:
       - fixops-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "python", "-c", "import sys, http.client; conn=http.client.HTTPConnection('localhost', 8001); conn.request('GET', '/health'); sys.exit(0) if conn.getresponse().status == 200 else sys.exit(1)"]
       interval: 30s
       timeout: 10s
       retries: 3
