@@ -175,3 +175,28 @@ def test_cli_train_forecast(tmp_path: Path, capsys):
     assert payload["bayesian_prior"]["high"] > payload["bayesian_prior"]["low"]
     summary = capsys.readouterr().out
     assert "Probabilistic calibration complete" in summary
+
+
+def test_cli_demo_command(tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+
+    output_path = tmp_path / "demo.json"
+    exit_code = cli.main(
+        [
+            "demo",
+            "--mode",
+            "enterprise",
+            "--output",
+            str(output_path),
+            "--pretty",
+        ]
+    )
+
+    assert exit_code == 0
+    assert output_path.exists()
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload.get("pricing_summary", {}).get("active_plan", {}).get("name")
+
+    summary = capsys.readouterr().out
+    assert "FixOps Enterprise mode summary:" in summary
