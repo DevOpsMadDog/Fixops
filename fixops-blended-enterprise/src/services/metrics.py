@@ -1,4 +1,9 @@
-"""Prometheus metrics utilities for FixOps observability."""
+"""Prometheus metrics utilities for FixOps."""
+
+from __future__ import annotations
+
+from collections import defaultdict
+from typing import Dict, MutableMapping, Optional
 
 from prometheus_client import (
     CollectorRegistry,
@@ -9,104 +14,107 @@ from prometheus_client import (
 )
 
 _registry = CollectorRegistry()
-
-# HTTP surface metrics
 HTTP_REQUESTS = Counter(
     "fixops_http_requests_total",
-    "Total HTTP requests processed",
+    "Total HTTP requests",
     ["endpoint", "method", "status"],
     registry=_registry,
 )
 HTTP_LATENCY = Histogram(
     "fixops_http_request_seconds",
-    "HTTP request duration in seconds",
+    "HTTP request duration seconds",
     ["endpoint"],
     registry=_registry,
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5),
 )
-
-# Decision engine metrics
+HTTP_ERROR_RATIO = Gauge(
+    "fixops_http_error_ratio",
+    "Rolling error ratio for grouped API families",
+    ["family"],
+    registry=_registry,
+)
+HTTP_INFLIGHT = Gauge(
+    "fixops_http_inflight_requests",
+    "Current in-flight HTTP requests",
+    ["family"],
+    registry=_registry,
+)
+HOT_PATH_LATENCY = Gauge(
+    "fixops_hot_path_latency_us",
+    "Last recorded latency for DecisionFactory hot-path endpoints (microseconds)",
+    ["endpoint"],
+    registry=_registry,
+)
 ENGINE_DECISIONS = Counter(
     "fixops_engine_decisions_total",
-    "Decisions produced by verdict",
+    "Decisions produced",
     ["verdict"],
     registry=_registry,
 )
-DECISION_LATENCY = Histogram(
-    "fixops_decision_latency_seconds",
-    "Decision engine processing latency",
-    ["verdict"],
-    registry=_registry,
-    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5),
-)
-DECISION_CONFIDENCE = Gauge(
-    "fixops_decision_confidence_latest",
-    "Confidence score of the most recent decision",
-    registry=_registry,
-)
-DECISION_ERRORS = Counter(
-    "fixops_decision_errors_total",
-    "Decision engine errors by reason",
-    ["reason"],
-    registry=_registry,
-)
-
-# Evidence lake metrics
-EVIDENCE_REQUESTS = Counter(
-    "fixops_evidence_requests_total",
-    "Evidence retrieval outcomes",
-    ["source", "status"],
-    registry=_registry,
-)
-EVIDENCE_LATENCY = Histogram(
-    "fixops_evidence_request_seconds",
-    "Evidence retrieval duration in seconds",
-    ["source", "status"],
-    registry=_registry,
-    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2),
-)
-
-# Policy gate metrics
-POLICY_EVALUATIONS = Counter(
-    "fixops_policy_evaluations_total",
-    "Total policy evaluations by outcome",
-    ["outcome"],
-    registry=_registry,
-)
-POLICY_LATENCY = Histogram(
-    "fixops_policy_evaluation_seconds",
-    "Policy evaluation latency",
-    ["outcome"],
-    registry=_registry,
-    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1),
-)
-POLICY_BLOCK_RATIO = Gauge(
-    "fixops_policy_block_ratio",
-    "Rolling ratio of blocked policy evaluations",
-    registry=_registry,
-)
-
-# Miscellaneous operational metrics
 UPLOADS_COMPLETED = Counter(
     "fixops_uploads_completed_total",
-    "Completed uploads by scan type",
+    "Completed uploads",
     ["scan_type"],
     registry=_registry,
 )
 
 
 class FixOpsMetrics:
-    """Static helpers for recording FixOps metrics safely."""
+    """Facade for recording and interrogating observability metrics."""
 
-    _policy_total: int = 0
-    _policy_blocked: int = 0
+    _family_totals: MutableMapping[str, Dict[str, int]] = defaultdict(
+        lambda: {"total": 0, "errors": 0}
+    )
+    _inflight_counts: MutableMapping[str, int] = defaultdict(int)
+    _observed_families: set[str] = set()
+    _observed_hot_paths: set[str] = set()
+    _hot_path_latency_us: MutableMapping[str, float] = {}
+
+    _HOT_PATH_PREFIXES = {
+        "/api/v1/decisions/make-decision": "decision",
+        "/api/v1/policy/evaluate": "policy",
+        "/api/v1/decisions/evidence": "evidence",
+    }
 
     @staticmethod
     def get_metrics() -> bytes:
         return generate_latest(_registry)
 
+    # ------------------------------------------------------------------
+    # HTTP instrumentation helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def request_started(endpoint: str) -> None:
+        """Record that a request started so gauges reflect in-flight work."""
+
+        family = FixOpsMetrics._classify_family(endpoint)
+        FixOpsMetrics._observed_families.add(family)
+        FixOpsMetrics._inflight_counts[family] += 1
+        try:
+            HTTP_INFLIGHT.labels(family=family).set(FixOpsMetrics._inflight_counts[family])
+        except Exception:
+            pass
+
+    @staticmethod
+    def request_finished(endpoint: str) -> None:
+        """Mark the request as finished for in-flight accounting."""
+
+        family = FixOpsMetrics._classify_family(endpoint)
+        FixOpsMetrics._observed_families.add(family)
+        FixOpsMetrics._inflight_counts[family] = max(
+            0, FixOpsMetrics._inflight_counts[family] - 1
+        )
+        try:
+            HTTP_INFLIGHT.labels(family=family).set(FixOpsMetrics._inflight_counts[family])
+        except Exception:
+            pass
+
     @staticmethod
     def record_request(endpoint: str, method: str, status: int, duration: float) -> None:
+        """Capture counters, ratios, and hot-path gauges for an HTTP request."""
+
+        family = FixOpsMetrics._classify_family(endpoint)
+        FixOpsMetrics._observed_families.add(family)
         try:
             HTTP_REQUESTS.labels(
                 endpoint=endpoint,
@@ -118,8 +126,76 @@ class FixOpsMetrics:
             # Metrics must never break the hot path
             pass
 
+        totals = FixOpsMetrics._family_totals[family]
+        totals["total"] += 1
+        if status >= 400:
+            totals["errors"] += 1
+
+        try:
+            ratio = (
+                totals["errors"] / totals["total"]
+                if totals["total"] > 0
+                else 0.0
+            )
+            HTTP_ERROR_RATIO.labels(family=family).set(ratio)
+        except Exception:
+            pass
+
+        hot_path_label = FixOpsMetrics._resolve_hot_path(endpoint)
+        if hot_path_label:
+            FixOpsMetrics._observed_hot_paths.add(hot_path_label)
+            latency_us = duration * 1_000_000
+            FixOpsMetrics._hot_path_latency_us[hot_path_label] = latency_us
+            try:
+                HOT_PATH_LATENCY.labels(endpoint=hot_path_label).set(latency_us)
+            except Exception:
+                pass
+
+    # ------------------------------------------------------------------
+    # Convenience accessors for testing and health diagnostics
+    # ------------------------------------------------------------------
     @staticmethod
-    def record_decision(verdict: str, confidence: float, duration_seconds: float) -> None:
+    def get_error_ratio(family: str) -> float:
+        totals = FixOpsMetrics._family_totals.get(family, {"total": 0, "errors": 0})
+        if totals["total"] == 0:
+            return 0.0
+        return totals["errors"] / totals["total"]
+
+    @staticmethod
+    def get_inflight(family: str) -> int:
+        return FixOpsMetrics._inflight_counts.get(family, 0)
+
+    @staticmethod
+    def get_hot_path_latency_us(endpoint: str) -> Optional[float]:
+        return FixOpsMetrics._hot_path_latency_us.get(endpoint)
+
+    @staticmethod
+    def reset_runtime_stats() -> None:
+        """Reset derived runtime metrics so tests can assert fresh state."""
+
+        for family in list(FixOpsMetrics._observed_families):
+            FixOpsMetrics._family_totals[family] = {"total": 0, "errors": 0}
+            FixOpsMetrics._inflight_counts[family] = 0
+            try:
+                HTTP_ERROR_RATIO.labels(family=family).set(0)
+                HTTP_INFLIGHT.labels(family=family).set(0)
+            except Exception:
+                pass
+        FixOpsMetrics._observed_families.clear()
+
+        for endpoint in list(FixOpsMetrics._observed_hot_paths):
+            FixOpsMetrics._hot_path_latency_us.pop(endpoint, None)
+            try:
+                HOT_PATH_LATENCY.labels(endpoint=endpoint).set(0)
+            except Exception:
+                pass
+        FixOpsMetrics._observed_hot_paths.clear()
+
+    # ------------------------------------------------------------------
+    # Domain specific metrics
+    # ------------------------------------------------------------------
+    @staticmethod
+    def record_decision(verdict: str) -> None:
         try:
             ENGINE_DECISIONS.labels(verdict=verdict).inc()
             DECISION_LATENCY.labels(verdict=verdict).observe(duration_seconds)
@@ -163,3 +239,23 @@ class FixOpsMetrics:
             UPLOADS_COMPLETED.labels(scan_type=scan_type).inc()
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _classify_family(endpoint: str) -> str:
+        if endpoint.startswith("/api/v1/policy"):
+            return "policy"
+        if endpoint.startswith("/api/v1/decisions/evidence"):
+            return "evidence"
+        if endpoint.startswith("/api/v1/decisions"):
+            return "decision"
+        return "other"
+
+    @staticmethod
+    def _resolve_hot_path(endpoint: str) -> Optional[str]:
+        for prefix in FixOpsMetrics._HOT_PATH_PREFIXES:
+            if endpoint.startswith(prefix):
+                return prefix
+        return None

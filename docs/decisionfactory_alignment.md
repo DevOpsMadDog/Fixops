@@ -27,4 +27,4 @@ See [`Part 3 – Missing capabilities`](decisionfactory_alignment/part-3-missing
 ---
 
 ### Summary
-RSA signing and observability are fully aligned today. The remaining work concentrates on production OPA/Rego enforcement, net-new explainability and RL automation, VEX ingestion, richer evidence exports, and operational surface area (policy gating, EPSS/KEV-aware scoring hardening, key management backends, CLI/Kubernetes configurability, and CI/CD test coverage).
+RSA signing is fully aligned today. The remaining work concentrates on production OPA/Rego enforcement, net-new explainability and RL automation, VEX ingestion, richer evidence exports, and operational surface area (policy gating, EPSS/KEV-aware scoring hardening, key management backends, observability, CLI/Kubernetes configurability, and CI/CD test coverage).
