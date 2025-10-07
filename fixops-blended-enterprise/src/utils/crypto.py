@@ -1,16 +1,234 @@
-"""
-Enterprise cryptographic utilities and secure token generation
-"""
+"""Enterprise cryptographic utilities and secure token generation."""
 
-import secrets
-import string
+from __future__ import annotations
+
+import base64
 import hashlib
 import hmac
-from typing import Optional, Dict, Any
-import base64
+import os
+import secrets
+import string
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any, Protocol, Tuple
+
+import structlog
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+from src.config.settings import get_settings
+
+logger = structlog.get_logger()
+
+
+class KeyProvider(Protocol):
+    """Interface for asymmetric signing key providers."""
+
+    def sign(self, payload: bytes) -> bytes:
+        """Return an RSA-SHA256 signature for ``payload``."""
+
+        raise NotImplementedError
+
+    def verify(self, payload: bytes, signature: bytes, fingerprint: str) -> bool:
+        """Verify ``signature`` over ``payload`` for a public key fingerprint."""
+
+        raise NotImplementedError
+
+    def rotate(self) -> str:
+        """Rotate the signing key and return the new fingerprint."""
+
+        raise NotImplementedError
+
+    def fingerprint(self) -> str:
+        """Return the current public key fingerprint."""
+
+        raise NotImplementedError
+
+
+@dataclass
+class EnvKeyProvider:
+    """Key provider that sources RSA keys from environment variables."""
+
+    private_key_pem: Optional[str] = None
+    public_key_pem: Optional[str] = None
+    _public_keys: Dict[str, rsa.RSAPublicKey] = field(init=False, default_factory=dict)
+
+    def __post_init__(self) -> None:
+        private_key_material = self.private_key_pem or os.getenv("SIGNING_PRIVATE_KEY")
+
+        if private_key_material:
+            self._private_key = serialization.load_pem_private_key(
+                private_key_material.encode(), password=None
+            )
+            logger.debug("Loaded RSA private key from environment")
+        else:
+            logger.warning(
+                "SIGNING_PRIVATE_KEY not provided; generating ephemeral demo key"
+            )
+            self._private_key = rsa.generate_private_key(
+                public_exponent=65537, key_size=2048
+            )
+
+        public_key_material = self.public_key_pem or os.getenv("SIGNING_PUBLIC_KEY")
+        if public_key_material:
+            self._public_key = serialization.load_pem_public_key(
+                public_key_material.encode()
+            )
+        else:
+            self._public_key = self._private_key.public_key()
+
+        self._fingerprint = _fingerprint_public_key(self._public_key)
+        self._register_public_key(self._fingerprint, self._public_key)
+
+    def sign(self, payload: bytes) -> bytes:
+        return self._private_key.sign(
+            payload,
+            padding.PKCS1v15(),
+            hashes.SHA256(),
+        )
+
+    def verify(self, payload: bytes, signature: bytes, fingerprint: str) -> bool:
+        public_key = self._public_keys.get(fingerprint)
+        if public_key is None:
+            logger.warning(
+                "Fingerprint mismatch during verification",
+                available=list(self._public_keys.keys()),
+                provided=fingerprint,
+            )
+            return False
+
+        try:
+            public_key.verify(
+                signature,
+                payload,
+                padding.PKCS1v15(),
+                hashes.SHA256(),
+            )
+            return True
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("RSA signature verification failed", error=str(exc))
+            return False
+
+    def rotate(self) -> str:
+        """Generate a new ephemeral key pair and return the new fingerprint."""
+
+        self._private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        self._public_key = self._private_key.public_key()
+        self._fingerprint = _fingerprint_public_key(self._public_key)
+        self._register_public_key(self._fingerprint, self._public_key)
+        logger.info("Ephemeral RSA key rotated", fingerprint=self._fingerprint)
+        return self._fingerprint
+
+    def fingerprint(self) -> str:
+        return self._fingerprint
+
+    def _register_public_key(
+        self, fingerprint: str, public_key: rsa.RSAPublicKey
+    ) -> None:
+        self._public_keys[fingerprint] = public_key
+
+
+class AWSKMSProvider:
+    """Stub AWS KMS provider."""
+
+    def __init__(self, key_id: Optional[str]):
+        self.key_id = key_id or "unknown"
+
+    def sign(self, payload: bytes) -> bytes:  # pragma: no cover - integration stub
+        raise NotImplementedError("AWS KMS signing not implemented in this demo build")
+
+    def verify(self, payload: bytes, signature: bytes, fingerprint: str) -> bool:
+        raise NotImplementedError("AWS KMS verification not implemented in this demo build")
+
+    def rotate(self) -> str:
+        raise NotImplementedError("AWS KMS rotation not implemented in this demo build")
+
+    def fingerprint(self) -> str:
+        raise NotImplementedError("AWS KMS fingerprint not implemented in this demo build")
+
+
+class AzureKeyVaultProvider:
+    """Stub Azure Key Vault provider."""
+
+    def __init__(self, key_id: Optional[str]):
+        self.key_id = key_id or "unknown"
+
+    def sign(self, payload: bytes) -> bytes:  # pragma: no cover - integration stub
+        raise NotImplementedError(
+            "Azure Key Vault signing not implemented in this demo build"
+        )
+
+    def verify(self, payload: bytes, signature: bytes, fingerprint: str) -> bool:
+        raise NotImplementedError(
+            "Azure Key Vault verification not implemented in this demo build"
+        )
+
+    def rotate(self) -> str:
+        raise NotImplementedError(
+            "Azure Key Vault rotation not implemented in this demo build"
+        )
+
+    def fingerprint(self) -> str:
+        raise NotImplementedError(
+            "Azure Key Vault fingerprint not implemented in this demo build"
+        )
+
+
+_KEY_PROVIDER: Optional[KeyProvider] = None
+
+
+def get_key_provider() -> KeyProvider:
+    """Return the configured signing key provider (cached)."""
+
+    global _KEY_PROVIDER
+    if _KEY_PROVIDER is not None:
+        return _KEY_PROVIDER
+
+    settings = get_settings()
+    provider_name = (settings.SIGNING_PROVIDER or "env").lower()
+
+    if provider_name == "aws_kms":
+        _KEY_PROVIDER = AWSKMSProvider(settings.KEY_ID)
+    elif provider_name == "azure_key_vault":
+        _KEY_PROVIDER = AzureKeyVaultProvider(settings.KEY_ID)
+    else:
+        _KEY_PROVIDER = EnvKeyProvider()
+
+    logger.info("Signing provider initialised", provider=provider_name)
+    return _KEY_PROVIDER
+
+
+def reset_key_provider_cache() -> None:
+    """Reset the cached key provider (primarily for tests)."""
+
+    global _KEY_PROVIDER
+    _KEY_PROVIDER = None
+
+
+def _fingerprint_public_key(public_key: rsa.RSAPublicKey) -> str:
+    """Return SHA-256 fingerprint for a public key."""
+
+    der = public_key.public_bytes(
+        serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    digest = hashlib.sha256(der).hexdigest()
+    return ":".join([digest[i : i + 2] for i in range(0, len(digest), 2)])
+
+
+def rsa_sign(json_bytes: bytes) -> Tuple[bytes, str]:
+    """Sign ``json_bytes`` with the configured provider and return signature + fingerprint."""
+
+    provider = get_key_provider()
+    signature = provider.sign(json_bytes)
+    return signature, provider.fingerprint()
+
+
+def rsa_verify(json_bytes: bytes, signature: bytes, pub_fingerprint: str) -> bool:
+    """Verify RSA signature for the provided payload."""
+
+    provider = get_key_provider()
+    return provider.verify(json_bytes, signature, pub_fingerprint)
 
 
 def generate_secure_token(length: int = 32) -> str:

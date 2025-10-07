@@ -1,17 +1,16 @@
-"""
-Evidence Lake - Immutable audit records storage
-Stores decision evidence with cryptographic signatures
-"""
+"""Evidence Lake - Immutable audit records storage."""
 
+import base64
 import json
 import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from sqlalchemy.ext.asyncio import AsyncSession
+
 import structlog
 
 from src.db.session import DatabaseManager
 from src.models.user import User, UserAuditLog
+from src.utils.crypto import rsa_sign, rsa_verify
 
 logger = structlog.get_logger()
 
@@ -22,17 +21,36 @@ class EvidenceLake:
     async def store_evidence(evidence_record: Dict[str, Any]) -> str:
         """Store immutable evidence record with signature"""
         try:
-            # Generate cryptographic hash
-            evidence_json = json.dumps(evidence_record, sort_keys=True)
+            # Canonical payload for signing (without mutable metadata)
+            canonical_payload = json.loads(
+                json.dumps(evidence_record, sort_keys=True)
+            )
+            payload_bytes = json.dumps(canonical_payload, sort_keys=True).encode()
+            signature_bytes, fingerprint = rsa_sign(payload_bytes)
+            signature_b64 = base64.b64encode(signature_bytes).decode()
+
+            canonical_payload.update(
+                {
+                    "signature_alg": "RSA-SHA256",
+                    "signature": signature_b64,
+                    "pubkey_fp": fingerprint,
+                }
+            )
+
+            # Generate cryptographic hash over signed payload
+            evidence_json = json.dumps(canonical_payload, sort_keys=True)
             evidence_hash = hashlib.sha256(evidence_json.encode()).hexdigest()
-            
-            # Add signature and integrity data
-            evidence_record.update({
-                "immutable_hash": f"SHA256:{evidence_hash}",
-                "stored_timestamp": datetime.now(timezone.utc).isoformat(),
-                "integrity_verified": True,
-                "evidence_lake_version": "1.0"
-            })
+
+            # Add signature, hash, and integrity metadata
+            evidence_record.update(canonical_payload)
+            evidence_record.update(
+                {
+                    "immutable_hash": f"SHA256:{evidence_hash}",
+                    "stored_timestamp": datetime.now(timezone.utc).isoformat(),
+                    "integrity_verified": True,
+                    "evidence_lake_version": "1.1",
+                }
+            )
             
             # Store in database (audit log table)
             async with DatabaseManager.get_session_context() as session:
@@ -81,21 +99,55 @@ class EvidenceLake:
                 evidence_record = json.loads(record[0])
                 
                 # Verify integrity
-                stored_hash = evidence_record.get("immutable_hash", "").replace("SHA256:", "")
+                stored_hash = evidence_record.get("immutable_hash", "").replace(
+                    "SHA256:", ""
+                )
                 evidence_copy = evidence_record.copy()
-                del evidence_copy["immutable_hash"]
-                del evidence_copy["stored_timestamp"] 
-                del evidence_copy["integrity_verified"]
-                del evidence_copy["evidence_lake_version"]
-                
+                for field in [
+                    "immutable_hash",
+                    "stored_timestamp",
+                    "integrity_verified",
+                    "evidence_lake_version",
+                ]:
+                    evidence_copy.pop(field, None)
+
                 calculated_hash = hashlib.sha256(
                     json.dumps(evidence_copy, sort_keys=True).encode()
                 ).hexdigest()
-                
-                if stored_hash != calculated_hash:
-                    logger.error(f"Evidence integrity violation detected: {evidence_id}")
+
+                signature_valid = False
+                signature_b64 = evidence_record.get("signature")
+                fingerprint = evidence_record.get("pubkey_fp")
+                if signature_b64 and fingerprint:
+                    try:
+                        signature_bytes = base64.b64decode(signature_b64.encode())
+                        signed_payload = evidence_copy.copy()
+                        # Remove signature metadata before verification
+                        for meta_field in ["signature", "signature_alg", "pubkey_fp"]:
+                            signed_payload.pop(meta_field, None)
+                        signature_valid = rsa_verify(
+                            json.dumps(signed_payload, sort_keys=True).encode(),
+                            signature_bytes,
+                            fingerprint,
+                        )
+                    except Exception as exc:  # pragma: no cover - defensive logging
+                        logger.error(
+                            "Failed to verify evidence signature",
+                            evidence_id=evidence_id,
+                            error=str(exc),
+                        )
+
+                if stored_hash != calculated_hash or not signature_valid:
+                    logger.error(
+                        "Evidence integrity violation detected",
+                        evidence_id=evidence_id,
+                        hash_valid=stored_hash == calculated_hash,
+                        signature_valid=signature_valid,
+                    )
                     evidence_record["integrity_verified"] = False
-                
+
+                evidence_record["signature_verified"] = signature_valid
+
                 return evidence_record
                 
         except Exception as e:
