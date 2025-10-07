@@ -116,9 +116,14 @@ class FixOpsMetrics:
         family = FixOpsMetrics._classify_family(endpoint)
         FixOpsMetrics._observed_families.add(family)
         try:
-            HTTP_REQUESTS.labels(endpoint=endpoint, method=method, status=str(status)).inc()
+            HTTP_REQUESTS.labels(
+                endpoint=endpoint,
+                method=method,
+                status=str(status),
+            ).inc()
             HTTP_LATENCY.labels(endpoint=endpoint).observe(duration)
         except Exception:
+            # Metrics must never break the hot path
             pass
 
         totals = FixOpsMetrics._family_totals[family]
@@ -193,6 +198,38 @@ class FixOpsMetrics:
     def record_decision(verdict: str) -> None:
         try:
             ENGINE_DECISIONS.labels(verdict=verdict).inc()
+            DECISION_LATENCY.labels(verdict=verdict).observe(duration_seconds)
+            DECISION_CONFIDENCE.set(confidence)
+        except Exception:
+            pass
+
+    @staticmethod
+    def record_decision_error(reason: str = "unknown") -> None:
+        try:
+            DECISION_ERRORS.labels(reason=reason).inc()
+        except Exception:
+            pass
+
+    @staticmethod
+    def record_evidence_request(source: str, status: str, duration_seconds: float) -> None:
+        try:
+            EVIDENCE_REQUESTS.labels(source=source, status=status).inc()
+            EVIDENCE_LATENCY.labels(source=source, status=status).observe(duration_seconds)
+        except Exception:
+            pass
+
+    @classmethod
+    def record_policy_evaluation(cls, outcome: str, duration_seconds: float) -> None:
+        try:
+            POLICY_EVALUATIONS.labels(outcome=outcome).inc()
+            POLICY_LATENCY.labels(outcome=outcome).observe(duration_seconds)
+
+            cls._policy_total += 1
+            if outcome == "block":
+                cls._policy_blocked += 1
+
+            if cls._policy_total:
+                POLICY_BLOCK_RATIO.set(cls._policy_blocked / cls._policy_total)
         except Exception:
             pass
 
