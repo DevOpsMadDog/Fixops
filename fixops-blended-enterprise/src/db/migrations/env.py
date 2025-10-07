@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 # Import models for autogenerate
 from src.models.base import Base
 from src.models.user import User, UserSession, UserAuditLog
+from src.models import security  # noqa: F401  # Ensure security tables are registered
 
 # this is the Alembic Config object
 config = context.config

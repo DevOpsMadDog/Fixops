@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 import structlog
 
 from src.config.settings import get_settings
+from src.services.real_opa_engine import get_opa_engine
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/production-readiness", tags=["production-status"])
@@ -63,14 +64,27 @@ async def get_production_readiness():
         if not llm_ready:
             readiness_status["missing_requirements"].append("OPENAI_API_KEY")
         
-        # Policy Engine Readiness (OPA Server)
-        opa_ready = False  # Assume OPA server not running by default
-        readiness_status["component_status"]["policy_engine"] = {
-            "status": "NEEDS_SERVER",
-            "required": "OPA_SERVER",
-            "description": "OPA server at localhost:8181"
-        }
-        readiness_status["missing_requirements"].append("OPA_SERVER")
+        opa_ready = False
+        if getattr(settings, "OPA_SERVER_URL", None):
+            try:
+                engine = await get_opa_engine()
+                opa_ready = await engine.health_check()
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.warning("OPA health check failed", error=str(exc))
+
+        if not opa_ready:
+            readiness_status["component_status"]["policy_engine"] = {
+                "status": "NEEDS_SERVER",
+                "required": "OPA_SERVER",
+                "description": getattr(settings, "OPA_SERVER_URL", "OPA server"),
+            }
+            readiness_status["missing_requirements"].append("OPA_SERVER")
+        else:
+            readiness_status["component_status"]["policy_engine"] = {
+                "status": "READY",
+                "required": None,
+                "description": "OPA policy enforcement active",
+            }
         
         # Threat Intelligence Readiness
         threat_intel_ready = bool(settings.THREAT_INTEL_API_KEY)
