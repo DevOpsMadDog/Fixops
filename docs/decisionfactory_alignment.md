@@ -1,78 +1,98 @@
 # DecisionFactory.ai Alignment Status
 
-This document tracks the implementation status of the DecisionFactory.ai requirements against the current FixOps blended enterprise codebase. Each section references the authoritative source files that were reviewed to determine coverage.
+This document tracks the implementation status of the DecisionFactory.ai requirements across the FixOps codebase. To reduce cognitive load, the alignment work is now split into three parts that can be reviewed independently:
 
-## 1. Evidence must be RSA-SHA256 signed (non-repudiation)
+- **Part 1 – Implemented capabilities:** Everything DecisionFactory.ai already gets out-of-the-box.
+- **Part 2 – Partially implemented capabilities:** Workstreams that are in motion but still have visible gaps.
+- **Part 3 – Missing capabilities:** Features that have not yet been started.
+
+---
+
+## Part 1 – Implemented capabilities ✅
+
+> These requirements are fulfilled in production builds today. Each entry highlights the runtime behaviour and where to find the supporting code.
+
+### 1. Evidence must be RSA-SHA256 signed (non-repudiation)
 - **Status:** ✅ Implemented
-- **Notes:** `EvidenceLake.store_evidence` now applies `rsa_sign` from `src/utils/crypto.py` and persists the resulting Base64 signature, algorithm metadata, and key fingerprint alongside the existing SHA-256 checksum. Retrieval verifies both the checksum and signature before returning evidence records.
-  - References: `src/services/evidence_lake.py`, `src/utils/crypto.py`
+- **Notes:** Evidence records are serialized in a canonical order, signed with RSA-SHA256, and stored with the Base64 signature, signing algorithm, and public-key fingerprint. Retrieval verifies both the hash and the signature before returning the record to callers.
+  - References: `fixops-blended-enterprise/src/services/evidence_lake.py`, `fixops-blended-enterprise/src/utils/crypto.py`
 
-## 2. OPA/Rego policy-as-code runtime (demo+enterprise)
+### 2. OPA/Rego policy-as-code runtime (demo + enterprise)
+- **Status:** ✅ Implemented
+- **Notes:** The decision engine loads the production OPA adapter when demo mode is disabled, performs health checks, and evaluates vulnerability and SBOM policies via either the official `opa-python` client or an HTTP fallback.
+  - References: `fixops-blended-enterprise/src/services/real_opa_engine.py`, `fixops-blended-enterprise/src/services/decision_engine.py`
+
+### 6. EPSS/KEV should influence SSVC/Markov transitions
+- **Status:** ✅ Implemented
+- **Notes:** The processing layer derives Markov states from incoming findings and scales transition probabilities whenever EPSS scores or KEV flags indicate elevated exploitation risk. Fallback heuristics apply the same multipliers when the full HMM model is unavailable.
+  - References: `fixops-blended-enterprise/src/services/processing_layer.py`, `fixops-blended-enterprise/src/services/decision_engine.py`
+
+---
+
+## Part 2 – Partially implemented capabilities ⚠️
+
+> These are the “in-flight” items: some coverage exists, but the DecisionFactory.ai specification still calls for additional functionality.
+
+### 7. Policy gate must BLOCK any KEV finding unless waived
+- **Status:** ⚠️ Partial
+- **Notes:** The `/policy/evaluate` endpoint blocks deployments only when KEV signals coincide with high or critical severities and does not yet support waiver workflows or hard blocks for all KEV detections.
+  - References: `fixops-blended-enterprise/src/api/v1/policy.py`
+
+### 9. Key management: KMS/HSM integration and rotation policy
+- **Status:** ⚠️ Partial
+- **Notes:** The environment-backed `EnvKeyProvider` supports RSA signing and key rotation, and security guidance documents the rotation process. However, the AWS KMS and Azure Key Vault adapters remain unimplemented stubs pending full remote HSM integration.
+  - References: `fixops-blended-enterprise/src/utils/crypto.py`, `docs/SECURITY.md`
+
+### 11. Observability: Prometheus metrics for hot path
+- **Status:** ⚠️ Partial
+- **Notes:** A `/metrics` endpoint exposes Prometheus-formatted counters and the decision engine increments decision verdict totals, yet HTTP request instrumentation and Grafana-ready dashboards are still missing.
+  - References: `fixops-blended-enterprise/src/main.py`, `fixops-blended-enterprise/src/services/metrics.py`
+
+### 12. CLI demo/enterprise overlays
+- **Status:** ⚠️ Partial
+- **Notes:** The CLI and overlay profile support module toggles and core automation settings, but operators cannot yet configure signing provider selection, RL/SHAP feature flags, or an external OPA URL through overlay fields or CLI switches.
+  - References: `fixops/fixops/cli.py`, `config/fixops.overlay.yml`
+
+### 13. CI/CD adapters & Postman collections kept in sync
+- **Status:** ⚠️ Partial
+- **Notes:** Postman suites cover health checks, decision outcomes, and CI/CD happy-path scenarios, yet they do not include KEV hard-block cases, signed evidence download flows, or negative signature verification drills required by DecisionFactory.ai.
+  - References: `fixops-blended-enterprise/postman/POSTMAN_COMPLETION.md`
+
+### 14. Kubernetes manifests reflect new env vars and readiness
+- **Status:** ⚠️ Partial
+- **Notes:** Deployments expose core secrets and readiness probes, but ConfigMaps omit newer settings such as `SIGNING_PROVIDER`, `KEY_ID`, `OPA_SERVER_URL`, or prospective `FEATURE_RL` toggles that the platform expects to be configurable per environment.
+  - References: `fixops-blended-enterprise/kubernetes/backend-deployment.yaml`, `fixops-blended-enterprise/kubernetes/configmap.yaml`
+
+---
+
+## Part 3 – Missing capabilities ❌
+
+### 3. Explainability with SHAP/LIME alongside LLM narratives
 - **Status:** ❌ Missing
-- **Notes:** The policy engine still uses a hand-rolled evaluator (`_evaluate_rego_rule`) and never instantiates the production OPA adapter in `src/services/real_opa_engine.py`. No policy input payload is sent to an OPA instance, and there are no automated tests covering Rego bundles.
-  - References: `src/services/policy_engine.py`, `src/services/real_opa_engine.py`
+- **Notes:** The repository has no SHAP or LIME integrations; explanations rely solely on deterministic fusion outputs and LLM narratives.
+  - Evidence: repository search returns no SHAP/LIME modules.
 
-## 3. Explainability with SHAP/LIME alongside LLM narratives
+### 4. RL/MDP learning loop for actions (defer/patch/accept)
 - **Status:** ❌ Missing
-- **Notes:** Processing relies on LLM-driven explanations without any SHAP/LIME feature attribution artefacts. There is no `xai_shap.py` module and no `/processing/explain` endpoint that emits attribution vectors.
-  - References: `src/services/processing_layer.py`, `src/api/v1/processing_layer.py`
+- **Notes:** There are no reinforcement-learning policies, experience logs, or feature flags dedicated to an RL decision loop in the current services.
+  - Evidence: repository search returns no reinforcement learning hooks.
 
-## 4. RL/MDP learning loop for actions (defer/patch/accept)
+### 5. VEX ingestion (SPDX/CycloneDX) to suppress `not_affected`
 - **Status:** ❌ Missing
-- **Notes:** `enhanced_decision_engine` lacks any reinforcement-learning policy hooks. There is no `rl_policy.py`, experience logging, or `FEATURE_RL` toggle.
-  - References: `src/services/enhanced_decision_engine.py`
+- **Notes:** While SBOM parsing exists, no VEX parser or suppression logic is present to downgrade findings marked `not_affected` by suppliers.
+  - Evidence: repository search shows only documentation mentions of VEX without runtime ingestion.
 
-## 5. VEX ingestion (SPDX/CycloneDX) to suppress `not_affected`
+### 8. Evidence export: signed JSON + printable PDF bundle
 - **Status:** ❌ Missing
-- **Notes:** SBOM parsing ignores VEX data and there is no `vex_parser`. Findings with vendor `NOT_AFFECTED` assertions remain untouched during triage.
-  - References: `src/services/sbom_parser.py`
+- **Notes:** Evidence bundles are emitted as JSON (optionally compressed or encrypted) but are not signed nor accompanied by a PDF rendition, and no `/evidence/{id}/download` API is available.
+  - References: `fixops/evidence.py`, `fixops-blended-enterprise/src/api/v1`
 
-## 6. EPSS/KEV should influence SSVC/Markov transitions
-- **Status:** ⚠️ Partial
-- **Notes:** Feed ingestion captures counts, but the processing layer does not adjust SSVC priors or Markov transition probabilities based on EPSS percentiles or KEV membership.
-  - References: `src/services/feeds_service.py`, `src/services/processing_layer.py`
-
-## 7. Policy gate must BLOCK any KEV finding unless waived
-- **Status:** ⚠️ Partial
-- **Notes:** `/policy/evaluate` blocks when KEV findings coincide with high/critical severity, yet it lacks waiver handling and does not enforce a hard block for all KEV detections as required.
-  - References: `src/api/v1/policy.py`
-
-## 8. Evidence export: signed JSON + printable PDF bundle
+### 10. Multi-tenant RBAC (owner, approver, auditor, integrator)
 - **Status:** ❌ Missing
-- **Notes:** There is no exporter that assembles a signed JSON + PDF package or a `/evidence/{id}/download` route. Evidence storage ends with database persistence only.
-  - References: `src/services/evidence_lake.py`
-
-## 9. Key management: KMS/HSM integration and rotation policy
-- **Status:** ⚠️ Partial
-- **Notes:** `EnvKeyProvider` implements RSA keys and stubs exist for AWS/Azure, but rotation routines, provider configuration flags, and operational documentation remain incomplete relative to the design brief.
-  - References: `src/utils/crypto.py`, `src/config/settings.py`, `docs/SECURITY.md`
-
-## 10. Multi-tenant RBAC (owner, approver, auditor, integrator)
-- **Status:** ❌ Missing
-- **Notes:** User models do not reference tenants, nor are role checks enforced on policy/evidence/feed APIs as described.
-  - References: `src/models/user.py`, `src/api/v1/auth.py`
-
-## 11. Observability: Prometheus metrics for hot path
-- **Status:** ⚠️ Partial
-- **Notes:** Health endpoints exist, yet there is no Prometheus exporter capturing the enumerated latency/counter metrics or a bundled Grafana dashboard.
-  - References: `src/api/v1/monitoring.py`, `src/services/metrics.py`
-
-## 12. CLI demo/enterprise overlays
-- **Status:** ⚠️ Partial
-- **Notes:** CLI overlays toggle demo vs enterprise modes, but flags for signing provider, RL, SHAP, and OPA URL are absent.
-  - References: `fixops/cli.py`, `config/*.overlay.yml`
-
-## 13. CI/CD adapters & Postman collections kept in sync
-- **Status:** ⚠️ Partial
-- **Notes:** Collections exist but do not include KEV hard-block, SHAP evidence, or signed download test cases. Negative signature validation scenarios are missing.
-  - References: `src/api/v1/cicd.py`, `postman/FixOps-CICD-Tests.postman_collection.json`
-
-## 14. Kubernetes manifests reflect new env vars and readiness
-- **Status:** ⚠️ Partial
-- **Notes:** Manifests do not surface `SIGNING_PROVIDER`, `KEY_ID`, `OPA_URL`, or `FEATURE_RL` environment variables. Probe configuration remains unchanged.
-  - References: `kubernetes/*.yaml`
+- **Notes:** User records track generic roles and security flags but do not associate accounts with tenant scopes or the specific role taxonomy required by DecisionFactory.ai.
+  - References: `fixops-blended-enterprise/src/models/user.py`
 
 ---
 
 ### Summary
-The RSA signing pathway has been implemented, but the remaining DecisionFactory.ai alignment items—OPA/Rego integration, SHAP explainability, RL policy learning, VEX ingestion, enriched policy gating, and operational overlays—are still outstanding.
+RSA signing, production-grade OPA policy evaluation, and EPSS/KEV-aware probabilistic scoring are fully aligned. The remaining work concentrates on expanding explainability, RL automation, VEX ingestion, richer evidence exports, and operational surface area (policy gating, key management backends, observability, CLI/Kubernetes configurability, and CI/CD test coverage).
