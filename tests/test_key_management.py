@@ -147,7 +147,8 @@ class StubAzureCryptoClient:
     def __init__(self, key_client: StubAzureKeyClient) -> None:
         self._key_client = key_client
 
-    def sign(self, payload: bytes):  # pragma: no cover - exercised via provider
+    def sign(self, algorithm: str, payload: bytes):  # pragma: no cover - exercised via provider
+        assert algorithm == self.default_algorithm
         signature = self._key_client.private_key().sign(
             payload,
             padding.PKCS1v15(),
