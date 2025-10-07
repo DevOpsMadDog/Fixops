@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 from backend.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
 from backend.pipeline import PipelineOrchestrator
 from fixops.configuration import OverlayConfig, load_overlay
-from fixops.demo_runner import run_demo_pipeline
+from fixops.demo_runner import generate_showcase, run_demo_pipeline
 from fixops.paths import ensure_secure_directory, verify_allowlisted_path
 from fixops.storage import ArtefactArchive
 from fixops.probabilistic import ProbabilisticForecastEngine
@@ -368,6 +368,137 @@ def _handle_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _format_table_row(label: str, value: Any, indent: int = 2) -> None:
+    prefix = " " * indent
+    print(f"{prefix}- {label}: {value}")
+
+
+def _print_showcase_report(snapshot: Mapping[str, Any]) -> None:
+    mode = str(snapshot.get("mode", "demo")).title()
+    print(f"FixOps {mode} showcase")
+
+    summary_lines = snapshot.get("summary_lines", [])
+    if isinstance(summary_lines, Iterable):
+        for line in summary_lines:
+            print(f"  {line}")
+
+    print("\n[1] Ingestion & normalisation")
+    inputs = snapshot.get("inputs", {})
+    if isinstance(inputs, Mapping):
+        for key in ("design", "sbom", "sarif", "cve"):
+            stage = inputs.get(key, {})
+            if not isinstance(stage, Mapping):
+                continue
+            print(f"- {key.upper()}")
+            source = stage.get("source_path")
+            if source:
+                _format_table_row("source", source)
+            metrics = stage.get("metrics", {})
+            if isinstance(metrics, Mapping):
+                for metric, value in metrics.items():
+                    _format_table_row(metric, value)
+            preview_key = "preview_rows" if key == "design" else f"sample_{'components' if key == 'sbom' else 'findings' if key == 'sarif' else 'records'}"
+            preview = stage.get(preview_key, [])
+            if preview:
+                _format_table_row("sample", json.dumps(preview, indent=2) if len(str(preview)) < 400 else json.dumps(preview[:1], indent=2))
+
+    print("\n[2] Pipeline stage highlights")
+    pipeline = snapshot.get("pipeline", {})
+    if isinstance(pipeline, Mapping):
+        severity = pipeline.get("severity_overview", {})
+        if severity:
+            _format_table_row("highest severity", severity.get("highest"))
+            _format_table_row("severity counts", severity.get("counts"))
+        guardrail = pipeline.get("guardrail_evaluation", {})
+        if isinstance(guardrail, Mapping):
+            _format_table_row("guardrail status", guardrail.get("status"))
+            rationale = guardrail.get("rationale")
+            if rationale:
+                _format_table_row("rationale", rationale)
+        compliance = pipeline.get("compliance_status", {})
+        if isinstance(compliance, Mapping):
+            frameworks = compliance.get("frameworks")
+            if frameworks:
+                ids = sorted({framework.get("id", "framework") for framework in frameworks if isinstance(framework, Mapping)})
+                _format_table_row("frameworks", ids)
+        modules = pipeline.get("modules", {})
+        if isinstance(modules, Mapping):
+            _format_table_row("modules executed", modules.get("executed"))
+            skipped = modules.get("skipped")
+            if skipped:
+                _format_table_row("modules skipped", skipped)
+        analytics = pipeline.get("analytics", {})
+        if isinstance(analytics, Mapping):
+            overview = analytics.get("overview", {})
+            if isinstance(overview, Mapping):
+                _format_table_row("ROI (currency)", overview.get("currency"))
+                _format_table_row("Estimated value", overview.get("estimated_value"))
+        performance = pipeline.get("performance_profile", {})
+        if isinstance(performance, Mapping):
+            summary = performance.get("summary", {})
+            if isinstance(summary, Mapping):
+                _format_table_row("Performance status", summary.get("status"))
+                _format_table_row("Run latency (ms)", summary.get("total_estimated_latency_ms"))
+        forecast = pipeline.get("probabilistic_forecast", {})
+        if isinstance(forecast, Mapping):
+            _format_table_row("Forecast next state", forecast.get("next_state"))
+
+    print("\n[3] Automation & evidence integrations")
+    integrations = snapshot.get("integrations", {})
+    if isinstance(integrations, Mapping):
+        policy = integrations.get("policy_automation", {})
+        if isinstance(policy, Mapping):
+            _format_table_row("Policy status", policy.get("status"))
+            _format_table_row("Automation actions", policy.get("action_count"))
+            if policy.get("sample_actions"):
+                _format_table_row("Sample actions", policy.get("sample_actions"))
+            if policy.get("delivery_notes"):
+                _format_table_row("Delivery notes", policy.get("delivery_notes"))
+        bundle = integrations.get("evidence_bundle", {})
+        if isinstance(bundle, Mapping):
+            _format_table_row("Evidence bundle", bundle.get("path"))
+            _format_table_row("Bundle size (bytes)", bundle.get("size_bytes"))
+        pricing = integrations.get("pricing_summary", {})
+        if isinstance(pricing, Mapping):
+            _format_table_row("Pricing plan", pricing.get("plan"))
+        onboarding = integrations.get("onboarding", {})
+        if isinstance(onboarding, Mapping):
+            _format_table_row("Onboarding steps", len(onboarding.get("steps", [])))
+
+
+def _handle_showcase(args: argparse.Namespace) -> int:
+    include_raw = args.save_result is not None
+    snapshot = generate_showcase(mode=args.mode, include_raw_result=include_raw)
+
+    raw_result: Optional[Dict[str, Any]] = None
+    if include_raw:
+        raw_result = snapshot.pop("raw_result", None)
+
+    if args.save_result:
+        if raw_result is None:
+            raise ValueError("Failed to capture raw pipeline result for showcase export")
+        ensure_secure_directory(args.save_result.parent)
+        with args.save_result.open("w", encoding="utf-8") as handle:
+            json.dump(raw_result, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if args.output:
+        ensure_secure_directory(args.output.parent)
+        with args.output.open("w", encoding="utf-8") as handle:
+            json.dump(snapshot, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if args.json:
+        text = json.dumps(snapshot, indent=2 if args.pretty else None)
+        print(text)
+    else:
+        _print_showcase_report(snapshot)
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -496,6 +627,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress the demo summary",
     )
     demo_parser.set_defaults(func=_handle_demo)
+
+    showcase_parser = subparsers.add_parser(
+        "showcase",
+        help="Simulate each pipeline stage and surface representative inputs/outputs",
+    )
+    showcase_parser.add_argument(
+        "--mode",
+        choices=["demo", "enterprise"],
+        default="demo",
+        help="Overlay profile to use when generating the showcase snapshot",
+    )
+    showcase_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional JSON file capturing the structured showcase snapshot",
+    )
+    showcase_parser.add_argument(
+        "--save-result",
+        type=Path,
+        help="Optional JSON file containing the full pipeline response for inspection",
+    )
+    showcase_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the showcase snapshot as JSON instead of the formatted report",
+    )
+    showcase_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON when using --json, --output, or --save-result",
+    )
+    showcase_parser.set_defaults(func=_handle_showcase)
 
     return parser
 

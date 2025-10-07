@@ -10,9 +10,11 @@ checks, and contribute changes safely.
    ```bash
    pip install -r requirements.txt
    ```
-3. (Optional) Install optional parser libraries for richer normalisation:
+3. (Optional) Install the extended parser toolchain:
    ```bash
-   pip install lib4sbom sarif-om snyk-to-sarif cvelib pyyaml
+   pip install lib4sbom sarif-om cvelib pyyaml
+   # Only if you have access to the private Snyk converter repository
+   pip install -r backend/requirements-optional.txt
    ```
 
 ## Overlay Configuration
