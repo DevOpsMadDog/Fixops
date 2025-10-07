@@ -4,12 +4,24 @@ FixOps turns raw security artefacts into contextual risk, compliance, and automa
 
 ## Quick start
 
+For a fully reproducible setup run the bootstrap helper (installs runtime + dev tooling, pre-commit, and fixtures) or use the Makefile targets:
+
+```bash
+$ cp .env.example .env  # update secrets before running services
+$ ./scripts/bootstrap.sh
+$ make fmt lint typecheck test
+$ make demo
+$ make demo-enterprise
+```
+
 The repository ships with a pair of curated fixtures and overlay profiles so you can experience the full pipeline without wiring external systems or secrets.
 
 1. **Install dependencies**
 
    ```bash
    pip install -r requirements.txt
+   # Optional: install backend extras when you have access to private repos
+   pip install -r backend/requirements-optional.txt
    ```
 
 2. **Run the bundled demo experience**
@@ -30,7 +42,7 @@ The repository ships with a pair of curated fixtures and overlay profiles so you
 
 4. **Iterate locally**
 
-   You can point the CLI at your own artefacts with `python -m fixops.cli run` or import `fixops.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m fixops.cli show-overlay --pretty` to inspect the merged overlay for each profile.
+   You can point the CLI at your own artefacts with `python -m fixops.cli run` or import `fixops.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m fixops.cli show-overlay --pretty` to inspect the merged overlay for each profile. When running the enterprise stack with Docker Compose, copy `fixops-blended-enterprise/.env.example` to `.env`, rotate the secrets, and ensure `FIXOPS_AUTH_DISABLED` remains `false`.
 
 ## Why teams adopt FixOps
 - **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
