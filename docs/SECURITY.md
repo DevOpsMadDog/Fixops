@@ -26,3 +26,17 @@ regulated environments.
 - **Harden filesystem backups.** Evidence bundles and artefact archives contain
   sensitive remediation details. Store backups on encrypted volumes that inherit
   the same ownership/permission checks described above.
+
+## Signing key management
+
+- **Configure a signing provider.** Set `SIGNING_PROVIDER` and (if applicable)
+  `KEY_ID` to select between environment-backed keys and external HSM/KMS
+  integrations. The defaults (`env`) expect `SIGNING_PRIVATE_KEY` and
+  `SIGNING_PUBLIC_KEY` PEM strings to be supplied via secrets management.
+- **Protect key backups.** Store private keys encrypted-at-rest and restrict
+  operator access to dedicated security administrators. Public key fingerprints
+  are embedded in each evidence record to allow non-repudiation checks.
+- **Plan rotations.** Use the provider `rotate()` capability to generate new key
+  material while retaining prior public keys for signature verification. Ensure
+  rotation schedules are documented alongside recovery procedures so audits can
+  confirm adherence.

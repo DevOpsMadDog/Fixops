@@ -56,12 +56,19 @@ class Settings(BaseSettings):
     ENABLED_VEX: bool = Field(default=False)
     ENABLED_RSS_SIDECAR: bool = Field(default=False)
     
-    # Security Configuration  
+    # Security Configuration
     SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY"))
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALLOWED_HOSTS: List[str] = Field(default=["localhost", "127.0.0.1"])
+    SIGNING_PROVIDER: str = Field(
+        default=os.getenv("SIGNING_PROVIDER", "env"),
+        description="Signing backend provider (env, aws_kms, azure_key_vault)",
+    )
+    KEY_ID: Optional[str] = Field(
+        default=os.getenv("KEY_ID"), description="Remote key identifier"
+    )
     
     # Database Configuration
     DATABASE_URL: str = Field(default=os.getenv("MONGO_URL", "mongodb://mongodb:27017/fixops_production"))
