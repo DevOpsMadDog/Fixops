@@ -3,15 +3,17 @@ FixOps Decision & Verification API Endpoints
 Provides decision engine operations and metrics
 """
 
+import time
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 import structlog
 
 from src.core.security import get_current_user
-from src.db.session import get_db, DatabaseManager
-from src.services.decision_engine import decision_engine, DecisionContext, DecisionOutcome
+from src.db.session import DatabaseManager
+from src.services.decision_engine import decision_engine, DecisionContext
 from src.config.settings import get_settings
+from src.services.metrics import FixOpsMetrics
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/decisions", tags=["decision-engine"])
@@ -52,8 +54,8 @@ async def make_security_decision(
         )
         
         result = await decision_engine.make_decision(context)
-        
-        return DecisionResponse(
+
+        response = DecisionResponse(
             decision=result.decision.value,
             confidence_score=result.confidence_score,
             evidence_id=result.evidence_id,
@@ -62,9 +64,18 @@ async def make_security_decision(
             consensus_details=result.consensus_details,
             validation_results=result.validation_results
         )
-        
+
+        FixOpsMetrics.record_decision(
+            verdict=result.decision.value,
+            confidence=result.confidence_score,
+            duration_seconds=result.processing_time_us / 1_000_000,
+        )
+
+        return response
+
     except Exception as e:
         logger.error(f"Decision making failed: {str(e)}")
+        FixOpsMetrics.record_decision_error(reason="exception")
         raise HTTPException(status_code=500, detail=f"Decision engine error: {str(e)}")
 
 @router.get("/metrics")
@@ -251,33 +262,58 @@ async def get_evidence_record(
     current_user: Dict = Depends(get_current_user)
 ):
     """Get immutable evidence record from Evidence Lake"""
+    start_time = time.perf_counter()
+    source = "none"
+
     try:
         settings = get_settings()
-        
+
         # Try Evidence Lake first (production mode)
         if not settings.DEMO_MODE:
             from src.services.evidence_lake import EvidenceLake
             evidence = await EvidenceLake.retrieve_evidence(evidence_id)
-            
+
             if evidence:
+                source = "lake"
+                FixOpsMetrics.record_evidence_request(
+                    source=source,
+                    status="hit",
+                    duration_seconds=time.perf_counter() - start_time,
+                )
                 return {"status": "success", "data": evidence, "source": "evidence_lake"}
-        
+
         # Fallback to cache (demo mode or if not found in Evidence Lake)
         from src.services.cache_service import CacheService
         cache = CacheService.get_instance()
-        
+
         cached_evidence = await cache.get(f"evidence:{evidence_id}")
         if cached_evidence:
+            source = "cache"
             if isinstance(cached_evidence, str):
                 import json
                 cached_evidence = json.loads(cached_evidence)
+            FixOpsMetrics.record_evidence_request(
+                source=source,
+                status="hit",
+                duration_seconds=time.perf_counter() - start_time,
+            )
             return {"status": "success", "data": cached_evidence, "source": "cache"}
-        
+
         # Not found in either location
+        FixOpsMetrics.record_evidence_request(
+            source=source,
+            status="miss",
+            duration_seconds=time.perf_counter() - start_time,
+        )
         raise HTTPException(status_code=404, detail="Evidence record not found")
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to get evidence record: {str(e)}")
+        FixOpsMetrics.record_evidence_request(
+            source=source or "unknown",
+            status="error",
+            duration_seconds=time.perf_counter() - start_time,
+        )
         raise HTTPException(status_code=500, detail=str(e))
