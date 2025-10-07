@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.settings import get_settings
 from src.db.session import get_db
 from src.models.waivers import get_kev_waiver_model
+from src.services.real_opa_engine import get_opa_engine
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/policy", tags=["policy-gates"])
@@ -177,6 +178,212 @@ def _extract_kev_cves(signals: Dict[str, Any], findings: Sequence[Dict[str, Any]
     return {cve for cve in kev_ids if cve.startswith("CVE-")}
 
 
+def _extract_environment(signals: Dict[str, Any]) -> Optional[str]:
+    """Resolve an environment label from the provided signals."""
+
+    for key in ("environment", "env", "deployment_environment", "target_env"):
+        value = signals.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "y", "enabled"}:
+            return True
+        if lowered in {"false", "0", "no", "n", "disabled"}:
+            return False
+    return False
+
+
+def _as_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_severity(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = str(value).strip().upper()
+    return normalized or None
+
+
+def _collect_vulnerabilities(findings: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Normalise finding payloads so remote OPA policies receive consistent input."""
+
+    entries: List[Dict[str, Any]] = []
+    for finding in findings or []:
+        if not isinstance(finding, dict):
+            continue
+
+        fix_available = finding.get("fix_available")
+        if fix_available is None:
+            fix_available = finding.get("fixAvailable")
+
+        entry = {
+            "id": finding.get("id")
+            or finding.get("finding_id")
+            or finding.get("uuid"),
+            "cve_id": (
+                finding.get("cve_id")
+                or finding.get("cve")
+                or finding.get("cveId")
+                or finding.get("kev_id")
+            ),
+            "kev": _as_bool(finding.get("kev") or finding.get("is_kev")),
+            "severity": _normalize_severity(
+                finding.get("severity")
+                or finding.get("severity_label")
+                or finding.get("severity_level"),
+            ),
+            "fix_available": _as_bool(fix_available),
+            "cvss_score": _as_float(
+                finding.get("cvss_score")
+                or finding.get("cvss")
+                or finding.get("cvss_v3"),
+            ),
+            "epss": _as_float(finding.get("epss") or finding.get("epss_score")),
+            "title": finding.get("title") or finding.get("name"),
+        }
+        entries.append(entry)
+
+    return entries
+
+
+def _build_sbom_payload(signals: Dict[str, Any]) -> Dict[str, Any]:
+    sbom_data = signals.get("sbom") if isinstance(signals.get("sbom"), dict) else None
+    components = signals.get("sbom_components")
+    payload: Dict[str, Any] = {
+        "sbom_present": _as_bool(signals.get("sbom_present")) or bool(sbom_data),
+        "sbom_valid": _as_bool(signals.get("sbom_valid")),
+    }
+    if sbom_data is not None:
+        payload["sbom"] = sbom_data
+    if isinstance(components, list):
+        payload["components"] = components
+    if signals.get("sbom_required") is not None:
+        payload["sbom_required"] = _as_bool(signals.get("sbom_required"))
+    return payload
+
+
+async def _evaluate_remote_policies(
+    request: GateRequest, service_name: Optional[str]
+) -> List[Tuple[str, Dict[str, Any]]]:
+    """Evaluate remote OPA policies when running in enterprise mode."""
+
+    if settings.DEMO_MODE or not getattr(settings, "OPA_SERVER_URL", None):
+        return []
+
+    vulnerabilities = _collect_vulnerabilities(request.findings)
+    sbom_payload = _build_sbom_payload(request.signals)
+    environment = _extract_environment(request.signals)
+
+    policy_inputs: List[Tuple[str, Dict[str, Any]]] = []
+
+    if vulnerabilities:
+        vuln_payload: Dict[str, Any] = {"vulnerabilities": vulnerabilities}
+        if service_name:
+            vuln_payload["service_name"] = service_name
+        if environment:
+            vuln_payload["environment"] = environment
+        vuln_payload["kev_findings"] = [entry for entry in vulnerabilities if entry.get("kev")]
+        policy_inputs.append(("vulnerability", vuln_payload))
+
+    if sbom_payload:
+        if service_name:
+            sbom_payload.setdefault("service_name", service_name)
+        if environment:
+            sbom_payload.setdefault("environment", environment)
+        policy_inputs.append(("sbom", sbom_payload))
+
+    if not policy_inputs:
+        return []
+
+    try:
+        engine = await get_opa_engine()
+        if not await engine.health_check():
+            logger.warning("OPA engine health check failed; skipping remote enforcement")
+            return []
+
+        decisions: List[Tuple[str, Dict[str, Any]]] = []
+        for policy_name, payload in policy_inputs:
+            try:
+                decision = await engine.evaluate_policy(policy_name, payload)
+            except Exception as exc:  # pragma: no cover - network/transient failure guard
+                logger.warning(
+                    "OPA policy evaluation failed", policy=policy_name, error=str(exc)
+                )
+                decisions.append(
+                    (
+                        policy_name,
+                        {
+                            "decision": "error",
+                            "rationale": f"OPA evaluation error: {exc}",
+                            "error": True,
+                        },
+                    )
+                )
+            else:
+                decisions.append((policy_name, decision))
+        return decisions
+    except Exception as exc:  # pragma: no cover - defensive guardrail
+        logger.warning("OPA enforcement aborted", error=str(exc))
+        return []
+
+
+def _map_opa_results(results: List[Tuple[str, Dict[str, Any]]]) -> Optional[GateResponse]:
+    """Translate OPA policy decisions into gate responses."""
+
+    for policy_name, decision in results:
+        outcome = str(decision.get("decision", "")).lower()
+        rationale = decision.get("rationale") or decision.get("details") or ""
+
+        if outcome == "allow":
+            continue
+
+        if outcome == "block":
+            reason = (
+                f"OPA policy '{policy_name}' blocked the request: {rationale}".strip()
+                or f"OPA policy '{policy_name}' blocked the request"
+            )
+            return GateResponse(
+                allow=False,
+                reason=reason,
+                required_actions=[
+                    "Review OPA policy findings",
+                    "Apply required remediations",
+                    "Re-run policy evaluation",
+                ],
+            )
+
+        if outcome in {"defer", "error"} or decision.get("error"):
+            reason = (
+                f"OPA policy '{policy_name}' requires manual review: {rationale}".strip()
+                or f"OPA policy '{policy_name}' requires manual review"
+            )
+            return GateResponse(
+                allow=False,
+                reason=reason,
+                required_actions=[
+                    "Investigate OPA policy status",
+                    "Resolve bundle discrepancies",
+                    "Re-run policy evaluation",
+                ],
+            )
+
+    return None
+
+
 async def _get_active_waivers(
     db: AsyncSession,
     cve_ids: Set[str],
@@ -261,6 +468,11 @@ async def evaluate_gate(req: GateRequest, db: AsyncSession = Depends(get_db)) ->
                 reason=f"Consensus confidence too low ({req.confidence:.0%})",
                 required_actions=["Manual review", "Add business context"],
             )
+
+        opa_results = await _evaluate_remote_policies(req, service_name)
+        opa_response = _map_opa_results(opa_results)
+        if opa_response is not None:
+            return opa_response
 
         return GateResponse(
             allow=True,

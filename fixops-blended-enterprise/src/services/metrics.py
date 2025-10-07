@@ -45,6 +45,18 @@ HOT_PATH_LATENCY = Gauge(
     ["endpoint"],
     registry=_registry,
 )
+SIGNING_KEY_AGE = Gauge(
+    "fixops_signing_key_rotation_age_days",
+    "Age of the active signing key material in days",
+    ["provider"],
+    registry=_registry,
+)
+SIGNING_KEY_HEALTH = Gauge(
+    "fixops_signing_key_rotation_healthy",
+    "Health indicator for signing key rotation SLAs",
+    ["provider"],
+    registry=_registry,
+)
 ENGINE_DECISIONS = Counter(
     "fixops_engine_decisions_total",
     "Decisions produced",
@@ -69,6 +81,9 @@ class FixOpsMetrics:
     _observed_families: set[str] = set()
     _observed_hot_paths: set[str] = set()
     _hot_path_latency_us: MutableMapping[str, float] = {}
+    _observed_key_providers: set[str] = set()
+    _key_rotation_age: MutableMapping[str, float] = {}
+    _key_rotation_health: MutableMapping[str, bool] = {}
 
     _HOT_PATH_PREFIXES = {
         "/api/v1/decisions/make-decision": "decision",
@@ -141,6 +156,21 @@ class FixOpsMetrics:
         except Exception:
             pass
 
+        totals = FixOpsMetrics._family_totals[family]
+        totals["total"] += 1
+        if status >= 400:
+            totals["errors"] += 1
+
+        try:
+            ratio = (
+                totals["errors"] / totals["total"]
+                if totals["total"] > 0
+                else 0.0
+            )
+            HTTP_ERROR_RATIO.labels(family=family).set(ratio)
+        except Exception:
+            pass
+
         hot_path_label = FixOpsMetrics._resolve_hot_path(endpoint)
         if hot_path_label:
             FixOpsMetrics._observed_hot_paths.add(hot_path_label)
@@ -191,6 +221,16 @@ class FixOpsMetrics:
                 pass
         FixOpsMetrics._observed_hot_paths.clear()
 
+        for provider in list(FixOpsMetrics._observed_key_providers):
+            FixOpsMetrics._key_rotation_age.pop(provider, None)
+            FixOpsMetrics._key_rotation_health.pop(provider, None)
+            try:
+                SIGNING_KEY_AGE.labels(provider=provider).set(0)
+                SIGNING_KEY_HEALTH.labels(provider=provider).set(0)
+            except Exception:
+                pass
+        FixOpsMetrics._observed_key_providers.clear()
+
     # ------------------------------------------------------------------
     # Domain specific metrics
     # ------------------------------------------------------------------
@@ -239,6 +279,28 @@ class FixOpsMetrics:
             UPLOADS_COMPLETED.labels(scan_type=scan_type).inc()
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # Key management helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def record_key_rotation(provider: str, age_days: float, healthy: bool) -> None:
+        FixOpsMetrics._observed_key_providers.add(provider)
+        FixOpsMetrics._key_rotation_age[provider] = age_days
+        FixOpsMetrics._key_rotation_health[provider] = healthy
+        try:
+            SIGNING_KEY_AGE.labels(provider=provider).set(age_days)
+            SIGNING_KEY_HEALTH.labels(provider=provider).set(1.0 if healthy else 0.0)
+        except Exception:
+            pass
+
+    @staticmethod
+    def get_key_rotation_age(provider: str) -> Optional[float]:
+        return FixOpsMetrics._key_rotation_age.get(provider)
+
+    @staticmethod
+    def get_key_rotation_health(provider: str) -> Optional[bool]:
+        return FixOpsMetrics._key_rotation_health.get(provider)
 
     # ------------------------------------------------------------------
     # Internal helpers

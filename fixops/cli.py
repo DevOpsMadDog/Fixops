@@ -213,6 +213,29 @@ def _handle_run(args: argparse.Namespace) -> int:
     if args.env:
         _apply_env_overrides(args.env)
 
+    if getattr(args, "signing_provider", None):
+        os.environ["SIGNING_PROVIDER"] = args.signing_provider
+    if getattr(args, "signing_key_id", None):
+        os.environ["KEY_ID"] = args.signing_key_id
+    if getattr(args, "signing_region", None):
+        os.environ["AWS_REGION"] = args.signing_region
+    if getattr(args, "azure_vault_url", None):
+        os.environ["AZURE_VAULT_URL"] = args.azure_vault_url
+    if getattr(args, "rotation_sla_days", None) is not None:
+        os.environ["SIGNING_ROTATION_SLA_DAYS"] = str(args.rotation_sla_days)
+    if getattr(args, "opa_url", None):
+        os.environ["OPA_SERVER_URL"] = args.opa_url
+    if getattr(args, "opa_token", None):
+        os.environ["OPA_AUTH_TOKEN"] = args.opa_token
+    if getattr(args, "opa_package", None):
+        os.environ["OPA_POLICY_PACKAGE"] = args.opa_package
+    if getattr(args, "opa_health_path", None):
+        os.environ["OPA_HEALTH_PATH"] = args.opa_health_path
+    if getattr(args, "opa_bundle_status_path", None):
+        os.environ["OPA_BUNDLE_STATUS_PATH"] = args.opa_bundle_status_path
+    if getattr(args, "opa_timeout", None) is not None:
+        os.environ["OPA_REQUEST_TIMEOUT"] = str(args.opa_timeout)
+
     overlay = load_overlay(args.overlay)
     if args.disable_modules:
         for module in args.disable_modules:
@@ -408,6 +431,53 @@ def build_parser() -> argparse.ArgumentParser:
         "--offline",
         action="store_true",
         help="Disable exploit feed auto-refresh to avoid network calls",
+    )
+    run_parser.add_argument(
+        "--signing-provider",
+        choices=["env", "aws_kms", "azure_key_vault"],
+        help="Override the signing backend provider for this run",
+    )
+    run_parser.add_argument(
+        "--signing-key-id",
+        help="Signing key alias or identifier when using remote providers",
+    )
+    run_parser.add_argument(
+        "--signing-region",
+        help="AWS region to use when invoking KMS",
+    )
+    run_parser.add_argument(
+        "--azure-vault-url",
+        help="Azure Key Vault URL for remote signing",
+    )
+    run_parser.add_argument(
+        "--rotation-sla-days",
+        type=int,
+        help="Override the signing key rotation SLA in days",
+    )
+    run_parser.add_argument(
+        "--opa-url",
+        help="Override the OPA server URL for remote policy checks",
+    )
+    run_parser.add_argument(
+        "--opa-token",
+        help="Bearer token for authenticating with the OPA server",
+    )
+    run_parser.add_argument(
+        "--opa-package",
+        help="OPA policy package to query (e.g. fixops.policies)",
+    )
+    run_parser.add_argument(
+        "--opa-health-path",
+        help="Custom OPA health endpoint path",
+    )
+    run_parser.add_argument(
+        "--opa-bundle-status-path",
+        help="OPA bundle status endpoint for readiness checks",
+    )
+    run_parser.add_argument(
+        "--opa-timeout",
+        type=int,
+        help="Timeout in seconds for OPA requests",
     )
     run_parser.add_argument(
         "--evidence-dir",

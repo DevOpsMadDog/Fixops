@@ -5,10 +5,9 @@ Real OPA (Open Policy Agent) Engine for Production Mode
 """
 
 import asyncio
-import json
 import time
-from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
+
 import structlog
 
 from src.config.settings import get_settings
@@ -192,12 +191,44 @@ class DemoOPAEngine(OPAEngine):
 
 class ProductionOPAEngine(OPAEngine):
     """Production OPA Engine with real OPA server"""
-    
-    def __init__(self, opa_url: str = "http://localhost:8181"):
-        self.opa_url = opa_url.rstrip('/')
+
+    def __init__(
+        self,
+        opa_url: str = "http://localhost:8181",
+        *,
+        policy_package: str = "fixops",
+        health_path: str = "/health",
+        bundle_status_path: Optional[str] = None,
+        auth_token: Optional[str] = None,
+        request_timeout: int = 5,
+    ):
+        self.opa_url = opa_url.rstrip("/") or "http://localhost:8181"
+        self.policy_package = self._normalise_package(policy_package)
+        self.health_path = health_path if health_path.startswith("/") else f"/{health_path}"
+        self.bundle_status_path = bundle_status_path
+        if self.bundle_status_path and not self.bundle_status_path.startswith("/"):
+            self.bundle_status_path = f"/{self.bundle_status_path}"
+        self.auth_token = auth_token
+        self.request_timeout = max(1, int(request_timeout or 5))
         self.client = None
         self._initialize_client()
         self.policy_cache = {}
+
+    @staticmethod
+    def _normalise_package(package: str) -> str:
+        cleaned = (package or "fixops").strip().strip("/")
+        if not cleaned:
+            return "fixops"
+        return cleaned.replace(".", "/")
+
+    def _policy_path(self, policy_name: str, rule: str = "allow") -> str:
+        base = self.policy_package.rstrip("/")
+        return f"{base}/{policy_name.strip('/')}/{rule}"
+
+    def _auth_headers(self) -> Dict[str, str]:
+        if self.auth_token:
+            return {"Authorization": f"Bearer {self.auth_token}"}
+        return {}
     
     def _initialize_client(self):
         """Initialize OPA client"""
@@ -244,82 +275,112 @@ class ProductionOPAEngine(OPAEngine):
         """Evaluate using OPA Python client"""
         try:
             # Query OPA for policy decision
-            policy_path = f"fixops/{policy_name}/allow"
+            policy_path = self._policy_path(policy_name)
             result = await asyncio.to_thread(
-                self.client.query, 
-                policy_path, 
+                self.client.query,
+                policy_path,
                 input_data=input_data
             )
-            
+
             # Convert OPA result to our format
-            if result.get("result"):
-                return {
-                    "decision": "allow",
-                    "rationale": f"OPA policy {policy_name} evaluation passed"
-                }
-            else:
-                return {
-                    "decision": "block",
-                    "rationale": f"OPA policy {policy_name} evaluation failed"
-                }
-                
+            allow, opa_payload = self._extract_decision(result)
+            return self._format_decision(policy_name, allow, opa_payload)
+
         except Exception as e:
             logger.error(f"OPA client evaluation failed: {e}")
             raise
-    
+
     async def _evaluate_with_http(self, policy_name: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate using HTTP requests to OPA server"""
         import aiohttp
-        
+
         try:
-            policy_path = f"fixops/{policy_name}/allow"
+            policy_path = self._policy_path(policy_name)
             url = f"{self.opa_url}/v1/data/{policy_path}"
-            
-            async with aiohttp.ClientSession() as session:
+
+            async with aiohttp.ClientSession(headers=self._auth_headers()) as session:
                 async with session.post(
                     url,
                     json={"input": input_data},
-                    timeout=aiohttp.ClientTimeout(total=5)
+                    timeout=aiohttp.ClientTimeout(total=self.request_timeout)
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
-                        
-                        if result.get("result"):
-                            return {
-                                "decision": "allow",
-                                "rationale": f"OPA policy {policy_name} evaluation passed",
-                                "opa_result": result
-                            }
-                        else:
-                            return {
-                                "decision": "block", 
-                                "rationale": f"OPA policy {policy_name} evaluation failed",
-                                "opa_result": result
-                            }
+
+                        allow, opa_payload = self._extract_decision(result)
+                        decision = self._format_decision(policy_name, allow, opa_payload)
+                        decision["opa_result"] = result
+                        return decision
                     else:
                         raise Exception(f"OPA server responded with status {response.status}")
-                        
+
         except Exception as e:
             logger.error(f"OPA HTTP evaluation failed: {e}")
             raise
-    
+
     async def health_check(self) -> bool:
         """Check if OPA server is healthy"""
         try:
             import aiohttp
-            
-            url = f"{self.opa_url}/health"
-            
-            async with aiohttp.ClientSession() as session:
+
+            url = f"{self.opa_url}{self.health_path}"
+
+            async with aiohttp.ClientSession(headers=self._auth_headers()) as session:
                 async with session.get(
                     url,
-                    timeout=aiohttp.ClientTimeout(total=3)
+                    timeout=aiohttp.ClientTimeout(total=self.request_timeout)
                 ) as response:
-                    return response.status == 200
-                    
+                    if response.status != 200:
+                        return False
+
+            if self.bundle_status_path:
+                status_url = f"{self.opa_url}{self.bundle_status_path}"
+                async with aiohttp.ClientSession(headers=self._auth_headers()) as session:
+                    async with session.get(
+                        status_url,
+                        timeout=aiohttp.ClientTimeout(total=self.request_timeout)
+                    ) as status_response:
+                        if status_response.status != 200:
+                            return False
+
+                        payload = await status_response.json()
+                        if isinstance(payload, dict):
+                            bundle_state = payload.get("status") or payload.get("bundle_status")
+                            if bundle_state and str(bundle_state).lower() not in {"active", "ok", "ready"}:
+                                return False
+
+            return True
+
         except Exception as e:
             logger.error(f"OPA health check failed: {e}")
             return False
+
+    @staticmethod
+    def _extract_decision(result: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+        payload = result.get("result") if isinstance(result, dict) else None
+        if isinstance(payload, bool):
+            return payload, {"raw_result": payload}
+        if isinstance(payload, dict):
+            for key in ("allow", "result", "decision"):
+                value = payload.get(key)
+                if isinstance(value, bool):
+                    return value, payload
+            return bool(payload), payload
+        return bool(payload), {"raw_result": payload}
+
+    @staticmethod
+    def _format_decision(policy_name: str, allow: bool, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if allow:
+            return {
+                "decision": "allow",
+                "rationale": f"OPA policy {policy_name} evaluation passed",
+                "details": payload,
+            }
+        return {
+            "decision": "block",
+            "rationale": f"OPA policy {policy_name} evaluation failed",
+            "details": payload,
+        }
 
 class OPAEngineFactory:
     """Factory for creating OPA engines based on mode"""
@@ -333,10 +394,16 @@ class OPAEngineFactory:
         if settings.DEMO_MODE:
             logger.info("🎭 Creating Demo OPA Engine (local evaluation)")
             return DemoOPAEngine()
-        else:
-            opa_url = getattr(settings, 'OPA_SERVER_URL', 'http://localhost:8181')
-            logger.info(f"🏭 Creating Production OPA Engine: {opa_url}")
-            return ProductionOPAEngine(opa_url)
+        opa_url = getattr(settings, "OPA_SERVER_URL", None) or "http://localhost:8181"
+        logger.info("🏭 Creating Production OPA Engine", opa_url=opa_url)
+        return ProductionOPAEngine(
+            opa_url,
+            policy_package=getattr(settings, "OPA_POLICY_PACKAGE", "fixops"),
+            health_path=getattr(settings, "OPA_HEALTH_PATH", "/health"),
+            bundle_status_path=getattr(settings, "OPA_BUNDLE_STATUS_PATH", None),
+            auth_token=getattr(settings, "OPA_AUTH_TOKEN", None),
+            request_timeout=getattr(settings, "OPA_REQUEST_TIMEOUT", 5),
+        )
 
 # Global OPA engine instance
 _opa_engine_instance: Optional[OPAEngine] = None
@@ -347,8 +414,15 @@ async def get_opa_engine() -> OPAEngine:
     
     if _opa_engine_instance is None:
         _opa_engine_instance = OPAEngineFactory.create()
-    
+
     return _opa_engine_instance
+
+
+def reset_opa_engine() -> None:
+    """Reset the cached OPA engine instance (useful for tests)."""
+
+    global _opa_engine_instance
+    _opa_engine_instance = None
 
 # Convenience functions
 async def evaluate_vulnerability_policy(vulnerabilities: List[Dict[str, Any]]) -> Dict[str, Any]:
