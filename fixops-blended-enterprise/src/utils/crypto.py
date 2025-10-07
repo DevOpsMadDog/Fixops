@@ -364,7 +364,10 @@ class AzureKeyVaultProvider:
         self._refresh_key_material()
 
     def sign(self, payload: bytes) -> bytes:
-        response = self._crypto_client.sign(payload)  # type: ignore[call-arg]
+        response = self._crypto_client.sign(  # type: ignore[call-arg]
+            self._signature_algorithm,
+            payload,
+        )
         signature = _extract_signature(response)
         if signature is None:
             raise RuntimeError("Azure Key Vault did not return a signature")
