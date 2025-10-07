@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     ENABLED_KEV: bool = Field(default=True)
     ENABLED_VEX: bool = Field(default=False)
     ENABLED_RSS_SIDECAR: bool = Field(default=False)
-    
+
     # Security Configuration
     SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY"))
     JWT_ALGORITHM: str = "HS256"
@@ -78,6 +78,30 @@ class Settings(BaseSettings):
     )
     AZURE_VAULT_URL: Optional[str] = Field(
         default=os.getenv("AZURE_VAULT_URL"), description="Azure Key Vault base URL"
+    )
+    OPA_SERVER_URL: Optional[str] = Field(
+        default=os.getenv("OPA_SERVER_URL"),
+        description="Base URL for the external OPA server",
+    )
+    OPA_POLICY_PACKAGE: str = Field(
+        default=os.getenv("OPA_POLICY_PACKAGE", "fixops"),
+        description="OPA policy package used for bundle queries",
+    )
+    OPA_HEALTH_PATH: str = Field(
+        default=os.getenv("OPA_HEALTH_PATH", "/health"),
+        description="OPA health endpoint path",
+    )
+    OPA_BUNDLE_STATUS_PATH: Optional[str] = Field(
+        default=os.getenv("OPA_BUNDLE_STATUS_PATH"),
+        description="Optional OPA bundle status endpoint for readiness checks",
+    )
+    OPA_AUTH_TOKEN: Optional[str] = Field(
+        default=os.getenv("OPA_AUTH_TOKEN"),
+        description="Bearer token for authenticating with the OPA server",
+    )
+    OPA_REQUEST_TIMEOUT: int = Field(
+        default=int(os.getenv("OPA_REQUEST_TIMEOUT", "5")),
+        description="Timeout in seconds for OPA HTTP requests",
     )
     
     # Database Configuration

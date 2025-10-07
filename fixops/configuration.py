@@ -79,6 +79,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "onboarding",
     "compliance",
     "policy_automation",
+    "policy_engine",
     "pricing",
     "limits",
     "ai_agents",
@@ -423,6 +424,74 @@ def _validate_policy_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
         if profiles:
             config["profiles"] = profiles
     return config
+
+
+def _validate_policy_engine_config(raw: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    if not raw:
+        return {}
+
+    mapping = _require_mapping(raw, "policy_engine")
+    unexpected = set(mapping) - {"opa"}
+    if unexpected:
+        raise ValueError(f"policy_engine contains unexpected keys: {sorted(unexpected)}")
+
+    config: Dict[str, Any] = {}
+    opa_raw = mapping.get("opa")
+    if opa_raw is not None:
+        opa_mapping = _require_mapping(opa_raw, "policy_engine.opa")
+        allowed = {
+            "enabled",
+            "url",
+            "policy_package",
+            "health_path",
+            "bundle_status_path",
+            "auth_token_env",
+            "request_timeout_seconds",
+        }
+        unexpected_opa = set(opa_mapping) - allowed
+        if unexpected_opa:
+            raise ValueError(
+                "policy_engine.opa contains unexpected keys: {keys}".format(
+                    keys=sorted(unexpected_opa)
+                )
+            )
+
+        opa_config: Dict[str, Any] = {}
+        if "enabled" in opa_mapping and opa_mapping["enabled"] is not None:
+            opa_config["enabled"] = bool(opa_mapping["enabled"])
+        if opa_mapping.get("url") is not None:
+            opa_config["url"] = _require_string(
+                opa_mapping["url"], "policy_engine.opa.url"
+            )
+        if opa_mapping.get("policy_package") is not None:
+            opa_config["policy_package"] = _require_string(
+                opa_mapping["policy_package"], "policy_engine.opa.policy_package"
+            )
+        if opa_mapping.get("health_path") is not None:
+            opa_config["health_path"] = _require_string(
+                opa_mapping["health_path"], "policy_engine.opa.health_path"
+            )
+        if opa_mapping.get("bundle_status_path") is not None:
+            opa_config["bundle_status_path"] = _require_string(
+                opa_mapping["bundle_status_path"], "policy_engine.opa.bundle_status_path"
+            )
+        if opa_mapping.get("auth_token_env") is not None:
+            opa_config["auth_token_env"] = _require_string(
+                opa_mapping["auth_token_env"], "policy_engine.opa.auth_token_env"
+            )
+        if opa_mapping.get("request_timeout_seconds") is not None:
+            timeout_value = opa_mapping["request_timeout_seconds"]
+            if not isinstance(timeout_value, int) or timeout_value <= 0:
+                raise ValueError(
+                    "policy_engine.opa.request_timeout_seconds must be a positive integer"
+                )
+            opa_config["request_timeout_seconds"] = timeout_value
+
+        if opa_config:
+            opa_config.setdefault("enabled", True)
+            config["opa"] = opa_config
+
+    return config
 class _OverlayDocument(BaseModel):
     """Pydantic schema for validating overlay documents."""
 
@@ -442,6 +511,7 @@ class _OverlayDocument(BaseModel):
     onboarding: Optional[Dict[str, Any]] = None
     compliance: Optional[Dict[str, Any]] = None
     policy_automation: Optional[Dict[str, Any]] = None
+    policy_engine: Optional[Dict[str, Any]] = None
     pricing: Optional[Dict[str, Any]] = None
     limits: Optional[Dict[str, Any]] = None
     ai_agents: Optional[Dict[str, Any]] = None
@@ -504,6 +574,7 @@ class OverlayConfig:
     onboarding: Dict[str, Any] = field(default_factory=dict)
     compliance: Dict[str, Any] = field(default_factory=dict)
     policy_automation: Dict[str, Any] = field(default_factory=dict)
+    policy_engine: Dict[str, Any] = field(default_factory=dict)
     pricing: Dict[str, Any] = field(default_factory=dict)
     limits: Dict[str, Any] = field(default_factory=dict)
     ai_agents: Dict[str, Any] = field(default_factory=dict)
@@ -559,6 +630,7 @@ class OverlayConfig:
             "onboarding": self.onboarding_settings,
             "compliance": self.compliance_settings,
             "policy_automation": self.policy_settings,
+            "policy_engine": self.policy_engine_settings,
             "pricing": self.pricing,
             "limits": self.limits,
             "ai_agents": self.ai_agents,
@@ -714,6 +786,33 @@ class OverlayConfig:
         base["actions"] = actions
         base.pop("profiles", None)
         return base
+
+    @property
+    def policy_engine_settings(self) -> Dict[str, Any]:
+        config: Dict[str, Any] = {}
+        opa = self.policy_engine.get("opa") if isinstance(self.policy_engine, Mapping) else None
+        if isinstance(opa, Mapping):
+            payload: Dict[str, Any] = {}
+            enabled = opa.get("enabled")
+            if enabled is not None:
+                payload["enabled"] = bool(enabled)
+            for key in (
+                "url",
+                "policy_package",
+                "health_path",
+                "bundle_status_path",
+                "auth_token_env",
+            ):
+                value = opa.get(key)
+                if isinstance(value, str) and value.strip():
+                    payload[key] = value.strip()
+            timeout = opa.get("request_timeout_seconds")
+            if isinstance(timeout, int) and timeout > 0:
+                payload["request_timeout_seconds"] = timeout
+            if payload:
+                payload.setdefault("enabled", True)
+                config["opa"] = payload
+        return config
 
     @property
     def ssdlc_settings(self) -> Dict[str, Any]:
@@ -1046,6 +1145,7 @@ def load_overlay(
         "onboarding": document.onboarding or {},
         "compliance": document.compliance or {},
         "policy_automation": document.policy_automation or {},
+        "policy_engine": document.policy_engine or {},
         "pricing": document.pricing or {},
         "limits": document.limits or {},
         "ai_agents": document.ai_agents or {},
@@ -1067,6 +1167,7 @@ def load_overlay(
     try:
         base["compliance"] = _validate_compliance_config(base.get("compliance"))
         base["policy_automation"] = _validate_policy_config(base.get("policy_automation"))
+        base["policy_engine"] = _validate_policy_engine_config(base.get("policy_engine"))
     except ValueError as exc:
         raise ValueError(f"Overlay validation failed: {exc}") from exc
 
@@ -1127,6 +1228,7 @@ def load_overlay(
         onboarding=dict(base.get("onboarding", {})),
         compliance=dict(base.get("compliance", {})),
         policy_automation=dict(base.get("policy_automation", {})),
+        policy_engine=dict(base.get("policy_engine", {})),
         pricing=dict(base.get("pricing", {})),
         limits=dict(base.get("limits", {})),
         ai_agents=dict(base.get("ai_agents", {})),

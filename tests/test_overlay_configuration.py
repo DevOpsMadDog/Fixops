@@ -175,6 +175,64 @@ def test_policy_action_triggers_normalised(tmp_path: Path) -> None:
     assert actions[0]["type"] == "jira_issue"
 
 
+def test_policy_engine_overlay_round_trip(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "policy_engine": {
+            "opa": {
+                "enabled": False,
+                "url": "https://opa.example.com",
+                "policy_package": "fixops.security",
+                "health_path": "/healthz",
+                "bundle_status_path": "/bundles/status",
+                "auth_token_env": "OPA_TOKEN",
+                "request_timeout_seconds": 12,
+            }
+        }
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    config = load_overlay(path)
+    opa_config = config.policy_engine.get("opa")
+    assert opa_config is not None
+    assert opa_config["enabled"] is False
+    assert opa_config["url"] == "https://opa.example.com"
+    exported = config.to_sanitised_dict()["policy_engine"]["opa"]
+    assert exported["auth_token_env"] == "OPA_TOKEN"
+    assert exported["policy_package"] == "fixops.security"
+    assert exported["request_timeout_seconds"] == 12
+
+
+def test_policy_engine_rejects_invalid_timeout(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "policy_engine": {
+            "opa": {
+                "url": "https://opa.example.com",
+                "request_timeout_seconds": 0,
+            }
+        }
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)
+
+
+def test_policy_engine_rejects_unknown_fields(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "policy_engine": {
+            "opa": {
+                "url": "https://opa.example.com",
+                "unexpected": True,
+            },
+            "other": {},
+        }
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_overlay(path)
+
+
 def test_signing_configuration_round_trip(tmp_path: Path) -> None:
     path = tmp_path / "fixops.overlay.yml"
     overlay_content = {

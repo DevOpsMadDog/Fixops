@@ -8,6 +8,7 @@ from pydantic import BaseModel
 import structlog
 
 from src.config.settings import get_settings
+from src.services.real_opa_engine import get_opa_engine
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/system-mode", tags=["system-management"])
@@ -35,8 +36,16 @@ async def get_current_mode():
         if not settings.primary_llm_api_key:
             missing_requirements.append("OPENAI_API_KEY")
         
-        # Note: OPA server check would require actual network call
-        missing_requirements.append("OPA_SERVER")  # Assume not available
+        opa_ready = False
+        if getattr(settings, "OPA_SERVER_URL", None):
+            try:
+                engine = await get_opa_engine()
+                opa_ready = await engine.health_check()
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.warning("OPA health check failed", error=str(exc))
+
+        if not opa_ready:
+            missing_requirements.append("OPA_SERVER")
         
         if not (settings.JIRA_URL and settings.JIRA_USERNAME and settings.JIRA_API_TOKEN):
             missing_requirements.append("JIRA_CREDENTIALS")
@@ -56,7 +65,9 @@ async def get_current_mode():
                     "decision_engine": "operational",
                     "vector_database": "demo" if settings.DEMO_MODE else ("operational" if settings.PGVECTOR_ENABLED else "needs_config"),
                     "llm_consensus": "demo" if settings.DEMO_MODE else ("operational" if settings.primary_llm_api_key else "needs_keys"),
-                    "policy_engine": "demo" if settings.DEMO_MODE else "needs_server",
+                    "policy_engine": "demo"
+                    if settings.DEMO_MODE
+                    else ("operational" if opa_ready else "needs_server"),
                     "evidence_lake": "operational"
                 }
             }

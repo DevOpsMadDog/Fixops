@@ -286,6 +286,17 @@
       }
     }
   },
+  "policy_engine": {
+    "opa": {
+      "enabled": false,
+      "url": "https://opa.fixops.local:8181",
+      "policy_package": "fixops",
+      "health_path": "/health?bundles",
+      "bundle_status_path": "/v1/bundles/fixops/status",
+      "auth_token_env": "FIXOPS_OPA_TOKEN",
+      "request_timeout_seconds": 5
+    }
+  },
   "analytics": {
     "baseline": {
       "findings_per_interval": 120,
