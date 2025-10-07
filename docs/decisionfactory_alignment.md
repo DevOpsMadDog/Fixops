@@ -22,9 +22,9 @@ See [`Part 2 – Partially implemented capabilities`](decisionfactory_alignment/
 
 ## Part 3 – Missing capabilities ❌
 
-See [`Part 3 – Missing capabilities`](decisionfactory_alignment/part-3-missing.md) for the five DecisionFactory.ai requirements that still need to be built from scratch.
+See [`Part 3 – Missing capabilities`](decisionfactory_alignment/part-3-missing.md) for the six DecisionFactory.ai requirements that still need to be built from scratch.
 
 ---
 
 ### Summary
-RSA signing, production-grade OPA policy evaluation, and EPSS/KEV-aware probabilistic scoring are fully aligned. The remaining work concentrates on expanding explainability, RL automation, VEX ingestion, richer evidence exports, and operational surface area (policy gating, key management backends, observability, CLI/Kubernetes configurability, and CI/CD test coverage).
+RSA signing is fully aligned today. The remaining work concentrates on production OPA/Rego enforcement, net-new explainability and RL automation, VEX ingestion, richer evidence exports, and operational surface area (policy gating, EPSS/KEV-aware scoring hardening, key management backends, observability, CLI/Kubernetes configurability, and CI/CD test coverage).

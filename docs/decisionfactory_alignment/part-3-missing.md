@@ -1,6 +1,15 @@
 # DecisionFactory Alignment — Part 3: Missing Capabilities ❌
 
-The following DecisionFactory.ai requirements have not yet been started in FixOps. Five distinct capability areas remain open, each requiring net-new implementation work.
+The following DecisionFactory.ai requirements have not yet been started in FixOps. Six distinct capability areas remain open, each requiring net-new implementation work.
+
+## 2. OPA/Rego policy-as-code runtime (demo + enterprise)
+- **Status:** ❌ Missing
+- **Why it matters:** DecisionFactory.ai assumes every deployment enforces policies via production OPA/Rego bundles, so skipping the real adapter leaves policy evaluations non-compliant.
+- **What to build:**
+  - Instantiate the `RealOPAEngine` client in non-demo modes and ship configuration for pointing at external OPA endpoints.
+  - Implement policy input marshalling plus health checks that prove Rego bundles load and evaluate requests end-to-end.
+  - Add automated tests and documentation covering policy bundle deployment and failure handling.
+  - Evidence: `fixops-blended-enterprise/src/services/policy_engine.py` still executes inline helpers while `fixops-blended-enterprise/src/services/real_opa_engine.py` remains unused in non-demo flows.
 
 ## 3. Explainability with SHAP/LIME alongside LLM narratives
 - **Status:** ❌ Missing
@@ -50,4 +59,4 @@ The following DecisionFactory.ai requirements have not yet been started in FixOp
 ---
 
 ### Snapshot
-Five capability tracks remain missing. Closing them requires net-new explainability tooling, a reinforcement-learning decision loop, VEX suppression support, signed evidence exports, and multi-tenant RBAC aligned with the DecisionFactory.ai role taxonomy.
+Six capability tracks remain missing. Closing them requires production OPA/Rego enforcement, net-new explainability tooling, a reinforcement-learning decision loop, VEX suppression support, signed evidence exports, and multi-tenant RBAC aligned with the DecisionFactory.ai role taxonomy.

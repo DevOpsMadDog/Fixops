@@ -2,6 +2,15 @@
 
 > These are the "in-flight" items: some coverage exists, but the DecisionFactory.ai specification still calls for additional functionality.
 
+### 6. EPSS/KEV should influence SSVC/Markov transitions
+- **Status:** ⚠️ Partial
+- **Current coverage:** Feed refresh jobs persist EPSS/KEV snapshots, and the processing layer adjusts Markov transitions and exploitation priors when the data is present, so the probabilistic core is wired for real signals.
+- **Missing work:**
+  - Guarantee that EPSS/KEV inputs reach every decision path (REST + batch) with regression tests covering the hand-off.
+  - Add validation that proves fallback heuristics engage when scientific libraries (pgmpy, pomegranate, mchmm) are unavailable.
+  - Publish operator runbooks documenting how to enable and monitor EPSS/KEV ingestion in production.
+- **References:** `fixops-blended-enterprise/src/services/feeds_service.py`, `fixops-blended-enterprise/src/services/processing_layer.py`, `fixops-blended-enterprise/src/services/decision_engine.py`
+
 ### 7. Policy gate must BLOCK any KEV finding unless waived
 - **Status:** ⚠️ Partial
 - **Current coverage:** `/policy/evaluate` escalates KEV-tagged findings to hard blocks when they also carry high or critical severities, so the enforcement logic is wired into the runtime path.
