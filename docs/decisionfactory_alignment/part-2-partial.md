@@ -4,30 +4,54 @@
 
 ### 7. Policy gate must BLOCK any KEV finding unless waived
 - **Status:** ⚠️ Partial
-- **Notes:** The `/policy/evaluate` endpoint blocks deployments only when KEV signals coincide with high or critical severities and does not yet support waiver workflows or hard blocks for all KEV detections.
-  - References: `fixops-blended-enterprise/src/api/v1/policy.py`
+- **Current coverage:** `/policy/evaluate` escalates KEV-tagged findings to hard blocks when they also carry high or critical severities, so the enforcement logic is wired into the runtime path.
+- **Missing work:**
+  - Implement a waiver object (API + persistence) so platform security can temporarily suppress a KEV block with auditable approval metadata.
+  - Promote KEV detections to hard blocks regardless of severity unless an approved waiver exists.
+  - Extend regression suites to prove the deny-by-default behaviour and successful waiver usage.
+- **References:** `fixops-blended-enterprise/src/api/v1/policy.py`
 
 ### 9. Key management: KMS/HSM integration and rotation policy
 - **Status:** ⚠️ Partial
-- **Notes:** The environment-backed `EnvKeyProvider` supports RSA signing and key rotation, and security guidance documents the rotation process. However, the AWS KMS and Azure Key Vault adapters remain unimplemented stubs pending full remote HSM integration.
-  - References: `fixops-blended-enterprise/src/utils/crypto.py`, `docs/SECURITY.md`
+- **Current coverage:** The environment-backed `EnvKeyProvider` ships with RSA signing, on-demand rotation, and operator documentation that spells out how to rotate local keys.
+- **Missing work:**
+  - Flesh out the AWS KMS and Azure Key Vault providers so they can load, rotate, and attest to keys managed remotely.
+  - Surface configuration flags in settings overlays/CLI to allow tenant-level provider selection.
+  - Automate rotation health checks and alerts to satisfy the DecisionFactory.ai rotation SLAs.
+- **References:** `fixops-blended-enterprise/src/utils/crypto.py`, `docs/SECURITY.md`
 
 ### 11. Observability: Prometheus metrics for hot path
 - **Status:** ⚠️ Partial
-- **Notes:** A `/metrics` endpoint exposes Prometheus-formatted counters and the decision engine increments decision verdict totals, yet HTTP request instrumentation and Grafana-ready dashboards are still missing.
-  - References: `fixops-blended-enterprise/src/main.py`, `fixops-blended-enterprise/src/services/metrics.py`
+- **Current coverage:** A `/metrics` endpoint exposes counters for decision verdicts, enabling Prometheus scrapes of core automation throughput.
+- **Missing work:**
+  - Instrument HTTP request latency and error ratios for decision, evidence, and policy endpoints.
+  - Publish histograms and gauges that map directly to the DecisionFactory.ai hot-path metrics checklist.
+  - Provide a Grafana dashboard (JSON + screenshots) so adopters can deploy a ready-made view.
+- **References:** `fixops-blended-enterprise/src/main.py`, `fixops-blended-enterprise/src/services/metrics.py`
 
 ### 12. CLI demo/enterprise overlays
 - **Status:** ⚠️ Partial
-- **Notes:** The CLI and overlay profile support module toggles and core automation settings, but operators cannot yet configure signing provider selection, RL/SHAP feature flags, or an external OPA URL through overlay fields or CLI switches.
-  - References: `fixops/fixops/cli.py`, `config/fixops.overlay.yml`
+- **Current coverage:** The CLI profiles and overlay YAML let operators toggle demo vs. enterprise modules and core automation settings.
+- **Missing work:**
+  - Introduce switches/fields for selecting the signing provider, enabling RL/SHAP experiments, and pointing to external OPA endpoints.
+  - Validate overlay schema updates with automated tests to ensure flags round-trip into the runtime configuration.
+  - Document overlay examples for each DecisionFactory.ai deployment persona.
+- **References:** `fixops/fixops/cli.py`, `config/fixops.overlay.yml`
 
 ### 13. CI/CD adapters & Postman collections kept in sync
 - **Status:** ⚠️ Partial
-- **Notes:** Postman suites cover health checks, decision outcomes, and CI/CD happy-path scenarios, yet they do not include KEV hard-block cases, signed evidence download flows, or negative signature verification drills required by DecisionFactory.ai.
-  - References: `fixops-blended-enterprise/postman/POSTMAN_COMPLETION.md`
+- **Current coverage:** Postman suites already cover health checks, baseline decision outcomes, and happy-path CI/CD interactions.
+- **Missing work:**
+  - Add KEV hard-block scenarios, signed evidence retrieval flows, and negative signature verification tests.
+  - Keep the CI/CD adapters and Postman collections versioned together with automation that fails when they drift.
+  - Capture regression data for RL/SHAP toggles so new explainability features remain exercised.
+- **References:** `fixops-blended-enterprise/postman/POSTMAN_COMPLETION.md`
 
 ### 14. Kubernetes manifests reflect new env vars and readiness
 - **Status:** ⚠️ Partial
-- **Notes:** Deployments expose core secrets and readiness probes, but ConfigMaps omit newer settings such as `SIGNING_PROVIDER`, `KEY_ID`, `OPA_SERVER_URL`, or prospective `FEATURE_RL` toggles that the platform expects to be configurable per environment.
-  - References: `fixops-blended-enterprise/kubernetes/backend-deployment.yaml`, `fixops-blended-enterprise/kubernetes/configmap.yaml`
+- **Current coverage:** Deployments ship readiness probes and surface the legacy secret/env var set.
+- **Missing work:**
+  - Add ConfigMap entries and deployment wiring for `SIGNING_PROVIDER`, `KEY_ID`, `OPA_SERVER_URL`, and the proposed RL/SHAP feature toggles.
+  - Ensure the manifests expose liveness/readiness gates for the new metrics and policy services.
+  - Provide Helm/Kustomize overlays (or manifest snippets) that map to DecisionFactory.ai’s reference environments.
+- **References:** `fixops-blended-enterprise/kubernetes/backend-deployment.yaml`, `fixops-blended-enterprise/kubernetes/configmap.yaml`

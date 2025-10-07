@@ -4,30 +4,50 @@ The following DecisionFactory.ai requirements have not yet been started in FixOp
 
 ## 3. Explainability with SHAP/LIME alongside LLM narratives
 - **Status:** ❌ Missing
-- **Notes:** The repository has no SHAP or LIME integrations; explanations rely solely on deterministic fusion outputs and LLM narratives.
+- **Why it matters:** DecisionFactory.ai expects both deterministic narratives and data-driven feature attribution so security reviewers can validate each recommendation.
+- **What to build:**
+  - Introduce a SHAP/LIME service that can run against the decision engine’s feature vectors.
+  - Provide storage and API responses that return attribution artefacts with each decision/evidence record.
+  - Update documentation and demos so explainability toggles are visible to operators.
   - Evidence: repository search returns no SHAP/LIME modules.
 
 ## 4. RL/MDP learning loop for actions (defer/patch/accept)
 - **Status:** ❌ Missing
-- **Notes:** There are no reinforcement-learning policies, experience logs, or feature flags dedicated to an RL decision loop in the current services.
+- **Why it matters:** DecisionFactory.ai highlights a reinforcement-learning control loop that continuously tunes defer/patch/accept policies based on outcomes.
+- **What to build:**
+  - Capture experience tuples from deployment outcomes and store them for training.
+  - Implement policy evaluation + improvement routines (e.g., Q-learning or policy gradients) and expose a feature toggle for rollout.
+  - Instrument observability hooks so RL performance can be reviewed.
   - Evidence: repository search returns no reinforcement learning hooks.
 
 ## 5. VEX ingestion (SPDX/CycloneDX) to suppress `not_affected`
 - **Status:** ❌ Missing
-- **Notes:** While SBOM parsing exists, no VEX parser or suppression logic is present to downgrade findings marked `not_affected` by suppliers.
+- **Why it matters:** Without VEX ingestion, customers cannot rely on supplier attestations to automatically downgrade unaffected findings.
+- **What to build:**
+  - Parse SPDX/CycloneDX VEX documents and merge supplier assertions into the evidence store.
+  - Wire suppression logic into decision evaluation so `not_affected` findings skip remediation queues.
+  - Add regression tests and documentation covering VEX ingestion workflows.
   - Evidence: repository search shows only documentation mentions of VEX without runtime ingestion.
 
 ## 8. Evidence export: signed JSON + printable PDF bundle
 - **Status:** ❌ Missing
-- **Notes:** Evidence bundles are emitted as JSON (optionally compressed or encrypted) but are not signed nor accompanied by a PDF rendition, and no `/evidence/{id}/download` API is available.
+- **Why it matters:** Auditors demand tamper-evident artefacts plus a human-readable packet when exporting DecisionFactory evidence.
+- **What to build:**
+  - Assemble a bundle generator that signs JSON payloads, renders a PDF summary, and packages them for download.
+  - Publish a `/evidence/{id}/download` endpoint that enforces RBAC and streams the signed bundle.
+  - Verify signatures during export tests and document the operational flow.
   - References: `fixops/evidence.py`, `fixops-blended-enterprise/src/api/v1`
 
 ## 10. Multi-tenant RBAC (owner, approver, auditor, integrator)
 - **Status:** ❌ Missing
-- **Notes:** User records track generic roles and security flags but do not associate accounts with tenant scopes or the specific role taxonomy required by DecisionFactory.ai.
+- **Why it matters:** DecisionFactory.ai scopes access by tenant and persona; without that mapping, shared environments lack the minimum access guarantees.
+- **What to build:**
+  - Extend the user/tenant data model with the owner/approver/auditor/integrator roles.
+  - Enforce role checks across decision, evidence, policy, and configuration APIs.
+  - Provide migration scripts and admin tooling so operators can assign roles safely.
   - References: `fixops-blended-enterprise/src/models/user.py`
 
 ---
 
 ### Snapshot
-Five capability tracks remain missing. Closing them will require new explainability tooling, an RL/MDP automation loop, VEX ingestion and suppression, signed evidence export bundles, and multi-tenant RBAC aligned to the DecisionFactory.ai role taxonomy.
+Five capability tracks remain missing. Closing them requires net-new explainability tooling, a reinforcement-learning decision loop, VEX suppression support, signed evidence exports, and multi-tenant RBAC aligned with the DecisionFactory.ai role taxonomy.
