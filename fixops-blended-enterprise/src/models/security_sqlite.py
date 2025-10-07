@@ -4,7 +4,7 @@ Findings, Vulnerabilities, Incidents, Services, Policies
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
@@ -406,9 +406,9 @@ class VulnerabilityIntelligence(BaseModel):
 
 class ComplianceEvidence(BaseModel, AuditMixin):
     """Compliance evidence and attestations (SQLite compatible)"""
-    
+
     __tablename__ = "compliance_evidence"
-    
+
     service_id: Mapped[str] = mapped_column(String(36), ForeignKey("services.id"), nullable=False, index=True)
     
     # Compliance framework
@@ -443,3 +443,39 @@ class ComplianceEvidence(BaseModel, AuditMixin):
     def set_evidence_data(self, data: Dict[str, Any]) -> None:
         """Set evidence data from dictionary"""
         self.evidence_data = json.dumps(data)
+
+
+class KevFindingWaiver(BaseModel, AuditMixin, SoftDeleteMixin):
+    """Auditable waiver record for Known Exploited Vulnerabilities (SQLite compatible)"""
+
+    __tablename__ = "kev_waivers"
+
+    cve_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    service_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    finding_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    justification: Mapped[str] = mapped_column(Text, nullable=False)
+    approved_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    change_ticket: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    def is_active_for(self, *, service_name: Optional[str], now: Optional[datetime] = None) -> bool:
+        """Return True when the waiver is active for the requested scope."""
+
+        if not self.is_active:
+            return False
+
+        if now is None:
+            now = datetime.utcnow()
+
+        expiry = self.expires_at
+        if expiry.tzinfo is not None:
+            expiry = expiry.astimezone(timezone.utc).replace(tzinfo=None)
+
+        if expiry < now:
+            return False
+
+        if self.service_name and service_name:
+            return self.service_name.lower() == service_name.lower()
+
+        return self.service_name is None or service_name is None

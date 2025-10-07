@@ -4,12 +4,34 @@ from __future__ import annotations
 from dataclasses import dataclass
 import sys
 import types
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, get_args, get_origin, get_type_hints
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, get_args, get_origin, get_type_hints
+
+
+class ConfigDict(dict):
+    """Minimal stand-in for Pydantic's configuration container."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+
+def field_validator(*_fields: str, mode: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        return func
+
+    return decorator
+
+
+def computed_field(*, return_type: Any | None = None) -> Callable[[Callable[..., Any]], property]:
+    def decorator(func: Callable[..., Any]) -> property:
+        return property(func)
+
+    return decorator
 
 
 @dataclass
 class FieldInfo:
     default: Any = ...
+    default_factory: Optional[Callable[[], Any]] = None
     min_length: Optional[int] = None
     max_length: Optional[int] = None
     ge: Optional[float] = None
@@ -20,14 +42,20 @@ class FieldInfo:
 def Field(
     default: Any = ...,
     *,
+    default_factory: Optional[Callable[[], Any]] = None,
     min_length: Optional[int] = None,
     max_length: Optional[int] = None,
     ge: Optional[float] = None,
     le: Optional[float] = None,
     description: Optional[str] = None,
 ) -> FieldInfo:
+    if default is ... and default_factory is not None:
+        default_value = default_factory()
+    else:
+        default_value = default
     return FieldInfo(
-        default=default,
+        default=default_value,
+        default_factory=default_factory,
         min_length=min_length,
         max_length=max_length,
         ge=ge,
@@ -80,6 +108,7 @@ class BaseModelMeta(type):
 
 class BaseModel(metaclass=BaseModelMeta):
     __fields__: Dict[str, Tuple[Any, FieldInfo]]
+    model_config: ConfigDict = ConfigDict()
 
     def __init__(self, **data: Any) -> None:
         cls = self.__class__
@@ -132,6 +161,29 @@ class BaseModel(metaclass=BaseModelMeta):
 
     def dict(self) -> Dict[str, Any]:
         return {name: getattr(self, name) for name in self.__class__.__fields__}
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "BaseModel":
+        if isinstance(data, cls):
+            return data
+        if isinstance(data, BaseModel):
+            return cls(**data.dict())
+        if isinstance(data, dict):
+            return cls(**data)
+
+        if getattr(cls.model_config, "get", None):
+            from_attributes = cls.model_config.get("from_attributes")
+        else:
+            from_attributes = getattr(cls.model_config, "from_attributes", False)
+
+        if from_attributes:
+            values = {}
+            for name in cls.__fields__:
+                if hasattr(data, name):
+                    values[name] = getattr(data, name)
+            return cls(**values)
+
+        raise TypeError("Object is not valid for model validation")
 
     # ------------------------------------------------------------------
     # Validation helpers
