@@ -306,7 +306,6 @@ class PipelineOrchestrator:
 
         crosswalk: List[dict[str, Any]] = []
         for index, row in enumerate(rows):
-            component_name = self._extract_component_name(row)
             token = token_by_index.get(index)
             match = sbom_lookup.get(token) if token else None
 

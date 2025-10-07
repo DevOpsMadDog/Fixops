@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import asyncio
 import sys
 from pathlib import Path

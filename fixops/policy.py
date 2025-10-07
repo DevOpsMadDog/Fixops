@@ -5,7 +5,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
 from fixops.configuration import OverlayConfig
 from fixops.connectors import AutomationConnectors

@@ -300,13 +300,15 @@ def _validate_policy_actions(raw: Any, location: str) -> list[Dict[str, Any]]:
             "channel",
             "text",
         }
-        for field in optional_fields:
-            if field in entry and entry[field] is not None:
-                value = entry[field]
-                if field == "parent_page_id" and isinstance(value, (int, float)):
-                    action[field] = str(int(value))
+        for field_name in optional_fields:
+            if field_name in entry and entry[field_name] is not None:
+                value = entry[field_name]
+                if field_name == "parent_page_id" and isinstance(value, (int, float)):
+                    action[field_name] = str(int(value))
                 else:
-                    action[field] = _require_string(value, f"{location}[{index}].{field}")
+                    action[field_name] = _require_string(
+                        value, f"{location}[{index}].{field_name}"
+                    )
         if "force_delivery" in entry and entry["force_delivery"] is not None:
             value = entry["force_delivery"]
             if isinstance(value, bool):
