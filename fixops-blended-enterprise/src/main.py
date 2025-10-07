@@ -7,13 +7,12 @@ import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 
 import uvloop
 from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from prometheus_client import Counter, Histogram, generate_latest
 import structlog
 
 from src.config.settings import get_settings
@@ -31,6 +30,7 @@ from src.db.session import DatabaseManager
 from src.services.cache_service import CacheService
 from src.utils.logger import setup_structured_logging
 from src.services.feeds_service import FeedsService
+from src.services.metrics import FixOpsMetrics
 
 # Configure uvloop for maximum performance
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -233,18 +233,24 @@ app.include_router(monitoring.router, prefix="/api/v1", tags=["monitoring"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):
-    """Track performance metrics for all requests"""
+    """Track performance metrics for all requests."""
     start_time = time.perf_counter()
-    
-    response = await call_next(request)
-    
-    # Calculate request duration
-    duration = time.perf_counter() - start_time
-    
-    # Add performance headers
-    response.headers["X-Process-Time"] = str(duration)
-    
-    return response
+    response: Optional[Response] = None
+    status_code = 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        duration = time.perf_counter() - start_time
+
+        if response is not None:
+            response.headers["X-Process-Time"] = str(duration)
+
+        route = request.scope.get("route")
+        endpoint = getattr(route, "path", request.url.path)
+        FixOpsMetrics.record_request(endpoint, request.method, status_code, duration)
 
 if __name__ == "__main__":
     import uvicorn

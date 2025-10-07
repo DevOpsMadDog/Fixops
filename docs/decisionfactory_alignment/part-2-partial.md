@@ -29,15 +29,6 @@
   - Automate rotation health checks and alerts to satisfy the DecisionFactory.ai rotation SLAs.
 - **References:** `fixops-blended-enterprise/src/utils/crypto.py`, `docs/SECURITY.md`
 
-### 11. Observability: Prometheus metrics for hot path
-- **Status:** ⚠️ Partial
-- **Current coverage:** A `/metrics` endpoint exposes counters for decision verdicts, enabling Prometheus scrapes of core automation throughput.
-- **Missing work:**
-  - Instrument HTTP request latency and error ratios for decision, evidence, and policy endpoints.
-  - Publish histograms and gauges that map directly to the DecisionFactory.ai hot-path metrics checklist.
-  - Provide a Grafana dashboard (JSON + screenshots) so adopters can deploy a ready-made view.
-- **References:** `fixops-blended-enterprise/src/main.py`, `fixops-blended-enterprise/src/services/metrics.py`
-
 ### 12. CLI demo/enterprise overlays
 - **Status:** ⚠️ Partial
 - **Current coverage:** The CLI profiles and overlay YAML let operators toggle demo vs. enterprise modules and core automation settings.
