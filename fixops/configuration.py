@@ -71,6 +71,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "auth",
     "data",
     "toggles",
+    "signing",
     "guardrails",
     "metadata",
     "context_engine",
@@ -131,6 +132,49 @@ def _string_list(value: Any, location: str) -> list[str]:
             raise ValueError(f"{location}[{index}] cannot be empty")
         cleaned.append(text)
     return cleaned
+
+
+def _validate_signing_config(raw: Any) -> Dict[str, Any]:
+    config: Dict[str, Any] = {"provider": "env", "rotation_sla_days": 30}
+    if raw is None:
+        return config
+    mapping = _require_mapping(raw, "signing")
+    unexpected = set(mapping) - {
+        "provider",
+        "key_id",
+        "aws_region",
+        "azure_vault_url",
+        "rotation_sla_days",
+    }
+    if unexpected:
+        raise ValueError(
+            f"signing contains unexpected keys: {sorted(unexpected)}"
+        )
+    provider = mapping.get("provider")
+    if provider is not None:
+        provider_value = _require_string(provider, "signing.provider").lower()
+        if provider_value not in {"env", "aws_kms", "azure_key_vault"}:
+            raise ValueError(
+                "signing.provider must be one of ['env', 'aws_kms', 'azure_key_vault']"
+            )
+        config["provider"] = provider_value
+    key_id = mapping.get("key_id")
+    if key_id is not None:
+        config["key_id"] = _require_string(key_id, "signing.key_id")
+    aws_region = mapping.get("aws_region")
+    if aws_region is not None:
+        config["aws_region"] = _require_string(aws_region, "signing.aws_region")
+    azure_vault_url = mapping.get("azure_vault_url")
+    if azure_vault_url is not None:
+        config["azure_vault_url"] = _require_string(
+            azure_vault_url, "signing.azure_vault_url"
+        )
+    rotation_sla = mapping.get("rotation_sla_days")
+    if rotation_sla is not None:
+        if not isinstance(rotation_sla, int) or rotation_sla <= 0:
+            raise ValueError("signing.rotation_sla_days must be a positive integer")
+        config["rotation_sla_days"] = rotation_sla
+    return config
 
 
 def _validate_compliance_frameworks(raw: Any, location: str) -> list[Dict[str, Any]]:
@@ -390,6 +434,7 @@ class _OverlayDocument(BaseModel):
     auth: Optional[Dict[str, Any]] = None
     data: Optional[Dict[str, Any]] = None
     toggles: Optional[Dict[str, Any]] = None
+    signing: Optional[Dict[str, Any]] = None
     guardrails: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
     context_engine: Optional[Dict[str, Any]] = None
@@ -451,6 +496,7 @@ class OverlayConfig:
     auth: Dict[str, Any] = field(default_factory=dict)
     data: Dict[str, Any] = field(default_factory=dict)
     toggles: Dict[str, Any] = field(default_factory=dict)
+    signing: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
     guardrails: Dict[str, Any] = field(default_factory=dict)
     context_engine: Dict[str, Any] = field(default_factory=dict)
@@ -505,6 +551,7 @@ class OverlayConfig:
             "auth": self._mask(self.auth),
             "data": self.data,
             "toggles": self.toggles,
+            "signing": self.signing_settings,
             "metadata": self.metadata,
             "guardrails": self.guardrail_policy,
             "context_engine": self.context_engine_settings,
@@ -524,6 +571,25 @@ class OverlayConfig:
             "tenancy": self.tenancy_settings,
             "performance": self.performance_settings,
         }
+        return payload
+
+    @property
+    def signing_settings(self) -> Dict[str, Any]:
+        settings = dict(self.signing)
+        provider = str(settings.get("provider") or "env").lower()
+        payload: Dict[str, Any] = {"provider": provider}
+        key_id = settings.get("key_id")
+        if isinstance(key_id, str) and key_id.strip():
+            payload["key_id"] = key_id
+        aws_region = settings.get("aws_region")
+        if isinstance(aws_region, str) and aws_region.strip():
+            payload["aws_region"] = aws_region
+        azure_vault_url = settings.get("azure_vault_url")
+        if isinstance(azure_vault_url, str) and azure_vault_url.strip():
+            payload["azure_vault_url"] = azure_vault_url
+        rotation_sla = settings.get("rotation_sla_days")
+        if isinstance(rotation_sla, int) and rotation_sla > 0:
+            payload["rotation_sla_days"] = rotation_sla
         return payload
 
     @staticmethod
@@ -972,6 +1038,7 @@ def load_overlay(
         "auth": document.auth or {},
         "data": document.data or {},
         "toggles": document.toggles or {},
+        "signing": document.signing or {},
         "guardrails": document.guardrails or {},
         "metadata": {"source_path": str(candidate_path)} | (document.metadata or {}),
         "context_engine": document.context_engine or {},
@@ -1002,6 +1069,8 @@ def load_overlay(
         base["policy_automation"] = _validate_policy_config(base.get("policy_automation"))
     except ValueError as exc:
         raise ValueError(f"Overlay validation failed: {exc}") from exc
+
+    base["signing"] = _validate_signing_config(base.get("signing"))
 
     toggles = base.setdefault("toggles", {})
     toggles.setdefault("require_design_input", True)
@@ -1050,6 +1119,7 @@ def load_overlay(
         auth=dict(base.get("auth", {})),
         data=dict(base.get("data", {})),
         toggles=dict(toggles),
+        signing=dict(base.get("signing", {})),
         metadata=dict(metadata),
         guardrails=dict(base.get("guardrails", {})),
         context_engine=dict(base.get("context_engine", {})),

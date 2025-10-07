@@ -42,6 +42,10 @@
     "enforce_ticket_sync": false,
     "capture_feedback": false
   },
+  "signing": {
+    "provider": "env",
+    "rotation_sla_days": 45
+  },
   "modules": {
     "guardrails": {"enabled": true},
     "context_engine": {"enabled": true},

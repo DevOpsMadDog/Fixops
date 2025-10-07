@@ -69,6 +69,16 @@ class Settings(BaseSettings):
     KEY_ID: Optional[str] = Field(
         default=os.getenv("KEY_ID"), description="Remote key identifier"
     )
+    SIGNING_ROTATION_SLA_DAYS: int = Field(
+        default=int(os.getenv("SIGNING_ROTATION_SLA_DAYS", "30")),
+        description="Maximum age in days before signing material must rotate",
+    )
+    AWS_REGION: Optional[str] = Field(
+        default=os.getenv("AWS_REGION"), description="AWS region for KMS operations"
+    )
+    AZURE_VAULT_URL: Optional[str] = Field(
+        default=os.getenv("AZURE_VAULT_URL"), description="Azure Key Vault base URL"
+    )
     
     # Database Configuration
     DATABASE_URL: str = Field(default=os.getenv("MONGO_URL", "mongodb://mongodb:27017/fixops_production"))

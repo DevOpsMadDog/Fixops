@@ -5,8 +5,9 @@ Enterprise middleware for performance, security, and monitoring
 import asyncio
 import time
 import gzip
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Optional
 import structlog
+from fastapi import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, PlainTextResponse
@@ -15,6 +16,7 @@ import orjson
 
 from src.services.cache_service import CacheService
 from src.config.settings import get_settings
+from src.services.metrics import FixOpsMetrics
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -25,23 +27,49 @@ class PerformanceMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start_time = time.perf_counter()
-        
+
         # Add correlation ID for request tracking
         correlation_id = f"req_{int(time.time() * 1000000)}"
         request.state.correlation_id = correlation_id
-        
+
+        if settings.ENABLE_METRICS:
+            FixOpsMetrics.request_started(request.url.path)
+
         # Process request
-        response = await call_next(request)
-        
-        # Calculate total request time
-        process_time = time.perf_counter() - start_time
-        process_time_us = process_time * 1_000_000
-        
+        response: Optional[Response] = None
+        status_code = 500
+
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        except HTTPException as exc:
+            status_code = exc.status_code
+            raise
+        except Exception:
+            raise
+        finally:
+            duration = time.perf_counter() - start_time
+
+            if settings.ENABLE_METRICS:
+                FixOpsMetrics.record_request(
+                    endpoint=request.url.path,
+                    method=request.method,
+                    status=status_code,
+                    duration=duration,
+                )
+                FixOpsMetrics.request_finished(request.url.path)
+
+            process_time_us = duration * 1_000_000
+
+        if response is None:
+            # Re-raise the original exception if we reach this point without a response
+            raise
+
         # Add performance headers
-        response.headers["X-Process-Time"] = f"{process_time:.6f}"
+        response.headers["X-Process-Time"] = f"{duration:.6f}"
         response.headers["X-Process-Time-US"] = f"{process_time_us:.2f}"
         response.headers["X-Correlation-ID"] = correlation_id
-        
+
         # Log slow requests
         if process_time_us > 1000:  # > 1ms
             logger.warning(

@@ -22,6 +22,10 @@ def Depends(dependency: Callable[..., Any] | None = None) -> Callable[..., Any] 
     return dependency
 
 
+def Query(default: Any = None, description: str | None = None) -> Any:
+    return default
+
+
 def File(default: Any) -> Any:
     return default
 
@@ -109,6 +113,32 @@ class _Route:
         return self.endpoint(**kwargs)
 
 
+class APIRouter:
+    def __init__(self, prefix: str = "", tags: Optional[List[str]] | None = None) -> None:
+        self.prefix = prefix or ""
+        self.tags = tags or []
+        self._routes: List[_Route] = []
+
+    def _register(self, method: str, path: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        full_path = f"{self.prefix}{path}"
+
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+            self._routes.append(_Route(method, full_path, func))
+            return func
+
+        return decorator
+
+    def post(self, path: str, **_: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        return self._register("POST", path)
+
+    def get(self, path: str, **_: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        return self._register("GET", path)
+
+    def add_api_route(self, path: str, endpoint: Callable[..., Any], methods: Optional[List[str]] = None, **_: Any) -> None:
+        for method in methods or ["GET"]:
+            self._routes.append(_Route(method, f"{self.prefix}{path}", endpoint))
+
+
 class FastAPI:
     def __init__(self, title: str | None = None, version: str | None = None) -> None:
         self.title = title
@@ -141,14 +171,24 @@ class FastAPI:
         raise HTTPException(status_code=404, detail="Not Found")
 
 
+class _StatusCodes:
+    HTTP_201_CREATED = 201
+
+
+status = _StatusCodes()
+
+
 from .testclient import TestClient  # noqa: E402  (import after FastAPI definition)
 
 __all__ = [
     "FastAPI",
+    "APIRouter",
     "HTTPException",
     "Depends",
+    "Query",
     "File",
     "UploadFile",
     "RequestValidationError",
+    "status",
     "TestClient",
 ]

@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,11 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
     monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.delenv("SIGNING_PROVIDER", raising=False)
+    monkeypatch.delenv("KEY_ID", raising=False)
+    monkeypatch.delenv("AWS_REGION", raising=False)
+    monkeypatch.delenv("AZURE_VAULT_URL", raising=False)
+    monkeypatch.delenv("SIGNING_ROTATION_SLA_DAYS", raising=False)
 
     design_csv = (
         "component,owner,criticality,notes\n"
@@ -107,12 +113,24 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
             "--pretty",
             "--include-overlay",
             "--offline",
+            "--signing-provider",
+            "env",
+            "--signing-key-id",
+            "alias/demo",
+            "--signing-region",
+            "us-east-1",
+            "--rotation-sla-days",
+            "60",
             "--evidence-dir",
             str(evidence_dir),
         ]
     )
 
     assert exit_code == 0
+    assert os.getenv("SIGNING_PROVIDER") == "env"
+    assert os.getenv("KEY_ID") == "alias/demo"
+    assert os.getenv("AWS_REGION") == "us-east-1"
+    assert os.getenv("SIGNING_ROTATION_SLA_DAYS") == "60"
     result_payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert result_payload["status"] == "ok"
     assert result_payload["modules"]["executed"]
