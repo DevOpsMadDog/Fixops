@@ -23,6 +23,15 @@ except ModuleNotFoundError:  # pragma: no cover - the stub ships alongside
     from pydantic import BaseModel, ValidationError  # type: ignore
 
 
+class Request:
+    def __init__(self, headers: Optional[Mapping[str, str]] | None = None, body: bytes | None = None) -> None:
+        self.headers = dict(headers or {})
+        self._body = body or b""
+
+    async def body(self) -> bytes:
+        return self._body
+
+
 class HTTPException(Exception):
     def __init__(self, status_code: int, detail: Any) -> None:
         super().__init__(str(detail))
@@ -158,6 +167,11 @@ class APIRouter:
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("GET", path)
 
+    def include_router(self, router: "APIRouter", prefix: str = "") -> None:
+        for route in router._routes:
+            combined_path = f"{prefix}{route.path}" if prefix else route.path
+            self._routes.append(_Route(route.method, combined_path, route.endpoint))
+
     def add_api_route(
         self,
         path: str,
@@ -170,12 +184,18 @@ class APIRouter:
 
 
 class FastAPI:
-    def __init__(self, title: str | None = None, version: str | None = None) -> None:
+    def __init__(
+        self,
+        title: str | None = None,
+        version: str | None = None,
+        lifespan: Any | None = None,
+    ) -> None:
         self.title = title
         self.version = version
         self._routes: List[_Route] = []
         self._middleware: List[tuple[Any, Dict[str, Any]]] = []
         self.user_middleware: List[SimpleNamespace] = []
+        self._lifespan = lifespan
 
     def post(
         self, path: str, summary: str | None = None, **_: Any
@@ -202,6 +222,11 @@ class FastAPI:
 
         return decorator
 
+    def include_router(self, router: APIRouter, prefix: str = "") -> None:
+        for route in router._routes:
+            combined_path = f"{prefix}{route.path}" if prefix else route.path
+            self._routes.append(_Route(route.method, combined_path, route.endpoint))
+
     # Internal helpers for the TestClient
     def _handle(self, method: str, path: str, body: Optional[Dict[str, Any]]) -> Any:
         for route in self._routes:
@@ -213,6 +238,14 @@ class FastAPI:
 
 class _StatusCodes:
     HTTP_201_CREATED = 201
+    HTTP_200_OK = 200
+    HTTP_400_BAD_REQUEST = 400
+    HTTP_401_UNAUTHORIZED = 401
+    HTTP_403_FORBIDDEN = 403
+    HTTP_404_NOT_FOUND = 404
+    HTTP_413_REQUEST_ENTITY_TOO_LARGE = 413
+    HTTP_415_UNSUPPORTED_MEDIA_TYPE = 415
+    HTTP_422_UNPROCESSABLE_ENTITY = 422
 
 
 status = _StatusCodes()
@@ -224,6 +257,7 @@ __all__ = [
     "FastAPI",
     "APIRouter",
     "HTTPException",
+    "Request",
     "Depends",
     "Query",
     "File",

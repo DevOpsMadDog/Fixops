@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.services import run_registry
+from src.services import run_registry, signing
 
 
 def _prepare(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> run_registry.RunContext:
@@ -46,3 +46,20 @@ def test_reopen_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert reopened.app_id == ctx.app_id
     assert reopened.run_id == ctx.run_id
     assert reopened.inputs_dir.exists()
+
+
+def test_signed_outputs_create_transparency_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, signing_env: None
+) -> None:
+    ctx = _prepare(monkeypatch, tmp_path)
+    manifest = {"stage": "requirements", "items": []}
+    output_path = ctx.write_output("requirements.json", manifest)
+    signed_path = ctx.signed_outputs_dir / "requirements.json.manifest.json"
+    assert signed_path.exists()
+    envelope = json.loads(signed_path.read_text())
+    assert envelope["alg"] == "RS256"
+    assert signing.verify_manifest(json.loads(output_path.read_text()), envelope)
+    index = ctx.transparency_index
+    assert index.exists()
+    contents = index.read_text().strip()
+    assert "requirements.json" in contents

@@ -49,6 +49,7 @@ class GitHubCIAdapter:
             "evidence": outcome.evidence.manifest,
             "compliance": outcome.compliance,
             "top_factors": outcome.top_factors,
+            "marketplace_recommendations": outcome.marketplace_recommendations,
         }
 
     def _extract_repo(self, payload: Mapping[str, Any]) -> str:

@@ -34,18 +34,13 @@ class JenkinsCIAdapter:
             "evidence": outcome.evidence.manifest,
             "compliance": outcome.compliance,
             "top_factors": outcome.top_factors,
+            "marketplace_recommendations": outcome.marketplace_recommendations,
         }
         try:
             signature = signing.sign_manifest(decision)
-            decision.update(
-                {
-                    "signature": signature,
-                    "kid": signing.get_active_kid(),
-                    "algorithm": signing.ALGORITHM,
-                }
-            )
+            decision.update(signature)
         except signing.SigningError:
-            decision.update({"signature": None, "kid": None, "algorithm": signing.ALGORITHM})
+            decision.update({"signature": None, "kid": None, "alg": signing.ALGORITHM, "digest": None})
         return decision
 
     def _normalize(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:

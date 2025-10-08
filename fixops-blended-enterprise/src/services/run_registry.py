@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+
+from src.services import signing
 
 ARTEFACTS_ROOT = Path("artefacts")
 
@@ -45,6 +48,10 @@ class RunContext:
     def signed_outputs_dir(self) -> Path:
         return self.outputs_dir / "signed"
 
+    @property
+    def transparency_index(self) -> Path:
+        return self.outputs_dir / "transparency.index"
+
     def save_input(self, name: str, payload: bytes | bytearray | Mapping[str, Any] | Iterable[Any] | str) -> Path:
         """Persist an input payload beneath the run's inputs directory."""
 
@@ -66,8 +73,49 @@ class RunContext:
             raise ValueError(f"Unsupported output name: {name}")
         target = self.outputs_dir / name
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(_json_dumps(document))
+        content = _json_dumps(document)
+        target.write_text(content)
+        self._maybe_sign(name, document, content)
         return target
+
+    def write_binary_output(self, name: str, blob: bytes) -> Path:
+        target = self.outputs_dir / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(blob)
+        return target
+
+    def load_input_json(self, name: str) -> Any:
+        path = self.inputs_dir / name
+        if not path.exists():
+            raise FileNotFoundError(path)
+        return json.loads(path.read_text())
+
+    def load_output_json(self, name: str) -> Any:
+        path = self.outputs_dir / name
+        if not path.exists():
+            raise FileNotFoundError(path)
+        return json.loads(path.read_text())
+
+    def relative_to_outputs(self, path: Path) -> str:
+        rel = Path("..") / path.relative_to(self.run_path)
+        return str(rel)
+
+    def _maybe_sign(self, name: str, document: Mapping[str, Any] | Iterable[Any], content: str) -> None:
+        if not isinstance(document, Mapping):
+            return
+        try:
+            envelope = signing.sign_manifest(document)
+        except signing.SigningError:
+            return
+        signature_path = self.signed_outputs_dir / f"{name}.manifest.json"
+        signature_path.parent.mkdir(parents=True, exist_ok=True)
+        signature_path.write_text(_json_dumps(envelope))
+        digest = envelope.get("digest", {}).get("sha256")
+        timestamp = _dt.datetime.utcnow().isoformat() + "Z"
+        line = f"{timestamp} {name} sha256={digest or hashlib.sha256(content.encode('utf-8')).hexdigest()} kid={envelope.get('kid') or 'unknown'}\n"
+        self.transparency_index.parent.mkdir(parents=True, exist_ok=True)
+        with self.transparency_index.open("a", encoding="utf-8") as handle:
+            handle.write(line)
 
 
 def resolve_run(app_id: str | None) -> RunContext:
