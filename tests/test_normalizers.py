@@ -3,7 +3,7 @@ import logging
 
 import pytest
 
-from backend.normalizers import InputNormalizer
+from apps.api.normalizers import InputNormalizer
 
 
 @pytest.fixture(autouse=True)

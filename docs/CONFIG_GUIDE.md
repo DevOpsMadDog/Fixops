@@ -11,7 +11,7 @@ explains the schema, override mechanisms, and provides ready-to-use examples.
 - Mode selection: set the top-level `mode` key (`"demo"` or `"enterprise"`). Profile-specific blocks
   under `profiles` provide overrides applied after base keys are loaded.
 - Data roots: constrain provisioning directories by exporting
-  `FIXOPS_DATA_ROOT_ALLOWLIST=/srv/fixops/data:/var/lib/fixops` (colon-separated paths).
+  `FIXOPS_DATA_ROOT_ALLOWLIST=/srv/core/data:/var/lib/fixops` (colon-separated paths).
 
 ## Schema Overview
 
@@ -283,7 +283,7 @@ git:
   default_org: fixops-demo
 ci:
   provider: github_actions
-  pipeline_slug: fixops/demo-pipeline
+  pipeline_slug: core/demo-pipeline
 auth:
   strategy: token
   token_env: FIXOPS_API_TOKEN
@@ -385,7 +385,7 @@ profiles:
       default_group: fixops
     ci:
       provider: gitlab_ci
-      pipeline_slug: fixops/enterprise/security
+      pipeline_slug: core/enterprise/security
     auth:
       strategy: oidc
       client_id: fixops-enterprise

@@ -18,7 +18,7 @@ FixOps Demo primarily interacts with two categories of integrations:
 All parsers run synchronously during request handling. Retry logic is unnecessary because failures are
 caused by malformed uploads or missing dependencies rather than transient network issues. The Snyk
 converter currently ships from a private Git repository; teams that have access can install it via
-`backend/requirements-optional.txt`. When absent, FixOps continues to accept native SARIF uploads and
+`apps/api/requirements-optional.txt`. When absent, FixOps continues to accept native SARIF uploads and
 surfaces actionable log guidance to operators.
 
 ## Overlay-Defined Operational Systems

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fixops.demo_runner import run_demo_pipeline
+from core.demo_runner import run_demo_pipeline
 
 
 def test_run_demo_pipeline_demo_mode(tmp_path: Path) -> None:

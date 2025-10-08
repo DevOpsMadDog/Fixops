@@ -6,20 +6,20 @@ This runbook summarises the shipped feature set, end-to-end data flow, CLI/API t
 
 | Capability | What It Delivers | Key Modules / Files |
 | --- | --- | --- |
-| Overlay-driven configuration | Mode-aware guardrails, integrations, pricing, and lifecycle profiles | `fixops/configuration.py`, `config/fixops.overlay.yml` |
-| Module registry & toggles | Terraform-style overlay switches with custom hook support | `fixops/configuration.py`, `fixops/modules.py` |
-| Context engine | Business-aware severity weighting, playbook selection, and summaries | `fixops/context_engine.py` |
-| Guardrail maturity & policy automation | Fail/warn thresholds, Jira/Confluence actions, deployment approvals | `backend/pipeline.py`, `fixops/policy.py` |
-| Compliance packs | Framework scoring, audit-ready summaries | `fixops/compliance.py` |
-| Evidence hub | Persisted bundles, manifests, feedback capture integration | `fixops/evidence.py`, `fixops/feedback.py` |
-| AI agent advisor | Framework detection, control recommendations, playbook routing | `fixops/ai_agents.py` |
-| Exploitability signals | EPSS/KEV-driven exploit context and escalation hints | `fixops/exploit_signals.py`, `config/fixops.overlay.yml` |
-| Probabilistic forecast engine | Bayesian priors + Markov transitions yielding escalation metrics | `fixops/probabilistic.py`, `backend/pipeline.py` |
-| ROI analytics & history | ROI estimates, MTTR deltas, automation savings, historical dashboards | `fixops/analytics.py`, `backend/pipeline.py`, `backend/app.py` |
-| Tenant lifecycle orchestration | Tenant inventories, lifecycle stages, module coverage gaps | `fixops/tenancy.py`, `config/fixops.overlay.yml` |
-| Performance simulator | Near real-time latency forecasts, throughput targets, backlog guidance | `fixops/performance.py`, `backend/pipeline.py` |
-| SSDLC evaluator | Stage-by-stage lifecycle coverage report | `fixops/ssdlc.py` |
-| IaC posture evaluator | Multi-cloud/on-prem coverage with artefact gap detection | `fixops/iac.py`, `config/fixops.overlay.yml` |
+| Overlay-driven configuration | Mode-aware guardrails, integrations, pricing, and lifecycle profiles | `core/configuration.py`, `config/fixops.overlay.yml` |
+| Module registry & toggles | Terraform-style overlay switches with custom hook support | `core/configuration.py`, `core/modules.py` |
+| Context engine | Business-aware severity weighting, playbook selection, and summaries | `core/context_engine.py` |
+| Guardrail maturity & policy automation | Fail/warn thresholds, Jira/Confluence actions, deployment approvals | `apps/api/pipeline.py`, `core/policy.py` |
+| Compliance packs | Framework scoring, audit-ready summaries | `core/compliance.py` |
+| Evidence hub | Persisted bundles, manifests, feedback capture integration | `core/evidence.py`, `core/feedback.py` |
+| AI agent advisor | Framework detection, control recommendations, playbook routing | `core/ai_agents.py` |
+| Exploitability signals | EPSS/KEV-driven exploit context and escalation hints | `core/exploit_signals.py`, `config/fixops.overlay.yml` |
+| Probabilistic forecast engine | Bayesian priors + Markov transitions yielding escalation metrics | `core/probabilistic.py`, `apps/api/pipeline.py` |
+| ROI analytics & history | ROI estimates, MTTR deltas, automation savings, historical dashboards | `core/analytics.py`, `apps/api/pipeline.py`, `apps/api/app.py` |
+| Tenant lifecycle orchestration | Tenant inventories, lifecycle stages, module coverage gaps | `core/tenancy.py`, `config/fixops.overlay.yml` |
+| Performance simulator | Near real-time latency forecasts, throughput targets, backlog guidance | `core/performance.py`, `apps/api/pipeline.py` |
+| SSDLC evaluator | Stage-by-stage lifecycle coverage report | `core/ssdlc.py` |
+| IaC posture evaluator | Multi-cloud/on-prem coverage with artefact gap detection | `core/iac.py`, `config/fixops.overlay.yml` |
 | CVE contextual simulation | Log4Shell demo vs enterprise evidence bundles | `simulations/cve_scenario/runner.py` |
 
 ## End-to-End Data Flow
@@ -70,7 +70,7 @@ The FastAPI service wires this chain during startup by loading the overlay, prov
 - **Configuration**: `OverlayConfig.modules` normalises every module toggle (guardrails, context, evidence, IaC, etc.) and exposes `OverlayConfig.enabled_modules` so operators can verify which building blocks will run for a profile.
 - **Execution record**: `pipeline_result["modules"]` captures the configured matrix, execution status, and custom hook outcomes. Evidence bundles persist this block for audit and troubleshooting.
 - **Custom hooks**: entries in `modules.custom` run after the built-in modules via `fixops.modules.execute_custom_modules`, receiving a `PipelineContext` with design rows, crosswalk, and intermediate summaries. Returned mappings are merged into the API response.
-- **IaC posture**: when enabled, `fixops/iac.py` inspects design rows for each configured target (AWS/GCP/Azure/on-prem) and highlights missing artefacts or unmatched components, feeding both the API response and evidence bundles.
+- **IaC posture**: when enabled, `core/iac.py` inspects design rows for each configured target (AWS/GCP/Azure/on-prem) and highlights missing artefacts or unmatched components, feeding both the API response and evidence bundles.
 
 ## CLI & API Touchpoints
 

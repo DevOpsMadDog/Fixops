@@ -11,7 +11,7 @@ import asyncio
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC_PATH = ROOT / "fixops-blended-enterprise"
+SRC_PATH = ROOT / "enterprise"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 

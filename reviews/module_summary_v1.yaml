@@ -4,131 +4,131 @@ ModuleSummary_v1:
     entry_points:
       - "CLI parser exposing run/show-overlay/train-forecast/demo commands."
     entry_point_evidence:
-      - "F:fixops/FOLDER_README.md†L1-L20"
-      - "F:fixops/cli.py†L371-L520"
-      - "F:fixops/demo_runner.py†L129-L188"
+      - "F:core/FOLDER_README.md†L1-L20"
+      - "F:core/cli.py†L371-L520"
+      - "F:core/demo_runner.py†L129-L188"
     external_interfaces:
       - type: CLI
         description: "`fixops` console entry executes pipeline runs, overlay inspection, probabilistic training, and demo playback."
         evidence:
-          - "F:fixops/cli.py†L212-L520"
+          - "F:core/cli.py†L212-L520"
       - type: Library
         description: "`run_demo_pipeline` returns artefact correlations and summaries for embedding in notebooks or scripts."
         evidence:
-          - "F:fixops/demo_runner.py†L129-L188"
+          - "F:core/demo_runner.py†L129-L188"
     config_and_secrets:
       - "Overlay loader pulls token-based auth secrets from environment variables such as `FIXOPS_API_TOKEN`."
       - "Demo runner seeds default API tokens and encryption keys if unset."
       evidence:
-        - "F:fixops/configuration.py†L1080-L1104"
-        - "F:fixops/demo_runner.py†L16-L29"
+        - "F:core/configuration.py†L1080-L1104"
+        - "F:core/demo_runner.py†L16-L29"
     failure_and_rollback:
       - "CLI surfaces file and validation errors with exit code 1 while allowing archival warnings to continue."
       - "Overlay loader raises on missing token environment variables when token auth is configured."
       evidence:
-        - "F:fixops/cli.py†L503-L517"
-        - "F:fixops/cli.py†L288-L309"
-        - "F:fixops/configuration.py†L1088-L1098"
+        - "F:core/cli.py†L503-L517"
+        - "F:core/cli.py†L288-L309"
+        - "F:core/configuration.py†L1088-L1098"
     risks:
       - "Bundled demo defaults may leak into real environments (hard-coded tokens, Fernet key)."
       - "Probabilistic engine and exploit feeds rely on local file permissions and network requests; misconfiguration can surface runtime errors."
       evidence:
-        - "F:fixops/demo_runner.py†L16-L188"
-        - "F:fixops/exploit_signals.py†L227-L320"
+        - "F:core/demo_runner.py†L16-L188"
+        - "F:core/exploit_signals.py†L227-L320"
   - module: backend
     purpose: "FastAPI ingestion API that validates uploads, orchestrates the FixOps pipeline, and persists analytics/feedback."
     entry_points:
       - "`create_app()` wires ingestion routes, auth policy, storage, and analytics."
     entry_point_evidence:
-      - "F:backend/FOLDER_README.md†L3-L23"
-      - "F:backend/app.py†L29-L393"
+      - "F:apps/api/FOLDER_README.md†L3-L23"
+      - "F:apps/api/app.py†L29-L393"
     external_interfaces:
       - type: HTTP
         description: "File uploads at `/inputs/*`, pipeline execution at `/pipeline/run`, analytics dashboards, and feedback endpoint."
         evidence:
-          - "F:backend/app.py†L166-L393"
+          - "F:apps/api/app.py†L166-L393"
     config_and_secrets:
       - "Relies on overlay auth strategy and `auth_tokens` resolved from environment variables."
       - "Data directories and archive paths derived from overlay allowlist enforcement."
       evidence:
-        - "F:backend/app.py†L47-L85"
-        - "F:backend/app.py†L59-L78"
-        - "F:fixops/configuration.py†L1080-L1104"
+        - "F:apps/api/app.py†L47-L85"
+        - "F:apps/api/app.py†L59-L78"
+        - "F:core/configuration.py†L1080-L1104"
     failure_and_rollback:
       - "Validates uploads and returns HTTP 400/415 on parsing or content-type errors."
       - "Pipeline execution aborts with explicit missing-input messages and analytics persistence is guarded by try/except."
       evidence:
-        - "F:backend/app.py†L200-L305"
-        - "F:backend/app.py†L326-L338"
+        - "F:apps/api/app.py†L200-L305"
+        - "F:apps/api/app.py†L326-L338"
     risks:
       - "CORS currently allows all origins with credentials, exposing the API to CSRF risks."
       - "Token strategy depends on in-memory list; rotation requires restart and secrets injection discipline."
       evidence:
-        - "F:backend/app.py†L35-L58"
-        - "F:fixops/configuration.py†L1080-L1104"
+        - "F:apps/api/app.py†L35-L58"
+        - "F:core/configuration.py†L1080-L1104"
   - module: new_backend
     purpose: "Standalone decision-engine prototype delivering coarse automated approvals and feedback capture."
     entry_points:
       - "`create_app()` initialises the FastAPI service."
     entry_point_evidence:
-      - "F:new_backend/FOLDER_README.md†L3-L21"
-      - "F:new_backend/api.py†L36-L82"
+      - "F:new_apps/api/FOLDER_README.md†L3-L21"
+      - "F:new_apps/api/api.py†L36-L82"
     external_interfaces:
       - type: HTTP
         description: "`POST /decisions` issues approve/review/reject outcomes; `POST /decisions/{id}/feedback` records user disposition; `GET /health` for probes."
         evidence:
-          - "F:new_backend/api.py†L41-L80"
+          - "F:new_apps/api/api.py†L41-L80"
     config_and_secrets:
       - "No auth or secret integration yet; depends solely on request payloads."
       evidence:
-        - "F:new_backend/api.py†L41-L80"
+        - "F:new_apps/api/api.py†L41-L80"
     failure_and_rollback:
       - "Returns HTTP 400 for identifier mismatches; otherwise deterministic branch logic."
       evidence:
-        - "F:new_backend/api.py†L66-L68"
+        - "F:new_apps/api/api.py†L66-L68"
     risks:
       - "Lacks authentication/authorisation, making it unsuitable for exposure without additional gateways."
       - "Static thresholds and predictable IDs may leak business context."
       evidence:
-        - "F:new_backend/api.py†L45-L59"
-  - module: fixops-blended-enterprise
+        - "F:new_apps/api/api.py†L45-L59"
+  - module: enterprise
     purpose: "Narrative enterprise deployment stack including Docker packaging, Kubernetes manifests, Terraform infra, and documentation."
     entry_points:
       - "Dockerfile launches uvicorn-backed server with production defaults."
-      - "Ingress and services expose backend/frontend via TLS hosts."
+      - "Ingress and services expose apps/api/frontend via TLS hosts."
     entry_point_evidence:
-      - "F:fixops-blended-enterprise/Dockerfile†L20-L71"
-      - "F:fixops-blended-enterprise/kubernetes/ingress.yaml†L1-L56"
+      - "F:enterprise/Dockerfile†L20-L71"
+      - "F:enterprise/kubernetes/ingress.yaml†L1-L56"
     external_interfaces:
       - type: Kubernetes
         description: "Deployments, services, ingress, and load balancer for backend and frontend workloads."
         evidence:
-          - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L1-L101"
-          - "F:fixops-blended-enterprise/kubernetes/frontend-deployment.yaml†L1-L56"
-          - "F:fixops-blended-enterprise/kubernetes/services.yaml†L1-L56"
+          - "F:enterprise/kubernetes/backend-deployment.yaml†L1-L101"
+          - "F:enterprise/kubernetes/frontend-deployment.yaml†L1-L56"
+          - "F:enterprise/kubernetes/services.yaml†L1-L56"
       - type: Terraform
         description: "Remote state configuration plus Kubernetes/Helm providers for infrastructure provisioning."
         evidence:
-          - "F:fixops-blended-enterprise/terraform/main.tf†L4-L90"
+          - "F:enterprise/terraform/main.tf†L4-L90"
     config_and_secrets:
       - "Docker image sets `FIXOPS_AUTH_DISABLED=true`; ConfigMap injects production environment flags."
       - "Secrets manifest ships base64-encoded placeholder credentials and API keys."
       - "Terraform backend expects S3 bucket and sensitive variables for LLM/Mongo/Redis credentials."
       evidence:
-        - "F:fixops-blended-enterprise/Dockerfile†L56-L71"
-        - "F:fixops-blended-enterprise/kubernetes/configmap.yaml†L7-L27"
-        - "F:fixops-blended-enterprise/kubernetes/secret.yaml†L7-L18"
-        - "F:fixops-blended-enterprise/terraform/main.tf†L17-L53"
+        - "F:enterprise/Dockerfile†L56-L71"
+        - "F:enterprise/kubernetes/configmap.yaml†L7-L27"
+        - "F:enterprise/kubernetes/secret.yaml†L7-L18"
+        - "F:enterprise/terraform/main.tf†L17-L53"
     failure_and_rollback:
       - "Kubernetes manifests rely on readiness/liveness probes but lack rollout/rollback automation; Terraform backend assumes pre-existing bucket."
       evidence:
-        - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L56-L78"
-        - "F:fixops-blended-enterprise/terraform/main.tf†L17-L53"
+        - "F:enterprise/kubernetes/backend-deployment.yaml†L56-L78"
+        - "F:enterprise/terraform/main.tf†L17-L53"
     risks:
       - "Disabling auth and shipping sample secrets risks accidental exposure if applied as-is."
       - "Kubernetes references `:latest` images and wide-open load balancer hosts requiring governance."
       evidence:
-        - "F:fixops-blended-enterprise/Dockerfile†L56-L71"
-        - "F:fixops-blended-enterprise/kubernetes/secret.yaml†L7-L18"
-        - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L27-L32"
-        - "F:fixops-blended-enterprise/kubernetes/ingress.yaml†L19-L56"
+        - "F:enterprise/Dockerfile†L56-L71"
+        - "F:enterprise/kubernetes/secret.yaml†L7-L18"
+        - "F:enterprise/kubernetes/backend-deployment.yaml†L27-L32"
+        - "F:enterprise/kubernetes/ingress.yaml†L19-L56"

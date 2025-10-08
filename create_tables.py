@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Add project to path
-sys.path.insert(0, str(Path(__file__).parent / "fixops-blended-enterprise"))
+sys.path.insert(0, str(Path(__file__).parent / "enterprise"))
 
 from src.db.session import DatabaseManager
 from src.models.base_sqlite import Base

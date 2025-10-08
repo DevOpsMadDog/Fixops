@@ -5,23 +5,23 @@ repos:
       - id: check-merge-conflict
       - id: check-yaml
         args: ["--allow-multiple-documents"]
-        exclude: "^(reviews/|fixops-blended-enterprise/backstage/|fixops-blended-enterprise/kubernetes/|fixops-blended-enterprise/terraform/)"
+        exclude: "^(reviews/|enterprise/backstage/|enterprise/kubernetes/|enterprise/terraform/)"
       - id: end-of-file-fixer
-        files: "^(backend|fixops|new_backend|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
+        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
       - id: trailing-whitespace
-        files: "^(backend|fixops|new_backend|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
+        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
       - id: detect-private-key
-        files: "^(backend|fixops|new_backend|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
+        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
       - id: detect-aws-credentials
         args: ["--allow-missing-credentials"]
-        files: "^(backend|fixops|new_backend|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
+        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.3
     hooks:
       - id: ruff
         args: ["--fix"]
-        files: "^(backend|fixops|new_backend|scripts|tests)/"
+        files: "^(apps|core|prototypes|scripts|tests)/"
 
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0

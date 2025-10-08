@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Tuple
 
 import pytest
 
-from fixops.configuration import OverlayConfig
-from fixops.policy import PolicyAutomation
+from core.configuration import OverlayConfig
+from core.policy import PolicyAutomation
 
 
 class DummyResponse:

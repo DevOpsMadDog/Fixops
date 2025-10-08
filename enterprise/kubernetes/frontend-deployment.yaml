@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fixops-frontend
+  namespace: fixops
+  labels:
+    app: fixops-frontend
+    component: ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fixops-frontend
+  template:
+    metadata:
+      labels:
+        app: fixops-frontend
+        component: ui
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101  # nginx user
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+      - name: fixops-frontend
+        image: core/frontend:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: BACKEND_URL
+          value: "http://fixops-backend-service:8001"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3

@@ -7,19 +7,19 @@ impact, and remediation plan.
 
 | Area | File / Snippet | Issue | Plan |
 | ---- | -------------- | ----- | ---- |
-| Authentication | `backend/app.py` (API key verification) | ✅ Implemented — token strategy enforces `X-API-Key` header backed by overlay env vars. | Roll forward to multi-tenant identity (OIDC) for enterprise mode. |
-| Overlay Validation | `fixops/configuration.py` (`load_overlay`) | ✅ Implemented — pydantic schema with forbidden extras and immediate secret validation. | Extend to schema-level validation for nested sections (policy actions, compliance controls). |
-| Directory Safety | `fixops/configuration.py` `data_directories` | ✅ Implemented — allowlisted roots and resolution guards prevent traversal. | Add runtime permission checks before provisioning in hardened deployments. |
-| Upload Hardening | `backend/app.py` upload handlers | ✅ Implemented — staged reads enforce per-stage byte limits and content-type validation. | Monitor memory footprint under sustained load and consider streaming normalisers. |
-| Feedback Capture | `backend/app.py` `/feedback` | ✅ Implemented — overlay-enabled recorder persists JSONL feedback bundles. | Integrate with Jira/Confluence for long-term storage and analytics. |
+| Authentication | `apps/api/app.py` (API key verification) | ✅ Implemented — token strategy enforces `X-API-Key` header backed by overlay env vars. | Roll forward to multi-tenant identity (OIDC) for enterprise mode. |
+| Overlay Validation | `core/configuration.py` (`load_overlay`) | ✅ Implemented — pydantic schema with forbidden extras and immediate secret validation. | Extend to schema-level validation for nested sections (policy actions, compliance controls). |
+| Directory Safety | `core/configuration.py` `data_directories` | ✅ Implemented — allowlisted roots and resolution guards prevent traversal. | Add runtime permission checks before provisioning in hardened deployments. |
+| Upload Hardening | `apps/api/app.py` upload handlers | ✅ Implemented — staged reads enforce per-stage byte limits and content-type validation. | Monitor memory footprint under sustained load and consider streaming normalisers. |
+| Feedback Capture | `apps/api/app.py` `/feedback` | ✅ Implemented — overlay-enabled recorder persists JSONL feedback bundles. | Integrate with Jira/Confluence for long-term storage and analytics. |
 
 ## Deferred Items
 
 | Area | File / Snippet | Issue | Deferred Reason |
 | ---- | -------------- | ----- | --------------- |
-| Evidence Persistence | `backend/app.py` `_store` | Artefacts only stored in-memory; restarts drop context. | Demo scope avoids storage complexity; enterprise build should persist to database/object store. |
-| SBOM Parser Coverage | `backend/normalizers.py` `load_sbom` | Relies on optional `lib4sbom`; limited error classification. | Acceptable for prototype; plan to add provider-specific error codes later. |
-| SARIF Converter | `backend/normalizers.py` `load_sarif` | Snyk conversion optional; if converter missing we reject payload. | Documented requirement; revisit once enterprise bundler needs guaranteed support. |
+| Evidence Persistence | `apps/api/app.py` `_store` | Artefacts only stored in-memory; restarts drop context. | Demo scope avoids storage complexity; enterprise build should persist to database/object store. |
+| SBOM Parser Coverage | `apps/api/normalizers.py` `load_sbom` | Relies on optional `lib4sbom`; limited error classification. | Acceptable for prototype; plan to add provider-specific error codes later. |
+| SARIF Converter | `apps/api/normalizers.py` `load_sarif` | Snyk conversion optional; if converter missing we reject payload. | Documented requirement; revisit once enterprise bundler needs guaranteed support. |
 
 ## Operational Risks
 

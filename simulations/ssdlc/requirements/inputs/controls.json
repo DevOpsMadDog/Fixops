@@ -1,0 +1,6 @@
+{
+  "control_map": {
+    "AC-1": ["guardrails:status"],
+    "RA-3": ["guardrails:trigger", "policy.execution.status"]
+  }
+}

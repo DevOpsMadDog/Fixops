@@ -14,7 +14,7 @@ checks, and contribute changes safely.
    ```bash
    pip install lib4sbom sarif-om cvelib pyyaml
    # Only if you have access to the private Snyk converter repository
-   pip install -r backend/requirements-optional.txt
+   pip install -r apps/api/requirements-optional.txt
    ```
 
 ## Overlay Configuration
@@ -25,7 +25,7 @@ checks, and contribute changes safely.
 - If `auth.strategy: token`, export `FIXOPS_API_TOKEN=<secret>` (or whichever env var you reference)
   before starting the FastAPI app or hitting the endpoints.
 - Optionally constrain data directories with
-  `FIXOPS_DATA_ROOT_ALLOWLIST=/srv/fixops/data:/var/lib/fixops` to mimic production hardening.
+  `FIXOPS_DATA_ROOT_ALLOWLIST=/srv/core/data:/var/lib/fixops` to mimic production hardening.
 
 ## Running Tests
 
@@ -36,7 +36,7 @@ pytest
 Key test suites:
 
 - `tests/test_end_to_end.py` — exercises the FastAPI endpoints end-to-end.
-- `tests/test_new_backend_*` — covers the decision-engine subset in `new_backend/`.
+- `tests/test_new_backend_*` — covers the decision-engine subset in `new_apps/api/`.
 - `tests/test_overlay_configuration.py` — verifies overlay parsing, defaults, validation, env-var
   enforcement, and allowlisted data directories.
 - `tests/test_cve_simulation.py` — runs the Log4Shell contextual scoring simulation for Demo and Enterprise overlays.

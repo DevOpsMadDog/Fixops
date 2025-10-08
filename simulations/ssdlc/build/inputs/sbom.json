@@ -1,0 +1,7 @@
+{
+  "metadata": {"version": "1.0"},
+  "components": [
+    {"name": "fastapi", "version": "0.111.0", "purl": "pkg:pypi/fastapi@0.111.0"},
+    {"name": "requests", "version": "2.32.0", "purl": "pkg:pypi/requests@2.32.0"}
+  ]
+}

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from backend import app as backend_app
-from fixops.configuration import OverlayConfig
+from apps.api import app as backend_app
+from core.configuration import OverlayConfig
 
 
 def _make_overlay(root: Path) -> OverlayConfig:

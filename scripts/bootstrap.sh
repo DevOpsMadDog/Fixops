@@ -14,9 +14,9 @@ source "$VENV_DIR/bin/activate"
 
 pip install --upgrade pip wheel
 pip install -r "$ROOT_DIR/requirements.txt"
-pip install -r "$ROOT_DIR/backend/requirements.txt"
-if [ -f "$ROOT_DIR/fixops-blended-enterprise/requirements.txt" ]; then
-  pip install -r "$ROOT_DIR/fixops-blended-enterprise/requirements.txt"
+pip install -r "$ROOT_DIR/apps/api/requirements.txt"
+if [ -f "$ROOT_DIR/enterprise/requirements.txt" ]; then
+  pip install -r "$ROOT_DIR/enterprise/requirements.txt"
 fi
 if [ -f "$ROOT_DIR/requirements.dev.txt" ]; then
   pip install -r "$ROOT_DIR/requirements.dev.txt"

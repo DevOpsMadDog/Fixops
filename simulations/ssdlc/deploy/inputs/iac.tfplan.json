@@ -1,0 +1,5 @@
+{
+  "resource_changes": [
+    {"type": "aws_security_group", "name": "sg_app", "change": {"actions": ["create"], "after": {"ingress": [{"cidr_blocks": ["0.0.0.0/0"], "from_port": 443, "to_port": 443}]}}}
+  ]
+}

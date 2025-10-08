@@ -1,8 +1,8 @@
 import types
 
-from fixops.analytics import ROIDashboard
-from fixops.tenancy import TenantLifecycleManager
-from fixops.performance import PerformanceSimulator
+from core.analytics import ROIDashboard
+from core.tenancy import TenantLifecycleManager
+from core.performance import PerformanceSimulator
 
 
 def _overlay_stub(mode: str = "demo") -> object:

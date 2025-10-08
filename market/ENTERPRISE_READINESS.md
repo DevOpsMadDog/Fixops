@@ -34,7 +34,7 @@ Baseline timings captured in `perf/BENCHMARKS.csv`. Both stages reuse cached tok
 
 ## Bayesian & Markov differentiation
 
-- **Bayesian prior mapping**: Overlay-driven priors weight severity classes according to business context and exploit data. Inputs are normalised and combined with observed severity counts to produce posterior distributions exposed via `probabilistic_forecast.posterior`. The implementation lives in `fixops/probabilistic.py` and runs without third-party dependencies, making it portable yet non-trivial to replicate without the overlay schema.
+- **Bayesian prior mapping**: Overlay-driven priors weight severity classes according to business context and exploit data. Inputs are normalised and combined with observed severity counts to produce posterior distributions exposed via `probabilistic_forecast.posterior`. The implementation lives in `core/probabilistic.py` and runs without third-party dependencies, making it portable yet non-trivial to replicate without the overlay schema.
 - **Markov transitions**: Overlay-configured transition matrices project the posterior forward one lifecycle step (`probabilistic_forecast.next_state`) and compute escalation probabilities per component. Enterprises can tighten transitions via profile overrides while demos keep lightweight defaults.
 - **Evidence bundling**: Forecast outputs (posterior, next state, entropy, escalation hotspots) are persisted into evidence bundles, providing auditors with mathematically grounded rationale that competitors currently deliver only through dashboards.
 

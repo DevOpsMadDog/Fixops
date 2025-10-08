@@ -21,7 +21,7 @@
   },
   "ci": {
     "provider": "github_actions",
-    "pipeline_slug": "fixops/demo-pipeline"
+    "pipeline_slug": "core/demo-pipeline"
   },
   "auth": {
     "strategy": "token",
@@ -298,7 +298,7 @@
       "url": "https://opa.fixops.local:8181",
       "policy_package": "fixops",
       "health_path": "/health?bundles",
-      "bundle_status_path": "/v1/bundles/fixops/status",
+      "bundle_status_path": "/v1/bundles/core/status",
       "auth_token_env": "FIXOPS_OPA_TOKEN",
       "request_timeout_seconds": 5
     }
@@ -732,7 +732,7 @@
       },
       "ci": {
         "provider": "gitlab_ci",
-        "pipeline_slug": "fixops/enterprise/security"
+        "pipeline_slug": "core/enterprise/security"
       },
       "auth": {
         "strategy": "oidc",

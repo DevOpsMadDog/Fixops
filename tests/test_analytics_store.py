@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from fixops.analytics import AnalyticsStore
+from core.analytics import AnalyticsStore
 
 
 def test_analytics_store_persist_and_load(tmp_path: Path) -> None:

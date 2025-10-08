@@ -11,18 +11,18 @@ ReviewReport_v1:
       aspect: reproducibility
       description: "Docker/Kubernetes configs rely on `:latest` tags and absence of lockfiles, breaking deterministic deployments." 
       evidence:
-        - "F:fixops-blended-enterprise/kubernetes/backend-deployment.yaml†L27-L32"
-        - "F:backend/requirements.txt†L1-L7"
+        - "F:enterprise/kubernetes/backend-deployment.yaml†L27-L32"
+        - "F:apps/api/requirements.txt†L1-L7"
       recommendation: "Publish versioned images, pin dependencies via lockfiles, and surface SBOM/signature generation in CI."
     - severity: medium
       aspect: secret_scanning
       description: "Static manifests ship base64 placeholder secrets without automated rotation or leak detection." 
       evidence:
-        - "F:fixops-blended-enterprise/kubernetes/secret.yaml†L7-L18"
+        - "F:enterprise/kubernetes/secret.yaml†L7-L18"
       recommendation: "Introduce secret-scanning and enforce external secret managers; ensure CI fails when placeholder values persist."
     - severity: low
       aspect: release_promotion
       description: "No documented staging → production promotion flow; Terraform backend uses a shared bucket without environment partitioning." 
       evidence:
-        - "F:fixops-blended-enterprise/terraform/main.tf†L17-L53"
+        - "F:enterprise/terraform/main.tf†L17-L53"
       recommendation: "Document and automate environment-specific promotion with isolated state backends and release branches."

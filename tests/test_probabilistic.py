@@ -1,4 +1,4 @@
-from fixops.probabilistic import ProbabilisticForecastEngine
+from core.probabilistic import ProbabilisticForecastEngine
 
 
 def test_probabilistic_engine_generates_posterior_and_forecast() -> None:

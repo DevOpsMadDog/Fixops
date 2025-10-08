@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Mapping, MutableMapping, Optional
 
-from backend.normalizers import (
+from apps.api.normalizers import (
     CVERecordSummary,
     NormalizedCVEFeed,
     NormalizedSARIF,
@@ -15,15 +15,15 @@ from backend.normalizers import (
     SBOMComponent,
     SarifFinding,
 )
-from backend.pipeline import PipelineOrchestrator
-from fixops.configuration import (
+from apps.api.pipeline import PipelineOrchestrator
+from core.configuration import (
     DEFAULT_OVERLAY_PATH,
     OverlayConfig,
     load_overlay,
 )
-from fixops.configuration import _deep_merge as _merge_overlay  # type: ignore
-from fixops.configuration import _parse_overlay as _parse_overlay_config  # type: ignore
-from fixops.configuration import _read_text as _read_overlay_text  # type: ignore
+from core.configuration import _deep_merge as _merge_overlay  # type: ignore
+from core.configuration import _parse_overlay as _parse_overlay_config  # type: ignore
+from core.configuration import _read_text as _read_overlay_text  # type: ignore
 
 # Import the contextual risk scorer from the blended enterprise package.
 # The repository ships with the module but it is not installed as a package,
@@ -34,7 +34,7 @@ def _resolve_risk_scorer() -> "ContextualRiskScorer":
         from src.services.risk_scorer import ContextualRiskScorer  # type: ignore
     except ModuleNotFoundError:  # pragma: no cover - defensive path
         repo_root = Path(__file__).resolve().parents[2]
-        candidate = repo_root / "fixops-blended-enterprise"
+        candidate = repo_root / "enterprise"
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))
         from src.services.risk_scorer import ContextualRiskScorer  # type: ignore

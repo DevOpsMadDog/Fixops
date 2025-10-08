@@ -1,4 +1,4 @@
-from fixops.ai_agents import AIAgentAdvisor
+from core.ai_agents import AIAgentAdvisor
 
 
 def test_ai_agent_advisor_detects_frameworks() -> None:

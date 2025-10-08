@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from fixops.configuration import OverlayConfig
-from fixops.connectors import ConnectorOutcome
-from fixops.feedback import FeedbackRecorder
+from core.configuration import OverlayConfig
+from core.connectors import ConnectorOutcome
+from core.feedback import FeedbackRecorder
 
 
 def test_feedback_recorder_writes_entries(tmp_path: Path) -> None:

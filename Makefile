@@ -24,12 +24,12 @@ $(VENV):
 
 .PHONY: bootstrap
 bootstrap: $(VENV)
-	$(PIP) install --upgrade pip wheel
-	$(PIP) install -r requirements.txt
-	$(PIP) install -r backend/requirements.txt
-	@if [ -f fixops-blended-enterprise/requirements.txt ]; then \
-		$(PIP) install -r fixops-blended-enterprise/requirements.txt; \
-	fi
+$(PIP) install --upgrade pip wheel
+$(PIP) install -r requirements.txt
+$(PIP) install -r apps/api/requirements.txt
+@if [ -f enterprise/requirements.txt ]; then \
+$(PIP) install -r enterprise/requirements.txt; \
+fi
 	@if [ -f requirements.dev.txt ]; then \
 		$(PIP) install -r requirements.dev.txt; \
 	fi
@@ -49,7 +49,7 @@ lint: $(VENV)
 
 .PHONY: typecheck
 typecheck: $(VENV)
-	$(PYTHON_BIN) -m mypy fixops backend tests
+$(PYTHON_BIN) -m mypy core apps tests
 
 .PHONY: test
 test: $(VENV)
@@ -57,11 +57,11 @@ test: $(VENV)
 
 .PHONY: demo
 demo: $(VENV)
-	$(PYTHON_BIN) -m fixops.cli demo --mode demo --pretty
+$(PYTHON_BIN) -m core.cli demo --mode demo --pretty
 
 .PHONY: demo-enterprise
 demo-enterprise: $(VENV)
-	$(PYTHON_BIN) -m fixops.cli demo --mode enterprise --pretty
+$(PYTHON_BIN) -m core.cli demo --mode enterprise --pretty
 
 .PHONY: clean
 clean:

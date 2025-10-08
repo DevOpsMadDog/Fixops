@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fixops-backend
+  namespace: fixops
+  labels:
+    app: fixops-backend
+    component: decision-engine
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fixops-backend
+  template:
+    metadata:
+      labels:
+        app: fixops-backend
+        component: decision-engine
+    spec:
+      serviceAccountName: fixops-backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: fixops-backend
+        image: core/decision-engine:latest
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: MONGO_URL
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: MONGO_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: REDIS_URL
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: SECRET_KEY
+        - name: EMERGENT_LLM_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: EMERGENT_LLM_KEY
+        envFrom:
+        - configMapRef:
+            name: fixops-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: fixops-data
+      - name: logs
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - fixops-backend
+              topologyKey: kubernetes.io/hostname
