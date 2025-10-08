@@ -21,6 +21,14 @@ data:
   # Decision Engine Configuration
   CONSENSUS_THRESHOLD: "0.85"
   EVIDENCE_RETENTION_DAYS: "2555"  # 7 years for bank compliance
+  SIGNING_PROVIDER: "env"
+  KEY_ID: "alias/fixops-signer"
+  AWS_REGION: "us-east-1"
+  ENABLE_RL_EXPERIMENTS: "false"
+  ENABLE_SHAP_EXPERIMENTS: "false"
+  OPA_SERVER_URL: "https://opa.fixops.local:8181"
+  OPA_POLICY_PACKAGE: "fixops"
+  OPA_HEALTH_PATH: "/health"
   
   # Cache Configuration
   CACHE_TTL_SECONDS: "300"
