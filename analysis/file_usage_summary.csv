@@ -1,522 +1,525 @@
-file,lines,status
-.coveragerc,13,needed
-.emergent/emergent.yml,5,needed
-.emergent/summary.txt,70,needed
-.env.example,16,needed
-.gitconfig,3,needed
-.github/workflows/ci.yml,44,needed
-.gitignore,91,needed
-.pre-commit-config.yaml,17,needed
-.secrets.baseline,143,needed
-ARCHITECTURE.md,25,needed
-BACKLOG.csv,5,needed
-CONTRIBUTING.md,71,needed
-HANDBOOK.md,54,needed
-Makefile,65,needed
-ONBOARDING.md,60,needed
-README.md,417,needed
-ROADMAP.md,16,needed
-analysis/DATA_CONTROL_FLOWS.md,40,needed
-analysis/FILE_SUMMARIES.csv,162,needed
-analysis/OPTIMIZATIONS.md,12,needed
-analysis/TRACEABILITY.csv,8,needed
-apps/api/FOLDER_README.md,23,needed
-apps/api/__init__.py,11,needed
-apps/api/app.py,493,needed
-apps/api/normalizers.py,731,needed
-apps/api/pipeline.py,684,needed
-apps/api/requirements-optional.txt,7,needed
-apps/api/requirements.txt,22,needed
-audit/CTEM_ASSESSMENT.md,56,needed
-audit/GAPS.md,39,needed
-audit/SECURITY.md,45,needed
-backend/__init__.py,5,needed
-backend/app.py,3,needed
-backend/normalizers.py,3,needed
-backend/pipeline.py,3,needed
-backend_test.py,1606,needed
-config/FOLDER_README.md,15,needed
-config/fixops.overlay.yml,774,needed
-core/FOLDER_README.md,20,needed
-core/__init__.py,4,needed
-core/ai_agents.py,225,needed
-core/analytics.py,650,needed
-core/cli.py,604,needed
-core/compliance.py,92,needed
-core/configuration.py,1421,needed
-core/connectors.py,301,needed
-core/context_engine.py,249,needed
-core/demo_runner.py,191,needed
-core/design_context_injector.py,273,needed
-core/evidence.py,196,needed
-core/exploit_signals.py,580,needed
-core/feature_matrix.py,276,needed
-core/feedback.py,227,needed
-core/iac.py,172,needed
-core/modules.py,120,needed
-core/onboarding.py,46,needed
-core/paths.py,98,needed
-core/performance.py,126,needed
-core/policy.py,147,needed
-core/probabilistic.py,455,needed
-core/ssdlc.py,385,needed
-core/storage.py,98,needed
-core/tenancy.py,139,needed
-create_minimal_tables.py,148,needed
-create_tables.py,44,needed
-data/FOLDER_README.md,17,needed
-data/feeds/FOLDER_README.md,14,needed
-data/feeds/epss.json,615,needed
-data/feeds/golden_regression_cases.json,152,needed
-data/feeds/kev.json,21124,needed
-data/marketplace/FOLDER_README.md,10,needed
-data/marketplace/items.json,88,needed
-data/marketplace/purchases.json,1,needed
-data/uploads/019605ec-b76e-46b9-b6e2-2cf2679ca918/meta.json,1,needed
-data/uploads/36a7f793-29a1-4f4f-8727-be9aea67ccce/0.part,1,needed
-data/uploads/36a7f793-29a1-4f4f-8727-be9aea67ccce/meta.json,1,needed
-data/uploads/36a7f793-29a1-4f4f-8727-be9aea67ccce/sample.json,1,needed
-data/uploads/5f3792c1-212c-46c7-88d5-e7251e6c35bf/0.part,1,needed
-data/uploads/5f3792c1-212c-46c7-88d5-e7251e6c35bf/meta.json,1,needed
-data/uploads/5f3792c1-212c-46c7-88d5-e7251e6c35bf/sample.json,1,needed
-data/uploads/6c94680a-4934-447c-91bf-22ac1356a9e7/0.part,1,needed
-data/uploads/6c94680a-4934-447c-91bf-22ac1356a9e7/meta.json,1,needed
-data/uploads/6c94680a-4934-447c-91bf-22ac1356a9e7/sample.json,1,needed
-data/uploads/8a0d27bb-75b6-4a9a-9eff-8f1e96c7b7be/0.part,1,needed
-data/uploads/8a0d27bb-75b6-4a9a-9eff-8f1e96c7b7be/meta.json,1,needed
-data/uploads/8a0d27bb-75b6-4a9a-9eff-8f1e96c7b7be/sample.json,1,needed
-data/uploads/FOLDER_README.md,12,needed
-data/uploads/fad6ec4f-2ab1-4b4a-ac6e-50f0c41cc5ca/0.part,1,needed
-data/uploads/fad6ec4f-2ab1-4b4a-ac6e-50f0c41cc5ca/meta.json,1,needed
-data/uploads/fad6ec4f-2ab1-4b4a-ac6e-50f0c41cc5ca/sample.json,1,needed
-data/uploads/upload_1759388274014/metadata.json,1,needed
-data/uploads/upload_1759388360124/metadata.json,1,needed
-data/uploads/upload_1759389506663/metadata.json,1,needed
-demo/fixtures/sample.cve.json,20,needed
-demo/fixtures/sample.design.csv,3,needed
-demo/fixtures/sample.sarif.json,42,needed
-demo/fixtures/sample.sbom.json,22,needed
-docs/ACADEMIC_RESEARCH.md,85,needed
-docs/AI_AGENTS_RESEARCH.md,105,needed
-docs/ARCHITECTURE.md,70,needed
-docs/BACKLOG.csv,16,needed
-docs/CLOSED_LOOP_OPTIMIZATION.md,31,needed
-docs/CODE_GAP_ASSESSMENT.md,20,needed
-docs/CONFIG_GUIDE.md,512,needed
-docs/CONTRIBUTING.md,87,needed
-docs/DATA_MODEL.md,97,needed
-docs/FIXOPS_ADOPTION_GUIDE.md,98,needed
-docs/FOLDER_README.md,15,needed
-docs/FixOps_Demo_IO_Contract.md,45,needed
-docs/INTEGRATIONS.md,51,needed
-docs/LINE_BY_LINE.md,80,needed
-docs/MIGRATION.md,49,needed
-docs/OBSERVABILITY.md,39,needed
-docs/PLATFORM_RUNBOOK.md,267,needed
-docs/PR_CHECKLIST.md,12,needed
-docs/PR_SUMMARY.md,47,needed
-docs/ROADMAP.md,17,needed
-docs/SDLC_SSDLC.md,36,needed
-docs/SECURITY.md,42,needed
-docs/SSDL_SIMULATION.md,61,needed
-docs/STRAIKER_APR2025_COMPETITIVE_NOTES.md,31,needed
-docs/USAGE_GUIDE.html,414,needed
-docs/decisionfactory_alignment.md,33,needed
-docs/decisionfactory_alignment/epss_kev_runbook.md,35,needed
-docs/decisionfactory_alignment/fixops-observability-dashboard.json,292,needed
-docs/decisionfactory_alignment/part-1-implemented.md,9,needed
-docs/decisionfactory_alignment/part-2-completed.md,51,needed
-docs/decisionfactory_alignment/part-3-completed.md,73,needed
-docs/security_sales_objections.md,47,needed
-enterprise/.env.example,8,needed
-enterprise/BANK_DEPLOYMENT_GUIDE.md,389,needed
-enterprise/COMPLETE_DATA_FLOW.md,218,needed
-enterprise/COMPREHENSIVE_GUIDE.md,1093,needed
-enterprise/Dockerfile,68,needed
-enterprise/ENHANCED_VERSION.md,145,needed
-enterprise/ENTERPRISE_DEPLOYMENT_GUIDE.md,175,needed
-enterprise/FOLDER_README.md,10,needed
-enterprise/PRODUCTION_DEPLOYMENT.md,134,needed
-enterprise/README_BANK_DEPLOYMENT.md,150,needed
-enterprise/RESEARCH_ROADMAP.md,239,needed
-enterprise/alembic.ini,106,needed
-enterprise/backstage/app-config.yaml,1,needed
-enterprise/backstage/catalog-info.yaml,171,needed
-enterprise/backstage/plugins/fixops-overview-card.tsx,140,needed
-enterprise/backstage/template.yaml,580,needed
-enterprise/backstage/terraform-deployment-template.yaml,231,needed
-enterprise/create_admin_user.py,72,needed
-enterprise/create_all_tables.py,56,needed
-enterprise/data/golden_regression_cases.json,49,needed
-enterprise/deploy-bank.sh,151,needed
-enterprise/deploy-complete.sh,223,needed
-enterprise/deploy-production.sh,187,needed
-enterprise/docker-compose.yml,88,needed
-enterprise/docs/ARCHITECTURE.md,157,needed
-enterprise/docs/ENTERPRISE_AUDIT_REPORT.md,132,needed
-enterprise/docs/FIXOPS_SUGGESTIONS_SUMMARY.md,29,needed
-enterprise/docs/INSTALL.md,142,needed
-enterprise/docs/MARKETPLACE_GUIDE.md,39,needed
-enterprise/docs/REQUIREMENTS.md,48,needed
-enterprise/docs/REQUIREMENTS_COMPREHENSIVE.md,247,needed
-enterprise/docs/ROADMAP.md,18,needed
-enterprise/docs/SSVC.md,35,needed
-enterprise/docs/index.md,107,needed
-enterprise/fixops_enterprise.db,747,needed
-enterprise/frontend/Dockerfile,82,needed
-enterprise/frontend/index.html,47,needed
-enterprise/frontend/package.json,46,needed
-enterprise/frontend/src/App.jsx,28,needed
-enterprise/frontend/src/components/Layout.jsx,250,needed
-enterprise/frontend/src/components/LoadingSpinner.jsx,30,needed
-enterprise/frontend/src/components/ModeToggle.jsx,136,needed
-enterprise/frontend/src/components/SecurityLayout.jsx,357,needed
-enterprise/frontend/src/components/Tooltip.jsx,42,needed
-enterprise/frontend/src/contexts/AuthContext.jsx,258,needed
-enterprise/frontend/src/index.css,351,needed
-enterprise/frontend/src/main.jsx,58,needed
-enterprise/frontend/src/pages/ArchitectDashboard.jsx,566,needed
-enterprise/frontend/src/pages/ArchitectureCenter.jsx,561,needed
-enterprise/frontend/src/pages/ArchitecturePage.jsx,165,needed
-enterprise/frontend/src/pages/CISODashboard.jsx,422,needed
-enterprise/frontend/src/pages/CommandCenter.jsx,613,needed
-enterprise/frontend/src/pages/DeveloperDashboard.jsx,636,needed
-enterprise/frontend/src/pages/DeveloperOps.jsx,446,needed
-enterprise/frontend/src/pages/EnhancedDashboard.jsx,942,needed
-enterprise/frontend/src/pages/ExecutiveBriefing.jsx,570,needed
-enterprise/frontend/src/pages/InstallPage.jsx,161,needed
-enterprise/frontend/src/utils/api.js,178,needed
-enterprise/frontend/tailwind.config.js,98,needed
-enterprise/frontend/vite.config.js,59,needed
-enterprise/kubernetes/backend-deployment.yaml,101,needed
-enterprise/kubernetes/configmap.yaml,35,needed
-enterprise/kubernetes/frontend-deployment.yaml,56,needed
-enterprise/kubernetes/ingress.yaml,56,needed
-enterprise/kubernetes/namespace.yaml,8,needed
-enterprise/kubernetes/pvc.yaml,20,needed
-enterprise/kubernetes/rbac.yaml,39,needed
-enterprise/kubernetes/secret.yaml,16,needed
-enterprise/kubernetes/services.yaml,56,needed
-enterprise/policies/sbom.rego,19,needed
-enterprise/policies/vulnerability.rego,22,needed
-enterprise/postman/FixOps-Bank-API-Collection.json,555,needed
-enterprise/postman/FixOps-Bank-Development.postman_environment.json,37,needed
-enterprise/postman/FixOps-Bank-Production.postman_environment.json,51,needed
-enterprise/postman/FixOps-CICD-Tests.postman_collection.json,300,needed
-enterprise/postman/FixOps-Performance-Tests.postman_collection.json,88,needed
-enterprise/postman/POSTMAN_COMPLETION.md,70,needed
-enterprise/postman/README.md,126,needed
-enterprise/postman/sample-data/sample-sarif.json,79,needed
-enterprise/postman/sample-data/sample-sbom.json,75,needed
-enterprise/postman/workspace.json,86,needed
-enterprise/quick_start.py,92,needed
-enterprise/requirements.txt,245,needed
-enterprise/run_enterprise.py,208,needed
-enterprise/scripts/run_migrations.py,54,needed
-enterprise/scripts/run_real_cve_playbook.py,79,needed
-enterprise/scripts/seed_demo_data.py,157,needed
-enterprise/server.py,13,needed
-enterprise/src/api/v1/business_context.py,141,needed
-enterprise/src/api/v1/business_context_enhanced.py,211,needed
-enterprise/src/api/v1/cicd.py,372,needed
-enterprise/src/api/v1/decisions.py,319,needed
-enterprise/src/api/v1/docs.py,36,needed
-enterprise/src/api/v1/enhanced.py,205,needed
-enterprise/src/api/v1/evidence.py,43,needed
-enterprise/src/api/v1/feeds.py,71,needed
-enterprise/src/api/v1/marketplace.py,260,needed
-enterprise/src/api/v1/monitoring.py,50,needed
-enterprise/src/api/v1/oss_tools.py,183,needed
-enterprise/src/api/v1/policy.py,585,needed
-enterprise/src/api/v1/processing_layer.py,414,needed
-enterprise/src/api/v1/production_readiness.py,172,needed
-enterprise/src/api/v1/sample_data_demo.py,707,needed
-enterprise/src/api/v1/scans.py,380,needed
-enterprise/src/api/v1/system.py,34,needed
-enterprise/src/api/v1/system_mode.py,182,needed
-enterprise/src/cli/main.py,796,needed
-enterprise/src/config/settings.py,246,needed
-enterprise/src/core/exceptions.py,403,needed
-enterprise/src/core/middleware.py,340,needed
-enterprise/src/core/security.py,402,needed
-enterprise/src/db/migrations/__init__.py,1,needed
-enterprise/src/db/migrations/env.py,81,needed
-enterprise/src/db/migrations/versions/001_initial_schema.py,128,needed
-enterprise/src/db/migrations/versions/002_add_kev_waivers.py,57,needed
-enterprise/src/db/session.py,147,needed
-enterprise/src/main.py,294,needed
-enterprise/src/models/__init__.py,11,needed
-enterprise/src/models/base.py,163,needed
-enterprise/src/models/base_sqlite.py,162,needed
-enterprise/src/models/security.py,396,needed
-enterprise/src/models/security_sqlite.py,481,needed
-enterprise/src/models/user.py,394,needed
-enterprise/src/models/user_sqlite.py,442,needed
-enterprise/src/models/waivers.py,38,needed
-enterprise/src/schemas/user.py,253,needed
-enterprise/src/services/advanced_llm_engine.py,298,needed
-enterprise/src/services/business_context_processor.py,504,needed
-enterprise/src/services/cache_service.py,450,needed
-enterprise/src/services/chatgpt_client.py,171,needed
-enterprise/src/services/compliance_engine.py,118,needed
-enterprise/src/services/correlation_engine.py,609,needed
-enterprise/src/services/decision_engine.py,1533,needed
-enterprise/src/services/enhanced_decision_engine.py,554,needed
-enterprise/src/services/evidence_export.py,122,needed
-enterprise/src/services/evidence_lake.py,196,needed
-enterprise/src/services/explainability.py,112,needed
-enterprise/src/services/feeds_service.py,221,needed
-enterprise/src/services/fix_engine.py,103,needed
-enterprise/src/services/golden_regression_store.py,481,needed
-enterprise/src/services/knowledge_graph.py,869,needed
-enterprise/src/services/llm_explanation_engine.py,531,needed
-enterprise/src/services/marketplace.py,553,needed
-enterprise/src/services/metrics.py,322,needed
-enterprise/src/services/missing_oss_integrations.py,1212,needed
-enterprise/src/services/oss_integrations.py,341,needed
-enterprise/src/services/policy_engine.py,584,needed
-enterprise/src/services/processing_layer.py,901,needed
-enterprise/src/services/real_opa_engine.py,443,needed
-enterprise/src/services/risk_scorer.py,138,needed
-enterprise/src/services/rl_controller.py,132,needed
-enterprise/src/services/sbom_parser.py,56,needed
-enterprise/src/services/vector_store.py,419,needed
-enterprise/src/services/vex_ingestion.py,281,needed
-enterprise/src/utils/crypto.py,951,needed
-enterprise/src/utils/logger.py,251,needed
-enterprise/structlog/__init__.py,40,needed
-enterprise/structlog/processors.py,51,needed
-enterprise/structlog/stdlib.py,44,needed
-enterprise/supervisord.conf,57,needed
-enterprise/terraform/deployment.tf,127,needed
-enterprise/terraform/main.tf,90,needed
-enterprise/terraform/modules/backend/main.tf,272,needed
-enterprise/terraform/modules/mongodb/main.tf,230,needed
-enterprise/terraform/modules/namespace/main.tf,149,needed
-enterprise/terraform/outputs.tf,104,needed
-enterprise/test-bank-api.sh,90,needed
-fastapi/FOLDER_README.md,12,needed
-fastapi/__init__.py,279,needed
-fastapi/middleware/__init__.py,1,needed
-fastapi/middleware/cors.py,21,needed
-fastapi/security.py,10,needed
-fastapi/testclient.py,58,needed
-fixops-blended-enterprise/src/__init__.py,0,needed
-fixops-blended-enterprise/src/api/__init__.py,2,needed
-fixops-blended-enterprise/src/api/dependencies.py,51,needed
-fixops-blended-enterprise/src/api/v1/__init__.py,14,needed
-fixops-blended-enterprise/src/api/v1/artefacts.py,528,needed
-fixops-blended-enterprise/src/api/v1/cicd.py,40,needed
-fixops-blended-enterprise/src/api/v1/evidence.py,30,needed
-fixops-blended-enterprise/src/api/v1/marketplace.py,22,needed
-fixops-blended-enterprise/src/config/__init__.py,0,needed
-fixops-blended-enterprise/src/config/settings.py,47,needed
-fixops-blended-enterprise/src/core/__init__.py,0,needed
-fixops-blended-enterprise/src/core/middleware.py,340,needed
-fixops-blended-enterprise/src/main.py,61,needed
-fixops-blended-enterprise/src/services/__init__.py,7,needed
-fixops-blended-enterprise/src/services/ci_adapters/__init__.py,8,needed
-fixops-blended-enterprise/src/services/ci_adapters/github_adapter.py,99,needed
-fixops-blended-enterprise/src/services/ci_adapters/jenkins_adapter.py,73,needed
-fixops-blended-enterprise/src/services/ci_adapters/sonarqube_adapter.py,51,needed
-fixops-blended-enterprise/src/services/compliance.py,118,needed
-fixops-blended-enterprise/src/services/decision_engine.py,177,needed
-fixops-blended-enterprise/src/services/evidence.py,54,needed
-fixops-blended-enterprise/src/services/feeds_service.py,221,needed
-fixops-blended-enterprise/src/services/id_allocator.py,43,needed
-fixops-blended-enterprise/src/services/marketplace.py,70,needed
-fixops-blended-enterprise/src/services/metrics.py,31,needed
-fixops-blended-enterprise/src/services/run_registry.py,158,needed
-fixops-blended-enterprise/src/services/runtime.py,13,needed
-fixops-blended-enterprise/src/services/signing.py,107,needed
-fixops-blended-enterprise/src/services/vex_ingestion.py,24,needed
-fixops-blended-enterprise/src/utils/__init__.py,0,needed
-fixops-blended-enterprise/src/utils/logger.py,251,needed
-fixops_enterprise.db,98,needed
-frontend,0,needed
-frontend-akido-public/FOLDER_README.md,7,needed
-frontend-akido-public/README.md,33,needed
-frontend-akido-public/index.html,12,needed
-frontend-akido-public/package-lock.json,6285,needed
-frontend-akido-public/package.json,26,needed
-frontend-akido-public/src/App.jsx,28,needed
-frontend-akido-public/src/components/ModeToggle.jsx,155,needed
-frontend-akido-public/src/components/SecurityLayout.jsx,353,needed
-frontend-akido-public/src/index.css,41,needed
-frontend-akido-public/src/main.jsx,13,needed
-frontend-akido-public/src/pages/ArchitectureCenter.jsx,561,needed
-frontend-akido-public/src/pages/ArchitecturePage.jsx,165,needed
-frontend-akido-public/src/pages/CommandCenter.jsx,613,needed
-frontend-akido-public/src/pages/DeveloperOps.jsx,446,needed
-frontend-akido-public/src/pages/ExecutiveBriefing.jsx,570,needed
-frontend-akido-public/src/pages/InstallPage.jsx,161,needed
-frontend-akido-public/vite.config.js,10,needed
-index/FOLDER_README.md,10,needed
-index/INVENTORY.csv,170,needed
-index/TREE.txt,541,needed
-index/graph.json,299,needed
-lib4sbom/FOLDER_README.md,8,needed
-lib4sbom/__init__.py,4,needed
-lib4sbom/parser.py,55,needed
-market/COMP_MATRIX.csv,11,needed
-market/DEMO_STORY.md,35,needed
-market/ENTERPRISE_READINESS.md,46,needed
-market/FOLDER_README.md,12,needed
-market/GTM_PLAN.md,42,needed
-market/MARKET_REPORT.md,92,needed
-market/POSITIONING.md,30,needed
-market/PRICING.md,25,needed
-market/USP_ENHANCEMENTS.md,31,needed
-marketplace/packs/iso/ac-1/network-segmentation.json,10,needed
-marketplace/packs/iso/ac-2/least-privilege.json,10,needed
-marketplace/packs/pci/8.3/mfa.json,10,needed
-mypy.ini,7,needed
-new_backend/__init__.py,5,needed
-new_backend/api.py,3,needed
-new_backend/processing/__init__.py,3,needed
-new_backend/processing/bayesian.py,3,needed
-new_backend/processing/explanation.py,3,needed
-new_backend/processing/knowledge_graph.py,3,needed
-new_backend/processing/sarif.py,3,needed
-perf/BASELINE.md,12,needed
-perf/BENCHMARKS.csv,3,needed
-perf/CHANGES.md,13,needed
-perf/FOLDER_README.md,14,needed
-prototypes/decider/FOLDER_README.md,22,needed
-prototypes/decider/__init__.py,0,needed
-prototypes/decider/api.py,85,needed
-prototypes/decider/processing/FOLDER_README.md,20,needed
-prototypes/decider/processing/__init__.py,22,needed
-prototypes/decider/processing/bayesian.py,405,needed
-prototypes/decider/processing/explanation.py,195,needed
-prototypes/decider/processing/knowledge_graph.py,238,needed
-prototypes/decider/processing/sarif.py,231,needed
-pydantic/FOLDER_README.md,7,needed
-pydantic/__init__.py,313,needed
-pydantic_settings/__init__.py,85,needed
-pytest.ini,4,needed
-real_components_test.py,545,needed
-requirements.dev.txt,7,needed
-requirements.txt,6,needed
-reviews/2024-09-05_enterprise_demo_review.md,46,needed
-reviews/missing_artifacts.md,3,needed
-reviews/module_summary_v1.yaml,134,needed
-reviews/repo_map_v1.yaml,75,needed
-reviews/review_ci_v1.yaml,28,needed
-reviews/review_consolidated_v1.yaml,120,needed
-reviews/review_overall_v1.yaml,71,needed
-reviews/review_performance_v1.yaml,28,needed
-reviews/review_security_v1.yaml,41,needed
-reviews/review_testing_v1.yaml,30,needed
-sarif_om.py,13,needed
-scripts/FOLDER_README.md,8,needed
-scripts/bootstrap.sh,27,needed
-scripts/generate_analysis.py,239,needed
-scripts/generate_index.py,195,needed
-scripts/run_demo_steps.py,118,needed
-scripts/run_real_cve_playbook.py,122,needed
-simulations/FOLDER_README.md,11,needed
-simulations/cve_scenario/FOLDER_README.md,14,needed
-simulations/cve_scenario/__init__.py,5,needed
-simulations/cve_scenario/contexts.json,42,needed
-simulations/cve_scenario/runner.py,391,needed
-simulations/demo_pack/decision-input.json,12,needed
-simulations/demo_pack/design-input.json,10,needed
-simulations/demo_pack/ops-telemetry.json,1,needed
-simulations/demo_pack/provenance.slsa.json,1,needed
-simulations/demo_pack/requirements-input.csv,3,needed
-simulations/demo_pack/sbom.json,6,needed
-simulations/demo_pack/scanner.sarif,1,needed
-simulations/demo_pack/tests-input.json,1,needed
-simulations/demo_pack/tfplan.json,6,needed
-simulations/ssdlc/build/inputs/sbom.json,7,needed
-simulations/ssdlc/build/outputs/component_index.json,7,needed
-simulations/ssdlc/deploy/inputs/iac.tfplan.json,5,needed
-simulations/ssdlc/deploy/outputs/iac_posture.json,4,needed
-simulations/ssdlc/design/inputs/design_context.csv,4,needed
-simulations/ssdlc/design/inputs/overlay.yaml,3,needed
-simulations/ssdlc/design/outputs/design_crosswalk.json,11,needed
-simulations/ssdlc/operate/inputs/epss.json,5,needed
-simulations/ssdlc/operate/inputs/kev.json,5,needed
-simulations/ssdlc/operate/outputs/exploitability.json,6,needed
-simulations/ssdlc/requirements/inputs/controls.json,6,needed
-simulations/ssdlc/requirements/outputs/policy_plan.json,6,needed
-simulations/ssdlc/run.py,304,needed
-simulations/ssdlc/test/inputs/scanner.sarif,12,needed
-simulations/ssdlc/test/outputs/normalized_findings.json,7,needed
-ssvc/FOLDER_README.md,8,needed
-ssvc/__init__.py,56,needed
-ssvc/plugins/FOLDER_README.md,7,needed
-ssvc/plugins/__init__.py,1,needed
-ssvc/plugins/deployer.py,162,needed
-test_frontend.py,58,needed
-test_result.md,624,needed
-tests/FOLDER_README.md,17,needed
-tests/__init__.py,0,needed
-tests/conftest.py,159,needed
-tests/fixtures/FOLDER_README.md,10,needed
-tests/fixtures/design_context.csv,4,needed
-tests/fixtures/github_dependency_snapshot.json,24,needed
-tests/fixtures/syft_sample_sbom.json,32,needed
-tests/sample_modules.py,9,needed
-tests/test_ai_agents.py,40,needed
-tests/test_analytics_store.py,76,needed
-tests/test_api_artefacts.py,83,needed
-tests/test_api_dependencies.py,118,needed
-tests/test_backend_security.py,29,needed
-tests/test_ci_adapters.py,79,needed
-tests/test_cicd_signature.py,96,needed
-tests/test_cli.py,238,needed
-tests/test_compliance.py,13,needed
-tests/test_compliance_rollup.py,26,needed
-tests/test_cors_jwt.py,27,needed
-tests/test_crypto_signing.py,72,needed
-tests/test_cve_simulation.py,131,needed
-tests/test_decision_top_factors.py,19,needed
-tests/test_demo_runner.py,23,needed
-tests/test_design_context_injector.py,73,needed
-tests/test_end_to_end.py,525,needed
-tests/test_enterprise_compliance.py,21,needed
-tests/test_evidence.py,56,needed
-tests/test_evidence_export.py,44,needed
-tests/test_evidence_retrieval_fastpath.py,55,needed
-tests/test_explainability.py,30,needed
-tests/test_explainability_service.py,22,needed
-tests/test_exploit_refresh.py,19,needed
-tests/test_exploit_signals.py,129,needed
-tests/test_feature_matrix.py,259,needed
-tests/test_feedback.py,112,needed
-tests/test_feeds_enrichment.py,78,needed
-tests/test_golden_regression.py,192,needed
-tests/test_golden_regression_store.py,119,needed
-tests/test_http_metrics.py,109,needed
-tests/test_id_allocator.py,33,needed
-tests/test_key_management.py,239,needed
-tests/test_marketplace_recos.py,10,needed
-tests/test_new_backend_api.py,80,needed
-tests/test_new_backend_processing.py,237,needed
-tests/test_new_modules.py,106,needed
-tests/test_normalizers.py,67,needed
-tests/test_ops_hardening.py,36,needed
-tests/test_overlay_configuration.py,281,needed
-tests/test_pipeline_integration.py,29,needed
-tests/test_pipeline_matching.py,561,needed
-tests/test_policy_connectors.py,96,needed
-tests/test_policy_kevs.py,110,needed
-tests/test_policy_opa.py,79,needed
-tests/test_postman_ci_sync.py,30,needed
-tests/test_postman_phase_collections.py,128,needed
-tests/test_probabilistic.py,87,needed
-tests/test_processing_layer_fallbacks.py,54,needed
-tests/test_rate_limit.py,36,needed
-tests/test_real_opa_engine_factory.py,31,needed
-tests/test_risk_adjustment.py,91,needed
-tests/test_rl_controller.py,31,needed
-tests/test_run_registry.py,65,needed
-tests/test_secure_defaults.py,25,needed
-tests/test_signing_verify.py,28,needed
-tests/test_ssdlc_runner.py,60,needed
-tests/test_storage_security.py,26,needed
-tests/test_tenant_rbac.py,23,needed
-tests/test_vex_ingestion.py,38,needed
-torch/__init__.py,58,needed
+file,lines,status,category,reason,source
+.coveragerc,13,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.emergent/emergent.yml,5,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.emergent/summary.txt,70,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.env.example,16,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.gitconfig,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.github/workflows/ci.yml,44,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.gitignore,91,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.pre-commit-config.yaml,17,supporting,misc,No specific rule matched; defaulting to supporting.,default
+.secrets.baseline,143,supporting,misc,No specific rule matched; defaulting to supporting.,default
+ARCHITECTURE.md,25,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+BACKLOG.csv,5,supporting,misc,No specific rule matched; defaulting to supporting.,default
+CONTRIBUTING.md,71,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+HANDBOOK.md,54,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+Makefile,70,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+ONBOARDING.md,60,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+README.md,417,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+ROADMAP.md,16,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+analysis/DATA_CONTROL_FLOWS.md,40,supporting,analysis,Analytical documentation and reports referenced during audits.,heuristic
+analysis/FILE_SUMMARIES.csv,162,supporting,analysis,Analytical documentation and reports referenced during audits.,heuristic
+analysis/OPTIMIZATIONS.md,12,supporting,analysis,Analytical documentation and reports referenced during audits.,heuristic
+analysis/TRACEABILITY.csv,8,supporting,analysis,Analytical documentation and reports referenced during audits.,heuristic
+analysis/file_usage_report.md,19,not_needed,generated-inventory,Generated markdown summary; regenerate with the inventory script when required.,override
+analysis/file_usage_summary.csv,525,not_needed,generated-inventory,CSV export produced by the inventory script; not required for runtime.,override
+analysis/file_usage_totals.json,16,not_needed,generated-inventory,Totals JSON generated by the inventory script for reporting convenience.,override
+apps/api/FOLDER_README.md,23,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+apps/api/__init__.py,11,needed,core,Core product implementation files.,heuristic
+apps/api/app.py,493,needed,core,Core product implementation files.,heuristic
+apps/api/normalizers.py,731,needed,core,Core product implementation files.,heuristic
+apps/api/pipeline.py,684,needed,core,Core product implementation files.,heuristic
+apps/api/requirements-optional.txt,7,needed,core,Core product implementation files.,heuristic
+apps/api/requirements.txt,22,needed,core,Core product implementation files.,heuristic
+audit/CTEM_ASSESSMENT.md,56,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+audit/GAPS.md,39,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+audit/SECURITY.md,45,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+backend/__init__.py,5,needed,core,Core product implementation files.,heuristic
+backend/app.py,3,needed,core,Core product implementation files.,heuristic
+backend/normalizers.py,3,needed,core,Core product implementation files.,heuristic
+backend/pipeline.py,3,needed,core,Core product implementation files.,heuristic
+backend_test.py,1606,supporting,misc,No specific rule matched; defaulting to supporting.,default
+config/FOLDER_README.md,15,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+config/fixops.overlay.yml,774,supporting,misc,No specific rule matched; defaulting to supporting.,default
+core/FOLDER_README.md,20,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+core/__init__.py,4,needed,core,Core product implementation files.,heuristic
+core/ai_agents.py,225,needed,core,Core product implementation files.,heuristic
+core/analytics.py,650,needed,core,Core product implementation files.,heuristic
+core/cli.py,604,needed,core,Core product implementation files.,heuristic
+core/compliance.py,92,needed,core,Core product implementation files.,heuristic
+core/configuration.py,1421,needed,core,Core product implementation files.,heuristic
+core/connectors.py,301,needed,core,Core product implementation files.,heuristic
+core/context_engine.py,249,needed,core,Core product implementation files.,heuristic
+core/demo_runner.py,191,needed,core,Core product implementation files.,heuristic
+core/design_context_injector.py,273,needed,core,Core product implementation files.,heuristic
+core/evidence.py,196,needed,core,Core product implementation files.,heuristic
+core/exploit_signals.py,580,needed,core,Core product implementation files.,heuristic
+core/feature_matrix.py,276,needed,core,Core product implementation files.,heuristic
+core/feedback.py,227,needed,core,Core product implementation files.,heuristic
+core/iac.py,172,needed,core,Core product implementation files.,heuristic
+core/modules.py,120,needed,core,Core product implementation files.,heuristic
+core/onboarding.py,46,needed,core,Core product implementation files.,heuristic
+core/paths.py,98,needed,core,Core product implementation files.,heuristic
+core/performance.py,126,needed,core,Core product implementation files.,heuristic
+core/policy.py,147,needed,core,Core product implementation files.,heuristic
+core/probabilistic.py,455,needed,core,Core product implementation files.,heuristic
+core/ssdlc.py,385,needed,core,Core product implementation files.,heuristic
+core/storage.py,98,needed,core,Core product implementation files.,heuristic
+core/tenancy.py,139,needed,core,Core product implementation files.,heuristic
+create_minimal_tables.py,148,supporting,misc,No specific rule matched; defaulting to supporting.,default
+create_tables.py,44,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/FOLDER_README.md,17,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+data/feeds/FOLDER_README.md,14,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+data/feeds/epss.json,615,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/feeds/golden_regression_cases.json,152,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/feeds/kev.json,21124,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/marketplace/FOLDER_README.md,10,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+data/marketplace/items.json,88,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/marketplace/purchases.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/019605ec-b76e-46b9-b6e2-2cf2679ca918/meta.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/36a7f793-29a1-4f4f-8727-be9aea67ccce/0.part,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/36a7f793-29a1-4f4f-8727-be9aea67ccce/meta.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/36a7f793-29a1-4f4f-8727-be9aea67ccce/sample.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/5f3792c1-212c-46c7-88d5-e7251e6c35bf/0.part,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/5f3792c1-212c-46c7-88d5-e7251e6c35bf/meta.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/5f3792c1-212c-46c7-88d5-e7251e6c35bf/sample.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/6c94680a-4934-447c-91bf-22ac1356a9e7/0.part,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/6c94680a-4934-447c-91bf-22ac1356a9e7/meta.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/6c94680a-4934-447c-91bf-22ac1356a9e7/sample.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/8a0d27bb-75b6-4a9a-9eff-8f1e96c7b7be/0.part,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/8a0d27bb-75b6-4a9a-9eff-8f1e96c7b7be/meta.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/8a0d27bb-75b6-4a9a-9eff-8f1e96c7b7be/sample.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/FOLDER_README.md,12,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+data/uploads/fad6ec4f-2ab1-4b4a-ac6e-50f0c41cc5ca/0.part,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/fad6ec4f-2ab1-4b4a-ac6e-50f0c41cc5ca/meta.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/fad6ec4f-2ab1-4b4a-ac6e-50f0c41cc5ca/sample.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/upload_1759388274014/metadata.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/upload_1759388360124/metadata.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+data/uploads/upload_1759389506663/metadata.json,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+demo/fixtures/sample.cve.json,20,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+demo/fixtures/sample.design.csv,3,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+demo/fixtures/sample.sarif.json,42,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+demo/fixtures/sample.sbom.json,22,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+docs/ACADEMIC_RESEARCH.md,85,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/AI_AGENTS_RESEARCH.md,105,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/ARCHITECTURE.md,70,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/BACKLOG.csv,16,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/CLOSED_LOOP_OPTIMIZATION.md,31,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/CODE_GAP_ASSESSMENT.md,20,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/CONFIG_GUIDE.md,512,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/CONTRIBUTING.md,87,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/DATA_MODEL.md,97,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/FIXOPS_ADOPTION_GUIDE.md,98,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/FOLDER_README.md,15,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/FixOps_Demo_IO_Contract.md,45,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/INTEGRATIONS.md,51,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/LINE_BY_LINE.md,80,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/MIGRATION.md,49,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/OBSERVABILITY.md,39,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/PLATFORM_RUNBOOK.md,267,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/PR_CHECKLIST.md,12,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/PR_SUMMARY.md,47,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/ROADMAP.md,17,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/SDLC_SSDLC.md,36,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/SECURITY.md,42,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/SSDL_SIMULATION.md,61,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/STRAIKER_APR2025_COMPETITIVE_NOTES.md,31,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/USAGE_GUIDE.html,414,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/decisionfactory_alignment.md,33,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/decisionfactory_alignment/epss_kev_runbook.md,35,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/decisionfactory_alignment/fixops-observability-dashboard.json,292,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/decisionfactory_alignment/part-1-implemented.md,9,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/decisionfactory_alignment/part-2-completed.md,51,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/decisionfactory_alignment/part-3-completed.md,73,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+docs/security_sales_objections.md,47,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/.env.example,8,needed,core,Core product implementation files.,heuristic
+enterprise/BANK_DEPLOYMENT_GUIDE.md,389,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/COMPLETE_DATA_FLOW.md,218,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/COMPREHENSIVE_GUIDE.md,1093,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/Dockerfile,68,needed,core,Core product implementation files.,heuristic
+enterprise/ENHANCED_VERSION.md,145,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/ENTERPRISE_DEPLOYMENT_GUIDE.md,175,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/FOLDER_README.md,10,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/PRODUCTION_DEPLOYMENT.md,134,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/README_BANK_DEPLOYMENT.md,150,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/RESEARCH_ROADMAP.md,239,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/alembic.ini,106,needed,core,Core product implementation files.,heuristic
+enterprise/backstage/app-config.yaml,1,needed,core,Core product implementation files.,heuristic
+enterprise/backstage/catalog-info.yaml,171,needed,core,Core product implementation files.,heuristic
+enterprise/backstage/plugins/fixops-overview-card.tsx,140,needed,core,Core product implementation files.,heuristic
+enterprise/backstage/template.yaml,580,needed,core,Core product implementation files.,heuristic
+enterprise/backstage/terraform-deployment-template.yaml,231,needed,core,Core product implementation files.,heuristic
+enterprise/create_admin_user.py,72,needed,core,Core product implementation files.,heuristic
+enterprise/create_all_tables.py,56,needed,core,Core product implementation files.,heuristic
+enterprise/data/golden_regression_cases.json,49,needed,core,Core product implementation files.,heuristic
+enterprise/deploy-bank.sh,151,needed,core,Core product implementation files.,heuristic
+enterprise/deploy-complete.sh,223,needed,core,Core product implementation files.,heuristic
+enterprise/deploy-production.sh,187,needed,core,Core product implementation files.,heuristic
+enterprise/docker-compose.yml,88,needed,core,Core product implementation files.,heuristic
+enterprise/docs/ARCHITECTURE.md,157,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/ENTERPRISE_AUDIT_REPORT.md,132,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/FIXOPS_SUGGESTIONS_SUMMARY.md,29,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/INSTALL.md,142,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/MARKETPLACE_GUIDE.md,39,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/REQUIREMENTS.md,48,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/REQUIREMENTS_COMPREHENSIVE.md,247,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/ROADMAP.md,18,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/SSVC.md,35,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/docs/index.md,107,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/fixops_enterprise.db,495,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/Dockerfile,82,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/index.html,47,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/package.json,46,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/App.jsx,28,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/components/Layout.jsx,250,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/components/LoadingSpinner.jsx,30,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/components/ModeToggle.jsx,136,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/components/SecurityLayout.jsx,357,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/components/Tooltip.jsx,42,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/contexts/AuthContext.jsx,258,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/index.css,351,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/main.jsx,58,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/ArchitectDashboard.jsx,566,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/ArchitectureCenter.jsx,561,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/ArchitecturePage.jsx,165,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/CISODashboard.jsx,422,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/CommandCenter.jsx,613,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/DeveloperDashboard.jsx,636,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/DeveloperOps.jsx,446,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/EnhancedDashboard.jsx,942,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/ExecutiveBriefing.jsx,570,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/pages/InstallPage.jsx,161,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/src/utils/api.js,178,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/tailwind.config.js,98,needed,core,Core product implementation files.,heuristic
+enterprise/frontend/vite.config.js,59,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/backend-deployment.yaml,101,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/configmap.yaml,35,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/frontend-deployment.yaml,56,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/ingress.yaml,56,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/namespace.yaml,8,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/pvc.yaml,20,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/rbac.yaml,39,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/secret.yaml,16,needed,core,Core product implementation files.,heuristic
+enterprise/kubernetes/services.yaml,56,needed,core,Core product implementation files.,heuristic
+enterprise/policies/sbom.rego,19,needed,core,Core product implementation files.,heuristic
+enterprise/policies/vulnerability.rego,22,needed,core,Core product implementation files.,heuristic
+enterprise/postman/FixOps-Bank-API-Collection.json,555,needed,core,Core product implementation files.,heuristic
+enterprise/postman/FixOps-Bank-Development.postman_environment.json,37,needed,core,Core product implementation files.,heuristic
+enterprise/postman/FixOps-Bank-Production.postman_environment.json,51,needed,core,Core product implementation files.,heuristic
+enterprise/postman/FixOps-CICD-Tests.postman_collection.json,300,needed,core,Core product implementation files.,heuristic
+enterprise/postman/FixOps-Performance-Tests.postman_collection.json,88,needed,core,Core product implementation files.,heuristic
+enterprise/postman/POSTMAN_COMPLETION.md,70,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/postman/README.md,126,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+enterprise/postman/sample-data/sample-sarif.json,79,needed,core,Core product implementation files.,heuristic
+enterprise/postman/sample-data/sample-sbom.json,75,needed,core,Core product implementation files.,heuristic
+enterprise/postman/workspace.json,86,needed,core,Core product implementation files.,heuristic
+enterprise/quick_start.py,92,needed,core,Core product implementation files.,heuristic
+enterprise/requirements.txt,245,needed,core,Core product implementation files.,heuristic
+enterprise/run_enterprise.py,208,needed,core,Core product implementation files.,heuristic
+enterprise/scripts/run_migrations.py,54,needed,core,Core product implementation files.,heuristic
+enterprise/scripts/run_real_cve_playbook.py,79,needed,core,Core product implementation files.,heuristic
+enterprise/scripts/seed_demo_data.py,157,needed,core,Core product implementation files.,heuristic
+enterprise/server.py,13,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/business_context.py,141,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/business_context_enhanced.py,211,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/cicd.py,372,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/decisions.py,319,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/docs.py,36,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/enhanced.py,205,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/evidence.py,43,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/feeds.py,71,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/marketplace.py,260,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/monitoring.py,50,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/oss_tools.py,183,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/policy.py,585,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/processing_layer.py,414,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/production_readiness.py,172,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/sample_data_demo.py,707,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/scans.py,380,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/system.py,34,needed,core,Core product implementation files.,heuristic
+enterprise/src/api/v1/system_mode.py,182,needed,core,Core product implementation files.,heuristic
+enterprise/src/cli/main.py,796,needed,core,Core product implementation files.,heuristic
+enterprise/src/config/settings.py,246,needed,core,Core product implementation files.,heuristic
+enterprise/src/core/exceptions.py,403,needed,core,Core product implementation files.,heuristic
+enterprise/src/core/middleware.py,340,needed,core,Core product implementation files.,heuristic
+enterprise/src/core/security.py,402,needed,core,Core product implementation files.,heuristic
+enterprise/src/db/migrations/__init__.py,1,needed,core,Core product implementation files.,heuristic
+enterprise/src/db/migrations/env.py,81,needed,core,Core product implementation files.,heuristic
+enterprise/src/db/migrations/versions/001_initial_schema.py,128,needed,core,Core product implementation files.,heuristic
+enterprise/src/db/migrations/versions/002_add_kev_waivers.py,57,needed,core,Core product implementation files.,heuristic
+enterprise/src/db/session.py,147,needed,core,Core product implementation files.,heuristic
+enterprise/src/main.py,294,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/__init__.py,11,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/base.py,163,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/base_sqlite.py,162,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/security.py,396,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/security_sqlite.py,481,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/user.py,394,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/user_sqlite.py,442,needed,core,Core product implementation files.,heuristic
+enterprise/src/models/waivers.py,38,needed,core,Core product implementation files.,heuristic
+enterprise/src/schemas/user.py,253,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/advanced_llm_engine.py,298,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/business_context_processor.py,504,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/cache_service.py,450,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/chatgpt_client.py,171,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/compliance_engine.py,118,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/correlation_engine.py,609,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/decision_engine.py,1533,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/enhanced_decision_engine.py,554,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/evidence_export.py,122,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/evidence_lake.py,196,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/explainability.py,112,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/feeds_service.py,221,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/fix_engine.py,103,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/golden_regression_store.py,481,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/knowledge_graph.py,869,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/llm_explanation_engine.py,531,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/marketplace.py,553,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/metrics.py,322,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/missing_oss_integrations.py,1212,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/oss_integrations.py,341,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/policy_engine.py,584,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/processing_layer.py,901,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/real_opa_engine.py,443,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/risk_scorer.py,138,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/rl_controller.py,132,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/sbom_parser.py,56,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/vector_store.py,419,needed,core,Core product implementation files.,heuristic
+enterprise/src/services/vex_ingestion.py,281,needed,core,Core product implementation files.,heuristic
+enterprise/src/utils/crypto.py,951,needed,core,Core product implementation files.,heuristic
+enterprise/src/utils/logger.py,251,needed,core,Core product implementation files.,heuristic
+enterprise/structlog/__init__.py,40,needed,core,Core product implementation files.,heuristic
+enterprise/structlog/processors.py,51,needed,core,Core product implementation files.,heuristic
+enterprise/structlog/stdlib.py,44,needed,core,Core product implementation files.,heuristic
+enterprise/supervisord.conf,57,needed,core,Core product implementation files.,heuristic
+enterprise/terraform/deployment.tf,127,needed,core,Core product implementation files.,heuristic
+enterprise/terraform/main.tf,90,needed,core,Core product implementation files.,heuristic
+enterprise/terraform/modules/backend/main.tf,272,needed,core,Core product implementation files.,heuristic
+enterprise/terraform/modules/mongodb/main.tf,230,needed,core,Core product implementation files.,heuristic
+enterprise/terraform/modules/namespace/main.tf,149,needed,core,Core product implementation files.,heuristic
+enterprise/terraform/outputs.tf,104,needed,core,Core product implementation files.,heuristic
+enterprise/test-bank-api.sh,90,needed,core,Core product implementation files.,heuristic
+fastapi/FOLDER_README.md,12,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+fastapi/__init__.py,279,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+fastapi/middleware/__init__.py,1,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+fastapi/middleware/cors.py,21,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+fastapi/security.py,10,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+fastapi/testclient.py,58,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+fixops-blended-enterprise/src/__init__.py,0,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/__init__.py,2,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/dependencies.py,51,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/v1/__init__.py,14,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/v1/artefacts.py,528,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/v1/cicd.py,40,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/v1/evidence.py,30,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/api/v1/marketplace.py,22,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/config/__init__.py,0,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/config/settings.py,47,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/core/__init__.py,0,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/core/middleware.py,340,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/main.py,61,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/__init__.py,7,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/ci_adapters/__init__.py,8,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/ci_adapters/github_adapter.py,99,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/ci_adapters/jenkins_adapter.py,73,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/ci_adapters/sonarqube_adapter.py,51,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/compliance.py,118,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/decision_engine.py,177,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/evidence.py,54,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/feeds_service.py,221,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/id_allocator.py,43,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/marketplace.py,70,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/metrics.py,31,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/run_registry.py,158,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/runtime.py,13,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/signing.py,107,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/services/vex_ingestion.py,24,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/utils/__init__.py,0,needed,core,Core product implementation files.,heuristic
+fixops-blended-enterprise/src/utils/logger.py,251,needed,core,Core product implementation files.,heuristic
+fixops_enterprise.db,90,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend,0,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/FOLDER_README.md,7,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+frontend-akido-public/README.md,33,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+frontend-akido-public/index.html,12,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/package-lock.json,6285,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/package.json,26,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/App.jsx,28,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/components/ModeToggle.jsx,155,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/components/SecurityLayout.jsx,353,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/index.css,41,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/main.jsx,13,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/pages/ArchitectureCenter.jsx,561,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/pages/ArchitecturePage.jsx,165,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/pages/CommandCenter.jsx,613,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/pages/DeveloperOps.jsx,446,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/pages/ExecutiveBriefing.jsx,570,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/src/pages/InstallPage.jsx,161,supporting,misc,No specific rule matched; defaulting to supporting.,default
+frontend-akido-public/vite.config.js,10,supporting,misc,No specific rule matched; defaulting to supporting.,default
+index/FOLDER_README.md,10,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+index/INVENTORY.csv,170,supporting,misc,No specific rule matched; defaulting to supporting.,default
+index/TREE.txt,541,supporting,misc,No specific rule matched; defaulting to supporting.,default
+index/graph.json,299,supporting,misc,No specific rule matched; defaulting to supporting.,default
+lib4sbom/FOLDER_README.md,8,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+lib4sbom/__init__.py,4,supporting,misc,No specific rule matched; defaulting to supporting.,default
+lib4sbom/parser.py,55,supporting,misc,No specific rule matched; defaulting to supporting.,default
+market/COMP_MATRIX.csv,11,supporting,misc,No specific rule matched; defaulting to supporting.,default
+market/DEMO_STORY.md,35,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/ENTERPRISE_READINESS.md,46,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/FOLDER_README.md,12,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/GTM_PLAN.md,42,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/MARKET_REPORT.md,92,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/POSITIONING.md,30,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/PRICING.md,25,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+market/USP_ENHANCEMENTS.md,31,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+marketplace/packs/iso/ac-1/network-segmentation.json,10,needed,marketplace,Marketplace metadata served by new API endpoints.,heuristic
+marketplace/packs/iso/ac-2/least-privilege.json,10,needed,marketplace,Marketplace metadata served by new API endpoints.,heuristic
+marketplace/packs/pci/8.3/mfa.json,10,needed,marketplace,Marketplace metadata served by new API endpoints.,heuristic
+mypy.ini,7,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/__init__.py,5,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/api.py,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/processing/__init__.py,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/processing/bayesian.py,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/processing/explanation.py,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/processing/knowledge_graph.py,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+new_backend/processing/sarif.py,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+perf/BASELINE.md,12,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+perf/BENCHMARKS.csv,3,supporting,misc,No specific rule matched; defaulting to supporting.,default
+perf/CHANGES.md,13,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+perf/FOLDER_README.md,14,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+prototypes/decider/FOLDER_README.md,22,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+prototypes/decider/__init__.py,0,supporting,misc,No specific rule matched; defaulting to supporting.,default
+prototypes/decider/api.py,85,supporting,misc,No specific rule matched; defaulting to supporting.,default
+prototypes/decider/processing/FOLDER_README.md,20,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+prototypes/decider/processing/__init__.py,22,supporting,misc,No specific rule matched; defaulting to supporting.,default
+prototypes/decider/processing/bayesian.py,405,supporting,misc,No specific rule matched; defaulting to supporting.,default
+prototypes/decider/processing/explanation.py,195,supporting,misc,No specific rule matched; defaulting to supporting.,default
+prototypes/decider/processing/knowledge_graph.py,238,supporting,misc,No specific rule matched; defaulting to supporting.,default
+prototypes/decider/processing/sarif.py,231,supporting,misc,No specific rule matched; defaulting to supporting.,default
+pydantic/FOLDER_README.md,7,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+pydantic/__init__.py,313,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+pydantic_settings/__init__.py,85,needed,vendor-shims,In-repo shims replacing third-party packages in restricted environments.,heuristic
+pytest.ini,4,supporting,misc,No specific rule matched; defaulting to supporting.,default
+real_components_test.py,545,supporting,misc,No specific rule matched; defaulting to supporting.,default
+requirements.dev.txt,7,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+requirements.txt,6,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+reviews/2024-09-05_enterprise_demo_review.md,46,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+reviews/missing_artifacts.md,3,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+reviews/module_summary_v1.yaml,134,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/repo_map_v1.yaml,75,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/review_ci_v1.yaml,28,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/review_consolidated_v1.yaml,120,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/review_overall_v1.yaml,71,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/review_performance_v1.yaml,28,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/review_security_v1.yaml,41,supporting,misc,No specific rule matched; defaulting to supporting.,default
+reviews/review_testing_v1.yaml,30,supporting,misc,No specific rule matched; defaulting to supporting.,default
+sarif_om.py,13,supporting,misc,No specific rule matched; defaulting to supporting.,default
+scripts/FOLDER_README.md,8,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+scripts/bootstrap.sh,27,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+scripts/generate_analysis.py,239,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+scripts/generate_index.py,195,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+scripts/run_demo_steps.py,118,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+scripts/run_real_cve_playbook.py,122,needed,tooling,Tooling required to execute workflows and pipelines.,heuristic
+simulations/FOLDER_README.md,11,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/cve_scenario/FOLDER_README.md,14,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/cve_scenario/__init__.py,5,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/cve_scenario/contexts.json,42,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/cve_scenario/runner.py,391,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/decision-input.json,12,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/design-input.json,10,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/ops-telemetry.json,1,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/provenance.slsa.json,1,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/requirements-input.csv,3,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/sbom.json,6,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/scanner.sarif,1,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/tests-input.json,1,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/demo_pack/tfplan.json,6,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/build/inputs/sbom.json,7,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/build/outputs/component_index.json,7,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/deploy/inputs/iac.tfplan.json,5,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/deploy/outputs/iac_posture.json,4,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/design/inputs/design_context.csv,4,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/design/inputs/overlay.yaml,3,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/design/outputs/design_crosswalk.json,11,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/operate/inputs/epss.json,5,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/operate/inputs/kev.json,5,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/operate/outputs/exploitability.json,6,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/requirements/inputs/controls.json,6,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/requirements/outputs/policy_plan.json,6,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/run.py,304,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/test/inputs/scanner.sarif,12,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+simulations/ssdlc/test/outputs/normalized_findings.json,7,not_needed,demo-fixture,Sample/demo data for simulations; omit in production deployments.,heuristic
+ssvc/FOLDER_README.md,8,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+ssvc/__init__.py,56,supporting,misc,No specific rule matched; defaulting to supporting.,default
+ssvc/plugins/FOLDER_README.md,7,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+ssvc/plugins/__init__.py,1,supporting,misc,No specific rule matched; defaulting to supporting.,default
+ssvc/plugins/deployer.py,162,supporting,misc,No specific rule matched; defaulting to supporting.,default
+test_frontend.py,58,supporting,misc,No specific rule matched; defaulting to supporting.,default
+test_result.md,624,supporting,documentation,Human-facing documentation that accelerates onboarding and reviews.,heuristic
+tests/FOLDER_README.md,17,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/__init__.py,0,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/conftest.py,159,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/fixtures/FOLDER_README.md,10,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/fixtures/design_context.csv,4,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/fixtures/github_dependency_snapshot.json,24,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/fixtures/syft_sample_sbom.json,32,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/sample_modules.py,9,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_ai_agents.py,40,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_analytics_store.py,76,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_api_artefacts.py,83,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_api_dependencies.py,118,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_backend_security.py,29,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_ci_adapters.py,79,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_cicd_signature.py,96,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_cli.py,238,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_compliance.py,13,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_compliance_rollup.py,26,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_cors_jwt.py,27,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_crypto_signing.py,72,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_cve_simulation.py,131,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_decision_top_factors.py,19,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_demo_runner.py,23,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_design_context_injector.py,73,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_end_to_end.py,525,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_enterprise_compliance.py,21,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_evidence.py,56,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_evidence_export.py,44,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_evidence_retrieval_fastpath.py,55,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_explainability.py,30,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_explainability_service.py,22,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_exploit_refresh.py,19,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_exploit_signals.py,129,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_feature_matrix.py,259,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_feedback.py,112,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_feeds_enrichment.py,78,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_golden_regression.py,192,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_golden_regression_store.py,119,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_http_metrics.py,109,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_id_allocator.py,33,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_key_management.py,239,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_marketplace_recos.py,10,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_new_backend_api.py,80,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_new_backend_processing.py,237,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_new_modules.py,106,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_normalizers.py,67,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_ops_hardening.py,36,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_overlay_configuration.py,281,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_pipeline_integration.py,29,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_pipeline_matching.py,561,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_policy_connectors.py,96,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_policy_kevs.py,110,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_policy_opa.py,79,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_postman_ci_sync.py,30,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_postman_phase_collections.py,128,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_probabilistic.py,87,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_processing_layer_fallbacks.py,54,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_rate_limit.py,36,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_real_opa_engine_factory.py,31,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_risk_adjustment.py,91,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_rl_controller.py,31,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_run_registry.py,65,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_secure_defaults.py,25,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_signing_verify.py,28,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_ssdlc_runner.py,60,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_storage_security.py,26,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_tenant_rbac.py,23,needed,tests,Automated regression coverage for the platform.,heuristic
+tests/test_vex_ingestion.py,38,needed,tests,Automated regression coverage for the platform.,heuristic
+torch/__init__.py,58,supporting,misc,No specific rule matched; defaulting to supporting.,default

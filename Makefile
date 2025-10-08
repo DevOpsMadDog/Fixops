@@ -12,8 +12,9 @@ help:
 	@echo "  make fmt          Run isort and black formatters"
 	@echo "  make lint         Run flake8 lint checks"
 	@echo "  make test         Run pytest with coverage gate"
-        @echo "  make sim          Generate SSDLC simulation artifacts (design & test)"
-        @echo "  make demo         Run the FixOps demo pipeline end-to-end"
+	@echo "  make sim          Generate SSDLC simulation artifacts (design & test)"
+	@echo "  make demo         Run the FixOps demo pipeline end-to-end"
+	@echo "  make inventory    Rebuild the file usage inventory artefacts"
 	@echo "  make clean        Remove cached artefacts and the virtual environment"
 
 $(VENV):
@@ -47,16 +48,20 @@ lint: $(VENV)
 
 .PHONY: test
 test: $(VENV)
-        $(PYTHON_BIN) -m pytest --cov=fixops-blended-enterprise/src --cov-branch --cov-fail-under=75
+	$(PYTHON_BIN) -m pytest --cov=fixops-blended-enterprise/src --cov-branch --cov-fail-under=75
 
 .PHONY: sim
 sim: $(VENV)
-        $(PYTHON_BIN) simulations/ssdlc/run.py --stage design --out artifacts/design
-        $(PYTHON_BIN) simulations/ssdlc/run.py --stage test --out artifacts/test
+	$(PYTHON_BIN) simulations/ssdlc/run.py --stage design --out artifacts/design
+	$(PYTHON_BIN) simulations/ssdlc/run.py --stage test --out artifacts/test
 
 .PHONY: demo
 demo: $(VENV)
-        $(PYTHON_BIN) scripts/run_demo_steps.py --app "life-claims-portal"
+	$(PYTHON_BIN) scripts/run_demo_steps.py --app "life-claims-portal"
+
+.PHONY: inventory
+inventory:
+	$(PYTHON) scripts/generate_file_usage_inventory.py
 
 .PHONY: clean
 clean:

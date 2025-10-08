@@ -1,6 +1,16 @@
 {
-  "needed_files": 521,
-  "needed_lines": 104039,
-  "not_needed_files": 0,
-  "not_needed_lines": 0
+  "by_status": {
+    "supporting": {
+      "files": 191,
+      "lines": 47073
+    },
+    "needed": {
+      "files": 297,
+      "lines": 55728
+    },
+    "not_needed": {
+      "files": 36,
+      "lines": 1543
+    }
+  }
 }

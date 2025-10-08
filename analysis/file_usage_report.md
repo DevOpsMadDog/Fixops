@@ -1,12 +1,20 @@
-# File Usage Report
+# Repository File Usage Inventory
 
-This report inventories every tracked file in the repository, providing a line-count estimate and a classification of whether the file is required for the project.
+This report is generated automatically by ``scripts/generate_file_usage_inventory.py``.
 
-## Totals
-- Needed files: 521 (104039 lines)
-- Not needed files: 0 (0 lines)
+## Totals by status
 
-## Classification Notes
-All files are currently marked as **needed** pending deeper domain-specific curation. No redundant assets were detected automatically.
+| Status | Files | Lines |
+| --- | ---: | ---: |
+| needed | 297 | 55728 |
+| supporting | 191 | 47073 |
+| not_needed | 36 | 1543 |
 
-Detailed per-file breakdown is available in `analysis/file_usage_summary.csv`.
+Statuses marked **not_needed** are safe to exclude from the production-critical deployment
+because they either represent generated artefacts or demo fixtures. Supporting files are kept
+to maintain documentation and analysis quality but can be reviewed if footprint reductions
+are required.
+
+Detailed entries live in ``analysis/file_usage_summary.csv`` with columns for the rule
+source and rationale behind each classification. Adjust ``analysis/file_usage_overrides.json``
+to enforce custom decisions.
