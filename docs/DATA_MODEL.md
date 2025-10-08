@@ -31,7 +31,7 @@ configuration. Each description lists core fields, invariants, and persistence n
   and per-mode overrides feeding the `ProbabilisticForecastEngine`.
 - **ssdlc** (`dict`): Stage requirements and per-mode overrides powering lifecycle assessments.
 
-## Normalisation Models (`backend/normalizers.py`)
+## Normalisation Models (`apps/api/normalizers.py`)
 
 - **SBOMComponent**
   - Fields: `name`, `version`, `purl`, `licenses`, `raw` (original package record).
@@ -53,7 +53,7 @@ configuration. Each description lists core fields, invariants, and persistence n
   - Fields: `tool_names`, `metadata` (finding counts), `findings` (`List[SarifFinding]`).
   - Invariants: `metadata['finding_count']` equals `len(findings)`.
 
-## Pipeline Output (`backend/pipeline.py`)
+## Pipeline Output (`apps/api/pipeline.py`)
 
 `PipelineOrchestrator.run()` produces a dictionary with:
 

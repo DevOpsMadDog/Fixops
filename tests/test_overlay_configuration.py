@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from fixops.configuration import OverlayConfig, load_overlay
+from core.configuration import OverlayConfig, load_overlay
 
 
 @pytest.fixture
@@ -182,7 +182,7 @@ def test_policy_engine_overlay_round_trip(tmp_path: Path) -> None:
             "opa": {
                 "enabled": False,
                 "url": "https://opa.example.com",
-                "policy_package": "fixops.security",
+                "policy_package": "core.security",
                 "health_path": "/healthz",
                 "bundle_status_path": "/bundles/status",
                 "auth_token_env": "OPA_TOKEN",

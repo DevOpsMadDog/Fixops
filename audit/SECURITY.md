@@ -6,14 +6,14 @@ This document enumerates how the FixOps ingestion service addresses common OWASP
 
 | Risk | Mitigation | Code Reference |
 | ---- | ---------- | -------------- |
-| Injection (SQL/Command) | Service does not execute database queries or shell commands. Uploaded files are parsed using trusted libraries with no dynamic evaluation. | `backend/normalizers.py` uses typed parsers and json/csv modules only. |
-| Broken Authentication | API key enforcement protects all ingestion and pipeline endpoints when `auth.strategy` is `token`. Enterprise profiles can swap to OIDC once upstream IdP is available. | `backend/app.py` `_verify_api_key`; `config/fixops.overlay.yml` auth stanza. |
-| Sensitive Data Exposure | Overlay metadata masks secrets before they leave the backend and evidence bundles omit overlay data when toggled off. | `fixops/configuration.py` → `OverlayConfig._mask`; `fixops/evidence.py` toggle `include_overlay_metadata_in_bundles`. |
-| XML/XXE | XML documents are not ingested. SBOM, SARIF, and CVE feeds are JSON-based, parsed with safe libraries. | `backend/normalizers.py` only uses JSON parsers. |
+| Injection (SQL/Command) | Service does not execute database queries or shell commands. Uploaded files are parsed using trusted libraries with no dynamic evaluation. | `apps/api/normalizers.py` uses typed parsers and json/csv modules only. |
+| Broken Authentication | API key enforcement protects all ingestion and pipeline endpoints when `auth.strategy` is `token`. Enterprise profiles can swap to OIDC once upstream IdP is available. | `apps/api/app.py` `_verify_api_key`; `config/fixops.overlay.yml` auth stanza. |
+| Sensitive Data Exposure | Overlay metadata masks secrets before they leave the backend and evidence bundles omit overlay data when toggled off. | `core/configuration.py` → `OverlayConfig._mask`; `core/evidence.py` toggle `include_overlay_metadata_in_bundles`. |
+| XML/XXE | XML documents are not ingested. SBOM, SARIF, and CVE feeds are JSON-based, parsed with safe libraries. | `apps/api/normalizers.py` only uses JSON parsers. |
 | SSRF | No outbound HTTP calls are made during ingestion. Future connectors should validate URLs and restrict hosts. | Documented in `docs/INTEGRATIONS.md`. |
-| DoS via Oversized Uploads | Streamed reads enforce per-stage byte limits and reject unsupported content types, throttling untrusted clients. | `backend/app.py` `_read_limited` and `_validate_content_type`; overlay `limits.max_upload_bytes`. |
-| Unsafe Deserialisation | JSON parsing uses `json.loads` and SARIF typed models; no `pickle` or dynamic eval. | `backend/normalizers.py`. |
-| Security Logging & Monitoring | Python logging captures stage names and exceptions without dumping raw payloads. Integrations doc recommends shipping to central log stores. | `backend/app.py` logger usage. |
+| DoS via Oversized Uploads | Streamed reads enforce per-stage byte limits and reject unsupported content types, throttling untrusted clients. | `apps/api/app.py` `_read_limited` and `_validate_content_type`; overlay `limits.max_upload_bytes`. |
+| Unsafe Deserialisation | JSON parsing uses `json.loads` and SARIF typed models; no `pickle` or dynamic eval. | `apps/api/normalizers.py`. |
+| Security Logging & Monitoring | Python logging captures stage names and exceptions without dumping raw payloads. Integrations doc recommends shipping to central log stores. | `apps/api/app.py` logger usage. |
 
 ## Secrets Management
 
@@ -22,9 +22,9 @@ This document enumerates how the FixOps ingestion service addresses common OWASP
   exposure.
 - Data directories are resolved against an allowlist (`FIXOPS_DATA_ROOT_ALLOWLIST`) so overlays cannot
   traverse outside sanctioned paths, and runtime helpers enforce non-world-writable permissions when
-  creating evidence, feedback, automation, feed, and archive directories (`fixops/paths.py`).
+  creating evidence, feedback, automation, feed, and archive directories (`core/paths.py`).
 - Evidence bundles can be encrypted using Fernet-compatible keys supplied via `limits.evidence.encryption_env`
-  to satisfy regulated tenant requirements; encrypted bundles are emitted with `.enc` suffixes (`fixops/evidence.py`).
+  to satisfy regulated tenant requirements; encrypted bundles are emitted with `.enc` suffixes (`core/evidence.py`).
 
 ## Transport Security
 

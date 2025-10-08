@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-import fixops.cli as cli
+import core.cli as cli
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -126,11 +126,11 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
             "--opa-token",
             "demo-token",
             "--opa-package",
-            "fixops.security",
+            "core.security",
             "--opa-health-path",
             "/healthz",
             "--opa-bundle-status-path",
-            "/bundles/fixops/status",
+            "/bundles/core/status",
             "--opa-timeout",
             "9",
             "--evidence-dir",
@@ -145,9 +145,9 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
     assert os.getenv("SIGNING_ROTATION_SLA_DAYS") == "60"
     assert os.getenv("OPA_SERVER_URL") == "https://opa.internal"
     assert os.getenv("OPA_AUTH_TOKEN") == "demo-token"
-    assert os.getenv("OPA_POLICY_PACKAGE") == "fixops.security"
+    assert os.getenv("OPA_POLICY_PACKAGE") == "core.security"
     assert os.getenv("OPA_HEALTH_PATH") == "/healthz"
-    assert os.getenv("OPA_BUNDLE_STATUS_PATH") == "/bundles/fixops/status"
+    assert os.getenv("OPA_BUNDLE_STATUS_PATH") == "/bundles/core/status"
     assert os.getenv("OPA_REQUEST_TIMEOUT") == "9"
     result_payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert result_payload["status"] == "ok"

@@ -1,0 +1,7 @@
+{
+  "component_count": 2,
+  "purls": [
+    "pkg:pypi/fastapi@0.111.0",
+    "pkg:pypi/requests@2.32.0"
+  ]
+}

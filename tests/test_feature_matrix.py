@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from backend.pipeline import PipelineOrchestrator
-from backend.normalizers import (
+from apps.api.pipeline import PipelineOrchestrator
+from apps.api.normalizers import (
     CVERecordSummary,
     NormalizedCVEFeed,
     NormalizedSARIF,
@@ -11,7 +11,7 @@ from backend.normalizers import (
     SBOMComponent,
     SarifFinding,
 )
-from fixops.configuration import load_overlay
+from core.configuration import load_overlay
 
 
 @pytest.mark.parametrize("customer_impact,data_classification,exposure", [

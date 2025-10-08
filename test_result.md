@@ -318,7 +318,7 @@ Analyse everything deep and map each line of code. Replace all stub implementati
     status_history:
         - working: true
         - agent: "testing"
-        - comment: "SQLite database operational at /app/fixops-blended-enterprise/fixops_enterprise.db. Database schema created successfully with all security findings, services, incidents, policy rules tables. Database health checks passing, connection pooling working correctly."
+        - comment: "SQLite database operational at /app/enterprise/fixops_enterprise.db. Database schema created successfully with all security findings, services, incidents, policy rules tables. Database health checks passing, connection pooling working correctly."
         - working: true
         - agent: "testing"
         - comment: "COMPREHENSIVE TESTING COMPLETED: Database file exists (266,240 bytes), connectivity working, health checks passing. Schema validation shows 11 tables with 3/4 expected core tables present (users, services, security_findings). Database session management working correctly."

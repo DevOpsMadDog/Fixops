@@ -1,6 +1,6 @@
 from typing import Any, Mapping, MutableMapping
 
-from fixops.modules import PipelineContext
+from core.modules import PipelineContext
 
 
 def record_outcome(result: MutableMapping[str, Any], context: PipelineContext, config: Mapping[str, Any]) -> Mapping[str, Any]:

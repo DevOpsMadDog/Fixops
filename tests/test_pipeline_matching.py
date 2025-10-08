@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from backend.pipeline import PipelineOrchestrator
-from backend.normalizers import (
+from apps.api.pipeline import PipelineOrchestrator
+from apps.api.normalizers import (
     CVERecordSummary,
     InputNormalizer,
     NormalizedCVEFeed,
@@ -14,7 +14,7 @@ from backend.normalizers import (
     SBOMComponent,
     SarifFinding,
 )
-from fixops.configuration import OverlayConfig
+from core.configuration import OverlayConfig
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"

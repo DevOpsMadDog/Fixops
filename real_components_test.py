@@ -57,7 +57,7 @@ class RealComponentsTester:
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 import asyncio
 from src.services.vector_store import get_vector_store, VectorStoreFactory
 from src.config.settings import get_settings
@@ -91,7 +91,7 @@ async def test_vector_store():
 result = asyncio.run(test_vector_store())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=30, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 output_lines = result.stdout.strip().split('\n')
@@ -126,7 +126,7 @@ sys.exit(0 if result else 1)
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 import asyncio
 from src.services.real_opa_engine import get_opa_engine, evaluate_vulnerability_policy, evaluate_sbom_policy
 from src.config.settings import get_settings
@@ -186,7 +186,7 @@ async def test_opa_engine():
 result = asyncio.run(test_opa_engine())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=30, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 output_lines = result.stdout.strip().split('\n')
@@ -232,7 +232,7 @@ sys.exit(0 if result else 1)
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 import asyncio
 from src.services.decision_engine import decision_engine, DecisionContext
 from src.config.settings import get_settings
@@ -282,7 +282,7 @@ async def test_evidence_lake():
 result = asyncio.run(test_evidence_lake())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=30, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 output_lines = result.stdout.strip().split('\n')
@@ -474,7 +474,7 @@ sys.exit(0 if result else 1)
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 from src.config.settings import get_settings
 
 settings = get_settings()
@@ -483,7 +483,7 @@ print(f'Environment: {getattr(settings, "ENVIRONMENT", "unknown")}')
 print(f'Vector DB URL configured: {bool(getattr(settings, "VECTOR_DB_URL", None))}')
 print(f'OPA Server URL: {getattr(settings, "OPA_SERVER_URL", "default")}')
                 """
-            ], capture_output=True, text=True, timeout=10, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=10, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 output_lines = result.stdout.strip().split('\n')

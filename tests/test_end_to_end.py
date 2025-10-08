@@ -19,11 +19,11 @@ else:  # pragma: no cover - degrade gracefully when using the lightweight stub
         TestClient = None  # type: ignore
 
 try:
-    from backend.app import create_app
+    from apps.api.app import create_app
 except Exception:  # pragma: no cover - allow environments without FastAPI
     create_app = None  # type: ignore
-from backend.normalizers import InputNormalizer
-from backend.pipeline import PipelineOrchestrator
+from apps.api.normalizers import InputNormalizer
+from apps.api.pipeline import PipelineOrchestrator
 
 
 def test_end_to_end_demo_pipeline():

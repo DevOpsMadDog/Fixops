@@ -4,5 +4,5 @@
 the upstream dependency.
 
 **Gotchas**
-- Provides only the interfaces required by `backend/normalizers.py`.
+- Provides only the interfaces required by `apps/api/normalizers.py`.
 - Replace with the official library for production parsing accuracy.

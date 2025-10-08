@@ -14,7 +14,7 @@ def _load_json(path: str) -> dict:
 
 def test_phase_one_health_collection_targets_core_probes() -> None:
     collection = _load_json(
-        "fixops-blended-enterprise/postman/FixOps-Bank-API-Collection.json"
+        "enterprise/postman/FixOps-Bank-API-Collection.json"
     )
     folders = collection.get("item", [])
     health_folder = next(
@@ -49,7 +49,7 @@ def test_phase_one_health_collection_targets_core_probes() -> None:
 
 def test_phase_two_cicd_collection_covers_allow_block_defer() -> None:
     collection = _load_json(
-        "fixops-blended-enterprise/postman/FixOps-CICD-Tests.postman_collection.json"
+        "enterprise/postman/FixOps-CICD-Tests.postman_collection.json"
     )
     items = {
         item.get("name"): item
@@ -80,7 +80,7 @@ def test_phase_two_cicd_collection_covers_allow_block_defer() -> None:
 
 def test_phase_three_performance_collection_targets_hot_path() -> None:
     collection = _load_json(
-        "fixops-blended-enterprise/postman/FixOps-Performance-Tests.postman_collection.json"
+        "enterprise/postman/FixOps-Performance-Tests.postman_collection.json"
     )
     items = collection.get("item", [])
     assert {item.get("name") for item in items} == {
@@ -111,7 +111,7 @@ def test_phase_three_performance_collection_targets_hot_path() -> None:
 
 
 def test_bank_api_script_references_all_collections() -> None:
-    script_path = Path("fixops-blended-enterprise/test-bank-api.sh")
+    script_path = Path("enterprise/test-bank-api.sh")
     script_text = script_path.read_text(encoding="utf-8")
 
     for filename in [
@@ -120,7 +120,7 @@ def test_bank_api_script_references_all_collections() -> None:
         "FixOps-Performance-Tests.postman_collection.json",
     ]:
         assert filename in script_text, f"Script missing reference to {filename}"
-        assert (Path("fixops-blended-enterprise/postman") / filename).exists()
+        assert (Path("enterprise/postman") / filename).exists()
 
     # Ensure script calls out each validation phase
     assert "Phase 1: Health & Readiness Validation" in script_text

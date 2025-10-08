@@ -11,4 +11,4 @@
 
 **Gotchas:**
 - Ensure overlay directories exist or let the runner create them before execution.
-- The runner imports the contextual risk scorer from `fixops-blended-enterprise`; keep that repository directory available on `sys.path`.
+- The runner imports the contextual risk scorer from `enterprise`; keep that repository directory available on `sys.path`.

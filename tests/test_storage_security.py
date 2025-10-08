@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from fixops.storage import ArtefactArchive
+from core.storage import ArtefactArchive
 
 
 @pytest.fixture

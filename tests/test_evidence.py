@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from fixops.configuration import OverlayConfig
-from fixops.evidence import EvidenceHub
+from core.configuration import OverlayConfig
+from core.evidence import EvidenceHub
 
 
 def _minimal_pipeline_result() -> dict:

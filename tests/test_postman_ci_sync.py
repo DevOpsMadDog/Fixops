@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def test_postman_collection_contains_alignment_scenarios() -> None:
-    path = Path("fixops-blended-enterprise/postman/FixOps-CICD-Tests.postman_collection.json")
+    path = Path("enterprise/postman/FixOps-CICD-Tests.postman_collection.json")
     data = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(data.get("item"), list)
 

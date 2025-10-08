@@ -47,7 +47,7 @@
         <tr>
           <td>FastAPI service</td>
           <td>Receives artefact uploads, executes overlay-selected modules, emits responses + evidence</td>
-          <td><code>backend/app.py</code></td>
+          <td><code>apps/api/app.py</code></td>
         </tr>
         <tr>
           <td>Overlay configuration</td>
@@ -62,7 +62,7 @@
         <tr>
           <td>Evidence &amp; manifests</td>
           <td>Persist guardrail, policy, SSDLC, AI, exploit, and probabilistic outputs for audits</td>
-          <td><code>fixops/evidence.py</code></td>
+          <td><code>core/evidence.py</code></td>
         </tr>
         <tr>
           <td>Simulations &amp; tests</td>
@@ -309,10 +309,10 @@ curl -H "X-API-Key: ${FIXOPS_API_TOKEN}" -F "file=@samples/kev.json;type=applica
   <section id="deep">
     <h2>Detailed Data Flow</h2>
     <ol>
-      <li><strong>Input stage</strong> – API handlers stream uploads to disk only when MIME and directory checks pass. The normalisers (<code>backend/normalizers.py</code>) cache artefact hashes to prevent redundant parsing.</li>
-      <li><strong>Crosswalk assembly</strong> – <code>backend/pipeline.py</code> merges design rows, SBOM entries, SARIF findings, and CVE feeds into a keyed structure, keeping per-row indices for traceability.</li>
+      <li><strong>Input stage</strong> – API handlers stream uploads to disk only when MIME and directory checks pass. The normalisers (<code>apps/api/normalizers.py</code>) cache artefact hashes to prevent redundant parsing.</li>
+      <li><strong>Crosswalk assembly</strong> – <code>apps/api/pipeline.py</code> merges design rows, SBOM entries, SARIF findings, and CVE feeds into a keyed structure, keeping per-row indices for traceability.</li>
       <li><strong>Module execution</strong> – The orchestrator consults <code>OverlayConfig.enabled_modules</code> to run context scoring, guardrails, compliance, policy automation, SSDLC, IaC posture, AI agent detection, exploitability, and probabilistic forecasts.</li>
-      <li><strong>Evidence + pricing</strong> – <code>fixops/evidence.py</code> writes bundles (JSON + manifests) to allowlisted directories, attaching module matrices, policy dispatch manifests, SSDLC coverage, and pricing entitlements.</li>
+      <li><strong>Evidence + pricing</strong> – <code>core/evidence.py</code> writes bundles (JSON + manifests) to allowlisted directories, attaching module matrices, policy dispatch manifests, SSDLC coverage, and pricing entitlements.</li>
       <li><strong>Response</strong> – The API response includes all module outputs, severity aggregations, exploitability notes, Bayesian confidence metrics, AI and SSDLC advisories, and the evidence bundle reference.</li>
       <li><strong>Feedback loop</strong> – Optional overlay flag exposes <code>/feedback</code> for secure operator submissions tied to the run identifier.</li>
     </ol>

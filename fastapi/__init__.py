@@ -1,9 +1,21 @@
 """Tiny FastAPI-compatible façade for unit tests."""
+
 from __future__ import annotations
 
 import inspect
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, get_type_hints
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    get_type_hints,
+)
+from types import SimpleNamespace
 
 try:  # pragma: no cover - optional dependency for typing checks
     from pydantic import BaseModel, ValidationError
@@ -31,7 +43,9 @@ def File(default: Any) -> Any:
 
 
 class UploadFile:
-    def __init__(self, filename: str | None = None, content_type: str | None = None) -> None:
+    def __init__(
+        self, filename: str | None = None, content_type: str | None = None
+    ) -> None:
         self.filename = filename or ""
         self.content_type = content_type
         self._buffer = bytearray()
@@ -61,7 +75,9 @@ class _Route:
 
     def __post_init__(self) -> None:
         self.signature = inspect.signature(self.endpoint)
-        raw_segments = [segment for segment in self.path.strip("/").split("/") if segment]
+        raw_segments = [
+            segment for segment in self.path.strip("/").split("/") if segment
+        ]
         self._segments: List[Tuple[str, Optional[str]]] = []
         for segment in raw_segments:
             if segment.startswith("{") and segment.endswith("}"):
@@ -114,12 +130,16 @@ class _Route:
 
 
 class APIRouter:
-    def __init__(self, prefix: str = "", tags: Optional[List[str]] | None = None) -> None:
+    def __init__(
+        self, prefix: str = "", tags: Optional[List[str]] | None = None
+    ) -> None:
         self.prefix = prefix or ""
         self.tags = tags or []
         self._routes: List[_Route] = []
 
-    def _register(self, method: str, path: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def _register(
+        self, method: str, path: str
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         full_path = f"{self.prefix}{path}"
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -128,13 +148,23 @@ class APIRouter:
 
         return decorator
 
-    def post(self, path: str, **_: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def post(
+        self, path: str, **_: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("POST", path)
 
-    def get(self, path: str, **_: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def get(
+        self, path: str, **_: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("GET", path)
 
-    def add_api_route(self, path: str, endpoint: Callable[..., Any], methods: Optional[List[str]] = None, **_: Any) -> None:
+    def add_api_route(
+        self,
+        path: str,
+        endpoint: Callable[..., Any],
+        methods: Optional[List[str]] = None,
+        **_: Any,
+    ) -> None:
         for method in methods or ["GET"]:
             self._routes.append(_Route(method, f"{self.prefix}{path}", endpoint))
 
@@ -145,17 +175,27 @@ class FastAPI:
         self.version = version
         self._routes: List[_Route] = []
         self._middleware: List[tuple[Any, Dict[str, Any]]] = []
+        self.user_middleware: List[SimpleNamespace] = []
 
-    def post(self, path: str, summary: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def post(
+        self, path: str, summary: str | None = None, **_: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("POST", path)
 
-    def get(self, path: str, summary: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def get(
+        self, path: str, summary: str | None = None, **_: Any
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         return self._register("GET", path)
 
     def add_middleware(self, middleware_class: Any, **options: Any) -> None:
         self._middleware.append((middleware_class, options))
+        self.user_middleware.append(
+            SimpleNamespace(cls=middleware_class, options=options)
+        )
 
-    def _register(self, method: str, path: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def _register(
+        self, method: str, path: str
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self._routes.append(_Route(method, path, func))
             return func

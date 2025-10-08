@@ -21,7 +21,7 @@ if "structlog" not in sys.modules:
     sys.modules["structlog"] = types.SimpleNamespace(get_logger=lambda: _StubLogger())
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FIXOPS_ROOT = REPO_ROOT / "fixops-blended-enterprise"
+FIXOPS_ROOT = REPO_ROOT / "enterprise"
 if str(FIXOPS_ROOT) not in sys.path:
     sys.path.insert(0, str(FIXOPS_ROOT))
 

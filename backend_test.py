@@ -375,7 +375,7 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
         """Test CLI commands - CRITICAL TESTING AREA"""
         print("\n💻 Testing CLI Functionality...")
         
-        cli_path = "/app/fixops-blended-enterprise/src/cli/main.py"
+        cli_path = "/app/enterprise/src/cli/main.py"
         
         # Test 1: fixops health command
         try:
@@ -385,7 +385,7 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
             result = subprocess.run([
                 "python", cli_path, "health"
             ], capture_output=True, text=True, timeout=30, 
-            cwd="/app/fixops-blended-enterprise", env=env)
+            cwd="/app/enterprise", env=env)
             
             if result.returncode == 0:
                 print("✅ CLI health command passed")
@@ -426,7 +426,7 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
                 "--service-name", "test-service",
                 "--environment", "production"
             ], capture_output=True, text=True, timeout=30, 
-            cwd="/app/fixops-blended-enterprise", env=env)
+            cwd="/app/enterprise", env=env)
             
             if result.returncode in [0, 1, 2]:  # Valid exit codes
                 print("✅ CLI make-decision command passed")
@@ -460,7 +460,7 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
                 "python", cli_path, "get-evidence",
                 "--evidence-id", "EVD-2024-0847"
             ], capture_output=True, text=True, timeout=30, 
-            cwd="/app/fixops-blended-enterprise", env=env)
+            cwd="/app/enterprise", env=env)
             
             if result.returncode in [0, 1]:  # 0 = found, 1 = not found
                 print("✅ CLI get-evidence command passed")
@@ -505,7 +505,7 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
                 "--scanner-type", "sast",
                 "--scanner-name", "TestScanner"
             ], capture_output=True, text=True, timeout=30, 
-            cwd="/app/fixops-blended-enterprise", env=env)
+            cwd="/app/enterprise", env=env)
             
             if result.returncode in [0, 1, 2]:
                 print("✅ CLI ingest command passed")
@@ -559,7 +559,7 @@ CRYPTO_001,Weak encryption,Weak crypto algorithm,medium,crypto,sast,src/crypto.p
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 from src.services.decision_engine import decision_engine
 import asyncio
 
@@ -584,7 +584,7 @@ async def test_decision_engine():
 result = asyncio.run(test_decision_engine())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=30, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=30, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 print("✅ Decision engine initialization successful")
@@ -607,7 +607,7 @@ sys.exit(0 if result else 1)
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 from src.services.correlation_engine import correlation_engine
 import asyncio
 
@@ -623,7 +623,7 @@ async def test_correlation():
 result = asyncio.run(test_correlation())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=15, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=15, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 print("✅ Correlation engine working")
@@ -646,7 +646,7 @@ sys.exit(0 if result else 1)
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 from src.services.policy_engine import policy_engine
 import asyncio
 
@@ -662,7 +662,7 @@ async def test_policy():
 result = asyncio.run(test_policy())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=15, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=15, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 print("✅ Policy engine working")
@@ -687,7 +687,7 @@ sys.exit(0 if result else 1)
         
         try:
             # Test database file exists
-            db_path = "/app/fixops-blended-enterprise/fixops_enterprise.db"
+            db_path = "/app/enterprise/fixops_enterprise.db"
             if os.path.exists(db_path):
                 print("✅ SQLite database file exists")
                 print(f"   Database path: {db_path}")
@@ -704,7 +704,7 @@ sys.exit(0 if result else 1)
                 "python", "-c", 
                 """
 import sys
-sys.path.insert(0, '/app/fixops-blended-enterprise')
+sys.path.insert(0, '/app/enterprise')
 from src.db.session import DatabaseManager
 import asyncio
 
@@ -727,7 +727,7 @@ async def test_db():
 result = asyncio.run(test_db())
 sys.exit(0 if result else 1)
                 """
-            ], capture_output=True, text=True, timeout=15, cwd="/app/fixops-blended-enterprise")
+            ], capture_output=True, text=True, timeout=15, cwd="/app/enterprise")
             
             if result.returncode == 0:
                 print("✅ Database connectivity working")
@@ -747,7 +747,7 @@ import sqlite3
 import sys
 
 try:
-    conn = sqlite3.connect('/app/fixops-blended-enterprise/fixops_enterprise.db')
+    conn = sqlite3.connect('/app/enterprise/fixops_enterprise.db')
     cursor = conn.cursor()
     
     # Check if main tables exist
@@ -1166,10 +1166,10 @@ trust_boundaries:
         
         try:
             with open(yaml_file_path, 'rb') as f:
-                files = {'file': ('fixops.yaml', f, 'application/x-yaml')}
+                files = {'file': ('core.yaml', f, 'application/x-yaml')}
                 data = {
                     'service_name': 'payment-service',
-                    'format_type': 'fixops.yaml'
+                    'format_type': 'core.yaml'
                 }
                 
                 success, response = self.run_test(
@@ -1291,7 +1291,7 @@ trust_boundaries:
         
         if success and response.get('supported_formats'):
             formats = response['supported_formats']
-            expected_formats = ['fixops.yaml', 'otm.json', 'ssvc.yaml']
+            expected_formats = ['core.yaml', 'otm.json', 'ssvc.yaml']
             missing_formats = [fmt for fmt in expected_formats if fmt not in formats]
             if missing_formats:
                 print(f"   ❌ Missing supported formats: {missing_formats}")

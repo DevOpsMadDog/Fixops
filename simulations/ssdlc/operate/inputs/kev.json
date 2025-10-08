@@ -1,0 +1,5 @@
+{
+  "vulnerabilities": [
+    {"cveID": "CVE-2024-12345", "knownExploited": true}
+  ]
+}

@@ -3,7 +3,7 @@
 This commentary highlights the meaningful sections of the FixOps ingestion backend. Blank lines and
 obvious imports are grouped for readability.
 
-## `backend/app.py`
+## `apps/api/app.py`
 
 | Lines | Description |
 | ----- | ----------- |
@@ -14,7 +14,7 @@ obvious imports are grouped for readability.
 | 179-210 | `/pipeline/run` enforces overlay-required artefacts, validates Jira sync requirements, executes the orchestrator, and appends masked overlay metadata when toggled. |
 | 211-220 | `/feedback` honours the `capture_feedback` toggle and persists JSONL decisions via the feedback recorder. |
 
-## `backend/normalizers.py`
+## `apps/api/normalizers.py`
 
 | Lines | Description |
 | ----- | ----------- |
@@ -30,7 +30,7 @@ obvious imports are grouped for readability.
 | 217-281 | `load_cve_feed` decodes JSON feeds that may be dicts or lists, validates entries with `cvelib` when available, normalises identifiers/title/severity, and records validation errors. |
 | 283-335 | `load_sarif` parses JSON, optionally converts Snyk payloads to SARIF, instantiates `SarifLog`, reuses the parsed runs list, extracts tool names/findings, and builds metadata counts. |
 
-## `backend/pipeline.py`
+## `apps/api/pipeline.py`
 
 | Lines | Description |
 | ----- | ----------- |
@@ -40,7 +40,7 @@ obvious imports are grouped for readability.
 | 135-229 | `run()` builds the design list, precomputes lowercase tokens, indexes SBOM components, aggregates severity/exploitation statistics (including per-source counts), computes the maturity-aware guardrail evaluation when an overlay is provided, and precomputes finding/CVE matches per token using `defaultdict` caches to avoid redundant scans. |
 | 231-360 | Crosswalk assembly attaches matches to each design row, prepares summaries, evaluates guardrails, invokes the context engine/onboarding/compliance/policy modules, executes the AI Agent Advisor, persists evidence bundles, and attaches pricing metadata. |
 
-## `fixops/configuration.py`
+## `core/configuration.py`
 
 | Lines | Description |
 | ----- | ----------- |
@@ -51,7 +51,7 @@ obvious imports are grouped for readability.
 | 234-281 | `upload_limit()` interprets stage-specific caps. `load_overlay()` validates via Pydantic, merges profile overrides, sets defaults (`include_overlay_metadata_in_bundles`), resolves API keys, enforces env-var presence, and validates directories immediately. |
 | 283 | `__all__` exposes the loader and dataclass for importers. |
 
-## `fixops/feedback.py`
+## `core/feedback.py`
 
 | Lines | Description |
 | ----- | ----------- |
@@ -59,7 +59,7 @@ obvious imports are grouped for readability.
 | 22-49 | `_validate_payload` enforces required keys (`run_id`, `decision`), normalises optional metadata, and guards against invalid types. |
 | 51-61 | `record()` writes validated entries to `<feedback_dir>/<run_id>/feedback.jsonl` and returns a manifest used by the API response. |
 
-## `fixops/ai_agents.py`
+## `core/ai_agents.py`
 
 | Lines | Description |
 | ----- | ----------- |

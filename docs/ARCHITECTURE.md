@@ -7,7 +7,7 @@ architecture against market promises.
 
 ## Component Summary
 
-1. **FastAPI Ingestion Service (`backend/app.py`)**
+1. **FastAPI Ingestion Service (`apps/api/app.py`)**
    - Owns HTTP endpoints for uploading design context CSV, SBOM documents, SARIF findings, and CVE
      feeds, plus the `/pipeline/run` execution route.
    - Loads the overlay configuration during startup and persists it in `app.state.overlay` so every
@@ -18,19 +18,19 @@ architecture against market promises.
      locations exist before ingesting artefacts.
    - Exposes a `/feedback` endpoint (when enabled) that writes JSONL decisions into allowlisted
      directories for audit trails.
-2. **Configuration Loader (`fixops/configuration.py`)**
+2. **Configuration Loader (`core/configuration.py`)**
    - Parses `config/fixops.overlay.yml`, honours the `FIXOPS_OVERLAY_PATH` override, merges
      profile-specific overrides, and applies defaults for toggles and metadata.
    - Validates the document with Pydantic (rejecting unknown keys), fails fast when required
      environment variables are missing, and masks secrets before they are exposed via API responses.
    - Resolves data directories against `FIXOPS_DATA_ROOT_ALLOWLIST` and captures authorised API tokens
      for the FastAPI layer.
-3. **Normalisation Layer (`backend/normalizers.py`)**
+3. **Normalisation Layer (`apps/api/normalizers.py`)**
    - Converts raw uploads into rich domain objects (`NormalizedSBOM`, `NormalizedSARIF`,
      `NormalizedCVEFeed`) with helper methods for JSON serialisation.
    - Handles optional third-party parser dependencies gracefully so the demo can run in a minimal
      environment.
-4. **Pipeline Orchestrator (`backend/pipeline.py`)**
+4. **Pipeline Orchestrator (`apps/api/pipeline.py`)**
    - Correlates design rows with SBOM components, SARIF findings, and CVE entries using precomputed
      lowercase tokens for efficient matching.
    - Normalises severities from SARIF and CVE artefacts, produces aggregate summaries, evaluates

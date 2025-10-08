@@ -1,11 +1,5 @@
-"""Backend package for FixOps simplified ingestion pipeline."""
+"""Compatibility wrapper for the legacy `backend` package path."""
+
+from apps.api.app import create_app
 
 __all__ = ["create_app"]
-
-
-def __getattr__(name: str):
-    if name == "create_app":
-        from .app import create_app as _create_app
-
-        return _create_app
-    raise AttributeError(name)

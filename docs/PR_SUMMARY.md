@@ -17,14 +17,14 @@ This document captures the scope of the FixOps consolidation branch so reviewers
 
 ## Platform Capabilities
 
-- **Overlay-driven core** – `fixops/configuration.py` loads declarative profiles covering authentication, directories, guardrail maturity, module toggles, onboarding checklists, compliance packs, AI agent watchlists, exploit feeds, probabilistic priors, SSDLC targets, module registry metadata, and pricing tiers.
-- **Push ingestion & normalisation** – Hardened FastAPI uploads in `backend/app.py` validate API keys, MIME types, and byte limits before staging artefacts for the orchestrator. `backend/normalizers.py` unifies design, SBOM, CVE, and SARIF parsing with case-insensitive crosswalk mapping.
-- **Pipeline orchestration** – `backend/pipeline.py` coordinates guardrails, context engine, policy automation, compliance packs, SSDLC scoring, IaC posture, AI agent detection, exploitability assessment, probabilistic forecasting, ROI analytics, tenant lifecycle reporting, performance simulation, onboarding guidance, pricing summaries, module execution matrices, and evidence bundling.
-- **Context & scoring engines** – Modules in `fixops/` provide business context scoring, guardrail evaluation, compliance coverage, AI agent detection, exploit intelligence, SSDLC stage assessments, IaC posture analysis, Bayesian/Markov forecasts, ROI dashboards, tenant lifecycle orchestration, performance modelling, and module management with custom hook execution.
-- **Automation connectors** – `fixops/connectors.py` includes Jira, Confluence, and Slack delivery paths with masked credential logging and structured outcomes. Policy planners persist manifests to disk for auditing.
-- **Evidence hub & feedback** – `fixops/evidence.py` composes bundles with compression limits, redaction, and manifest auditing while `fixops/feedback.py` records JSONL feedback when overlay toggles permit.
-- **Exploit feed refresh** – `fixops/exploit_signals.py` can auto-refresh KEV/EPSS data into allowlisted directories, annotating CVE entries with staleness metadata.
-- **CLI parity** – `fixops/cli.py` mirrors API behaviour for offline runs, module toggling, environment overrides, and optional evidence export.
+- **Overlay-driven core** – `core/configuration.py` loads declarative profiles covering authentication, directories, guardrail maturity, module toggles, onboarding checklists, compliance packs, AI agent watchlists, exploit feeds, probabilistic priors, SSDLC targets, module registry metadata, and pricing tiers.
+- **Push ingestion & normalisation** – Hardened FastAPI uploads in `apps/api/app.py` validate API keys, MIME types, and byte limits before staging artefacts for the orchestrator. `apps/api/normalizers.py` unifies design, SBOM, CVE, and SARIF parsing with case-insensitive crosswalk mapping.
+- **Pipeline orchestration** – `apps/api/pipeline.py` coordinates guardrails, context engine, policy automation, compliance packs, SSDLC scoring, IaC posture, AI agent detection, exploitability assessment, probabilistic forecasting, ROI analytics, tenant lifecycle reporting, performance simulation, onboarding guidance, pricing summaries, module execution matrices, and evidence bundling.
+- **Context & scoring engines** – Modules in `core/` provide business context scoring, guardrail evaluation, compliance coverage, AI agent detection, exploit intelligence, SSDLC stage assessments, IaC posture analysis, Bayesian/Markov forecasts, ROI dashboards, tenant lifecycle orchestration, performance modelling, and module management with custom hook execution.
+- **Automation connectors** – `core/connectors.py` includes Jira, Confluence, and Slack delivery paths with masked credential logging and structured outcomes. Policy planners persist manifests to disk for auditing.
+- **Evidence hub & feedback** – `core/evidence.py` composes bundles with compression limits, redaction, and manifest auditing while `core/feedback.py` records JSONL feedback when overlay toggles permit.
+- **Exploit feed refresh** – `core/exploit_signals.py` can auto-refresh KEV/EPSS data into allowlisted directories, annotating CVE entries with staleness metadata.
+- **CLI parity** – `core/cli.py` mirrors API behaviour for offline runs, module toggling, environment overrides, and optional evidence export.
 
 ## Simulations, Performance, and Testing
 

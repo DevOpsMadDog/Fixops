@@ -1,39 +1,285 @@
 {
-  "backend/__init__.py": [],
-  "backend/app.py": [
-    "fixops/configuration.py"
+  "apps/api/__init__.py": [],
+  "apps/api/app.py": [
+    "core/analytics.py",
+    "core/configuration.py",
+    "core/feedback.py",
+    "core/paths.py",
+    "core/storage.py"
   ],
-  "backend/normalizers.py": [],
-  "backend/pipeline.py": [],
-  "fixops/__init__.py": [],
-  "fixops/configuration.py": [],
-  "fixops/design_context_injector.py": [],
-  "new_backend/__init__.py": [],
-  "new_backend/api.py": [],
-  "new_backend/processing/__init__.py": [],
-  "new_backend/processing/explanation.py": [],
-  "new_backend/processing/knowledge_graph.py": [],
-  "new_backend/processing/sarif.py": [],
+  "apps/api/normalizers.py": [],
+  "apps/api/pipeline.py": [
+    "core/ai_agents.py",
+    "core/analytics.py",
+    "core/compliance.py",
+    "core/configuration.py",
+    "core/context_engine.py",
+    "core/evidence.py",
+    "core/exploit_signals.py",
+    "core/feature_matrix.py",
+    "core/iac.py",
+    "core/modules.py",
+    "core/onboarding.py",
+    "core/performance.py",
+    "core/policy.py",
+    "core/probabilistic.py",
+    "core/ssdlc.py",
+    "core/tenancy.py"
+  ],
+  "core/__init__.py": [],
+  "core/ai_agents.py": [],
+  "core/analytics.py": [
+    "core/configuration.py",
+    "core/paths.py"
+  ],
+  "core/cli.py": [
+    "apps/api/normalizers.py",
+    "apps/api/pipeline.py",
+    "core/configuration.py",
+    "core/demo_runner.py",
+    "core/paths.py",
+    "core/probabilistic.py",
+    "core/storage.py"
+  ],
+  "core/compliance.py": [],
+  "core/configuration.py": [],
+  "core/connectors.py": [],
+  "core/context_engine.py": [],
+  "core/demo_runner.py": [
+    "apps/api/normalizers.py",
+    "apps/api/pipeline.py",
+    "core/configuration.py",
+    "core/evidence.py",
+    "core/paths.py"
+  ],
+  "core/design_context_injector.py": [],
+  "core/evidence.py": [
+    "core/configuration.py",
+    "core/paths.py"
+  ],
+  "core/exploit_signals.py": [
+    "apps/api/normalizers.py",
+    "core/configuration.py",
+    "core/paths.py"
+  ],
+  "core/feature_matrix.py": [],
+  "core/feedback.py": [
+    "core/analytics.py",
+    "core/configuration.py",
+    "core/connectors.py",
+    "core/paths.py"
+  ],
+  "core/iac.py": [],
+  "core/modules.py": [
+    "apps/api/normalizers.py",
+    "core/configuration.py"
+  ],
+  "core/onboarding.py": [
+    "core/configuration.py"
+  ],
+  "core/paths.py": [],
+  "core/performance.py": [
+    "core/configuration.py"
+  ],
+  "core/policy.py": [
+    "core/configuration.py",
+    "core/connectors.py",
+    "core/paths.py"
+  ],
+  "core/probabilistic.py": [],
+  "core/ssdlc.py": [
+    "apps/api/normalizers.py",
+    "core/configuration.py"
+  ],
+  "core/storage.py": [
+    "core/paths.py"
+  ],
+  "core/tenancy.py": [
+    "core/configuration.py"
+  ],
+  "enterprise/create_admin_user.py": [],
+  "enterprise/create_all_tables.py": [],
+  "enterprise/frontend/node_modules/flatted/python/flatted.py": [],
+  "enterprise/quick_start.py": [],
+  "enterprise/run_enterprise.py": [],
+  "enterprise/scripts/run_migrations.py": [],
+  "enterprise/scripts/run_real_cve_playbook.py": [],
+  "enterprise/scripts/seed_demo_data.py": [],
+  "enterprise/server.py": [],
+  "enterprise/src/api/v1/business_context.py": [],
+  "enterprise/src/api/v1/business_context_enhanced.py": [],
+  "enterprise/src/api/v1/cicd.py": [],
+  "enterprise/src/api/v1/decisions.py": [],
+  "enterprise/src/api/v1/docs.py": [],
+  "enterprise/src/api/v1/enhanced.py": [],
+  "enterprise/src/api/v1/evidence.py": [],
+  "enterprise/src/api/v1/feeds.py": [],
+  "enterprise/src/api/v1/marketplace.py": [],
+  "enterprise/src/api/v1/monitoring.py": [],
+  "enterprise/src/api/v1/oss_tools.py": [],
+  "enterprise/src/api/v1/policy.py": [],
+  "enterprise/src/api/v1/processing_layer.py": [],
+  "enterprise/src/api/v1/production_readiness.py": [],
+  "enterprise/src/api/v1/sample_data_demo.py": [],
+  "enterprise/src/api/v1/scans.py": [],
+  "enterprise/src/api/v1/system.py": [],
+  "enterprise/src/api/v1/system_mode.py": [],
+  "enterprise/src/cli/main.py": [],
+  "enterprise/src/config/settings.py": [],
+  "enterprise/src/core/exceptions.py": [],
+  "enterprise/src/core/middleware.py": [],
+  "enterprise/src/core/security.py": [],
+  "enterprise/src/db/migrations/__init__.py": [],
+  "enterprise/src/db/migrations/env.py": [],
+  "enterprise/src/db/migrations/versions/001_initial_schema.py": [],
+  "enterprise/src/db/migrations/versions/002_add_kev_waivers.py": [],
+  "enterprise/src/db/session.py": [],
+  "enterprise/src/main.py": [],
+  "enterprise/src/models/__init__.py": [],
+  "enterprise/src/models/base.py": [],
+  "enterprise/src/models/base_sqlite.py": [],
+  "enterprise/src/models/security.py": [],
+  "enterprise/src/models/security_sqlite.py": [],
+  "enterprise/src/models/user.py": [],
+  "enterprise/src/models/user_sqlite.py": [],
+  "enterprise/src/models/waivers.py": [],
+  "enterprise/src/schemas/user.py": [],
+  "enterprise/src/services/advanced_llm_engine.py": [],
+  "enterprise/src/services/business_context_processor.py": [],
+  "enterprise/src/services/cache_service.py": [],
+  "enterprise/src/services/chatgpt_client.py": [],
+  "enterprise/src/services/compliance_engine.py": [],
+  "enterprise/src/services/correlation_engine.py": [],
+  "enterprise/src/services/decision_engine.py": [],
+  "enterprise/src/services/enhanced_decision_engine.py": [],
+  "enterprise/src/services/evidence_export.py": [],
+  "enterprise/src/services/evidence_lake.py": [],
+  "enterprise/src/services/explainability.py": [],
+  "enterprise/src/services/feeds_service.py": [],
+  "enterprise/src/services/fix_engine.py": [],
+  "enterprise/src/services/golden_regression_store.py": [],
+  "enterprise/src/services/knowledge_graph.py": [],
+  "enterprise/src/services/llm_explanation_engine.py": [],
+  "enterprise/src/services/marketplace.py": [],
+  "enterprise/src/services/metrics.py": [],
+  "enterprise/src/services/missing_oss_integrations.py": [],
+  "enterprise/src/services/oss_integrations.py": [],
+  "enterprise/src/services/policy_engine.py": [],
+  "enterprise/src/services/processing_layer.py": [],
+  "enterprise/src/services/real_opa_engine.py": [],
+  "enterprise/src/services/risk_scorer.py": [],
+  "enterprise/src/services/rl_controller.py": [],
+  "enterprise/src/services/sbom_parser.py": [],
+  "enterprise/src/services/vector_store.py": [],
+  "enterprise/src/services/vex_ingestion.py": [],
+  "enterprise/src/utils/crypto.py": [],
+  "enterprise/src/utils/logger.py": [],
+  "enterprise/structlog/__init__.py": [],
+  "enterprise/structlog/processors.py": [],
+  "enterprise/structlog/stdlib.py": [],
+  "prototypes/decider/__init__.py": [],
+  "prototypes/decider/api.py": [],
+  "prototypes/decider/processing/__init__.py": [],
+  "prototypes/decider/processing/bayesian.py": [],
+  "prototypes/decider/processing/explanation.py": [],
+  "prototypes/decider/processing/knowledge_graph.py": [],
+  "prototypes/decider/processing/sarif.py": [],
+  "scripts/generate_analysis.py": [],
+  "scripts/generate_index.py": [],
+  "scripts/run_real_cve_playbook.py": [],
   "tests/__init__.py": [],
   "tests/conftest.py": [],
+  "tests/sample_modules.py": [
+    "core/modules.py"
+  ],
+  "tests/test_ai_agents.py": [
+    "core/ai_agents.py"
+  ],
+  "tests/test_analytics_store.py": [
+    "core/analytics.py"
+  ],
+  "tests/test_backend_security.py": [
+    "core/configuration.py"
+  ],
+  "tests/test_cicd_signature.py": [],
+  "tests/test_cli.py": [
+    "core/cli.py"
+  ],
+  "tests/test_crypto_signing.py": [],
+  "tests/test_cve_simulation.py": [],
+  "tests/test_demo_runner.py": [
+    "core/demo_runner.py"
+  ],
   "tests/test_design_context_injector.py": [],
   "tests/test_end_to_end.py": [
-    "backend/app.py",
-    "backend/normalizers.py",
-    "backend/pipeline.py"
+    "apps/api/app.py",
+    "apps/api/normalizers.py",
+    "apps/api/pipeline.py"
   ],
+  "tests/test_evidence.py": [
+    "core/configuration.py",
+    "core/evidence.py"
+  ],
+  "tests/test_evidence_export.py": [],
+  "tests/test_explainability_service.py": [],
+  "tests/test_exploit_signals.py": [
+    "apps/api/normalizers.py",
+    "core/configuration.py",
+    "core/exploit_signals.py"
+  ],
+  "tests/test_feature_matrix.py": [
+    "apps/api/normalizers.py",
+    "apps/api/pipeline.py",
+    "core/configuration.py"
+  ],
+  "tests/test_feedback.py": [
+    "core/configuration.py",
+    "core/connectors.py",
+    "core/feedback.py"
+  ],
+  "tests/test_feeds_enrichment.py": [],
   "tests/test_golden_regression.py": [],
   "tests/test_golden_regression_store.py": [],
-  "tests/test_new_backend_api.py": [
-    "new_backend/api.py"
-  ],
+  "tests/test_http_metrics.py": [],
+  "tests/test_key_management.py": [],
+  "tests/test_new_backend_api.py": [],
   "tests/test_new_backend_processing.py": [],
+  "tests/test_new_modules.py": [
+    "core/analytics.py",
+    "core/performance.py",
+    "core/tenancy.py"
+  ],
+  "tests/test_normalizers.py": [
+    "apps/api/normalizers.py"
+  ],
   "tests/test_overlay_configuration.py": [
-    "fixops/configuration.py"
+    "core/configuration.py"
   ],
   "tests/test_pipeline_matching.py": [
-    "backend/normalizers.py",
-    "backend/pipeline.py"
+    "apps/api/normalizers.py",
+    "apps/api/pipeline.py",
+    "core/configuration.py"
   ],
-  "tests/test_risk_adjustment.py": []
+  "tests/test_policy_connectors.py": [
+    "core/configuration.py",
+    "core/policy.py"
+  ],
+  "tests/test_policy_kevs.py": [],
+  "tests/test_policy_opa.py": [
+    "tests/test_policy_kevs.py"
+  ],
+  "tests/test_postman_ci_sync.py": [],
+  "tests/test_postman_phase_collections.py": [],
+  "tests/test_probabilistic.py": [
+    "core/probabilistic.py"
+  ],
+  "tests/test_processing_layer_fallbacks.py": [],
+  "tests/test_real_opa_engine_factory.py": [],
+  "tests/test_risk_adjustment.py": [],
+  "tests/test_rl_controller.py": [],
+  "tests/test_storage_security.py": [
+    "core/storage.py"
+  ],
+  "tests/test_tenant_rbac.py": [],
+  "tests/test_vex_ingestion.py": []
 }
