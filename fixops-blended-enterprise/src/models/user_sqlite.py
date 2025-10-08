@@ -4,7 +4,7 @@ SQLite-compatible user model with security, compliance, and RBAC
 
 import json
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 from enum import Enum
 
 from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer
@@ -76,6 +76,11 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
         Text,  # JSON string in SQLite
         default=json.dumps([UserRole.VIEWER.value]),
         nullable=False
+    )
+    tenant_roles: Mapped[str] = mapped_column(
+        Text,
+        default="{}",
+        nullable=False,
     )
     
     # Security settings
@@ -216,13 +221,43 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
         if role.value not in current_roles:
             current_roles.append(role.value)
             self.set_roles(current_roles)
-    
+
     def remove_role(self, role: UserRole) -> None:
         """Remove role from user"""
         current_roles = self.get_roles()
         if role.value in current_roles:
             current_roles.remove(role.value)
             self.set_roles(current_roles)
+
+    def get_tenant_roles(self) -> Dict[str, List[str]]:
+        try:
+            payload = json.loads(self.tenant_roles or "{}")
+        except json.JSONDecodeError:
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        return {
+            str(tenant): [str(role).lower() for role in (roles or [])]
+            for tenant, roles in payload.items()
+        }
+
+    def set_tenant_roles(self, mapping: Dict[str, List[str]]) -> None:
+        self.tenant_roles = json.dumps(mapping)
+
+    def grant_tenant_role(self, tenant_id: str, role: str) -> None:
+        mapping = self.get_tenant_roles()
+        roles = set(mapping.get(tenant_id, []))
+        roles.add(role.lower())
+        mapping[tenant_id] = sorted(roles)
+        self.set_tenant_roles(mapping)
+
+    def revoke_tenant_role(self, tenant_id: str, role: str) -> None:
+        mapping = self.get_tenant_roles()
+        roles = set(mapping.get(tenant_id, []))
+        if role.lower() in roles:
+            roles.remove(role.lower())
+            mapping[tenant_id] = sorted(roles)
+            self.set_tenant_roles(mapping)
     
     def set_mfa_secret(self, secret: str) -> None:
         """Set encrypted MFA secret"""

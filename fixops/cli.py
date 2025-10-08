@@ -235,6 +235,10 @@ def _handle_run(args: argparse.Namespace) -> int:
         os.environ["OPA_BUNDLE_STATUS_PATH"] = args.opa_bundle_status_path
     if getattr(args, "opa_timeout", None) is not None:
         os.environ["OPA_REQUEST_TIMEOUT"] = str(args.opa_timeout)
+    if getattr(args, "enable_rl", False):
+        os.environ["ENABLE_RL_EXPERIMENTS"] = "true"
+    if getattr(args, "enable_shap", False):
+        os.environ["ENABLE_SHAP_EXPERIMENTS"] = "true"
 
     overlay = load_overlay(args.overlay)
     if args.disable_modules:
@@ -478,6 +482,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--opa-timeout",
         type=int,
         help="Timeout in seconds for OPA requests",
+    )
+    run_parser.add_argument(
+        "--enable-rl",
+        action="store_true",
+        help="Enable reinforcement learning experiments for this run",
+    )
+    run_parser.add_argument(
+        "--enable-shap",
+        action="store_true",
+        help="Enable SHAP explainability experiments for this run",
     )
     run_parser.add_argument(
         "--evidence-dir",

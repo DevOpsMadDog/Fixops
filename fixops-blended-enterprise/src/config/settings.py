@@ -145,6 +145,12 @@ class Settings(BaseSettings):
     ML_MODEL_PATH: str = Field(default="/app/models")
     ENABLE_ML_INFERENCE: bool = Field(default=True)
     ML_BATCH_SIZE: int = Field(default=32)
+    ENABLE_RL_EXPERIMENTS: bool = Field(
+        default=False, description="Enable reinforcement learning experiment toggles"
+    )
+    ENABLE_SHAP_EXPERIMENTS: bool = Field(
+        default=False, description="Enable SHAP explainability experiment toggles"
+    )
     
     # Compliance & Security
     AUDIT_LOG_RETENTION_DAYS: int = Field(default=2555)

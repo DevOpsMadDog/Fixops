@@ -19,6 +19,13 @@ from src.services.real_opa_engine import get_opa_engine
 logger = structlog.get_logger()
 router = APIRouter(prefix="/policy", tags=["policy-gates"])
 settings = get_settings()
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 KevWaiverModel = get_kev_waiver_model()
 
 if KevWaiverModel is None:  # pragma: no cover - misconfiguration safeguard
@@ -441,7 +448,8 @@ async def evaluate_gate(req: GateRequest, db: AsyncSession = Depends(get_db)) ->
 
     try:
         kev_count = int(req.signals.get("kev_count", 0) or 0)
-        low_confidence = req.confidence < max(settings.LLM_CONSENSUS_THRESHOLD, 0.75)
+        consensus_threshold = _coerce_float(getattr(settings, "LLM_CONSENSUS_THRESHOLD", 0.75), 0.75)
+        low_confidence = req.confidence < max(consensus_threshold, 0.75)
 
         if req.decision == "BLOCK":
             return GateResponse(

@@ -40,11 +40,17 @@
     "auto_attach_overlay_metadata": true,
     "include_overlay_metadata_in_bundles": true,
     "enforce_ticket_sync": false,
-    "capture_feedback": false
+    "capture_feedback": false,
+    "enable_rl_experiments": false,
+    "enable_shap_experiments": false,
+    "signing_provider": "env",
+    "opa_server_url": "https://opa.fixops.local:8181"
   },
   "signing": {
     "provider": "env",
-    "rotation_sla_days": 45
+    "rotation_sla_days": 45,
+    "key_id": "alias/fixops-signer",
+    "aws_region": "us-east-1"
   },
   "modules": {
     "guardrails": {"enabled": true},

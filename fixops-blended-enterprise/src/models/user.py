@@ -3,7 +3,7 @@ Enterprise user model with security, compliance, and RBAC
 """
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 from enum import Enum
 
 from sqlalchemy import Column, String, Boolean, DateTime, Text, Enum as SQLEnum, Integer, JSON
@@ -76,6 +76,11 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
         ARRAY(String(50)),
         default=[UserRole.VIEWER.value],
         nullable=False
+    )
+    tenant_roles: Mapped[Dict[str, List[str]]] = mapped_column(
+        JSON,
+        default=dict,
+        nullable=False,
     )
     
     # Security settings
@@ -198,6 +203,31 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
     def has_role(self, role: UserRole) -> bool:
         """Check if user has specific role"""
         return role.value in self.roles
+
+    def get_tenant_roles(self) -> Dict[str, List[str]]:
+        """Return tenant role assignments keyed by tenant identifier."""
+
+        if isinstance(self.tenant_roles, dict):
+            return {
+                str(tenant): [str(role).lower() for role in (roles or [])]
+                for tenant, roles in self.tenant_roles.items()
+            }
+        return {}
+
+    def grant_tenant_role(self, tenant_id: str, role: str) -> None:
+        mapping = self.get_tenant_roles()
+        roles = set(mapping.get(tenant_id, []))
+        roles.add(role.lower())
+        mapping[tenant_id] = sorted(roles)
+        self.tenant_roles = mapping
+
+    def revoke_tenant_role(self, tenant_id: str, role: str) -> None:
+        mapping = self.get_tenant_roles()
+        roles = set(mapping.get(tenant_id, []))
+        if role.lower() in roles:
+            roles.remove(role.lower())
+            mapping[tenant_id] = sorted(roles)
+            self.tenant_roles = mapping
     
     def add_role(self, role: UserRole) -> None:
         """Add role to user"""

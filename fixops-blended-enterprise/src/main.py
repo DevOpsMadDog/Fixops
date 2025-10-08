@@ -25,7 +25,7 @@ from src.core.middleware import (
 from src.core.exceptions import setup_exception_handlers
 from src.core.security import SecurityManager
 from src.api.v1 import scans, decisions, business_context, cicd, marketplace, enhanced
-from src.api.v1 import feeds, docs, system, policy, oss_tools, processing_layer, sample_data_demo, business_context_enhanced, production_readiness, system_mode, monitoring
+from src.api.v1 import feeds, docs, system, policy, oss_tools, processing_layer, sample_data_demo, business_context_enhanced, production_readiness, system_mode, monitoring, evidence
 from src.db.session import DatabaseManager
 from src.services.cache_service import CacheService
 from src.utils.logger import setup_structured_logging
@@ -230,6 +230,7 @@ app.include_router(sample_data_demo.router, prefix="/api/v1", tags=["sample-data
 app.include_router(production_readiness.router, prefix="/api/v1", tags=["production-readiness"])
 app.include_router(system_mode.router, prefix="/api/v1", tags=["system-mode"])
 app.include_router(monitoring.router, prefix="/api/v1", tags=["monitoring"])
+app.include_router(evidence.router, prefix="/api/v1", tags=["evidence"])
 
 @app.middleware("http")
 async def performance_tracking(request: Request, call_next):

@@ -6,19 +6,38 @@ import asyncio
 import hashlib
 import secrets
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Any
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 import bcrypt
 import jwt
 from cryptography.fernet import Fernet
-from fastapi import HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status
+try:  # Local FastAPI stub may not expose Header
+    from fastapi import Header  # type: ignore
+except ImportError:  # pragma: no cover - fallback for lightweight stub
+    def Header(default: str | None = None, alias: str | None = None) -> str | None:
+        return default
+try:  # Local FastAPI stub may expose a reduced security surface
+    from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  # type: ignore
+except ImportError:  # pragma: no cover - fallback for unit tests
+    @dataclass
+    class HTTPAuthorizationCredentials:  # type: ignore
+        credentials: str = ""
+
+    class HTTPBearer:  # type: ignore
+        def __call__(self) -> HTTPAuthorizationCredentials:
+            return HTTPAuthorizationCredentials("")
 from passlib.context import CryptContext
 import pyotp
 import structlog
 
+from sqlalchemy import select
+
 from src.config.settings import get_settings
+from src.db.session import DatabaseManager
 from src.services.cache_service import CacheService
 from src.models.user_sqlite import User
 from src.utils.crypto import generate_secure_token
@@ -35,6 +54,13 @@ pwd_context = CryptContext(
 
 # JWT Security
 security = HTTPBearer()
+
+
+class TenantPersona(str, Enum):
+    OWNER = "owner"
+    APPROVER = "approver"
+    AUDITOR = "auditor"
+    INTEGRATOR = "integrator"
 
 
 class SecurityManager:
@@ -268,11 +294,36 @@ class RBACManager:
         return permission in user_permissions
     
     @classmethod
-    async def _get_user_roles(cls, user_id: int) -> List[str]:
-        """Get user roles from database"""
-        # This would be implemented with your actual database logic
-        # For now, return a default role
-        return ["operator"]  # Replace with actual database query
+    async def _get_user(cls, user_id: str) -> Optional[User]:
+        async with DatabaseManager.get_session_context() as session:
+            query = select(User)
+            try:
+                query = query.where(User.id == int(user_id))
+            except (TypeError, ValueError):
+                query = query.where(User.username == str(user_id))
+            result = await session.execute(query.limit(1))
+            return result.scalars().first()
+
+    @classmethod
+    async def _get_user_roles(cls, user_id: str) -> List[str]:
+        user = await cls._get_user(user_id)
+        if user is None:
+            return []
+        return user.get_roles()
+
+    @classmethod
+    async def user_has_tenant_role(
+        cls,
+        user_id: str,
+        tenant_id: str,
+        persona: "TenantPersona",
+    ) -> bool:
+        user = await cls._get_user(user_id)
+        if user is None:
+            return False
+        tenant_roles = user.get_tenant_roles()
+        roles = tenant_roles.get(tenant_id) or []
+        return persona.value in {role.lower() for role in roles}
 
 
 # FastAPI Dependencies
@@ -312,7 +363,7 @@ def require_permission(permission: str):
     """Dependency factory to require specific permission"""
     async def permission_checker(current_user: Dict = Depends(get_current_user)) -> bool:
         user_id = current_user["sub"]  # Keep as string
-        
+
         has_permission = await RBACManager.check_permission(user_id, permission)
         if not has_permission:
             raise HTTPException(
@@ -320,8 +371,26 @@ def require_permission(permission: str):
                 detail=f"Insufficient permissions: {permission} required"
             )
         return True
-    
+
     return permission_checker
+
+
+def require_tenant_role(persona: TenantPersona):
+    """Ensure the caller has the required tenant persona."""
+
+    async def tenant_checker(
+        tenant_id: str = Header(..., alias="X-Tenant-ID"),
+        current_user: Dict = Depends(get_current_user),
+    ) -> Dict[str, str]:
+        has_role = await RBACManager.user_has_tenant_role(current_user["sub"], tenant_id, persona)
+        if not has_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Tenant role '{persona.value}' required",
+            )
+        return {"tenant_id": tenant_id, "persona": persona.value}
+
+    return tenant_checker
 
 
 # Admin-only dependency

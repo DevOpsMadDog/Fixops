@@ -22,7 +22,11 @@ except Exception:  # pragma: no cover - fallback for limited runtimes
 def get_kev_waiver_model() -> Type:
     """Return the active KEV waiver ORM model for the configured database."""
 
-    db_url = (get_settings().DATABASE_URL or "").lower()
+    settings = get_settings()
+    raw_db_url = getattr(settings, "DATABASE_URL", "")
+    if not isinstance(raw_db_url, str):
+        raw_db_url = str(raw_db_url or "")
+    db_url = raw_db_url.lower()
     if "sqlite" in db_url:
         return SqliteKevFindingWaiver or PostgresKevFindingWaiver  # type: ignore[return-value]
     if "postgres" in db_url or "psql" in db_url:

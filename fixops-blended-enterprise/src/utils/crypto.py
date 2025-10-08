@@ -464,8 +464,15 @@ def get_key_provider() -> KeyProvider:
         return _KEY_PROVIDER
 
     settings = get_settings()
-    provider_name = (settings.SIGNING_PROVIDER or "env").lower()
-    rotation_sla = getattr(settings, "SIGNING_ROTATION_SLA_DAYS", 30)
+    raw_provider = getattr(settings, "SIGNING_PROVIDER", "env")
+    if not isinstance(raw_provider, str):
+        raw_provider = str(raw_provider or "env")
+    provider_name = raw_provider.lower()
+    rotation_value = getattr(settings, "SIGNING_ROTATION_SLA_DAYS", 30)
+    try:
+        rotation_sla = int(rotation_value)
+    except (TypeError, ValueError):
+        rotation_sla = 30
 
     if provider_name == "aws_kms":
         _KEY_PROVIDER = AWSKMSProvider(
