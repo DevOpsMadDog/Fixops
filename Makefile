@@ -9,13 +9,10 @@ PYTHON_BIN := $(VENV)/bin/python
 help:
 	@echo "Available targets:"
 	@echo "  make bootstrap   Create a local virtual environment and install dependencies"
-	@echo "  make dev          Install application and development dependencies"
-	@echo "  make fmt          Run code formatters (ruff format)"
-	@echo "  make lint         Run linters (ruff check)"
-	@echo "  make typecheck    Run static type checks (mypy)"
-	@echo "  make test         Run the pytest suite"
-	@echo "  make demo         Execute the bundled FixOps demo pipeline"
-	@echo "  make demo-enterprise Run the enterprise overlay demo"
+	@echo "  make fmt          Run isort and black formatters"
+	@echo "  make lint         Run flake8 lint checks"
+	@echo "  make test         Run pytest with coverage gate"
+	@echo "  make sim          Generate SSDLC simulation artifacts (design & test)"
 	@echo "  make clean        Remove cached artefacts and the virtual environment"
 
 $(VENV):
@@ -24,47 +21,40 @@ $(VENV):
 
 .PHONY: bootstrap
 bootstrap: $(VENV)
-$(PIP) install --upgrade pip wheel
-$(PIP) install -r requirements.txt
-$(PIP) install -r apps/api/requirements.txt
-@if [ -f enterprise/requirements.txt ]; then \
-$(PIP) install -r enterprise/requirements.txt; \
-fi
+	$(PIP) install --upgrade pip wheel
+	$(PIP) install -r requirements.txt
 	@if [ -f requirements.dev.txt ]; then \
-		$(PIP) install -r requirements.dev.txt; \
+	$(PIP) install -r requirements.dev.txt; \
 	fi
+	@if [ -f apps/api/requirements.txt ]; then \
+	$(PIP) install -r apps/api/requirements.txt; \
+	fi
+	@if [ -f enterprise/requirements.txt ]; then \
+	$(PIP) install -r enterprise/requirements.txt; \
+	fi
+	$(PIP) install black isort flake8 pytest-cov
 	@echo "Virtual environment initialised in $(VENV). Activate with: source $(VENV)/bin/activate"
-
-.PHONY: dev
-dev: bootstrap
-	@echo "Development environment ready."
 
 .PHONY: fmt
 fmt: $(VENV)
-	$(PYTHON_BIN) -m ruff format .
+	$(PYTHON_BIN) -m isort .
+	$(PYTHON_BIN) -m black .
 
 .PHONY: lint
 lint: $(VENV)
-	$(PYTHON_BIN) -m ruff check .
-
-.PHONY: typecheck
-typecheck: $(VENV)
-$(PYTHON_BIN) -m mypy core apps tests
+	$(PYTHON_BIN) -m flake8
 
 .PHONY: test
 test: $(VENV)
-	$(PYTHON_BIN) -m pytest -q
+	$(PYTHON_BIN) -m pytest
 
-.PHONY: demo
-demo: $(VENV)
-$(PYTHON_BIN) -m core.cli demo --mode demo --pretty
-
-.PHONY: demo-enterprise
-demo-enterprise: $(VENV)
-$(PYTHON_BIN) -m core.cli demo --mode enterprise --pretty
+.PHONY: sim
+sim: $(VENV)
+	$(PYTHON_BIN) simulations/ssdlc/run.py --stage design --out artifacts/design
+	$(PYTHON_BIN) simulations/ssdlc/run.py --stage test --out artifacts/test
 
 .PHONY: clean
 clean:
 	rm -rf $(VENV)
-	rm -rf .mypy_cache .ruff_cache .pytest_cache
+	rm -rf .mypy_cache .pytest_cache .ruff_cache artifacts coverage.xml htmlcov
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +

@@ -10,12 +10,12 @@ from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 
 import uvloop
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import structlog
 
-from src.config.settings import get_settings
+from src.config.settings import get_settings, resolve_allowed_origins
 from src.core.middleware import (
     PerformanceMiddleware,
     SecurityHeadersMiddleware,
@@ -72,10 +72,21 @@ async def lifespan(app: FastAPI):
     await marketplace.initialize()
     logger.info("✅ Security Marketplace ready")
     
-    # Start feeds scheduler if any feed is enabled
-    if settings.ENABLED_EPSS or settings.ENABLED_KEV:
-        asyncio.create_task(FeedsService.scheduler(settings))
-        logger.info("📅 Feeds scheduler started")
+    # Start feeds scheduler if configured
+    if (
+        getattr(settings, "FIXOPS_SCHED_ENABLED", True)
+        and (settings.ENABLED_EPSS or settings.ENABLED_KEV)
+    ):
+        interval_hours = int(getattr(settings, "FIXOPS_SCHED_INTERVAL_HOURS", 24))
+        asyncio.create_task(FeedsService.scheduler(settings, interval_hours=interval_hours))
+        logger.info("📅 Feeds scheduler started", interval_hours=interval_hours)
+    else:
+        logger.info(
+            "📅 Feeds scheduler disabled",
+            enabled=getattr(settings, "FIXOPS_SCHED_ENABLED", True),
+            epss=settings.ENABLED_EPSS,
+            kev=settings.ENABLED_KEV,
+        )
     
     # Pre-warm critical caches
     await warm_performance_caches()
@@ -102,39 +113,51 @@ async def warm_performance_caches():
     
     logger.info("Cache warming completed for hot path optimization")
 
-# Create FastAPI application with performance optimizations
-app = FastAPI(
-    title="FixOps Blended Enterprise Platform",
-    description="Agentic DevSecOps Control Plane with 299μs Hot Path Performance",
-    version="1.1.0",
-    lifespan=lifespan,
-    # Performance optimizations
-    generate_unique_id_function=lambda route: f"fixops_{route.tags[0] if route.tags else 'api'}_{route.name}",
-    swagger_ui_parameters={"syntaxHighlight": False},  # Reduce UI overhead
-    redoc_url=None if settings.ENVIRONMENT == "production" else "/redoc"  # Disable in prod
-)
+def build_application() -> FastAPI:
+    allowed_origins = resolve_allowed_origins(settings)
 
-# Security middleware (applied in reverse order)
-app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=settings.ALLOWED_HOSTS
-)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-    allow_headers=["*"],
-)
+    app = FastAPI(
+        title="FixOps Blended Enterprise Platform",
+        description="Agentic DevSecOps Control Plane with 299μs Hot Path Performance",
+        version="1.1.0",
+        lifespan=lifespan,
+        generate_unique_id_function=lambda route: f"fixops_{route.tags[0] if route.tags else 'api'}_{route.name}",
+        swagger_ui_parameters={"syntaxHighlight": False},
+        redoc_url=None if settings.ENVIRONMENT == "production" else "/redoc",
+    )
 
-# Performance & monitoring middleware
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(CompressionMiddleware)
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(PerformanceMiddleware)
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.ALLOWED_HOSTS,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+        allow_headers=["*"],
+    )
 
-# Exception handlers
-setup_exception_handlers(app)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(CompressionMiddleware)
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(PerformanceMiddleware)
+
+    setup_exception_handlers(app)
+
+    if not getattr(settings, "FIXOPS_RL_ENABLED", True):
+        logger.info("Rate limiting middleware disabled via FIXOPS_RL_ENABLED=0")
+
+    logger.info(
+        "CORS configuration applied",
+        environment=settings.ENVIRONMENT,
+        allowed_origins=allowed_origins,
+    )
+
+    return app
+
+
+app = build_application()
 
 # Hot Path Routes (299μs target)
 @app.get("/health")

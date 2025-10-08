@@ -45,6 +45,11 @@ HOT_PATH_LATENCY = Gauge(
     ["endpoint"],
     registry=_registry,
 )
+RATE_LIMIT_TRIGGER = Counter(
+    "fixops_rate_limit_trigger_total",
+    "Total requests rejected by rate limiting",
+    registry=_registry,
+)
 SIGNING_KEY_AGE = Gauge(
     "fixops_signing_key_rotation_age_days",
     "Age of the active signing key material in days",
@@ -197,6 +202,15 @@ class FixOpsMetrics:
             except Exception:
                 pass
         FixOpsMetrics._observed_families.clear()
+
+    @staticmethod
+    def rate_limit_triggered() -> None:
+        """Increment the rate limiting counter, ignoring instrumentation failures."""
+
+        try:
+            RATE_LIMIT_TRIGGER.inc()
+        except Exception:
+            pass
 
         for endpoint in list(FixOpsMetrics._observed_hot_paths):
             FixOpsMetrics._hot_path_latency_us.pop(endpoint, None)

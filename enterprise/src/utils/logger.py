@@ -18,6 +18,17 @@ from src.models.user_sqlite import UserAuditLog
 settings = get_settings()
 
 
+def _mask_sensitive(_, __, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Redact sensitive values before log emission."""
+
+    sensitive_tokens = ("secret", "token", "key", "password", "credential")
+    for key in list(event_dict.keys()):
+        if any(token in key.lower() for token in sensitive_tokens):
+            if event_dict[key]:
+                event_dict[key] = "***redacted***"
+    return event_dict
+
+
 def setup_structured_logging():
     """Configure structured logging for enterprise compliance"""
     
@@ -31,6 +42,7 @@ def setup_structured_logging():
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
+        _mask_sensitive,
         JSONRenderer()  # JSON format for log aggregation
     ]
     

@@ -2,6 +2,12 @@
 
 This document helps newcomers navigate the FixOps Blended Enterprise repository and understand how the major pieces fit together.
 
+
+## Handover Pack
+- [ROADMAP](docs/ROADMAP.md) – delivery priorities across P0/P1/P2 horizons.
+- [BACKLOG](docs/BACKLOG.csv) – triaged engineering/security tasks.
+- [ARCHITECTURE](docs/ARCHITECTURE.md) – module map, dependency highlights, and control/data flows.
+
 ## Repository Layout
 - **Root utilities** – Provisioning scripts (`create_tables.py`, `create_minimal_tables.py`) and regression test entry points (`backend_test.py`, `frontend/test_frontend.py`).
 - **`enterprise/`** – Main product source. The `backend` and `frontend` symlinks at the repo root both point here, so use this directory directly when exploring code.
@@ -31,6 +37,12 @@ Styling mixes custom CSS (`index.css`) with Tailwind utilities, while `contexts/
 
 ## Data & Intelligence Services
 The decision engine coordinates caches, optional vector stores, and third-party integrations (Jira, Confluence, threat intel). When the platform runs in demo mode—default for local onboarding—it seeds simulated datasets for vector search, policy enforcement, and regression suites so the UI and API remain interactive without external credentials.【F:enterprise/src/services/decision_engine.py†L51-L119】 Feature flags in settings toggle feeds such as EPSS or CISA KEV and control multi-LLM consensus thresholds.【F:enterprise/src/config/settings.py†L24-L82】
+
+
+## Observability
+- Import the Grafana dashboard JSON from `docs/decisionfactory_alignment/fixops-observability-dashboard.json` to bootstrap panels for latency, throughput, and policy outcomes.
+- Prometheus metrics are exposed under `/metrics`; key series include `fixops_request_latency_seconds`, `fixops_policy_block_total`, and scheduler heartbeat gauges.
+- See [OBSERVABILITY.md](docs/OBSERVABILITY.md) for deployment steps and common PromQL queries.
 
 ## Getting Started Locally
 1. **Backend** – Launch `uvicorn server:app --reload` from `enterprise/` or use `run_enterprise.py`; the FastAPI app bootstraps database pools, Redis cache (memory fallback), security subsystems, and background feed schedulers during startup.【F:enterprise/src/main.py†L34-L81】

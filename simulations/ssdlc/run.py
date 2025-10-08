@@ -1,107 +1,223 @@
-"""Run SSDLC stage simulations using canned fixtures."""
+"""Command line runner for deterministic SSDLC simulations."""
 
 from __future__ import annotations
 
 import argparse
 import csv
 import json
+import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional
+
+try:  # Optional dependency, only needed for YAML overlays
+    import yaml  # type: ignore
+except Exception:  # pragma: no cover - yaml is optional
+    yaml = None  # type: ignore
 
 BASE_DIR = Path(__file__).resolve().parent
 
 
-def _design_stage(stage_dir: Path) -> Dict[str, Any]:
-    inputs = stage_dir / "inputs"
-    context_file = inputs / "design_context.csv"
-    services: List[Dict[str, str]] = []
+class StageValidationError(Exception):
+    """Raised when required inputs are missing or malformed."""
+
+
+@dataclass(frozen=True)
+class StageResult:
+    filename: str
+    payload: Mapping[str, Any]
+
+
+def _ensure_inputs(stage: str, expected: Iterable[str]) -> Path:
+    stage_dir = BASE_DIR / stage / "inputs"
+    if not stage_dir.exists():
+        raise StageValidationError(f"Stage '{stage}' inputs directory missing: {stage_dir}")
+    missing = [name for name in expected if not (stage_dir / name).exists()]
+    if missing:
+        raise StageValidationError(f"Stage '{stage}' missing required input files: {', '.join(missing)}")
+    return stage_dir
+
+
+def _load_overlay(path: Optional[Path]) -> Mapping[str, Any]:
+    if not path:
+        return {}
+    if not path.exists():
+        raise StageValidationError(f"Overlay file not found: {path}")
+    data: Mapping[str, Any]
+    if path.suffix.lower() in {".yml", ".yaml"}:
+        if yaml is None:
+            raise StageValidationError("PyYAML is required to use YAML overlays. Install pyyaml or provide JSON.")
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    else:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, Mapping):
+        raise StageValidationError("Overlay must deserialize into an object (mapping/dict).")
+    return data
+
+
+def _deep_merge(target: MutableMapping[str, Any], overlay: Mapping[str, Any]) -> MutableMapping[str, Any]:
+    for key, value in overlay.items():
+        if (
+            key in target
+            and isinstance(target[key], MutableMapping)
+            and isinstance(value, Mapping)
+        ):
+            _deep_merge(target[key], value)  # type: ignore[arg-type]
+        else:
+            target[key] = value  # type: ignore[index]
+    return target
+
+
+def _design_stage(overlay: Mapping[str, Any]) -> StageResult:
+    stage_dir = _ensure_inputs("design", ["design_context.csv"])
+    context_file = stage_dir / "design_context.csv"
     with context_file.open("r", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
-        for row in reader:
-            services.append({k: (v or "").strip() for k, v in row.items()})
+        services = [{k: (v or "").strip() for k, v in row.items()} for row in reader]
     exposure_counts: Dict[str, int] = {}
     for entry in services:
-        exposure = entry.get("exposure") or "unknown"
+        exposure = (entry.get("exposure") or "unknown").lower()
         exposure_counts[exposure] = exposure_counts.get(exposure, 0) + 1
-    output = {
+    payload: MutableMapping[str, Any] = {
         "services": services,
-        "risk_summary": exposure_counts,
+        "risk_summary": {k: exposure_counts[k] for k in sorted(exposure_counts)},
     }
-    _write_json(stage_dir / "outputs" / "design_crosswalk.json", output)
-    return output
+    if overlay:
+        _deep_merge(payload, overlay)
+    return StageResult("design_crosswalk.json", payload)
 
 
-def _requirements_stage(stage_dir: Path) -> Dict[str, Any]:
-    controls = json.loads((stage_dir / "inputs" / "controls.json").read_text(encoding="utf-8"))
-    mapping = controls.get("control_map", {})
+def _requirements_stage(overlay: Mapping[str, Any]) -> StageResult:
+    stage_dir = _ensure_inputs("requirements", ["controls.json"])
+    controls = json.loads((stage_dir / "controls.json").read_text(encoding="utf-8"))
+    control_map = controls.get("control_map", {}) if isinstance(controls, Mapping) else {}
     plan = []
-    for control_id, rules in mapping.items():
+    for control_id in sorted(control_map):
+        rules = control_map.get(control_id) or []
         status = "satisfied" if rules else "in_progress"
-        plan.append({"id": control_id, "status": status})
-    payload = {"controls": plan}
-    _write_json(stage_dir / "outputs" / "policy_plan.json", payload)
-    return payload
+        plan.append({"id": control_id, "status": status, "rules": rules})
+    payload: MutableMapping[str, Any] = {"controls": plan, "generated_from": "control_map"}
+    if overlay:
+        _deep_merge(payload, overlay)
+    return StageResult("policy_plan.json", payload)
 
 
-def _build_stage(stage_dir: Path) -> Dict[str, Any]:
-    sbom = json.loads((stage_dir / "inputs" / "sbom.json").read_text(encoding="utf-8"))
-    components = sbom.get("components", [])
-    purls = [component.get("purl") for component in components if component.get("purl")]
-    payload = {"component_count": len(components), "purls": purls}
-    _write_json(stage_dir / "outputs" / "component_index.json", payload)
-    return payload
+def _build_stage(overlay: Mapping[str, Any]) -> StageResult:
+    stage_dir = _ensure_inputs("build", ["sbom.json"])
+    sbom = json.loads((stage_dir / "sbom.json").read_text(encoding="utf-8"))
+    components = sbom.get("components", []) if isinstance(sbom, Mapping) else []
+    normalized = []
+    for component in components:
+        if not isinstance(component, Mapping):
+            continue
+        normalized.append(
+            {
+                "name": component.get("name"),
+                "version": component.get("version"),
+                "purl": component.get("purl"),
+                "type": component.get("type"),
+            }
+        )
+    payload: MutableMapping[str, Any] = {
+        "component_count": len(normalized),
+        "components": sorted(normalized, key=lambda item: (item.get("name") or "", item.get("version") or "")),
+    }
+    if overlay:
+        _deep_merge(payload, overlay)
+    return StageResult("component_index.json", payload)
 
 
-def _test_stage(stage_dir: Path) -> Dict[str, Any]:
-    sarif = json.loads((stage_dir / "inputs" / "scanner.sarif").read_text(encoding="utf-8"))
-    runs = sarif.get("runs", [])
+def _test_stage(overlay: Mapping[str, Any]) -> StageResult:
+    stage_dir = _ensure_inputs("test", ["scanner.sarif"])
+    sarif = json.loads((stage_dir / "scanner.sarif").read_text(encoding="utf-8"))
+    runs = sarif.get("runs", []) if isinstance(sarif, Mapping) else []
     severity: Dict[str, int] = {}
-    tool_name = "unknown"
+    tools = []
     for run in runs:
-        tool = run.get("tool", {}).get("driver", {}).get("name")
-        if tool:
-            tool_name = tool
-        for result in run.get("results", []):
-            level = (result.get("level") or "none").lower()
+        if not isinstance(run, Mapping):
+            continue
+        tool = (
+            run.get("tool", {})
+            if isinstance(run.get("tool"), Mapping)
+            else {}
+        )
+        driver = tool.get("driver", {}) if isinstance(tool.get("driver"), Mapping) else tool.get("driver")
+        if isinstance(driver, Mapping):
+            name = driver.get("name")
+            if name:
+                tools.append(str(name))
+        for result in run.get("results", []) if isinstance(run.get("results"), list) else []:
+            if not isinstance(result, Mapping):
+                continue
+            level = str(result.get("level") or "none").lower()
             severity[level] = severity.get(level, 0) + 1
-    payload = {"tool": tool_name, "severity_breakdown": severity}
-    _write_json(stage_dir / "outputs" / "normalized_findings.json", payload)
-    return payload
+    payload: MutableMapping[str, Any] = {
+        "tools": sorted(set(tools)),
+        "severity_breakdown": {k: severity[k] for k in sorted(severity)},
+    }
+    if overlay:
+        _deep_merge(payload, overlay)
+    return StageResult("normalized_findings.json", payload)
 
 
-def _deploy_stage(stage_dir: Path) -> Dict[str, Any]:
-    plan = json.loads((stage_dir / "inputs" / "iac.tfplan.json").read_text(encoding="utf-8"))
-    open_ports: List[int] = []
-    for change in plan.get("resource_changes", []):
-        ingress_rules = change.get("change", {}).get("after", {}).get("ingress", [])
-        for rule in ingress_rules:
-            if "from_port" in rule:
-                open_ports.append(int(rule.get("from_port")))
-    payload = {"open_ports": sorted(set(open_ports)), "internet_exposed": bool(open_ports)}
-    _write_json(stage_dir / "outputs" / "iac_posture.json", payload)
-    return payload
+def _deploy_stage(overlay: Mapping[str, Any]) -> StageResult:
+    stage_dir = _ensure_inputs("deploy", ["iac.tfplan.json"])
+    plan = json.loads((stage_dir / "iac.tfplan.json").read_text(encoding="utf-8"))
+    open_ports: Dict[int, Dict[str, Any]] = {}
+    changes = plan.get("resource_changes", []) if isinstance(plan, Mapping) else []
+    for change in changes:
+        if not isinstance(change, Mapping):
+            continue
+        after = change.get("change", {}).get("after", {}) if isinstance(change.get("change"), Mapping) else {}
+        ingress = after.get("ingress", []) if isinstance(after, Mapping) else []
+        for rule in ingress:
+            if not isinstance(rule, Mapping):
+                continue
+            port = rule.get("from_port")
+            if port is None:
+                continue
+            open_ports[int(port)] = {
+                "port": int(port),
+                "protocol": rule.get("protocol", "tcp"),
+                "cidr_blocks": rule.get("cidr_blocks", []),
+            }
+    payload: MutableMapping[str, Any] = {
+        "open_ports": sorted(open_ports.values(), key=lambda item: item["port"]),
+        "internet_exposed": any(rule.get("cidr_blocks") for rule in open_ports.values()),
+    }
+    if overlay:
+        _deep_merge(payload, overlay)
+    return StageResult("iac_posture.json", payload)
 
 
-def _operate_stage(stage_dir: Path) -> Dict[str, Any]:
-    kev = json.loads((stage_dir / "inputs" / "kev.json").read_text(encoding="utf-8"))
-    epss = json.loads((stage_dir / "inputs" / "epss.json").read_text(encoding="utf-8"))
-    kev_entries = kev.get("vulnerabilities", [])
-    epss_entries = {item.get("cve"): item.get("epss") for item in epss.get("data", [])}
-    if not kev_entries:
-        payload = {"kev": False, "priority": "routine"}
-    else:
-        cve_id = kev_entries[0].get("cveID")
+def _operate_stage(overlay: Mapping[str, Any]) -> StageResult:
+    stage_dir = _ensure_inputs("operate", ["kev.json", "epss.json"])
+    kev = json.loads((stage_dir / "kev.json").read_text(encoding="utf-8"))
+    epss = json.loads((stage_dir / "epss.json").read_text(encoding="utf-8"))
+    kev_entries = kev.get("vulnerabilities", []) if isinstance(kev, Mapping) else []
+    epss_scores = {}
+    if isinstance(epss, Mapping):
+        for item in epss.get("data", []) if isinstance(epss.get("data"), list) else []:
+            if isinstance(item, Mapping) and item.get("cve"):
+                epss_scores[str(item["cve"])] = item.get("epss")
+    payload: MutableMapping[str, Any]
+    if kev_entries:
+        top = kev_entries[0]
+        cve_id = str(top.get("cveID")) if isinstance(top, Mapping) and top.get("cveID") else None
         payload = {
-            "cve": cve_id,
             "kev": True,
-            "epss": epss_entries.get(cve_id),
-            "priority": "immediate",
+            "cve": cve_id,
+            "epss": epss_scores.get(cve_id) if cve_id else None,
+            "priority": "immediate" if cve_id and epss_scores.get(cve_id, 0) else "elevated",
         }
-    _write_json(stage_dir / "outputs" / "exploitability.json", payload)
-    return payload
+    else:
+        payload = {"kev": False, "priority": "routine"}
+    if overlay:
+        _deep_merge(payload, overlay)
+    return StageResult("exploitability.json", payload)
 
 
-STAGE_DISPATCH = {
+STAGES = {
     "design": _design_stage,
     "requirements": _requirements_stage,
     "build": _build_stage,
@@ -111,23 +227,46 @@ STAGE_DISPATCH = {
 }
 
 
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+def _write_output(out_dir: Path, result: StageResult) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    destination = out_dir / result.filename
+    destination.write_text(json.dumps(result.payload, indent=2, sort_keys=True), encoding="utf-8")
+    return destination
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Run SSDLC simulation fixtures")
-    parser.add_argument("--stage", choices=STAGE_DISPATCH.keys(), required=True)
-    parser.add_argument("--overlay", type=Path, help="Optional overlay file for reference", default=None)
-    args = parser.parse_args()
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Generate SSDLC simulation artifacts")
+    parser.add_argument("--stage", choices=sorted(STAGES.keys()), required=True, help="Lifecycle stage to generate")
+    parser.add_argument(
+        "--overlay",
+        type=Path,
+        default=None,
+        help="Optional JSON or YAML overlay to merge into the generated payload",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Directory where generated files should be written",
+    )
+    return parser
 
-    stage_dir = BASE_DIR / args.stage
-    result = STAGE_DISPATCH[args.stage](stage_dir)
-    if args.overlay and args.overlay.exists():
-        overlay_path = args.overlay.resolve()
-        print(f"Overlay reference: {overlay_path}")
-    print(json.dumps(result, indent=2))
+
+def main(argv: Optional[Iterable[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    overlay = _load_overlay(args.overlay)
+    stage_runner = STAGES[args.stage]
+    try:
+        result = stage_runner(overlay)
+    except StageValidationError as exc:  # pragma: no cover - defensive, handled below
+        parser.error(str(exc))
+    except FileNotFoundError as exc:
+        parser.error(str(exc))
+    destination = _write_output(args.out, result)
+    print(json.dumps({"stage": args.stage, "output": str(destination)}, indent=2))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
