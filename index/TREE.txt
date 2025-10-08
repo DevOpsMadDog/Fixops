@@ -1,4 +1,6 @@
 Fixops
+├── .benchmarks
+├── .coveragerc
 ├── .emergent
 │   ├── emergent.yml
 │   └── summary.txt
@@ -10,13 +12,18 @@ Fixops
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── .secrets.baseline
+├── ARCHITECTURE.md
+├── BACKLOG.csv
 ├── CONTRIBUTING.md
+├── HANDBOOK.md
 ├── Makefile
 ├── ONBOARDING.md
 ├── README.md
+├── ROADMAP.md
 ├── analysis
 │   ├── DATA_CONTROL_FLOWS.md
 │   ├── FILE_SUMMARIES.csv
+│   ├── OPTIMIZATIONS.md
 │   └── TRACEABILITY.csv
 ├── apps
 │   └── api
@@ -31,6 +38,11 @@ Fixops
 │   ├── CTEM_ASSESSMENT.md
 │   ├── GAPS.md
 │   └── SECURITY.md
+├── backend
+│   ├── __init__.py
+│   ├── app.py
+│   ├── normalizers.py
+│   └── pipeline.py
 ├── backend_test.py
 ├── config
 │   ├── FOLDER_README.md
@@ -73,6 +85,7 @@ Fixops
 │   ├── ACADEMIC_RESEARCH.md
 │   ├── AI_AGENTS_RESEARCH.md
 │   ├── ARCHITECTURE.md
+│   ├── BACKLOG.csv
 │   ├── CLOSED_LOOP_OPTIMIZATION.md
 │   ├── CODE_GAP_ASSESSMENT.md
 │   ├── CONFIG_GUIDE.md
@@ -83,11 +96,14 @@ Fixops
 │   ├── INTEGRATIONS.md
 │   ├── LINE_BY_LINE.md
 │   ├── MIGRATION.md
+│   ├── OBSERVABILITY.md
 │   ├── PLATFORM_RUNBOOK.md
 │   ├── PR_CHECKLIST.md
 │   ├── PR_SUMMARY.md
+│   ├── ROADMAP.md
 │   ├── SDLC_SSDLC.md
 │   ├── SECURITY.md
+│   ├── SSDL_SIMULATION.md
 │   ├── STRAIKER_APR2025_COMPETITIVE_NOTES.md
 │   ├── USAGE_GUIDE.html
 │   ├── decisionfactory_alignment
@@ -306,6 +322,22 @@ Fixops
 │   │   └── cors.py
 │   ├── security.py
 │   └── testclient.py
+├── fixops-blended-enterprise
+│   ├── frontend
+│   └── src
+│       ├── __init__.py
+│       ├── config
+│       │   ├── __init__.py
+│       │   └── settings.py
+│       ├── core
+│       │   ├── __init__.py
+│       │   └── middleware.py
+│       ├── services
+│       │   ├── __init__.py
+│       │   └── feeds_service.py
+│       └── utils
+│           ├── __init__.py
+│           └── logger.py
 ├── fixops_enterprise.db
 ├── frontend
 ├── frontend-akido-public
@@ -349,6 +381,15 @@ Fixops
 │   ├── PRICING.md
 │   └── USP_ENHANCEMENTS.md
 ├── mypy.ini
+├── new_backend
+│   ├── __init__.py
+│   ├── api.py
+│   └── processing
+│       ├── __init__.py
+│       ├── bayesian.py
+│       ├── explanation.py
+│       ├── knowledge_graph.py
+│       └── sarif.py
 ├── perf
 │   ├── BASELINE.md
 │   ├── BENCHMARKS.csv
@@ -368,6 +409,8 @@ Fixops
 │           └── sarif.py
 ├── pydantic
 │   ├── FOLDER_README.md
+│   └── __init__.py
+├── pydantic_settings
 │   └── __init__.py
 ├── pytest.ini
 ├── real_components_test.py
@@ -393,11 +436,40 @@ Fixops
 │   └── run_real_cve_playbook.py
 ├── simulations
 │   ├── FOLDER_README.md
-│   └── cve_scenario
-│       ├── FOLDER_README.md
-│       ├── __init__.py
-│       ├── contexts.json
-│       └── runner.py
+│   ├── cve_scenario
+│   │   ├── FOLDER_README.md
+│   │   ├── __init__.py
+│   │   ├── contexts.json
+│   │   └── runner.py
+│   └── ssdlc
+│       ├── deploy
+│       │   ├── inputs
+│       │   │   └── iac.tfplan.json
+│       │   └── outputs
+│       │       └── iac_posture.json
+│       ├── design
+│       │   ├── inputs
+│       │   │   ├── design_context.csv
+│       │   │   └── overlay.yaml
+│       │   └── outputs
+│       │       └── design_crosswalk.json
+│       ├── operate
+│       │   ├── inputs
+│       │   │   ├── epss.json
+│       │   │   └── kev.json
+│       │   └── outputs
+│       │       └── exploitability.json
+│       ├── requirements
+│       │   ├── inputs
+│       │   │   └── controls.json
+│       │   └── outputs
+│       │       └── policy_plan.json
+│       ├── run.py
+│       └── test
+│           ├── inputs
+│           │   └── scanner.sarif
+│           └── outputs
+│               └── normalized_findings.json
 ├── ssvc
 │   ├── FOLDER_README.md
 │   ├── __init__.py
@@ -422,14 +494,19 @@ Fixops
 │   ├── test_backend_security.py
 │   ├── test_cicd_signature.py
 │   ├── test_cli.py
+│   ├── test_compliance.py
+│   ├── test_cors_jwt.py
 │   ├── test_crypto_signing.py
 │   ├── test_cve_simulation.py
 │   ├── test_demo_runner.py
 │   ├── test_design_context_injector.py
 │   ├── test_end_to_end.py
+│   ├── test_enterprise_compliance.py
 │   ├── test_evidence.py
 │   ├── test_evidence_export.py
+│   ├── test_evidence_retrieval_fastpath.py
 │   ├── test_explainability_service.py
+│   ├── test_exploit_refresh.py
 │   ├── test_exploit_signals.py
 │   ├── test_feature_matrix.py
 │   ├── test_feedback.py
@@ -443,6 +520,7 @@ Fixops
 │   ├── test_new_modules.py
 │   ├── test_normalizers.py
 │   ├── test_overlay_configuration.py
+│   ├── test_pipeline_integration.py
 │   ├── test_pipeline_matching.py
 │   ├── test_policy_connectors.py
 │   ├── test_policy_kevs.py
@@ -451,9 +529,12 @@ Fixops
 │   ├── test_postman_phase_collections.py
 │   ├── test_probabilistic.py
 │   ├── test_processing_layer_fallbacks.py
+│   ├── test_rate_limit.py
 │   ├── test_real_opa_engine_factory.py
 │   ├── test_risk_adjustment.py
 │   ├── test_rl_controller.py
+│   ├── test_secure_defaults.py
+│   ├── test_ssdlc_runner.py
 │   ├── test_storage_security.py
 │   ├── test_tenant_rbac.py
 │   └── test_vex_ingestion.py

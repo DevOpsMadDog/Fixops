@@ -12,3 +12,4 @@ SRC_PATH = SRC_PACKAGE_ROOT / "src"
 for path in (SRC_PACKAGE_ROOT, SRC_PATH):
     if str(path) not in sys.path:
         sys.path.append(str(path))
+

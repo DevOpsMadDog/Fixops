@@ -1,30 +1,18 @@
 repos:
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v4.5.0
     hooks:
-      - id: check-merge-conflict
-      - id: check-yaml
-        args: ["--allow-multiple-documents"]
-        exclude: "^(reviews/|enterprise/backstage/|enterprise/kubernetes/|enterprise/terraform/)"
       - id: end-of-file-fixer
-        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
-      - id: trailing-whitespace
-        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
-      - id: detect-private-key
-        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
-      - id: detect-aws-credentials
-        args: ["--allow-missing-credentials"]
-        files: "^(apps|core|prototypes|enterprise|scripts|tests|docs|\\.github)/|^mypy\\.ini$|^\\.pre-commit-config\\.yaml$|^\\.secrets.baseline$|^requirements.*|^README\\.md$|^CONTRIBUTING\\.md$"
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.3
-    hooks:
-      - id: ruff
-        args: ["--fix"]
-        files: "^(apps|core|prototypes|scripts|tests)/"
-
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
-    hooks:
-      - id: detect-secrets
-        args: ["--baseline", ".secrets.baseline", "--exclude-lines", "FIXOPS_DEMO"]

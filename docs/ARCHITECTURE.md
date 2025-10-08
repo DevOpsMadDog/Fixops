@@ -1,179 +1,70 @@
-# FixOps Ingestion Platform — Architecture Overview
+# FixOps Architecture Reference
 
-This document captures how the FixOps demo backend is structured, how requests move through the
-system, and where the new overlay configuration influences runtime behaviour. It is intended for
-engineers who need to reason about deployments as well as product stakeholders validating the
-architecture against market promises.
+This document is assembled from the repository index (`index/INVENTORY.csv`) and dependency graph (`index/graph.json`) generated via `scripts/generate_index.py`. It captures the layered service layout, module coupling, and runtime modes for the FixOps Blended Enterprise platform.
 
-## Component Summary
+## Layered Overview
+- **Interfaces** – FastAPI REST application (`fixops-blended-enterprise/src/main.py`) with persona-focused React front-end (`enterprise/frontend`).
+- **Services** – Decision engine, evidence processing, IaC posture evaluation, and threat intelligence adapters located under `fixops-blended-enterprise/src/services/`.
+- **Core Infrastructure** – Configuration, security, database session management, logging, and middleware primitives under `fixops-blended-enterprise/src/config`, `core`, and `db` packages.
+- **Data Plane** – Simulations, feed schedulers, and storage connectors bridging SBOM, SARIF, IaC, and exploit intelligence inputs.
 
-1. **FastAPI Ingestion Service (`apps/api/app.py`)**
-   - Owns HTTP endpoints for uploading design context CSV, SBOM documents, SARIF findings, and CVE
-     feeds, plus the `/pipeline/run` execution route.
-   - Loads the overlay configuration during startup and persists it in `app.state.overlay` so every
-     request has consistent mode-specific behaviour.
-   - Enforces API-key authentication when the overlay requests token strategy (`X-API-Key` by default).
-   - Streams uploads with overlay-defined byte limits and validates content types before parsing.
-   - Creates any data directories declared in the overlay, ensuring Demo and Enterprise evidence
-     locations exist before ingesting artefacts.
-   - Exposes a `/feedback` endpoint (when enabled) that writes JSONL decisions into allowlisted
-     directories for audit trails.
-2. **Configuration Loader (`core/configuration.py`)**
-   - Parses `config/fixops.overlay.yml`, honours the `FIXOPS_OVERLAY_PATH` override, merges
-     profile-specific overrides, and applies defaults for toggles and metadata.
-   - Validates the document with Pydantic (rejecting unknown keys), fails fast when required
-     environment variables are missing, and masks secrets before they are exposed via API responses.
-   - Resolves data directories against `FIXOPS_DATA_ROOT_ALLOWLIST` and captures authorised API tokens
-     for the FastAPI layer.
-3. **Normalisation Layer (`apps/api/normalizers.py`)**
-   - Converts raw uploads into rich domain objects (`NormalizedSBOM`, `NormalizedSARIF`,
-     `NormalizedCVEFeed`) with helper methods for JSON serialisation.
-   - Handles optional third-party parser dependencies gracefully so the demo can run in a minimal
-     environment.
-4. **Pipeline Orchestrator (`apps/api/pipeline.py`)**
-   - Correlates design rows with SBOM components, SARIF findings, and CVE entries using precomputed
-     lowercase tokens for efficient matching.
-   - Normalises severities from SARIF and CVE artefacts, produces aggregate summaries, evaluates
-     maturity-aware guardrails, and emits a per-component “crosswalk” that powers downstream evidence
-     bundles.
-   - Executes the probabilistic forecast engine (Bayesian prior blending + Markov transition model)
-     when enabled, generating escalation predictions and entropy metrics for the evidence bundle.
-   - Invokes the AI Agent Advisor (overlay-driven) to flag LangChain/AutoGPT style components and
-     attach recommended controls and playbooks to the pipeline response.
-   - Runs the overlay-configured `ExploitSignalEvaluator` to surface EPSS/KEV-driven
-     `exploitability_insights`, feeding policy automation and evidence bundles with exploitability
-     context.
-   - Calls the overlay-configured SSDLC evaluator to grade each lifecycle stage against the uploaded
-     artefacts and automation outcomes, surfacing the `ssdlc_assessment` block for audits.
-5. **Overlay-Aware State**
-   - The ingestion service stores each uploaded artefact in `app.state.artifacts`. The overlay
-     controls which artefacts are required (`OverlayConfig.required_inputs`) and whether metadata is
-     attached to pipeline responses.
-
-## Request Lifecycle
-
-1. **Startup**
-   - `create_app()` reads the overlay file (JSON-compatible YAML), validates it against the schema,
-     resolves API keys from environment variables, and records the active mode (Demo vs Enterprise) in
-     `app.state.overlay`. Any declared data directories are created eagerly.
-2. **Artefact Uploads**
-   - Each `/inputs/*` endpoint checks the `X-API-Key`, validates content type, streams the file within
-     overlay-defined byte caps, and then normalises the payload before persisting the structured output
-     in `app.state.artifacts`. Responses include preview metadata to confirm the upload succeeded.
-3. **Pipeline Execution**
-   - `/pipeline/run` looks at `OverlayConfig.required_inputs`. Missing artefacts are rejected with a
-     descriptive HTTP 400. Enterprise mode enforces that Jira configuration is present before
-     proceeding when `enforce_ticket_sync` is enabled.
-   - `PipelineOrchestrator.run()` receives the cached artefacts, builds token lookups, aggregates
-     severities and exploitability signals, and computes guardrail evaluations using the overlay’s
-     maturity profile. The result includes severity breakdowns, a guardrail status (pass/warn/fail),
-     SSDLC stage coverage, AI agent analysis (when configured), exploitability insights, IaC
-     posture summaries, and a crosswalk for evidence bundling.
-   - The overlay’s module registry toggles each feature (guardrails, context engine, compliance,
-     probabilistic forecasting, evidence hub, pricing, AI, exploitability, SSDLC, IaC). Execution outcomes are captured in
-     `pipeline_result["modules"]` and persisted into evidence bundles for traceability.
-   - Overlay metadata is appended to the response (with secrets masked) when the
-     `auto_attach_overlay_metadata` toggle is active. Evidence bundles omit the overlay when
-     `include_overlay_metadata_in_bundles` is disabled.
-
-## Sequence Diagram
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API as FastAPI App
-    participant Overlay as OverlayConfig
-    participant Normalizer
-    participant Orchestrator
-
-    Client->>API: HTTP POST /inputs/design
-    API->>Overlay: read required_inputs
-    API->>Normalizer: parse CSV -> dataset
-    Normalizer-->>API: Normalized dataset
-    API->>API: store dataset in app.state.artifacts
-
-    Client->>API: HTTP POST /inputs/sbom|sarif|cve
-    API->>Normalizer: load_* helpers
-    Normalizer-->>API: Normalized artefacts
-    API->>API: store artefacts
-
-    Client->>API: HTTP POST /pipeline/run
-    API->>Overlay: validate required_inputs & toggles
-    API->>Orchestrator: run(design, sbom, sarif, cve)
-    Orchestrator-->>API: summaries + crosswalk
-    API->>Overlay: sanitise overlay metadata
-    API-->>Client: JSON response with overlay + artefacts
-```
-
-## Component Diagram
-
-```mermaid
-graph TD
-    subgraph Boundary[Deployment]
-        A[FastAPI Ingestion Service]
-        B[OverlayConfig]
-        C[InputNormalizer]
-        D[PipelineOrchestrator]
-        K[ProbabilisticForecastEngine]
-        H[IaCPostureEvaluator]
-        I[Custom Module Hooks]
-        J[EvidenceHub]
-    end
-    subgraph External
-        E[Upload Clients]
-        F[Optional Parsers (lib4sbom, sarif-om, cvelib)]
-        G[Jira / Confluence / Git / CI (configured via overlay)]
-    end
-
-    E -->|HTTP uploads| A
-    A --> B
-    A --> C
-    C --> F
-    A --> D
-    B --> A
-    B --> G
-    D --> K
-    K --> J
-    D --> J
-    D --> H
-    D --> I
-    D --> J
-    H --> J
-    I --> J
-    J --> A
-```
-
-## Failure Modes & Mitigations
-
-- **Missing Artefacts** — If a required artefact is absent, `/pipeline/run` aborts with HTTP 400 and
-  enumerates missing stages. Demo mode loosens requirements by default (`require_design_input=False`).
-- **Misconfigured Integrations** — When `enforce_ticket_sync` is `True` but Jira or Confluence
-  credentials (`user_email`/`token_env`) are missing, the policy automation layer surfaces
-  `delivery.status="skipped"` with diagnostic reasons and the API raises HTTP 500 for critical
-  omissions. Remote API errors bubble into `delivery_results` so operators can retry or remediate
-  without losing the dispatch manifest.
-- **Parser Failures** — Upload endpoints wrap parser errors in HTTP 400 responses and log the
-  exception stack trace, preventing raw payload leakage.
-- **Overlay Parsing Issues** — `load_overlay()` accepts YAML or JSON. If PyYAML is unavailable the
-  loader falls back to JSON parsing and raises a descriptive error when neither succeeds.
-- **Unauthorised Requests** — Missing/incorrect API keys return HTTP 401; demo mode can swap to
-  `auth.strategy: oidc` when identity delegation is ready.
-- **Oversized Uploads** — Exceeding overlay-defined byte caps returns HTTP 413 with guidance on limits.
-- **Stale exploit feeds** — Auto-refresh fetches KEV/EPSS sources when metadata exceeds the staleness
-  window and records refresh results under `exploit_feed_refresh`. Download failures surface as warning
-  payloads without breaking the pipeline run.
-
-## Mode Differences (Demo vs Enterprise)
-
-| Concern | Demo Mode | Enterprise Mode |
+## Module Map (Top-Level Packages)
+| Package | Responsibility | Key Entrypoints |
 | --- | --- | --- |
-| Required artefacts | SBOM, SARIF, CVE (design optional) | Design + SBOM + SARIF + CVE |
-| Jira enforcement | Not enforced (`enforce_ticket_sync=False`) | Enforced; missing config triggers 500 |
-| Guardrail maturity | `foundational` (fail on critical, warn on high) | `advanced` (fail on medium, warn on medium) |
-| Evidence directories | `data/evidence/demo` | `data/evidence/enterprise` + `data/audit` + feedback archive |
-| Metadata attachment | Overlay metadata auto-attached | Optional; can be disabled for evidence bundles |
-| Feedback capture | Disabled (`capture_feedback=False`) | Enabled; `/feedback` writes JSONL logs |
-| AI agent watchlist | Optional keywords | Expanded watchlist + stricter controls |
+| `fixops-blended-enterprise/src/main.py` | FastAPI app factory, middleware wiring, background scheduler bootstrap | `create_app`, `build_application` |
+| `fixops-blended-enterprise/src/api/v1` | REST routers grouped by capability (decisions, feeds, policy, CICD, monitoring) | `decisions.py`, `feeds.py`, `policy.py` |
+| `fixops-blended-enterprise/src/services` | Business logic engines orchestrating SSDLC data, marketplace integrations, IaC posture, and intelligence feeds | `decision_engine.py`, `policy_engine.py`, `feeds_scheduler.py`, `iac_posture.py` |
+| `fixops-blended-enterprise/src/core` | Cross-cutting middleware, exceptions, rate limiting, logging, security helpers | `middleware.py`, `security.py`, `exceptions.py` |
+| `fixops-blended-enterprise/src/config` | Pydantic settings, feature flags, environment toggles, secrets loading | `settings.py` |
+| `fixops-blended-enterprise/src/db` | SQLAlchemy async engine/session factories, migrations helpers | `session.py` |
+| `simulations/ssdlc` | Deterministic SSDLC lifecycle fixtures and runner CLI | `run.py`, `<stage>/inputs/*` |
 
-The overlay file can be switched to Enterprise by editing `mode: "enterprise"` and adjusting the
-integration payloads. No code changes are required; the FastAPI service adapts at startup.
+## Import Graph Highlights
+Using `index/graph.json`, the following modules exhibit the highest fan-out (number of same-package imports):
+- `core/demo_runner.py` → orchestrates CLI demos across analytics, evidence, and storage helpers.
+- `apps/api/pipeline.py` → centralizes analytics, compliance, context, and policy modules for the simulation/demo pipeline.
+- `core/feedback.py` → coordinates analytics, configuration, connectors, and storage adapters.
+
+Highly-referenced foundational modules include:
+- `core/configuration.py` (imported by >10 modules) – runtime settings and feature flags.
+- `core/paths.py` – normalized data paths for fixtures and generated artifacts.
+- `apps/api/normalizers.py` – reused across policy, exploit signals, and modules pipelines.
+
+## Data & Control Flows
+1. **Inbound request** arrives via FastAPI router (`api/v1/decisions.py`), passes through middleware (security headers, new rate limiting), and resolves dependencies (`config.settings`, `db.session`).
+2. **Decision orchestration** occurs in `services/decision_engine.py`, which reads evidence from `services/evidence.py`, merges design context, and applies policy evaluation via `services/policy_engine.py`.
+3. **Feeds and posture** data is hydrated through scheduler workers (`services/feeds_scheduler.py`) that call external adapters under `services/iac_posture.py`, `services/exploit_intel.py`, etc.
+4. **Results** propagate to REST responses, telemetry exporters, and the SSDLC simulation runner for reproducible analytics artifacts.
+
+## Hot Path Considerations
+- Decision execution uses cached settings and pooled DB sessions to minimize latency.
+- Evidence normalization leverages asynchronous IO wrappers to parallelize SARIF/SBOM processing.
+- Rate limiting ensures fairness by bounding per-IP throughput before heavy service work occurs.
+
+## Metrics & Observability
+- Metrics endpoints expose request latency, policy decision counts, and scheduler heartbeat data.
+- Grafana dashboard (`docs/decisionfactory_alignment/fixops-observability-dashboard.json`) visualizes p95 latency, throttle rates, and policy block ratios.
+
+## Dual-Mode Operation
+- **Demo Mode**: Seeds fixtures, uses in-memory caches, and enables SSDLC simulations without external secrets.
+- **Enterprise Mode**: Requires configured secrets, strict CORS, persistent caches, and production-grade scheduler intervals.
+
+## Regeneration Instructions
+1. Run `python scripts/generate_index.py` to refresh `index/INVENTORY.csv` and `index/graph.json`.
+2. Update this document by re-running the parsing helpers in `docs/ARCHITECTURE.md` or using the snippet below:
+   ```bash
+   python - <<'PY'
+   import json
+   from collections import Counter
+   graph=json.load(open('index/graph.json'))
+   prefix='core/'
+   dep_counts=Counter()
+   for src,deps in graph.items():
+       if src.startswith(prefix):
+           for dep in deps:
+               if dep.startswith(prefix):
+                   dep_counts[dep]+=1
+   print(dep_counts.most_common(10))
+   PY
+   ```
+3. Incorporate the updated module/fan-out insights into the sections above.

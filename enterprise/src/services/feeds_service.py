@@ -124,10 +124,11 @@ class FeedsService:
         )
 
     @classmethod
-    async def scheduler(cls, settings):
-        """Daily scheduler for EPSS/KEV refresh (if enabled)"""
-        # initial small delay to allow app startup
+    async def scheduler(cls, settings, interval_hours: int = 24):
+        """Periodic scheduler for EPSS/KEV refresh (if enabled)."""
+
         await asyncio.sleep(5)
+        sleep_seconds = max(60, int(interval_hours * 3600))
         while True:
             try:
                 if settings.ENABLED_EPSS:
@@ -136,8 +137,7 @@ class FeedsService:
                     await cls.refresh_kev()
             except Exception as e:
                 logger.error(f"Feed scheduler error: {e}")
-            # sleep for 24h
-            await asyncio.sleep(60 * 60 * 24)
+            await asyncio.sleep(sleep_seconds)
 
     # ------------------------------------------------------------------
     # Enrichment helpers

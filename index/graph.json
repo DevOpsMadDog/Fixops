@@ -99,7 +99,6 @@
   ],
   "enterprise/create_admin_user.py": [],
   "enterprise/create_all_tables.py": [],
-  "enterprise/frontend/node_modules/flatted/python/flatted.py": [],
   "enterprise/quick_start.py": [],
   "enterprise/run_enterprise.py": [],
   "enterprise/scripts/run_migrations.py": [],
@@ -205,6 +204,10 @@
   "tests/test_cli.py": [
     "core/cli.py"
   ],
+  "tests/test_compliance.py": [
+    "apps/api/pipeline.py"
+  ],
+  "tests/test_cors_jwt.py": [],
   "tests/test_crypto_signing.py": [],
   "tests/test_cve_simulation.py": [],
   "tests/test_demo_runner.py": [
@@ -216,12 +219,15 @@
     "apps/api/normalizers.py",
     "apps/api/pipeline.py"
   ],
+  "tests/test_enterprise_compliance.py": [],
   "tests/test_evidence.py": [
     "core/configuration.py",
     "core/evidence.py"
   ],
   "tests/test_evidence_export.py": [],
+  "tests/test_evidence_retrieval_fastpath.py": [],
   "tests/test_explainability_service.py": [],
+  "tests/test_exploit_refresh.py": [],
   "tests/test_exploit_signals.py": [
     "apps/api/normalizers.py",
     "core/configuration.py",
@@ -255,6 +261,11 @@
   "tests/test_overlay_configuration.py": [
     "core/configuration.py"
   ],
+  "tests/test_pipeline_integration.py": [
+    "apps/api/normalizers.py",
+    "apps/api/pipeline.py",
+    "core/configuration.py"
+  ],
   "tests/test_pipeline_matching.py": [
     "apps/api/normalizers.py",
     "apps/api/pipeline.py",
@@ -274,9 +285,12 @@
     "core/probabilistic.py"
   ],
   "tests/test_processing_layer_fallbacks.py": [],
+  "tests/test_rate_limit.py": [],
   "tests/test_real_opa_engine_factory.py": [],
   "tests/test_risk_adjustment.py": [],
   "tests/test_rl_controller.py": [],
+  "tests/test_secure_defaults.py": [],
+  "tests/test_ssdlc_runner.py": [],
   "tests/test_storage_security.py": [
     "core/storage.py"
   ],

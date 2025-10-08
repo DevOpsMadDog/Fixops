@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import List, Optional, Union
 
 from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator
+from pydantic import Field, FieldInfo, field_validator
 
 
 class Settings(BaseSettings):
@@ -129,6 +129,15 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_REQUESTS: int = Field(default=1000)
     RATE_LIMIT_WINDOW: int = Field(default=60)
+    FIXOPS_RL_ENABLED: bool = Field(default=True)
+    FIXOPS_RL_REQ_PER_MIN: int = Field(default=120)
+
+    # Scheduler Controls
+    FIXOPS_SCHED_ENABLED: bool = Field(default=True)
+    FIXOPS_SCHED_INTERVAL_HOURS: int = Field(default=24)
+
+    # Security Defaults
+    FIXOPS_ALLOWED_ORIGINS: List[str] = Field(default_factory=list)
     
     # Monitoring & Observability
     ENABLE_METRICS: bool = Field(default=True)
@@ -176,7 +185,7 @@ class Settings(BaseSettings):
 
         return self.OPENAI_API_KEY or self.EMERGENT_LLM_KEY
 
-    @field_validator("CORS_ORIGINS", "ALLOWED_HOSTS", mode="before")
+    @field_validator("CORS_ORIGINS", "ALLOWED_HOSTS", "FIXOPS_ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_list_fields(cls, v):
         if isinstance(v, str):
@@ -186,6 +195,49 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+
+def _ensure_list(value: Union[List[str], FieldInfo, None]) -> List[str]:
+    if isinstance(value, FieldInfo):
+        raw = value.default
+    else:
+        raw = value
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        return [item.strip() for item in raw.split(",") if item.strip()]
+    return list(raw)
+
+
+def resolve_allowed_origins(config: Settings) -> list[str]:
+    """Compute the allowed origins list with production safeguards."""
+
+    explicit_values = _ensure_list(getattr(config, "FIXOPS_ALLOWED_ORIGINS", []))
+    env_override = os.getenv("FIXOPS_ALLOWED_ORIGINS")
+    if env_override is not None:
+        explicit_values = _ensure_list(env_override)
+
+    explicit = [origin for origin in explicit_values if origin]
+    environment = os.getenv(
+        "ENVIRONMENT",
+        _unwrap_scalar(getattr(config, "ENVIRONMENT", "development"), "development"),
+    )
+    if environment.lower() == "production" and not explicit:
+        raise RuntimeError(
+            "FIXOPS_ALLOWED_ORIGINS must be configured for production deployments"
+        )
+    cors_origins = _ensure_list(getattr(config, "CORS_ORIGINS", []))
+    return explicit or cors_origins
+
+
+def _unwrap_scalar(value: Union[str, FieldInfo, None], default: str) -> str:
+    if isinstance(value, FieldInfo):
+        candidate = value.default
+    else:
+        candidate = value
+    if candidate is None:
+        return default
+    return str(candidate)
 
 
 @lru_cache()
