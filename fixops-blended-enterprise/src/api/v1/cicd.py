@@ -3,15 +3,19 @@ FixOps CI/CD Integration API
 Optimized endpoints for CI/CD pipeline integration
 """
 
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, Header
-from pydantic import BaseModel
-import structlog
+import base64
+import json
 import time
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import structlog
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from src.services.decision_engine import decision_engine, DecisionContext
 from src.config.settings import get_settings
+from src.utils.crypto import rsa_verify
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/cicd", tags=["ci-cd-integration"])
@@ -63,11 +67,20 @@ class CICDDecisionResponse(BaseModel):
     notification_channels: List[str]
     stakeholders_to_notify: List[str]
 
+
+class SignatureVerificationRequest(BaseModel):
+    """Request body for verifying signed evidence artefacts."""
+
+    evidence_id: str
+    payload: Dict[str, Any]
+    signature: str
+    fingerprint: str
+
 @router.post("/decision", response_model=CICDDecisionResponse)
 async def make_cicd_decision(
     request: CICDDecisionRequest,
-    x_pipeline_id: Optional[str] = Header(None),
-    x_correlation_id: Optional[str] = Header(None)
+    x_pipeline_id: Optional[str] = None,
+    x_correlation_id: Optional[str] = None,
 ):
     """
     Make security decision for CI/CD pipeline
@@ -179,6 +192,27 @@ async def make_cicd_decision(
                 "recommended_action": "DEFER - Manual review required due to system error"
             }
         )
+
+
+@router.post("/verify-signature")
+async def verify_signature(request: SignatureVerificationRequest) -> Dict[str, Any]:
+    """Verify a signed evidence payload using the configured key provider."""
+
+    try:
+        signature_bytes = base64.b64decode(request.signature)
+    except Exception as exc:  # pragma: no cover - defensive guardrail
+        raise HTTPException(status_code=400, detail="Invalid signature encoding") from exc
+
+    payload_bytes = json.dumps(request.payload, sort_keys=True).encode("utf-8")
+    if not rsa_verify(payload_bytes, signature_bytes, request.fingerprint):
+        raise HTTPException(status_code=400, detail="Signature verification failed")
+
+    return {
+        "status": "success",
+        "evidence_id": request.evidence_id,
+        "verified": True,
+    }
+
 
 def _extract_sarif_findings(sarif_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Extract security findings from SARIF format"""

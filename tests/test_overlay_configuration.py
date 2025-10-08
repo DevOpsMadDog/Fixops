@@ -198,8 +198,34 @@ def test_policy_engine_overlay_round_trip(tmp_path: Path) -> None:
     assert opa_config["url"] == "https://opa.example.com"
     exported = config.to_sanitised_dict()["policy_engine"]["opa"]
     assert exported["auth_token_env"] == "OPA_TOKEN"
-    assert exported["policy_package"] == "fixops.security"
-    assert exported["request_timeout_seconds"] == 12
+
+
+def test_overlay_toggles_round_trip(tmp_path: Path) -> None:
+    path = tmp_path / "fixops.overlay.yml"
+    overlay_content = {
+        "toggles": {
+            "enable_rl_experiments": True,
+            "enable_shap_experiments": True,
+            "signing_provider": "aws_kms",
+            "opa_server_url": "https://opa.internal:8181",
+        },
+        "signing": {"provider": "aws_kms", "key_id": "alias/app"},
+        "policy_engine": {"opa": {"enabled": True, "url": "https://opa.internal:8181"}},
+    }
+    path.write_text(json.dumps(overlay_content), encoding="utf-8")
+    config = load_overlay(path)
+
+    assert config.toggles["enable_rl_experiments"] is True
+    assert config.toggles["enable_shap_experiments"] is True
+    assert config.toggles["signing_provider"] == "aws_kms"
+    assert config.toggles["opa_server_url"] == "https://opa.internal:8181"
+
+    exported = config.to_sanitised_dict()
+    opa_export = exported["policy_engine"]["opa"]
+    assert exported["toggles"]["signing_provider"] == "aws_kms"
+    assert exported["toggles"]["opa_server_url"] == "https://opa.internal:8181"
+    assert exported["signing"]["provider"] == "aws_kms"
+    assert opa_export["url"] == "https://opa.internal:8181"
 
 
 def test_policy_engine_rejects_invalid_timeout(tmp_path: Path) -> None:

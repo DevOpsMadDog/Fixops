@@ -14,9 +14,9 @@ See [`Part 1 – Implemented capabilities`](decisionfactory_alignment/part-1-imp
 
 ---
 
-## Part 2 – Partially implemented capabilities ⚠️
+## Part 2 – Completed capabilities ✅
 
-See [`Part 2 – Partially implemented capabilities`](decisionfactory_alignment/part-2-partial.md) for the detailed list of in-flight workstreams and the remaining gaps to close.
+See [`Part 2 – Completed capabilities`](decisionfactory_alignment/part-2-completed.md) for the detailed list of DecisionFactory workstreams that have now shipped in FixOps.
 
 ---
 

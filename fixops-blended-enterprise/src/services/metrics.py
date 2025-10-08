@@ -156,21 +156,6 @@ class FixOpsMetrics:
         except Exception:
             pass
 
-        totals = FixOpsMetrics._family_totals[family]
-        totals["total"] += 1
-        if status >= 400:
-            totals["errors"] += 1
-
-        try:
-            ratio = (
-                totals["errors"] / totals["total"]
-                if totals["total"] > 0
-                else 0.0
-            )
-            HTTP_ERROR_RATIO.labels(family=family).set(ratio)
-        except Exception:
-            pass
-
         hot_path_label = FixOpsMetrics._resolve_hot_path(endpoint)
         if hot_path_label:
             FixOpsMetrics._observed_hot_paths.add(hot_path_label)

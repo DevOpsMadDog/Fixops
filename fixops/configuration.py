@@ -1177,6 +1177,19 @@ def load_overlay(
     toggles.setdefault("require_design_input", True)
     toggles.setdefault("auto_attach_overlay_metadata", True)
     toggles.setdefault("include_overlay_metadata_in_bundles", True)
+    toggles.setdefault("enable_rl_experiments", False)
+    toggles.setdefault("enable_shap_experiments", False)
+    toggles.setdefault("signing_provider", base["signing"].get("provider", "env"))
+    policy_engine_cfg = base.get("policy_engine", {})
+    if isinstance(policy_engine_cfg, Mapping):
+        opa_cfg = policy_engine_cfg.get("opa")
+    else:
+        opa_cfg = None
+    if isinstance(opa_cfg, Mapping):
+        default_opa_url = opa_cfg.get("url")
+    else:
+        default_opa_url = None
+    toggles.setdefault("opa_server_url", default_opa_url or "")
 
     modules = base.setdefault("modules", {})
     default_module_flags = {

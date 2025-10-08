@@ -18,6 +18,7 @@ from src.services.golden_regression_store import GoldenRegressionStore
 from src.db.session import DatabaseManager
 from src.services.risk_scorer import ContextualRiskScorer
 from src.services.chatgpt_client import ChatGPTClient
+from src.services.feeds_service import FeedsService
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -328,6 +329,9 @@ class DecisionEngine:
         start_time = time.perf_counter()
 
         try:
+            context.security_findings = FeedsService.enrich_findings(
+                context.security_findings
+            )
             context.security_findings = self.risk_scorer.apply(
                 context.security_findings, context.business_context
             )
