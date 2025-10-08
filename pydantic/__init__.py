@@ -184,51 +184,11 @@ class BaseModel(metaclass=BaseModelMeta):
         for key, value in values.items():
             setattr(self, key, value)
 
-
-class BaseSettings(BaseModel):
-    """Simplified settings container compatible with the project tests."""
-
-    class Config:
-        env_file = None
-        case_sensitive = True
-
-    def __init__(self, **data: Any) -> None:
-        env_data: Dict[str, Any] = {}
-        for name in self.__class__.__fields__:
-            if name in os.environ:
-                env_data[name] = os.environ[name]
-        config = getattr(self, "Config", None)
-        if config and getattr(config, "env_file", None):
-            # env file loading omitted for stub compatibility
-            pass
-        merged = {**env_data, **data}
-        super().__init__(**merged)
-
     def dict(self) -> Dict[str, Any]:
         return {name: getattr(self, name) for name in self.__class__.__fields__}
 
-    @classmethod
-    def model_validate(cls, data: Any) -> "BaseModel":
-        if isinstance(data, cls):
-            return data
-        if isinstance(data, BaseModel):
-            return cls(**data.dict())
-        if isinstance(data, dict):
-            return cls(**data)
-
-        if getattr(cls.model_config, "get", None):
-            from_attributes = cls.model_config.get("from_attributes")
-        else:
-            from_attributes = getattr(cls.model_config, "from_attributes", False)
-
-        if from_attributes:
-            values = {}
-            for name in cls.__fields__:
-                if hasattr(data, name):
-                    values[name] = getattr(data, name)
-            return cls(**values)
-
-        raise TypeError("Object is not valid for model validation")
+    def model_dump(self) -> Dict[str, Any]:
+        return self.dict()
 
     # ------------------------------------------------------------------
     # Validation helpers
@@ -296,6 +256,51 @@ class BaseSettings(BaseModel):
     def _error(name: str, message: str, err_type: str) -> Dict[str, Any]:
         return {"loc": ("body", name), "msg": message, "type": err_type}
 
+
+class BaseSettings(BaseModel):
+    """Simplified settings container compatible with the project tests."""
+
+    class Config:
+        env_file = None
+        case_sensitive = True
+
+    def __init__(self, **data: Any) -> None:
+        env_data: Dict[str, Any] = {}
+        for name in self.__class__.__fields__:
+            if name in os.environ:
+                env_data[name] = os.environ[name]
+        config = getattr(self, "Config", None)
+        if config and getattr(config, "env_file", None):
+            # env file loading omitted for stub compatibility
+            pass
+        merged = {**env_data, **data}
+        super().__init__(**merged)
+
+    def dict(self) -> Dict[str, Any]:
+        return {name: getattr(self, name) for name in self.__class__.__fields__}
+
+    @classmethod
+    def model_validate(cls, data: Any) -> "BaseModel":
+        if isinstance(data, cls):
+            return data
+        if isinstance(data, BaseModel):
+            return cls(**data.dict())
+        if isinstance(data, dict):
+            return cls(**data)
+
+        if getattr(cls.model_config, "get", None):
+            from_attributes = cls.model_config.get("from_attributes")
+        else:
+            from_attributes = getattr(cls.model_config, "from_attributes", False)
+
+        if from_attributes:
+            values = {}
+            for name in cls.__fields__:
+                if hasattr(data, name):
+                    values[name] = getattr(data, name)
+            return cls(**values)
+
+        raise TypeError("Object is not valid for model validation")
 
 __all__ = [
     "BaseModel",

@@ -135,7 +135,12 @@ class _Route:
             else:
                 kwargs[name] = None
 
-        return self.endpoint(**kwargs)
+        result = self.endpoint(**kwargs)
+        if inspect.iscoroutine(result):
+            import asyncio
+
+            return asyncio.run(result)
+        return result
 
 
 class APIRouter:
@@ -228,7 +233,13 @@ class FastAPI:
             self._routes.append(_Route(route.method, combined_path, route.endpoint))
 
     # Internal helpers for the TestClient
-    def _handle(self, method: str, path: str, body: Optional[Dict[str, Any]]) -> Any:
+    def _handle(
+        self,
+        method: str,
+        path: str,
+        body: Optional[Dict[str, Any]],
+        headers: Optional[Dict[str, Any]] = None,
+    ) -> Any:
         for route in self._routes:
             params = route.match(method, path)
             if params is not None:

@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import os
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+BLENDED_ROOT = ROOT / "fixops-blended-enterprise"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(BLENDED_ROOT) not in sys.path:
+    sys.path.insert(0, str(BLENDED_ROOT))
+
 import argparse
 import json
-from pathlib import Path
 from typing import Any, Dict
 
 from fastapi.testclient import TestClient
