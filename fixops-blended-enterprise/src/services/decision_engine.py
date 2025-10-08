@@ -19,6 +19,8 @@ from src.db.session import DatabaseManager
 from src.services.risk_scorer import ContextualRiskScorer
 from src.services.chatgpt_client import ChatGPTClient
 from src.services.feeds_service import FeedsService
+from src.services.explainability import ExplainabilityService
+from src.services.rl_controller import Experience, ReinforcementLearningController
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -51,6 +53,8 @@ class DecisionResult:
     processing_time_us: float
     context_sources: List[str]
     demo_mode: bool
+    explainability: Optional[Dict[str, Any]] = None
+    rl_policy: Optional[Dict[str, Any]] = None
 
 
 class DecisionEngine:
@@ -66,6 +70,8 @@ class DecisionEngine:
         self.chatgpt_client: Optional[ChatGPTClient] = None
         self.demo_mode = settings.DEMO_MODE
         self.risk_scorer = ContextualRiskScorer()
+        self.explainability_service = ExplainabilityService()
+        self.rl_controller = ReinforcementLearningController.get_instance()
 
         # Real production components (only initialized in production mode)
         self.real_vector_db = None
@@ -335,17 +341,24 @@ class DecisionEngine:
             context.security_findings = self.risk_scorer.apply(
                 context.security_findings, context.business_context
             )
+            explainability_bundle: Optional[Dict[str, Any]] = None
+            if settings.ENABLE_SHAP_EXPERIMENTS:
+                explainability_bundle = self._generate_explainability(context)
             if self.demo_mode:
                 result = await self._make_demo_decision(context, start_time)
             else:
                 result = await self._make_production_decision(context, start_time)
-            
+
             result.demo_mode = self.demo_mode
-            
+            if explainability_bundle:
+                result.explainability = explainability_bundle
+            if settings.ENABLE_RL_EXPERIMENTS:
+                result.rl_policy = await self._update_rl_policy(context, result)
+
             # Record metrics for monitoring
             from src.services.metrics import FixOpsMetrics
             FixOpsMetrics.record_decision(verdict=result.decision.value)
-            
+
             return result
             
         except Exception as e:
@@ -466,6 +479,77 @@ class DecisionEngine:
             context_sources=enriched_context.get("sources", ["Real Business Context", "Real Security Scanners"]),
             demo_mode=False
         )
+
+    def _generate_explainability(self, context: DecisionContext) -> Optional[Dict[str, Any]]:
+        numeric_keys: List[str] = []
+        training_vectors: List[Dict[str, float]] = []
+        for finding in context.security_findings or []:
+            if not isinstance(finding, dict):
+                continue
+            vector: Dict[str, float] = {}
+            for key, value in finding.items():
+                if isinstance(value, (int, float)):
+                    key_str = str(key)
+                    numeric_keys.append(key_str)
+                    vector[key_str] = float(value)
+            if vector:
+                training_vectors.append(vector)
+
+        feature_keys = sorted(set(numeric_keys))
+        if training_vectors:
+            self.explainability_service.prime_baseline(training_vectors)
+
+        annotated = list(
+            self.explainability_service.enrich_findings(
+                context.security_findings,
+                feature_keys=feature_keys,
+            )
+        )
+        context.security_findings = annotated
+
+        aggregates: Dict[str, List[float]] = {}
+        for entry in annotated:
+            payload = entry.get("explainability", {})
+            if isinstance(payload, dict):
+                for feature, delta in payload.get("contributions", {}).items():
+                    aggregates.setdefault(feature, []).append(float(delta))
+
+        summary = {
+            feature: round(sum(values) / len(values), 4)
+            for feature, values in aggregates.items()
+            if values
+        }
+
+        return {
+            "feature_keys": feature_keys,
+            "summary": summary,
+            "findings": annotated,
+        }
+
+    async def _update_rl_policy(self, context: DecisionContext, result: DecisionResult) -> Optional[Dict[str, Any]]:
+        tenant = str(context.business_context.get("tenant_id") or "default")
+        state = f"{context.environment}:{len(context.security_findings)}"
+        reward = result.confidence_score if result.decision == DecisionOutcome.ALLOW else -abs(1 - result.confidence_score)
+
+        experience = Experience(
+            state=state,
+            action=result.decision.value,
+            reward=round(reward, 4),
+            next_state=None,
+        )
+        await self.rl_controller.record_experience(tenant, experience)
+        recommendation = await self.rl_controller.recommend_action(tenant, state)
+        policy = await self.rl_controller.export_policy()
+        state_values = policy.get((tenant, state), {})
+
+        return {
+            "tenant": tenant,
+            "state": state,
+            "last_action": result.decision.value,
+            "reward": round(reward, 4),
+            "recommended_action": recommendation,
+            "q_values": state_values,
+        }
 
     async def _real_context_enrichment(self, context: DecisionContext) -> Dict[str, Any]:
         """Real business context enrichment using actual integrations"""

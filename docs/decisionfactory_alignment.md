@@ -20,11 +20,14 @@ See [`Part 2 – Completed capabilities`](decisionfactory_alignment/part-2-compl
 
 ---
 
-## Part 3 – Missing capabilities ❌
+## Part 3 – Completed capabilities ✅
 
-See [`Part 3 – Missing capabilities`](decisionfactory_alignment/part-3-missing.md) for the six DecisionFactory.ai requirements that still need to be built from scratch.
+See [`Part 3 – Completed capabilities`](decisionfactory_alignment/part-3-completed.md) for the closing wave of DecisionFactory.ai workstreams now shipped in FixOps.
 
 ---
 
 ### Summary
-RSA signing is fully aligned today. The remaining work concentrates on production OPA/Rego enforcement, net-new explainability and RL automation, VEX ingestion, richer evidence exports, and operational surface area (policy gating, EPSS/KEV-aware scoring hardening, key management backends, observability, CLI/Kubernetes configurability, and CI/CD test coverage).
+DecisionFactory alignment is now complete end-to-end. Production OPA gating,
+explainable narratives, reinforcement learning, supplier VEX suppression,
+signed evidence bundles, and multi-tenant RBAC all ship alongside the earlier
+Part 1 and Part 2 deliverables.

@@ -3,7 +3,24 @@
 # FixOps API Testing Suite for Bank Validation
 # Automated testing using Newman (Postman CLI)
 
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+POSTMAN_DIR="$SCRIPT_DIR/postman"
+
+REQUIRED_FILES=(
+    "$POSTMAN_DIR/FixOps-Bank-API-Collection.json"
+    "$POSTMAN_DIR/FixOps-CICD-Tests.postman_collection.json"
+    "$POSTMAN_DIR/FixOps-Performance-Tests.postman_collection.json"
+    "$POSTMAN_DIR/FixOps-Bank-Development.postman_environment.json"
+)
+
+for file in "${REQUIRED_FILES[@]}"; do
+    if [[ ! -f "$file" ]]; then
+        echo "❌ Required Postman asset missing: $file" >&2
+        exit 1
+    fi
+done
 
 echo "🏦 FixOps Bank API Validation Suite"
 echo "===================================="
@@ -11,7 +28,7 @@ echo "===================================="
 # Configuration
 FIXOPS_API_URL="${FIXOPS_API_URL:-http://localhost:8001}"
 ENVIRONMENT="${ENVIRONMENT:-development}"
-RESULTS_DIR="./test-results/$(date +%Y%m%d_%H%M%S)"
+RESULTS_DIR="$SCRIPT_DIR/test-results/$(date +%Y%m%d_%H%M%S)"
 
 # Create results directory
 mkdir -p "$RESULTS_DIR"
@@ -54,20 +71,20 @@ run_collection() {
 # 1. Health & Basic API Tests
 echo "🩺 Phase 1: Health & Readiness Validation"
 run_collection "health-tests" \
-    "postman/FixOps-Bank-API-Collection.json" \
-    "postman/FixOps-Bank-Development.postman_environment.json"
+    "$POSTMAN_DIR/FixOps-Bank-API-Collection.json" \
+    "$POSTMAN_DIR/FixOps-Bank-Development.postman_environment.json"
 
 # 2. CI/CD Integration Tests
 echo "⚙️ Phase 2: CI/CD Pipeline Integration"
 run_collection "cicd-integration" \
-    "postman/FixOps-CICD-Tests.postman_collection.json" \
-    "postman/FixOps-Bank-Development.postman_environment.json"
+    "$POSTMAN_DIR/FixOps-CICD-Tests.postman_collection.json" \
+    "$POSTMAN_DIR/FixOps-Bank-Development.postman_environment.json"
 
 # 3. Performance & Load Tests
 echo "🚀 Phase 3: Performance & SLA Validation"
 run_collection "performance-tests" \
-    "postman/FixOps-Performance-Tests.postman_collection.json" \
-    "postman/FixOps-Bank-Development.postman_environment.json"
+    "$POSTMAN_DIR/FixOps-Performance-Tests.postman_collection.json" \
+    "$POSTMAN_DIR/FixOps-Bank-Development.postman_environment.json"
 
 echo "🏦 FixOps Bank API validation completed!"
 echo "📁 Results: $RESULTS_DIR"

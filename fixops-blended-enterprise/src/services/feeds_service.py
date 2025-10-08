@@ -17,6 +17,8 @@ from typing import Dict, Any, Iterable, List, Mapping
 import aiohttp
 import structlog
 
+from src.services.vex_ingestion import VEXIngestor
+
 logger = structlog.get_logger()
 
 def _resolve_feeds_dir() -> Path:
@@ -50,7 +52,6 @@ class FeedsService:
                 resp.raise_for_status()
                 return await resp.json()
 
-    @staticmethod
     @staticmethod
     def _path(name: str) -> Path:
         """Return the fully-qualified path for the stored snapshot."""
@@ -214,5 +215,7 @@ class FeedsService:
                     clone.setdefault("kev_reference", normalised)
                     clone.setdefault("kev_metadata", kev_index[normalised])
             enriched.append(clone)
+
+        enriched = VEXIngestor.apply_assertions(enriched)
 
         return enriched
