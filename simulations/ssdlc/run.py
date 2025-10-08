@@ -55,6 +55,20 @@ def _load_overlay(path: Optional[Path]) -> Mapping[str, Any]:
     return data
 
 
+def _overlay_for_stage(overlay: Mapping[str, Any], stage: str) -> Mapping[str, Any]:
+    """Return overlay section relevant for the requested stage."""
+
+    if not overlay:
+        return {}
+    stages = overlay.get("stages") if isinstance(overlay.get("stages"), Mapping) else None
+    if stages and isinstance(stages.get(stage), Mapping):
+        base = overlay.copy()
+        base.pop("stages", None)
+        merged: MutableMapping[str, Any] = dict(base)
+        return _deep_merge(merged, stages[stage])
+    return overlay
+
+
 def _deep_merge(target: MutableMapping[str, Any], overlay: Mapping[str, Any]) -> MutableMapping[str, Any]:
     for key, value in overlay.items():
         if (
@@ -236,7 +250,12 @@ def _write_output(out_dir: Path, result: StageResult) -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate SSDLC simulation artifacts")
-    parser.add_argument("--stage", choices=sorted(STAGES.keys()), required=True, help="Lifecycle stage to generate")
+    parser.add_argument(
+        "--stage",
+        choices=sorted(STAGES.keys()) + ["all"],
+        required=True,
+        help="Lifecycle stage to generate or 'all' for every stage",
+    )
     parser.add_argument(
         "--overlay",
         type=Path,
@@ -256,9 +275,22 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
     overlay = _load_overlay(args.overlay)
+    if args.stage == "all":
+        outputs = {}
+        for stage, runner in STAGES.items():
+            stage_overlay = _overlay_for_stage(overlay, stage)
+            try:
+                result = runner(stage_overlay)
+            except StageValidationError as exc:  # pragma: no cover
+                parser.error(str(exc))
+            destination = _write_output(args.out, result)
+            outputs[stage] = str(destination)
+        print(json.dumps({"stage": "all", "outputs": outputs}, indent=2))
+        return 0
+
     stage_runner = STAGES[args.stage]
     try:
-        result = stage_runner(overlay)
+        result = stage_runner(_overlay_for_stage(overlay, args.stage))
     except StageValidationError as exc:  # pragma: no cover - defensive, handled below
         parser.error(str(exc))
     except FileNotFoundError as exc:
