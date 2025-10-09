@@ -14,6 +14,28 @@ This document captures the canonical input/output contract for the FixOps demo p
 | Operate | `ops-telemetry.json` (optional) | Surface KEV/EPSS hits and pressure metrics | `operate.snapshot.json` |
 | Decision | `decision-input.json` | Resolve previous outputs, compute compliance rollups & top factors, bundle evidence | `decision.json` + `evidence_bundle.zip` |
 
+## Running via Unified CLI
+
+```bash
+python -m core.cli stage-run --stage requirements --input simulations/demo_pack/requirements-input.csv --app life-claims-portal
+python -m core.cli stage-run --stage design      --input simulations/demo_pack/design-input.json --app life-claims-portal
+python -m core.cli stage-run --stage build       --input simulations/demo_pack/sbom.json          --app life-claims-portal
+python -m core.cli stage-run --stage test        --input simulations/demo_pack/scanner.sarif      --app life-claims-portal
+python -m core.cli stage-run --stage deploy      --input simulations/demo_pack/tfplan.json        --app life-claims-portal
+python -m core.cli stage-run --stage operate     --input simulations/demo_pack/ops-telemetry.json --app life-claims-portal
+python -m core.cli stage-run --stage decision    --app life-claims-portal
+```
+
+## Ingest API example
+
+```bash
+curl -X POST http://localhost:8001/api/v1/artefacts \
+  -H "Authorization: Bearer local-dev-key" \
+  -F "type=design" \
+  -F "payload=@simulations/demo_pack/design-input.json" \
+  -F "app_name=life-claims-portal" -F "mode=demo"
+```
+
 ## End-to-end walkthrough (life-claims-portal demo)
 
 The scripted simulation under `simulations/demo_pack/` exercises every feature of the FixOps ingest pipeline. The following

@@ -1,88 +1,14 @@
 [
   {
-    "id": "4fce4c3d-fa19-4cd4-9fd1-b719deebbd92",
-    "name": "PCI DSS Payment Gateway Policy Pack",
-    "description": "Prebuilt OPA/Rego policies for gating PCI workloads",
-    "content_type": "policy_template",
-    "compliance_frameworks": [
-      "pci_dss"
-    ],
-    "ssdlc_stages": [
-      "build",
-      "deploy"
-    ],
-    "pricing_model": "free",
-    "price": 0.0,
-    "tags": [
-      "pci",
-      "payments",
-      "rego"
-    ],
-    "metadata": {
-      "version": "1.0.0"
-    },
-    "rating": 4.8,
-    "downloads": 312,
-    "version": "1.0.0",
-    "created_at": "2025-10-01T11:44:33.412079+00:00",
-    "updated_at": "2025-10-01T11:44:33.412092+00:00"
+    "control_id": "ISO27001:AC-2",
+    "pack_id": "iso-ac-2",
+    "title": "Least privilege access review",
+    "link": "/api/v1/marketplace/packs/iso/ac-2"
   },
   {
-    "id": "a730b584-507b-4838-a8ae-a44891983b94",
-    "name": "NIST SSDF Test Set (SAST Baseline)",
-    "description": "Curated test set to validate SAST configuration against NIST SSDF controls",
-    "content_type": "compliance_testset",
-    "compliance_frameworks": [
-      "nist_ssdf",
-      "soc2"
-    ],
-    "ssdlc_stages": [
-      "code",
-      "build"
-    ],
-    "pricing_model": "free",
-    "price": 0.0,
-    "tags": [
-      "sast",
-      "baseline"
-    ],
-    "metadata": {
-      "coverage": "core"
-    },
-    "rating": 4.5,
-    "downloads": 198,
-    "version": "1.0.0",
-    "created_at": "2025-10-01T11:44:33.412105+00:00",
-    "updated_at": "2025-10-01T11:44:33.412108+00:00"
-  },
-  {
-    "id": "6587ae61-4caa-4dfd-ae3c-5b7d2fc174fb",
-    "name": "ATT&CK Ransomware Attack Scenario",
-    "description": "Scenario files and checks mapping to common ransomware TTPs",
-    "content_type": "attack_scenario",
-    "compliance_frameworks": [
-      "mitre_attack"
-    ],
-    "ssdlc_stages": [
-      "test",
-      "operate"
-    ],
-    "pricing_model": "one_time",
-    "price": 99.0,
-    "tags": [
-      "ransomware",
-      "ttp"
-    ],
-    "metadata": {
-      "techniques": [
-        "T1486",
-        "T1059"
-      ]
-    },
-    "rating": 4.4,
-    "downloads": 77,
-    "version": "1.0.0",
-    "created_at": "2025-10-01T11:44:33.412119+00:00",
-    "updated_at": "2025-10-01T11:44:33.412121+00:00"
+    "control_id": "ISO27001:AC-1",
+    "pack_id": "iso-ac-1",
+    "title": "Network segmentation guardrails",
+    "link": "/api/v1/marketplace/packs/iso/ac-1"
   }
 ]

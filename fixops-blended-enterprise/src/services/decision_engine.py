@@ -21,6 +21,7 @@ class DecisionOutcome:
     compliance: Dict[str, Any]
     top_factors: list[Dict[str, Any]]
     marketplace_recommendations: list[Dict[str, Any]]
+    compliance_rollup: Dict[str, Any]
 
 
 class DecisionEngine:
@@ -43,7 +44,7 @@ class DecisionEngine:
         return self._evidence_store
 
     def evaluate(self, submission: Mapping[str, Any]) -> DecisionOutcome:
-        findings = submission.get("findings") or []
+        findings = list(submission.get("findings") or [])
         controls = submission.get("controls") or []
         verdict, confidence = self._score_findings(findings)
         framework_targets = submission.get("frameworks")
@@ -55,12 +56,22 @@ class DecisionEngine:
             opa_rules=opa_rules,
             opa_input=opa_input,
         )
-        top_factors = self._top_factors(findings, compliance, verdict, confidence)
-        failing_controls = [
-            roll.get("control_id")
-            for roll in compliance.get("controls", [])
-            if isinstance(roll, Mapping) and roll.get("status") in {"fail", "failed", "gap", "non_compliant"}
-        ]
+        build_report = submission.get("build") if isinstance(submission.get("build"), Mapping) else {}
+        test_report = submission.get("test") if isinstance(submission.get("test"), Mapping) else {}
+        deploy_manifest = submission.get("deploy") if isinstance(submission.get("deploy"), Mapping) else {}
+        operate_snapshot = submission.get("operate") if isinstance(submission.get("operate"), Mapping) else {}
+        compliance_rollup = self._compliance_rollup(deploy_manifest)
+        top_factors = self._top_factors(
+            findings,
+            compliance,
+            compliance_rollup,
+            build_report,
+            test_report,
+            deploy_manifest,
+            operate_snapshot,
+            verdict,
+        )
+        failing_controls = self._failing_controls(compliance, deploy_manifest)
         marketplace_recommendations = get_recommendations(failing_controls)
         evidence_payload = {
             "findings": findings,
@@ -69,6 +80,7 @@ class DecisionEngine:
             "compliance": compliance,
             "top_factors": top_factors,
             "marketplace_recommendations": marketplace_recommendations,
+            "compliance_rollup": compliance_rollup,
         }
         evidence = self._evidence_store.create(evidence_payload)
         manifest = evidence.manifest
@@ -82,6 +94,7 @@ class DecisionEngine:
             compliance=compliance,
             top_factors=top_factors,
             marketplace_recommendations=marketplace_recommendations,
+            compliance_rollup=compliance_rollup,
         )
 
     def _score_findings(self, findings: Iterable[Mapping[str, Any]]) -> tuple[str, float]:
@@ -119,58 +132,158 @@ class DecisionEngine:
         self,
         findings: Iterable[Mapping[str, Any]],
         compliance: Mapping[str, Any],
+        compliance_rollup: Mapping[str, Any],
+        build_report: Mapping[str, Any],
+        test_report: Mapping[str, Any],
+        deploy_manifest: Mapping[str, Any],
+        operate_snapshot: Mapping[str, Any],
         verdict: str,
-        confidence: float,
     ) -> list[Dict[str, Any]]:
-        findings_list = list(findings)
-        if not findings_list:
-            return [
-                {
-                    "name": "Low finding volume",
-                    "weight": round(1 - confidence, 3),
-                    "rationale": "No actionable findings supplied; confidence influenced by default baseline.",
-                }
-            ]
+        factors: list[Dict[str, Any]] = []
 
-        severities = [str(item.get("severity") or "low").lower() for item in findings_list]
-        highest = max(severities, key=lambda value: self.SEVERITY_WEIGHTS.get(value, 0.25))
-        highest_weight = self.SEVERITY_WEIGHTS.get(highest, 0.25)
-        factors = [
-            {
-                "name": f"{highest.title()} severity detected",
-                "weight": round(highest_weight, 3),
-                "rationale": f"Worst finding reported as {highest} which heavily influences the {verdict} verdict.",
-            }
-        ]
+        severity_factor = self._severity_factor(findings, build_report, test_report, verdict)
+        if severity_factor:
+            factors.append(severity_factor)
 
-        volume_weight = min(0.35, len(findings_list) * 0.07)
-        factors.append(
-            {
-                "name": "Finding volume",
-                "weight": round(volume_weight, 3),
-                "rationale": f"{len(findings_list)} normalized findings were evaluated.",
-            }
-        )
+        compliance_factor = self._compliance_factor(compliance, compliance_rollup)
+        if compliance_factor:
+            factors.append(compliance_factor)
 
-        framework_summary = compliance.get("frameworks", {}) if isinstance(compliance, Mapping) else {}
-        failing = [
-            name
-            for name, stats in framework_summary.items()
-            if isinstance(stats, Mapping) and stats.get("fail", 0)
-        ]
-        if failing:
-            weight = min(0.4, 0.2 + 0.1 * len(failing))
-            rationale = ", ".join(sorted(failing))
+        exploit_factor = self._exploit_factor(operate_snapshot)
+        if exploit_factor:
+            factors.append(exploit_factor)
+
+        if not factors:
             factors.append(
                 {
-                    "name": "Compliance gaps",
-                    "weight": round(weight, 3),
-                    "rationale": f"Frameworks failing controls: {rationale}.",
+                    "name": "Stable posture",
+                    "weight": 0.2,
+                    "rationale": "No severe findings, compliance gaps or exploit signals detected.",
                 }
             )
 
         factors.sort(key=lambda item: (-item["weight"], item["name"]))
-        return factors[:3]
+        return factors
+
+    def _severity_factor(
+        self,
+        findings: Iterable[Mapping[str, Any]],
+        build_report: Mapping[str, Any],
+        test_report: Mapping[str, Any],
+        verdict: str,
+    ) -> Dict[str, Any] | None:
+        findings_list = list(findings or [])
+        severities = [str(item.get("severity") or "low").lower() for item in findings_list]
+        test_summary = test_report.get("summary") if isinstance(test_report, Mapping) else {}
+        if isinstance(test_summary, Mapping):
+            for severity in ("critical", "high", "medium", "low"):
+                count = test_summary.get(severity)
+                if isinstance(count, int) and count > 0:
+                    severities.append(severity)
+                    break
+        if not severities:
+            return None
+        highest = max(severities, key=lambda value: self.SEVERITY_WEIGHTS.get(value, 0.25))
+        weight = round(self.SEVERITY_WEIGHTS.get(highest, 0.25), 3)
+        total_findings = len(findings_list)
+        return {
+            "name": f"{highest.title()} severity detected",
+            "weight": weight,
+            "rationale": f"{total_findings} findings processed; highest severity {highest} driving {verdict} decision.",
+        }
+
+    def _compliance_factor(
+        self,
+        compliance: Mapping[str, Any],
+        compliance_rollup: Mapping[str, Any],
+    ) -> Dict[str, Any] | None:
+        failing_frameworks: list[str] = []
+        framework_summary = compliance.get("frameworks") if isinstance(compliance, Mapping) else {}
+        if isinstance(framework_summary, Mapping):
+            for name, stats in framework_summary.items():
+                if isinstance(stats, Mapping) and stats.get("fail"):
+                    failing_frameworks.append(str(name))
+        coverage = []
+        for item in compliance_rollup.get("frameworks", []) or []:
+            if isinstance(item, Mapping) and item.get("coverage", 1) < 1:
+                failing_frameworks.append(str(item.get("name")))
+                coverage.append(f"{item.get('name')}={item.get('coverage')}")
+        if not failing_frameworks:
+            return {
+                "name": "Controls satisfied",
+                "weight": 0.2,
+                "rationale": "All mapped controls reported as passing or partially covered.",
+            }
+        rationale = ", ".join(sorted({entry for entry in failing_frameworks if entry}))
+        if coverage:
+            rationale += f" (coverage {', '.join(coverage)})"
+        return {
+            "name": "Compliance gaps",
+            "weight": 0.3,
+            "rationale": f"Frameworks requiring remediation: {rationale}.",
+        }
+
+    def _exploit_factor(self, operate_snapshot: Mapping[str, Any]) -> Dict[str, Any] | None:
+        kev = operate_snapshot.get("kev_hits") if isinstance(operate_snapshot, Mapping) else []
+        pressure = 0.0
+        if isinstance(operate_snapshot, Mapping):
+            pressure_entries = operate_snapshot.get("pressure_by_service") or []
+            for entry in pressure_entries:
+                if isinstance(entry, Mapping) and isinstance(entry.get("pressure"), (int, float)):
+                    pressure = max(pressure, float(entry.get("pressure")))
+        if not kev and pressure <= 0.2:
+            return {
+                "name": "Low exploit pressure",
+                "weight": 0.15,
+                "rationale": "No KEV overlap and service pressure remains minimal.",
+            }
+        rationale_parts = []
+        if kev:
+            rationale_parts.append(f"KEV overlap count: {len(kev)}")
+        if pressure:
+            rationale_parts.append(f"Operational pressure {pressure:.2f}")
+        return {
+            "name": "Exploit pressure",
+            "weight": 0.25 if kev else 0.18,
+            "rationale": ", ".join(rationale_parts) or "Telemetry indicates elevated activity.",
+        }
+
+    def _compliance_rollup(self, deploy_manifest: Mapping[str, Any]) -> Dict[str, Any]:
+        controls: dict[str, float] = {}
+        frameworks: dict[str, list[float]] = {}
+        for evidence in deploy_manifest.get("control_evidence", []) or []:
+            if not isinstance(evidence, Mapping):
+                continue
+            control_id = str(evidence.get("control"))
+            result = str(evidence.get("result") or "pass").lower()
+            coverage = 1.0 if result == "pass" else 0.5 if result == "partial" else 0.0
+            controls[control_id] = coverage
+            framework = control_id.split(":")[0] if ":" in control_id else "generic"
+            frameworks.setdefault(framework, []).append(coverage)
+        framework_rollup = [
+            {"name": name, "coverage": round(sum(values) / len(values), 2)}
+            for name, values in frameworks.items()
+        ]
+        controls_list = [
+            {"id": control_id, "coverage": round(coverage, 2)}
+            for control_id, coverage in sorted(controls.items())
+        ]
+        return {"controls": controls_list, "frameworks": framework_rollup}
+
+    def _failing_controls(
+        self, compliance: Mapping[str, Any], deploy_manifest: Mapping[str, Any]
+    ) -> list[str]:
+        failing: list[str] = []
+        for evidence in deploy_manifest.get("control_evidence", []) or []:
+            if isinstance(evidence, Mapping) and str(evidence.get("result")).lower() == "fail":
+                failing.append(str(evidence.get("control")))
+        controls_section = compliance.get("controls") if isinstance(compliance, Mapping) else []
+        for item in controls_section or []:
+            if not isinstance(item, Mapping):
+                continue
+            if str(item.get("status")).lower() in {"fail", "failed", "gap", "non_compliant"}:
+                failing.append(str(item.get("control_id") or item.get("id")))
+        return sorted({control for control in failing if control})
 
 
 __all__ = ["DecisionEngine", "DecisionOutcome"]

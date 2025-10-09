@@ -16,6 +16,7 @@ from core.demo_runner import run_demo_pipeline
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from core.probabilistic import ProbabilisticForecastEngine
+from core.stage_runner import StageRunner
 
 
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
@@ -152,6 +153,47 @@ def _copy_evidence(result: Dict[str, Any], destination: Optional[Path]) -> Optio
     target = destination / bundle_path.name
     target.write_bytes(bundle_path.read_bytes())
     return target
+
+
+def _handle_stage_run(args: argparse.Namespace) -> int:
+    input_path: Optional[Path] = args.input
+    if input_path is not None:
+        input_path = input_path.expanduser().resolve()
+        if not input_path.exists():
+            raise FileNotFoundError(input_path)
+
+    output_path: Optional[Path] = args.output
+    if output_path is not None:
+        output_path = output_path.expanduser().resolve()
+
+    if args.sign and not (os.environ.get("FIXOPS_SIGNING_KEY") and os.environ.get("FIXOPS_SIGNING_KID")):
+        print("Signing requested but FIXOPS_SIGNING_KEY/FIXOPS_SIGNING_KID not set; proceeding without signatures.")
+
+    runner = StageRunner()
+    result = runner.run_stage(
+        args.stage,
+        input_path,
+        app_name=args.app,
+        app_id=args.app,
+        output_path=output_path,
+        mode=args.mode,
+        sign=args.sign,
+        verify=args.verify,
+        verbose=args.verbose,
+    )
+
+    print(f"Stage '{result.stage}' materialised for app {result.app_id} run {result.run_id}.")
+    print(f"  Output file: {result.output_file}")
+    if output_path is not None:
+        print(f"  Copied output to: {output_path}")
+    print(f"  Run outputs directory: {result.outputs_dir}")
+    if result.signed:
+        print(f"  Signed manifests: {[path.name for path in result.signed]}")
+    if result.transparency_index:
+        print(f"  Transparency log: {result.transparency_index}")
+    if result.bundle:
+        print(f"  Evidence bundle: {result.bundle}")
+    return 0
 
 
 def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path: Optional[Path]) -> None:
@@ -398,6 +440,58 @@ def _handle_demo(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
+
+    stage_parser = subparsers.add_parser(
+        "stage-run",
+        help="Normalise a single stage input and materialise canonical outputs",
+    )
+    stage_parser.add_argument(
+        "--stage",
+        required=True,
+        choices=[
+            "requirements",
+            "design",
+            "build",
+            "test",
+            "deploy",
+            "operate",
+            "decision",
+        ],
+        help="Stage to execute",
+    )
+    stage_parser.add_argument(
+        "--input",
+        type=Path,
+        help="Path to the stage input artefact",
+    )
+    stage_parser.add_argument("--app", help="Application identifier",)
+    stage_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to copy the canonical output to",
+    )
+    stage_parser.add_argument(
+        "--mode",
+        choices=["demo", "enterprise"],
+        default="demo",
+        help="Optional hint influencing local processing (reserved)",
+    )
+    stage_parser.add_argument(
+        "--sign",
+        action="store_true",
+        help="Sign canonical outputs when signing keys are configured",
+    )
+    stage_parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify signatures after writing canonical outputs",
+    )
+    stage_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print verbose stage processing information",
+    )
+    stage_parser.set_defaults(func=_handle_stage_run)
 
     run_parser = subparsers.add_parser("run", help="Execute the FixOps pipeline locally")
     run_parser.add_argument("--overlay", type=Path, default=None, help="Path to an overlay file (defaults to repository overlay)")
