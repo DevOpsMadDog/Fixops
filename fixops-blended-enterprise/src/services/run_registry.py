@@ -31,6 +31,7 @@ class RunContext:
     app_id: str
     run_id: str
     root: Path
+    sign_outputs: bool = False
 
     @property
     def run_path(self) -> Path:
@@ -101,7 +102,7 @@ class RunContext:
         return str(rel)
 
     def _maybe_sign(self, name: str, document: Mapping[str, Any] | Iterable[Any], content: str) -> None:
-        if not isinstance(document, Mapping):
+        if not self.sign_outputs or not isinstance(document, Mapping):
             return
         try:
             envelope = signing.sign_manifest(document)
@@ -118,7 +119,7 @@ class RunContext:
             handle.write(line)
 
 
-def resolve_run(app_id: str | None) -> RunContext:
+def resolve_run(app_id: str | None, *, sign_outputs: bool = False) -> RunContext:
     """Resolve or create the run context for the provided application identifier."""
 
     normalised_app = _normalise_app_id(app_id)
@@ -126,7 +127,7 @@ def resolve_run(app_id: str | None) -> RunContext:
     root = ARTEFACTS_ROOT
     run_dir = root / normalised_app / run_id
     _prepare_directories(run_dir)
-    return RunContext(app_id=normalised_app, run_id=run_id, root=root)
+    return RunContext(app_id=normalised_app, run_id=run_id, root=root, sign_outputs=sign_outputs)
 
 
 def _normalise_app_id(app_id: str | None) -> str:
@@ -141,7 +142,7 @@ def _json_dumps(data: Mapping[str, Any] | Iterable[Any]) -> str:
     return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
 
 
-def reopen_run(app_id: str | None, run_id: str) -> RunContext:
+def reopen_run(app_id: str | None, run_id: str, *, sign_outputs: bool = False) -> RunContext:
     """Return a run context for an existing run identifier."""
 
     normalised_app = _normalise_app_id(app_id)
@@ -150,7 +151,19 @@ def reopen_run(app_id: str | None, run_id: str) -> RunContext:
     if not run_dir.exists():
         raise FileNotFoundError(run_dir)
     _prepare_directories(run_dir)
-    return RunContext(app_id=normalised_app, run_id=run_id, root=root)
+    return RunContext(app_id=normalised_app, run_id=run_id, root=root, sign_outputs=sign_outputs)
+
+
+def list_runs(app_id: str | None) -> list[str]:
+    """Return available run identifiers for the provided application."""
+
+    normalised_app = _normalise_app_id(app_id)
+    app_root = ARTEFACTS_ROOT / normalised_app
+    if not app_root.exists():
+        return []
+    runs = [entry.name for entry in app_root.iterdir() if entry.is_dir()]
+    runs.sort()
+    return runs
 
 
 def _prepare_directories(run_dir: Path) -> None:

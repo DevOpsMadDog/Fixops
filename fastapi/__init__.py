@@ -47,7 +47,11 @@ def Query(default: Any = None, description: str | None = None) -> Any:
     return default
 
 
-def File(default: Any) -> Any:
+def File(default: Any = None, **_: Any) -> Any:
+    return default
+
+
+def Form(default: Any = None, **_: Any) -> Any:
     return default
 
 
