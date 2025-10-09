@@ -18,7 +18,7 @@ class EvidenceRecord:
     evidence_id: str
     manifest: Mapping[str, Any]
     created_at: float = field(default_factory=time.time)
-    signature: str | None = None
+    signature: Mapping[str, Any] | None = None
     kid: str | None = None
     algorithm: str | None = None
 
@@ -38,7 +38,13 @@ class EvidenceStore:
     def get(self, evidence_id: str) -> EvidenceRecord | None:
         return self._store.get(evidence_id)
 
-    def attach_signature(self, evidence_id: str, signature: str, kid: str | None, algorithm: str) -> None:
+    def attach_signature(
+        self,
+        evidence_id: str,
+        signature: Mapping[str, Any],
+        kid: str | None,
+        algorithm: str,
+    ) -> None:
         record = self._store.get(evidence_id)
         if not record:
             raise KeyError(evidence_id)

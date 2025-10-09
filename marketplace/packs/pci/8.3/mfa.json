@@ -1,0 +1,10 @@
+{
+  "pack_id": "pci-83-mfa",
+  "title": "Multi-factor Authentication Enablement",
+  "summary": "Activate MFA requirements for interactive access in cardholder environments.",
+  "steps": [
+    "Map user populations requiring MFA",
+    "Roll out MFA enrollment and backup factors",
+    "Validate MFA coverage through telemetry"
+  ]
+}

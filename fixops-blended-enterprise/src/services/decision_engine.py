@@ -10,6 +10,7 @@ import structlog
 from src.services.compliance import ComplianceEngine
 from src.services.evidence import EvidenceRecord, EvidenceStore
 from src.services import signing
+from src.services.marketplace import get_recommendations
 
 
 @dataclass
@@ -19,6 +20,7 @@ class DecisionOutcome:
     evidence: EvidenceRecord
     compliance: Dict[str, Any]
     top_factors: list[Dict[str, Any]]
+    marketplace_recommendations: list[Dict[str, Any]]
 
 
 class DecisionEngine:
@@ -54,12 +56,19 @@ class DecisionEngine:
             opa_input=opa_input,
         )
         top_factors = self._top_factors(findings, compliance, verdict, confidence)
+        failing_controls = [
+            roll.get("control_id")
+            for roll in compliance.get("controls", [])
+            if isinstance(roll, Mapping) and roll.get("status") in {"fail", "failed", "gap", "non_compliant"}
+        ]
+        marketplace_recommendations = get_recommendations(failing_controls)
         evidence_payload = {
             "findings": findings,
             "verdict": verdict,
             "confidence": confidence,
             "compliance": compliance,
             "top_factors": top_factors,
+            "marketplace_recommendations": marketplace_recommendations,
         }
         evidence = self._evidence_store.create(evidence_payload)
         manifest = evidence.manifest
@@ -72,6 +81,7 @@ class DecisionEngine:
             evidence=evidence,
             compliance=compliance,
             top_factors=top_factors,
+            marketplace_recommendations=marketplace_recommendations,
         )
 
     def _score_findings(self, findings: Iterable[Mapping[str, Any]]) -> tuple[str, float]:
@@ -95,13 +105,14 @@ class DecisionEngine:
         except signing.SigningError:
             self._logger.debug("evidence.signing.disabled")
             return
-        kid = signing.get_active_kid()
-        self._evidence_store.attach_signature(evidence.evidence_id, signature, kid, signing.ALGORITHM)
+        kid = signature.get("kid") if isinstance(signature, dict) else signing.get_active_kid()
+        alg = signature.get("alg") if isinstance(signature, dict) else signing.ALGORITHM
+        self._evidence_store.attach_signature(evidence.evidence_id, signature, kid, alg)
         self._logger.info(
             "evidence.signed",
             evidence_id=evidence.evidence_id,
             kid=kid,
-            algorithm=signing.ALGORITHM,
+            algorithm=alg,
         )
 
     def _top_factors(

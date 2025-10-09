@@ -34,6 +34,7 @@ class SonarQubeAdapter:
             "evidence": outcome.evidence.manifest,
             "compliance": outcome.compliance,
             "top_factors": outcome.top_factors,
+            "marketplace_recommendations": outcome.marketplace_recommendations,
         }
 
     def _normalize(self, issues: Iterable[Mapping[str, Any]]):

@@ -20,10 +20,11 @@ async def verify_evidence(evidence_id: str, _: None = Depends(authenticate)) -> 
     verified = False
     if signature:
         verified = signing.verify_manifest(record.manifest, signature)
+    algorithm = record.algorithm or (signature.get("alg") if isinstance(signature, dict) else None)
     return {
         "evidence_id": record.evidence_id,
         "verified": verified,
         "kid": record.kid,
-        "algorithm": record.algorithm or signing.ALGORITHM,
+        "alg": algorithm or signing.ALGORITHM,
     }
 

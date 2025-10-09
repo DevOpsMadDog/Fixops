@@ -7,6 +7,7 @@ This document helps newcomers navigate the FixOps Blended Enterprise repository 
 - [ROADMAP](docs/ROADMAP.md) – delivery priorities across P0/P1/P2 horizons.
 - [BACKLOG](docs/BACKLOG.csv) – triaged engineering/security tasks.
 - [ARCHITECTURE](docs/ARCHITECTURE.md) – module map, dependency highlights, and control/data flows.
+- [FixOps Demo I/O Contract](docs/FixOps_Demo_IO_Contract.md) – canonical ingest pipeline, signing flow, and scripted demo.
 
 ## Repository Layout
 - **Root utilities** – Provisioning scripts (`create_tables.py`, `create_minimal_tables.py`) and regression test entry points (`backend_test.py`, `frontend/test_frontend.py`).
@@ -48,6 +49,7 @@ The decision engine coordinates caches, optional vector stores, and third-party 
 1. **Backend** – Launch `uvicorn server:app --reload` from `enterprise/` or use `run_enterprise.py`; the FastAPI app bootstraps database pools, Redis cache (memory fallback), security subsystems, and background feed schedulers during startup.【F:enterprise/src/main.py†L34-L81】
 2. **Frontend** – Run `npm install && npm run dev` in `enterprise/frontend/` to start the Vite dev server with hot reloads.【F:enterprise/frontend/package.json†L5-L18】 By default it targets the backend’s `/api/v1` routes.
 3. **Database** – The default SQLite file (`fixops_enterprise.db`) works out of the box; the `DatabaseManager` takes care of pooling and migrations for local demos.【F:enterprise/src/db/session.py†L25-L92】
+4. **Scripted demo** – Execute `python scripts/run_demo_steps.py --app "life-claims-portal"` to ingest the sample artefacts under `simulations/demo_pack/` and inspect the resulting canonical outputs under `artefacts/<APP>/<RUN>/`.
 
 ## Suggested Next Steps
 - **Deep dive into services** – Explore `services/` beyond the decision engine (e.g., `enhanced_decision_engine.py`, `policy_engine.py`, `processing_layer.py`) to see how intelligence layers compose across demo and production modes.

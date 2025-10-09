@@ -1,0 +1,6 @@
+{
+  "resources": [
+    {"type": "aws_s3_bucket", "name": "payments-logs", "changes": {"after": {"acl": "public-read"}}},
+    {"type": "aws_lb_listener", "name": "edge", "changes": {"after": {"protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-2016-08"}}}
+  ]
+}

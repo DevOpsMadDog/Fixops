@@ -32,6 +32,7 @@ def test_github_webhook_comment(signing_env: None) -> None:
     assert result["verdict"] in {"block", "review"}
     assert "Top factors" in result["comment"]
     assert result["top_factors"], "top_factors should surface in webhook response"
+    assert "marketplace_recommendations" in result
     evidence = adapter._engine.evidence_store.get(result["evidence_id"])  # type: ignore[attr-defined]
     assert evidence and evidence.signature
     assert signing.verify_manifest(evidence.manifest, evidence.signature)
@@ -55,8 +56,10 @@ def test_jenkins_signed_response(signing_env: None) -> None:
     response = adapter.ingest(payload)
     assert response["signature"]
     assert response["kid"] == "test-kid"
-    canonical = {k: v for k, v in response.items() if k not in {"signature", "kid", "algorithm"}}
+    assert response["alg"] == signing.ALGORITHM
+    canonical = {k: v for k, v in response.items() if k not in {"signature", "kid", "alg", "digest"}}
     assert signing.verify_manifest(canonical, response["signature"])
+    assert "marketplace_recommendations" in response
 
 
 def test_sonarqube_ingest_top_factors(signing_env: None) -> None:
@@ -72,4 +75,5 @@ def test_sonarqube_ingest_top_factors(signing_env: None) -> None:
     assert len(decision["top_factors"]) >= 2
     weights = [factor["weight"] for factor in decision["top_factors"]]
     assert weights == sorted(weights, reverse=True)
+    assert "marketplace_recommendations" in decision
 
