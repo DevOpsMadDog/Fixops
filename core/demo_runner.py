@@ -155,6 +155,8 @@ def run_demo_pipeline(
     sbom = normalizer.load_sbom(_fixture_path("sample.sbom.json").read_bytes())
     sarif = normalizer.load_sarif(_fixture_path("sample.sarif.json").read_bytes())
     cve = normalizer.load_cve_feed(_fixture_path("sample.cve.json").read_bytes())
+    vex = normalizer.load_vex(_fixture_path("sample.vex.json").read_bytes())
+    cnapp = normalizer.load_cnapp(_fixture_path("sample.cnapp.json").read_bytes())
     design = _read_design(_fixture_path("sample.design.csv"))
 
     orchestrator = PipelineOrchestrator()
@@ -164,6 +166,8 @@ def run_demo_pipeline(
         sarif=sarif,
         cve=cve,
         overlay=overlay,
+        vex=vex,
+        cnapp=cnapp,
     )
 
     if output_path:

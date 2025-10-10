@@ -12,6 +12,7 @@ from core.analytics import ROIDashboard
 from core.configuration import OverlayConfig
 from core.context_engine import ContextEngine
 from core.evidence import EvidenceHub
+from core.enhanced_decision import EnhancedDecisionEngine
 from core.compliance import ComplianceEvaluator
 from core.onboarding import OnboardingGuide
 from core.policy import PolicyAutomation
@@ -24,11 +25,15 @@ from core.modules import PipelineContext, execute_custom_modules
 from core.tenancy import TenantLifecycleManager
 from core.performance import PerformanceSimulator
 
+from .knowledge_graph import KnowledgeGraphService
+
 from .normalizers import (
     CVERecordSummary,
+    NormalizedCNAPP,
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
+    NormalizedVEX,
     SBOMComponent,
     SarifFinding,
 )
@@ -55,6 +60,15 @@ _CVE_SEVERITY_MAP = {
     "medium": "medium",
     "moderate": "medium",
     "low": "low",
+}
+
+_CNAPP_SEVERITY_MAP = {
+    "critical": "critical",
+    "high": "high",
+    "medium": "medium",
+    "moderate": "medium",
+    "low": "low",
+    "info": "low",
 }
 
 
@@ -204,6 +218,13 @@ class PipelineOrchestrator:
             parts.append(str(record.raw))
         return " ".join(parts)
 
+    @staticmethod
+    def _determine_highest_severity(counts: Mapping[str, int]) -> str:
+        for level in reversed(_SEVERITY_ORDER):
+            if counts.get(level, 0) > 0:
+                return level
+        return _SEVERITY_ORDER[0]
+
     def _match_components(
         self,
         sbom_components: Iterable[SBOMComponent],
@@ -308,6 +329,93 @@ class PipelineOrchestrator:
             evaluation["trigger"] = trigger
         return evaluation
 
+    def _derive_marketplace_recommendations(
+        self,
+        compliance_status: Optional[Mapping[str, Any]],
+        guardrail_evaluation: Optional[Mapping[str, Any]],
+        policy_summary: Optional[Mapping[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Return marketplace recommendation payloads aligned with stage runner semantics."""
+
+        matches: List[str] = []
+
+        if isinstance(compliance_status, Mapping):
+            frameworks = compliance_status.get("frameworks", [])
+            if isinstance(frameworks, Iterable) and not isinstance(frameworks, (str, bytes)):
+                iterable_frameworks = frameworks
+            else:
+                iterable_frameworks = []
+            for framework in iterable_frameworks:
+                if not isinstance(framework, Mapping):
+                    continue
+                framework_name = framework.get("name")
+                controls = framework.get("controls", [])
+                if not (isinstance(controls, Iterable) and not isinstance(controls, (str, bytes))):
+                    controls = []
+                for control in controls or []:
+                    if not isinstance(control, Mapping):
+                        continue
+                    status = str(control.get("status") or "").lower()
+                    if status and status not in {"satisfied", "pass", "ok"}:
+                        control_id = control.get("id") or control.get("control_id")
+                        if control_id:
+                            if framework_name:
+                                matches.append(f"{framework_name}:{control_id}")
+                            else:
+                                matches.append(str(control_id))
+            for gap in compliance_status.get("gaps", []) or []:
+                if isinstance(gap, str) and gap.strip():
+                    matches.append(gap.strip())
+
+        if isinstance(policy_summary, Mapping):
+            actions = policy_summary.get("actions", [])
+            if isinstance(actions, Iterable) and not isinstance(actions, (str, bytes)):
+                iterable_actions = actions
+            else:
+                iterable_actions = []
+            for action in iterable_actions:
+                if not isinstance(action, Mapping):
+                    continue
+                context = action.get("context")
+                if isinstance(context, Mapping):
+                    highest = context.get("highest")
+                    if highest:
+                        matches.append(f"guardrail:{highest}")
+            execution = policy_summary.get("execution")
+            if isinstance(execution, Mapping):
+                results = execution.get("results", [])
+                if isinstance(results, Iterable) and not isinstance(results, (str, bytes)):
+                    iterable_results = results
+                else:
+                    iterable_results = []
+                for result in iterable_results:
+                    if not isinstance(result, Mapping):
+                        continue
+                    status = str(result.get("status") or "").lower()
+                    if status == "failed":
+                        identifier = result.get("id") or result.get("type")
+                        if identifier:
+                            matches.append(f"policy:{identifier}")
+
+        if isinstance(guardrail_evaluation, Mapping):
+            status = str(guardrail_evaluation.get("status") or "").lower()
+            if status in {"fail", "warn"}:
+                matches.append(f"guardrail:{status}")
+                highest = guardrail_evaluation.get("highest_detected")
+                if highest:
+                    matches.append(f"guardrail:{highest}")
+
+        unique_matches = sorted({match.strip() for match in matches if isinstance(match, str) and match.strip()})
+        if not unique_matches:
+            return []
+        return [
+            {
+                "id": "guardrail-remediation",
+                "title": "Enable auto-remediation playbooks",
+                "match": unique_matches,
+            }
+        ]
+
     def run(
         self,
         design_dataset: Dict[str, Any],
@@ -315,6 +423,9 @@ class PipelineOrchestrator:
         sarif: NormalizedSARIF,
         cve: NormalizedCVEFeed,
         overlay: Optional[OverlayConfig] = None,
+        *,
+        vex: Optional[NormalizedVEX] = None,
+        cnapp: Optional[NormalizedCNAPP] = None,
     ) -> Dict[str, Any]:
         rows = [row for row in design_dataset.get("rows", []) if isinstance(row, dict)]
 
@@ -411,6 +522,85 @@ class PipelineOrchestrator:
                 }
             )
 
+        original_counts = dict(severity_counts)
+        noise_reduction: Optional[Dict[str, Any]] = None
+
+        if vex is not None:
+            suppressed_counts: Counter[str] = Counter()
+            suppressed_refs = vex.suppressed_refs
+            if suppressed_refs:
+                for entry in crosswalk:
+                    component = entry.get("sbom_component") or {}
+                    component_ref: Optional[str] = None
+                    if isinstance(component, Mapping):
+                        component_ref = component.get("purl") or component.get("name")
+                    if not component_ref:
+                        continue
+                    if str(component_ref) not in suppressed_refs:
+                        continue
+                    suppressed_findings: List[dict[str, Any]] = []
+                    remaining: List[dict[str, Any]] = []
+                    for finding in entry.get("findings", []):
+                        severity = self._normalise_sarif_severity(finding.get("level"))
+                        suppressed_counts[severity] += 1
+                        suppressed_findings.append(finding)
+                    if suppressed_findings:
+                        entry.setdefault("suppressed", {})["vex"] = suppressed_findings
+                        entry["findings"] = remaining
+                if suppressed_counts:
+                    for severity, count in suppressed_counts.items():
+                        severity_counts[severity] = max(0, severity_counts.get(severity, 0) - count)
+                        source_breakdown["sarif"][severity] = max(
+                            0, source_breakdown["sarif"].get(severity, 0) - count
+                        )
+                    highest_severity = self._determine_highest_severity(severity_counts)
+                    highest_trigger = None
+            noise_reduction = {
+                "initial": original_counts,
+                "suppressed": dict(suppressed_counts),
+                "final": dict(severity_counts),
+                "suppressed_total": sum(suppressed_counts.values()),
+            }
+
+        cnapp_counts: Counter[str] = Counter()
+        cnapp_exposures: List[Dict[str, Any]] = []
+        if cnapp is not None:
+            cnapp_sources = source_breakdown.setdefault("cnapp", Counter())
+            for finding in cnapp.findings:
+                mapped_severity = _CNAPP_SEVERITY_MAP.get(finding.severity, "low")
+                cnapp_counts[mapped_severity] += 1
+                severity_counts[mapped_severity] += 1
+                cnapp_sources[mapped_severity] += 1
+                if self._severity_index(mapped_severity) > self._severity_index(highest_severity):
+                    highest_severity = mapped_severity
+                    highest_trigger = {
+                        "source": "cnapp",
+                        "asset": finding.asset,
+                        "severity": mapped_severity,
+                        "type": finding.finding_type,
+                    }
+            for asset in cnapp.assets:
+                traits: List[str] = []
+                if asset.attributes.get("internet_exposed"):
+                    traits.append("internet_exposed")
+                if asset.attributes.get("partner_connected"):
+                    traits.append("partner_connected")
+                sensitivity = asset.attributes.get("data_sensitivity")
+                if sensitivity:
+                    traits.append(f"data:{sensitivity}")
+                if traits:
+                    cnapp_exposures.append({"asset": asset.asset_id, "traits": traits})
+
+        severity_overview = {
+            "highest": highest_severity,
+            "counts": dict(severity_counts),
+            "sources": {
+                source: dict(counter) for source, counter in source_breakdown.items()
+            },
+        }
+        if highest_trigger:
+            severity_overview["trigger"] = highest_trigger
+
         result: Dict[str, Any] = {
             "status": "ok",
             "design_summary": {
@@ -431,21 +621,33 @@ class PipelineOrchestrator:
                 **cve.metadata,
                 "exploited_count": exploited_count,
             },
-            "severity_overview": {
-                "highest": highest_severity,
-                "counts": dict(severity_counts),
-                "sources": {
-                    source: dict(counter)
-                    for source, counter in source_breakdown.items()
-                },
-            },
+            "severity_overview": severity_overview,
             "crosswalk": crosswalk,
         }
+
+        if vex is not None:
+            result["vex_summary"] = vex.to_dict()
+            if noise_reduction is not None:
+                result["noise_reduction"] = noise_reduction
+
+        if cnapp is not None:
+            cnapp_summary: Dict[str, Any] = {
+                "metadata": cnapp.metadata,
+                "assets": [asset.to_dict() for asset in cnapp.assets],
+                "findings": [finding.to_dict() for finding in cnapp.findings],
+                "added_severity": dict(cnapp_counts),
+            }
+            if cnapp_exposures:
+                cnapp_summary["exposures"] = cnapp_exposures
+            if cnapp_counts:
+                cnapp_summary["risk_multiplier"] = round(1.0 + 0.1 * sum(cnapp_counts.values()), 2)
+            result["cnapp_summary"] = cnapp_summary
 
         if overlay is not None:
             modules_status: Dict[str, str] = {}
             executed_modules: List[str] = []
             custom_outcomes: List[Dict[str, Any]] = []
+            knowledge_graph_builder = KnowledgeGraphService()
 
             context_summary: Optional[Dict[str, Any]] = None
             compliance_status: Optional[Dict[str, Any]] = None
@@ -518,6 +720,24 @@ class PipelineOrchestrator:
             )
             if compliance_results:
                 result["compliance_results"] = compliance_results
+
+            marketplace_recommendations = self._derive_marketplace_recommendations(
+                compliance_status,
+                result.get("guardrail_evaluation"),
+                policy_summary,
+            )
+            result["marketplace_recommendations"] = marketplace_recommendations
+
+            knowledge_graph = knowledge_graph_builder.build(
+                design_rows=rows,
+                crosswalk=crosswalk,
+                context_summary=context_summary,
+                compliance_status=compliance_status,
+                guardrail_evaluation=result.get("guardrail_evaluation"),
+                marketplace_recommendations=marketplace_recommendations,
+                severity_overview=severity_overview,
+            )
+            result["knowledge_graph"] = knowledge_graph
 
             if overlay.is_module_enabled("ssdlc"):
                 ssdlc_evaluator = SSDLCEvaluator(overlay.ssdlc_settings)
@@ -618,6 +838,25 @@ class PipelineOrchestrator:
             else:
                 modules_status["performance"] = "disabled"
 
+            if overlay.is_module_enabled("enhanced_decision"):
+                enhanced_settings = dict(overlay.enhanced_decision_settings)
+                if knowledge_graph:
+                    enhanced_settings["knowledge_graph"] = knowledge_graph.get(
+                        "graph", knowledge_graph
+                    )
+                enhanced_engine = EnhancedDecisionEngine(enhanced_settings)
+                enhanced_payload = enhanced_engine.evaluate_pipeline(
+                    result,
+                    context_summary=context_summary,
+                    compliance_status=compliance_status,
+                    knowledge_graph=knowledge_graph,
+                )
+                result["enhanced_decision"] = enhanced_payload
+                modules_status["enhanced_decision"] = "executed"
+                executed_modules.append("enhanced_decision")
+            else:
+                modules_status["enhanced_decision"] = "disabled"
+
             if overlay.is_module_enabled("iac_posture"):
                 iac_settings = dict(overlay.iac_settings)
                 module_overrides = overlay.module_config("iac_posture")
@@ -664,6 +903,8 @@ class PipelineOrchestrator:
                     policy_summary=policy_summary,
                     ssdlc_assessment=ssdlc_assessment,
                     compliance_results=compliance_results,
+                    vex=vex,
+                    cnapp=cnapp,
                 )
                 custom_outcomes = execute_custom_modules(
                     overlay.custom_module_specs, context

@@ -8,7 +8,13 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping,
 from core.configuration import OverlayConfig
 
 if True:  # mypy hint, maintain runtime import
-    from apps.api.normalizers import NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
+    from apps.api.normalizers import (
+        NormalizedCNAPP,
+        NormalizedCVEFeed,
+        NormalizedSARIF,
+        NormalizedSBOM,
+        NormalizedVEX,
+    )
 
 
 @dataclass
@@ -27,6 +33,8 @@ class PipelineContext:
     policy_summary: Optional[Mapping[str, Any]] = None
     ssdlc_assessment: Optional[Mapping[str, Any]] = None
     compliance_results: Optional[List[Dict[str, Any]]] = None
+    vex: Optional["NormalizedVEX"] = None
+    cnapp: Optional["NormalizedCNAPP"] = None
 
 
 def _resolve_callable(entrypoint: str) -> Callable[[MutableMapping[str, Any], PipelineContext, Mapping[str, Any]], Any]:

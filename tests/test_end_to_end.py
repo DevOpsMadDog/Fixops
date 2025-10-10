@@ -152,6 +152,12 @@ def test_end_to_end_demo_pipeline():
         response = client.post("/pipeline/run", headers={"X-API-Key": "demo-token"})
         assert response.status_code == 200
         pipeline_payload = response.json()
+
+        get_response = client.get("/pipeline/run", headers={"X-API-Key": "demo-token"})
+        assert get_response.status_code == 200
+        pipeline_payload_via_get = get_response.json()
+        assert pipeline_payload_via_get["status"] == pipeline_payload["status"]
+        assert pipeline_payload_via_get.get("run_id")
         assert "run_id" in pipeline_payload
         run_id = pipeline_payload["run_id"]
         assert isinstance(run_id, str) and run_id

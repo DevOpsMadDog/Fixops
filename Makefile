@@ -57,11 +57,19 @@ sim: $(VENV)
 
 .PHONY: demo
 demo: $(VENV)
-	$(PYTHON_BIN) scripts/run_demo_steps.py --app "life-claims-portal"
+        $(PYTHON_BIN) scripts/run_demo_steps.py --app "life-claims-portal"
+
+.PHONY: stage-workflow
+stage-workflow: $(VENV)
+        FIXOPS_RUN_ID_SEED=stage-demo \
+        FIXOPS_FAKE_NOW=2024-01-01T00:00:00Z \
+        $(PYTHON_BIN) scripts/run_stage_workflow.py \
+                --artefacts artefacts/stage-demo \
+                --summary artefacts/stage-demo/summary.json
 
 .PHONY: inventory
 inventory:
-	$(PYTHON) scripts/generate_file_usage_inventory.py
+        $(PYTHON) scripts/generate_file_usage_inventory.py
 
 .PHONY: clean
 clean:

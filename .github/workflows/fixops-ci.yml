@@ -1,0 +1,70 @@
+name: FixOps CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          pip install -r backend/requirements-optional.txt || true
+      - name: Lint & Compile
+        run: |
+          source .venv/bin/activate
+          python -m compileall backend fixops simulations tests
+      - name: API push-ingestion regression
+        env:
+          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN }}
+        run: |
+          source .venv/bin/activate
+          uvicorn apps.api.app:create_app --factory --reload &
+          API_PID=$!
+          sleep 2
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/design.csv;type=text/csv" http://127.0.0.1:8000/inputs/design
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/sbom.cdx.json;type=application/json" http://127.0.0.1:8000/inputs/sbom
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/cve.json;type=application/json" http://127.0.0.1:8000/inputs/cve
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/vex.cdx.json;type=application/json" http://127.0.0.1:8000/inputs/vex
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/cnapp.json;type=application/json" http://127.0.0.1:8000/inputs/cnapp
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/snyk.sarif;type=application/json" http://127.0.0.1:8000/inputs/sarif
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/pipeline/run | jq > out/api-run.json
+          kill $API_PID
+      - name: CLI enterprise
+        env:
+          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN }}
+          FIXOPS_JIRA_ENDPOINT: ${{ secrets.FIXOPS_JIRA_ENDPOINT }}
+          FIXOPS_JIRA_TOKEN: ${{ secrets.FIXOPS_JIRA_TOKEN }}
+          FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY }}
+        run: |
+          source .venv/bin/activate
+          python -m fixops.cli run \
+            --overlay config/fixops.overlay.yml \
+            --enable policy_automation --enable compliance --enable ssdlc --enable iac \
+            --design artefacts/design.csv --sbom artefacts/sbom.cdx.json \
+            --sarif artefacts/snyk.sarif --cve artefacts/cve.json \
+            --vex artefacts/vex.cdx.json --cnapp artefacts/cnapp.json \
+            --evidence-dir out/evidence --output out/pipeline-enterprise.json --pretty
+      - name: Operations steady-state
+        env:
+          FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY }}
+        run: |
+          source .venv/bin/activate
+          python -m fixops.cli run \
+            --enable exploit_signals --enable probabilistic \
+            --design artefacts/design.csv --sbom artefacts/sbom.cdx.json \
+            --sarif artefacts/snyk.sarif --cve artefacts/cve.json \
+            --vex artefacts/vex.cdx.json --cnapp artefacts/cnapp.json \
+            --output out/ops.json --pretty
+      - name: Tests
+        run: |
+          source .venv/bin/activate
+          pytest -q

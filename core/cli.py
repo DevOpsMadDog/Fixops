@@ -15,7 +15,14 @@ if ENTERPRISE_SRC.exists():
         sys.path.insert(0, enterprise_path)
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
-from apps.api.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
+from apps.api.normalizers import (
+    InputNormalizer,
+    NormalizedCNAPP,
+    NormalizedCVEFeed,
+    NormalizedSARIF,
+    NormalizedSBOM,
+    NormalizedVEX,
+)
 from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import OverlayConfig, load_overlay
 from core.demo_runner import run_demo_pipeline
@@ -59,6 +66,8 @@ def _load_inputs(
     sbom_path: Optional[Path],
     sarif_path: Optional[Path],
     cve_path: Optional[Path],
+    vex_path: Optional[Path],
+    cnapp_path: Optional[Path],
 ) -> Dict[str, Any]:
     payload: Dict[str, Any] = {}
 
@@ -73,6 +82,12 @@ def _load_inputs(
 
     if cve_path is not None:
         payload["cve"] = normalizer.load_cve_feed(_load_file(cve_path) or b"")
+
+    if vex_path is not None:
+        payload["vex"] = normalizer.load_vex(_load_file(vex_path) or b"")
+
+    if cnapp_path is not None:
+        payload["cnapp"] = normalizer.load_cnapp(_load_file(cnapp_path) or b"")
 
     return payload
 
@@ -131,12 +146,17 @@ def _ensure_inputs(
     sarif: NormalizedSARIF = inputs["sarif"]
     cve: NormalizedCVEFeed = inputs["cve"]
     design_dataset = inputs.get("design", {"columns": [], "rows": []})
-    return {
+    prepared: Dict[str, Any] = {
         "design_dataset": design_dataset,
         "sbom": sbom,
         "sarif": sarif,
         "cve": cve,
     }
+    if "vex" in inputs:
+        prepared["vex"] = inputs["vex"]
+    if "cnapp" in inputs:
+        prepared["cnapp"] = inputs["cnapp"]
+    return prepared
 
 
 def _set_module_enabled(overlay: OverlayConfig, module: str, enabled: bool) -> None:
@@ -241,6 +261,20 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
         print(f"  Pricing plan: {pricing_plan}")
     if executed:
         print(f"  Modules executed: {', '.join(executed)}")
+    noise_reduction = result.get("noise_reduction")
+    if isinstance(noise_reduction, Mapping):
+        suppressed_total = noise_reduction.get("suppressed_total")
+        if suppressed_total:
+            print(
+                f"  VEX noise reduction suppressed {suppressed_total} findings"
+            )
+    cnapp_summary = result.get("cnapp_summary")
+    if isinstance(cnapp_summary, Mapping):
+        added = cnapp_summary.get("added_severity")
+        if isinstance(added, Mapping):
+            added_total = sum(int(value) for value in added.values())
+            if added_total:
+                print(f"  CNAPP findings added: {added_total}")
     roi_overview = analytics.get("overview") if isinstance(analytics, dict) else None
     if isinstance(roi_overview, dict):
         currency = roi_overview.get("currency", "USD")
@@ -332,6 +366,8 @@ def _handle_run(args: argparse.Namespace) -> int:
         sbom_path=args.sbom,
         sarif_path=args.sarif,
         cve_path=args.cve,
+        vex_path=args.vex,
+        cnapp_path=args.cnapp,
     )
     orchestrator = PipelineOrchestrator()
     prepared = _ensure_inputs(
@@ -373,10 +409,29 @@ def _handle_run(args: argparse.Namespace) -> int:
                 original_filename=args.cve.name,
                 raw_bytes=args.cve.read_bytes(),
             )
+        if args.vex is not None and "vex" in prepared:
+            archive_records["vex"] = archive.persist(
+                "vex",
+                prepared["vex"],
+                original_filename=args.vex.name,
+                raw_bytes=args.vex.read_bytes(),
+            )
+        if args.cnapp is not None and "cnapp" in prepared:
+            archive_records["cnapp"] = archive.persist(
+                "cnapp",
+                prepared["cnapp"],
+                original_filename=args.cnapp.name,
+                raw_bytes=args.cnapp.read_bytes(),
+            )
     except Exception as exc:  # pragma: no cover - archival should not abort CLI runs
         print(f"Warning: failed to persist artefacts locally: {exc}", file=sys.stderr)
 
-    result = orchestrator.run(overlay=overlay, **prepared)
+    result = orchestrator.run(
+        overlay=overlay,
+        vex=prepared.get("vex"),
+        cnapp=prepared.get("cnapp"),
+        **{key: value for key, value in prepared.items() if key not in {"vex", "cnapp"}},
+    )
     if args.include_overlay:
         result["overlay"] = overlay.to_sanitised_dict()
 
@@ -518,6 +573,16 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--sbom", type=Path, required=True, help="Path to SBOM JSON artefact")
     run_parser.add_argument("--sarif", type=Path, required=True, help="Path to SARIF JSON artefact")
     run_parser.add_argument("--cve", type=Path, required=True, help="Path to CVE/KEV JSON artefact")
+    run_parser.add_argument(
+        "--vex",
+        type=Path,
+        help="Optional path to a CycloneDX VEX document used for noise reduction",
+    )
+    run_parser.add_argument(
+        "--cnapp",
+        type=Path,
+        help="Optional path to CNAPP findings JSON for threat-path enrichment",
+    )
     run_parser.add_argument("--output", type=Path, help="Location to write the pipeline result JSON")
     run_parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output when saving to disk")
     run_parser.add_argument("--include-overlay", action="store_true", help="Attach the sanitised overlay to the result payload")

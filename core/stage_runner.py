@@ -18,6 +18,38 @@ from typing import Any, Dict, Iterable, Mapping, Optional
 
 from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBOM
 
+def _current_utc_timestamp() -> str:
+    """Return an ISO8601 timestamp with optional test overrides."""
+
+    override = os.environ.get("FIXOPS_FAKE_NOW")
+    if override:
+        candidate = override.strip()
+        if not candidate:
+            return datetime.utcnow().isoformat() + "Z"
+        if candidate.endswith("Z"):
+            return candidate
+        return f"{candidate}Z"
+    return datetime.utcnow().isoformat() + "Z"
+
+
+def _zip_date_time_tuple() -> tuple[int, int, int, int, int, int]:
+    """Return a deterministic ZIP timestamp aligned with :func:`_current_utc_timestamp`."""
+
+    raw_timestamp = _current_utc_timestamp()
+    trimmed = raw_timestamp.rstrip("Z")
+    try:
+        parsed = datetime.fromisoformat(trimmed)
+    except ValueError:
+        parsed = datetime.utcnow()
+    return (
+        parsed.year,
+        parsed.month,
+        parsed.day,
+        parsed.hour,
+        parsed.minute,
+        parsed.second,
+    )
+
 
 @dataclass(slots=True)
 class StageSummary:
@@ -427,7 +459,9 @@ class StageRunner:
         manifest_bytes = json.dumps(manifest_payload, indent=2).encode("utf-8")
         self.registry.write_binary_output(context, "manifest.json", manifest_bytes)
         with zipfile.ZipFile(bundle, "a") as archive:
-            archive.writestr("manifest.json", manifest_bytes)
+            info = zipfile.ZipInfo("manifest.json")
+            info.date_time = _zip_date_time_tuple()
+            archive.writestr(info, manifest_bytes)
 
         return decision_document
 
@@ -799,7 +833,9 @@ class StageRunner:
             for key, filename in self._OUTPUT_FILENAMES.items():
                 document = documents.get(key)
                 if isinstance(document, Mapping):
-                    archive.writestr(filename, json.dumps(document, indent=2, sort_keys=True))
+                    info = zipfile.ZipInfo(filename)
+                    info.date_time = _zip_date_time_tuple()
+                    archive.writestr(info, json.dumps(document, indent=2, sort_keys=True))
         return bundle_path
 
     def _bundle_manifest(self, documents: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
@@ -813,7 +849,7 @@ class StageRunner:
         return {
             "bundle": "evidence_bundle.zip",
             "documents": entries,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": _current_utc_timestamp(),
         }
 
     def _read_optional_json(self, path: Path) -> Mapping[str, Any] | None:

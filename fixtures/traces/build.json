@@ -1,0 +1,12 @@
+{
+  "stage": "build",
+  "input": [
+    "fixtures/sample_inputs/build/sbom.json"
+  ],
+  "programs_invoked": [
+    "python -m apps.fixops_cli stage-run --stage build --input fixtures/sample_inputs/build/sbom.json --app life-claims-portal --mode demo"
+  ],
+  "outputs": [
+    "fixtures/expected_outputs/build/build.report.json"
+  ]
+}

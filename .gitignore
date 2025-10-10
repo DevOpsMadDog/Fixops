@@ -68,6 +68,7 @@ data/evidence/
 
 # Archive files and large assets
 **/*.zip
+!fixtures/expected_outputs/decision/evidence_bundle.zip
 **/*.tar.gz
 **/*.tar
 **/*.tgz
@@ -89,5 +90,4 @@ frontend/node_modules/.cache/default-development/0.pack
 !/.env.example
 !/enterprise/.env.example
 
-artefacts/
 coverage.xml

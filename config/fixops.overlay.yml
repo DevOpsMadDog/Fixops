@@ -1,774 +1,189 @@
-{
-  "mode": "demo",
-  "jira": {
-    "url": "https://jira.example.com",
-    "project_key": "FIX",
-    "default_issue_type": "Task",
-    "user_email": "bot@fixops.io",
-    "token_env": "FIXOPS_JIRA_TOKEN"
-  },
-  "confluence": {
-    "base_url": "https://confluence.example.com",
-    "space_key": "FIXOPS",
-    "onboarding_page": "/display/FIXOPS/Demo+Runbook",
-    "user": "fixops-bot",
-    "token_env": "FIXOPS_CONFLUENCE_TOKEN"
-  },
-  "git": {
-    "provider": "github",
-    "host": "https://github.com",
-    "default_org": "fixops-demo"
-  },
-  "ci": {
-    "provider": "github_actions",
-    "pipeline_slug": "core/demo-pipeline"
-  },
-  "auth": {
-    "strategy": "token",
-    "token_env": "FIXOPS_API_TOKEN"
-  },
-  "data": {
-    "design_context_dir": "design_context/demo",
-    "evidence_dir": "evidence/demo",
-    "feedback_dir": "feedback/demo",
-    "automation_dir": "automation/demo",
-    "feeds_dir": "feeds/demo",
-    "archive_dir": "archive/demo"
-  },
-  "toggles": {
-    "require_design_input": false,
-    "auto_attach_overlay_metadata": true,
-    "include_overlay_metadata_in_bundles": true,
-    "enforce_ticket_sync": false,
-    "capture_feedback": false,
-    "enable_rl_experiments": false,
-    "enable_shap_experiments": false,
-    "signing_provider": "env",
-    "opa_server_url": "https://opa.fixops.local:8181"
-  },
-  "signing": {
-    "provider": "env",
-    "rotation_sla_days": 45,
-    "key_id": "alias/fixops-signer",
-    "aws_region": "us-east-1"
-  },
-  "modules": {
-    "guardrails": {"enabled": true},
-    "context_engine": {"enabled": true},
-    "onboarding": {"enabled": true},
-    "compliance": {"enabled": true},
-    "policy_automation": {"enabled": true},
-    "evidence": {"enabled": true},
-    "ai_agents": {"enabled": true},
-    "ssdlc": {"enabled": true},
-    "exploit_signals": {"enabled": true},
-    "probabilistic": {"enabled": true},
-    "pricing": {"enabled": true},
-    "iac_posture": {"enabled": true},
-    "analytics": {"enabled": true},
-    "tenancy": {"enabled": true},
-    "performance": {"enabled": true},
-    "custom": []
-  },
-  "limits": {
-    "max_upload_bytes": {
-      "default": 3145728,
-      "sarif": 6291456,
-      "cve": 6291456
-    },
-    "evidence": {
-      "bundle_max_bytes": 1048576,
-      "compress": true,
-      "encrypt": false,
-      "encryption_env": "FIXOPS_EVIDENCE_KEY"
-    }
-  },
-  "guardrails": {
-    "maturity": "foundational",
-    "profiles": {
-      "foundational": {"fail_on": "critical", "warn_on": "high"},
-      "scaling": {"fail_on": "high", "warn_on": "medium"},
-      "advanced": {"fail_on": "medium", "warn_on": "medium"}
-    }
-  },
-  "context_engine": {
-    "fields": {
-      "criticality": "customer_impact",
-      "data": "data_classification",
-      "exposure": "exposure"
-    },
-    "criticality_weights": {
-      "mission_critical": 4,
-      "external": 3,
-      "internal": 1
-    },
-    "data_weights": {
-      "pii": 4,
-      "financial": 4,
-      "health": 4,
-      "internal": 2,
-      "public": 1
-    },
-    "exposure_weights": {
-      "internet": 3,
-      "partner": 2,
-      "internal": 1
-    },
-    "playbooks": [
-      {"name": "Stabilise Customer Impact", "min_score": 9, "channel": "sre-pager"},
-      {"name": "Sprint Triage", "min_score": 6, "channel": "appsec-kanban"},
-      {"name": "Monitor", "min_score": 0, "channel": "platform-notifications"}
-    ]
-  },
-  "evidence_hub": {
-    "bundle_name": "fixops-run",
-    "include_sections": [
-      "design_summary",
-      "sbom_summary",
-      "sarif_summary",
-      "cve_summary",
-      "severity_overview",
-      "context_summary",
-      "guardrail_evaluation",
-      "compliance_status",
-      "analytics",
-      "tenant_lifecycle",
-      "performance_profile",
-      "probabilistic_forecast",
-      "ai_agent_analysis",
-      "ssdlc_assessment"
-    ],
-    "profiles": {
-      "enterprise": {
-        "bundle_name": "fixops-enterprise-run",
-        "include_sections": [
-          "design_summary",
-          "sbom_summary",
-          "sarif_summary",
-          "cve_summary",
-          "severity_overview",
-          "context_summary",
-          "guardrail_evaluation",
-          "compliance_status",
-          "policy_automation",
-          "analytics",
-          "tenant_lifecycle",
-          "performance_profile",
-          "ai_agent_analysis",
-          "ssdlc_assessment"
-        ]
-      }
-    }
-  },
-  "onboarding": {
-    "time_to_value_minutes": 30,
-    "checklist": [
-      {"step": "Upload design context CSV", "modes": ["demo", "enterprise"]},
-      {"step": "Upload SBOM JSON", "modes": ["demo", "enterprise"]},
-      {"step": "Upload SARIF scan", "modes": ["demo", "enterprise"]},
-      {"step": "Upload CVE/KEV feed", "modes": ["demo", "enterprise"]},
-      {"step": "Review context summary and guardrails", "modes": ["demo", "enterprise"]}
-    ],
-    "profiles": {
-      "enterprise": {
-        "time_to_value_minutes": 25,
-        "checklist": [
-          {"step": "Connect Jira project", "modes": ["enterprise"]},
-          {"step": "Sync Confluence evidence space", "modes": ["enterprise"]},
-          {"step": "Approve policy automation routes", "modes": ["enterprise"]}
-        ]
-      }
-    }
-  },
-  "compliance": {
-    "frameworks": [
-      {
-        "name": "SOC 2",
-        "controls": [
-          {"id": "CC8.1", "title": "Change Management Evidence", "requires": ["design", "guardrails", "evidence"]},
-          {"id": "CC7.2", "title": "Continuous Vulnerability Management", "requires": ["sarif", "cve", "context"]}
-        ]
-      },
-      {
-        "name": "ISO 27001",
-        "controls": [
-          {"id": "A.12.6.1", "title": "Application vulnerability management", "requires": ["sbom", "cve"]}
-        ]
-      }
-    ],
-    "profiles": {
-      "enterprise": {
-        "frameworks": [
-          {
-            "name": "PCI DSS",
-            "controls": [
-              {"id": "6.3.3", "title": "Secure code reviews", "requires": ["sarif", "policy"]},
-              {"id": "6.5", "title": "Vulnerability remediation", "requires": ["cve", "context", "guardrails"]}
-            ]
-          },
-          {
-            "name": "NIST 800-53",
-            "controls": [
-              {"id": "RA-5", "title": "Vulnerability scanning", "requires": ["sarif", "cve", "exploit"]},
-              {"id": "CA-7", "title": "Continuous monitoring", "requires": ["context", "ssdlc", "iac_posture"]}
-            ]
-          }
-        ]
-      }
-    }
-  },
-  "iac": {
-    "targets": [
-      {
-        "id": "aws",
-        "display_name": "AWS Cloud",
-        "match": ["aws", "lambda", "s3"],
-        "required_artifacts": ["policy_automation", "evidence_bundle"],
-        "recommended_controls": ["iam-hardening", "network-segmentation"],
-        "environments": ["prod", "production"]
-      },
-      {
-        "id": "gcp",
-        "display_name": "Google Cloud",
-        "match": ["gcp", "gke", "cloud run"],
-        "required_artifacts": ["context_summary", "compliance_status"],
-        "recommended_controls": ["artifact-signing", "runtime-policy"],
-        "environments": ["prod", "stage"]
-      },
-      {
-        "id": "on_prem",
-        "display_name": "On-Premises",
-        "match": ["on-prem", "vmware", "bare metal"],
-        "required_artifacts": ["context_summary"],
-        "recommended_controls": ["patching-window", "backup-testing"],
-        "environments": ["datacenter", "colo"]
-      }
-    ],
-    "profiles": {
-      "enterprise": {
-        "targets": [
-          {
-            "id": "azure",
-            "display_name": "Azure Cloud",
-            "match": ["azure", "aks", "app service"],
-            "required_artifacts": ["policy_automation", "compliance_status", "evidence_bundle"],
-            "recommended_controls": ["defender-integration", "policy-enforcement"],
-            "environments": ["prod", "dr"]
-          }
-        ]
-      }
-    }
-  },
-  "policy_automation": {
-    "slack_webhook_env": "FIXOPS_SLACK_WEBHOOK",
-    "actions": [
-      {
-        "trigger": "guardrail:fail",
-        "type": "jira_issue",
-        "summary": "Escalate failing guardrail",
-        "priority": "Highest"
-      },
-      {
-        "trigger": "context:high",
-        "type": "slack",
-        "channel": "#fixops-critical"
-      }
-    ],
-    "profiles": {
-      "enterprise": {
-        "actions": [
-          {
-            "trigger": "guardrail:fail",
-            "type": "jira_issue",
-            "summary": "Enterprise risk exception required",
-            "priority": "Blocker"
-          },
-          {
-            "trigger": "compliance:gap",
-            "type": "confluence_page",
-            "space": "FIXOPS-ENT"
-          }
-        ]
-      }
-    }
-  },
-  "policy_engine": {
-    "opa": {
-      "enabled": false,
-      "url": "https://opa.fixops.local:8181",
-      "policy_package": "fixops",
-      "health_path": "/health?bundles",
-      "bundle_status_path": "/v1/bundles/core/status",
-      "auth_token_env": "FIXOPS_OPA_TOKEN",
-      "request_timeout_seconds": 5
-    }
-  },
-  "analytics": {
-    "baseline": {
-      "findings_per_interval": 120,
-      "review_minutes_per_finding": 12,
-      "mttr_hours": 72,
-      "audit_hours": 40
-    },
-    "targets": {
-      "mttr_hours": 24,
-      "audit_hours": 16
-    },
-    "costs": {
-      "currency": "USD",
-      "hourly_rate": 160
-    },
-    "time_to_value_minutes": 25,
-    "automation_hours_saved": 10,
-    "module_weights": {
-      "guardrails": 3,
-      "context_engine": 2,
-      "policy_automation": 2,
-      "evidence": 1,
-      "analytics": 1
-    },
-    "metrics": {
-      "noise_reduction_goal_percent": 60,
-      "audit_hours_saved_goal": 24
-    },
-    "profiles": {
-      "enterprise": {
-        "automation_hours_saved": 16,
-        "targets": {"mttr_hours": 16, "audit_hours": 12},
-        "costs": {"hourly_rate": 220, "currency": "USD"},
-        "module_weights": {
-          "guardrails": 4,
-          "context_engine": 3,
-          "policy_automation": 3,
-          "evidence": 2,
-          "analytics": 2
-        }
-      }
-    }
-  },
-  "tenancy": {
-    "defaults": {
-      "modules": ["guardrails", "context_engine", "analytics", "performance"],
-      "support": {"email": "support@fixops.io"},
-      "billing": {"model": "usage", "plans": ["demo", "enterprise"]}
-    },
-    "tenants": [
-      {
-        "id": "demo-sandbox",
-        "name": "Demo Sandbox",
-        "status": "active",
-        "stage": "onboarding",
-        "environments": ["sandbox"],
-        "notes": "Default sandbox tenant for FixOps demo runs"
-      },
-      {
-        "id": "internal-shared",
-        "name": "Internal Shared Services",
-        "status": "active",
-        "stage": "expansion",
-        "environments": ["dev", "stage"],
-        "modules": ["policy_automation", "analytics"],
-        "notes": "Internal services used for continuous CTEM validation"
-      }
-    ],
-    "lifecycle": {
-      "stages": [
-        {"id": "onboarding", "name": "Onboarding"},
-        {"id": "expansion", "name": "Expansion"},
-        {"id": "steady_state", "name": "Steady State"}
-      ],
-      "stage_defaults": {
-        "onboarding": ["onboarding", "analytics"],
-        "expansion": ["policy_automation", "compliance"],
-        "steady_state": ["performance", "analytics"]
-      },
-      "transitions": {
-        "onboarding": ["expansion"],
-        "expansion": ["steady_state"],
-        "steady_state": []
-      }
-    },
-    "profiles": {
-      "enterprise": {
-        "defaults": {
-          "modules": [
-            "guardrails",
-            "context_engine",
-            "policy_automation",
-            "analytics",
-            "performance"
-          ],
-          "support": {"email": "support@fixops.io", "slack": "#fixops-enterprise"}
-        },
-        "tenants": [
-          {
-            "id": "customer-production",
-            "name": "Enterprise Production",
-            "status": "active",
-            "stage": "steady_state",
-            "environments": ["prod", "dr"],
-            "modules": ["policy_automation", "analytics", "performance"],
-            "notes": "Represents a production tenant with full automation coverage"
-          }
-        ]
-      }
-    }
-  },
-  "performance": {
-    "baseline": {"per_module_ms": 250},
-    "module_latency_ms": {
-      "guardrails": 180,
-      "context_engine": 220,
-      "compliance": 200,
-      "policy_automation": 260,
-      "analytics": 160,
-      "evidence": 240,
-      "performance": 150
-    },
-    "ingestion_throughput_per_minute": 45,
-    "near_real_time_threshold_ms": 5000,
-    "capacity": {"concurrent_runs": 3, "burst_runs": 6},
-    "profiles": {
-      "enterprise": {
-        "module_latency_ms": {
-          "guardrails": 220,
-          "context_engine": 260,
-          "policy_automation": 320,
-          "analytics": 180,
-          "evidence": 280
-        },
-        "ingestion_throughput_per_minute": 60,
-        "near_real_time_threshold_ms": 7000,
-        "capacity": {"concurrent_runs": 5, "burst_runs": 10}
-      }
-    }
-  },
-  "ssdlc": {
-    "stages": [
-      {
-        "id": "plan",
-        "name": "Plan & Threat Modelling",
-        "description": "Design artefacts, agent inventory, and threat modelling captured during planning.",
-        "requirements": [
-          {"key": "design", "title": "Design artefact uploaded"},
-          {"key": "threat_model", "title": "Threat modelling documented"},
-          {"key": "ai_register", "title": "Agent frameworks registered"}
-        ]
-      },
-      {
-        "id": "code",
-        "name": "Code & Dependency Hygiene",
-        "description": "Source composition analysed with pinned dependencies for agent services.",
-        "requirements": [
-          {"key": "sbom", "title": "SBOM provided"},
-          {"key": "dependency_pinning", "title": "Dependencies pinned"}
-        ]
-      },
-      {
-        "id": "build",
-        "name": "Build & Static Testing",
-        "description": "Static analysis and guardrails executed in CI pipelines.",
-        "requirements": [
-          {"key": "sarif", "title": "Static scan ingested"},
-          {"key": "guardrails", "title": "Guardrail evaluation completed"}
-        ]
-      },
-      {
-        "id": "test",
-        "name": "Threat Testing & CTEM",
-        "description": "Threat intelligence and contextual rescoring drive automation outcomes.",
-        "requirements": [
-          {"key": "cve", "title": "CVE or KEV feed analysed"},
-          {"key": "policy_automation", "title": "Policy automation triggered"}
-        ]
-      },
-      {
-        "id": "deploy",
-        "name": "Deploy Approvals",
-        "description": "Change management approvals aligned to contextual risk.",
-        "requirements": [
-          {"key": "compliance", "title": "Compliance pack coverage"},
-          {"key": "deploy_approvals", "title": "Approval hooks configured"}
-        ]
-      },
-      {
-        "id": "run",
-        "name": "Run & Observability",
-        "description": "Runtime artefacts captured for operational observability.",
-        "requirements": [
-          {"key": "evidence", "title": "Evidence bundle persisted"},
-          {"key": "observability", "title": "Context and guardrail telemetry"}
-        ]
-      },
-      {
-        "id": "audit",
-        "name": "Audit & Feedback",
-        "description": "Audit-ready packaging and structured waiver capture.",
-        "requirements": [
-          {"key": "evidence", "title": "Evidence bundle available"},
-          {"key": "feedback_loop", "title": "Feedback capture enabled"}
-        ]
-      }
-    ],
-    "profiles": {
-      "enterprise": {
-        "stages": [
-          {
-            "id": "deploy",
-            "description": "Enterprise deployments require ticketing and documentation hand-offs.",
-            "requirements": [
-              {"key": "compliance", "title": "Enterprise compliance packs satisfied"},
-              {"key": "deploy_approvals", "title": "Enterprise approval hooks configured"}
-            ]
-          },
-          {
-            "id": "audit",
-            "requirements": [
-              {"key": "evidence", "title": "Enterprise evidence bundle"},
-              {"key": "feedback_loop", "title": "Feedback capture enabled"}
-            ]
-          }
-        ]
-      }
-    }
-  },
-  "ai_agents": {
-    "watchlist_version": "2024-07",
-    "framework_signatures": [
-      {
-        "name": "LangChain",
-        "keywords": ["langchain", "llmchain"],
-        "aliases": ["lang chain", "lang-chain"],
-        "package_indicators": ["langchain", "langchain-core"],
-        "threat_profile": "supply_chain"
-      },
-      {
-        "name": "AutoGPT",
-        "keywords": ["autogpt", "auto-gpt"],
-        "aliases": ["auto gpt"],
-        "package_indicators": ["autogpt", "autonomous-gpt"],
-        "threat_profile": "self_modifying"
-      },
-      {
-        "name": "CrewAI",
-        "keywords": ["crewai"],
-        "aliases": ["crew ai"],
-        "package_indicators": ["crewai"],
-        "threat_profile": "multi_agent_coordination"
-      },
-      {
-        "name": "HuggingFace Agents",
-        "keywords": ["huggingface agent", "transformers agent"],
-        "aliases": ["hugging face agent"],
-        "package_indicators": ["huggingface-agent", "transformers-agents"],
-        "threat_profile": "remote_tool_execution"
-      },
-      {
-        "name": "LlamaIndex",
-        "keywords": ["llamaindex", "gpt index"],
-        "aliases": ["llama index", "gpt-index"],
-        "package_indicators": ["llama-index", "gpt-index"],
-        "threat_profile": "data_leakage"
-      }
-    ],
-    "controls": {
-      "default": {
-        "recommended_controls": [
-          "Document tool/API access scopes",
-          "Require prompt/response audit logging",
-          "Validate model inputs for sensitive data"
-        ],
-        "residual_risks": [
-          "Prompt injection against tool-calling agents",
-          "Unbounded data exfiltration via third-party APIs"
-        ]
-      },
-      "autogpt": {
-        "recommended_controls": [
-          "Disable autonomous resource creation in production",
-          "Enforce manual approval on destructive actions"
-        ]
-      }
-    },
-    "playbooks": [
-      {
-        "name": "AI Agent Hardening",
-        "channel": "appsec-ai",
-        "triggers": ["agent"],
-        "frameworks": ["LangChain", "AutoGPT", "CrewAI"]
-      },
-      {
-        "name": "Model Supply Chain Review",
-        "channel": "sre-risk",
-        "triggers": ["agent"],
-        "frameworks": ["HuggingFace Agents", "LlamaIndex"]
-      }
-    ]
-  },
-  "exploit_signals": {
-    "last_refreshed": "2024-07-15T00:00:00Z",
-    "max_age_days": 21,
-    "auto_refresh": {
-      "enabled": true,
-      "refresh_interval_hours": 12,
-      "feeds": [
-        {
-          "id": "kev",
-          "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
-          "destination": "kev.json",
-          "cve_field": "cveID",
-          "mark_exploited": true,
-          "attributes": {"knownExploited": true}
-        },
-        {
-          "id": "epss",
-          "url": "https://api.first.org/data/v1/epss?format=json",
-          "destination": "epss.json",
-          "cve_field": "cve",
-          "score_field": "epss",
-          "attributes": {"source": "epss"}
-        }
-      ]
-    },
-    "signals": {
-      "kev": {
-        "label": "CISA Known Exploited Vulnerability",
-        "mode": "boolean",
-        "fields": ["knownExploited", "kev", "knownRansomwareCampaignUse"],
-        "truthy": [true, "true", "yes", 1],
-        "escalate_to": "critical",
-        "rationale": "CISA KEV catalogue mandates expedited remediation for actively exploited vulnerabilities."
-      },
-      "epss": {
-        "label": "Exploit Prediction Scoring System",
-        "mode": "probability",
-        "fields": ["epss", "epssScore", "exploitability.epss"],
-        "threshold": 0.5,
-        "severity_floor": "high",
-        "rationale": "FIRST EPSS research indicates probabilities above 0.5 correlate with imminent exploitation risk."
-      }
-    },
-    "references": [
-      "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
-      "https://www.first.org/epss"
-    ],
-    "profiles": {
-      "enterprise": {
-        "signals": {
-          "epss": {"threshold": 0.3},
-          "kev": {"escalate_to": "critical"}
-        }
-      }
-    }
-  },
-  "probabilistic": {
-    "bayesian_prior": {
-      "low": 0.4,
-      "medium": 0.9,
-      "high": 1.2,
-      "critical": 1.4
-    },
-    "markov_transitions": {
-      "low": {"low": 0.82, "medium": 0.15, "high": 0.03},
-      "medium": {"medium": 0.62, "high": 0.28, "critical": 0.1},
-      "high": {"high": 0.55, "critical": 0.3, "medium": 0.15},
-      "critical": {"critical": 0.72, "high": 0.28}
-    },
-    "component_limit": 5,
-    "escalate_from": "medium",
-    "profiles": {
-      "enterprise": {
-        "component_limit": 8,
-        "bayesian_prior": {
-          "medium": 1.1,
-          "high": 1.5,
-          "critical": 1.8
-        },
-        "markov_transitions": {
-          "medium": {"medium": 0.55, "high": 0.32, "critical": 0.13},
-          "high": {"high": 0.5, "critical": 0.35, "medium": 0.15}
-        }
-      }
-    }
-  },
-  "pricing": {
-    "plans": [
-      {
-        "name": "Launch",
-        "mode": "demo",
-        "included_scans": 50,
-        "evidence_storage_gb": 5,
-        "price_per_month_usd": 499
-      },
-      {
-        "name": "Scale",
-        "mode": "enterprise",
-        "included_scans": 500,
-        "evidence_storage_gb": 100,
-        "price_per_month_usd": 3999
-      }
-    ]
-  },
-  "profiles": {
-    "enterprise": {
-      "mode": "enterprise",
-      "jira": {
-        "project_key": "FIXOPS",
-        "default_issue_type": "Security Review",
-        "workflow_scheme": "Enterprise Risk",
-        "user_email": "enterprise-bot@fixops.io",
-        "token_env": "FIXOPS_JIRA_TOKEN"
-      },
-      "confluence": {
-        "space_key": "FIXOPS-ENT",
-        "onboarding_page": "/display/FIXOPS-ENT/Control+Runbook",
-        "user": "fixops-enterprise",
-        "token_env": "FIXOPS_CONFLUENCE_TOKEN"
-      },
-      "git": {
-        "provider": "gitlab",
-        "host": "https://gitlab.example.com",
-        "default_group": "fixops"
-      },
-      "ci": {
-        "provider": "gitlab_ci",
-        "pipeline_slug": "core/enterprise/security"
-      },
-      "auth": {
-        "strategy": "oidc",
-        "client_id": "fixops-enterprise"
-      },
-      "data": {
-        "design_context_dir": "design_context/enterprise",
-        "evidence_dir": "evidence/enterprise",
-        "audit_export_dir": "audit",
-        "feedback_dir": "feedback/enterprise",
-        "automation_dir": "automation/enterprise",
-        "feeds_dir": "feeds/enterprise",
-        "archive_dir": "archive/enterprise"
-      },
-      "toggles": {
-        "require_design_input": true,
-        "enforce_ticket_sync": true,
-        "capture_feedback": true,
-        "include_overlay_metadata_in_bundles": false
-      },
-      "limits": {
-        "max_upload_bytes": {
-          "default": 7340032,
-          "sarif": 10485760,
-          "cve": 10485760
-        },
-        "evidence": {
-          "bundle_max_bytes": 2097152,
-          "compress": true,
-          "encrypt": true,
-          "encryption_env": "FIXOPS_EVIDENCE_KEY"
-        }
-      },
-      "guardrails": {
-        "maturity": "advanced"
-      }
-    }
-  }
-}
+mode: enterprise
+jira:
+  url: https://jira.example.com
+  project_key: SEC
+  default_issue_type: Task
+  user_email: bot@fixops.local
+  token_env: FIXOPS_JIRA_TOKEN
+confluence:
+  base_url: https://confluence.example.com
+  space_key: SECOPS
+  user: fixops-bot
+  token_env: FIXOPS_CONFLUENCE_TOKEN
+auth:
+  strategy: token
+  token_env: FIXOPS_API_TOKEN
+  header: X-API-Key
+data:
+  design_context_dir: data/design_context
+  evidence_dir: data/evidence
+  archive_dir: data/archive
+  analytics_dir: data/analytics
+  automation_dir: data/automation
+  feedback_dir: data/feedback
+limits:
+  max_upload_bytes:
+    default: 3145728
+    sarif: 6291456
+    cve: 6291456
+  evidence:
+    bundle_max_bytes: 1048576
+    compress: true
+    encrypt: true
+    encryption_env: FIXOPS_EVIDENCE_KEY
+modules:
+  guardrails: { enabled: true }
+  context_engine: { enabled: true }
+  onboarding: { enabled: true }
+  compliance: { enabled: true }
+  policy_automation: { enabled: true }
+  evidence: { enabled: true }
+  ai_agents: { enabled: true }
+  ssdlc: { enabled: true }
+  exploit_signals: { enabled: true }
+  probabilistic: { enabled: true }
+  pricing: { enabled: true }
+  iac_posture: { enabled: true }
+  analytics: { enabled: true }
+  tenancy: { enabled: true }
+  performance: { enabled: true }
+  enhanced_decision: { enabled: true }
+policy_automation:
+  actions:
+    - id: jira-guardrail-fail
+      trigger: guardrail:fail
+      type: jira_issue
+      summary: Guardrail failure detected
+      description: FixOps detected a guardrail failure and created this ticket automatically.
+      priority: High
+    - id: confluence-guardrail-warn
+      trigger: guardrail:warn
+      type: confluence_page
+      title: FixOps guardrail warning summary
+      representation: storage
+compliance:
+  frameworks:
+    - name: SOC2
+      controls:
+        - id: CC8.1
+          title: Change Management Evidence
+          requires: [design, guardrails, evidence]
+        - id: CC7.2
+          title: Continuous Vulnerability Management
+          requires: [sarif, cve, context]
+    - name: ISO27001
+      controls:
+        - id: A.12.6.1
+          title: Application vulnerability management
+          requires: [sbom, cve]
+  profiles:
+    enterprise:
+      frameworks:
+        - name: ISO27001
+          controls:
+            - id: A.12.6.1
+              title: Application vulnerability management
+              requires: [sbom, cve]
+context_engine:
+  fields:
+    criticality: customer_impact
+    data: data_classification
+    exposure: exposure
+  criticality_weights:
+    mission_critical: 4
+    external: 3
+    internal: 1
+  data_weights:
+    pii: 4
+    financial: 4
+    health: 4
+    internal: 2
+    public: 1
+  exposure_weights:
+    internet: 3
+    partner: 2
+    internal: 1
+  playbooks:
+    - name: Stabilise Customer Impact
+      min_score: 9
+      channel: sre-pager
+    - name: Sprint Triage
+      min_score: 6
+      channel: appsec-kanban
+    - name: Monitor
+      min_score: 0
+      channel: platform-notifications
+guardrails:
+  maturity: scaling
+  profiles:
+    foundational: { fail_on: critical, warn_on: high }
+    scaling: { fail_on: high, warn_on: medium }
+    advanced: { fail_on: medium, warn_on: medium }
+pricing:
+  plans:
+    - id: enterprise
+      name: Enterprise
+      evidence_encryption: true
+      modes: [enterprise]
+onboarding:
+  time_to_value_minutes: 25
+  checklist:
+    - step: Upload design context CSV
+      modes: [demo, enterprise]
+    - step: Upload SBOM JSON
+      modes: [demo, enterprise]
+    - step: Upload SARIF scan
+      modes: [demo, enterprise]
+    - step: Upload CVE/KEV feed
+      modes: [demo, enterprise]
+    - step: Review context summary and guardrails
+      modes: [demo, enterprise]
+  profiles:
+    enterprise:
+      time_to_value_minutes: 20
+      checklist:
+        - step: Connect Jira project
+          modes: [enterprise]
+        - step: Sync Confluence evidence space
+          modes: [enterprise]
+        - step: Approve policy automation routes
+          modes: [enterprise]
+probabilistic:
+  enabled: true
+exploit_signals:
+  enabled: true
+ssdlc:
+  enabled: true
+iac:
+  enabled: true
+analytics:
+  enabled: true
+tenancy:
+  enabled: true
+performance:
+  enabled: true
+enhanced_decision:
+  baseline_confidence: 0.82
+  providers:
+    - name: gpt-5
+      style: strategist
+      focus: [mitre, context]
+    - name: claude-3
+      style: analyst
+      focus: [compliance, guardrails]
+    - name: gemini-2
+      style: signals
+      focus: [exploit, cnapp]
+    - name: sentinel-cyber
+      style: threat
+      focus: [marketplace, agents]
+  knowledge_graph:
+    nodes:
+      - { id: service, type: asset }
+      - { id: finding, type: vulnerability }
+      - { id: control, type: compliance }
+      - { id: mitigation, type: playbook }
+    edges:
+      - { source: service, target: finding, type: impacted_by }
+      - { source: finding, target: control, type: mitigated_by }
+      - { source: finding, target: mitigation, type: remediated_by }

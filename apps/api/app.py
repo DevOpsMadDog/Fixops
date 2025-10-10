@@ -23,14 +23,18 @@ from core.configuration import OverlayConfig, load_overlay
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from core.feedback import FeedbackRecorder
+from core.enhanced_decision import EnhancedDecisionEngine
 
 from .normalizers import (
     InputNormalizer,
+    NormalizedCNAPP,
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
+    NormalizedVEX,
 )
 from .pipeline import PipelineOrchestrator
+from .routes.enhanced import router as enhanced_router
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +148,11 @@ def create_app() -> FastAPI:
         if overlay.toggles.get("capture_feedback")
         else None
     )
+    app.state.enhanced_engine = EnhancedDecisionEngine(
+        overlay.enhanced_decision_settings
+    )
+
+    app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
@@ -341,6 +350,50 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 buffer.close()
 
+    @app.post("/inputs/vex", dependencies=[Depends(_verify_api_key)])
+    async def ingest_vex(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(file, ("application/json", "text/json"))
+        buffer, total = await _read_limited(file, "vex")
+        try:
+            vex_doc: NormalizedVEX = normalizer.load_vex(buffer)
+        except Exception as exc:  # pragma: no cover - FastAPI handles message serialisation
+            logger.exception("VEX normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse VEX document: {exc}") from exc
+        else:
+            raw_bytes = _maybe_materialise_raw(buffer, total)
+            _store("vex", vex_doc, original_filename=file.filename, raw_bytes=raw_bytes)
+            return {
+                "stage": "vex",
+                "input_filename": file.filename,
+                "assertions": vex_doc.metadata.get("assertion_count", 0),
+                "not_affected": len(vex_doc.suppressed_refs),
+            }
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/cnapp", dependencies=[Depends(_verify_api_key)])
+    async def ingest_cnapp(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(file, ("application/json", "text/json"))
+        buffer, total = await _read_limited(file, "cnapp")
+        try:
+            cnapp_payload: NormalizedCNAPP = normalizer.load_cnapp(buffer)
+        except Exception as exc:  # pragma: no cover - FastAPI handles message serialisation
+            logger.exception("CNAPP normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse CNAPP payload: {exc}") from exc
+        else:
+            raw_bytes = _maybe_materialise_raw(buffer, total)
+            _store("cnapp", cnapp_payload, original_filename=file.filename, raw_bytes=raw_bytes)
+            return {
+                "stage": "cnapp",
+                "input_filename": file.filename,
+                "asset_count": cnapp_payload.metadata.get("asset_count", len(cnapp_payload.assets)),
+                "finding_count": cnapp_payload.metadata.get("finding_count", len(cnapp_payload.findings)),
+            }
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
     @app.post("/inputs/sarif", dependencies=[Depends(_verify_api_key)])
     async def ingest_sarif(file: UploadFile = File(...)) -> Dict[str, Any]:
         _validate_content_type(
@@ -376,7 +429,11 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 buffer.close()
 
-    @app.post("/pipeline/run", dependencies=[Depends(_verify_api_key)])
+    @app.api_route(
+        "/pipeline/run",
+        methods=["GET", "POST"],
+        dependencies=[Depends(_verify_api_key)],
+    )
     async def run_pipeline() -> Dict[str, Any]:
         overlay: OverlayConfig = app.state.overlay
         required = overlay.required_inputs
@@ -408,6 +465,8 @@ def create_app() -> FastAPI:
             sarif=app.state.artifacts["sarif"],
             cve=app.state.artifacts["cve"],
             overlay=overlay,
+            vex=app.state.artifacts.get("vex"),
+            cnapp=app.state.artifacts.get("cnapp"),
         )
         result["run_id"] = run_id
         analytics_store = getattr(app.state, "analytics_store", None)
