@@ -6,6 +6,16 @@ import statistics
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
+from core.llm_providers import (
+    AnthropicMessagesProvider,
+    BaseLLMProvider,
+    DeterministicLLMProvider,
+    GeminiProvider,
+    LLMResponse,
+    OpenAIChatProvider,
+    SentinelCyberProvider,
+)
+
 
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 _MITRE_LIBRARY: Dict[str, Dict[str, Any]] = {
@@ -144,6 +154,7 @@ class MultiLLMConsensusEngine:
             },
         )
         self.baseline_confidence = float(settings.get("baseline_confidence", 0.78))
+        self.provider_clients = self._build_provider_clients(settings)
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -175,10 +186,25 @@ class MultiLLMConsensusEngine:
         agent_components = _extract_agent_components(ai_agent_analysis)
         suppressed = int((noise_reduction or {}).get("suppressed_total", 0))
         marketplace_focus = [item.get("id") for item in marketplace_recommendations or [] if isinstance(item, Mapping)]
+        context_details = dict(context_summary or {})
+        analysis_context = self._analysis_context(
+            context_details,
+            counts,
+            highest,
+            guardrail_status,
+            compliance_gaps,
+            exposures,
+            exploit_stats,
+            agent_components,
+            suppressed,
+            marketplace_focus,
+        )
+        prompt = self._build_prompt(analysis_context)
 
         analyses: List[ModelAnalysis] = []
         actions: List[str] = []
         confidences: List[float] = []
+        provider_metadata: List[Dict[str, Any]] = []
         max_processing: int = 0
         for index, provider in enumerate(self.providers):
             action = base_action
@@ -217,6 +243,34 @@ class MultiLLMConsensusEngine:
                 agent_components,
                 suppressed,
             )
+            mitigation_hints = {
+                "mitre_candidates": mitre,
+                "compliance": compliance_concerns,
+                "attack_vectors": attack_vectors,
+            }
+            provider_client = (
+                self.provider_clients[index]
+                if index < len(self.provider_clients)
+                else self.provider_clients[-1]
+            )
+            llm_result: LLMResponse = provider_client.analyse(
+                prompt=prompt,
+                context=analysis_context,
+                default_action=action,
+                default_confidence=confidence,
+                default_reasoning=reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+            if llm_result.recommended_action:
+                action = str(llm_result.recommended_action).lower()
+            confidence = max(0.42, min(0.99, llm_result.confidence or confidence))
+            reasoning = llm_result.reasoning or reasoning
+            mitre = list({*mitre, *llm_result.mitre_techniques})[:4]
+            attack_vectors = list(llm_result.attack_vectors or attack_vectors)
+            compliance_concerns = list(llm_result.compliance_concerns or compliance_concerns)
+            metadata = dict(llm_result.metadata or {})
+            provider_metadata.append({"provider": provider.name, **metadata})
+
             processing_time = int(320 + abs(jitter) * 120 + index * 40)
             max_processing = max(max_processing, processing_time)
             cost = 0.18 + 0.02 * index
@@ -232,6 +286,7 @@ class MultiLLMConsensusEngine:
                     evidence=[
                         {"type": "severity", "value": counts},
                         {"type": "guardrail", "value": guardrail_status},
+                        {"type": "llm_metadata", "value": metadata},
                     ],
                     processing_time_ms=processing_time,
                     cost_usd=cost,
@@ -263,7 +318,8 @@ class MultiLLMConsensusEngine:
 
         telemetry = {
             "models_consulted": len(analyses),
-            "providers": [spec.provider for spec in analyses],
+            "providers": [analysis.provider for analysis in analyses],
+            "provider_modes": provider_metadata,
             "mean_confidence": round(statistics.fmean(confidences), 3) if confidences else None,
             "max_processing_time_ms": max_processing,
             "knowledge_graph": self.knowledge_graph_summary,
@@ -280,6 +336,119 @@ class MultiLLMConsensusEngine:
             summary=summary,
             telemetry=telemetry,
             signals=signals,
+        )
+
+    def _build_provider_clients(self, settings: Mapping[str, Any]) -> List[BaseLLMProvider]:
+        llm_settings = settings.get("llm", {}) if isinstance(settings, Mapping) else {}
+        clients: List[BaseLLMProvider] = []
+        for spec in self.providers:
+            config: Mapping[str, Any]
+            if isinstance(llm_settings, Mapping):
+                config = llm_settings.get(spec.name) or llm_settings.get(spec.name.lower()) or {}
+            else:
+                config = {}
+            clients.append(self._provider_from_spec(spec, config))
+        return clients or [DeterministicLLMProvider(spec.name, style=spec.style, focus=spec.focus) for spec in self.providers]
+
+    def _provider_from_spec(self, spec: ProviderSpec, config: Mapping[str, Any]) -> BaseLLMProvider:
+        config = dict(config or {})
+        timeout = float(config.get("timeout", 30.0))
+        focus = spec.focus
+        style = spec.style
+        name = spec.name.lower()
+        if "gpt" in name or "openai" in name:
+            return OpenAIChatProvider(
+                spec.name,
+                model=str(config.get("model", config.get("model_name", "gpt-4o-mini"))),
+                api_key_envs=config.get("api_key_envs"),
+                timeout=timeout,
+                focus=focus,
+                style=style,
+            )
+        if "claude" in name or "anthropic" in name:
+            return AnthropicMessagesProvider(
+                spec.name,
+                model=str(config.get("model", "claude-3-5-sonnet-20240620")),
+                api_key_envs=config.get("api_key_envs"),
+                timeout=timeout,
+                focus=focus,
+                style=style,
+            )
+        if "gemini" in name or "google" in name:
+            return GeminiProvider(
+                spec.name,
+                model=str(config.get("model", "gemini-1.5-pro")),
+                api_key_envs=config.get("api_key_envs"),
+                timeout=timeout,
+                focus=focus,
+                style=style,
+            )
+        if "sentinel" in name or "cyber" in name:
+            return SentinelCyberProvider(spec.name, style=style, focus=focus)
+        return DeterministicLLMProvider(spec.name, style=style, focus=focus)
+
+    def _analysis_context(
+        self,
+        context_details: Mapping[str, Any],
+        counts: Mapping[str, int],
+        highest: str,
+        guardrail_status: str,
+        compliance_gaps: Sequence[str],
+        exposures: Sequence[Mapping[str, Any]],
+        exploit_stats: Mapping[str, Any],
+        agent_components: Sequence[str],
+        suppressed: int,
+        marketplace_focus: Sequence[Any],
+    ) -> Dict[str, Any]:
+        service_name = (
+            context_details.get("service")
+            or context_details.get("service_name")
+            or context_details.get("application")
+            or "unknown-service"
+        )
+        environment = context_details.get("environment", "production")
+        business_impact = context_details.get("business_impact") or context_details.get("business_context")
+        return {
+            "service_name": service_name,
+            "environment": environment,
+            "business_context": business_impact or {},
+            "severity_counts": dict(counts),
+            "highest_severity": highest,
+            "guardrail_status": guardrail_status,
+            "compliance_gaps": list(compliance_gaps),
+            "exposures": [dict(item) for item in exposures],
+            "exploitability": dict(exploit_stats),
+            "ai_agents": list(agent_components),
+            "noise_suppressed": suppressed,
+            "marketplace": list(marketplace_focus),
+        }
+
+    def _build_prompt(self, analysis_context: Mapping[str, Any]) -> str:
+        severity_counts = analysis_context.get("severity_counts", {})
+        severity_section = ", ".join(f"{key}:{value}" for key, value in severity_counts.items()) or "none"
+        compliance = analysis_context.get("compliance_gaps", [])
+        compliance_text = ", ".join(compliance) if compliance else "none"
+        exposures = analysis_context.get("exposures", [])
+        exposure_text = ", ".join(
+            f"{item.get('asset')}:{item.get('type')}" for item in exposures if isinstance(item, Mapping)
+        ) or "none"
+        exploit = analysis_context.get("exploitability", {})
+        exploit_text = ", ".join(f"{key}:{value}" for key, value in exploit.items()) or "none"
+        agents = analysis_context.get("ai_agents", [])
+        agent_text = ", ".join(str(value) for value in agents) or "none"
+        return (
+            "Security decision context\n"
+            f"Service: {analysis_context.get('service_name')}\n"
+            f"Environment: {analysis_context.get('environment')}\n"
+            f"Highest severity: {analysis_context.get('highest_severity')}\n"
+            f"Severity counts: {severity_section}\n"
+            f"Guardrail status: {analysis_context.get('guardrail_status')}\n"
+            f"Compliance gaps: {compliance_text}\n"
+            f"Exposures: {exposure_text}\n"
+            f"Exploit signals: {exploit_text}\n"
+            f"AI agent components: {agent_text}\n"
+            f"Noise suppressed: {analysis_context.get('noise_suppressed')}\n"
+            f"Marketplace focus: {', '.join(analysis_context.get('marketplace', [])) or 'none'}"
         )
 
     def evaluate_from_payload(self, payload: Mapping[str, Any]) -> MultiLLMResult:

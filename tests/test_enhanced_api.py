@@ -76,6 +76,8 @@ def test_analysis_returns_consensus_payload(enhanced_client: TestClient) -> None
     assert payload["signals"]["ssvc_label"] in {"Act", "Attend", "Track"}
     telemetry = payload.get("telemetry", {})
     assert telemetry.get("knowledge_graph", {}).get("nodes") >= 0
+    modes = telemetry.get("provider_modes", [])
+    assert modes and all("provider" in entry and "mode" in entry for entry in modes)
 
 
 def test_compare_llms_returns_consensus_breakdown(enhanced_client: TestClient) -> None:
