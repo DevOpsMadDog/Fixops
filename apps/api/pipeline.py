@@ -24,11 +24,13 @@ from core.feature_matrix import build_feature_matrix
 from core.modules import PipelineContext, execute_custom_modules
 from core.tenancy import TenantLifecycleManager
 from core.performance import PerformanceSimulator
+from core.processing_layer import ProcessingLayer
 
 from .knowledge_graph import KnowledgeGraphService
 
 from .normalizers import (
     CVERecordSummary,
+    NormalizedBusinessContext,
     NormalizedCNAPP,
     NormalizedCVEFeed,
     NormalizedSARIF,
@@ -426,6 +428,7 @@ class PipelineOrchestrator:
         *,
         vex: Optional[NormalizedVEX] = None,
         cnapp: Optional[NormalizedCNAPP] = None,
+        context: Optional[NormalizedBusinessContext] = None,
     ) -> Dict[str, Any]:
         rows = [row for row in design_dataset.get("rows", []) if isinstance(row, dict)]
 
@@ -522,6 +525,26 @@ class PipelineOrchestrator:
                 }
             )
 
+        if context is not None:
+            context_map: Dict[str, Mapping[str, Any]] = {}
+            for component in context.components:
+                if not isinstance(component, Mapping):
+                    continue
+                name = str(component.get("name") or component.get("component") or "").strip()
+                if not name:
+                    continue
+                context_map[name.lower()] = component
+            for entry in crosswalk:
+                design_row = entry.get("design_row")
+                if not isinstance(design_row, Mapping):
+                    continue
+                candidate = self._extract_component_name(design_row)
+                if not candidate:
+                    continue
+                key = candidate.lower()
+                if key in context_map:
+                    entry["business_context"] = dict(context_map[key])
+
         original_counts = dict(severity_counts)
         noise_reduction: Optional[Dict[str, Any]] = None
 
@@ -601,6 +624,15 @@ class PipelineOrchestrator:
         if highest_trigger:
             severity_overview["trigger"] = highest_trigger
 
+        processing_layer = ProcessingLayer()
+        processing_result = processing_layer.evaluate(
+            sbom_components=[component.to_dict() for component in sbom.components],
+            sarif_findings=[finding.to_dict() for finding in sarif.findings],
+            cve_records=[record.to_dict() for record in cve.records],
+            context=(context.ssvc if context else {}),
+            cnapp_exposures=cnapp_exposures,
+        )
+
         result: Dict[str, Any] = {
             "status": "ok",
             "design_summary": {
@@ -623,7 +655,11 @@ class PipelineOrchestrator:
             },
             "severity_overview": severity_overview,
             "crosswalk": crosswalk,
+            "processing_layer": processing_result.to_dict(),
         }
+
+        if context is not None:
+            result["business_context"] = context.to_dict()
 
         if vex is not None:
             result["vex_summary"] = vex.to_dict()
@@ -670,6 +706,15 @@ class PipelineOrchestrator:
             if overlay.is_module_enabled("context_engine"):
                 context_engine = ContextEngine(overlay.context_engine_settings)
                 context_summary = context_engine.evaluate(rows, crosswalk)
+                if context is not None:
+                    if isinstance(context_summary, Mapping):
+                        summary = dict(context_summary)
+                    else:
+                        summary = {"summary": context_summary}
+                    summary.setdefault("ssvc", context.ssvc)
+                    summary.setdefault("components", context.components)
+                    summary.setdefault("format", context.format)
+                    context_summary = summary
                 result["context_summary"] = context_summary
                 modules_status["context_engine"] = "executed"
                 executed_modules.append("context_engine")

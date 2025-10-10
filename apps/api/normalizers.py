@@ -10,7 +10,12 @@ import sys
 import zipfile
 from contextlib import suppress
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+
+try:  # Optional dependency for YAML parsing
+    import yaml
+except Exception:  # pragma: no cover - optional dependency
+    yaml = None  # type: ignore[assignment]
 
 try:  # Optional dependency for rich SBOM parsing
     from lib4sbom import parser as sbom_parser  # type: ignore
@@ -411,6 +416,25 @@ class NormalizedCNAPP:
         return {
             "assets": [asset.to_dict() for asset in self.assets],
             "findings": [finding.to_dict() for finding in self.findings],
+            "metadata": self.metadata,
+        }
+
+
+@dataclass
+class NormalizedBusinessContext:
+    """Business context payload supporting FixOps, OTM and SSVC formats."""
+
+    format: str
+    components: List[Dict[str, Any]] = field(default_factory=list)
+    ssvc: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "format": self.format,
+            "components": self.components,
+            "ssvc": self.ssvc,
             "metadata": self.metadata,
         }
 
@@ -1127,3 +1151,155 @@ class InputNormalizer:
             "finding_count": len(findings),
         }
         return NormalizedCNAPP(assets=assets, findings=findings, metadata=metadata)
+
+    def _parse_business_payload(
+        self, text: str, content_type: Optional[str]
+    ) -> Tuple[Any, str]:
+        """Return the decoded document and detected format."""
+
+        preferred_type = (content_type or "").lower()
+        document: Any = None
+        source = "unknown"
+        try:
+            document = json.loads(text)
+            source = "json"
+        except json.JSONDecodeError:
+            if yaml is None:
+                raise ValueError(
+                    "Business context payload is not valid JSON and PyYAML is unavailable"
+                )
+            document = yaml.safe_load(text)
+            source = "yaml"
+        if document is None:
+            raise ValueError("Business context payload was empty")
+        if preferred_type:
+            source = preferred_type.split(";")[0]
+        if isinstance(document, list) and document:
+            document = document[0]
+        if not isinstance(document, Mapping):
+            raise ValueError("Business context payload must decode to a mapping")
+        return document, source
+
+    @staticmethod
+    def _normalise_ssvc(mapping: Mapping[str, Any]) -> Dict[str, Any]:
+        defaults = {
+            "exploitation": "none",
+            "exposure": "controlled",
+            "utility": "efficient",
+            "safety_impact": "negligible",
+            "mission_impact": "degraded",
+        }
+        ssvc: Dict[str, Any] = dict(defaults)
+        for key in defaults:
+            value = mapping.get(key)
+            if isinstance(value, str) and value.strip():
+                ssvc[key] = value.strip().lower()
+        return ssvc
+
+    def _from_fixops_context(
+        self, document: Mapping[str, Any], source: str
+    ) -> NormalizedBusinessContext:
+        components = []
+        for entry in document.get("components", []) or []:
+            if isinstance(entry, Mapping):
+                components.append({k: v for k, v in entry.items() if v is not None})
+        ssvc_payload = document.get("ssvc") if isinstance(document.get("ssvc"), Mapping) else {}
+        ssvc = self._normalise_ssvc(ssvc_payload)
+        metadata = {
+            "component_count": len(components),
+            "source": source,
+            "profile": document.get("profile"),
+        }
+        return NormalizedBusinessContext(
+            format="fixops.yaml" if source.endswith("yaml") else "fixops.json",
+            components=components,
+            ssvc=ssvc,
+            metadata=metadata,
+            raw=dict(document),
+        )
+
+    def _from_otm(self, document: Mapping[str, Any], source: str) -> NormalizedBusinessContext:
+        components = []
+        otm_components = document.get("components") if isinstance(document.get("components"), Iterable) else []
+        for entry in otm_components:
+            if not isinstance(entry, Mapping):
+                continue
+            node = {
+                "name": entry.get("name"),
+                "type": entry.get("type"),
+                "trust_zone": entry.get("parent", {}).get("trustZone") if isinstance(entry.get("parent"), Mapping) else None,
+                "tags": entry.get("tags"),
+            }
+            data_assets = entry.get("data") if isinstance(entry.get("data"), Iterable) else []
+            if data_assets:
+                classifications = []
+                for asset in data_assets:
+                    if isinstance(asset, Mapping) and asset.get("classification"):
+                        classifications.append(asset["classification"])
+                if classifications:
+                    node["data_classification"] = ",".join(str(value) for value in classifications)
+            components.append({k: v for k, v in node.items() if v is not None})
+
+        trust_zones = document.get("trustZones") if isinstance(document.get("trustZones"), Iterable) else []
+        highest_trust = 0
+        for zone in trust_zones:
+            if not isinstance(zone, Mapping):
+                continue
+            rating = zone.get("risk", {}).get("trustRating") if isinstance(zone.get("risk"), Mapping) else None
+            try:
+                rating_value = int(rating)
+            except (TypeError, ValueError):
+                continue
+            highest_trust = max(highest_trust, rating_value)
+        ssvc = self._normalise_ssvc(
+            {
+                "exposure": "open" if highest_trust <= 3 else "controlled",
+                "mission_impact": "mev" if highest_trust <= 3 else "degraded",
+            }
+        )
+        metadata = {
+            "component_count": len(components),
+            "trust_zones": len(list(trust_zones)),
+            "source": source,
+        }
+        return NormalizedBusinessContext(
+            format="otm.json",
+            components=components,
+            ssvc=ssvc,
+            metadata=metadata,
+            raw=dict(document),
+        )
+
+    def _from_ssvc(self, document: Mapping[str, Any], source: str) -> NormalizedBusinessContext:
+        ssvc = self._normalise_ssvc(document)
+        metadata = {"source": source}
+        return NormalizedBusinessContext(
+            format="ssvc.yaml" if source.endswith("yaml") else "ssvc.json",
+            components=[],
+            ssvc=ssvc,
+            metadata=metadata,
+            raw=dict(document),
+        )
+
+    def load_business_context(
+        self, raw: Any, *, content_type: Optional[str] = None
+    ) -> NormalizedBusinessContext:
+        """Parse FixOps business context, OTM JSON, or SSVC YAML inputs."""
+
+        payload = self._prepare_text(raw)
+        document, source = self._parse_business_payload(payload, content_type)
+        if "otm" in (document.get("format") or "").lower() or document.get("otmVersion"):
+            return self._from_otm(document, source)
+        if document.get("components") and document.get("ssvc"):
+            return self._from_fixops_context(document, source)
+        required_ssvc_keys = {"exploitation", "exposure", "utility", "safety_impact", "mission_impact"}
+        if required_ssvc_keys.intersection(document.keys()) == required_ssvc_keys:
+            return self._from_ssvc(document, source)
+        # Attempt to coerce legacy FixOps structures
+        if document.get("business_context"):
+            nested = document.get("business_context")
+            if isinstance(nested, Mapping):
+                return self._from_fixops_context(nested, source)
+        raise ValueError(
+            "Unsupported business context document; expected FixOps, OTM, or SSVC payload"
+        )
