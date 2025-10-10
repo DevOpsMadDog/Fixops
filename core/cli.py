@@ -7,6 +7,12 @@ import json
 import os
 import sys
 from pathlib import Path
+
+ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-blended-enterprise"
+if ENTERPRISE_SRC.exists():
+    enterprise_path = str(ENTERPRISE_SRC)
+    if enterprise_path not in sys.path:
+        sys.path.insert(0, enterprise_path)
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
 from apps.api.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
@@ -17,6 +23,8 @@ from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from core.probabilistic import ProbabilisticForecastEngine
 from core.stage_runner import StageRunner
+from src.services.run_registry import RunRegistry
+from src.services import id_allocator, signing
 
 
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
@@ -167,14 +175,17 @@ def _handle_stage_run(args: argparse.Namespace) -> int:
         output_path = output_path.expanduser().resolve()
 
     if args.sign and not (os.environ.get("FIXOPS_SIGNING_KEY") and os.environ.get("FIXOPS_SIGNING_KID")):
-        print("Signing requested but FIXOPS_SIGNING_KEY/FIXOPS_SIGNING_KID not set; proceeding without signatures.")
+        print(
+            "Signing requested but FIXOPS_SIGNING_KEY/FIXOPS_SIGNING_KID not set; proceeding without signatures."
+        )
 
-    runner = StageRunner()
-    result = runner.run_stage(
+    registry = RunRegistry()
+    runner = StageRunner(registry, id_allocator, signing)
+    summary = runner.run_stage(
         args.stage,
         input_path,
         app_name=args.app,
-        app_id=args.app,
+        app_id=None,
         output_path=output_path,
         mode=args.mode,
         sign=args.sign,
@@ -182,17 +193,25 @@ def _handle_stage_run(args: argparse.Namespace) -> int:
         verbose=args.verbose,
     )
 
-    print(f"Stage '{result.stage}' materialised for app {result.app_id} run {result.run_id}.")
-    print(f"  Output file: {result.output_file}")
+    try:
+        output_relative = summary.output_file.relative_to(Path.cwd())
+    except ValueError:
+        output_relative = summary.output_file
+    print(f"✅ Stage {summary.stage} complete → wrote {output_relative}")
+    print(f"   app_id={summary.app_id} run_id={summary.run_id}")
     if output_path is not None:
-        print(f"  Copied output to: {output_path}")
-    print(f"  Run outputs directory: {result.outputs_dir}")
-    if result.signed:
-        print(f"  Signed manifests: {[path.name for path in result.signed]}")
-    if result.transparency_index:
-        print(f"  Transparency log: {result.transparency_index}")
-    if result.bundle:
-        print(f"  Evidence bundle: {result.bundle}")
+        print(f"   Copied output to: {output_path}")
+    if summary.signatures:
+        joined = ", ".join(path.name for path in summary.signatures)
+        print(f"   Signed manifests: {joined}")
+    if summary.transparency_index:
+        print(f"   Transparency index: {summary.transparency_index}")
+    if summary.verified is not None:
+        status = "passed" if summary.verified else "failed"
+        print(f"   Signature verification {status}")
+    if summary.bundle:
+        print(f"   Evidence bundle: {summary.bundle}")
+
     return 0
 
 

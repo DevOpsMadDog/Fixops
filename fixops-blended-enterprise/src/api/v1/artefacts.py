@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 
 from core.stage_runner import StageRunner
 from src.api.dependencies import authenticate
+from src.services.run_registry import RunRegistry
+from src.services import id_allocator, signing
 
 router = APIRouter(tags=["artefacts"])
 
@@ -24,6 +26,7 @@ class ArtefactSummary(BaseModel):
     signed_manifests: list[str] = Field(default_factory=list)
     transparency_index: Optional[str] = None
     evidence_bundle: Optional[str] = None
+    verified: Optional[bool] = Field(default=None, description="Signature verification result when requested")
 
 
 def _bool_from_form(value: bool | str | None) -> bool:
@@ -62,14 +65,14 @@ async def ingest_artefact(
             handle.close()
         temp_path = Path(handle.name)
 
-    runner = StageRunner()
+    runner = StageRunner(RunRegistry(), id_allocator, signing)
 
     try:
         result = runner.run_stage(
             stage,
             temp_path,
             app_name=app_name,
-            app_id=app_name,
+            app_id=None,
             mode=mode,
             sign=_bool_from_form(sign),
             verify=_bool_from_form(verify),
@@ -89,9 +92,10 @@ async def ingest_artefact(
         run_id=result.run_id,
         output_file=str(result.output_file),
         outputs_dir=str(result.outputs_dir),
-        signed_manifests=[str(path) for path in result.signed],
+        signed_manifests=[str(path) for path in result.signatures],
         transparency_index=str(result.transparency_index) if result.transparency_index else None,
         evidence_bundle=str(result.bundle) if result.bundle else None,
+        verified=result.verified,
     )
     return summary
 

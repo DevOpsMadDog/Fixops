@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from .run_registry import RunContext, reopen_run, resolve_run
+from .run_registry import RunContext, RunRegistry, reopen_run, resolve_run
 
-__all__ = ["RunContext", "resolve_run", "reopen_run"]
+__all__ = ["RunContext", "RunRegistry", "resolve_run", "reopen_run"]
