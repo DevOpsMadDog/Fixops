@@ -3,20 +3,20 @@
 This document is assembled from the repository index (`index/INVENTORY.csv`) and dependency graph (`index/graph.json`) generated via `scripts/generate_index.py`. It captures the layered service layout, module coupling, and runtime modes for the FixOps Blended Enterprise platform.
 
 ## Layered Overview
-- **Interfaces** – FastAPI REST application (`fixops-blended-enterprise/src/main.py`) with persona-focused React front-end (`enterprise/frontend`).
-- **Services** – Decision engine, evidence processing, IaC posture evaluation, and threat intelligence adapters located under `fixops-blended-enterprise/src/services/`.
-- **Core Infrastructure** – Configuration, security, database session management, logging, and middleware primitives under `fixops-blended-enterprise/src/config`, `core`, and `db` packages.
+-- **Interfaces** – FastAPI REST application (`fixops-enterprise/src/main.py`) with persona-focused React front-end (`enterprise/frontend`).
+-- **Services** – Decision engine, evidence processing, IaC posture evaluation, and threat intelligence adapters located under `fixops-enterprise/src/services/`.
+-- **Core Infrastructure** – Configuration, security, database session management, logging, and middleware primitives under `fixops-enterprise/src/config`, `core`, and `db` packages.
 - **Data Plane** – Simulations, feed schedulers, and storage connectors bridging SBOM, SARIF, IaC, and exploit intelligence inputs.
 
 ## Module Map (Top-Level Packages)
 | Package | Responsibility | Key Entrypoints |
 | --- | --- | --- |
-| `fixops-blended-enterprise/src/main.py` | FastAPI app factory, middleware wiring, background scheduler bootstrap | `create_app`, `build_application` |
-| `fixops-blended-enterprise/src/api/v1` | REST routers grouped by capability (decisions, feeds, policy, CICD, monitoring) | `decisions.py`, `feeds.py`, `policy.py` |
-| `fixops-blended-enterprise/src/services` | Business logic engines orchestrating SSDLC data, marketplace integrations, IaC posture, and intelligence feeds | `decision_engine.py`, `policy_engine.py`, `feeds_scheduler.py`, `iac_posture.py` |
-| `fixops-blended-enterprise/src/core` | Cross-cutting middleware, exceptions, rate limiting, logging, security helpers | `middleware.py`, `security.py`, `exceptions.py` |
-| `fixops-blended-enterprise/src/config` | Pydantic settings, feature flags, environment toggles, secrets loading | `settings.py` |
-| `fixops-blended-enterprise/src/db` | SQLAlchemy async engine/session factories, migrations helpers | `session.py` |
+| `fixops-enterprise/src/main.py` | FastAPI app factory, middleware wiring, background scheduler bootstrap | `create_app`, `build_application` |
+| `fixops-enterprise/src/api/v1` | REST routers grouped by capability (decisions, feeds, policy, CICD, monitoring) | `decisions.py`, `feeds.py`, `policy.py` |
+| `fixops-enterprise/src/services` | Business logic engines orchestrating SSDLC data, marketplace integrations, IaC posture, and intelligence feeds | `decision_engine.py`, `policy_engine.py`, `feeds_scheduler.py`, `iac_posture.py` |
+| `fixops-enterprise/src/core` | Cross-cutting middleware, exceptions, rate limiting, logging, security helpers | `middleware.py`, `security.py`, `exceptions.py` |
+| `fixops-enterprise/src/config` | Pydantic settings, feature flags, environment toggles, secrets loading | `settings.py` |
+| `fixops-enterprise/src/db` | SQLAlchemy async engine/session factories, migrations helpers | `session.py` |
 | `simulations/ssdlc` | Deterministic SSDLC lifecycle fixtures and runner CLI | `run.py`, `<stage>/inputs/*` |
 
 ## Import Graph Highlights

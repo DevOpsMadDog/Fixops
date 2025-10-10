@@ -1,0 +1,62 @@
+{
+  "duplicate_asts": {
+    "group_15": [
+      "tests/__init__.py",
+      "fixops-enterprise/src/__init__.py",
+      "fixops-enterprise/src/utils/__init__.py",
+      "fixops-enterprise/src/config/__init__.py",
+      "fixops-enterprise/src/core/__init__.py"
+    ],
+    "group_75": [
+      "frontend-akido-public/node_modules/flatted/python/flatted.py",
+      "enterprise/frontend/node_modules/flatted/python/flatted.py"
+    ]
+  },
+  "duplicate_filenames": {
+    "__init__.py": [
+      "tests/__init__.py",
+      "simulations/cve_scenario/__init__.py",
+      "lib4sbom/__init__.py",
+      "pydantic_settings/__init__.py",
+      "core/__init__.py",
+      "integrations/__init__.py",
+      "integrations/sonarqube/__init__.py",
+      "integrations/github/__init__.py",
+      "integrations/jenkins/__init__.py",
+      "apps/api/__init__.py",
+      "apps/fixops_cli/__init__.py",
+      "fixops-enterprise/src/__init__.py",
+      "fixops-enterprise/src/utils/__init__.py",
+      "fixops-enterprise/src/config/__init__.py",
+      "fixops-enterprise/src/api/__init__.py",
+      "fixops-enterprise/src/api/v1/__init__.py",
+      "fixops-enterprise/src/services/__init__.py",
+      "fixops-enterprise/src/services/ci_adapters/__init__.py",
+      "fixops-enterprise/src/core/__init__.py",
+      "ssvc/__init__.py",
+      "ssvc/plugins/__init__.py"
+    ],
+    "adapter.py": [
+      "integrations/sonarqube/adapter.py",
+      "integrations/github/adapter.py",
+      "integrations/jenkins/adapter.py"
+    ],
+    "compliance.py": [
+      "core/compliance.py",
+      "fixops-enterprise/src/services/compliance.py"
+    ],
+    "evidence.py": [
+      "core/evidence.py",
+      "fixops-enterprise/src/api/v1/evidence.py",
+      "fixops-enterprise/src/services/evidence.py"
+    ],
+    "flatted.py": [
+      "frontend-akido-public/node_modules/flatted/python/flatted.py",
+      "enterprise/frontend/node_modules/flatted/python/flatted.py"
+    ],
+    "marketplace.py": [
+      "fixops-enterprise/src/api/v1/marketplace.py",
+      "fixops-enterprise/src/services/marketplace.py"
+    ]
+  }
+}

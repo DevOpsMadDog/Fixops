@@ -9,7 +9,7 @@ libraries, the enterprise reference stack, and archived prototypes.
 | ----------------- | ------------ |
 | `backend/` | `apps/api/` |
 | `fixops/` | `core/` |
-| `fixops-blended-enterprise/` | `enterprise/` |
+| `fixops-blended-enterprise/` | `fixops-enterprise/` |
 | `new_backend/` | `prototypes/decider/` |
 
 ### Git move history
@@ -17,7 +17,7 @@ libraries, the enterprise reference stack, and archived prototypes.
 ```
 git mv backend apps/api
 git mv fixops core
-git mv fixops-blended-enterprise enterprise
+git mv fixops-blended-enterprise fixops-enterprise
 git mv new_backend prototypes/decider
 ```
 
@@ -34,10 +34,10 @@ Existing code should replace statements such as `from backend.app import create_
 ### Developer workflow changes
 
 * Local type checks: `mypy core apps tests`
-* CLI entry point: `python -m core.cli`
+* CLI entry point: `python -m apps.fixops_cli`
 * Demo helpers: `make demo` and `make demo-enterprise` target the new module paths.
 * Bootstrap scripts and CI workflows now install dependencies from `apps/api/requirements.txt` and
-  (optionally) `enterprise/requirements.txt`.
+  (optionally) `fixops-enterprise/requirements.txt`.
 
 ## Overlay compatibility
 

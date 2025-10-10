@@ -1,0 +1,10 @@
+digraph callgraph {
+  "create_minimal_tables.py:create_minimal_tables" -> "begin";
+  "create_minimal_tables.py:create_minimal_tables" -> "close";
+  "create_minimal_tables.py:create_minimal_tables" -> "execute";
+  "create_minimal_tables.py:create_minimal_tables" -> "health_check";
+  "create_minimal_tables.py:create_minimal_tables" -> "initialize";
+  "create_minimal_tables.py:create_minimal_tables" -> "print";
+  "create_minimal_tables.py:create_minimal_tables" -> "str";
+  "create_minimal_tables.py:create_minimal_tables" -> "text";
+}

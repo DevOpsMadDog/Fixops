@@ -6,7 +6,7 @@ from pathlib import Path
 CHECK_DIRECTORIES = [
     Path("core"),
     Path("apps"),
-    Path("fixops-blended-enterprise") / "src",
+    Path("fixops-enterprise") / "src",
 ]
 
 

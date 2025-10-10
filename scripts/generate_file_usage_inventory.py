@@ -90,7 +90,7 @@ DEFAULT_RULES: Tuple[Rule, ...] = (
         reason="Human-facing documentation that accelerates onboarding and reviews.",
     ),
     Rule(
-        patterns=("fixops-blended-enterprise/**", "apps/**", "core/**", "backend/**", "enterprise/**"),
+        patterns=("fixops-enterprise/**", "apps/**", "core/**", "backend/**", "enterprise/**", "integrations/**"),
         status="needed",
         category="core",
         reason="Core product implementation files.",
