@@ -1,0 +1,5 @@
+digraph callgraph {
+  "test_frontend.py:test_frontend" -> "get";
+  "test_frontend.py:test_frontend" -> "json";
+  "test_frontend.py:test_frontend" -> "print";
+}

@@ -1,0 +1,15 @@
+digraph callgraph {
+  "lib4sbom/parser.py:SBOMParser.parse_string" -> "isinstance";
+  "lib4sbom/parser.py:SBOMParser.parse_string" -> "loads";
+  "lib4sbom/parser.py:SBOMParser.get_packages" -> "get";
+  "lib4sbom/parser.py:SBOMParser.get_packages" -> "isinstance";
+  "lib4sbom/parser.py:SBOMParser.get_relationships" -> "get";
+  "lib4sbom/parser.py:SBOMParser.get_relationships" -> "isinstance";
+  "lib4sbom/parser.py:SBOMParser.get_services" -> "get";
+  "lib4sbom/parser.py:SBOMParser.get_services" -> "isinstance";
+  "lib4sbom/parser.py:SBOMParser.get_vulnerabilities" -> "get";
+  "lib4sbom/parser.py:SBOMParser.get_vulnerabilities" -> "isinstance";
+  "lib4sbom/parser.py:SBOMParser.get_document" -> "dict";
+  "lib4sbom/parser.py:SBOMParser.get_type" -> "get";
+  "lib4sbom/parser.py:SBOMParser.get_type" -> "isinstance";
+}

@@ -48,7 +48,7 @@ lint: $(VENV)
 
 .PHONY: test
 test: $(VENV)
-	$(PYTHON_BIN) -m pytest --cov=fixops-blended-enterprise/src --cov-branch --cov-fail-under=75
+        $(PYTHON_BIN) -m pytest --cov=fixops-enterprise/src --cov=integrations --cov-branch --cov-fail-under=75
 
 .PHONY: sim
 sim: $(VENV)

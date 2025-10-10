@@ -1,0 +1,9 @@
+digraph callgraph {
+  "create_tables.py:create_tables" -> "begin";
+  "create_tables.py:create_tables" -> "close";
+  "create_tables.py:create_tables" -> "health_check";
+  "create_tables.py:create_tables" -> "initialize";
+  "create_tables.py:create_tables" -> "print";
+  "create_tables.py:create_tables" -> "run_sync";
+  "create_tables.py:create_tables" -> "str";
+}

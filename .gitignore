@@ -89,3 +89,5 @@ frontend/node_modules/.cache/default-development/0.pack
 !/.env.example
 !/enterprise/.env.example
 
+artefacts/
+coverage.xml

@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-blended-enterprise"
+ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-enterprise"
 if ENTERPRISE_SRC.exists():
     enterprise_path = str(ENTERPRISE_SRC)
     if enterprise_path not in sys.path:

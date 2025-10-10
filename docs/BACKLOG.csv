@@ -1,16 +1,16 @@
 issue,severity(P0|P1|P2),area,module,files,fix_strategy,ETA(S|M|L),owner
-Backfill integration tests for decision engine happy-path,P0,QA,services.decision_engine,fixops-blended-enterprise/src/services/decision_engine.py,"Add API-level fixtures that execute run_decision in demo and enterprise modes",M,platform
-Harden policy evaluator error handling,P0,Backend,services.policy_engine,fixops-blended-enterprise/src/services/policy_engine.py,"Normalize exception surfaces and align error codes",M,platform
+Backfill integration tests for decision engine happy-path,P0,QA,services.decision_engine,fixops-enterprise/src/services/decision_engine.py,"Add API-level fixtures that execute run_decision in demo and enterprise modes",M,platform
+Harden policy evaluator error handling,P0,Backend,services.policy_engine,fixops-enterprise/src/services/policy_engine.py,"Normalize exception surfaces and align error codes",M,platform
 Add SBOM delta regression for build stage,P0,Security,simulations.ssdlc.build,simulations/ssdlc/build/*,"Compare generated SBOM against stored golden artifacts",S,security
 Document Grafana dashboard deployment,P0,Docs,observability,docs/OBSERVABILITY.md,"Expand deploy steps for dashboard JSON import and Prometheus scrape",S,docs
-Expand rate limiting metrics emission,P0,Ops,core.middleware,fixops-blended-enterprise/src/core/middleware.py,"Emit counter metrics on throttle decisions",S,platform
-Add async webhook retries for decision events,P1,Backend,services.webhooks,fixops-blended-enterprise/src/services/webhooks.py,"Persist retry queue with exponential backoff",M,platform
-Integrate marketplace partner sandbox,P1,Integrations,services.marketplace,fixops-blended-enterprise/src/services/marketplace.py,"Provide stub partner API contract and handshake",L,alliances
-IaC policy pack: container hardening,P1,Security,services.iac_posture,fixops-blended-enterprise/src/services/iac_posture.py,"Bundle CIS Docker benchmark controls",M,security
+Expand rate limiting metrics emission,P0,Ops,core.middleware,fixops-enterprise/src/core/middleware.py,"Emit counter metrics on throttle decisions",S,platform
+Add async webhook retries for decision events,P1,Backend,services.webhooks,fixops-enterprise/src/services/webhooks.py,"Persist retry queue with exponential backoff",M,platform
+Integrate marketplace partner sandbox,P1,Integrations,services.marketplace,fixops-enterprise/src/services/marketplace.py,"Provide stub partner API contract and handshake",L,alliances
+IaC policy pack: container hardening,P1,Security,services.iac_posture,fixops-enterprise/src/services/iac_posture.py,"Bundle CIS Docker benchmark controls",M,security
 Front-end persona test coverage,P1,Frontend,frontend.tests,enterprise/frontend/src/tests/*,"Add RTL coverage for CommandCenter and DeveloperOps flows",M,frontend
-Redis cache for decision reuse,P2,Platform,services.cache,fixops-blended-enterprise/src/services/cache.py,"Implement redis-backed TTL cache and feature flag",L,platform
-Live EPSS delta ingestion,P2,Intel,services.feeds,fixops-blended-enterprise/src/services/feeds.py,"Add scheduled EPSS delta fetch and normalization",L,intel
-Policy recommendation ML tuning,P2,Data,services.recommendations,fixops-blended-enterprise/src/services/recommendations.py,"Retrain gradient boosting model with new telemetry",L,data
+Redis cache for decision reuse,P2,Platform,services.cache,fixops-enterprise/src/services/cache.py,"Implement redis-backed TTL cache and feature flag",L,platform
+Live EPSS delta ingestion,P2,Intel,services.feeds,fixops-enterprise/src/services/feeds.py,"Add scheduled EPSS delta fetch and normalization",L,intel
+Policy recommendation ML tuning,P2,Data,services.recommendations,fixops-enterprise/src/services/recommendations.py,"Retrain gradient boosting model with new telemetry",L,data
 CLI UX polish for simulations,P2,Developer Experience,cli.sim_runner,simulations/ssdlc/run.py,"Add rich console status and progress bars",M,devrel
 Upgrade to FastAPI 0.110+,P1,Ops,dependencies,requirements.txt,"Evaluate compatibility and update startup hooks",M,platform
-Hardening for evidence ingestion storage,P0,Security,services.evidence,fixops-blended-enterprise/src/services/evidence.py,"Encrypt stored artifacts and add retention policies",M,security
+Hardening for evidence ingestion storage,P0,Security,services.evidence,fixops-enterprise/src/services/evidence.py,"Encrypt stored artifacts and add retention policies",M,security
