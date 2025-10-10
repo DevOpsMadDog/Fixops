@@ -35,6 +35,10 @@ def test_probabilistic_engine_generates_posterior_and_forecast() -> None:
     assert any(component["name"] == "payments" for component in payload["components"])
     assert payload["metrics"]["expected_high_or_critical"] >= 0.0
     assert payload["metrics"]["exploited_records"] == 1
+    assert "spectral_gap" in payload["metrics"]
+    assert payload["metrics"]["spectral_gap"] >= 0.0
+    assert payload["metrics"]["mixing_time_estimate"] >= 1
+    assert payload["metrics"]["critical_horizon_risk"] >= 0.0
     assert payload["notes"]
 
 
@@ -77,6 +81,8 @@ def test_probabilistic_calibration_updates_priors_and_transitions() -> None:
     assert engine.prior["high"] > baseline_prior_high
     assert result.transitions["medium"]["high"] > baseline_transition_high
     assert result.validation["valid"]
+    assert result.chain_diagnostics["spectral_gap"] >= 0.0
+    assert "stationary" in result.chain_diagnostics
 
 
 def test_probabilistic_transition_validation_detects_invalid() -> None:

@@ -1,9 +1,9 @@
 """Probabilistic risk forecasting utilities for FixOps."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from math import log2
-from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
+from dataclasses import dataclass, field
+from math import ceil, log, log2, sqrt
+from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 
@@ -187,6 +187,7 @@ class CalibrationResult:
     incident_count: int
     transition_observations: int
     validation: Dict[str, Any]
+    chain_diagnostics: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -200,6 +201,7 @@ class CalibrationResult:
                 "transition_observations": self.transition_observations,
                 "validation": self.validation,
             },
+            "chain_diagnostics": self.chain_diagnostics,
         }
 
 
@@ -226,6 +228,11 @@ class ProbabilisticForecastEngine:
 
         self.component_limit = int(payload.get("component_limit", 5))
         self.escalation_threshold = _severity_index(payload.get("escalate_from", "medium"))
+        self.dirichlet_strength = max(float(payload.get("dirichlet_strength", 6.0)), 1.0)
+        self.forecast_horizon = max(int(payload.get("forecast_horizon", 3)), 0)
+        self.stationary_tolerance = float(payload.get("stationary_tolerance", 1e-6))
+        self.mixing_tolerance = max(float(payload.get("mixing_tolerance", 1e-3)), 1e-6)
+        self.max_iterations = max(int(payload.get("max_iterations", 96)), 16)
 
     @staticmethod
     def _default_transitions() -> Dict[str, Dict[str, float]]:
@@ -267,29 +274,29 @@ class ProbabilisticForecastEngine:
     def _calibrate_transitions(
         self, transition_counts: Mapping[str, Mapping[str, float]]
     ) -> Dict[str, Dict[str, float]]:
-        updated: Dict[str, Dict[str, float]] = {}
+        calibrated: Dict[str, Dict[str, float]] = {}
         baseline = dict(self.transitions)
-        for state, baseline_row in baseline.items():
-            state_key = _coerce_severity(state)
-            if state_key is None:
-                continue
-            updated[state_key] = dict(baseline_row)
-        for state, counts in transition_counts.items():
-            state_key = _coerce_severity(state)
-            if state_key is None:
-                continue
-            updated.setdefault(state_key, dict(self._default_transitions().get(state_key, {})))
-            for target, value in counts.items():
+        for state in _SEVERITY_ORDER:
+            baseline_row = baseline.get(state) or self._default_transitions().get(state, {})
+            pseudocounts: Dict[str, float] = {}
+            for target, weight in (baseline_row or {}).items():
                 target_key = _coerce_severity(target)
                 if target_key is None:
                     continue
-                updated[state_key][target_key] = updated[state_key].get(target_key, 0.0) + value
-        for state in _SEVERITY_ORDER:
-            if state not in updated:
-                updated[state] = dict(self._default_transitions().get(state, {}))
-        calibrated: Dict[str, Dict[str, float]] = {}
-        for state, row in updated.items():
-            calibrated[state] = _normalise_transition_row(row)
+                pseudocounts[target_key] = pseudocounts.get(target_key, 0.0) + float(weight) * self.dirichlet_strength
+            counts = transition_counts.get(state, {})
+            for target, value in (counts or {}).items():
+                target_key = _coerce_severity(target)
+                if target_key is None:
+                    continue
+                try:
+                    increment = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if increment <= 0:
+                    continue
+                pseudocounts[target_key] = pseudocounts.get(target_key, 0.0) + increment
+            calibrated[state] = _normalise_transition_row(pseudocounts)
         return calibrated
 
     def calibrate(
@@ -336,12 +343,15 @@ class ProbabilisticForecastEngine:
         self.prior = posterior
         self.transitions = calibrated_transitions
 
+        diagnostics = self._chain_diagnostics()
+
         return CalibrationResult(
             prior=posterior,
             transitions=calibrated_transitions,
             incident_count=incident_count,
             transition_observations=transition_observations,
             validation=validation,
+            chain_diagnostics=diagnostics,
         )
 
     def _posterior(self, counts: Mapping[str, Any]) -> Dict[str, float]:
@@ -373,6 +383,152 @@ class ProbabilisticForecastEngine:
         if normaliser <= 0:
             return {severity: 0.25 for severity in _SEVERITY_ORDER}
         return {severity: value / normaliser for severity, value in next_state.items()}
+
+    def _transition_matrix(self) -> Tuple[list[list[float]], list[str], Dict[str, int]]:
+        states = list(_SEVERITY_ORDER)
+        index = {state: idx for idx, state in enumerate(states)}
+        matrix: list[list[float]] = []
+        for state in states:
+            row_vector = [0.0] * len(states)
+            raw_row = self.transitions.get(state)
+            if not isinstance(raw_row, Mapping):
+                raw_row = self._default_transitions().get(state, {})
+            for target, weight in (raw_row or {}).items():
+                target_key = _coerce_severity(target)
+                if target_key is None or target_key not in index:
+                    continue
+                try:
+                    contribution = float(weight)
+                except (TypeError, ValueError):
+                    continue
+                if contribution <= 0:
+                    continue
+                row_vector[index[target_key]] += contribution
+            total = sum(row_vector)
+            if total <= 0:
+                row_vector[index[state]] = 1.0
+                total = 1.0
+            matrix.append([value / total for value in row_vector])
+        return matrix, states, index
+
+    def _stationary_distribution(
+        self, matrix: Sequence[Sequence[float]], states: Sequence[str]
+    ) -> Dict[str, float]:
+        n = len(states)
+        if n == 0:
+            return {}
+        distribution = [1.0 / n for _ in range(n)]
+        for _ in range(self.max_iterations):
+            next_distribution = [0.0] * n
+            for i in range(n):
+                weight = distribution[i]
+                if weight == 0.0:
+                    continue
+                row = matrix[i]
+                for j in range(n):
+                    next_distribution[j] += weight * row[j]
+            delta = max(
+                abs(next_distribution[j] - distribution[j]) for j in range(n)
+            )
+            distribution = next_distribution
+            if delta <= self.stationary_tolerance:
+                break
+        total = sum(distribution)
+        if total <= 0:
+            return {state: 1.0 / n for state in states}
+        return {state: value / total for state, value in zip(states, distribution)}
+
+    def _second_eigenvalue(self, matrix: Sequence[Sequence[float]]) -> float:
+        n = len(matrix)
+        if n <= 1:
+            return 0.0
+        vector = [1.0] + [-1.0 / (n - 1) for _ in range(n - 1)]
+        mean = sum(vector) / n
+        vector = [value - mean for value in vector]
+        norm = sqrt(sum(value * value for value in vector))
+        if norm == 0:
+            vector = [1.0] + [0.0 for _ in range(n - 1)]
+            norm = sqrt(sum(value * value for value in vector))
+        vector = [value / norm for value in vector]
+        eigenvalue = 0.0
+        for _ in range(self.max_iterations):
+            result = [0.0] * n
+            for i in range(n):
+                total = 0.0
+                row = matrix[i]
+                for j in range(n):
+                    total += row[j] * vector[j]
+                result[i] = total
+            mean = sum(result) / n
+            result = [value - mean for value in result]
+            norm = sqrt(sum(value * value for value in result))
+            if norm <= self.stationary_tolerance:
+                return 0.0
+            next_vector = [value / norm for value in result]
+            projected = [0.0] * n
+            for i in range(n):
+                total = 0.0
+                row = matrix[i]
+                for j in range(n):
+                    total += row[j] * next_vector[j]
+                projected[i] = total
+            eigenvalue_new = sum(next_vector[i] * projected[i] for i in range(n))
+            if abs(eigenvalue_new - eigenvalue) <= self.stationary_tolerance:
+                return abs(eigenvalue_new)
+            vector = next_vector
+            eigenvalue = eigenvalue_new
+        return abs(eigenvalue)
+
+    def _mixing_time(self, spectral_gap: float, stationary: Mapping[str, float]) -> int:
+        if spectral_gap <= 1e-9:
+            return self.max_iterations
+        pi_min = min((value for value in stationary.values() if value > 0.0), default=1.0 / len(stationary or {"_": None}))
+        epsilon = self.mixing_tolerance
+        upper = log(1.0 / max(epsilon * pi_min, 1e-12)) / spectral_gap
+        return int(ceil(upper))
+
+    def _multi_step_projection(
+        self,
+        posterior: Mapping[str, float],
+        matrix: Sequence[Sequence[float]],
+        states: Sequence[str],
+        steps: int,
+    ) -> list[float]:
+        n = len(states)
+        if n == 0:
+            return []
+        vector = [float(posterior.get(state, 0.0)) for state in states]
+        total = sum(vector)
+        if total <= 0:
+            vector = [1.0 / n for _ in range(n)]
+        else:
+            vector = [value / total for value in vector]
+        for _ in range(max(0, steps)):
+            next_vector = [0.0] * n
+            for i in range(n):
+                weight = vector[i]
+                if weight == 0.0:
+                    continue
+                row = matrix[i]
+                for j in range(n):
+                    next_vector[j] += weight * row[j]
+            vector = next_vector
+        return vector
+
+    def _chain_diagnostics(self) -> Dict[str, Any]:
+        matrix, states, _ = self._transition_matrix()
+        if not matrix:
+            return {}
+        stationary = self._stationary_distribution(matrix, states)
+        second = self._second_eigenvalue(matrix)
+        spectral_gap = max(0.0, 1.0 - min(second, 0.999999))
+        mixing_time = self._mixing_time(spectral_gap, stationary)
+        return {
+            "stationary": {key: round(value, 6) for key, value in stationary.items()},
+            "second_eigenvalue": round(second, 6),
+            "spectral_gap": round(spectral_gap, 6),
+            "mixing_time_upper_bound": mixing_time,
+        }
 
     def _component_forecasts(
         self,
@@ -419,6 +575,18 @@ class ProbabilisticForecastEngine:
         expected_critical = sum(
             probability for severity, probability in next_state.items() if _severity_index(severity) >= critical_index
         )
+        matrix, states, index = self._transition_matrix()
+        stationary = self._stationary_distribution(matrix, states)
+        second_eigenvalue = self._second_eigenvalue(matrix)
+        spectral_gap = max(0.0, 1.0 - min(second_eigenvalue, 0.999999))
+        mixing_time = self._mixing_time(spectral_gap, stationary)
+        horizon_projection = self._multi_step_projection(
+            posterior, matrix, states, self.forecast_horizon
+        )
+        critical_horizon = 0.0
+        if states and "critical" in index and horizon_projection:
+            critical_horizon = horizon_projection[index["critical"]]
+        stationary_critical = stationary.get("critical", 0.0)
         exploited = 0
         for record in exploited_records:
             if not isinstance(record, Mapping):
@@ -437,6 +605,20 @@ class ProbabilisticForecastEngine:
             )
         if entropy_bits < 1.0:
             notes.append("Posterior distribution is peaked; guardrails may tighten remediation SLAs")
+        if spectral_gap < 0.1:
+            notes.append("Markov chain mixing is slow; latent escalation risk persists across cycles")
+        if critical_horizon >= 0.25:
+            notes.append(
+                f"{critical_horizon:.0%} chance of reaching critical severity within {max(self.forecast_horizon, 1)} cycles"
+            )
+        if stationary_critical >= 0.2:
+            notes.append(
+                "Stationary distribution retains high critical mass; long-term steady-state risk remains elevated"
+            )
+        if mixing_time > max(1, self.forecast_horizon * 3):
+            notes.append(
+                f"Estimated mixing time {mixing_time} steps exceeds remediation horizon; accelerate mitigations"
+            )
 
         return {
             "posterior": {key: round(value, 4) for key, value in posterior.items()},
@@ -446,6 +628,11 @@ class ProbabilisticForecastEngine:
                 "expected_critical_next_cycle": round(expected_critical, 4),
                 "entropy_bits": round(entropy_bits, 4),
                 "exploited_records": exploited,
+                "spectral_gap": round(spectral_gap, 4),
+                "mixing_time_estimate": mixing_time,
+                "critical_horizon_risk": round(critical_horizon, 4),
+                "stationary_critical_mass": round(stationary_critical, 4),
+                "perplexity": round(pow(2.0, entropy_bits), 4),
             },
             "components": [forecast.to_dict() for forecast in forecasts],
             "notes": notes,
