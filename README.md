@@ -27,7 +27,7 @@ The repository ships with a pair of curated fixtures and overlay profiles so you
 2. **Run the bundled demo experience**
 
    ```bash
-   python -m fixops.cli demo --mode demo --output out/demo.json --pretty
+   python -m core.cli demo --mode demo --output out/demo.json --pretty
    ```
 
    The command seeds deterministic tokens, loads the curated design/SBOM/SARIF/CVE fixtures, and executes the same pipeline that powers the API. The JSON result is saved to `out/demo.json` and the console summary highlights severity, guardrail status, compliance frameworks, executed modules, and the active pricing tier.
@@ -35,19 +35,36 @@ The repository ships with a pair of curated fixtures and overlay profiles so you
 3. **Switch to the enterprise overlay**
 
    ```bash
-   python -m fixops.cli demo --mode enterprise --output out/enterprise.json --pretty
+   python -m core.cli demo --mode enterprise --output out/enterprise.json --pretty
    ```
 
    Enterprise mode applies the hardened profile from `config/fixops.overlay.yml`, demonstrating how additional guardrails, automation destinations, and evidence retention settings change the output without touching code. Evidence bundles, cache directories, and automation payloads are created under the allow-listed paths declared in the overlay.
 
 4. **Iterate locally**
 
-   You can point the CLI at your own artefacts with `python -m fixops.cli run` or import `fixops.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m fixops.cli show-overlay --pretty` to inspect the merged overlay for each profile. When running the enterprise stack with Docker Compose, copy `enterprise/.env.example` to `.env`, rotate the secrets, and ensure `FIXOPS_AUTH_DISABLED` remains `false`.
+   You can point the CLI at your own artefacts with `python -m core.cli run` or import `core.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m core.cli show-overlay --pretty` to inspect the merged overlay for each profile. When running the enterprise stack with Docker Compose, copy `enterprise/.env.example` to `.env`, rotate the secrets, and ensure `FIXOPS_AUTH_DISABLED` remains `false`.
+
+### Stage-by-stage local workflow
+
+The unified stage runner gives you the same normalisation logic that powers the API while keeping artefacts local. Each invocation calls `core.stage_runner.StageRunner.run_stage`, which coordinates identity minting via `src.services.id_allocator.ensure_ids`, run persistence through `src.services.run_registry.RunRegistry.ensure_run`, and optional manifest signing with `src.services.signing`.
+
+| Stage | Demo input | Command | Processor |
+| --- | --- | --- | --- |
+| Requirements | `simulations/demo_pack/requirements-input.csv` | `python -m core.cli stage-run --stage requirements --input simulations/demo_pack/requirements-input.csv --app life-claims-portal` | `_process_requirements` parses CSV/JSON and applies SSVC anchoring. |
+| Design | `simulations/demo_pack/design-input.json` | `python -m core.cli stage-run --stage design --input simulations/demo_pack/design-input.json --app life-claims-portal` | `_process_design` hydrates IDs via `ensure_ids` and annotates component risk. |
+| Build | `simulations/demo_pack/sbom.json` | `python -m core.cli stage-run --stage build --input simulations/demo_pack/sbom.json --app life-claims-portal` | `_process_build` normalises with `apps.api.normalizers.InputNormalizer` and flags risky components. |
+| Test | `simulations/demo_pack/scanner.sarif` | `python -m core.cli stage-run --stage test --input simulations/demo_pack/scanner.sarif --app life-claims-portal` | `_process_test` ingests SARIF, folds in coverage, and derives drift metrics. |
+| Deploy | `simulations/demo_pack/tfplan.json` | `python -m core.cli stage-run --stage deploy --input simulations/demo_pack/tfplan.json --app life-claims-portal` | `_process_deploy` accepts Terraform or Kubernetes manifests and extracts guardrail evidence. |
+| Operate | `simulations/demo_pack/ops-telemetry.json` | `python -m core.cli stage-run --stage operate --input simulations/demo_pack/ops-telemetry.json --app life-claims-portal` | `_process_operate` blends telemetry with KEV/EPSS feeds to compute pressure. |
+| Decision | (auto-discovers prior outputs) | `python -m core.cli stage-run --stage decision --app life-claims-portal` | `_process_decision` synthesises stage outputs, bundles evidence, and emits explainable verdicts. |
+
+Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<run_id>/outputs/`. Each run also records signed manifests (when `FIXOPS_SIGNING_KEY`/`FIXOPS_SIGNING_KID` are configured) and emits a transparency log via `outputs/transparency.index`.
 
 ## Why teams adopt FixOps
 - **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
-- **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m fixops.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`apps/api/app.py`, `core/cli.py`).
+- **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m core.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`apps/api/app.py`, `core/cli.py`).
 - **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, Bayesian/Markov forecasts, and knowledge graph analytics in a single pass (`apps/api/pipeline.py`, `new_apps/api/processing/knowledge_graph.py`).
+- **Probabilistic escalation intelligence** – The `core.probabilistic.ProbabilisticForecastEngine` applies Dirichlet-smoothed calibration, spectral diagnostics, and multi-step projections to forecast severity drift, quantify stationary risk, and surface explainable escalation pressure for decision makers.
 - **Multi-LLM consensus & transparency** – The enhanced decision engine fans out to GPT-5, Claude, Gemini, and vertical cyber models, reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`enterprise/src/services/enhanced_decision_engine.py`, `enterprise/src/api/v1/enhanced.py`).
 - **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`).
 - **Artefact archiving & regulated storage** – Every upload is normalised, persisted with metadata, and summarised via the artefact archive while secure directory enforcement and optional bundle encryption keep regulated tenants compliant (`core/storage.py`, `core/paths.py`).
@@ -77,7 +94,7 @@ The repository ships with a pair of curated fixtures and overlay profiles so you
                       ▼ load_overlay()
 ┌────────────┐   auth/token   ┌───────────────────┐    artefact cache     ┌───────────────────────┐
 │ CLI runner │──────────────▶│ FastAPI ingestion │──────────────────────▶│ Storage + evidence    │
-│ fixops.cli │               │  apps/api/app.py   │◀──────────────────────│ data/uploads/*        │
+│ core.cli │               │  apps/api/app.py   │◀──────────────────────│ data/uploads/*        │
 └────────────┘               └────────┬──────────┘     archive bundles    └──────────┬────────────┘
          ▲                             │                                    decrypt/compress │
          │ module toggles              │ orchestrate()                       ▼                │
@@ -222,11 +239,11 @@ FixOps Platform
 ### CLI/API usage by stage
 | Stage | Interface | Command / Endpoint | Required inputs | Primary value |
 | --- | --- | --- | --- | --- |
-| Demo discovery | CLI | `python -m fixops.cli run --overlay config/demo.overlay.yml --design samples/design.csv --sbom samples/sbom.json --sarif samples/scan.sarif --cve samples/cve.json --output out/demo.json` | Demo overlay, curated artefacts | Fast investor narrative with contextual scoring and ROI headlines. |
+| Demo discovery | CLI | `python -m core.cli run --overlay config/demo.overlay.yml --design samples/design.csv --sbom samples/sbom.json --sarif samples/scan.sarif --cve samples/cve.json --output out/demo.json` | Demo overlay, curated artefacts | Fast investor narrative with contextual scoring and ROI headlines. |
 | Demo discovery | API | `POST /inputs/*`, `GET /pipeline/run` | Same artefacts via multipart uploads | Live walkthrough showing ingestion health checks and guardrail outputs. |
-| Enterprise onboarding | CLI | `python -m fixops.cli run --overlay config/fixops.overlay.yml --enable compliance --enable policy_automation --evidence-dir out/evidence` | Enterprise overlay, connector secrets | Proves compliance and automation readiness for procurement teams. |
+| Enterprise onboarding | CLI | `python -m core.cli run --overlay config/fixops.overlay.yml --enable compliance --enable policy_automation --evidence-dir out/evidence` | Enterprise overlay, connector secrets | Proves compliance and automation readiness for procurement teams. |
 | Enterprise onboarding | API | `POST /pipeline/run` with `X-API-Key` | Cached artefacts, overlay toggles | Enables integration tests and CI gating. |
-| Operations steady state | CLI | `python -m fixops.cli run --enable exploit_signals --enable analytics --output out/ops.json` | Latest artefacts, exploit feeds | Keeps vuln management prioritised around active threats and ROI metrics. |
+| Operations steady state | CLI | `python -m core.cli run --enable exploit_signals --enable analytics --output out/ops.json` | Latest artefacts, exploit feeds | Keeps vuln management prioritised around active threats and ROI metrics. |
 | Operations steady state | API | `POST /feedback` (if enabled) | Review payloads linked to run IDs | Captures analyst decisions for continuous improvement. |
 | Scale-out deployment | Terraform | `terraform -chdir=enterprise/terraform apply` | AWS credentials, S3 backend, overlay secrets | Launches Kubernetes-backed enterprise stack with same overlays. |
 | Scale-out deployment | Helm (via Terraform) | Automated by module | Helm charts, Kubernetes context | Ensures parity between local demo and production footprint. |
@@ -241,6 +258,14 @@ Each row outlines the stage of the customer journey, the surface to invoke, the 
 2. **Upload artefacts** – Push CSV/SBOM/SARIF/CVE data (plain JSON or gzip/zip archives) through FastAPI or point the CLI at local files; the normaliser caches parsers to reuse tokens and reduce I/O (`apps/api/normalizers.py`).
 3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts, ROI analytics, tenant lifecycle, performance simulation), invokes the enhanced decision engine for multi-LLM consensus, knowledge graph analytics, and SentinelGPT explanations, and tracks custom module outcomes.
 4. **Persist outputs** – Artefact archives capture raw and normalised inputs, evidence hub writes compressed/encrypted bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data. Enhanced responses also persist consensus telemetry, MITRE mapping, and knowledge graph payloads for replay.
+
+### Validation checklist
+
+1. **Stage canonicalisation** – Execute the stage workflow table above (or run `PYTHONPATH=. pytest tests/test_cli_stage_run.py`) to ensure each command writes the canonical artefact into `artefacts/<app_id>/<run_id>/outputs/` and, when signing variables are present, emits manifests plus `outputs/transparency.index`.
+2. **API ingest parity** – Launch the FastAPI app (`uvicorn apps.api.app:app --reload`) and post artefacts to `/api/v1/artefacts`; confirm the JSON summary echoes the stage, run ID, canonical output path, and signature state.
+3. **Overlay pipeline regression** – `python -m core.cli run --overlay config/fixops.overlay.yml --design simulations/demo_pack/design-input.json --sbom simulations/demo_pack/sbom.json --sarif simulations/demo_pack/scanner.sarif --cve demo/fixtures/sample.cve.json --pretty --output out/pipeline-enterprise.json` should emit the full module matrix, evidence bundle path, and pricing posture for enterprise demos.
+4. **Probabilistic calibration** – `python -m core.cli train-forecast --incidents data/examples/incidents.json --pretty --output out/forecast.json` validates spectral gap, stationary distribution, and multi-step projections, guaranteeing the enhanced analytics remain reproducible.
+5. **Continuous regression** – `pytest` executes the CLI/API regression suites, stage-run coverage, probabilistic diagnostics, and the import guard that prevents active code from depending on archived `WIP/` modules.
 5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, knowledge graph analytics, SentinelGPT narratives, multi-LLM disagreement matrices, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
@@ -303,10 +328,10 @@ encryption key) with safe defaults.
 
 ```bash
 # Demo profile (non-encrypted evidence bundle)
-python -m fixops.cli demo --mode demo --output out/pipeline-demo.json --pretty
+python -m core.cli demo --mode demo --output out/pipeline-demo.json --pretty
 
 # Enterprise profile (encryption enabled when `cryptography` is installed)
-python -m fixops.cli demo --mode enterprise --output out/pipeline-enterprise.json --pretty
+python -m core.cli demo --mode enterprise --output out/pipeline-enterprise.json --pretty
 ```
 
 Both commands emit a short textual summary, persist the full pipeline
@@ -315,7 +340,7 @@ overlay-approved directories under `data/`.
 
 ### 4. Run the CLI (enterprise profile + module overrides)
 ```bash
-python -m fixops.cli run \
+python -m core.cli run \
   --overlay config/fixops.overlay.yml \
   --enable policy_automation --enable compliance --enable ssdlc --enable probabilistic \
   --design artefacts/design.csv --sbom artefacts/sbom.json \
@@ -323,7 +348,7 @@ python -m fixops.cli run \
   --evidence-dir out/evidence --output out/pipeline-enterprise.json
 ```
 
-Use `python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml` to inspect sanitized overlay metadata or `python -m fixops.cli run --offline` to disable automatic exploit feed refresh during air-gapped runs. `python -m fixops.cli copy-evidence --run out/pipeline-enterprise.json --target ./hand-off` copies bundle archives into hand-off directories for audits.
+Use `python -m core.cli show-overlay --overlay config/fixops.overlay.yml` to inspect sanitized overlay metadata or `python -m core.cli run --offline` to disable automatic exploit feed refresh during air-gapped runs. `python -m core.cli copy-evidence --run out/pipeline-enterprise.json --target ./hand-off` copies bundle archives into hand-off directories for audits.
 
 ### 5. Validate the environment
 - `pytest` – exercises ingestion, overlay validation, module toggles, connectors, exploit refresh, probabilistic forecasts, CLI parity, simulations, and SSDLC outputs.
@@ -345,14 +370,14 @@ Use `python -m fixops.cli show-overlay --overlay config/fixops.overlay.yml` to i
 All endpoints require the `X-API-Key` header. See `docs/PLATFORM_RUNBOOK.md` for persona-specific examples and `docs/INTEGRATIONS.md` for connector payload details.
 
 ## CLI workflows by persona
-- **CISO & Executive Reporting** – `python -m fixops.cli run --overlay config/fixops.overlay.yml --enable probabilistic --enable compliance --enable analytics --output out/ciso.json` surfaces guardrail status, compliance posture, tenant coverage, ROI telemetry, and performance posture for board reporting.
-- **CTEM & Vulnerability Ops** – `python -m fixops.cli run --enable exploit_signals --enable policy_automation --design ... --sbom ... --sarif ... --cve ...` contextualises findings, executes policy automations, and refreshes exploit intelligence.
-- **DevSecOps / Platform** – `python -m fixops.cli run --enable ssdlc --enable iac --custom-module modules/custom.py:main` enforces pipeline gates across IaC scans and SSDLC targets.
-- **SIEM & Incident Responders** – `python -m fixops.cli run --enable ai_agents --enable probabilistic --output out/siem.json` generates AI-agent detections and probabilistic breach forecasts for downstream correlation.
+- **CISO & Executive Reporting** – `python -m core.cli run --overlay config/fixops.overlay.yml --enable probabilistic --enable compliance --enable analytics --output out/ciso.json` surfaces guardrail status, compliance posture, tenant coverage, ROI telemetry, and performance posture for board reporting.
+- **CTEM & Vulnerability Ops** – `python -m core.cli run --enable exploit_signals --enable policy_automation --design ... --sbom ... --sarif ... --cve ...` contextualises findings, executes policy automations, and refreshes exploit intelligence.
+- **DevSecOps / Platform** – `python -m core.cli run --enable ssdlc --enable iac --custom-module modules/custom.py:main` enforces pipeline gates across IaC scans and SSDLC targets.
+- **SIEM & Incident Responders** – `python -m core.cli run --enable ai_agents --enable probabilistic --output out/siem.json` generates AI-agent detections and probabilistic breach forecasts for downstream correlation.
 - **Security Testers** – Combine `--offline` with curated artefacts to validate guardrail outcomes pre-deployment.
-- **Enterprise Architects & Tenant Ops** – `python -m fixops.cli run --enable tenancy --enable performance --output out/tenant-summary.json` produces tenant lifecycle health, module coverage gaps, and near real-time performance status for shared platforms.
+- **Enterprise Architects & Tenant Ops** – `python -m core.cli run --enable tenancy --enable performance --output out/tenant-summary.json` produces tenant lifecycle health, module coverage gaps, and near real-time performance status for shared platforms.
 
-Use `python -m fixops.cli help` for the full command reference and flags.
+Use `python -m core.cli help` for the full command reference and flags.
 
 ## Feature catalog
 | Capability | Description | Overlay toggle |
@@ -391,7 +416,7 @@ Use `python -m fixops.cli help` for the full command reference and flags.
 - **Benchmarks & profiling** – `perf/BENCHMARKS.csv` captures timing; extend via `python scripts/generate_index.py --bench` to aggregate additional profiles while aligning with overlay thresholds.
 
 ## Troubleshooting & support
-- Verify artefact cache health with `python -m fixops.cli show-overlay` and inspect `data/uploads/` for sanitized filenames.
+- Verify artefact cache health with `python -m core.cli show-overlay` and inspect `data/uploads/` for sanitized filenames.
 - Review `docs/PLATFORM_RUNBOOK.md` for stage-by-stage troubleshooting, persona runbooks, and escalation paths.
 - Consult `audit/SECURITY.md` and `docs/SDLC_SSDLC.md` when integrating FixOps into enterprise governance.
 

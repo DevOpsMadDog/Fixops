@@ -1,47 +1,85 @@
-"""Configuration models for the FixOps blended backend."""
+"""Minimal settings loader without external dependencies."""
 
 from __future__ import annotations
 
+import os
+from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import List, Sequence
 
-from pydantic import BaseSettings, Field, validator
+
+def _coerce_origins(value: Sequence[str] | str | None) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return [str(item).strip() for item in value]
 
 
-class Settings(BaseSettings):
-    """Application configuration with sensible defaults for tests."""
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
-    ENVIRONMENT: str = Field("development", description="Runtime environment name")
-    FIXOPS_API_KEY: str = Field("local-dev-key", description="Bearer token required for API access")
-    FIXOPS_ALLOWED_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost"], description="CORS allow-list")
-    FIXOPS_MAX_PAYLOAD_BYTES: int = Field(1024 * 1024, description="Maximum accepted payload size in bytes")
 
-    FIXOPS_RL_ENABLED: bool = Field(True, description="Enable rate limiting middleware")
-    FIXOPS_RL_REQ_PER_MIN: int = Field(120, description="Requests per minute allowed per client")
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
 
-    FIXOPS_SCHED_ENABLED: bool = Field(False, description="Enable background scheduler loops")
-    FIXOPS_SCHED_INTERVAL_HOURS: int = Field(24, description="Scheduler sleep interval in hours")
 
-    FIXOPS_SIGNING_KEY: str | None = Field(default=None, description="PEM-encoded RSA private key for evidence signing")
-    FIXOPS_SIGNING_KID: str | None = Field(default=None, description="Key identifier embedded in signatures")
+@dataclass
+class Settings:
+    """Application configuration with environment overrides."""
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    ENVIRONMENT: str = "development"
+    FIXOPS_API_KEY: str = "local-dev-key"
+    FIXOPS_ALLOWED_ORIGINS: List[str] = field(default_factory=lambda: ["http://localhost"])
+    FIXOPS_MAX_PAYLOAD_BYTES: int = 1024 * 1024
 
-    @validator("FIXOPS_ALLOWED_ORIGINS", pre=True)
-    def _coerce_origins(cls, value: Sequence[str] | str | None) -> List[str]:  # type: ignore[override]
-        if value is None:
-            return []
-        if isinstance(value, str):
-            items = [item.strip() for item in value.split(",") if item.strip()]
-            return items
-        return [str(item).strip() for item in value]
+    FIXOPS_RL_ENABLED: bool = True
+    FIXOPS_RL_REQ_PER_MIN: int = 120
+
+    FIXOPS_SCHED_ENABLED: bool = False
+    FIXOPS_SCHED_INTERVAL_HOURS: int = 24
+
+    FIXOPS_SIGNING_KEY: str | None = None
+    FIXOPS_SIGNING_KID: str | None = None
+
+    def __post_init__(self) -> None:
+        self.FIXOPS_ALLOWED_ORIGINS = _coerce_origins(self.FIXOPS_ALLOWED_ORIGINS)
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Return cached settings instance."""
+    defaults = Settings()
+    origins_env = os.environ.get("FIXOPS_ALLOWED_ORIGINS")
+    origins = _coerce_origins(origins_env) if origins_env is not None else defaults.FIXOPS_ALLOWED_ORIGINS
+    settings = Settings(
+        ENVIRONMENT=os.environ.get("ENVIRONMENT", defaults.ENVIRONMENT),
+        FIXOPS_API_KEY=os.environ.get("FIXOPS_API_KEY", defaults.FIXOPS_API_KEY),
+        FIXOPS_ALLOWED_ORIGINS=origins,
+        FIXOPS_MAX_PAYLOAD_BYTES=_env_int("FIXOPS_MAX_PAYLOAD_BYTES", defaults.FIXOPS_MAX_PAYLOAD_BYTES),
+        FIXOPS_RL_ENABLED=_env_bool("FIXOPS_RL_ENABLED", defaults.FIXOPS_RL_ENABLED),
+        FIXOPS_RL_REQ_PER_MIN=_env_int("FIXOPS_RL_REQ_PER_MIN", defaults.FIXOPS_RL_REQ_PER_MIN),
+        FIXOPS_SCHED_ENABLED=_env_bool("FIXOPS_SCHED_ENABLED", defaults.FIXOPS_SCHED_ENABLED),
+        FIXOPS_SCHED_INTERVAL_HOURS=_env_int("FIXOPS_SCHED_INTERVAL_HOURS", defaults.FIXOPS_SCHED_INTERVAL_HOURS),
+        FIXOPS_SIGNING_KEY=os.environ.get("FIXOPS_SIGNING_KEY", defaults.FIXOPS_SIGNING_KEY),
+        FIXOPS_SIGNING_KID=os.environ.get("FIXOPS_SIGNING_KID", defaults.FIXOPS_SIGNING_KID),
+    )
+    return settings
 
-    return Settings()  # type: ignore[call-arg]
+
+def resolve_allowed_origins(config: Settings) -> list[str]:
+    if config.ENVIRONMENT.lower() == "production" and not config.FIXOPS_ALLOWED_ORIGINS:
+        raise RuntimeError("FIXOPS_ALLOWED_ORIGINS must be configured in production mode")
+    return config.FIXOPS_ALLOWED_ORIGINS
+
+
+__all__ = ["Settings", "get_settings", "resolve_allowed_origins"]
 
