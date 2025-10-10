@@ -44,6 +44,15 @@ The repository ships with a pair of curated fixtures and overlay profiles so you
 
    You can point the CLI at your own artefacts with `python -m core.cli run` or import `core.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m core.cli show-overlay --pretty` to inspect the merged overlay for each profile. When running the enterprise stack with Docker Compose, copy `enterprise/.env.example` to `.env`, rotate the secrets, and ensure `FIXOPS_AUTH_DISABLED` remains `false`.
 
+5. **Validate with automated tests**
+
+   The repository ships with a pytest suite that exercises the CLI stage runner, ingest API, compliance rollups, and SSDLC orchestrator logic. Re-run it after local changes to confirm the canonical IO contract still holds.
+
+   ```bash
+   export PYTHONPATH=.
+   pytest
+   ```
+
 ### Stage-by-stage local workflow
 
 The unified stage runner gives you the same normalisation logic that powers the API while keeping artefacts local. Each invocation calls `core.stage_runner.StageRunner.run_stage`, which coordinates identity minting via `src.services.id_allocator.ensure_ids`, run persistence through `src.services.run_registry.RunRegistry.ensure_run`, and optional manifest signing with `src.services.signing`.
@@ -58,7 +67,7 @@ The unified stage runner gives you the same normalisation logic that powers the 
 | Operate | `simulations/demo_pack/ops-telemetry.json` | `python -m apps.fixops_cli stage-run --stage operate --input simulations/demo_pack/ops-telemetry.json --app life-claims-portal` | `_process_operate` blends telemetry with KEV/EPSS feeds to compute pressure. |
 | Decision | (auto-discovers prior outputs) | `python -m apps.fixops_cli stage-run --stage decision --app life-claims-portal` | `_process_decision` synthesises stage outputs, bundles evidence, and emits explainable verdicts. |
 
-Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<run_id>/outputs/`. Each run also records signed manifests (when `FIXOPS_SIGNING_KEY`/`FIXOPS_SIGNING_KID` are configured) and emits a transparency log via `outputs/transparency.index`.
+Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<run_id>/outputs/`. Each run also records signed manifests (when `FIXOPS_SIGNING_KEY`/`FIXOPS_SIGNING_KID` are configured) and emits a transparency log via `outputs/transparency.index`. After the CLI walkthrough, execute `pytest` to confirm the ingest API and compliance regressions continue to pass end-to-end.
 
 ## Why teams adopt FixOps
 - **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
