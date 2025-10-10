@@ -100,6 +100,7 @@ def test_module_matrix_includes_promised_modules(pipeline_result: dict[str, obje
         "iac_posture",
         "exploit_signals",
         "probabilistic",
+        "vector_store",
         "enhanced_decision",
     }
     for module in expected:
@@ -131,3 +132,17 @@ def test_pipeline_exposes_knowledge_graph(pipeline_result: dict[str, object]) ->
     nodes = structured.get("nodes", [])
     edges = structured.get("edges", [])
     assert nodes and edges
+
+
+def test_vector_similarity_matches_patterns(pipeline_result: dict[str, object]) -> None:
+    vector = pipeline_result.get("vector_similarity", {})
+    assert isinstance(vector, Mapping)
+    provider = vector.get("provider", {})
+    assert isinstance(provider, Mapping)
+    assert provider.get("provider")
+    matches = vector.get("matches", [])
+    assert matches, "Vector store should return similarity matches"
+    first = matches[0]
+    assert isinstance(first, Mapping)
+    patterns = first.get("patterns", [])
+    assert patterns, "Each match should include pattern recommendations"

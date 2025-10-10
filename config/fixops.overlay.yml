@@ -47,6 +47,11 @@ modules:
   analytics: { enabled: true }
   tenancy: { enabled: true }
   performance: { enabled: true }
+  vector_store:
+    enabled: true
+    provider: auto
+    patterns_path: fixtures/security_patterns.json
+    top_k: 3
   enhanced_decision: { enabled: true }
 policy_automation:
   actions:

@@ -4,6 +4,7 @@ import json
 import re
 from collections import Counter, defaultdict
 from functools import lru_cache
+from pathlib import Path
 from re import Pattern
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
@@ -25,6 +26,7 @@ from core.modules import PipelineContext, execute_custom_modules
 from core.tenancy import TenantLifecycleManager
 from core.performance import PerformanceSimulator
 from core.processing_layer import ProcessingLayer
+from core.vector_store import SecurityPatternMatcher
 
 from .knowledge_graph import KnowledgeGraphService
 
@@ -168,6 +170,11 @@ def evaluate_compliance(
 class PipelineOrchestrator:
     """Derive intermediate insights from the uploaded artefacts."""
 
+    def __init__(self) -> None:
+        self._vector_matcher: Optional[SecurityPatternMatcher] = None
+        self._vector_signature: Optional[str] = None
+        self._repo_root = Path(__file__).resolve().parents[2]
+
     @staticmethod
     def _extract_component_name(row: Dict[str, Any]) -> Optional[str]:
         """Return the first non-empty component identifier in a design row."""
@@ -289,6 +296,16 @@ class PipelineOrchestrator:
             if normalised:
                 return normalised
         return "medium"
+
+    def _ensure_vector_matcher(self, overlay: OverlayConfig) -> SecurityPatternMatcher:
+        config = overlay.module_config("vector_store")
+        signature = json.dumps(config, sort_keys=True, default=str)
+        if self._vector_matcher is None or self._vector_signature != signature:
+            matcher = SecurityPatternMatcher(config, root=self._repo_root)
+            self._vector_matcher = matcher
+            self._vector_signature = signature
+        assert self._vector_matcher is not None
+        return self._vector_matcher
 
     def _evaluate_guardrails(
         self,
@@ -772,6 +789,23 @@ class PipelineOrchestrator:
                 policy_summary,
             )
             result["marketplace_recommendations"] = marketplace_recommendations
+
+            if overlay.is_module_enabled("vector_store"):
+                try:
+                    matcher = self._ensure_vector_matcher(overlay)
+                    vector_matches = matcher.recommend_for_crosswalk(crosswalk)
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    modules_status["vector_store"] = "error"
+                    result["vector_similarity"] = {"error": str(exc)}
+                else:
+                    result["vector_similarity"] = {
+                        "provider": matcher.provider_metadata,
+                        "matches": vector_matches,
+                    }
+                    modules_status["vector_store"] = "executed"
+                    executed_modules.append("vector_store")
+            else:
+                modules_status["vector_store"] = "disabled"
 
             knowledge_graph = knowledge_graph_builder.build(
                 design_rows=rows,

@@ -1144,6 +1144,7 @@ class OverlayConfig:
             "analytics",
             "tenancy",
             "performance",
+            "vector_store",
             "enhanced_decision",
         ]
         enabled: list[str] = []
@@ -1359,6 +1360,7 @@ def load_overlay(
         "analytics": True,
         "tenancy": True,
         "performance": True,
+        "vector_store": True,
     }
     for key, enabled in default_module_flags.items():
         value = modules.get(key)
