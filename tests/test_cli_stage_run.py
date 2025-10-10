@@ -35,7 +35,7 @@ CANONICAL_OUTPUTS = {
 
 def _pythonpath_env(tmp_path: Path) -> dict[str, str]:
     env = os.environ.copy()
-    entries = [str(REPO_ROOT), str(REPO_ROOT / "fixops-blended-enterprise")]
+    entries = [str(REPO_ROOT), str(REPO_ROOT / "fixops-enterprise")]
     existing = env.get("PYTHONPATH")
     if existing:
         entries.append(existing)
@@ -48,7 +48,7 @@ def _invoke_stage(stage: str, input_file: Path | None, env: dict[str, str]) -> N
     cmd = [
         sys.executable,
         "-m",
-        "core.cli",
+        "apps.fixops_cli",
         "stage-run",
         "--stage",
         stage,
@@ -88,8 +88,20 @@ def test_stage_run_materialises_canonical_outputs(tmp_path: Path) -> None:
         target = outputs_dir / canonical_name
         assert target.exists(), f"missing {canonical_name} for {stage}"
         if target.suffix == ".json":
-            json.loads(target.read_text(encoding="utf-8"))
+            payload = json.loads(target.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                if stage != "decision":
+                    assert payload.get("app_id", "").startswith("APP-"), payload
+                    assert payload.get("run_id") == run_id, payload
+                if stage == "requirements":
+                    requirements = payload.get("requirements", [])
+                    assert requirements, "requirements array missing"
+                    for item in requirements:
+                        assert item["requirement_id"].startswith("REQ-"), item
+                        assert item.get("Requirement_ID", "").startswith("REQ-"), item
         if stage == "decision":
+            assert payload.get("app_id") == app_id
+            assert payload.get("run_id") == run_id
             bundle = outputs_dir / "evidence_bundle.zip"
             manifest = outputs_dir / "manifest.json"
             assert bundle.exists()

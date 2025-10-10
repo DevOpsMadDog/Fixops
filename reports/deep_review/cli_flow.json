@@ -1,0 +1,47 @@
+{
+  "risk_rules": 2,
+  "stages": [
+    {
+      "input_hint": "requirements-input.csv",
+      "output": "requirements.json",
+      "processor": "_process_requirements",
+      "stage": "requirements"
+    },
+    {
+      "input_hint": "design-input.json",
+      "output": "design.manifest.json",
+      "processor": "_process_design",
+      "stage": "design"
+    },
+    {
+      "input_hint": "sbom.json",
+      "output": "build.report.json",
+      "processor": "_process_build",
+      "stage": "build"
+    },
+    {
+      "input_hint": "scanner.sarif",
+      "output": "test.report.json",
+      "processor": "_process_test",
+      "stage": "test"
+    },
+    {
+      "input_hint": "tfplan.json",
+      "output": "deploy.manifest.json",
+      "processor": "_process_deploy",
+      "stage": "deploy"
+    },
+    {
+      "input_hint": "ops-telemetry.json",
+      "output": "operate.snapshot.json",
+      "processor": "_process_operate",
+      "stage": "operate"
+    },
+    {
+      "input_hint": "decision-input.json",
+      "output": "decision.json",
+      "processor": "_process_decision",
+      "stage": "decision"
+    }
+  ]
+}

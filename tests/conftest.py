@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Generator, Iterable, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
-BLENDED_PACKAGE_ROOT = ROOT / "fixops-blended-enterprise"
-if str(BLENDED_PACKAGE_ROOT) not in sys.path:
-    sys.path.insert(0, str(BLENDED_PACKAGE_ROOT))
+ENTERPRISE_SRC_ROOT = ROOT / "fixops-enterprise"
+if str(ENTERPRISE_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(ENTERPRISE_SRC_ROOT))
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -55,8 +55,8 @@ class SimpleCoverage:
                 candidate = (ROOT / module_path).resolve()
                 if candidate.exists():
                     self._files.add(str(candidate))
-        if not self._files:
-            default_root = (ROOT / "fixops-blended-enterprise" / "src").resolve()
+        if not self._files and ENTERPRISE_SRC_ROOT.exists():
+            default_root = ENTERPRISE_SRC_ROOT.resolve()
             for file in default_root.rglob("*.py"):
                 self._files.add(str(file))
         self._data: dict[str, set[int]] = {}

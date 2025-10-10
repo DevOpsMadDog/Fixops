@@ -189,11 +189,17 @@ class StageRunner:
         mode: str,
         source_path: Path | None,
     ) -> Mapping[str, Any]:
-        records = []
+        records: list[dict[str, Any]] = []
         if input_bytes:
-            records = self._parse_requirements(io.BytesIO(input_bytes))
+            raw_records = self._parse_requirements(io.BytesIO(input_bytes))
+            records = self._assign_requirement_ids(raw_records, context.app_id)
         anchor = self._derive_ssvc_anchor(records)
-        return {"requirements": records, "ssvc_anchor": anchor}
+        return {
+            "app_id": context.app_id,
+            "run_id": context.run_id,
+            "requirements": records,
+            "ssvc_anchor": anchor,
+        }
 
     def _process_design(
         self,
@@ -212,6 +218,8 @@ class StageRunner:
                     component.setdefault("component_id", self._component_token(component.get("name")))
         manifest.setdefault("app_name", manifest.get("app_id"))
         manifest["design_risk_score"] = self._design_risk_score(components)
+        manifest.setdefault("app_id", context.app_id)
+        manifest["run_id"] = context.run_id
         return manifest
 
     def _process_build(
@@ -258,6 +266,7 @@ class StageRunner:
         app_id = str((design_manifest or {}).get("app_id") or context.app_id)
         return {
             "app_id": app_id,
+            "run_id": context.run_id,
             "components_indexed": component_count,
             "risk_flags": risk_flags,
             "links": links,
@@ -291,6 +300,8 @@ class StageRunner:
             0.99,
         )
         return {
+            "app_id": context.app_id,
+            "run_id": context.run_id,
             "summary": summary,
             "drift": drift,
             "coverage": coverage,
@@ -318,6 +329,8 @@ class StageRunner:
         if posture.get("tls_policy"):
             score += 0.03
         return {
+            "app_id": context.app_id,
+            "run_id": context.run_id,
             "digests": digests,
             "posture": posture,
             "control_evidence": evidence,
@@ -359,6 +372,8 @@ class StageRunner:
         service_name = str((design_manifest or {}).get("app_name") or context.app_id)
         score = 0.45 + (0.08 if kev_hits else 0) + (0.06 if pressure >= 0.6 else 0.02)
         return {
+            "app_id": context.app_id,
+            "run_id": context.run_id,
             "kev_hits": kev_hits,
             "epss": epss_records,
             "pressure_by_service": [{"service": service_name, "pressure": round(pressure, 2)}],
@@ -404,6 +419,8 @@ class StageRunner:
             "marketplace_recommendations": self._marketplace_recommendations(failing_controls),
             "evidence_id": evidence_id,
         }
+        decision_document["app_id"] = context.app_id
+        decision_document["run_id"] = context.run_id
         documents["decision"] = decision_document
         bundle = self._write_evidence_bundle(context, documents)
         manifest_payload = self._bundle_manifest(documents)
@@ -445,6 +462,29 @@ class StageRunner:
             if any((value or "").strip() for value in row.values()):
                 records.append(self._normalise_requirement(row))
         return records
+
+    def _assign_requirement_ids(
+        self, records: list[Mapping[str, Any]], app_id: str | None
+    ) -> list[dict[str, Any]]:
+        minted: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        counter = 1
+        for record in records:
+            normalised = dict(record)
+            candidate = str(normalised.get("requirement_id") or "").strip().upper()
+            if not candidate.startswith("REQ-"):
+                candidate = f"REQ-{counter:04d}"
+            while candidate in seen:
+                counter += 1
+                candidate = f"REQ-{counter:04d}"
+            seen.add(candidate)
+            counter += 1
+            normalised["requirement_id"] = candidate
+            normalised.setdefault("Requirement_ID", candidate)
+            if app_id:
+                normalised.setdefault("app_id", app_id)
+            minted.append(normalised)
+        return minted
 
     def _normalise_requirement(self, row: Mapping[str, Any]) -> dict[str, Any]:
         control_refs = row.get("control_refs")
@@ -675,28 +715,39 @@ class StageRunner:
         if highest:
             factors.append(
                 {
-                    "reason": f"{highest.title()} severity testing findings",
+                    "name": f"{highest.title()} severity detected",
                     "weight": 0.4 if highest == "critical" else 0.32,
+                    "rationale": (
+                        f"Testing summary reported {summary.get(highest)} {highest} findings"
+                    ),
                 }
             )
         public_buckets = deploy.get("posture", {}).get("public_buckets", []) if isinstance(deploy, Mapping) else []
         if public_buckets:
             factors.append(
                 {
-                    "reason": "Public S3 bucket violates guardrail",
+                    "name": "Guardrail violation",
                     "weight": 0.4,
+                    "rationale": "Deployment posture shows publicly exposed storage buckets",
                 }
             )
         kev_hits = operate.get("kev_hits", []) if isinstance(operate, Mapping) else []
         if kev_hits:
             factors.append(
                 {
-                    "reason": "High EPSS on tier-0 component",
+                    "name": "Elevated exploit pressure",
                     "weight": 0.35,
+                    "rationale": "Known exploited vulnerability feed triggered for monitored components",
                 }
             )
         if not factors:
-            factors.append({"reason": "Stable release", "weight": 0.2})
+            factors.append(
+                {
+                    "name": "Stable release",
+                    "weight": 0.2,
+                    "rationale": "No critical findings, posture gaps, or exploit signals detected",
+                }
+            )
         return factors[:3]
 
     def _compliance_rollup(
