@@ -342,11 +342,34 @@ If `FIXOPS_SIGNING_KEY` and `FIXOPS_SIGNING_KID` are present the registry signs 
 
 Marketplace packs live under `marketplace/packs/<framework>/<control>/`. The deploy and decision stages call `src.services.marketplace.get_recommendations()` to attach remediation packs for failing controls (e.g. `ISO27001:AC-2` → `iso-ac2-lp`). The public API exposes `GET /api/v1/marketplace/packs/{framework}/{control}` for demo consumption.
 
+## Unified CLI & Ingest API
+
+### CLI: one stage at a time
+
+```bash
+python -m core.cli stage-run --stage requirements --input simulations/demo_pack/requirements-input.csv --app life-claims-portal
+python -m core.cli stage-run --stage design      --input simulations/demo_pack/design-input.json --app life-claims-portal
+python -m core.cli stage-run --stage build       --input simulations/demo_pack/sbom.json          --app life-claims-portal
+python -m core.cli stage-run --stage test        --input simulations/demo_pack/scanner.sarif      --app life-claims-portal
+python -m core.cli stage-run --stage deploy      --input simulations/demo_pack/tfplan.json        --app life-claims-portal
+python -m core.cli stage-run --stage operate     --input simulations/demo_pack/ops-telemetry.json --app life-claims-portal
+python -m core.cli stage-run --stage decision    --app life-claims-portal
+```
+
+### API: upload a stage artefact
+
+```bash
+curl -X POST http://localhost:8001/api/v1/artefacts \
+  -F "type=design" \
+  -F "payload=@simulations/demo_pack/design-input.json" \
+  -F "app_name=life-claims-portal" -F "mode=demo"
+```
+
 ## Running the scripted demo
 
 ```bash
 uvicorn fixops-blended-enterprise.server:app --reload  # optional if you want the HTTP server
-python scripts/run_demo_steps.py --app "life-claims-portal"
+python WIP/scripts/run_demo_steps_legacy.py --app "life-claims-portal"
 ls artefacts/APP-1234/<RUN>/outputs/
 cat artefacts/APP-1234/<RUN>/outputs/decision.json
 # optional: verify evidence signatures

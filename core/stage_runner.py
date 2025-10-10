@@ -1,665 +1,714 @@
-"""Stage-specific processors for the unified FixOps CLI and ingest API."""
+"""Unified per-stage processor used by the CLI and ingest API."""
 
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import os
+import re
 import shutil
-import uuid
+import zipfile
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence
-from zipfile import ZipFile
+from typing import Any, Dict, Iterable, Mapping, Optional
 
-import yaml
-
-from apps.api.normalizers import InputNormalizer
-from src.services import run_registry
-from src.services.id_allocator import ensure_ids
-from src.services import signing
-
-
-_INPUT_FILENAMES: dict[str, str] = {
-    "requirements": "requirements-input.csv",
-    "design": "design-input.json",
-    "build": "sbom.json",
-    "test": "scanner.sarif",
-    "deploy": "tfplan.json",
-    "operate": "ops-telemetry.json",
-    "decision": "decision-input.json",
-}
+from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBOM
 
 
 @dataclass(slots=True)
-class StageResult:
+class StageSummary:
     stage: str
     app_id: str
     run_id: str
     output_file: Path
     outputs_dir: Path
-    signed: list[Path]
-    transparency_index: Path | None = None
-    bundle: Path | None = None
+    signatures: list[Path]
+    transparency_index: Path | None
+    bundle: Path | None
+    verified: Optional[bool]
 
 
 class StageRunner:
-    """Run the per-stage processors used by the CLI and ingest API."""
+    """Coordinate canonical IO handling for the FixOps stages."""
 
-    def __init__(self, *, normalizer: InputNormalizer | None = None) -> None:
-        self._normalizer = normalizer or InputNormalizer()
+    _INPUT_FILENAMES: dict[str, str] = {
+        "requirements": "requirements-input.csv",
+        "design": "design-input.json",
+        "build": "sbom.json",
+        "test": "scanner.sarif",
+        "deploy": "tfplan.json",
+        "operate": "ops-telemetry.json",
+        "decision": "decision-input.json",
+    }
 
-    # Public API -----------------------------------------------------------------
+    _OUTPUT_FILENAMES: dict[str, str] = {
+        "requirements": "requirements.json",
+        "design": "design.manifest.json",
+        "build": "build.report.json",
+        "test": "test.report.json",
+        "deploy": "deploy.manifest.json",
+        "operate": "operate.snapshot.json",
+        "decision": "decision.json",
+    }
+
+    _RISK_RULES: dict[str, str] = {
+        "pkg:maven/log4j-core@2.14.0": "historical RCE family",
+        "pkg:maven/log4j-core@2.15.0": "historical RCE family",
+    }
+
+    _APP_ID_PATTERN = re.compile(r"^APP-\d{4,}$", re.IGNORECASE)
+
+    def __init__(self, registry, allocator, signer, *, normalizer: InputNormalizer | None = None) -> None:
+        self.registry = registry
+        self.allocator = allocator
+        self.signer = signer
+        self.normalizer = normalizer or InputNormalizer()
+
+    # ------------------------------------------------------------------
     def run_stage(
         self,
         stage: str,
-        input_path: Path | None,
+        input_path: Optional[Path],
         *,
-        app_name: str | None = None,
-        app_id: str | None = None,
-        output_path: Path | None = None,
-        mode: str | None = None,
+        app_name: Optional[str] = None,
+        app_id: Optional[str] = None,
+        output_path: Optional[Path] = None,
+        mode: str = "demo",
         sign: bool = False,
         verify: bool = False,
         verbose: bool = False,
-    ) -> StageResult:
-        stage_key = stage.lower()
-        if stage_key not in _INPUT_FILENAMES:
+    ) -> StageSummary:
+        stage_key = stage.lower().strip()
+        if stage_key not in self._OUTPUT_FILENAMES:
             raise ValueError(f"Unsupported stage '{stage}'")
 
-        payload_hint: Mapping[str, Any] | None = None
-        if stage_key == "design" and input_path is not None:
-            payload_hint = self._load_design_payload(input_path)
-            payload_hint = ensure_ids(payload_hint)
-            if not app_id:
-                app_id = str(payload_hint.get("app_id") or app_name or "APP-UNKNOWN")
-        elif stage_key == "requirements" and input_path is not None:
-            payload_hint = self._load_requirements_payload(input_path)
+        input_bytes: bytes | None = None
+        source_path = None
+        if input_path is not None:
+            source_path = input_path.expanduser().resolve()
+            if not source_path.exists():
+                raise FileNotFoundError(source_path)
+            input_bytes = source_path.read_bytes()
 
-        sign_outputs = sign and self._signing_available()
-        context = run_registry.resolve_run(app_id or app_name, sign_outputs=sign_outputs)
+        sign_requested = sign and self._signing_available()
+        design_payload: Mapping[str, Any] | None = None
 
-        if stage_key == "design" and payload_hint is not None:
-            # ensure minted ids persisted to input for traceability
-            self._persist_input(context, stage_key, json.dumps(payload_hint).encode("utf-8"))
-        elif input_path is not None:
-            self._persist_input(context, stage_key, input_path.read_bytes())
-
-        processor = {
-            "requirements": self.process_requirements,
-            "design": self.process_design,
-            "build": self.process_build,
-            "test": self.process_test,
-            "deploy": self.process_deploy,
-            "operate": self.process_operate,
-            "decision": self.process_decision,
-        }[stage_key]
+        app_id, app_name = self._resolve_identity(app_id, app_name)
 
         if stage_key == "design":
-            output_file = processor(context, payload_hint or {})
-        elif stage_key == "requirements":
-            output_file = processor(context, payload_hint or {})
+            design_payload = self._load_design_payload(input_bytes, source_path)
+            if app_name:
+                design_payload = {**design_payload, "app_name": app_name}
+            design_payload = self.allocator.ensure_ids(design_payload)
+            if app_id:
+                design_payload["app_id"] = app_id
+            app_id = str(design_payload.get("app_id") or app_id or "APP-0001")
+            app_name = str(design_payload.get("app_name") or app_name or app_id)
+            input_bytes = json.dumps(design_payload, indent=2).encode("utf-8")
         else:
-            output_file = processor(context, input_path)
+            if app_id and not app_id.startswith("APP-"):
+                derived = self.allocator.ensure_ids({"app_name": app_id})
+                app_id = str(derived.get("app_id") or app_id)
+            if not app_id and app_name:
+                derived = self.allocator.ensure_ids({"app_name": app_name})
+                app_id = str(derived.get("app_id"))
+            if not app_id:
+                app_id = "APP-0001"
+
+        context = self.registry.ensure_run(app_id, stage=stage_key, sign_outputs=sign_requested)
+
+        input_filename = self._INPUT_FILENAMES.get(stage_key)
+        if input_filename and input_bytes is not None:
+            self.registry.save_input(context, input_filename, input_bytes)
+
+        processor = getattr(self, f"_process_{stage_key}")
+        document = processor(
+            context,
+            input_bytes,
+            design_payload=design_payload,
+            mode=mode,
+            source_path=source_path,
+        )
+        canonical_name = self._OUTPUT_FILENAMES[stage_key]
+        output_file = self.registry.write_output(context, canonical_name, document)
 
         if output_path is not None:
+            output_path = output_path.expanduser()
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(output_file, output_path)
+            shutil.copy2(output_file, output_path)
 
-        signed = (
-            list(context.signed_outputs_dir.glob(f"{output_file.name}.manifest.json"))
-            if sign_outputs
-            else []
-        )
-        transparency_index = (
-            context.transparency_index if sign_outputs and context.transparency_index.exists() else None
-        )
+        signatures: list[Path] = []
+        transparency_path: Path | None = None
+        verified: Optional[bool] = None
 
-        if verify and sign_outputs and signed:
-            self._verify_signatures(output_file, signed)
+        if sign_requested:
+            envelope = self.signer.sign_manifest(document)
+            digest = envelope.get("digest", {}).get("sha256")
+            kid = envelope.get("kid")
+            signature_path = self.registry.write_signed_manifest(context, canonical_name, envelope)
+            signatures.append(signature_path)
+            if digest:
+                transparency_path = self.registry.append_transparency_index(
+                    context, canonical_name, digest, kid
+                )
+            if verify:
+                verified = self.signer.verify_manifest(document, envelope)
+        elif verify:
+            verified = False
 
-        bundle = None
+        bundle_path: Path | None = None
         if stage_key == "decision":
-            bundle = context.outputs_dir / "evidence_bundle.zip"
-            if not bundle.exists():
-                bundle = None
+            bundle_path = context.outputs_dir / "evidence_bundle.zip"
 
         if verbose:
-            display_path = self._relative_display(output_file)
-            print(
-                f"Stage '{stage_key}' completed for app {context.app_id} run {context.run_id}: {display_path}"
-            )
+            print(f"Stage '{stage_key}' complete for {context.app_id}/{context.run_id}")
 
-        return StageResult(
+        return StageSummary(
             stage=stage_key,
             app_id=context.app_id,
             run_id=context.run_id,
             output_file=output_file,
             outputs_dir=context.outputs_dir,
-            signed=signed,
-            transparency_index=transparency_index,
-            bundle=bundle,
+            signatures=signatures,
+            transparency_index=transparency_path,
+            bundle=bundle_path if bundle_path and bundle_path.exists() else None,
+            verified=verified,
         )
 
-    # Normalisation helpers -------------------------------------------------------
-    def process_requirements(
-        self, context: run_registry.RunContext, payload_hint: Mapping[str, Any]
-    ) -> Path:
+    # ------------------------------------------------------------------
+    def _process_requirements(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
         records = []
-        if payload_hint:
-            records.extend(self._normalise_requirement_payload(payload_hint))
-        input_file = context.inputs_dir / _INPUT_FILENAMES["requirements"]
-        if input_file.exists():
-            text = input_file.read_text(encoding="utf-8")
-            if text.strip():
-                reader = csv.DictReader(io.StringIO(text))
-                for row in reader:
-                    if any((value or "").strip() for value in row.values()):
-                        records.append(self._normalise_requirement_row(row))
-        anchor = self._compute_ssvc_anchor(records)
-        document = {"requirements": records, "ssvc_anchor": anchor}
-        return context.write_output("requirements.json", document)
+        if input_bytes:
+            records = self._parse_requirements(io.BytesIO(input_bytes))
+        anchor = self._derive_ssvc_anchor(records)
+        return {"requirements": records, "ssvc_anchor": anchor}
 
-    def process_design(
-        self, context: run_registry.RunContext, payload_hint: Mapping[str, Any]
-    ) -> Path:
-        manifest = ensure_ids(dict(payload_hint)) if payload_hint else {}
-        if not manifest:
-            input_file = context.inputs_dir / _INPUT_FILENAMES["design"]
-            if input_file.exists():
-                manifest = ensure_ids(json.loads(input_file.read_text(encoding="utf-8")))
-        components = manifest.get("components") if isinstance(manifest.get("components"), list) else []
-        for component in components or []:
-            if isinstance(component, MutableMapping):
-                component.setdefault("component_id", self._mint_component_token(component.get("name")))
-        manifest["design_risk_score"] = self._design_risk_score(manifest)
-        manifest.setdefault("app_id", context.app_id)
-        manifest.setdefault("app_name", manifest.get("app_name") or manifest.get("name") or context.app_id)
-        return context.write_output("design.manifest.json", manifest)
+    def _process_design(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
+        manifest = dict(design_payload or {})
+        components = manifest.get("components") or []
+        if isinstance(components, list):
+            for component in components:
+                if isinstance(component, dict):
+                    component.setdefault("component_id", self._component_token(component.get("name")))
+        manifest.setdefault("app_name", manifest.get("app_id"))
+        manifest["design_risk_score"] = self._design_risk_score(components)
+        return manifest
 
-    def process_build(self, context: run_registry.RunContext, input_path: Path | None) -> Path:
-        if input_path is None:
-            raise ValueError("Build stage requires an SBOM input")
-        sbom_bytes = input_path.read_bytes()
-        sbom = self._normalizer.load_sbom(sbom_bytes)
+    def _process_build(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
+        if not input_bytes:
+            raise ValueError("Build stage requires sbom.json input")
+        if source_path is not None:
+            extras = [
+                source_path.parent / "scanner.sarif",
+                source_path.parent / "provenance.slsa.json",
+            ]
+            for extra in extras:
+                if extra.exists():
+                    self.registry.save_input(context, extra.name, extra.read_bytes())
+        sbom: NormalizedSBOM = self.normalizer.load_sbom(input_bytes)
         components = [component.to_dict() for component in getattr(sbom, "components", [])]
         risk_flags = []
         for component in components:
             identifier = component.get("purl") or component.get("name")
-            if identifier and "log4j" in str(identifier).lower():
-                risk_flags.append({"purl": identifier, "reason": "log4j historical risk"})
-        links = {}
-        for name in ("sbom.json", "scanner.sarif", "provenance.slsa.json"):
+            if not identifier:
+                continue
+            reason = self._RISK_RULES.get(str(identifier))
+            if not reason and isinstance(identifier, str) and "log4j" in identifier.lower():
+                reason = "historical RCE family"
+            if reason:
+                risk_flags.append({"purl": str(identifier), "reason": reason})
+        links: Dict[str, str] = {}
+        for name in ("sbom.json", "provenance.slsa.json"):
             candidate = context.inputs_dir / name
             if candidate.exists():
-                key = "sarif" if name == "scanner.sarif" else name.split(".")[0]
-                links[key] = context.relative_to_outputs(candidate)
-        design = self._safe_output(context, "design.manifest.json")
-        app_id = design.get("app_id") or context.app_id
-        score = 0.45 + 0.12 * len(risk_flags)
-        report = {
+                key = name.split(".")[0]
+                relative = Path("..") / candidate.relative_to(context.run_path)
+                links[key] = str(relative)
+        component_count = len(components)
+        score = min(0.45 + 0.1 * len(risk_flags) + min(component_count / 500, 0.15), 0.99)
+        design_manifest = self._read_optional_json(context.outputs_dir / "design.manifest.json")
+        app_id = str((design_manifest or {}).get("app_id") or context.app_id)
+        return {
             "app_id": app_id,
-            "components_indexed": len(components),
+            "components_indexed": component_count,
             "risk_flags": risk_flags,
             "links": links,
-            "build_risk_score": round(min(score, 0.99), 2),
+            "build_risk_score": round(score, 2),
         }
-        return context.write_output("build.report.json", report)
 
-    def process_test(self, context: run_registry.RunContext, input_path: Path | None) -> Path:
-        findings = self._sarif_findings(context, input_path)
-        severities = Counter(finding["severity"] for finding in findings)
-        summary = {key: severities.get(key, 0) for key in ("critical", "high", "medium", "low")}
-        drift = {"new_findings": 0}
-        tests_payload = self._load_optional_json(context.inputs_dir / "tests-input.json")
-        if not tests_payload and input_path and input_path.suffix.lower() == ".json" and "sarif" not in input_path.name:
-            tests_payload = self._load_optional_json(input_path)
-        if isinstance(tests_payload, Mapping):
-            drift["new_findings"] = len(tests_payload.get("new_findings", []))
-        coverage = tests_payload.get("coverage", 0) if isinstance(tests_payload, Mapping) else 0
-        report = {
+    def _process_test(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
+        findings, tests_input_override = self._load_test_inputs(context, input_bytes, source_path)
+        tests_input = tests_input_override or self._read_optional_json(context.inputs_dir / "tests-input.json")
+        severity_counts = Counter(finding.get("severity", "low") for finding in findings)
+        summary = {key: severity_counts.get(key, 0) for key in ("critical", "high", "medium", "low")}
+        drift = {"new_findings": len((tests_input or {}).get("new_findings", []))}
+        coverage_data = (tests_input or {}).get("coverage")
+        if not isinstance(coverage_data, Mapping):
+            coverage = {"lines": 0.0, "branches": 0.0}
+        else:
+            coverage = {
+                "lines": round(float(coverage_data.get("lines", 0.0)), 2),
+                "branches": round(float(coverage_data.get("branches", 0.0)), 2),
+            }
+        score = min(
+            0.3 + 0.12 * summary["critical"] + 0.1 * summary["high"] + 0.02 * drift["new_findings"],
+            0.99,
+        )
+        return {
             "summary": summary,
             "drift": drift,
             "coverage": coverage,
-            "test_risk_score": round(min(0.3 + 0.05 * summary["critical"] + 0.03 * summary["high"], 0.99), 2),
+            "test_risk_score": round(score, 2),
         }
-        return context.write_output("test.report.json", report)
 
-    def process_deploy(self, context: run_registry.RunContext, input_path: Path | None) -> Path:
-        payload = self._load_deploy_payload(input_path)
+    def _process_deploy(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
+        if not input_bytes:
+            raise ValueError("Deploy stage requires tfplan.json or k8s manifest input")
+        payload = self._load_deploy_payload(input_bytes)
         posture = self._analyse_posture(payload)
-        digests = self._extract_provenance(context)
-        requirements = self._safe_output(context, "requirements.json")
-        evidence, failing_controls = self._deploy_evidence(requirements, posture, context)
-        recommendations = self._marketplace_recommendations(failing_controls)
+        digests = self._extract_digests(context)
+        evidence = self._control_evidence(posture)
         score = 0.52
-        if posture.get("public_buckets"):
-            score += 0.18
-        if posture.get("tls_policy") and "2016" in str(posture.get("tls_policy")):
-            score += 0.05
-        manifest = {
+        if posture["public_buckets"]:
+            score += 0.16
+        if posture.get("tls_policy"):
+            score += 0.03
+        return {
             "digests": digests,
             "posture": posture,
             "control_evidence": evidence,
             "deploy_risk_score": round(min(score, 0.99), 2),
-            "marketplace_recommendations": recommendations,
         }
-        return context.write_output("deploy.manifest.json", manifest)
 
-    def process_operate(self, context: run_registry.RunContext, input_path: Path | None) -> Path:
-        telemetry = self._load_optional_json(input_path) if input_path else None
-        build_report = self._safe_output(context, "build.report.json")
-        kev_feed = self._load_optional_json(Path("data/feeds/kev.json")) or {}
-        epss_feed = self._load_optional_json(Path("data/feeds/epss.json")) or {}
+    def _process_operate(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
+        telemetry = {}
+        if input_bytes:
+            telemetry = json.loads(input_bytes.decode("utf-8"))
+        build_report = self._read_optional_json(context.outputs_dir / "build.report.json") or {}
+        kev_feed = self._read_optional_json(Path("data/feeds/kev.json")) or {}
+        epss_feed = self._read_optional_json(Path("data/feeds/epss.json")) or {}
         kev_hits = []
         epss_records = []
         risk_components = build_report.get("risk_flags", []) if isinstance(build_report, Mapping) else []
-        if any("log4j" in str(flag.get("purl", "")).lower() for flag in risk_components if isinstance(flag, Mapping)):
-            kev_hits.append("CVE-2021-44228")
-            epss_records.append({"cve": "CVE-2021-44228", "score": 0.97})
-        else:
-            kev_hits.extend(kev_feed.get("top", []) if isinstance(kev_feed, Mapping) else [])
+        for flag in risk_components:
+            if isinstance(flag, Mapping) and "log4j" in str(flag.get("purl", "")).lower():
+                kev_hits.append("CVE-2021-44228")
+                epss_records.append({"cve": "CVE-2021-44228", "score": 0.97})
+                break
+        if not kev_hits and isinstance(kev_feed, Mapping):
+            kev_hits = list(kev_feed.get("top", []))
+        if not epss_records and isinstance(epss_feed, Mapping):
+            epss_records = list(epss_feed.get("top", []))
         pressure = 0.4
-        if isinstance(telemetry, Mapping):
-            latency = telemetry.get("latency_ms_p95")
-            if isinstance(latency, (int, float)):
-                pressure = max(pressure, min(0.95, latency / 650))
-        design = self._safe_output(context, "design.manifest.json")
-        service_name = design.get("app_name") or context.app_id
-        snapshot = {
+        latency = telemetry.get("latency_ms_p95") if isinstance(telemetry, Mapping) else None
+        if isinstance(latency, (int, float)):
+            pressure = min(0.95, max(pressure, latency / 650))
+        design_manifest = self._read_optional_json(context.outputs_dir / "design.manifest.json")
+        service_name = str((design_manifest or {}).get("app_name") or context.app_id)
+        score = 0.45 + (0.08 if kev_hits else 0) + (0.06 if pressure >= 0.6 else 0.02)
+        return {
             "kev_hits": kev_hits,
-            "epss": epss_records or epss_feed.get("top", []),
+            "epss": epss_records,
             "pressure_by_service": [{"service": service_name, "pressure": round(pressure, 2)}],
-            "operate_risk_score": round(min(0.45 + 0.1 * len(kev_hits) + (0.05 if pressure >= 0.55 else 0), 0.99), 2),
+            "operate_risk_score": round(min(score, 0.99), 2),
         }
-        return context.write_output("operate.snapshot.json", snapshot)
 
-    def process_decision(self, context: run_registry.RunContext, input_path: Path | None) -> Path:
-        stage_documents = self._collect_stage_inputs(context, input_path)
-        deploy_manifest = stage_documents.get("deploy", {})
-        operate_snapshot = stage_documents.get("operate", {})
-        requirements = stage_documents.get("requirements", {})
-        top_factors = self._decision_factors(stage_documents)
-        compliance_rollup = self._compliance_rollup(requirements, deploy_manifest)
+    def _process_decision(
+        self,
+        context,
+        input_bytes: bytes | None,
+        *,
+        design_payload: Mapping[str, Any] | None,
+        mode: str,
+        source_path: Path | None,
+    ) -> Mapping[str, Any]:
+        requested = None
+        if input_bytes:
+            requested = json.loads(input_bytes.decode("utf-8"))
+        documents = self._collect_documents(context, requested)
+        deploy_manifest = documents.get("deploy", {})
+        operate_snapshot = documents.get("operate", {})
+        requirements = documents.get("requirements", {})
+        build_report = documents.get("build", {})
+        test_report = documents.get("test", {})
+
         failing_controls = [
-            evidence.get("control")
-            for evidence in deploy_manifest.get("control_evidence", [])
-            if isinstance(evidence, Mapping) and evidence.get("result") == "fail"
+            entry.get("control")
+            for entry in deploy_manifest.get("control_evidence", [])
+            if isinstance(entry, Mapping) and entry.get("result") == "fail"
         ]
-        verdict = "DEFER" if failing_controls or operate_snapshot.get("kev_hits") else "ALLOW"
-        confidence = round(min(0.7 + 0.06 * len(top_factors), 0.99), 2)
-        recommendations = self._marketplace_recommendations(failing_controls)
-        evidence_id = f"EV-{uuid.uuid4().hex[:10]}"
-        decision = {
+        kev_hits = operate_snapshot.get("kev_hits", []) if isinstance(operate_snapshot, Mapping) else []
+        verdict = "DEFER" if failing_controls or kev_hits else "ALLOW"
+        top_factors = self._decision_factors(build_report, test_report, deploy_manifest, operate_snapshot)
+        compliance_rollup = self._compliance_rollup(requirements, deploy_manifest)
+        confidence = min(0.6 + 0.08 * len(top_factors), 0.95)
+        evidence_id = f"ev_{context.app_id}_{mode.lower()}"
+
+        decision_document = {
             "decision": verdict,
-            "confidence_score": confidence,
+            "confidence_score": round(confidence, 2),
             "top_factors": top_factors,
             "compliance_rollup": compliance_rollup,
-            "marketplace_recommendations": recommendations,
+            "marketplace_recommendations": self._marketplace_recommendations(failing_controls),
             "evidence_id": evidence_id,
         }
-        output = context.write_output("decision.json", decision)
-        bundle = context.outputs_dir / "evidence_bundle.zip"
-        self._write_evidence_bundle(stage_documents, bundle)
-        manifest_payload = {
-            "bundle": bundle.name,
-            "documents": sorted(stage_documents.keys()),
-            "generated_at": datetime.utcnow().isoformat() + "Z",
-            "decision": output.name,
-        }
-        context.write_binary_output(
-            "manifest.json",
-            json.dumps(manifest_payload, indent=2, sort_keys=True).encode("utf-8"),
-        )
-        return output
+        documents["decision"] = decision_document
+        bundle = self._write_evidence_bundle(context, documents)
+        manifest_payload = self._bundle_manifest(documents)
+        manifest_bytes = json.dumps(manifest_payload, indent=2).encode("utf-8")
+        self.registry.write_binary_output(context, "manifest.json", manifest_bytes)
+        with zipfile.ZipFile(bundle, "a") as archive:
+            archive.writestr("manifest.json", manifest_bytes)
 
-    # Internal helpers -----------------------------------------------------------
-    def _persist_input(self, context: run_registry.RunContext, stage: str, data: bytes) -> None:
-        filename = _INPUT_FILENAMES[stage]
-        context.save_input(filename, data)
-        if stage == "test" and filename == "scanner.sarif":
-            try:
-                payload = json.loads(data.decode("utf-8"))
-            except Exception:
-                return
-            if isinstance(payload, Mapping) and "results" not in payload:
-                context.save_input("tests-input.json", payload)
+        return decision_document
 
+    # ------------------------------------------------------------------
     def _signing_available(self) -> bool:
         return bool(os.environ.get("FIXOPS_SIGNING_KEY") and os.environ.get("FIXOPS_SIGNING_KID"))
 
-    def _verify_signatures(self, output_file: Path, envelopes: list[Path]) -> None:
-        manifest = json.loads(output_file.read_text())
-        for envelope_path in envelopes:
-            envelope = json.loads(envelope_path.read_text())
-            if not signing.verify_manifest(manifest, envelope):
-                raise ValueError(f"Signature verification failed for {envelope_path}")
-            print(f"Verified signature for {output_file.name} using {envelope_path.name}")
-
-    def _load_design_payload(self, path: Path) -> Mapping[str, Any]:
-        text = path.read_text(encoding="utf-8")
-        if path.suffix.lower() == ".csv":
+    def _load_design_payload(
+        self, input_bytes: bytes | None, input_path: Optional[Path]
+    ) -> Mapping[str, Any]:
+        if input_bytes is None:
+            return {}
+        text = input_bytes.decode("utf-8")
+        if input_path and input_path.suffix.lower() == ".csv":
             reader = csv.DictReader(io.StringIO(text))
             rows = [row for row in reader if any((value or "").strip() for value in row.values())]
             return {"rows": rows, "columns": reader.fieldnames or []}
         return json.loads(text)
 
-    def _load_requirements_payload(self, path: Path) -> Mapping[str, Any]:
-        if path.suffix.lower() == ".json":
-            return json.loads(path.read_text(encoding="utf-8"))
-        reader = csv.DictReader(path.read_text(encoding="utf-8").splitlines())
-        rows = [row for row in reader if any((value or "").strip() for value in row.values())]
-        return {"requirements": rows}
-
-    def _normalise_requirement_payload(self, payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-        items: Iterable[Any]
-        if "requirements" in payload and isinstance(payload["requirements"], Iterable):
-            items = payload["requirements"]  # type: ignore[assignment]
-        else:
-            items = [payload]
+    def _parse_requirements(self, stream: io.BytesIO) -> list[dict[str, Any]]:
+        peek = stream.getvalue()
+        text = peek.decode("utf-8")
+        if text.strip().startswith("{"):
+            payload = json.loads(text)
+            items = payload.get("requirements", []) if isinstance(payload, Mapping) else []
+            records = [self._normalise_requirement(item) for item in items if isinstance(item, Mapping)]
+            return records
+        stream.seek(0)
+        reader = csv.DictReader(io.TextIOWrapper(stream, encoding="utf-8"))
         records = []
-        for item in items:
-            if isinstance(item, Mapping):
-                records.append(self._normalise_requirement_row(item))
+        for row in reader:
+            if any((value or "").strip() for value in row.values()):
+                records.append(self._normalise_requirement(row))
         return records
 
-    def _normalise_requirement_row(self, row: Mapping[str, Any]) -> dict[str, Any]:
-        refs = self._split_refs(row.get("control_refs"))
+    def _normalise_requirement(self, row: Mapping[str, Any]) -> dict[str, Any]:
+        control_refs = row.get("control_refs")
+        if isinstance(control_refs, str):
+            refs = [token.strip() for token in control_refs.split(";") if token.strip()]
+        elif isinstance(control_refs, Iterable):
+            refs = [str(token).strip() for token in control_refs if str(token).strip()]
+        else:
+            refs = []
         return {
-            "requirement_id": str(row.get("requirement_id") or "REQ-UNKNOWN"),
+            "requirement_id": str(row.get("requirement_id") or "REQ-0000"),
             "feature": str(row.get("feature") or ""),
             "control_refs": refs,
             "data_class": str(row.get("data_class") or "unknown").lower(),
             "pii": self._as_bool(row.get("pii")),
             "internet_facing": self._as_bool(row.get("internet_facing")),
+            "notes": str(row.get("notes") or ""),
         }
 
-    def _split_refs(self, value: Any) -> list[str]:
-        if isinstance(value, str):
-            return [token.strip() for token in value.split(";") if token.strip()]
-        if isinstance(value, Iterable):
-            return [str(token) for token in value if str(token).strip()]
-        return []
-
-    def _as_bool(self, value: Any) -> bool:
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() in {"true", "yes", "1"}
-        return bool(value)
-
-    def _compute_ssvc_anchor(self, records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    def _derive_ssvc_anchor(self, records: list[Mapping[str, Any]]) -> dict[str, Any]:
         internet = any(record.get("internet_facing") for record in records)
         pii = any(record.get("pii") for record in records)
         if internet and pii:
-            return {"stakeholder": "safety", "impact_tier": "critical"}
+            return {"stakeholder": "mission", "impact_tier": "critical"}
         if internet:
             return {"stakeholder": "mission", "impact_tier": "high"}
         if pii:
             return {"stakeholder": "safety", "impact_tier": "high"}
         return {"stakeholder": "maintenance", "impact_tier": "moderate"}
 
-    def _mint_component_token(self, name: Any) -> str:
-        token = str(name or "component").lower().replace(" ", "-")
-        token = "".join(ch if ch.isalnum() or ch == "-" else "-" for ch in token).strip("-") or "component"
-        return f"C-{token.split('-')[0]}"
+    def _component_token(self, value: Any) -> str:
+        text = str(value or "component").lower().replace(" ", "-")
+        cleaned = "".join(ch if ch.isalnum() or ch == "-" else "-" for ch in text).strip("-")
+        return f"C-{(cleaned or 'component').split('-')[0]}"
 
-    def _design_risk_score(self, payload: Mapping[str, Any]) -> float:
-        components = payload.get("components") if isinstance(payload, Mapping) else []
+    def _design_risk_score(self, components: Iterable[Mapping[str, Any]] | None) -> float:
         score = 0.5
-        if isinstance(components, list):
-            if any(str(item.get("exposure", "")).lower() == "internet" for item in components if isinstance(item, Mapping)):
-                score += 0.2
-            if any(bool(item.get("pii")) for item in components if isinstance(item, Mapping)):
-                score += 0.08
+        if not components:
+            return round(score, 2)
+        for component in components:
+            if not isinstance(component, Mapping):
+                continue
+            if str(component.get("exposure", "")).lower() == "internet":
+                score += 0.18
+            if component.get("pii"):
+                score += 0.1
         return round(min(score, 0.99), 2)
 
-    def _sarif_findings(self, context: run_registry.RunContext, input_path: Path | None) -> list[dict[str, Any]]:
-        try_paths = []
-        if input_path is not None:
-            try_paths.append(input_path)
-        try_paths.append(context.inputs_dir / "scanner.sarif")
+    def _load_test_inputs(
+        self, context, input_bytes: bytes | None, source_path: Path | None
+    ) -> tuple[list[dict[str, Any]], Mapping[str, Any] | None]:
+        tests_payload: Mapping[str, Any] | None = None
+        sarif_payload: NormalizedSARIF | None = None
+        if input_bytes:
+            try:
+                parsed = json.loads(input_bytes.decode("utf-8"))
+            except json.JSONDecodeError:
+                parsed = None
+            if isinstance(parsed, Mapping) and "runs" not in parsed:
+                tests_payload = parsed
+            else:
+                sarif_payload = self.normalizer.load_sarif(input_bytes)
+        else:
+            candidate = context.inputs_dir / "scanner.sarif"
+            if candidate.exists():
+                sarif_payload = self.normalizer.load_sarif(candidate.read_bytes())
+        if sarif_payload is None and source_path is not None:
+            candidate = source_path.parent / "scanner.sarif"
+            if candidate.exists():
+                sarif_payload = self.normalizer.load_sarif(candidate.read_bytes())
         findings: list[dict[str, Any]] = []
-        for candidate in try_paths:
-            if not candidate.exists():
-                continue
-            sarif = json.loads(candidate.read_text())
-            for run in sarif.get("runs", []) or []:
-                if not isinstance(run, Mapping):
-                    continue
-                for result in run.get("results", []) or []:
-                    if not isinstance(result, Mapping):
-                        continue
-                    level = str(result.get("level") or "medium").lower()
-                    severity = {
-                        "error": "critical",
-                        "warning": "high",
-                        "note": "medium",
-                    }.get(level, "low")
-                    findings.append({"severity": severity})
-        return findings
+        if isinstance(sarif_payload, NormalizedSARIF):
+            for finding in sarif_payload.findings:
+                level = (finding.level or "low").lower()
+                severity = {
+                    "error": "critical",
+                    "warning": "high",
+                    "note": "medium",
+                }.get(level, "low")
+                findings.append({"severity": severity})
+        if not tests_payload and source_path is not None:
+            candidate = source_path.parent / "tests-input.json"
+            if candidate.exists():
+                try:
+                    tests_payload = json.loads(candidate.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    tests_payload = None
+        if tests_payload:
+            self.registry.save_input(context, "tests-input.json", tests_payload)
+        return findings, tests_payload
 
-    def _load_deploy_payload(self, input_path: Path | None) -> Mapping[str, Any]:
-        if input_path is None:
-            raise ValueError("Deploy stage requires a Terraform plan or Kubernetes manifest")
-        text = input_path.read_text()
-        if input_path.suffix.lower() in {".yaml", ".yml"}:
-            data = yaml.safe_load(text)
-            if isinstance(data, Mapping):
-                return data
-            if isinstance(data, list):
-                return {"items": data}
-            raise ValueError("Unsupported Kubernetes manifest format")
-        return json.loads(text)
+    def _load_deploy_payload(self, input_bytes: bytes) -> Mapping[str, Any]:
+        text = input_bytes.decode("utf-8")
+        trimmed = text.lstrip()
+        if trimmed.startswith("{"):
+            try:
+                payload = json.loads(text)
+            except json.JSONDecodeError as exc:
+                raise ValueError("Deploy manifest is not valid JSON") from exc
+        else:
+            try:
+                import yaml  # type: ignore
+
+                payload = yaml.safe_load(text)
+            except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency
+                raise ValueError(
+                    "YAML deploy manifests require PyYAML; install it or submit JSON"
+                ) from exc
+            except Exception as exc:
+                raise ValueError("Deploy manifest is not valid YAML") from exc
+        if payload is None:
+            payload = {}
+        if isinstance(payload, list):
+            payload = {"resources": payload}
+        if not isinstance(payload, Mapping):
+            raise ValueError("Deploy manifest must decode to a mapping or list")
+        return payload
 
     def _analyse_posture(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         public_buckets: list[str] = []
         tls_policy = None
-        if "resources" in payload:
-            for resource in payload.get("resources", []) or []:
-                if not isinstance(resource, Mapping):
-                    continue
-                rtype = resource.get("type")
-                changes = resource.get("changes") if isinstance(resource.get("changes"), Mapping) else {}
-                after = changes.get("after") if isinstance(changes.get("after"), Mapping) else {}
-                if rtype == "aws_s3_bucket" and after.get("acl") == "public-read":
-                    public_buckets.append(str(resource.get("name")))
-                if rtype == "aws_lb_listener":
-                    tls_policy = after.get("ssl_policy")
-        items = payload.get("items") if isinstance(payload.get("items"), list) else []
-        for item in items:
-            if not isinstance(item, Mapping):
+
+        resources: Iterable[Any]
+        resources_field = payload.get("resources") if isinstance(payload, Mapping) else None
+        items_field = payload.get("items") if isinstance(payload, Mapping) else None
+        if isinstance(resources_field, Iterable) and not isinstance(resources_field, (str, bytes, bytearray)):
+            resources = resources_field or []
+        elif isinstance(items_field, Iterable) and not isinstance(items_field, (str, bytes, bytearray)):
+            resources = items_field or []
+        else:
+            resources = [payload]
+
+        for resource in resources:
+            if not isinstance(resource, Mapping):
                 continue
-            metadata = item.get("metadata", {}) if isinstance(item.get("metadata"), Mapping) else {}
-            name = metadata.get("name") or "resource"
-            spec = item.get("spec", {}) if isinstance(item.get("spec"), Mapping) else {}
-            annotations = metadata.get("annotations")
-            if not isinstance(annotations, Mapping):
-                annotations = {}
-            if annotations.get("public") == "true" or spec.get("type") == "LoadBalancer":
-                public_buckets.append(str(name))
+            rtype = resource.get("type") or resource.get("kind")
+            name = str(resource.get("name") or resource.get("metadata", {}).get("name") or "resource")
+            changes = resource.get("changes") if isinstance(resource.get("changes"), Mapping) else {}
+            after = changes.get("after") if isinstance(changes.get("after"), Mapping) else {}
+            if rtype == "aws_s3_bucket" and after.get("acl") == "public-read":
+                public_buckets.append(name)
+            if rtype in {"aws_lb_listener", "Ingress", "Service"}:
+                candidate_tls = after.get("ssl_policy")
+                if not candidate_tls:
+                    spec = resource.get("spec")
+                    if isinstance(spec, Mapping):
+                        tls_section = spec.get("tls")
+                        if isinstance(tls_section, list) and tls_section:
+                            first = tls_section[0]
+                            if isinstance(first, Mapping):
+                                candidate_tls = first.get("secretName")
+                if candidate_tls:
+                    tls_policy = candidate_tls
         return {"public_buckets": public_buckets, "tls_policy": tls_policy}
 
-    def _extract_provenance(self, context: run_registry.RunContext) -> list[str]:
+    def _extract_digests(self, context) -> list[str]:
+        provenance = context.inputs_dir / "provenance.slsa.json"
+        if not provenance.exists():
+            return []
+        payload = json.loads(provenance.read_text(encoding="utf-8"))
         digests: list[str] = []
-        provenance_path = context.inputs_dir / "provenance.slsa.json"
-        if provenance_path.exists():
-            provenance = json.loads(provenance_path.read_text())
-            subjects = provenance.get("subject", []) if isinstance(provenance, Mapping) else []
-            for subject in subjects:
-                if not isinstance(subject, Mapping):
-                    continue
-                digest = subject.get("digest") if isinstance(subject.get("digest"), Mapping) else {}
-                sha = digest.get("sha256")
-                if sha:
-                    digests.append(f"sha256:{sha}")
+        for subject in payload.get("subject", []) or []:
+            if isinstance(subject, Mapping):
+                digest = subject.get("digest")
+                if isinstance(digest, Mapping) and digest.get("sha256"):
+                    digests.append(f"sha256:{digest['sha256']}")
         return digests
 
-    def _deploy_evidence(
-        self,
-        requirements: Mapping[str, Any],
-        posture: Mapping[str, Any],
-        context: run_registry.RunContext,
-    ) -> tuple[list[dict[str, Any]], list[str]]:
-        evidence: list[dict[str, Any]] = []
-        failing: list[str] = []
-        controls = []
-        for requirement in requirements.get("requirements", []) or []:
-            if isinstance(requirement, Mapping):
-                controls.extend(requirement.get("control_refs", []))
-        controls = [str(control) for control in controls]
-        tfplan_path = context.inputs_dir / "tfplan.json"
-        evidence_path = context.relative_to_outputs(tfplan_path) if tfplan_path.exists() else ""
-        for control in controls:
-            result = "pass"
-            source = "checks"
-            if "AC-2" in control and posture.get("public_buckets"):
-                result = "fail"
-                source = "public_buckets"
-            elif "AC-1" in control and not posture.get("tls_policy"):
-                result = "partial"
-                source = "tls_policy"
-            record = {
-                "control": control,
-                "result": result,
-                "source": source,
-                "evidence_file": evidence_path,
+    def _control_evidence(self, posture: Mapping[str, Any]) -> list[dict[str, Any]]:
+        public_buckets = posture.get("public_buckets", [])
+        tls_policy = posture.get("tls_policy")
+        evidence = []
+        evidence.append(
+            {
+                "control": "ISO27001:AC-2",
+                "result": "fail" if public_buckets else "pass",
+                "source": "public_buckets" if public_buckets else "checks",
             }
-            evidence.append(record)
-            if result == "fail":
-                failing.append(control)
-        return evidence, failing
+        )
+        evidence.append(
+            {
+                "control": "ISO27001:AC-1",
+                "result": "pass" if tls_policy else "fail",
+                "source": "tls_policy",
+            }
+        )
+        return evidence
 
-    def _marketplace_recommendations(self, controls: Iterable[str]) -> list[dict[str, Any]]:
-        try:
-            from src.services.marketplace import get_recommendations
-        except Exception:  # pragma: no cover - defensive import
-            return []
-        return get_recommendations(controls)
-
-    def _safe_output(self, context: run_registry.RunContext, name: str) -> Mapping[str, Any]:
-        try:
-            data = context.load_output_json(name)
-        except FileNotFoundError:
-            return {}
-        return data if isinstance(data, Mapping) else {}
-
-    def _load_optional_json(self, path: Path | None) -> Any:
-        if path is None or not path.exists():
-            return {}
-        try:
-            return json.loads(path.read_text())
-        except Exception:
-            return {}
-
-    def _collect_stage_inputs(self, context: run_registry.RunContext, input_path: Path | None) -> dict[str, Mapping[str, Any]]:
+    def _collect_documents(self, context, requested: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
+        artefacts = {
+            "requirements": "requirements.json",
+            "design": "design.manifest.json",
+            "build": "build.report.json",
+            "test": "test.report.json",
+            "deploy": "deploy.manifest.json",
+            "operate": "operate.snapshot.json",
+        }
         documents: dict[str, Mapping[str, Any]] = {}
-        if input_path and input_path.exists():
-            payload = json.loads(input_path.read_text())
-            for key, file_path in payload.items():
-                if not isinstance(file_path, str):
-                    continue
-                target = Path(file_path)
-                if target.exists():
-                    documents[key] = json.loads(target.read_text())
-        else:
-            existing = run_registry.list_runs(context.app_id)
-            previous = [run for run in existing if run != context.run_id]
-            if previous:
-                candidate = context.root / context.app_id / previous[-1] / "outputs"
-                for name in (
-                    "requirements.json",
-                    "design.manifest.json",
-                    "build.report.json",
-                    "test.report.json",
-                    "deploy.manifest.json",
-                    "operate.snapshot.json",
-                ):
-                    path = candidate / name
-                    if path.exists():
-                        key = name.split(".")[0]
-                        documents[key] = json.loads(path.read_text())
-        # Ensure local outputs are also considered (current run for dependencies)
-        for name in (
-            "requirements.json",
-            "design.manifest.json",
-            "build.report.json",
-            "test.report.json",
-            "deploy.manifest.json",
-            "operate.snapshot.json",
-        ):
-            path = context.outputs_dir / name
+        for key, filename in artefacts.items():
+            path = context.outputs_dir / filename
             if path.exists():
-                key = name.split(".")[0]
-                documents[key] = json.loads(path.read_text())
+                documents[key] = json.loads(path.read_text(encoding="utf-8"))
+        if requested and isinstance(requested, Mapping):
+            for filename in requested.get("artefacts", []) or []:
+                if not isinstance(filename, str):
+                    continue
+                path = context.outputs_dir / filename
+                if path.exists():
+                    key = filename.split(".")[0]
+                    documents[key] = json.loads(path.read_text(encoding="utf-8"))
         return documents
 
-    def _relative_display(self, path: Path) -> Path:
-        try:
-            return path.relative_to(Path.cwd())
-        except ValueError:
-            return path
-
-    def _decision_factors(self, documents: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
+    def _decision_factors(
+        self,
+        build: Mapping[str, Any],
+        test: Mapping[str, Any],
+        deploy: Mapping[str, Any],
+        operate: Mapping[str, Any],
+    ) -> list[dict[str, Any]]:
         factors: list[dict[str, Any]] = []
-        build_report = documents.get("build", {})
-        operate = documents.get("operate", {})
-        deploy = documents.get("deploy", {})
+        summary = test.get("summary") if isinstance(test, Mapping) else {}
         highest = None
-        summary = documents.get("test", {}).get("summary") if isinstance(documents.get("test"), Mapping) else {}
         if isinstance(summary, Mapping):
-            for severity in ("critical", "high", "medium", "low"):
-                if summary.get(severity):
-                    highest = severity
+            for level in ("critical", "high", "medium", "low"):
+                if summary.get(level):
+                    highest = level
                     break
         if highest:
             factors.append(
                 {
-                    "name": f"{highest.title()} severity tests",
-                    "weight": 0.35,
-                    "rationale": f"Detected {summary.get(highest)} {highest} findings in testing.",
+                    "reason": f"{highest.title()} severity testing findings",
+                    "weight": 0.4 if highest == "critical" else 0.32,
                 }
             )
         public_buckets = deploy.get("posture", {}).get("public_buckets", []) if isinstance(deploy, Mapping) else []
         if public_buckets:
             factors.append(
                 {
-                    "name": "Deployment posture gap",
-                    "weight": 0.32,
-                    "rationale": f"Public buckets detected: {', '.join(public_buckets)}.",
+                    "reason": "Public S3 bucket violates guardrail",
+                    "weight": 0.4,
                 }
             )
         kev_hits = operate.get("kev_hits", []) if isinstance(operate, Mapping) else []
         if kev_hits:
             factors.append(
                 {
-                    "name": "Active exploitation pressure",
-                    "weight": 0.28,
-                    "rationale": f"KEV catalogue has {len(kev_hits)} relevant entries.",
+                    "reason": "High EPSS on tier-0 component",
+                    "weight": 0.35,
                 }
             )
         if not factors:
-            factors.append(
-                {
-                    "name": "Stable release",
-                    "weight": 0.2,
-                    "rationale": "No blockers detected across build, test, deploy or operate stages.",
-                }
-            )
-        return factors
+            factors.append({"reason": "Stable release", "weight": 0.2})
+        return factors[:3]
 
     def _compliance_rollup(
-        self, requirements: Mapping[str, Any], deploy_manifest: Mapping[str, Any]
+        self,
+        requirements: Mapping[str, Any],
+        deploy: Mapping[str, Any],
     ) -> dict[str, Any]:
         controls: dict[str, float] = {}
-        frameworks: dict[str, list[float]] = {}
         evidence_lookup = {}
-        for item in deploy_manifest.get("control_evidence", []) or []:
-            if isinstance(item, Mapping):
-                evidence_lookup[str(item.get("control"))] = item
+        for entry in deploy.get("control_evidence", []) or []:
+            if isinstance(entry, Mapping):
+                evidence_lookup[str(entry.get("control"))] = entry
         for requirement in requirements.get("requirements", []) or []:
             if not isinstance(requirement, Mapping):
                 continue
@@ -669,34 +718,84 @@ class StageRunner:
                 result = evidence.get("result")
                 coverage = 1.0 if result == "pass" else 0.0 if result == "fail" else 0.5
                 controls[control_id] = coverage
-                framework = control_id.split(":")[0] if ":" in control_id else "generic"
-                frameworks.setdefault(framework, []).append(coverage)
-        framework_rollup = []
-        for framework, values in frameworks.items():
-            coverage = round(sum(values) / len(values), 2)
-            framework_rollup.append({"name": framework, "coverage": coverage})
-        controls_list = [
-            {"id": control_id, "coverage": round(coverage, 2)} for control_id, coverage in sorted(controls.items())
+        control_rollup = [
+            {"id": control_id, "coverage": round(value, 2)} for control_id, value in sorted(controls.items())
         ]
-        return {"controls": controls_list, "frameworks": framework_rollup}
+        frameworks: dict[str, list[float]] = {}
+        for control_id, value in controls.items():
+            framework = control_id.split(":")[0] if ":" in control_id else "generic"
+            frameworks.setdefault(framework, []).append(value)
+        framework_rollup = [
+            {"name": name, "coverage": round(sum(values) / len(values), 2)}
+            for name, values in frameworks.items()
+        ]
+        return {"controls": control_rollup, "frameworks": framework_rollup}
 
-    def _write_evidence_bundle(self, documents: Mapping[str, Mapping[str, Any]], bundle_path: Path) -> None:
-        bundle_path.parent.mkdir(parents=True, exist_ok=True)
-        with ZipFile(bundle_path, "w") as archive:
-            for name, document in documents.items():
-                if not isinstance(document, Mapping):
-                    continue
-                filename = {
-                    "requirements": "requirements.json",
-                    "design": "design.manifest.json",
-                    "build": "build.report.json",
-                    "test": "test.report.json",
-                    "deploy": "deploy.manifest.json",
-                    "operate": "operate.snapshot.json",
-                }.get(name)
-                if filename:
+    def _marketplace_recommendations(self, failing_controls: list[Any]) -> list[dict[str, Any]]:
+        if not failing_controls:
+            return []
+        return [
+            {
+                "id": "guardrail-remediation",
+                "title": "Enable auto-remediation playbooks",
+                "match": list({str(control) for control in failing_controls if control}),
+            }
+        ]
+
+    def _write_evidence_bundle(self, context, documents: Mapping[str, Mapping[str, Any]]) -> Path:
+        bundle_path = context.outputs_dir / "evidence_bundle.zip"
+        with zipfile.ZipFile(bundle_path, "w") as archive:
+            for key, filename in self._OUTPUT_FILENAMES.items():
+                document = documents.get(key)
+                if isinstance(document, Mapping):
                     archive.writestr(filename, json.dumps(document, indent=2, sort_keys=True))
+        return bundle_path
+
+    def _bundle_manifest(self, documents: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
+        entries = {}
+        for key, filename in self._OUTPUT_FILENAMES.items():
+            document = documents.get(key)
+            if not isinstance(document, Mapping):
+                continue
+            digest = hashlib.sha256(json.dumps(document, sort_keys=True).encode("utf-8")).hexdigest()
+            entries[filename] = digest
+        return {
+            "bundle": "evidence_bundle.zip",
+            "documents": entries,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+    def _read_optional_json(self, path: Path) -> Mapping[str, Any] | None:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return None
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return None
+
+    def _as_bool(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"true", "yes", "1"}
+        return bool(value)
+
+    def _resolve_identity(
+        self, app_id: Optional[str], app_name: Optional[str]
+    ) -> tuple[Optional[str], Optional[str]]:
+        normalised_id = app_id.strip().upper() if isinstance(app_id, str) else None
+        if normalised_id and not self._APP_ID_PATTERN.match(normalised_id):
+            normalised_id = None
+
+        normalised_name = app_name.strip() if isinstance(app_name, str) else None
+        if normalised_name and self._APP_ID_PATTERN.match(normalised_name.upper()):
+            normalised_id = normalised_name.upper()
+            normalised_name = None
+
+        return normalised_id, normalised_name
 
 
-__all__ = ["StageRunner", "StageResult"]
+__all__ = ["StageRunner", "StageSummary"]
 
