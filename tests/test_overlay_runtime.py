@@ -53,6 +53,10 @@ def test_prepare_overlay_reports_missing_automation_tokens(monkeypatch):
     warnings = overlay.metadata.get("runtime_warnings", [])
     assert any("Jira" in warning for warning in warnings)
     assert any("Confluence" in warning for warning in warnings)
+    assert overlay.metadata.get("automation_ready") is False
+    requirements = overlay.metadata.get("automation_requirements", [])
+    assert {entry.get("label") for entry in requirements} == {"Jira", "Confluence"}
+    assert all(entry.get("token_env") for entry in requirements)
 
 
 def test_prepare_overlay_suppresses_warnings_when_tokens_present(monkeypatch):
@@ -65,3 +69,4 @@ def test_prepare_overlay_suppresses_warnings_when_tokens_present(monkeypatch):
 
     warnings = overlay.metadata.get("runtime_warnings")
     assert not warnings
+    assert overlay.metadata.get("automation_ready") is True

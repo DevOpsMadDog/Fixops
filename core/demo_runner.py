@@ -111,6 +111,11 @@ def _format_summary(
         lines.append(f"  Result saved to: {output_path}")
     if evidence_path:
         lines.append(f"  Evidence bundle: {evidence_path}")
+    runtime_warnings = result.get("runtime_warnings")
+    if isinstance(runtime_warnings, Sequence) and runtime_warnings:
+        lines.append("  Runtime warnings:")
+        for warning in runtime_warnings:
+            lines.append(f"    - {warning}")
     return lines
 
 

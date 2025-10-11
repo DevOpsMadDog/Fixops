@@ -1,11 +1,12 @@
 """Enterprise-facing facade for the enhanced decision engine."""
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Dict, Mapping, MutableMapping, Optional
 
 import structlog
 
-from core.configuration import OverlayConfig, load_overlay
+from core.configuration import OverlayConfig
+from core.overlay_runtime import prepare_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
 
 logger = structlog.get_logger(__name__)
@@ -18,11 +19,12 @@ class EnhancedDecisionService:
         self,
         *,
         overlay_mode: str = "enterprise",
-        overlay_loader=load_overlay,
+        overlay_loader=prepare_overlay,
     ) -> None:
         self._overlay_mode = overlay_mode
         self._overlay_loader = overlay_loader
         self._engine: Optional[EnhancedDecisionEngine] = None
+        self._runtime_metadata: Dict[str, Any] = {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -35,7 +37,7 @@ class EnhancedDecisionService:
         """Reload overlay-backed settings and return refreshed capabilities."""
 
         self._engine = self._build_engine()
-        capabilities = self._engine.capabilities()
+        capabilities = self._attach_runtime_metadata(self._engine.capabilities())
         logger.info("enhanced_decision.reload", overlay_mode=self._overlay_mode)
         return capabilities
 
@@ -44,7 +46,7 @@ class EnhancedDecisionService:
 
         engine = self._ensure_engine()
         result = engine.analyse_payload(payload)
-        return result
+        return self._attach_runtime_metadata(result)
 
     def evaluate_pipeline(
         self,
@@ -63,13 +65,13 @@ class EnhancedDecisionService:
             compliance_status=compliance_status,
             knowledge_graph=knowledge_graph,
         )
-        return result
+        return self._attach_runtime_metadata(result)
 
     def capabilities(self) -> MutableMapping[str, Any]:
         """Expose engine telemetry and supported providers."""
 
         engine = self._ensure_engine()
-        return engine.capabilities()
+        return self._attach_runtime_metadata(engine.capabilities())
 
     def signals(
         self,
@@ -78,7 +80,8 @@ class EnhancedDecisionService:
         confidence: Optional[float] = None,
     ) -> MutableMapping[str, Any]:
         engine = self._ensure_engine()
-        return engine.signals(verdict=verdict, confidence=confidence)
+        result = engine.signals(verdict=verdict, confidence=confidence)
+        return self._attach_runtime_metadata(result)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -86,6 +89,7 @@ class EnhancedDecisionService:
     def _build_engine(self) -> EnhancedDecisionEngine:
         overlay = self._load_overlay()
         settings = overlay.enhanced_decision_settings
+        self._runtime_metadata = dict(getattr(overlay, "metadata", {}) or {})
         logger.debug(
             "enhanced_decision.initialise",
             overlay_mode=self._overlay_mode,
@@ -94,13 +98,34 @@ class EnhancedDecisionService:
         return EnhancedDecisionEngine(settings)
 
     def _load_overlay(self) -> OverlayConfig:
-        overlay = self._overlay_loader(mode_override=self._overlay_mode)
+        try:
+            overlay = self._overlay_loader(
+                mode=self._overlay_mode, ensure_directories=False
+            )
+        except TypeError:
+            overlay = self._overlay_loader(mode_override=self._overlay_mode)
         return overlay
 
     def _ensure_engine(self) -> EnhancedDecisionEngine:
         if self._engine is None:
             self._engine = self._build_engine()
         return self._engine
+
+    def _attach_runtime_metadata(
+        self, payload: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        warnings = list(self._runtime_metadata.get("runtime_warnings") or [])
+        if not warnings:
+            return payload
+        payload.setdefault("runtime_warnings", warnings)
+        payload.setdefault(
+            "automation_ready",
+            bool(self._runtime_metadata.get("automation_ready", not warnings)),
+        )
+        requirements = self._runtime_metadata.get("automation_requirements")
+        if requirements and "automation_requirements" not in payload:
+            payload["automation_requirements"] = requirements
+        return payload
 
 
 enhanced_decision_service = EnhancedDecisionService()

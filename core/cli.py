@@ -612,6 +612,11 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
         bundle_file = result["evidence_bundle"].get("files", {}).get("bundle")
         if bundle_file:
             print(f"  Evidence bundle generated at: {bundle_file}")
+    runtime_warnings = result.get("runtime_warnings")
+    if isinstance(runtime_warnings, Sequence) and runtime_warnings:
+        print("  Runtime warnings:")
+        for warning in runtime_warnings:
+            print(f"    - {warning}")
 
 
 def _handle_run(args: argparse.Namespace) -> int:
@@ -632,6 +637,11 @@ def _handle_show_overlay(args: argparse.Namespace) -> int:
     if args.env:
         _apply_env_overrides(args.env)
     overlay = prepare_overlay(path=args.overlay, ensure_directories=False)
+    metadata = getattr(overlay, "metadata", {}) or {}
+    warnings = metadata.get("runtime_warnings")
+    if isinstance(warnings, Sequence) and warnings:
+        for warning in warnings:
+            print(f"Warning: {warning}", file=sys.stderr)
     payload = overlay.to_sanitised_dict()
     text = json.dumps(payload, indent=2 if args.pretty else None)
     print(text)

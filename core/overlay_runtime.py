@@ -80,15 +80,27 @@ def prepare_overlay(
             elif action_type == "confluence_page":
                 _check_token(getattr(overlay, "confluence", {}) or {}, "Confluence")
 
+    metadata = dict(getattr(overlay, "metadata", {}) or {})
+    existing = metadata.get("runtime_warnings")
+    if isinstance(existing, list):
+        runtime_warnings = existing + runtime_warnings
+    elif isinstance(existing, tuple):
+        runtime_warnings = list(existing) + runtime_warnings
+
     if runtime_warnings:
-        metadata = dict(getattr(overlay, "metadata", {}) or {})
-        existing = metadata.get("runtime_warnings")
-        if isinstance(existing, list):
-            runtime_warnings = existing + runtime_warnings
-        elif isinstance(existing, tuple):
-            runtime_warnings = list(existing) + runtime_warnings
         metadata["runtime_warnings"] = runtime_warnings
-        overlay.metadata = metadata
+
+    metadata["automation_ready"] = not missing_tokens
+    if missing_tokens:
+        requirements = [
+            {"label": label, "token_env": token_env}
+            for label, token_env in sorted(missing_tokens)
+        ]
+        metadata["automation_requirements"] = requirements
+    elif "automation_requirements" not in metadata:
+        metadata["automation_requirements"] = []
+
+    overlay.metadata = metadata
 
     if ensure_directories:
         for directory in overlay.data_directories.values():
