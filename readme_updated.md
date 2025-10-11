@@ -17,6 +17,7 @@
   - [Provenance graph service](#provenance-graph-service)
   - [Reproducible build verification](#reproducible-build-verification)
   - [Evidence bundles & CI agent](#evidence-bundles--ci-agent)
+  - [SSDLC lifecycle evaluation](#ssdlc-lifecycle-evaluation)
   - [Probabilistic forecasting, Markov & Bayesian analytics](#probabilistic-forecasting-markov--bayesian-analytics)
   - [Multi-LLM consensus](#multi-llm-consensus)
   - [Observability & demo stack](#observability--demo-stack)
@@ -407,6 +408,57 @@ flowchart TD
 | `config/policy.yml` | Threshold evaluation (coverage ≥ 70%, risk ceilings) | CLI exit codes & policy report |
 | `artifacts/sbom/normalized.json` + `artifacts/risk.json` | Aggregated by `fixops-ci` | `evidence/workdir/<release>/` staging area |
 | Staged artefacts + cosign key | Manifest hashed & signed | `evidence/bundles/<release>.zip` |
+
+### SSDLC lifecycle evaluation
+#### 1. Why it exists
+Demonstrate secure software development lifecycle coverage with deterministic artefacts that auditors can diff across releases. The SSDLC evaluator transforms raw design, control, SBOM, SARIF, infrastructure-as-code, and exploit-signal inputs into stage-specific JSON payloads for downstream dashboards and the enterprise API.
+
+#### 2. Primary implementation
+- `core/ssdlc.py` parses overlay-defined lifecycle requirements and evaluates them against pipeline artefacts, returning per-stage status summaries.【F:core/ssdlc.py†L1-L170】
+- `apps/api/pipeline.py` invokes the evaluator when the overlay enables SSDLC checks, wiring results into the broader decision pipeline response.【F:apps/api/pipeline.py†L835-L863】
+- `simulations/ssdlc/run.py` provides the CLI used during demos and tests to materialise canonical stage outputs with optional overlays.【F:simulations/ssdlc/run.py†L1-L239】
+- `tests/test_ssdlc_runner.py` ensures every stage command emits the correct filenames and supports `--stage all` generation.【F:tests/test_ssdlc_runner.py†L35-L59】
+
+#### 3. Data flow
+```mermaid
+flowchart TD
+    subgraph Inputs
+        D[design/inputs/design_context.csv]
+        R[requirements/inputs/controls.json]
+        B[build/inputs/sbom.json]
+        T[test/inputs/scanner.sarif]
+        De[deploy/inputs/iac.tfplan.json]
+        O1[operate/inputs/kev.json]
+        O2[operate/inputs/epss.json]
+    end
+    CLI[python -m simulations.ssdlc.run]
+    Eval[core/ssdlc.SSDLCEvaluator]
+    Outputs{{Stage JSON artefacts}}
+    Inputs --> CLI --> Eval --> Outputs
+    Outputs --> API[apps/api/pipeline.py]
+```
+
+#### 4. Usage & stage-by-stage inputs/outputs
+- **CLI skeleton**
+  ```bash
+  python -m simulations.ssdlc.run --stage <stage> --out artifacts/ssdlc
+  python -m simulations.ssdlc.run --stage all --out artifacts/ssdlc --overlay config/ssdlc.overlay.json
+  ```
+- **Stage matrix**
+
+| Stage (`--stage …`) | Required inputs | Generated output | What the payload captures |
+| --- | --- | --- | --- |
+| `design` | `simulations/ssdlc/design/inputs/design_context.csv` | `design_crosswalk.json` | Service exposure summary plus any overlay-injected risk annotations for architecture reviews.【F:simulations/ssdlc/run.py†L85-L101】 |
+| `requirements` | `simulations/ssdlc/requirements/inputs/controls.json` | `policy_plan.json` | Normalised control map detailing satisfied vs. in-progress guardrails.【F:simulations/ssdlc/run.py†L104-L117】 |
+| `build` | `simulations/ssdlc/build/inputs/sbom.json` | `component_index.json` | Component manifest aligned to SBOM entries for dependency governance.【F:simulations/ssdlc/run.py†L119-L141】 |
+| `test` | `simulations/ssdlc/test/inputs/scanner.sarif` | `normalized_findings.json` | Tool list and severity histogram derived from SARIF scanners for QA sign-off.【F:simulations/ssdlc/run.py†L144-L174】 |
+| `deploy` | `simulations/ssdlc/deploy/inputs/iac.tfplan.json` | `iac_posture.json` | Terraform change analysis showing exposed ports and internet-facing resources.【F:simulations/ssdlc/run.py†L177-L205】 |
+| `operate` | `simulations/ssdlc/operate/inputs/kev.json`, `simulations/ssdlc/operate/inputs/epss.json` | `exploitability.json` | KEV/EPSS fusion that flags urgent operational response priorities.【F:simulations/ssdlc/run.py†L207-L231】 |
+
+#### 5. Sample artefacts & downstream usage
+- `--stage all` prints a JSON map of every generated file, which can be zipped into evidence bundles or imported into dashboards.【F:simulations/ssdlc/run.py†L234-L239】【F:tests/test_ssdlc_runner.py†L45-L59】
+- The pipeline API surfaces `ssdlc_assessment.summary` counts so CI gates and overlays can assert minimum lifecycle coverage.【F:apps/api/pipeline.py†L846-L860】
+- Evidence bundles embed each stage artefact alongside provenance, risk, and repro proof, giving auditors lifecycle-to-release traceability.【F:evidence/packager.py†L180-L260】
 
 ### Probabilistic forecasting, Markov & Bayesian analytics
 #### 1. Why it exists
