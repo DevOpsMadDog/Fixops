@@ -9,8 +9,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
-from core.configuration import OverlayConfig, load_overlay
-from core.evidence import Fernet  # type: ignore
+from core.overlay_runtime import prepare_overlay
 from core.paths import ensure_secure_directory
 
 _DEMO_ENV_DEFAULTS: Dict[str, str] = {
@@ -115,17 +114,6 @@ def _format_summary(
     return lines
 
 
-def _prepare_overlay(mode: str) -> OverlayConfig:
-    _ensure_env_defaults()
-    overlay = load_overlay(mode_override=mode)
-    evidence_limits = overlay.limits.setdefault("evidence", {}) if isinstance(overlay.limits, dict) else {}
-    if evidence_limits.get("encrypt") and Fernet is None:
-        evidence_limits["encrypt"] = False
-    for directory in overlay.data_directories.values():
-        ensure_secure_directory(directory)
-    return overlay
-
-
 def run_demo_pipeline(
     mode: str = "demo",
     *,
@@ -149,7 +137,8 @@ def run_demo_pipeline(
     """
 
     selected_mode = mode.lower().strip() or "demo"
-    overlay = _prepare_overlay(selected_mode)
+    _ensure_env_defaults()
+    overlay = prepare_overlay(mode=selected_mode)
 
     normalizer = InputNormalizer()
     sbom = normalizer.load_sbom(_fixture_path("sample.sbom.json").read_bytes())

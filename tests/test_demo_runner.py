@@ -1,6 +1,8 @@
+import os
 from pathlib import Path
 
 from core.demo_runner import run_demo_pipeline
+from core.evidence import Fernet
 
 
 def test_run_demo_pipeline_demo_mode(tmp_path: Path) -> None:
@@ -9,6 +11,12 @@ def test_run_demo_pipeline_demo_mode(tmp_path: Path) -> None:
     assert output_path.exists()
     assert "FixOps Demo mode summary:" == summary[0]
     assert result.get("severity_overview")
+    bundle = result.get("evidence_bundle", {})
+    assert bundle.get("bundle_id")
+    bundle_path = Path(bundle["files"]["bundle"])
+    assert bundle_path.exists()
+    if Fernet is None or not os.getenv("FIXOPS_EVIDENCE_KEY"):
+        assert bundle.get("encrypted") is False
 
 
 def test_run_demo_pipeline_enterprise_mode(tmp_path: Path) -> None:
@@ -21,3 +29,12 @@ def test_run_demo_pipeline_enterprise_mode(tmp_path: Path) -> None:
     assert output_path.exists()
     assert "FixOps Enterprise mode summary:" == summary[0]
     assert result.get("pricing_summary")
+    bundle = result.get("evidence_bundle", {})
+    assert bundle.get("bundle_id")
+    files = bundle.get("files", {})
+    bundle_path = Path(files["bundle"])
+    manifest_path = Path(files["manifest"])
+    assert bundle_path.exists()
+    assert manifest_path.exists()
+    if Fernet is None or not os.getenv("FIXOPS_EVIDENCE_KEY"):
+        assert bundle.get("encrypted") is False

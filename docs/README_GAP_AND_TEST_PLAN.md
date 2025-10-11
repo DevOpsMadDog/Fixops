@@ -17,9 +17,9 @@
 
 ## 3. Demo vs. enterprise regression strategy
 ### 3.1 Pipeline execution
-1. **CLI smoke tests** – run `python -m core.cli demo --mode demo` and `--mode enterprise` to validate bundled fixtures, summary output, and evidence bundling.【F:core/demo_runner.py†L129-L192】 Existing tests cover both modes but should be extended to assert guardrail and compliance deltas across overlays.【F:tests/test_demo_runner.py†L6-L23】
+1. **CLI smoke tests** – run `python -m core.cli demo --mode demo` and `--mode enterprise` to validate bundled fixtures, summary output, and evidence bundling.【F:core/demo_runner.py†L129-L192】 Regression coverage now asserts evidence bundles materialise on disk for both overlays and that encryption downgrades when optional crypto dependencies are absent.【F:tests/test_demo_runner.py†L6-L36】 Continue extending assertions for guardrail and compliance deltas across overlays.
 2. **Stage workflow** – exercise `apps.fixops_cli` for every stage with curated fixtures to verify canonical outputs and signing toggles.【F:apps/fixops_cli/__main__.py†L19-L84】【F:core/stage_runner.py†L214-L413】 Add assertions for transparency logs and bundle verification in enterprise mode.
-3. **Overlay validation** – extend `core.cli show-overlay` regression tests to ensure encrypted evidence flags disable gracefully when `Fernet` is unavailable.【F:core/demo_runner.py†L118-L127】【F:core/cli.py†L766-L776】
+3. **Overlay validation** – extend `core.cli show-overlay` regression tests to ensure encrypted evidence flags disable gracefully when `Fernet` is unavailable.【F:core/overlay_runtime.py†L1-L46】【F:core/cli.py†L604-L642】 Runtime helpers and CLI coverage now coerce encryption off when crypto support or keys are missing, preventing sample runs from failing.【F:tests/test_cli.py†L120-L146】【F:tests/test_overlay_runtime.py†L1-L26】
 
 ### 3.2 Module-level checks
 - **Enhanced decisioning** – validate telemetry fields (`models_consulted`, marketplace references, knowledge graph summary) under enterprise overlay; current test fixture asserts presence but not value ranges.【F:tests/test_enterprise_paths.py†L88-L125】 Add mocks for remote provider failures to ensure deterministic fallbacks surface provider metadata.

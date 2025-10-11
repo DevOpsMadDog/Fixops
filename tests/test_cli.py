@@ -167,6 +167,7 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
 
 def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
     monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setattr("core.overlay_runtime.Fernet", None)
 
     exit_code = cli.main(
         [
@@ -181,6 +182,7 @@ def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
     overlay_payload = json.loads(output)
     assert overlay_payload["mode"] in {"demo", "enterprise"}
     assert "guardrails" in overlay_payload
+    assert overlay_payload.get("limits", {}).get("evidence", {}).get("encrypt") is False
 
 
 def test_cli_train_forecast(tmp_path: Path, capsys):
