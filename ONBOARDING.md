@@ -1,60 +1,58 @@
 # FixOps Blended Enterprise – Quick Onboarding Guide
 
-This document helps newcomers navigate the FixOps Blended Enterprise repository and understand how the major pieces fit together.
-
+This guide orients new contributors to the current repository snapshot. It reflects the checked-in code only—any assets referenced in older decks (front-end bundles, Terraform stacks, Docker Compose files) are out of scope unless you add them back.
 
 ## Handover Pack
-- [ROADMAP](docs/ROADMAP.md) – delivery priorities across P0/P1/P2 horizons.
-- [BACKLOG](docs/BACKLOG.csv) – triaged engineering/security tasks.
-- [ARCHITECTURE](docs/ARCHITECTURE.md) – module map, dependency highlights, and control/data flows.
-- [FixOps Demo I/O Contract](docs/FixOps_Demo_IO_Contract.md) – canonical ingest pipeline, signing flow, and scripted demo.
+- [README](README.md) – single source of truth for capabilities, setup, and supported workflows.
+- [ROADMAP](ROADMAP.md) – delivery priorities and sequencing.
+- [docs/README_GAP_AND_TEST_PLAN.md](docs/README_GAP_AND_TEST_PLAN.md) – gap assessment plus demo/enterprise regression strategy.
+- [tests/](tests/) – practical tour of CLI, pipeline, and enhanced API behaviour.
 
-## Repository Layout
-- **Root utilities** – Provisioning scripts (`create_tables.py`, `create_minimal_tables.py`) and regression test entry points (`backend_test.py`, `frontend/test_frontend.py`).
-- **`enterprise/`** – Main product source. The `backend` and `frontend` symlinks at the repo root both point here, so use this directory directly when exploring code.
-- **`data/` & databases** – Seed data, fixtures, and the default SQLite database (`fixops_enterprise.db`) used for local demos.
+## Repository layout highlights
+- **`core/`** – Overlay loader, pipeline orchestrator, and module implementations (context engine, evidence hub, compliance, IaC posture, probabilistic analytics, etc.).【F:core/stage_runner.py†L214-L413】【F:core/iac.py†L18-L134】
+- **`apps/api/`** – FastAPI ingestion surface that prepares allowlisted directories, enforces API keys, and invokes the orchestrator.【F:apps/api/app.py†L1-L120】【F:apps/api/pipeline.py†L1-L210】
+- **`fixops-enterprise/src/`** – Enhanced decision router and service wrapper used for enterprise overlays.【F:fixops-enterprise/src/api/v1/enhanced.py†L1-L63】【F:fixops-enterprise/src/services/enhanced_decision_engine.py†L1-L92】
+- **`config/`** – Overlay definitions and environment defaults (e.g., `config/fixops.overlay.yml` governs enterprise hardening).
+- **`simulations/demo_pack/`** – Canonical artefacts (design CSV, SBOM, SARIF, CVE, telemetry) for deterministic demos.
+- **`scripts/run_demo_steps.py`** – Helper that drives demo/enterprise pipelines and persists outputs under `artefacts/`.
+- **`tests/`** – Coverage for CLI parity, overlay validation, IAС posture, enhanced decision API, and regression guards.
 
-## Backend Overview (`enterprise/src`)
-The backend is a FastAPI application optimized for “hot path” performance and lifecycle management in `main.py` with structured logging, custom middleware, and dependency initialization during startup and shutdown.【F:enterprise/src/main.py†L1-L104】
+## Enhanced decision surfaces
+- `fixops-enterprise/src/api/v1/enhanced.py` exposes `/api/v1/enhanced/*` routes for capabilities discovery, payload analysis, and multi-model comparisons. Routers load lazily from the service singleton to keep startup light.【F:fixops-enterprise/src/api/v1/enhanced.py†L7-L63】
+- `fixops-enterprise/src/services/enhanced_decision_engine.py` wraps `core.enhanced_decision.EnhancedDecisionEngine`, lazily loads overlay settings, and offers helpers for pipeline evaluation, ad-hoc payload analysis, and signal export.【F:fixops-enterprise/src/services/enhanced_decision_engine.py†L14-L88】
+- `core/enhanced_decision.py` defines the multi-provider consensus engine. Without external API keys it operates deterministically; populate `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GOOGLE_API_KEY` to enable real-time calls.【F:core/enhanced_decision.py†L70-L139】【F:core/llm_providers.py†L44-L118】
 
-Key backend sub-packages:
-- **`config/settings.py`** – Centralized Pydantic settings covering demo-vs-production behavior, feature flags for external feeds, secrets management, and LLM credentials. The `get_settings()` helper caches configuration for reuse across modules.【F:enterprise/src/config/settings.py†L1-L92】【F:enterprise/src/config/settings.py†L107-L112】
-- **`db/session.py`** – Asynchronous SQLAlchemy session factory with pooled connections, health checks, and an app-wide `DatabaseManager` used by API routes and services.【F:enterprise/src/db/session.py†L1-L103】
-- **`core/`** – Cross-cutting concerns such as middleware, structured exception handling, and the `SecurityManager`, which bundles password hashing, encryption, MFA helpers, and JWT utilities for the platform.【F:enterprise/src/core/security.py†L1-L118】
-- **`api/v1/`** – Route modules grouped by capability (decision engine, feeds, CICD, marketplace, monitoring, etc.). `decisions.py` is the flagship endpoint module, exposing decision execution, metrics, and system component status via FastAPI routers.【F:enterprise/src/api/v1/decisions.py†L1-L118】
-- **`services/`** – Business logic engines. The `decision_engine.py` service orchestrates demo vs. production modes, optional LLM integrations, vector stores, and fallbacks, and provides the async API consumed by the REST layer.【F:enterprise/src/services/decision_engine.py†L1-L119】 Supporting services (enhanced multi-LLM engine, policy engine, feeds scheduler, marketplace integration, etc.) live alongside it.
+## CLI & pipeline essentials
+- `python -m core.cli demo --mode demo|enterprise` replays the curated overlay profiles, emitting canonical JSON and evidence bundles. The underlying helper lives in `core/demo_runner.py` and is also exposed via `scripts/run_demo_steps.py` for makefile automation.【F:core/demo_runner.py†L129-L192】【F:scripts/run_demo_steps.py†L19-L61】
+- `python -m core.cli run ...` executes the full stage runner, orchestrating ingestion, guardrails, modules, and enhanced decision telemetry. Inspect `core/stage_runner.py` for the execution order and integration points.
+- Overlay metadata (`config/*.yml`) toggles modules such as compliance packs, policy automation, IaC posture, exploit signals, and AI agent detection. Use `python -m core.cli show-overlay --mode enterprise` to inspect the resolved config.
 
-Other noteworthy directories include `models/` (SQLAlchemy models), `schemas/` (Pydantic request/response contracts), `utils/` (logging, crypto helpers), and `cli/` (pipeline tooling). Supervisord/uvicorn entrypoints (`server.py`, `run_enterprise.py`) load the FastAPI app from `src.main` for deployment automation.【F:enterprise/server.py†L1-L13】
+## Running the platform locally
+1. **Install dependencies**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. **Seed environment** – Copy `.env.example` to `.env`. For hardened demos review `enterprise/.env.example` and populate provider keys if available.【F:enterprise/.env.example†L1-L31】
+3. **Launch FastAPI**
+   ```bash
+   export PYTHONPATH=.
+   export FIXOPS_API_TOKEN="demo-token"
+   uvicorn apps.api.app:app --reload
+   ```
+4. **Exercise endpoints** – Upload fixtures from `simulations/demo_pack/` to `/inputs/*`, then call `/pipeline/run` and `/api/v1/enhanced/capabilities`.
+5. **Or run scripted demos**
+   ```bash
+   make demo            # demo overlay
+   make demo-enterprise # enterprise overlay
+   ```
+   Outputs land under `artefacts/<APP>/<RUN>/` along with evidence bundles and transparency indices.
+6. **Regression tests** – Execute `pytest` to cover CLI parity, overlay validation, IaC posture checks, enhanced decision APIs, and deterministic fallbacks.【F:tests/test_enterprise_enhanced_api.py†L1-L96】【F:tests/test_pipeline_matching.py†L497-L560】
 
-## Frontend Overview (`enterprise/frontend`)
-The frontend is a Vite-powered React 18 SPA (`package.json`) that renders multiple persona dashboards through a common layout and React Router configuration.【F:enterprise/frontend/package.json†L1-L35】【F:enterprise/frontend/src/App.jsx†L1-L24】
+## Known gaps & next steps
+- The `frontend/` symlink references an external UI bundle and is intentionally left unresolved; ship a new UI or remove the link when ready.
+- There is no committed Terraform or Docker Compose automation. Treat infrastructure as a future enhancement and document it alongside the code when implemented.
+- Overlay docs and the README now reflect the actual assets. Keep them in sync as you add providers, modules, or automation targets.
 
-Important pieces:
-- **`components/SecurityLayout.jsx`** – Global navigation, system status banner, and telemetry polling against `/api/v1/decisions` endpoints to detect demo vs. production mode and render the SOC-style chrome.【F:enterprise/frontend/src/components/SecurityLayout.jsx†L1-L87】
-- **`pages/CommandCenter.jsx`** – Command center dashboard that pulls decision metrics, production readiness data, and simulates scan ingestion interactions for demo mode.【F:enterprise/frontend/src/pages/CommandCenter.jsx†L1-L73】
-- Additional persona-specific pages (`DeveloperOps`, `ExecutiveBriefing`, `ArchitectureCenter`) and shared UI primitives live under `pages/` and `components/`.
-
-Styling mixes custom CSS (`index.css`) with Tailwind utilities, while `contexts/` and `utils/` hold client-side state stores and helpers.
-
-## Data & Intelligence Services
-The decision engine coordinates caches, optional vector stores, and third-party integrations (Jira, Confluence, threat intel). When the platform runs in demo mode—default for local onboarding—it seeds simulated datasets for vector search, policy enforcement, and regression suites so the UI and API remain interactive without external credentials.【F:enterprise/src/services/decision_engine.py†L51-L119】 Feature flags in settings toggle feeds such as EPSS or CISA KEV and control multi-LLM consensus thresholds.【F:enterprise/src/config/settings.py†L24-L82】
-
-
-## Observability
-- Import the Grafana dashboard JSON from `docs/decisionfactory_alignment/fixops-observability-dashboard.json` to bootstrap panels for latency, throughput, and policy outcomes.
-- Prometheus metrics are exposed under `/metrics`; key series include `fixops_request_latency_seconds`, `fixops_policy_block_total`, and scheduler heartbeat gauges.
-- See [OBSERVABILITY.md](docs/OBSERVABILITY.md) for deployment steps and common PromQL queries.
-
-## Getting Started Locally
-1. **Backend** – Launch `uvicorn server:app --reload` from `enterprise/` or use `run_enterprise.py`; the FastAPI app bootstraps database pools, Redis cache (memory fallback), security subsystems, and background feed schedulers during startup.【F:enterprise/src/main.py†L34-L81】
-2. **Frontend** – Run `npm install && npm run dev` in `enterprise/frontend/` to start the Vite dev server with hot reloads.【F:enterprise/frontend/package.json†L5-L18】 By default it targets the backend’s `/api/v1` routes.
-3. **Database** – The default SQLite file (`fixops_enterprise.db`) works out of the box; the `DatabaseManager` takes care of pooling and migrations for local demos.【F:enterprise/src/db/session.py†L25-L92】
-4. **Scripted demo** – Execute `python scripts/run_demo_steps.py --mode demo --app "life-claims-portal"` (or `--mode enterprise` for the hardened profile) to ingest the sample artefacts under `simulations/demo_pack/` and inspect the resulting canonical outputs under `artefacts/<APP>/<RUN>/`.
-
-## Suggested Next Steps
-- **Deep dive into services** – Explore `services/` beyond the decision engine (e.g., `enhanced_decision_engine.py`, `policy_engine.py`, `processing_layer.py`) to see how intelligence layers compose across demo and production modes.
-- **Review API surface** – Inspect other modules under `api/v1/` such as `cicd.py`, `feeds.py`, and `monitoring.py` to understand pipeline integrations and telemetry endpoints.【F:enterprise/src/api/v1/decisions.py†L55-L118】
-- **Trace frontend data flows** – Follow how `SecurityLayout` and persona dashboards fetch and visualize backend metrics to extend or customize UX states.【F:enterprise/frontend/src/components/SecurityLayout.jsx†L11-L61】【F:enterprise/frontend/src/pages/CommandCenter.jsx†L15-L63】
-- **Consult docs** – `COMPREHENSIVE_GUIDE.md` and other deployment guides under `enterprise/` outline architecture, deployment patterns, and long-term roadmap for context during feature planning.【F:enterprise/COMPREHENSIVE_GUIDE.md†L1-L56】
-
-Welcome aboard! Use this map to orient yourself, then iterate through backend services and frontend persona flows to build intuition about how FixOps delivers decision automation across the DevSecOps lifecycle.
+Welcome aboard—use this guide alongside the regression suite to understand how demo and enterprise overlays diverge and where to contribute next.
