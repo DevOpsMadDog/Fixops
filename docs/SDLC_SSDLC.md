@@ -3,6 +3,8 @@
 This guide explains how FixOps ingest/overlay capabilities map to software and secure development
 life-cycle stages.
 
+> **Canonical CLI:** Run `python -m apps.fixops_cli stage-run --stage <stage> --input <artefact> --app <name>` to execute the StageRunner that powers the API, minting deterministic outputs for each SSDLC phase before bundling evidence.
+
 | Stage | Signals Ingested | Overlay Influence | Outputs & Artifacts |
 | ----- | ---------------- | ----------------- | ------------------- |
 | Plan | Design context CSV describing services, owners, and criticality. | `require_design_input` toggle decides whether design is mandatory. Directory hints (e.g., `design_context_dir`) tell planners where to store curated context. | Stored dataset, metadata preview in `/inputs/design` response, SSDLC check for `design`/`threat_model`. |
@@ -28,12 +30,12 @@ life-cycle stages.
 
 ### CLI Playbook by Lifecycle Stage
 
-- **Design/Plan:** Capture curated system context and threat models under `artefacts/design/`, then package them by running `fixops-ci evidence bundle --tag <release>` so the evaluator confirms the design stage before promotion.
+- **Design/Plan:** Capture curated system context and threat models under `artefacts/design/`, then materialise canonical stage output via `python -m apps.fixops_cli stage-run --stage design --input artefacts/design/design_context.csv --app <app>` before bundling with `fixops-ci evidence bundle --tag <release>` so the evaluator confirms coverage prior to promotion.
 - **Code:** Deduplicate SBOM inputs with `fixops-ci sbom normalize --in artefacts/sbom/syft.json artefacts/sbom/trivy.json --out artifacts/sbom/normalized.json` to create the canonical component inventory feeding all downstream stages.
 - **Build:** For every release artefact, execute `fixops-ci provenance attest -- <args>` via CI (see `.github/workflows/provenance.yml`) so the attestation graph links builder IDs, source commits, and materials.
 - **Test:** Generate FixOpsRisk metrics using `fixops-ci risk score --sbom artifacts/sbom/normalized.json --out artifacts/risk.json` before allowing deployments; policy thresholds live in `config/policy.yml`.
 - **Deploy:** Run `fixops-ci evidence bundle --tag <release>` after tagging to aggregate SBOM, risk, provenance, and graph validations while evaluating pass/warn/fail policy thresholds.
-- **Operate:** Confirm deterministic rebuilds with `fixops-ci repro verify --tag <release> --plan build/plan.yaml`; the resulting attestation feeds evidence bundles and runtime dashboards.
+- **Operate:** Confirm deterministic rebuilds with `fixops-ci repro verify --tag <release> --plan build/plan.yaml`, and re-run `python -m apps.fixops_cli stage-run --stage operate --app <app>` to refresh lifecycle evidence from KEV/EPSS feeds before packaging bundles; the resulting attestation feeds dashboards.
 - **Audit:** Use the evidence bundle output to satisfy compliance reviews; the signed `MANIFEST.yaml` enumerates every artefact emitted across the lifecycle, and `fixops-ci evidence bundle` can re-run with `--sign-key` to append notarised manifests for auditors.
 
 ## Flow of Signals

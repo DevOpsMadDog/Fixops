@@ -482,6 +482,7 @@ flowchart TD
 Demonstrate secure software development lifecycle coverage with deterministic artefacts that auditors can diff across releases. The SSDLC evaluator transforms raw design, control, SBOM, SARIF, infrastructure-as-code, and exploit-signal inputs into stage-specific JSON payloads for downstream dashboards and the enterprise API.
 
 #### 2. Primary implementation
+- `apps/fixops_cli/__main__.py` exposes the canonical stage runner (`python -m apps.fixops_cli stage-run`) that orchestrates SSDLC processing with signing/verification toggles for CI pipelines.【F:apps/fixops_cli/__main__.py†L1-L118】
 - `core/ssdlc.py` parses overlay-defined lifecycle requirements and evaluates them against pipeline artefacts, returning per-stage status summaries.【F:core/ssdlc.py†L1-L170】
 - `apps/api/pipeline.py` invokes the evaluator when the overlay enables SSDLC checks, wiring results into the broader decision pipeline response.【F:apps/api/pipeline.py†L835-L863】
 - `simulations/ssdlc/run.py` provides the CLI used during demos and tests to materialise canonical stage outputs with optional overlays.【F:simulations/ssdlc/run.py†L1-L239】
@@ -524,6 +525,7 @@ flowchart TD
 | `operate` | `simulations/ssdlc/operate/inputs/kev.json`, `simulations/ssdlc/operate/inputs/epss.json` | `exploitability.json` | KEV/EPSS fusion that flags urgent operational response priorities.【F:simulations/ssdlc/run.py†L207-L231】 |
 
 #### 5. Sample artefacts & downstream usage
+- `python -m apps.fixops_cli stage-run --stage <stage> --input <artefact> --app <name>` mirrors the API execution path, ensuring canonical artefacts land in `artefacts/<app>/<stage>/` for SSDLC evidence, signing, and transparency index capture.【F:apps/fixops_cli/__main__.py†L48-L118】【F:core/stage_runner.py†L214-L413】
 - `--stage all` prints a JSON map of every generated file, which can be zipped into evidence bundles or imported into dashboards.【F:simulations/ssdlc/run.py†L234-L239】【F:tests/test_ssdlc_runner.py†L45-L59】
 - The pipeline API surfaces `ssdlc_assessment.summary` counts so CI gates and overlays can assert minimum lifecycle coverage.【F:apps/api/pipeline.py†L846-L860】
 - Evidence bundles embed each stage artefact alongside provenance, risk, and repro proof, giving auditors lifecycle-to-release traceability.【F:evidence/packager.py†L180-L260】
@@ -644,6 +646,7 @@ Align engineering, security, and audit teams on operational procedures, signed r
 ## CLI entry points
 | Command | Capabilities | Notes |
 | --- | --- | --- |
+| `python -m apps.fixops_cli stage-run` | SSDLC stage canonicalisation (`requirements`→`decision`) | Wraps `core.stage_runner.StageRunner` to normalise inputs, mint run IDs, optionally sign outputs, and emit canonical artefacts reused by downstream pipelines.【F:apps/fixops_cli/__main__.py†L1-L118】【F:core/stage_runner.py†L214-L413】 |
 | `cli/fixops-sbom` | `normalize`, `quality` | Normalises SBOMs and generates HTML/JSON quality artefacts.【F:cli/fixops_sbom.py†L1-L200】 |
 | `cli/fixops-risk` | `score` | Emits `artifacts/risk.json` from normalised SBOMs and cached feeds.【F:cli/fixops_risk.py†L1-L200】 |
 | `cli/fixops-provenance` | `attest`, `verify` | Generates and validates SLSA v1 provenance statements.【F:cli/fixops_provenance.py†L1-L220】 |
