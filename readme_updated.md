@@ -3,6 +3,7 @@
 > Use this as the authoritative guide for onboarding, architecture reviews, compliance audits, and CI/CD dry runs. It extends the root README with diagrams, capability maps, and end-to-end validation recipes.
 
 ## Table of contents
+- [Feature index & usage map](#feature-index--usage-map)
 - [Executive summary](#executive-summary)
 - [Orientation](#orientation)
 - [Repository topology](#repository-topology)
@@ -25,6 +26,26 @@
 - [CI/CD automation](#cicd-automation)
 - [Setup & verification checklists](#setup--verification-checklists)
 - [Reference documents](#reference-documents)
+
+## Feature index & usage map
+The table below links every FixOps capability to its primary use cases, when teams should prefer the CLI versus the API, and
+where to find the backing implementation and documentation. Use it as a quick index before diving deeper into individual
+sections.
+
+| Capability | Primary use cases | Preferred CLI commands | Relevant API endpoints | When to choose CLI vs API | Core modules & docs |
+| --- | --- | --- | --- | --- | --- |
+| SBOM normalisation & quality | Merge SBOMs from Syft/Trivy, produce deterministic quality metrics for audits. | `fixops-sbom normalize --in …`<br>`fixops-sbom quality --in …` | `GET /api/v1/sbom/quality` *(if published via backend)* | Use CLI for local/air-gapped triage and CI steps; expose API when dashboards or downstream services need JSON outputs. | `lib4sbom/normalizer.py`, `docs/SBOM-QUALITY.md` |
+| Risk scoring (FixOpsRisk) | Prioritise remediation via EPSS/KEV, quantify release posture. | `fixops-risk score --sbom …` | `GET /api/v1/risk/component/{id}`<br>`GET /api/v1/risk/cve/{id}` | CLI is ideal for pipeline gating and artefact generation; API powers portals and integrations that need on-demand lookups. | `risk/feeds/*`, `risk/scoring.py`, `docs/RISK-SCORING.md` |
+| Provenance attestations & signing | Generate SLSA v1 provenance, verify releases before consumption. | `fixops-provenance attest --artifact …`<br>`fixops-provenance verify --artifact …` | `GET /api/v1/provenance/{artifact}` | Run CLI inside CI or local validation loops; surface API to external auditors who only need attestation JSON. | `services/provenance/attestation.py`, `docs/PROVENANCE.md`, `docs/SIGNING.md` |
+| Provenance graph analytics | Trace lineage, find KEV regressions, detect downgrades across releases. | `fixops-ci graph lineage --artifact …` *(via CI agent)* | `GET /api/v1/graph/lineage`<br>`GET /api/v1/graph/kev`<br>`GET /api/v1/graph/anomalies` | Use API for interactive queries and UI dashboards; invoke CLI during automated compliance checks or scheduled reports. | `services/graph/graph.py`, `backend/api/graph/router.py`, `docs/PROVENANCE-GRAPH.md` |
+| Reproducible build verification | Rebuild tagged releases and compare digests to prove reproducibility. | `fixops-repro verify --tag … --plan build/plan.yaml` | `GET /api/v1/repro/{tag}` *(if enabled)* | CLI runs hermetic jobs on builders; API publishes attestation status to stakeholders. | `services/repro/verifier.py`, `docs/REPRO-BUILDS.md` |
+| Evidence bundles & policy agent | Package SBOM, risk, provenance, and repro artefacts into signed bundles. | `fixops-ci evidence bundle --release …` | `GET /api/v1/evidence/{release}` | Prefer CLI to generate bundles inside release pipelines; API exposes ready-made bundles to auditors. | `evidence/packager.py`, `cli/fixops_ci.py`, `docs/EVIDENCE-BUNDLES.md` |
+| Observability & dashboards | Demo FixOps posture with OTEL traces and dashboard visualisations. | `docker compose -f docker-compose.demo.yml up` | `GET /api/v1/metrics/*` *(exported via collector)* | CLI/docker commands spin up demo stacks; APIs feed dashboards/collectors. | `telemetry/`, `ui/dashboard/`, `docs/DEMO.md` |
+| Probabilistic forecasting, Markov & Bayesian analytics | Model remediation timelines, predict drift, and justify roadmap commitments. | `fixops-ci analytics forecast --plan …` *(where configured)* | `GET /api/v1/analytics/forecast` | CLI enables batched planning; API supports UI overlays and stakeholder queries. | `core/`, `simulations/`, `docs/ARCHITECTURE.md` |
+| Multi-LLM consensus | Cross-validate vulnerability triage or policy decisions via multiple LLMs. | `fixops-ci ai review --input …` | `POST /api/v1/ai/consensus` | CLI gives offline reviewers reproducible prompts; API integrates with ticketing/chatops. | `fixops-enterprise/`, `docs/ARCHITECTURE.md` |
+
+**Choosing between surfaces:** Pick the CLI when you need deterministic artefacts inside CI/CD, when working air-gapped, or when
+running scheduled governance jobs. Use the API when interactive tooling, dashboards, or external auditors require live data.
 
 ## Executive summary
 - **Who it serves**: Release managers, compliance teams, SOC analysts, and platform engineers needing verifiable supply-chain provenance.
