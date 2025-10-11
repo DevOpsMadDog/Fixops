@@ -1,0 +1,13 @@
+version: 1
+artifact: dist/fixops-{tag}.tar.gz
+sources:
+  - path: .
+    destination: source
+steps:
+  - run: |
+      mkdir -p dist
+      tar -czf dist/fixops-{tag}.tar.gz -C source .
+reference_attestation: artifacts/attestations/fixops-{tag}.json
+environment:
+  LC_ALL: C.UTF-8
+  LANG: C.UTF-8
