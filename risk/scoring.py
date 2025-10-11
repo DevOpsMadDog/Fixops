@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Sequence
 
 from packaging.version import InvalidVersion, Version
+from telemetry import get_meter, get_tracer
 
 EXPOSURE_ALIASES = {
     "internet": "internet",
@@ -48,6 +49,13 @@ DEFAULT_WEIGHTS = {
 
 VERSION_LAG_CAP_DAYS = 180.0
 
+
+_TRACER = get_tracer("fixops.risk")
+_METER = get_meter("fixops.risk")
+_RISK_COUNTER = _METER.create_counter(
+    "fixops_risk_profiles",
+    description="Number of risk profiles computed",
+)
 
 def _component_key(component: Mapping[str, Any]) -> str:
     purl = component.get("purl")
@@ -231,76 +239,80 @@ def compute_risk_profile(
 ) -> Dict[str, Any]:
     """Compute a composite risk profile for the provided SBOM."""
 
-    components = []
-    cve_index: MutableMapping[str, Dict[str, Any]] = {}
+    with _TRACER.start_as_current_span("risk.compute_profile") as span:
+        components = []
+        cve_index: MutableMapping[str, Dict[str, Any]] = {}
 
-    for component in normalized_sbom.get("components", []):
-        if not isinstance(component, Mapping):
-            continue
-        vulnerabilities = component.get("vulnerabilities")
-        if not isinstance(vulnerabilities, Sequence):
-            continue
-        key = _component_key(component)
-        slug = component.get("slug") or _slugify(key)
-        component_entry = {
-            "id": key,
-            "slug": slug,
-            "name": component.get("name"),
-            "version": component.get("version"),
-            "purl": component.get("purl"),
-            "vulnerabilities": [],
-            "exposure_flags": _collect_exposure_flags(
-                component.get("exposure"),
-                component.get("exposure_flags"),
-                component.get("tags"),
-            ),
-        }
-        max_score = 0.0
-        for vulnerability in vulnerabilities:
-            if not isinstance(vulnerability, Mapping):
+        for component in normalized_sbom.get("components", []):
+            if not isinstance(component, Mapping):
                 continue
-            scored = _score_vulnerability(component, vulnerability, epss_scores, kev_entries, weights)
-            if not scored:
+            vulnerabilities = component.get("vulnerabilities")
+            if not isinstance(vulnerabilities, Sequence):
                 continue
-            component_entry["vulnerabilities"].append(scored)
-            max_score = max(max_score, scored["fixops_risk"])
-            cve_info = cve_index.setdefault(
-                scored["cve"],
-                {"cve": scored["cve"], "max_risk": 0.0, "components": []},
-            )
-            cve_info["max_risk"] = max(cve_info["max_risk"], scored["fixops_risk"])
-            if slug not in cve_info["components"]:
-                cve_info["components"].append(slug)
-        if component_entry["vulnerabilities"]:
-            component_entry["component_risk"] = round(max_score, 2)
-            components.append(component_entry)
-
-    highest_component = max(
-        components,
-        key=lambda item: item.get("component_risk", 0.0),
-        default=None,
-    )
-
-    report = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "weights": dict(weights),
-        "components": sorted(components, key=lambda item: item["id"]),
-        "cves": {
-            cve: {
-                "cve": details["cve"],
-                "max_risk": round(details["max_risk"], 2),
-                "components": sorted(details["components"]),
+            key = _component_key(component)
+            slug = component.get("slug") or _slugify(key)
+            component_entry = {
+                "id": key,
+                "slug": slug,
+                "name": component.get("name"),
+                "version": component.get("version"),
+                "purl": component.get("purl"),
+                "vulnerabilities": [],
+                "exposure_flags": _collect_exposure_flags(
+                    component.get("exposure"),
+                    component.get("exposure_flags"),
+                    component.get("tags"),
+                ),
             }
-            for cve, details in cve_index.items()
-        },
-    }
-    report["summary"] = {
-        "component_count": len(report["components"]),
-        "cve_count": len(report["cves"]),
-        "highest_risk_component": highest_component["slug"] if highest_component else None,
-        "max_risk_score": highest_component.get("component_risk", 0.0) if highest_component else 0.0,
-    }
-    return report
+            max_score = 0.0
+            for vulnerability in vulnerabilities:
+                if not isinstance(vulnerability, Mapping):
+                    continue
+                scored = _score_vulnerability(component, vulnerability, epss_scores, kev_entries, weights)
+                if not scored:
+                    continue
+                component_entry["vulnerabilities"].append(scored)
+                max_score = max(max_score, scored["fixops_risk"])
+                cve_info = cve_index.setdefault(
+                    scored["cve"],
+                    {"cve": scored["cve"], "max_risk": 0.0, "components": []},
+                )
+                cve_info["max_risk"] = max(cve_info["max_risk"], scored["fixops_risk"])
+                if slug not in cve_info["components"]:
+                    cve_info["components"].append(slug)
+            if component_entry["vulnerabilities"]:
+                component_entry["component_risk"] = round(max_score, 2)
+                components.append(component_entry)
+
+        highest_component = max(
+            components,
+            key=lambda item: item.get("component_risk", 0.0),
+            default=None,
+        )
+
+        report = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "weights": dict(weights),
+            "components": sorted(components, key=lambda item: item["id"]),
+            "cves": {
+                cve: {
+                    "cve": details["cve"],
+                    "max_risk": round(details["max_risk"], 2),
+                    "components": sorted(details["components"]),
+                }
+                for cve, details in cve_index.items()
+            },
+        }
+        report["summary"] = {
+            "component_count": len(report["components"]),
+            "cve_count": len(report["cves"]),
+            "highest_risk_component": highest_component["slug"] if highest_component else None,
+            "max_risk_score": highest_component.get("component_risk", 0.0) if highest_component else 0.0,
+        }
+        span.set_attribute("fixops.risk.components", report["summary"]["component_count"])
+        span.set_attribute("fixops.risk.cves", report["summary"]["cve_count"])
+        _RISK_COUNTER.add(1, {"status": "computed"})
+        return report
 
 
 def write_risk_report(

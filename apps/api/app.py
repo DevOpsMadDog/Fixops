@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import importlib.util
 import logging
 import os
 import secrets
@@ -29,6 +30,14 @@ from core.enhanced_decision import EnhancedDecisionEngine
 
 from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
+from backend.api.graph import router as graph_router
+from backend.api.evidence import router as evidence_router
+from telemetry import configure as configure_telemetry
+
+if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+else:  # pragma: no cover - fallback when instrumentation is unavailable
+    from telemetry.fastapi_noop import FastAPIInstrumentor
 
 from .normalizers import (
     InputNormalizer,
@@ -74,7 +83,9 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 def create_app() -> FastAPI:
     """Create the FastAPI application with file-upload ingestion endpoints."""
 
+    configure_telemetry(service_name="fixops-api")
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
+    FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
@@ -174,8 +185,44 @@ def create_app() -> FastAPI:
     app.state.enhanced_engine = EnhancedDecisionEngine(
         overlay.enhanced_decision_settings
     )
+    sbom_dir = overlay.data_directories.get("sbom_dir")
+    if sbom_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        sbom_dir = (root / "artifacts" / "sbom").resolve()
+    sbom_dir = verify_allowlisted_path(sbom_dir, allowlist)
+    sbom_dir = ensure_secure_directory(sbom_dir)
+
+    graph_dir = overlay.data_directories.get("graph_dir")
+    if graph_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        graph_dir = (root / "analysis").resolve()
+    graph_dir = verify_allowlisted_path(graph_dir, allowlist)
+    graph_dir = ensure_secure_directory(graph_dir)
+
+    evidence_dir = overlay.data_directories.get("evidence_dir")
+    if evidence_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        evidence_dir = (root / "evidence").resolve()
+    evidence_dir = verify_allowlisted_path(evidence_dir, allowlist)
+    evidence_dir = ensure_secure_directory(evidence_dir)
+    evidence_manifest_dir = ensure_secure_directory(evidence_dir / "manifests")
+    evidence_bundle_dir = ensure_secure_directory(evidence_dir / "bundles")
+
     app.state.provenance_dir = provenance_dir
     app.state.risk_dir = risk_dir
+    app.state.sbom_dir = sbom_dir
+    app.state.graph_config = {
+        "repo_path": Path(".").resolve(),
+        "attestation_dir": provenance_dir,
+        "sbom_dir": sbom_dir,
+        "risk_dir": risk_dir,
+        "releases_path": graph_dir / "releases.json",
+    }
+    app.state.evidence_manifest_dir = evidence_manifest_dir
+    app.state.evidence_bundle_dir = evidence_bundle_dir
     uploads_dir = overlay.data_directories.get("uploads_dir")
     if uploads_dir is None:
         root = allowlist[0]
@@ -187,6 +234,8 @@ def create_app() -> FastAPI:
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024

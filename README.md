@@ -439,9 +439,15 @@ Refer to `docs/CONFIG_GUIDE.md` for field-level descriptions and overlay extensi
 - **Market & positioning** – `market/` contains competitive analysis, pricing strategy, GTM plans, and demo storyboards.
 - **Architecture & SDLC** – `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/SDLC_SSDLC.md`, and `docs/INTEGRATIONS.md` outline components, data flows, lifecycle coverage, and integration contracts.
 - **Architecture inventory & roadmap** – `docs/ARCH-INVENTORY.md` summarises modules/services/data models while `docs/TASK-PLAN.md` maps Phases 2–10 with concrete code touchpoints.
+- **Provenance intelligence** – `docs/PROVENANCE-GRAPH.md` documents the provenance graph MVP, ingestion sources, query set, and API surface.
+- **Reproducible builds** – `docs/REPRO-BUILDS.md` explains the hermetic verifier, plan structure, CLI usage, and CI workflow outputs.
+- **Evidence bundles** – `docs/EVIDENCE-BUNDLES.md` covers policy-driven packaging, manifest signing, API endpoints, and CLI automation.
+- **Demo stack & telemetry** – `docs/DEMO.md` walks through the OpenTelemetry-enabled docker-compose demo and dashboard.
 - **Risk scoring** – `docs/RISK-SCORING.md` documents EPSS/KEV ingestion, scoring weights, CLI usage, and API endpoints for the FixOpsRisk pipeline.
 - **Security & audits** – `audit/SECURITY.md`, `audit/GAPS.md`, and `audit/CTEM_ASSESSMENT.md` track mitigations, residual risk, and CTEM readiness.
 - **Runbooks & usage** – `docs/PLATFORM_RUNBOOK.md`, `docs/USAGE_GUIDE.html`, and `docs/PR_SUMMARY.md` provide persona guides, troubleshooting steps, and an executive summary for reviewers.
+- **Operational playbooks** – `docs/PLAYBOOK-DEV.md`, `docs/PLAYBOOK-SEC.md`, and `docs/PLAYBOOK-AUDIT.md` equip engineering, security, and audit stakeholders with repeatable workflows.
+- **Security posture** – `docs/SECURITY-POSTURE.md` captures branch protections, signing expectations, Dependabot coverage, and observability commitments for the demo branch.
 
 Whether you launch the API or the CLI, FixOps now delivers overlay-governed context, compliance, automation, and probabilistic insight with auditable artefacts that keep demo and enterprise buyers on the same code path.
 

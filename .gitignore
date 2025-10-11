@@ -27,6 +27,8 @@ next-env.d.ts
 
 # Production builds
 /build
+!build/
+!build/plan.yaml
 dist/
 dist
 
@@ -91,3 +93,4 @@ frontend/node_modules/.cache/default-development/0.pack
 !/enterprise/.env.example
 
 coverage.xml
+!reports/coverage/coverage.xml

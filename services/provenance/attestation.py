@@ -8,7 +8,15 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Sequence
 
+from telemetry import get_meter, get_tracer
+
 SLSA_VERSION = "1.0"
+
+_TRACER = get_tracer("fixops.provenance")
+_COUNTER = get_meter("fixops.provenance").create_counter(
+    "fixops_provenance_operations",
+    description="Count of provenance attestation operations",
+)
 
 
 class ProvenanceVerificationError(Exception):
@@ -115,15 +123,19 @@ def _ensure_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
 def compute_sha256(path: Path | str) -> str:
     """Compute the SHA-256 digest for the file located at *path*."""
 
-    resolved = Path(path)
-    if not resolved.is_file():
-        raise FileNotFoundError(f"Artefact '{resolved}' does not exist or is not a file")
+    with _TRACER.start_as_current_span("provenance.compute_sha256") as span:
+        resolved = Path(path)
+        span.set_attribute("fixops.artifact", str(resolved))
+        if not resolved.is_file():
+            raise FileNotFoundError(f"Artefact '{resolved}' does not exist or is not a file")
 
-    digest = sha256()
-    with resolved.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(8192), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+        digest = sha256()
+        with resolved.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(8192), b""):
+                digest.update(chunk)
+        hex_digest = digest.hexdigest()
+        span.set_attribute("fixops.sha256", hex_digest)
+        return hex_digest
 
 
 def _normalise_materials(materials: Sequence[Mapping[str, Any]] | None) -> list[ProvenanceMaterial]:
@@ -156,46 +168,59 @@ def generate_attestation(
 ) -> ProvenanceAttestation:
     """Create a provenance attestation for *artefact_path* following SLSA v1."""
 
-    path = Path(artefact_path)
-    digest = compute_sha256(path)
-    metadata_block = _ensure_metadata(metadata)
-    subject = ProvenanceSubject(
-        name=path.name,
-        digest={"sha256": digest},
-    )
-    attestation = ProvenanceAttestation(
-        slsaVersion=SLSA_VERSION,
-        builder={"id": builder_id},
-        buildType=build_type,
-        source={"uri": source_uri},
-        metadata=metadata_block,
-        subject=[subject],
-        materials=_normalise_materials(materials),
-    )
-    return attestation
+    with _TRACER.start_as_current_span("provenance.generate_attestation") as span:
+        path = Path(artefact_path)
+        span.set_attribute("fixops.artifact", str(path))
+        span.set_attribute("fixops.builder", builder_id)
+        span.set_attribute("fixops.source_uri", source_uri)
+        digest = compute_sha256(path)
+        metadata_block = _ensure_metadata(metadata)
+        subject = ProvenanceSubject(
+            name=path.name,
+            digest={"sha256": digest},
+        )
+        attestation = ProvenanceAttestation(
+            slsaVersion=SLSA_VERSION,
+            builder={"id": builder_id},
+            buildType=build_type,
+            source={"uri": source_uri},
+            metadata=metadata_block,
+            subject=[subject],
+            materials=_normalise_materials(materials),
+        )
+        _COUNTER.add(1, {"action": "generate"})
+        return attestation
 
 
 def load_attestation(source: Path | str | Mapping[str, Any] | ProvenanceAttestation) -> ProvenanceAttestation:
     """Load an attestation from a path, mapping or existing object."""
 
-    if isinstance(source, ProvenanceAttestation):
-        return source
-    if isinstance(source, Mapping):
-        return ProvenanceAttestation.from_dict(source)
+    with _TRACER.start_as_current_span("provenance.load_attestation") as span:
+        if isinstance(source, ProvenanceAttestation):
+            span.set_attribute("fixops.source", "object")
+            return source
+        if isinstance(source, Mapping):
+            span.set_attribute("fixops.source", "mapping")
+            return ProvenanceAttestation.from_dict(source)
 
-    path = Path(source)
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    return ProvenanceAttestation.from_dict(payload)
+        path = Path(source)
+        span.set_attribute("fixops.source", str(path))
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        _COUNTER.add(1, {"action": "load"})
+        return ProvenanceAttestation.from_dict(payload)
 
 
 def write_attestation(attestation: ProvenanceAttestation, destination: Path | str) -> Path:
     """Persist *attestation* to *destination* as JSON."""
 
-    path = Path(destination)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(attestation.to_json(indent=2), encoding="utf-8")
-    return path
+    with _TRACER.start_as_current_span("provenance.write_attestation") as span:
+        path = Path(destination)
+        span.set_attribute("fixops.destination", str(path))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(attestation.to_json(indent=2), encoding="utf-8")
+        _COUNTER.add(1, {"action": "write"})
+        return path
 
 
 def _expect_field(value: Any, description: str) -> Any:

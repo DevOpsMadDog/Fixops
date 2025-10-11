@@ -2,9 +2,11 @@ import json
 from pathlib import Path
 
 from lib4sbom.normalizer import (
+    build_and_write_quality_outputs,
     build_quality_report,
     normalize_sboms,
     render_html_report,
+    write_normalized_sbom,
 )
 
 
@@ -78,9 +80,7 @@ def _sample_sboms(tmp_path: Path) -> list[Path]:
                 "versionInfo": "2.0.0",
                 "purl": "pkg:pypi/pkgB@2.0.0",
                 "licenseConcluded": "GPL-2.0-only",
-                "checksums": [
-                    {"algorithm": "SHA256", "checksumValue": "b" * 64}
-                ],
+                "checksums": [{"algorithm": "SHA256", "checksumValue": "b" * 64}],
             },
             {
                 "name": "pkgD",
@@ -151,3 +151,32 @@ def test_render_html_report(tmp_path):
     assert "SBOM Quality Report" in html
     assert "66.67%" in html
     assert "Generator Variance" in html
+
+
+def test_write_normalized_sbom(tmp_path: Path) -> None:
+    paths = _sample_sboms(tmp_path)
+    destination = tmp_path / "artifacts/sbom/normalized.json"
+    normalized = write_normalized_sbom(paths, destination)
+    assert destination.is_file()
+
+    persisted = json.loads(destination.read_text(encoding="utf-8"))
+    assert (
+        persisted["metadata"]["unique_components"]
+        == normalized["metadata"]["unique_components"]
+    )
+
+
+def test_build_and_write_quality_outputs(tmp_path: Path) -> None:
+    normalized = normalize_sboms(_sample_sboms(tmp_path))
+    json_destination = tmp_path / "analysis/report.json"
+    html_destination = tmp_path / "reports/report.html"
+
+    report = build_and_write_quality_outputs(
+        normalized, json_destination, html_destination
+    )
+    assert json_destination.is_file()
+    assert html_destination.is_file()
+
+    html = html_destination.read_text(encoding="utf-8")
+    assert report["metrics"]["coverage_percent"] > 0
+    assert "SBOM Quality Report" in html

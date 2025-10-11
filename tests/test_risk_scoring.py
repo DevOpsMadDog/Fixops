@@ -6,7 +6,12 @@ import pytest
 from cli import fixops_risk
 from risk.feeds.epss import load_epss_scores
 from risk.feeds.kev import load_kev_catalog
-from risk.scoring import compute_risk_profile
+from risk.scoring import (
+    _collect_exposure_flags,
+    _infer_version_lag_days,
+    _lag_factor,
+    compute_risk_profile,
+)
 
 
 @pytest.fixture()
@@ -101,7 +106,9 @@ def test_compute_risk_profile(sample_feeds: tuple[Path, Path], sample_normalized
     assert sorted(cve_index["CVE-2024-0001"]["components"]) == ["pkg-pypi-pkga-1.0.0"]
 
 
-def test_cli_score(tmp_path: Path, sample_feeds: tuple[Path, Path], sample_normalized: Path):
+def test_cli_score(
+    tmp_path: Path, sample_feeds: tuple[Path, Path], sample_normalized: Path
+):
     epss_path, kev_path = sample_feeds
     output_path = tmp_path / "risk.json"
 
@@ -123,3 +130,31 @@ def test_cli_score(tmp_path: Path, sample_feeds: tuple[Path, Path], sample_norma
 
     report = json.loads(output_path.read_text(encoding="utf-8"))
     assert report["summary"]["component_count"] == 2
+
+
+def test_collect_exposure_flags_normalises_variants():
+    flags = _collect_exposure_flags(
+        "Internet Facing", ["partner"], {"tags": ["internal"]}
+    )
+    assert flags == ["internal", "internet", "partner"]
+
+
+def test_infer_version_lag_days_from_versions() -> None:
+    component = {"version": "1.0.0"}
+    vulnerability = {"cve": "CVE-2024-1111", "fix_version": "2.1.0"}
+    assert _infer_version_lag_days(component, vulnerability) > 0
+
+
+def test_infer_version_lag_days_from_dates() -> None:
+    component = {"last_observed": "2024-01-01T00:00:00Z"}
+    vulnerability = {
+        "cve": "CVE-2024-2222",
+        "fixed_release_date": "2024-02-15T00:00:00Z",
+    }
+    assert _infer_version_lag_days(component, vulnerability) == 45.0
+
+
+def test_lag_factor_caps_and_scales() -> None:
+    assert _lag_factor(0.0) == 0.0
+    assert _lag_factor(90.0) == pytest.approx(0.5)
+    assert _lag_factor(720.0) == 1.0
