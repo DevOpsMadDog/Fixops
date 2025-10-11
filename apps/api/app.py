@@ -28,6 +28,7 @@ from core.feedback import FeedbackRecorder
 from core.enhanced_decision import EnhancedDecisionEngine
 
 from backend.api.provenance import router as provenance_router
+from backend.api.risk import router as risk_router
 
 from .normalizers import (
     InputNormalizer,
@@ -150,6 +151,14 @@ def create_app() -> FastAPI:
     provenance_dir = verify_allowlisted_path(provenance_dir, allowlist)
     provenance_dir = ensure_secure_directory(provenance_dir)
 
+    risk_dir = overlay.data_directories.get("risk_dir")
+    if risk_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        risk_dir = (root / "artifacts").resolve()
+    risk_dir = verify_allowlisted_path(risk_dir, allowlist)
+    risk_dir = ensure_secure_directory(risk_dir)
+
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
     app.state.artifacts: Dict[str, Any] = {}
@@ -166,6 +175,7 @@ def create_app() -> FastAPI:
         overlay.enhanced_decision_settings
     )
     app.state.provenance_dir = provenance_dir
+    app.state.risk_dir = risk_dir
     uploads_dir = overlay.data_directories.get("uploads_dir")
     if uploads_dir is None:
         root = allowlist[0]
@@ -176,6 +186,7 @@ def create_app() -> FastAPI:
 
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
