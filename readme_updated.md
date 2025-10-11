@@ -84,29 +84,30 @@ The table highlights the directories most practitioners touch during integration
 
 ```mermaid
 flowchart LR
-    subgraph Config[Overlay & Policy]
-        A1[config/\npolicy.yml]
-        A2[docs/ playbooks]
+    subgraph Config["Overlay & Policy"]
+        A1["config/policy.yml"]
+        A2["docs/playbooks"]
     end
-    subgraph Execution[Execution Surfaces]
-        B1[CLI & CI\ncli/*]
-        B2[FastAPI\napps/api/app.py]
+    subgraph Execution["Execution Surfaces"]
+        B1["CLI & CI<br/>cli/*"]
+        B2["FastAPI<br/>apps/api/app.py"]
     end
-    subgraph Engines[Decision Engines]
-        C1[Pipeline Orchestrator\napps/api/pipeline.py]
-        C2[Probabilistic + Markov + Bayesian\ncore/probabilistic.py]
-        C3[Multi-LLM Consensus\nfixops-enterprise/]
+    subgraph Engines["Decision Engines"]
+        C1["Pipeline Orchestrator<br/>apps/api/pipeline.py"]
+        C2["Probabilistic + Markov + Bayesian<br/>core/probabilistic.py"]
+        C3["Multi-LLM Consensus<br/>fixops-enterprise/"]
     end
-    subgraph Evidence[Evidence Services]
-        D1[Evidence Packager\nevidence/packager.py]
-        D2[Provenance Graph\nservices/graph/graph.py]
-        D3[Repro Verifier\nservices/repro/verifier.py]
-        D4[Provenance Attestations\nservices/provenance/attestation.py]
+    subgraph Evidence["Evidence Services"]
+        D1["Evidence Packager<br/>evidence/packager.py"]
+        D2["Provenance Graph<br/>services/graph/graph.py"]
+        D3["Repro Verifier<br/>services/repro/verifier.py"]
+        D4["Provenance Attestations<br/>services/provenance/attestation.py"]
     end
-    subgraph Observability[Observability]
-        E1[OpenTelemetry SDK\ntelemetry/]
-        E2[Dashboard\nui/dashboard]
+    subgraph Observability["Observability"]
+        E1["OpenTelemetry SDK<br/>telemetry/"]
+        E2["Dashboard<br/>ui/dashboard"]
     end
+
     A1 --> B1
     A1 --> B2
     A2 --> B2
@@ -119,16 +120,15 @@ flowchart LR
     C1 --> D4
     C2 --> C1
     C3 --> C1
-    D1 -->|bundles| Observability
-    D2 -->|lineage events| Observability
+    D1 -->|bundles| E2
+    D2 -->|lineage events| E1
     D3 -->|attestations| D1
     D4 -->|SLSA statements| D1
-    Observability --> E2
-    D1 -->|signed MANIFEST| Evidence
     E1 --> B2
     E1 --> D1
     E1 --> D2
     E1 --> D3
+    E2 --> B2
 ```
 
 ## Capability matrix
@@ -189,11 +189,11 @@ Harmonise heterogeneous SBOMs for deterministic downstream risk, evidence, and c
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    In1[Raw SBOMs\nsyft.json\ntrivy.xml] -->|parse| P1[Normalizer\nlib4sbom/normalizer.py]
-    P1 -->|dedupe + metrics| P2[Normalized JSON\nartifacts/sbom/normalized.json]
-    P2 -->|render| P3[HTML Report\nreports/sbom_quality_report.html]
-    P2 -->|feed| Risk[risk/scoring.py]
-    P3 --> Evidence[evidence/packager.py]
+    In1["Raw SBOMs<br/>syft.json<br/>trivy.xml"] -->|parse| P1["Normalizer<br/>lib4sbom/normalizer.py"]
+    P1 -->|dedupe + metrics| P2["Normalized JSON<br/>artifacts/sbom/normalized.json"]
+    P2 -->|render| P3["HTML Report<br/>reports/sbom_quality_report.html"]
+    P2 -->|feed| Risk["risk/scoring.py"]
+    P3 --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -224,12 +224,12 @@ Prioritise remediation by blending exploit probability (EPSS), KEV status, versi
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    SBOM[Normalized SBOM] -->|join| Joiner[risk/scoring.py]
-    EPSS[data/feeds/epss.json] --> Joiner
-    KEV[data/feeds/kev.json] --> Joiner
-    Joiner -->|FixOpsRisk| RiskOut[artifacts/risk.json]
-    RiskOut --> API[backend/api/risk]
-    RiskOut --> Evidence
+    SBOM["Normalized SBOM"] -->|join| Joiner["risk/scoring.py"]
+    EPSS["data/feeds/epss.json"] --> Joiner
+    KEV["data/feeds/kev.json"] --> Joiner
+    Joiner -->|FixOpsRisk| RiskOut["artifacts/risk.json"]
+    RiskOut --> API["backend/api/risk"]
+    RiskOut --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -259,12 +259,12 @@ Guarantee downstream consumers can verify the supply-chain lineage for every bui
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    Artifact[Build artefact] -->|hash| Hasher[services/provenance/attestation.py]
-    Hasher --> SLSA[SLSA Statement]
-    SLSA -->|sign| Cosign[scripts/signing/sign-artifact.sh]
-    Cosign --> Bundle[.sig / bundle]
-    SLSA --> APIProv[backend/api/provenance]
-    Bundle --> Evidence
+    Artifact["Build artefact"] -->|hash| Hasher["services/provenance/attestation.py"]
+    Hasher --> SLSA["SLSA Statement"]
+    SLSA -->|sign| Cosign["scripts/signing/sign-artifact.sh"]
+    Cosign --> Bundle[".sig / bundle"]
+    SLSA --> APIProv["backend/api/provenance"]
+    Bundle --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -295,24 +295,24 @@ Provide a queryable knowledge graph linking commits, CI jobs, artefacts, SBOM co
 #### 3. Data flow
 ```mermaid
 flowchart TD
-    subgraph Data
-        SBOMNodes[Normalized SBOM]
-        RiskNodes[Risk JSON]
-        AttNodes[Attestations]
-        GitNodes[Git metadata]
+    subgraph Data["Ingested Data"]
+        SBOMNodes["Normalized SBOM"]
+        RiskNodes["Risk JSON"]
+        AttNodes["Attestations"]
+        GitNodes["Git metadata"]
     end
-    subgraph GraphEngine[services/graph]
-        Loader[GraphLoader]
-        Queries[Query API]
+    subgraph GraphEngine["services/graph"]
+        Loader["GraphLoader"]
+        Queries["Query API"]
     end
     SBOMNodes --> Loader
     RiskNodes --> Loader
     AttNodes --> Loader
     GitNodes --> Loader
-    Loader --> DB[(SQLite store)]
+    Loader --> DB[("SQLite store")]
     DB --> Queries
-    Queries --> API[backend/api/graph]
-    API --> Consumers[CLI / UI]
+    Queries --> API["backend/api/graph"]
+    API --> Consumers["CLI / UI"]
 ```
 
 #### 4. Usage & setup
@@ -342,12 +342,12 @@ Ensure published artefacts can be recreated byte-for-byte from source via hermet
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    Plan[build/plan.yaml] --> Runner[services/repro/verifier.py]
-    Release[Release artefact] --> Runner
-    Runner -->|rebuild| Sandbox[(Temp build env)]
-    Sandbox -->|digest| Compare[Digest compare]
-    Compare --> Att[artifacts/repro/attestations/<tag>.json]
-    Att --> Evidence
+    Plan["build/plan.yaml"] --> Runner["services/repro/verifier.py"]
+    Release["Release artefact"] --> Runner
+    Runner -->|rebuild| Sandbox[("Temp build env")]
+    Sandbox -->|digest| Compare["Digest compare"]
+    Compare --> Att["artifacts/repro/attestations/<tag>.json"]
+    Att --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -377,19 +377,19 @@ Offer a single command to package SBOM, risk, provenance, and repro evidence, si
 #### 3. Data flow
 ```mermaid
 flowchart TD
-    subgraph Inputs
-        SBOMIn[artifacts/sbom/normalized.json]
-        RiskIn[artifacts/risk.json]
-        ProvIn[artifacts/attestations/*.json]
-        ReproIn[artifacts/repro/attestations/*.json]
+    subgraph Inputs["Evidence inputs"]
+        SBOMIn["artifacts/sbom/normalized.json"]
+        RiskIn["artifacts/risk.json"]
+        ProvIn["artifacts/attestations/*.json"]
+        ReproIn["artifacts/repro/attestations/*.json"]
     end
-    Policy[config/policy.yml]
-    CLI[cli/fixops-ci]
+    Policy["config/policy.yml"]
+    CLI["cli/fixops-ci"]
     CLI -->|policy evaluate| Policy
     Inputs --> CLI
-    CLI --> BundleZip[evidence/bundles/<release>.zip]
-    BundleZip --> Manifest[Signed MANIFEST.yaml]
-    BundleZip --> APIEvidence[backend/api/evidence]
+    CLI --> BundleZip["evidence/bundles/<release>.zip"]
+    BundleZip --> Manifest["Signed MANIFEST.yaml"]
+    BundleZip --> APIEvidence["backend/api/evidence"]
 ```
 
 #### 4. Usage & setup
@@ -471,10 +471,10 @@ Quantify future severity drift and escalation pressure with explainable probabil
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    Hist[Historical severity timeline] --> Engine[core/probabilistic.py]
-    Engine -->|posterior| Forecast[Forecast JSON]
-    Forecast --> Pipeline
-    Pipeline --> Dashboard
+    Hist["Historical severity timeline"] --> Engine["core/probabilistic.py"]
+    Engine -->|posterior| Forecast["Forecast JSON"]
+    Forecast --> Pipeline["apps/api/pipeline.py"]
+    Pipeline --> Dashboard["ui/dashboard"]
 ```
 
 #### 4. Usage & setup
@@ -503,15 +503,15 @@ Blend deterministic heuristics with LLM reasoning while capturing audit trails f
 #### 3. Data flow
 ```mermaid
 flowchart TD
-    Prompt[Context-rich prompt] --> Fanout[EnhancedDecisionEngine]
-    Fanout -->|OpenAI| Provider1
-    Fanout -->|Anthropic| Provider2
-    Fanout -->|Gemini| Provider3
-    Provider1 --> Reducer[Consensus reducer]
+    Prompt["Context-rich prompt"] --> Fanout["EnhancedDecisionEngine"]
+    Fanout -->|OpenAI| Provider1["Provider: OpenAI"]
+    Fanout -->|Anthropic| Provider2["Provider: Anthropic"]
+    Fanout -->|Gemini| Provider3["Provider: Gemini"]
+    Provider1 --> Reducer["Consensus reducer"]
     Provider2 --> Reducer
     Provider3 --> Reducer
-    Reducer --> Verdict[Decision + Rationale]
-    Verdict --> Pipeline
+    Reducer --> Verdict["Decision + Rationale"]
+    Verdict --> Pipeline["apps/api/pipeline.py"]
 ```
 
 #### 4. Usage & setup
