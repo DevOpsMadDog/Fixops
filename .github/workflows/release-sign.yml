@@ -1,0 +1,105 @@
+name: Release Signing
+
+on:
+  push:
+    tags:
+      - '*'
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
+jobs:
+  sign-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
+
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p artifacts/attestations
+          git archive --format=tar.gz -o artifacts/fixops-${{ github.sha }}.tar.gz HEAD
+
+      - name: Generate provenance predicate
+        run: |
+          cli/fixops-provenance attest \
+            --artifact artifacts/fixops-${{ github.sha }}.tar.gz \
+            --out artifacts/attestations/fixops-${{ github.sha }}.json \
+            --builder-id "https://github.com/${{ github.repository }}/actions" \
+            --source-uri "${{ github.server_url }}/${{ github.repository }}@${{ github.sha }}" \
+            --build-type "https://github.com/actions/runner"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Write signing key
+        run: |
+          printf '%s' "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+        shell: bash
+
+      - name: Sign release artifact
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          scripts/signing/sign-artifact.sh \
+            --artifact artifacts/fixops-${{ github.sha }}.tar.gz \
+            --key cosign.key \
+            --signature artifacts/fixops-${{ github.sha }}.tar.gz.sig \
+            --predicate artifacts/attestations/fixops-${{ github.sha }}.json \
+            --attestation-out artifacts/attestations/fixops-${{ github.sha }}.dsse \
+            --bundle-out artifacts/attestations/fixops-${{ github.sha }}.bundle
+
+      - name: Write verification key
+        run: |
+          printf '%s' "${{ secrets.COSIGN_PUBLIC_KEY }}" > cosign.pub
+        shell: bash
+
+      - name: Verify signatures
+        run: |
+          cosign verify-blob \
+            --key cosign.pub \
+            --signature artifacts/fixops-${{ github.sha }}.tar.gz.sig \
+            artifacts/fixops-${{ github.sha }}.tar.gz
+          cosign verify-blob \
+            --key cosign.pub \
+            --bundle artifacts/attestations/fixops-${{ github.sha }}.bundle \
+            artifacts/fixops-${{ github.sha }}.tar.gz
+        shell: bash
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-${{ github.sha }}
+          path: |
+            artifacts/fixops-${{ github.sha }}.tar.gz
+            artifacts/fixops-${{ github.sha }}.tar.gz.sig
+            artifacts/attestations/fixops-${{ github.sha }}.json
+            artifacts/attestations/fixops-${{ github.sha }}.dsse
+            artifacts/attestations/fixops-${{ github.sha }}.bundle
+          if-no-files-found: error
+
+      - name: Attach assets to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/fixops-${{ github.sha }}.tar.gz
+            artifacts/fixops-${{ github.sha }}.tar.gz.sig
+            artifacts/attestations/fixops-${{ github.sha }}.json
+            artifacts/attestations/fixops-${{ github.sha }}.dsse
+            artifacts/attestations/fixops-${{ github.sha }}.bundle
