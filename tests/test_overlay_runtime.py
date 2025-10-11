@@ -40,3 +40,28 @@ def test_prepare_overlay_creates_directories_when_requested(tmp_path, monkeypatc
 
     assert overlay.mode == "enterprise"
     assert evidence_dir.exists(), "evidence directory should be created"
+
+
+def test_prepare_overlay_reports_missing_automation_tokens(monkeypatch):
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_EVIDENCE_KEY", "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=")
+    monkeypatch.delenv("FIXOPS_JIRA_TOKEN", raising=False)
+    monkeypatch.delenv("FIXOPS_CONFLUENCE_TOKEN", raising=False)
+
+    overlay = prepare_overlay(path=Path("config/fixops.overlay.yml"), ensure_directories=False)
+
+    warnings = overlay.metadata.get("runtime_warnings", [])
+    assert any("Jira" in warning for warning in warnings)
+    assert any("Confluence" in warning for warning in warnings)
+
+
+def test_prepare_overlay_suppresses_warnings_when_tokens_present(monkeypatch):
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_EVIDENCE_KEY", "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=")
+    monkeypatch.setenv("FIXOPS_JIRA_TOKEN", "jira-token")
+    monkeypatch.setenv("FIXOPS_CONFLUENCE_TOKEN", "confluence-token")
+
+    overlay = prepare_overlay(path=Path("config/fixops.overlay.yml"), ensure_directories=False)
+
+    warnings = overlay.metadata.get("runtime_warnings")
+    assert not warnings
