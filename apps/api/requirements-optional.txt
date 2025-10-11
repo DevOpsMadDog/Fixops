@@ -5,3 +5,7 @@
 
 # Snyk SARIF converter (private Git repository).
 snyk-to-sarif @ git+https://github.com/snyk/snyk-to-sarif.git
+
+# Vector similarity search optional extras.
+chromadb>=0.4.24
+sentence-transformers>=2.7.0

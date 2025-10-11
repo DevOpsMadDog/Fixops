@@ -1,0 +1,42 @@
+name: reproducible-build-verify
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
+      - name: Verify reproducible build
+        env:
+          FIXOPS_TAG: ${{ github.ref_name }}
+        run: |
+          TAG=${FIXOPS_TAG:-nightly}
+          cli/fixops-repro verify \
+            --tag "$TAG" \
+            --plan build/plan.yaml \
+            --out artifacts/repro/attestations \
+            --repo .
+      - name: Upload reproducibility attestations
+        uses: actions/upload-artifact@v4
+        with:
+          name: repro-attestations
+          path: artifacts/repro/attestations/
+          if-no-files-found: warn

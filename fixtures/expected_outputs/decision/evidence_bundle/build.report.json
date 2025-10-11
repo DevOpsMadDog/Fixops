@@ -1,0 +1,10 @@
+{
+  "app_id": "APP-1825",
+  "build_risk_score": 0.45,
+  "components_indexed": 0,
+  "links": {
+    "sbom": "../inputs/sbom.json"
+  },
+  "risk_flags": [],
+  "run_id": "SAMPLE-RUN"
+}

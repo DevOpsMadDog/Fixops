@@ -87,6 +87,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "ci",
     "auth",
     "data",
+    "data_directories",
     "toggles",
     "signing",
     "guardrails",
@@ -108,6 +109,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "analytics",
     "tenancy",
     "performance",
+    "enhanced_decision",
     "profiles",
 }
 
@@ -568,6 +570,7 @@ class _OverlayDocument(BaseModel):
     ci: Optional[Dict[str, Any]] = None
     auth: Optional[Dict[str, Any]] = None
     data: Optional[Dict[str, Any]] = None
+    data_directories: Optional[Dict[str, Any]] = None
     toggles: Optional[Dict[str, Any]] = None
     signing: Optional[Dict[str, Any]] = None
     guardrails: Optional[Dict[str, Any]] = None
@@ -589,6 +592,7 @@ class _OverlayDocument(BaseModel):
     analytics: Optional[Dict[str, Any]] = None
     tenancy: Optional[Dict[str, Any]] = None
     performance: Optional[Dict[str, Any]] = None
+    enhanced_decision: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     class Config:
@@ -654,6 +658,7 @@ class OverlayConfig:
     analytics: Dict[str, Any] = field(default_factory=dict)
     tenancy: Dict[str, Any] = field(default_factory=dict)
     performance: Dict[str, Any] = field(default_factory=dict)
+    enhanced_decision: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(
         default_factory=lambda: (_DEFAULT_DATA_ROOT,)
     )
@@ -712,6 +717,7 @@ class OverlayConfig:
             "analytics": self.analytics_settings,
             "tenancy": self.tenancy_settings,
             "performance": self.performance_settings,
+            "enhanced_decision": self.enhanced_decision_settings,
         }
         return payload
 
@@ -1059,6 +1065,19 @@ class OverlayConfig:
         merged["tenants"] = tenants
         return merged
 
+    @property
+    def enhanced_decision_settings(self) -> Dict[str, Any]:
+        settings = dict(self.enhanced_decision)
+        profiles = settings.get("profiles")
+        if isinstance(profiles, Mapping):
+            profile = profiles.get(self.mode)
+            if isinstance(profile, Mapping):
+                merged = dict(settings)
+                merged.pop("profiles", None)
+                return dict(_deep_merge(merged, dict(profile)))
+        settings.pop("profiles", None)
+        return settings
+
     def module_config(self, name: str) -> Dict[str, Any]:
         raw = self.modules.get(name)
         if isinstance(raw, Mapping):
@@ -1125,6 +1144,8 @@ class OverlayConfig:
             "analytics",
             "tenancy",
             "performance",
+            "vector_store",
+            "enhanced_decision",
         ]
         enabled: list[str] = []
         for name in known_modules:
@@ -1216,6 +1237,26 @@ def load_overlay(
     text = _read_text(candidate_path)
     raw = _parse_overlay(text)
 
+    if isinstance(raw, MutableMapping):
+        data_directories = raw.get("data_directories")
+        if isinstance(data_directories, Mapping):
+            merged_directories = dict(data_directories)
+            existing_data = raw.get("data") if isinstance(raw.get("data"), Mapping) else {}
+            merged_directories.update(dict(existing_data))
+            raw["data"] = merged_directories
+        raw.pop("data_directories", None)
+
+        auth_section = raw.get("auth")
+        if isinstance(auth_section, MutableMapping):
+            api_key_env = auth_section.pop("api_key_env", None)
+            if api_key_env and "token_env" not in auth_section:
+                auth_section["token_env"] = api_key_env
+            if api_key_env and not auth_section.get("strategy"):
+                auth_section["strategy"] = "token"
+            api_key_header = auth_section.pop("api_key_header", None)
+            if api_key_header and "header" not in auth_section:
+                auth_section["header"] = api_key_header
+
     if mode_override is not None:
         if not isinstance(raw, MutableMapping):
             raw = {}
@@ -1261,6 +1302,7 @@ def load_overlay(
         "analytics": document.analytics or {},
         "tenancy": document.tenancy or {},
         "performance": document.performance or {},
+        "enhanced_decision": document.enhanced_decision or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -1318,6 +1360,7 @@ def load_overlay(
         "analytics": True,
         "tenancy": True,
         "performance": True,
+        "vector_store": True,
     }
     for key, enabled in default_module_flags.items():
         value = modules.get(key)

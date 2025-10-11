@@ -216,7 +216,14 @@ class RunRegistry:
         self, app_id: str | None, *, sign_outputs: bool = False
     ) -> RunContext:
         normalised = self._normalise_app_id(app_id)
+        seed = os.environ.get("FIXOPS_RUN_ID_SEED")
         timestamp = _dt.datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        if seed:
+            sanitized = "".join(
+                ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in seed.strip()
+            )
+            if sanitized:
+                timestamp = sanitized
         run_id = timestamp
         counter = 1
         while (self.root / normalised / run_id).exists():

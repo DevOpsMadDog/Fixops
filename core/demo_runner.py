@@ -9,8 +9,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
-from core.configuration import OverlayConfig, load_overlay
-from core.evidence import Fernet  # type: ignore
+from core.overlay_runtime import prepare_overlay
 from core.paths import ensure_secure_directory
 
 _DEMO_ENV_DEFAULTS: Dict[str, str] = {
@@ -112,18 +111,12 @@ def _format_summary(
         lines.append(f"  Result saved to: {output_path}")
     if evidence_path:
         lines.append(f"  Evidence bundle: {evidence_path}")
+    runtime_warnings = result.get("runtime_warnings")
+    if isinstance(runtime_warnings, Sequence) and runtime_warnings:
+        lines.append("  Runtime warnings:")
+        for warning in runtime_warnings:
+            lines.append(f"    - {warning}")
     return lines
-
-
-def _prepare_overlay(mode: str) -> OverlayConfig:
-    _ensure_env_defaults()
-    overlay = load_overlay(mode_override=mode)
-    evidence_limits = overlay.limits.setdefault("evidence", {}) if isinstance(overlay.limits, dict) else {}
-    if evidence_limits.get("encrypt") and Fernet is None:
-        evidence_limits["encrypt"] = False
-    for directory in overlay.data_directories.values():
-        ensure_secure_directory(directory)
-    return overlay
 
 
 def run_demo_pipeline(
@@ -149,12 +142,15 @@ def run_demo_pipeline(
     """
 
     selected_mode = mode.lower().strip() or "demo"
-    overlay = _prepare_overlay(selected_mode)
+    _ensure_env_defaults()
+    overlay = prepare_overlay(mode=selected_mode)
 
     normalizer = InputNormalizer()
     sbom = normalizer.load_sbom(_fixture_path("sample.sbom.json").read_bytes())
     sarif = normalizer.load_sarif(_fixture_path("sample.sarif.json").read_bytes())
     cve = normalizer.load_cve_feed(_fixture_path("sample.cve.json").read_bytes())
+    vex = normalizer.load_vex(_fixture_path("sample.vex.json").read_bytes())
+    cnapp = normalizer.load_cnapp(_fixture_path("sample.cnapp.json").read_bytes())
     design = _read_design(_fixture_path("sample.design.csv"))
 
     orchestrator = PipelineOrchestrator()
@@ -164,6 +160,8 @@ def run_demo_pipeline(
         sarif=sarif,
         cve=cve,
         overlay=overlay,
+        vex=vex,
+        cnapp=cnapp,
     )
 
     if output_path:

@@ -1,0 +1,37 @@
+{
+  "app_id": "APP-1825",
+  "requirements": [
+    {
+      "Requirement_ID": "REQ-0000",
+      "app_id": "APP-1825",
+      "control_refs": [
+        "ISO27001:AC-1",
+        "ISO27001:AC-2"
+      ],
+      "data_class": "restricted",
+      "feature": "Account registration",
+      "internet_facing": true,
+      "notes": "Requires MFA and audit logging",
+      "pii": true,
+      "requirement_id": "REQ-0000"
+    },
+    {
+      "Requirement_ID": "REQ-0003",
+      "app_id": "APP-1825",
+      "control_refs": [
+        "ISO27001:IR-1"
+      ],
+      "data_class": "internal",
+      "feature": "Policy export",
+      "internet_facing": false,
+      "notes": "Generate daily compliance exports",
+      "pii": false,
+      "requirement_id": "REQ-0003"
+    }
+  ],
+  "run_id": "SAMPLE-RUN",
+  "ssvc_anchor": {
+    "impact_tier": "critical",
+    "stakeholder": "mission"
+  }
+}

@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import csv
 import io
+import importlib.util
 import logging
 import os
 import secrets
 import uuid
 from datetime import datetime, timedelta
 from contextlib import suppress
+import json
+import shutil
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
 from typing import Any, Dict, Mapping, Optional, Tuple
 
 import jwt
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
@@ -23,14 +26,31 @@ from core.configuration import OverlayConfig, load_overlay
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from core.feedback import FeedbackRecorder
+from core.enhanced_decision import EnhancedDecisionEngine
+
+from backend.api.provenance import router as provenance_router
+from backend.api.risk import router as risk_router
+from backend.api.graph import router as graph_router
+from backend.api.evidence import router as evidence_router
+from telemetry import configure as configure_telemetry
+
+if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+else:  # pragma: no cover - fallback when instrumentation is unavailable
+    from telemetry.fastapi_noop import FastAPIInstrumentor
 
 from .normalizers import (
     InputNormalizer,
+    NormalizedBusinessContext,
+    NormalizedCNAPP,
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
+    NormalizedVEX,
 )
 from .pipeline import PipelineOrchestrator
+from .routes.enhanced import router as enhanced_router
+from .upload_manager import ChunkUploadManager
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +83,9 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 def create_app() -> FastAPI:
     """Create the FastAPI application with file-upload ingestion endpoints."""
 
+    configure_telemetry(service_name="fixops-api")
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
+    FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
@@ -132,6 +154,22 @@ def create_app() -> FastAPI:
     analytics_dir = verify_allowlisted_path(analytics_dir, allowlist)
     analytics_store = AnalyticsStore(analytics_dir, allowlist=allowlist)
 
+    provenance_dir = overlay.data_directories.get("provenance_dir")
+    if provenance_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        provenance_dir = (root / "artifacts" / "attestations" / overlay.mode).resolve()
+    provenance_dir = verify_allowlisted_path(provenance_dir, allowlist)
+    provenance_dir = ensure_secure_directory(provenance_dir)
+
+    risk_dir = overlay.data_directories.get("risk_dir")
+    if risk_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        risk_dir = (root / "artifacts").resolve()
+    risk_dir = verify_allowlisted_path(risk_dir, allowlist)
+    risk_dir = ensure_secure_directory(risk_dir)
+
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
     app.state.artifacts: Dict[str, Any] = {}
@@ -144,6 +182,60 @@ def create_app() -> FastAPI:
         if overlay.toggles.get("capture_feedback")
         else None
     )
+    app.state.enhanced_engine = EnhancedDecisionEngine(
+        overlay.enhanced_decision_settings
+    )
+    sbom_dir = overlay.data_directories.get("sbom_dir")
+    if sbom_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        sbom_dir = (root / "artifacts" / "sbom").resolve()
+    sbom_dir = verify_allowlisted_path(sbom_dir, allowlist)
+    sbom_dir = ensure_secure_directory(sbom_dir)
+
+    graph_dir = overlay.data_directories.get("graph_dir")
+    if graph_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        graph_dir = (root / "analysis").resolve()
+    graph_dir = verify_allowlisted_path(graph_dir, allowlist)
+    graph_dir = ensure_secure_directory(graph_dir)
+
+    evidence_dir = overlay.data_directories.get("evidence_dir")
+    if evidence_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        evidence_dir = (root / "evidence").resolve()
+    evidence_dir = verify_allowlisted_path(evidence_dir, allowlist)
+    evidence_dir = ensure_secure_directory(evidence_dir)
+    evidence_manifest_dir = ensure_secure_directory(evidence_dir / "manifests")
+    evidence_bundle_dir = ensure_secure_directory(evidence_dir / "bundles")
+
+    app.state.provenance_dir = provenance_dir
+    app.state.risk_dir = risk_dir
+    app.state.sbom_dir = sbom_dir
+    app.state.graph_config = {
+        "repo_path": Path(".").resolve(),
+        "attestation_dir": provenance_dir,
+        "sbom_dir": sbom_dir,
+        "risk_dir": risk_dir,
+        "releases_path": graph_dir / "releases.json",
+    }
+    app.state.evidence_manifest_dir = evidence_manifest_dir
+    app.state.evidence_bundle_dir = evidence_bundle_dir
+    uploads_dir = overlay.data_directories.get("uploads_dir")
+    if uploads_dir is None:
+        root = allowlist[0]
+        uploads_dir = (root / "uploads" / overlay.mode).resolve()
+    uploads_dir = verify_allowlisted_path(uploads_dir, allowlist)
+    upload_manager = ChunkUploadManager(uploads_dir)
+    app.state.upload_manager = upload_manager
+
+    app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
@@ -225,6 +317,164 @@ def create_app() -> FastAPI:
             record = {"stage": stage, "error": str(exc)}
         app.state.archive_records[stage] = record
 
+    supported_stages = {
+        "design",
+        "sbom",
+        "sarif",
+        "cve",
+        "vex",
+        "cnapp",
+        "context",
+    }
+
+    def _process_design(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+        text_stream = io.TextIOWrapper(
+            buffer, encoding="utf-8", errors="ignore", newline=""
+        )
+        try:
+            reader = csv.DictReader(text_stream)
+            rows = [
+                row
+                for row in reader
+                if any((value or "").strip() for value in row.values())
+            ]
+            columns = reader.fieldnames or []
+        finally:
+            buffer = text_stream.detach()
+        if not rows:
+            raise HTTPException(status_code=400, detail="Design CSV contained no rows")
+        dataset = {"columns": columns, "rows": rows}
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("design", dataset, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "design",
+            "input_filename": filename,
+            "row_count": len(rows),
+            "columns": columns,
+            "data": dataset,
+        }
+
+    def _process_sbom(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+        try:
+            sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
+        except Exception as exc:  # pragma: no cover - pass to FastAPI
+            logger.exception("SBOM normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse SBOM: {exc}") from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "sbom",
+            "input_filename": filename,
+            "metadata": sbom.metadata,
+            "component_preview": [component.to_dict() for component in sbom.components[:5]],
+            "format": sbom.format,
+        }
+
+    def _process_cve(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+        try:
+            cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
+        except Exception as exc:  # pragma: no cover - FastAPI serialises
+            logger.exception("CVE feed normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse CVE feed: {exc}") from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "cve",
+            "input_filename": filename,
+            "record_count": cve_feed.metadata.get("record_count", 0),
+            "validation_errors": cve_feed.errors,
+        }
+
+    def _process_vex(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+        try:
+            vex_doc: NormalizedVEX = normalizer.load_vex(buffer)
+        except Exception as exc:
+            logger.exception("VEX normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse VEX document: {exc}") from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("vex", vex_doc, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "vex",
+            "input_filename": filename,
+            "assertions": vex_doc.metadata.get("assertion_count", 0),
+            "not_affected": len(vex_doc.suppressed_refs),
+        }
+
+    def _process_cnapp(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+        try:
+            cnapp_payload: NormalizedCNAPP = normalizer.load_cnapp(buffer)
+        except Exception as exc:
+            logger.exception("CNAPP normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse CNAPP payload: {exc}") from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("cnapp", cnapp_payload, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "cnapp",
+            "input_filename": filename,
+            "asset_count": cnapp_payload.metadata.get("asset_count", len(cnapp_payload.assets)),
+            "finding_count": cnapp_payload.metadata.get("finding_count", len(cnapp_payload.findings)),
+        }
+
+    def _process_sarif(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+        try:
+            sarif: NormalizedSARIF = normalizer.load_sarif(buffer)
+        except Exception as exc:
+            logger.exception("SARIF normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse SARIF: {exc}") from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("sarif", sarif, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "sarif",
+            "input_filename": filename,
+            "metadata": sarif.metadata,
+            "tools": sarif.tool_names,
+        }
+
+    def _process_context(buffer: SpooledTemporaryFile, total: int, filename: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+        try:
+            context: NormalizedBusinessContext = normalizer.load_business_context(buffer, content_type=content_type)
+        except Exception as exc:
+            logger.exception("Business context normalisation failed")
+            raise HTTPException(status_code=400, detail=f"Failed to parse business context: {exc}") from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("context", context, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "stage": "context",
+            "input_filename": filename,
+            "format": context.format,
+            "ssvc_factors": context.ssvc,
+            "components": context.components,
+        }
+
+    def _process_from_buffer(stage: str, buffer: SpooledTemporaryFile, total: int, filename: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+        if stage == "design":
+            return _process_design(buffer, total, filename)
+        if stage == "sbom":
+            return _process_sbom(buffer, total, filename)
+        if stage == "cve":
+            return _process_cve(buffer, total, filename)
+        if stage == "vex":
+            return _process_vex(buffer, total, filename)
+        if stage == "cnapp":
+            return _process_cnapp(buffer, total, filename)
+        if stage == "sarif":
+            return _process_sarif(buffer, total, filename)
+        if stage == "context":
+            return _process_context(buffer, total, filename, content_type)
+        raise HTTPException(status_code=400, detail=f"Unsupported stage '{stage}'")
+
+    def _process_from_path(stage: str, path: Path, filename: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+        buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
+        try:
+            with path.open("rb") as handle:
+                shutil.copyfileobj(handle, buffer)
+            total = buffer.tell()
+            buffer.seek(0)
+            return _process_from_buffer(stage, buffer, total, filename, content_type)
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
     @app.post("/inputs/design", dependencies=[Depends(_verify_api_key)])
     async def ingest_design(file: UploadFile = File(...)) -> Dict[str, Any]:
         _validate_content_type(
@@ -232,37 +482,7 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "design")
         try:
-            text_stream = io.TextIOWrapper(
-                buffer, encoding="utf-8", errors="ignore", newline=""
-            )
-            try:
-                reader = csv.DictReader(text_stream)
-                rows = [
-                    row
-                    for row in reader
-                    if any((value or "").strip() for value in row.values())
-                ]
-                columns = reader.fieldnames or []
-            finally:
-                buffer = text_stream.detach()
-
-            if not rows:
-                raise HTTPException(
-                    status_code=400, detail="Design CSV contained no rows"
-                )
-
-            dataset = {"columns": columns, "rows": rows}
-            raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store(
-                "design", dataset, original_filename=file.filename, raw_bytes=raw_bytes
-            )
-            return {
-                "stage": "design",
-                "input_filename": file.filename,
-                "row_count": len(rows),
-                "columns": dataset["columns"],
-                "data": dataset,
-            }
+            return _process_design(buffer, total, file.filename or "design.csv")
         finally:
             with suppress(Exception):
                 buffer.close()
@@ -281,25 +501,7 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "sbom")
         try:
-            sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
-        except (
-            Exception
-        ) as exc:  # pragma: no cover - FastAPI will serialise the message
-            logger.exception("SBOM normalisation failed")
-            raise HTTPException(
-                status_code=400, detail=f"Failed to parse SBOM: {exc}"
-            ) from exc
-        else:
-            raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store("sbom", sbom, original_filename=file.filename, raw_bytes=raw_bytes)
-            return {
-                "stage": "sbom",
-                "input_filename": file.filename,
-                "metadata": sbom.metadata,
-                "component_preview": [
-                    component.to_dict() for component in sbom.components[:5]
-                ],
-            }
+            return _process_sbom(buffer, total, file.filename or "sbom.json")
         finally:
             with suppress(Exception):
                 buffer.close()
@@ -318,25 +520,27 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "cve")
         try:
-            cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
-        except (
-            Exception
-        ) as exc:  # pragma: no cover - FastAPI will serialise the message
-            logger.exception("CVE feed normalisation failed")
-            raise HTTPException(
-                status_code=400, detail=f"Failed to parse CVE feed: {exc}"
-            ) from exc
-        else:
-            raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store(
-                "cve", cve_feed, original_filename=file.filename, raw_bytes=raw_bytes
-            )
-            return {
-                "stage": "cve",
-                "input_filename": file.filename,
-                "record_count": cve_feed.metadata.get("record_count", 0),
-                "validation_errors": cve_feed.errors,
-            }
+            return _process_cve(buffer, total, file.filename or "cve.json")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/vex", dependencies=[Depends(_verify_api_key)])
+    async def ingest_vex(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(file, ("application/json", "text/json"))
+        buffer, total = await _read_limited(file, "vex")
+        try:
+            return _process_vex(buffer, total, file.filename or "vex.json")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/cnapp", dependencies=[Depends(_verify_api_key)])
+    async def ingest_cnapp(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(file, ("application/json", "text/json"))
+        buffer, total = await _read_limited(file, "cnapp")
+        try:
+            return _process_cnapp(buffer, total, file.filename or "cnapp.json")
         finally:
             with suppress(Exception):
                 buffer.close()
@@ -355,28 +559,96 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "sarif")
         try:
-            sarif: NormalizedSARIF = normalizer.load_sarif(buffer)
-        except (
-            Exception
-        ) as exc:  # pragma: no cover - FastAPI will serialise the message
-            logger.exception("SARIF normalisation failed")
-            raise HTTPException(
-                status_code=400, detail=f"Failed to parse SARIF: {exc}"
-            ) from exc
-        else:
-            raw_bytes = _maybe_materialise_raw(buffer, total)
-            _store("sarif", sarif, original_filename=file.filename, raw_bytes=raw_bytes)
-            return {
-                "stage": "sarif",
-                "input_filename": file.filename,
-                "metadata": sarif.metadata,
-                "tools": sarif.tool_names,
-            }
+            return _process_sarif(buffer, total, file.filename or "scan.sarif")
         finally:
             with suppress(Exception):
                 buffer.close()
 
-    @app.post("/pipeline/run", dependencies=[Depends(_verify_api_key)])
+    @app.post("/inputs/context", dependencies=[Depends(_verify_api_key)])
+    async def ingest_context(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/x-yaml",
+                "text/yaml",
+                "application/yaml",
+                "text/plain",
+            ),
+        )
+        buffer, total = await _read_limited(file, "context")
+        try:
+            return _process_context(buffer, total, file.filename or "context.yaml", file.content_type)
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/{stage}/chunks/start", dependencies=[Depends(_verify_api_key)])
+    async def initialise_chunk_upload(stage: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+        filename = str(payload.get("file_name") or payload.get("filename") or f"{stage}.bin")
+        try:
+            total_bytes = int(payload.get("total_size")) if payload.get("total_size") is not None else None
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="total_size must be an integer")
+        checksum = payload.get("checksum")
+        content_type = payload.get("content_type")
+        session = upload_manager.create_session(
+            stage,
+            filename=filename,
+            total_bytes=total_bytes,
+            checksum=checksum,
+            content_type=content_type,
+        )
+        return {"status": "initialised", "session": session.to_dict()}
+
+    @app.put("/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)])
+    async def upload_chunk(stage: str, session_id: str, chunk: UploadFile = File(...), offset: Optional[int] = None) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+        data = await chunk.read()
+        try:
+            session = upload_manager.append_chunk(session_id, data, offset=offset)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        return {"status": "chunk_received", "session": session.to_dict()}
+
+    @app.post("/inputs/{stage}/chunks/{session_id}/complete", dependencies=[Depends(_verify_api_key)])
+    async def complete_upload(stage: str, session_id: str) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+        try:
+            session = upload_manager.finalise(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        path = session.path
+        if path is None:
+            raise HTTPException(status_code=500, detail="Upload payload missing")
+        response = _process_from_path(stage, path, session.filename, session.content_type)
+        response["upload_session"] = session.to_dict()
+        return response
+
+    @app.get("/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)])
+    async def upload_status(stage: str, session_id: str) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+        try:
+            session = upload_manager.status(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        return {"status": "ok", "session": session.to_dict()}
+
+    @app.api_route(
+        "/pipeline/run",
+        methods=["GET", "POST"],
+        dependencies=[Depends(_verify_api_key)],
+    )
     async def run_pipeline() -> Dict[str, Any]:
         overlay: OverlayConfig = app.state.overlay
         required = overlay.required_inputs
@@ -408,6 +680,9 @@ def create_app() -> FastAPI:
             sarif=app.state.artifacts["sarif"],
             cve=app.state.artifacts["cve"],
             overlay=overlay,
+            vex=app.state.artifacts.get("vex"),
+            cnapp=app.state.artifacts.get("cnapp"),
+            context=app.state.artifacts.get("context"),
         )
         result["run_id"] = run_id
         analytics_store = getattr(app.state, "analytics_store", None)

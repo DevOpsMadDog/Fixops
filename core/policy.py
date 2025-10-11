@@ -7,9 +7,45 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
+import requests
+
 from core.configuration import OverlayConfig
 from core.connectors import AutomationConnectors
 from core.paths import ensure_secure_directory
+
+
+class _OPAClient:
+    """Best-effort OPA/Rego client supporting remote and demo evaluation."""
+
+    def __init__(self, settings: Mapping[str, Any] | None) -> None:
+        self.settings = dict(settings or {})
+        self.url = self.settings.get("url") or self.settings.get("endpoint")
+        self.policy_package = self.settings.get("package", "fixops")
+        self.token = self.settings.get("token")
+        self.timeout = float(self.settings.get("timeout", 5.0))
+        self.enabled = bool(self.url)
+
+    def evaluate(self, policy: str, payload: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+        if not self.enabled:
+            return None
+        try:
+            headers = {"Content-Type": "application/json"}
+            if self.token:
+                headers["Authorization"] = f"Bearer {self.token}"
+            response = requests.post(
+                f"{self.url}/v1/data/{self.policy_package}/{policy}",
+                json={"input": payload},
+                headers=headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            document = response.json()
+        except requests.RequestException as exc:  # pragma: no cover - network failure
+            return {"policy": policy, "error": str(exc), "status": "failed"}
+        result = document.get("result") if isinstance(document, Mapping) else None
+        if isinstance(result, Mapping):
+            return {"policy": policy, "result": result, "status": "ok"}
+        return {"policy": policy, "result": result, "status": "unknown"}
 
 
 class _AutomationDispatcher:
@@ -61,6 +97,7 @@ class PolicyAutomation:
             },
             overlay.toggles,
         )
+        self.opa_client = _OPAClient(self.settings.get("opa"))
 
     def _render_action(
         self,
@@ -113,7 +150,28 @@ class PolicyAutomation:
             else:
                 skipped.append({"id": action.get("id"), "reason": f"trigger '{trigger}' not met"})
         status = "ready" if planned else "idle"
-        return {"actions": planned, "skipped": skipped, "status": status}
+        plan_summary: Dict[str, Any] = {"actions": planned, "skipped": skipped, "status": status}
+        opa_evaluations = self._evaluate_with_opa(pipeline_result)
+        if opa_evaluations:
+            plan_summary["opa"] = opa_evaluations
+        return plan_summary
+
+    def _evaluate_with_opa(self, pipeline_result: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+        if not self.opa_client.enabled:
+            return None
+        vulnerability_input = {
+            "vulnerabilities": [finding for finding in pipeline_result.get("crosswalk", []) if finding.get("cves")],
+            "severity_overview": pipeline_result.get("severity_overview"),
+        }
+        sbom_input = {
+            "sbom": pipeline_result.get("sbom_summary"),
+            "design": pipeline_result.get("design_summary"),
+        }
+        evaluations = {
+            "vulnerability": self.opa_client.evaluate("vulnerability", vulnerability_input),
+            "sbom": self.opa_client.evaluate("sbom", sbom_input),
+        }
+        return {key: value for key, value in evaluations.items() if value is not None}
 
     def execute(
         self,

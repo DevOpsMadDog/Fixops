@@ -1,0 +1,12 @@
+{
+  "stage": "design",
+  "input": [
+    "fixtures/sample_inputs/design/design-input.json"
+  ],
+  "programs_invoked": [
+    "python -m apps.fixops_cli stage-run --stage design --input fixtures/sample_inputs/design/design-input.json --app life-claims-portal --mode demo"
+  ],
+  "outputs": [
+    "fixtures/expected_outputs/design/design.manifest.json"
+  ]
+}
