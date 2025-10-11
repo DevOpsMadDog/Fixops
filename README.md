@@ -74,7 +74,7 @@ Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<
 - **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m core.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`apps/api/app.py`, `core/cli.py`).
 - **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, Bayesian/Markov forecasts, and knowledge graph analytics in a single pass (`apps/api/pipeline.py`, `new_apps/api/processing/knowledge_graph.py`).
 - **Probabilistic escalation intelligence** – The `core.probabilistic.ProbabilisticForecastEngine` applies Dirichlet-smoothed calibration, spectral diagnostics, and multi-step projections to forecast severity drift, quantify stationary risk, and surface explainable escalation pressure for decision makers.
-- **Multi-LLM consensus & transparency** – The enhanced decision engine fans out to GPT-5, Claude, Gemini, and vertical cyber models, reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`enterprise/src/services/enhanced_decision_engine.py`, `enterprise/src/api/v1/enhanced.py`).
+- **Multi-LLM consensus & transparency** – The enhanced decision engine layers deterministic heuristics with optional OpenAI/Anthropic/Gemini calls (when API keys are present), reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`fixops-enterprise/src/services/enhanced_decision_engine.py`, `fixops-enterprise/src/api/v1/enhanced.py`).
 - **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`).
 - **Artefact archiving & regulated storage** – Every upload is normalised, persisted with metadata, and summarised via the artefact archive while secure directory enforcement and optional bundle encryption keep regulated tenants compliant (`core/storage.py`, `core/paths.py`).
 - **Analytics & ROI telemetry** – Pipeline responses surface pricing tiers, guardrail progress, exploit refresh health, and contextual noise-reduction metrics that feed executive dashboards and ROI storytelling (`perf/BENCHMARKS.csv`, `market/ENTERPRISE_READINESS.md`).
@@ -142,8 +142,6 @@ Enhanced decisioning -> Explanation engine: craft SentinelGPT executive summary
 Enhanced decisioning -> Pipeline orchestrator: return consensus, MITRE, compliance, KG
 Pipeline orchestrator -> FastAPI ingestion: return aggregated response
 FastAPI ingestion -> Client/CLI: JSON with summaries + bundle paths
-Client/CLI -> Enterprise Terraform: promote overlay + secrets
-Enterprise Terraform -> Kubernetes cluster: deploy services + ingress
 ```
 
 ### UML overview
@@ -216,8 +214,8 @@ FixOps Platform
 │   ├── SentinelGPT explanations
 │   └── CTINexus knowledge graph analytics
 └── Deployment
-    ├── Docker demo
-    └── Terraform enterprise
+    ├── FastAPI service
+    └── CLI tooling
 ```
 
 ### Detailed feature list
@@ -232,12 +230,9 @@ FixOps Platform
 | Evidence hub | Any uploaded artefact | `modules.evidence.enabled` | Compressed, optionally encrypted bundles | Centralises artefacts for hand-off without manual effort. |
 | AI agent advisor | SBOM, SARIF, overlay AI toggles | `modules.ai_agents.enabled` | AI agent detection notes, control guidance
 | Highlights autonomous agents requiring new guardrails. |
-| Multi-LLM consensus | Enhanced API payloads, CLI overrides, marketplace context | Enhanced decision engine toggles | Consensus verdict, MITRE & compliance overlays, disagreement map
-| Provides transparent GPT-5/Claude/Gemini decision audits with reasoning and expert escalation flags. |
-| SentinelGPT explanations | Pipeline findings, business context | Enhanced decision engine | Narrative summary, mitigation guidance
-| Generates executive-ready narratives from multi-LLM output without manual editing. |
-| Knowledge graph analytics | Normalised entities, relationships from scans | Enhanced decision engine | Graph metrics, attack path highlights
-| Surfaces CTINexus attack path intelligence and entity clusters for responders. |
+| Multi-LLM consensus | Enhanced API payloads, CLI overrides, marketplace context | Enhanced decision engine toggles | Consensus verdict, MITRE & compliance overlays, disagreement map | Blends deterministic heuristics with optional OpenAI/Anthropic/Gemini calls when API keys are present. |
+| Narrative explanations | Pipeline findings, business context | Enhanced decision engine | Narrative summary, mitigation guidance | Produces Sentinel-style narratives locally; remote providers are optional fallbacks. |
+| Knowledge graph analytics | Normalised entities, relationships from scans | Enhanced decision engine | Graph metrics, attack path highlights | Surfaces CTINexus-style attack path intelligence using the bundled overlay graph. |
 | Exploit signals | CVE feeds, EPSS/KEV overlays | `modules.exploit_signals.enabled` | Exploitability scores, refresh SLAs
 | Keeps remediation focused on weaponised threats. |
 | Probabilistic forecasts | Correlated crosswalk, historical refresh | `modules.probabilistic.enabled` | Bayesian/Markov risk projections | Quantifies breach likelihood for planning and VC narratives. |
@@ -254,8 +249,7 @@ FixOps Platform
 | Enterprise onboarding | API | `POST /pipeline/run` with `X-API-Key` | Cached artefacts, overlay toggles | Enables integration tests and CI gating. |
 | Operations steady state | CLI | `python -m core.cli run --enable exploit_signals --enable analytics --output out/ops.json` | Latest artefacts, exploit feeds | Keeps vuln management prioritised around active threats and ROI metrics. |
 | Operations steady state | API | `POST /feedback` (if enabled) | Review payloads linked to run IDs | Captures analyst decisions for continuous improvement. |
-| Scale-out deployment | Terraform | `terraform -chdir=enterprise/terraform apply` | AWS credentials, S3 backend, overlay secrets | Launches Kubernetes-backed enterprise stack with same overlays. |
-| Scale-out deployment | Helm (via Terraform) | Automated by module | Helm charts, Kubernetes context | Ensures parity between local demo and production footprint. |
+| Overlay hardening | CLI | `python -m core.cli run --overlay config/fixops.overlay.yml --enable compliance` | Enterprise overlay, connector secrets | Demonstrates hardened guardrails without additional infrastructure. |
 
 Each row outlines the stage of the customer journey, the surface to invoke, the exact commands or endpoints, the minimal inputs required, and the resulting business value to emphasise during demos or enterprise rollouts.
 - **Ingestion service (`apps/api/app.py`)** – Loads the overlay at startup, prepares allowlisted directories, enforces API tokens, validates MIME types, caps uploads, and accepts artefacts at `/inputs/design`, `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` before orchestrating `/pipeline/run`.
@@ -278,19 +272,18 @@ Each row outlines the stage of the customer journey, the surface to invoke, the 
 5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, knowledge graph analytics, SentinelGPT narratives, multi-LLM disagreement matrices, module matrices, feedback endpoints, and sanitized overlay metadata.
 
 ## Installation & setup
-### Local Docker demo setup
-* The `enterprise/docker-compose.yml` bundle gives you a three-service stack: MongoDB, the FastAPI backend, and the optional React frontend, each with health checks and environment defaults suitable for a laptop demo. Start it with `docker-compose up -d` to get ports `8001` (API) and `3000` (UI) exposed locally.
+This repository ships the CLI workflow, the FastAPI ingestion service, and the overlay profiles used to demonstrate demo vs. enterprise behaviour. Container bundles, React front-ends, and Terraform stacks referenced in earlier drafts are **not** included.
 
-* After the containers are up, seed the bundled SQLite database and create a demo admin account by running `python quick_start.py`; it provisions schema and demo credentials (`admin@fixops.com` / `FixOpsAdmin123!`) that you can use in the browser for an investor walkthrough.
+### Local CLI & FastAPI workflow
+1. Create a virtual environment and install dependencies (see below).
+2. Copy `.env.example` to `.env` when running the service locally; for enterprise demos use `enterprise/.env.example` as a reference for additional secrets.
+3. Launch the API with `uvicorn apps.api.app:app --reload` and exercise the `/inputs/*` plus `/pipeline/run` endpoints using the bundled fixtures under `simulations/demo_pack/`.
+4. Use `python -m core.cli demo --mode demo|enterprise` or `make demo` / `make demo-enterprise` to produce canonical pipeline JSON and evidence bundles without wiring external systems.
 
-* For presentation polish, Option C in the enterprise deployment guide walks through the same docker-compose flow and reminds you to tailor `.env.enterprise` so the UI reflects the buyer’s industry before inviting the VC to visit `http://localhost:3000`. Health checks at `http://localhost:8001/health` let you prove everything is live on the spot.
-
-### Enterprise IaC (Terraform-only)
-* The production path is modeled entirely in Terraform under `enterprise/terraform/`. The root module pins Terraform ≥ 1.5, enables the Kubernetes and Helm providers, and expects an S3 remote state backend—useful if you want to demo an “upgrade from laptop to cluster” story.
-
-* `deployment.tf` composes namespace, RBAC, storage, MongoDB, Redis, backend, frontend, and ingress modules, wiring in replica counts, secrets, health probes, and HA defaults so an enterprise prospect sees bank-grade hardening out of the box.
-
-* Outputs expose URLs, kube commands, and compliance posture, which makes it easy to hand over state or plug the stack into CI/CD during diligence.
+### Deployment considerations
+- The historical Docker Compose stack has been removed; rely on the CLI or FastAPI app for walkthroughs.
+- There is no checked-in Terraform state. If you need infrastructure automation, treat it as a greenfield addition and document it alongside new modules.
+- The `frontend/` symlink in this snapshot points to an external package and is left for compatibility; there is no bundled UI.
 
 ### Prerequisites
 - Python 3.10+ (tested with CPython 3.11)

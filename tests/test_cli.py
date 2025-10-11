@@ -167,6 +167,9 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
 
 def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
     monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.delenv("FIXOPS_JIRA_TOKEN", raising=False)
+    monkeypatch.delenv("FIXOPS_CONFLUENCE_TOKEN", raising=False)
+    monkeypatch.setattr("core.overlay_runtime.Fernet", None)
 
     exit_code = cli.main(
         [
@@ -177,10 +180,16 @@ def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
         ]
     )
     assert exit_code == 0
-    output = capsys.readouterr().out
-    overlay_payload = json.loads(output)
+    captured = capsys.readouterr()
+    overlay_payload = json.loads(captured.out)
     assert overlay_payload["mode"] in {"demo", "enterprise"}
     assert "guardrails" in overlay_payload
+    assert overlay_payload.get("limits", {}).get("evidence", {}).get("encrypt") is False
+    metadata = overlay_payload.get("metadata", {})
+    warnings = metadata.get("runtime_warnings", [])
+    assert warnings, "runtime warnings should be surfaced when automation tokens missing"
+    assert metadata.get("automation_ready") is False
+    assert "automation token" in captured.err
 
 
 def test_cli_train_forecast(tmp_path: Path, capsys):

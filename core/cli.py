@@ -24,8 +24,9 @@ from apps.api.normalizers import (
     NormalizedVEX,
 )
 from apps.api.pipeline import PipelineOrchestrator
-from core.configuration import OverlayConfig, load_overlay
+from core.configuration import OverlayConfig
 from core.demo_runner import run_demo_pipeline
+from core.overlay_runtime import prepare_overlay
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from core.probabilistic import ProbabilisticForecastEngine
@@ -223,7 +224,7 @@ def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
     if getattr(args, "enable_shap", False):
         os.environ["ENABLE_SHAP_EXPERIMENTS"] = "true"
 
-    overlay = load_overlay(args.overlay)
+    overlay = prepare_overlay(path=args.overlay, ensure_directories=False)
     if getattr(args, "disable_modules", None):
         for module in args.disable_modules:
             _set_module_enabled(overlay, module, False)
@@ -407,7 +408,7 @@ def _handle_make_decision(args: argparse.Namespace) -> int:
     return exit_code
 
 def _handle_health(args: argparse.Namespace) -> int:
-    overlay = load_overlay(args.overlay)
+    overlay = prepare_overlay(path=args.overlay, ensure_directories=False)
     processing = ProcessingLayer()
     health: Dict[str, Any] = {
         "overlay_mode": overlay.mode,
@@ -611,6 +612,11 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
         bundle_file = result["evidence_bundle"].get("files", {}).get("bundle")
         if bundle_file:
             print(f"  Evidence bundle generated at: {bundle_file}")
+    runtime_warnings = result.get("runtime_warnings")
+    if isinstance(runtime_warnings, Sequence) and runtime_warnings:
+        print("  Runtime warnings:")
+        for warning in runtime_warnings:
+            print(f"    - {warning}")
 
 
 def _handle_run(args: argparse.Namespace) -> int:
@@ -630,7 +636,12 @@ def _handle_run(args: argparse.Namespace) -> int:
 def _handle_show_overlay(args: argparse.Namespace) -> int:
     if args.env:
         _apply_env_overrides(args.env)
-    overlay = load_overlay(args.overlay)
+    overlay = prepare_overlay(path=args.overlay, ensure_directories=False)
+    metadata = getattr(overlay, "metadata", {}) or {}
+    warnings = metadata.get("runtime_warnings")
+    if isinstance(warnings, Sequence) and warnings:
+        for warning in warnings:
+            print(f"Warning: {warning}", file=sys.stderr)
     payload = overlay.to_sanitised_dict()
     text = json.dumps(payload, indent=2 if args.pretty else None)
     print(text)

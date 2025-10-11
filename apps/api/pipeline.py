@@ -702,6 +702,15 @@ class PipelineOrchestrator:
             custom_outcomes: List[Dict[str, Any]] = []
             knowledge_graph_builder = KnowledgeGraphService()
 
+            overlay_metadata = dict(getattr(overlay, "metadata", {}) or {})
+            runtime_warnings = list(overlay_metadata.get("runtime_warnings") or [])
+            automation_requirements = overlay_metadata.get("automation_requirements")
+            automation_ready = bool(overlay_metadata.get("automation_ready", not runtime_warnings))
+            if runtime_warnings:
+                result["runtime_warnings"] = runtime_warnings
+            if automation_requirements:
+                result["automation_requirements"] = automation_requirements
+
             context_summary: Optional[Dict[str, Any]] = None
             compliance_status: Optional[Dict[str, Any]] = None
             compliance_results: Optional[List[Dict[str, Any]]] = None
@@ -762,16 +771,32 @@ class PipelineOrchestrator:
                 modules_status["compliance"] = "disabled"
 
             if overlay.is_module_enabled("policy_automation"):
-                policy_automation = PolicyAutomation(overlay)
-                policy_plan = policy_automation.plan(
-                    result, context_summary, compliance_status
-                )
-                execution_summary = policy_automation.execute(policy_plan["actions"])
-                policy_summary = dict(policy_plan)
-                policy_summary["execution"] = execution_summary
-                result["policy_automation"] = policy_summary
-                modules_status["policy_automation"] = "executed"
-                executed_modules.append("policy_automation")
+                if automation_ready:
+                    policy_automation = PolicyAutomation(overlay)
+                    policy_plan = policy_automation.plan(
+                        result, context_summary, compliance_status
+                    )
+                    execution_summary = policy_automation.execute(policy_plan["actions"])
+                    policy_summary = dict(policy_plan)
+                    policy_summary["execution"] = execution_summary
+                    result["policy_automation"] = policy_summary
+                    modules_status["policy_automation"] = "executed"
+                    executed_modules.append("policy_automation")
+                else:
+                    reason = "automation prerequisites missing"
+                    policy_summary = {
+                        "status": "unavailable",
+                        "actions": [],
+                        "skipped": [],
+                        "warnings": runtime_warnings,
+                        "execution": {
+                            "status": "skipped",
+                            "reason": reason,
+                            "warnings": runtime_warnings,
+                        },
+                    }
+                    result["policy_automation"] = policy_summary
+                    modules_status["policy_automation"] = "warning"
             else:
                 modules_status["policy_automation"] = "disabled"
 
