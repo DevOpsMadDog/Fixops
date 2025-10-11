@@ -27,6 +27,8 @@ from core.storage import ArtefactArchive
 from core.feedback import FeedbackRecorder
 from core.enhanced_decision import EnhancedDecisionEngine
 
+from backend.api.provenance import router as provenance_router
+
 from .normalizers import (
     InputNormalizer,
     NormalizedBusinessContext,
@@ -140,6 +142,14 @@ def create_app() -> FastAPI:
     analytics_dir = verify_allowlisted_path(analytics_dir, allowlist)
     analytics_store = AnalyticsStore(analytics_dir, allowlist=allowlist)
 
+    provenance_dir = overlay.data_directories.get("provenance_dir")
+    if provenance_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        provenance_dir = (root / "artifacts" / "attestations" / overlay.mode).resolve()
+    provenance_dir = verify_allowlisted_path(provenance_dir, allowlist)
+    provenance_dir = ensure_secure_directory(provenance_dir)
+
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
     app.state.artifacts: Dict[str, Any] = {}
@@ -155,6 +165,7 @@ def create_app() -> FastAPI:
     app.state.enhanced_engine = EnhancedDecisionEngine(
         overlay.enhanced_decision_settings
     )
+    app.state.provenance_dir = provenance_dir
     uploads_dir = overlay.data_directories.get("uploads_dir")
     if uploads_dir is None:
         root = allowlist[0]
@@ -164,6 +175,7 @@ def create_app() -> FastAPI:
     app.state.upload_manager = upload_manager
 
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
