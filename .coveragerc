@@ -1,6 +1,6 @@
 [run]
-source = enterprise/src
 branch = True
+source = .
 
 [paths]
 source =
@@ -8,6 +8,19 @@ source =
     fixops-blended-enterprise/src
 
 [report]
+include =
+    */services/provenance/*
+    */services/graph/*
+    */services/repro/*
+    */lib4sbom/*
+    */risk/*
+    */backend/api/provenance/*
+    */backend/api/risk/*
+    */backend/api/graph/*
+    */backend/api/evidence/*
+    */evidence/*
+    */telemetry/*
+    */scripts/graph_worker.py
 exclude_lines =
     pragma: no cover
     if __name__ == "__main__":

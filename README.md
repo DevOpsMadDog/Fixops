@@ -69,28 +69,28 @@ The unified stage runner gives you the same normalisation logic that powers the 
 
 Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<run_id>/outputs/`. Each run also records signed manifests (when `FIXOPS_SIGNING_KEY`/`FIXOPS_SIGNING_KID` are configured) and emits a transparency log via `outputs/transparency.index`. After the CLI walkthrough, execute `pytest` to confirm the ingest API and compliance regressions continue to pass end-to-end.
 
+
 ## Why teams adopt FixOps
 - **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
 - **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m core.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`apps/api/app.py`, `core/cli.py`).
-- **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, Bayesian/Markov forecasts, and knowledge graph analytics in a single pass (`apps/api/pipeline.py`, `new_apps/api/processing/knowledge_graph.py`).
-- **Probabilistic escalation intelligence** – The `core.probabilistic.ProbabilisticForecastEngine` applies Dirichlet-smoothed calibration, spectral diagnostics, and multi-step projections to forecast severity drift, quantify stationary risk, and surface explainable escalation pressure for decision makers.
+- **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, and knowledge graph analytics in a single pass (`apps/api/pipeline.py`, `new_apps/api/processing/knowledge_graph.py`).
+- **Probabilistic escalation intelligence** – The `core.probabilistic.ProbabilisticForecastEngine` applies Dirichlet-smoothed calibration, spectral diagnostics, Markov chains, and Bayesian posterior updates to forecast severity drift, quantify stationary risk, and surface explainable escalation pressure for decision makers.
 - **Multi-LLM consensus & transparency** – The enhanced decision engine layers deterministic heuristics with optional OpenAI/Anthropic/Gemini calls (when API keys are present), reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`fixops-enterprise/src/services/enhanced_decision_engine.py`, `fixops-enterprise/src/api/v1/enhanced.py`).
-- **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`).
-- **Artefact archiving & regulated storage** – Every upload is normalised, persisted with metadata, and summarised via the artefact archive while secure directory enforcement and optional bundle encryption keep regulated tenants compliant (`core/storage.py`, `core/paths.py`).
-- **Analytics & ROI telemetry** – Pipeline responses surface pricing tiers, guardrail progress, exploit refresh health, and contextual noise-reduction metrics that feed executive dashboards and ROI storytelling (`perf/BENCHMARKS.csv`, `market/ENTERPRISE_READINESS.md`).
-- **Tenant lifecycle & performance intelligence** – Overlay-governed ROI dashboards, tenant lifecycle summaries, and near real-time performance simulations help CISOs, CTEM leads, and platform teams prove value and spot bottlenecks without bespoke code (`core/analytics.py`, `core/tenancy.py`, `core/performance.py`).
-- **Modular & extensible** – Toggle modules, adjust weights, or register custom hooks without touching code; every run reports configured, enabled, and executed modules plus outcomes to keep integrators in control (`core/modules.py`).
+- **Security-as-code provenance & trust** – SLSA v1 attestations, provenance graph relationships, reproducible build attestations, and cosign signing keep releases anchored to verifiable supply-chain evidence (`services/provenance`, `services/graph`, `services/repro`, `scripts/signing`, `evidence/packager.py`).
+- **Risk-first posture** – Normalised SBOMs, EPSS/KEV feed joins, FixOpsRisk scoring, and anomaly detection correlate exploit probability, exposure, and downgrade drift before pull requests merge (`lib4sbom/normalizer.py`, `risk/scoring.py`, `risk/feeds`, `services/graph/graph.py`).
+- **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`, `evidence/packager.py`).
+- **Observability & demo-ready experiences** – Telemetry hooks, dashboards, and docker-compose demos provide investor-ready tours while keeping operators in control of data flow (`telemetry`, `docker-compose.demo.yml`, `ui/dashboard`).
 
-## System architecture at a glance
-```
-┌────────────┐   uploads    ┌───────────────┐   overlay + artefacts   ┌────────────────────────────┐   multi-LLM + context   ┌──────────────────────┐   evidence + automations   ┌──────────────┐
-│  Clients    │ ───────────▶│ FastAPI (ing) │────────────────────────▶│ Pipeline orchestrator     │────────────────────────▶│ Enhanced decisioning │──────────────────────────▶│ Destinations    │
-│ (CLI/API)   │             │  /inputs/*    │                         │ (context, guardrails,     │                        │ (consensus, MITRE,   │                          │ (Jira, bundle,  │
-│             │◀────────────│ /pipeline/run │◀────────────────────────│ SSDLC, IaC, probabilistic)│◀───────────────────────│ compliance, KG, LLM) │◀──────────────────────────│ Slack, storage) │
-└────────────┘  JSON status └───────────────┘  overlay metadata       │ overlay module matrix     │                        └──────────────────────┘                            └──────────────┘
+### Architecture overview
+```text
+┌────────────┐   uploads    ┌───────────────┐   overlay + artefacts   ┌────────────────────────────┐   probabilistic + LLM intelligence   ┌────────────────────┐   evidence + automations   ┌──────────────┐
+│  Clients    │ ───────────▶│ FastAPI (ing) │────────────────────────▶│ Pipeline orchestrator     │──────────────────────────────────────▶│ Enhanced decisioning │──────────────────────────▶│ Destinations    │
+│ (CLI/API)   │             │  /inputs/*    │                         │ (context, guardrails,     │                                           │ (consensus, MITRE,   │                          │ (Jira, bundle,  │
+│             │◀────────────│ /pipeline/run │◀────────────────────────│ SSDLC, IaC, probabilistic)│◀──────────────────────────────────────│ compliance, KG, LLM) │◀──────────────────────────│ Slack, storage) │
+└────────────┘  JSON status └───────────────┘  overlay metadata       │ overlay module matrix     │                                           └───────────────────────┘                            └──────────────┘
                                                    │                   └────────────────────────────┘
                                                    ▼
-                                   Evidence hub, pricing, knowledge graph, feedback, docs
+                                   Graph + risk engine, evidence hub, pricing, knowledge graph, feedback, docs
 ```
 
 ### Component interaction diagram
@@ -192,30 +192,28 @@ The UML block highlights the primary classes composing FixOps: configuration loa
 ```
 FixOps Platform
 ├── Ingestion
-│   ├── FastAPI endpoints
-│   └── CLI parity
+│   ├── FastAPI endpoints (`backend/api/*`)
+│   └── CLI parity (`cli/fixops-*`)
+├── Normalisation & analytics
+│   ├── SBOM normaliser (`lib4sbom/normalizer.py`)
+│   ├── Risk scoring + feeds (`risk/scoring.py`, `risk/feeds/*`)
+│   └── Provenance graph (`services/graph/graph.py`)
 ├── Contextual intelligence
-│   ├── Context engine
-│   ├── Guardrails
-│   └── SSDLC + IaC posture
-├── Automation
-│   ├── Policy automation
-│   ├── Compliance packs
-│   └── Evidence hub
-├── Analytics
-│   ├── ROI telemetry
-│   ├── Tenant lifecycle
-│   └── Performance simulation
-├── AI & probabilistic
-│   ├── AI agent advisor
-│   └── Probabilistic forecasts
-├── Multi-LLM & knowledge graph
-│   ├── Multi-model consensus + MITRE mapping
-│   ├── SentinelGPT explanations
-│   └── CTINexus knowledge graph analytics
-└── Deployment
-    ├── FastAPI service
-    └── CLI tooling
+│   ├── Context engine & guardrails (`apps/api/pipeline.py`)
+│   ├── Probabilistic (Markov/Bayesian) forecasts (`core/probabilistic/*`)
+│   └── Multi-LLM consensus (`fixops-enterprise/src/services/enhanced_decision_engine.py`)
+├── Evidence & automation
+│   ├── Evidence bundling (`evidence/packager.py`)
+│   ├── Cosign signing & provenance (`scripts/signing/*`, `services/provenance`)
+│   └── Reproducible build attestations (`services/repro`)
+├── Observability & demo
+│   ├── Telemetry (`telemetry/*`)
+│   ├── Demo stack (`docker-compose.demo.yml`, `config/otel-collector-demo.yaml`)
+│   └── UI dashboards (`ui/dashboard`, `ui/graph-view`)
+└── Developer experience
+    ├── Playbooks & docs (`docs/*.md`)
+    ├── QA automation (`.github/workflows/qa.yml`)
+    └── Coverage + reports (`reports/coverage/*`)
 ```
 
 ### Detailed feature list
@@ -440,7 +438,16 @@ Refer to `docs/CONFIG_GUIDE.md` for field-level descriptions and overlay extensi
 - **Architecture & SDLC** – `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/SDLC_SSDLC.md`, and `docs/INTEGRATIONS.md` outline components, data flows, lifecycle coverage, and integration contracts.
 - **Architecture inventory & roadmap** – `docs/ARCH-INVENTORY.md` summarises modules/services/data models while `docs/TASK-PLAN.md` maps Phases 2–10 with concrete code touchpoints.
 - **Security & audits** – `audit/SECURITY.md`, `audit/GAPS.md`, and `audit/CTEM_ASSESSMENT.md` track mitigations, residual risk, and CTEM readiness.
+- **SBOM normalisation & quality** – `docs/SBOM-QUALITY.md` explains deduplication logic, quality scoring metrics, CLI usage, and HTML reporting expectations.
+- **Risk scoring & exposure** – `docs/RISK-SCORING.md` documents EPSS/KEV ingestion, FixOpsRisk weighting, CLI usage, and API endpoints for the risk pipeline.
+- **Provenance & signing** – `docs/PROVENANCE.md`, `docs/SIGNING.md`, and `docs/CI-SECRETS.md` cover SLSA attestations, cosign signing flows, required secrets, and verification guidance.
+- **Provenance graph intelligence** – `docs/PROVENANCE-GRAPH.md` details graph ingestion sources, query surface, anomaly detection, and API integration.
+- **Reproducible builds** – `docs/REPRO-BUILDS.md` explains the hermetic verifier, plan structure, CLI usage, and CI workflow outputs.
+- **Evidence bundles & policy** – `docs/EVIDENCE-BUNDLES.md` covers policy-driven packaging, manifest signing, API endpoints, and CLI automation.
+- **Demo stack & telemetry** – `docs/DEMO.md` walks through the OpenTelemetry-enabled docker-compose demo and dashboard.
 - **Runbooks & usage** – `docs/PLATFORM_RUNBOOK.md`, `docs/USAGE_GUIDE.html`, and `docs/PR_SUMMARY.md` provide persona guides, troubleshooting steps, and an executive summary for reviewers.
+- **Operational playbooks** – `docs/PLAYBOOK-DEV.md`, `docs/PLAYBOOK-SEC.md`, and `docs/PLAYBOOK-AUDIT.md` equip engineering, security, and audit stakeholders with repeatable workflows.
+- **Security posture & audits** – `docs/SECURITY-POSTURE.md`, `audit/SECURITY.md`, `audit/GAPS.md`, and `audit/CTEM_ASSESSMENT.md` capture branch protections, mitigations, residual risk, and CTEM readiness.
 
 Whether you launch the API or the CLI, FixOps now delivers overlay-governed context, compliance, automation, and probabilistic insight with auditable artefacts that keep demo and enterprise buyers on the same code path.
 

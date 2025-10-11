@@ -1,0 +1,103 @@
+:root {
+  --bg: #0f172a;
+  --card-bg: rgba(15, 23, 42, 0.85);
+  --accent: #38bdf8;
+  --text: #f8fafc;
+  --muted: #cbd5f5;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #1e293b, #0f172a);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header, footer {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+main {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+}
+
+.gauge {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  margin: 1rem auto;
+  background: conic-gradient(var(--accent) calc(var(--value) * 1%), rgba(148, 163, 184, 0.2) 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.6s ease;
+}
+
+.gauge span {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card li {
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+}
+
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.table th {
+  color: var(--accent);
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--accent);
+  font-size: 0.85rem;
+}
