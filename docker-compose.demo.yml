@@ -1,0 +1,46 @@
+version: '3.9'
+services:
+  collector:
+    image: otel/opentelemetry-collector:0.94.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./config/otel-collector-demo.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4318:4318"
+
+  api:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:Z
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
+      FIXOPS_ALLOWED_ORIGINS: "*"
+    command: >-
+      bash -c "pip install -r requirements.txt && uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - collector
+
+  graph:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:Z
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
+      FIXOPS_GRAPH_INTERVAL: 300
+    command: >-
+      bash -c "pip install -r requirements.txt && python scripts/graph_worker.py"
+    depends_on:
+      - collector
+
+  dashboard:
+    image: nginx:alpine
+    volumes:
+      - ./ui/dashboard:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
