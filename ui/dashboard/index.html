@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FixOps Demo Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>FixOps Secure Supply Chain Demo</h1>
+      <p>Real-time view of SBOM quality, risk posture, provenance, and reproducibility status.</p>
+    </header>
+    <main>
+      <section class="cards">
+        <article class="card">
+          <h2>SBOM Quality</h2>
+          <div id="sbom-gauge" class="gauge" data-value="0">
+            <span id="sbom-gauge-value">0%</span>
+          </div>
+          <ul id="sbom-metrics"></ul>
+        </article>
+        <article class="card">
+          <h2>Risk Overview</h2>
+          <p><strong>Components:</strong> <span id="risk-components">0</span></p>
+          <p><strong>CVEs:</strong> <span id="risk-cves">0</span></p>
+          <p><strong>Highest Risk:</strong> <span id="risk-max">0</span></p>
+        </article>
+        <article class="card">
+          <h2>Reproducibility</h2>
+          <ul id="repro-status"></ul>
+        </article>
+      </section>
+      <section class="tables">
+        <article class="card table">
+          <h2>KEV Components (Recent Releases)</h2>
+          <table id="kev-table">
+            <thead>
+              <tr><th>Release</th><th>Component</th><th>CVEs</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </article>
+        <article class="card table">
+          <h2>Evidence Bundles</h2>
+          <table id="evidence-table">
+            <thead>
+              <tr><th>Tag</th><th>Bundle</th><th>Status</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </article>
+      </section>
+    </main>
+    <footer>
+      <p>Telemetry exported via OpenTelemetry OTLP → collector (see docker-compose.demo.yml).</p>
+    </footer>
+    <script src="script.js"></script>
+  </body>
+</html>
