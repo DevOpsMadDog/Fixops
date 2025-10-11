@@ -438,6 +438,7 @@ Refer to `docs/CONFIG_GUIDE.md` for field-level descriptions and overlay extensi
 ## Documentation map
 - **Market & positioning** – `market/` contains competitive analysis, pricing strategy, GTM plans, and demo storyboards.
 - **Architecture & SDLC** – `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/SDLC_SSDLC.md`, and `docs/INTEGRATIONS.md` outline components, data flows, lifecycle coverage, and integration contracts.
+- **Architecture inventory & roadmap** – `docs/ARCH-INVENTORY.md` summarises modules/services/data models while `docs/TASK-PLAN.md` maps Phases 2–10 with concrete code touchpoints.
 - **Security & audits** – `audit/SECURITY.md`, `audit/GAPS.md`, and `audit/CTEM_ASSESSMENT.md` track mitigations, residual risk, and CTEM readiness.
 - **Runbooks & usage** – `docs/PLATFORM_RUNBOOK.md`, `docs/USAGE_GUIDE.html`, and `docs/PR_SUMMARY.md` provide persona guides, troubleshooting steps, and an executive summary for reviewers.
 
