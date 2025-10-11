@@ -7,6 +7,7 @@
 - [Executive summary](#executive-summary)
 - [Orientation](#orientation)
 - [Repository topology](#repository-topology)
+- [Quick start (CLI & demo)](#quick-start-cli--demo)
 - [Runtime architecture](#runtime-architecture)
 - [Capability matrix](#capability-matrix)
 - [End-to-end data flow](#end-to-end-data-flow)
@@ -26,6 +27,7 @@
 - [API surface](#api-surface)
 - [CI/CD automation](#cicd-automation)
 - [Setup & verification checklists](#setup--verification-checklists)
+  - [Stage-by-stage CLI workflow](#stage-by-stage-cli-workflow)
 - [Reference documents](#reference-documents)
 
 ## Feature index & usage map
@@ -80,6 +82,48 @@ The table highlights the directories most practitioners touch during integration
 | `docker-compose.demo.yml` & `config/otel-collector-demo.yaml` | One-command demo stack bundling backend, graph worker, dashboard UI, and collector for investor/CISO walk-throughs.【F:docker-compose.demo.yml†L1-L80】【F:config/otel-collector-demo.yaml†L1-L80】 |
 | `.github/workflows/` | Release, provenance, reproducible build, signing, and QA pipelines producing signed, attestable artefacts.【F:.github/workflows/provenance.yml†L1-L120】【F:.github/workflows/release-sign.yml†L1-L200】【F:.github/workflows/repro-verify.yml†L1-L120】【F:.github/workflows/qa.yml†L1-L160】 |
 
+## Quick start (CLI & demo)
+Use this checklist to bootstrap local environments, reproduce the original README quick-start path, and launch canonical demos.
+
+1. **Prepare environment**
+   ```bash
+   cp .env.example .env  # populate secrets before starting services
+   pip install -r requirements.txt
+   pip install -r requirements.dev.txt  # linters, tests, typing helpers
+   export PYTHONPATH=$(pwd)
+   ```
+2. **Run the bootstrap helper (optional but recommended)**
+   ```bash
+   ./scripts/bootstrap.sh
+   ```
+3. **Execute core quality gates**
+   ```bash
+   make fmt lint typecheck test
+   ```
+4. **Launch demo stacks**
+   ```bash
+   make demo             # local parity experience
+   make demo-enterprise  # hardened overlay profile
+   docker compose -f docker-compose.demo.yml up --build  # dashboard + OTEL collector
+   ```
+5. **Play through curated walkthroughs**
+   ```bash
+   python -m core.cli demo --mode demo --output out/demo.json --pretty
+   python -m core.cli demo --mode enterprise --output out/enterprise.json --pretty
+   ```
+   These commands seed deterministic fixtures (design, SBOM, SARIF, CVE) and emit artefacts identical to the API surface, including compliance summaries and automation payload previews saved under `out/`.
+6. **Iterate with your artefacts**
+   ```bash
+   python -m core.cli run --stage build --input path/to/sbom.json
+   python -m core.cli show-overlay --pretty
+   ```
+7. **Re-run the regression suite**
+   ```bash
+   pytest
+   ```
+
+> **Tip:** When running the enterprise stack with Docker Compose, copy `enterprise/.env.example` to `.env`, rotate secrets, and keep `FIXOPS_AUTH_DISABLED=false` to enforce API-key authentication.
+
 ## Runtime architecture
 
 ```mermaid
@@ -129,6 +173,30 @@ flowchart LR
     E1 --> D2
     E1 --> D3
     E2 --> B2
+```
+
+### Component interaction (ASCII)
+The original README included an ASCII view showing how overlay configuration, FastAPI ingestion, and downstream automations connect. Keep it handy when whiteboarding with teams that prefer text-based diagrams.
+
+```
+┌────────────┐   auth/token   ┌───────────────────┐    artefact cache     ┌───────────────────────┐
+│ CLI runner │──────────────▶│ FastAPI ingestion │──────────────────────▶│ Storage + evidence    │
+│ core.cli   │               │  apps/api/app.py  │◀──────────────────────│ data/uploads/*        │
+└────────────┘               └────────┬──────────┘     archive bundles    └──────────┬────────────┘
+        ▲                              │                                   decrypt/compress │
+        │ module toggles               │ orchestrate()                      ▼                │
+        │                              ▼                            ┌─────────────┐        │
+        │                      ┌───────────────────┐                │ Destinations│◀───────┘
+        ├────────────────────▶│ Pipeline modules  │───────────────▶│ Jira/Slack │   automation manifests
+        │                      │ context/guardrail │ ROI & telemetry │ GRC repos │
+        │                      └────────┬──────────┘                └─────────────┘
+        │                               │ enhanced_run()
+        │                               ▼
+        │                      ┌───────────────────┐
+        └────────────────────▶│ Enhanced decision │
+                               │ multi-LLM + KG   │
+                               │ explanations     │
+                               └───────────────────┘
 ```
 
 ## Capability matrix
@@ -629,6 +697,19 @@ Align engineering, security, and audit teams on operational procedures, signed r
    ```
 6. **Review artefacts**
    - Inspect `reports/sbom_quality_report.html`, `artifacts/risk.json`, provenance attestations, reproducible build outputs, and evidence bundles before releasing.
+
+### Stage-by-stage CLI workflow
+Reproduced from the root README, this table maps canonical SSDLC artefacts to the CLI stage runner and highlights which processor handles each stage.
+
+| Stage | Demo input | Command | Processor |
+| --- | --- | --- | --- |
+| Requirements | `simulations/demo_pack/requirements-input.csv` | `python -m apps.fixops_cli stage-run --stage requirements --input simulations/demo_pack/requirements-input.csv --app life-claims-portal` | `_process_requirements` parses CSV/JSON, mints `Requirement_ID`, and applies SSVC anchoring. |
+| Design | `simulations/demo_pack/design-input.json` | `python -m apps.fixops_cli stage-run --stage design --input simulations/demo_pack/design-input.json --app life-claims-portal` | `_process_design` hydrates IDs via `ensure_ids` and annotates component risk. |
+| Build | `simulations/demo_pack/sbom.json` | `python -m apps.fixops_cli stage-run --stage build --input simulations/demo_pack/sbom.json --app life-claims-portal` | `_process_build` normalises with `apps.api.normalizers.InputNormalizer` and flags risky components. |
+| Test | `simulations/demo_pack/scanner.sarif` | `python -m apps.fixops_cli stage-run --stage test --input simulations/demo_pack/scanner.sarif --app life-claims-portal` | `_process_test` ingests SARIF, folds in coverage, and derives drift metrics. |
+| Deploy | `simulations/demo_pack/tfplan.json` | `python -m apps.fixops_cli stage-run --stage deploy --input simulations/demo_pack/tfplan.json --app life-claims-portal` | `_process_deploy` accepts Terraform/Kubernetes manifests and extracts guardrail evidence. |
+| Operate | `simulations/demo_pack/ops-telemetry.json` | `python -m apps.fixops_cli stage-run --stage operate --input simulations/demo_pack/ops-telemetry.json --app life-claims-portal` | `_process_operate` blends telemetry with KEV/EPSS feeds to compute pressure. |
+| Decision | *(auto-discovers prior outputs)* | `python -m apps.fixops_cli stage-run --stage decision --app life-claims-portal` | `_process_decision` synthesises stage outputs, bundles evidence, and emits explainable verdicts. |
 
 ### Automated verification matrix
 
