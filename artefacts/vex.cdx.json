@@ -1,0 +1,12 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "vulnerabilities": [
+    {
+      "id": "CVE-2023-4242",
+      "analysis": { "state": "not_affected", "detail": "Code path not reachable in our build" },
+      "affects": [{ "ref": "pkg:docker/payments-gateway@2.1.0" }]
+    }
+  ]
+}

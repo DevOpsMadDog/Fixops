@@ -449,3 +449,22 @@ Refer to `docs/CONFIG_GUIDE.md` for field-level descriptions and overlay extensi
 - **Runbooks & usage** – `docs/PLATFORM_RUNBOOK.md`, `docs/USAGE_GUIDE.html`, and `docs/PR_SUMMARY.md` provide persona guides, troubleshooting steps, and an executive summary for reviewers.
 
 Whether you launch the API or the CLI, FixOps now delivers overlay-governed context, compliance, automation, and probabilistic insight with auditable artefacts that keep demo and enterprise buyers on the same code path.
+
+## Local stage workflow commands
+
+Run the bundled stage fixtures end-to-end with a single target:
+
+```bash
+make stage-workflow
+```
+
+The target seeds deterministic identifiers (`FIXOPS_RUN_ID_SEED=stage-demo`, `FIXOPS_FAKE_NOW=2024-01-01T00:00:00Z`) and calls `scripts/run_stage_workflow.py` to materialise canonical outputs under `artefacts/stage-demo/`. To execute individual stages or capture a JSON summary without Make, invoke the script directly:
+
+```bash
+python scripts/run_stage_workflow.py \
+  --fixtures fixtures/sample_inputs \
+  --artefacts artefacts/stage-demo \
+  --summary artefacts/stage-demo/summary.json
+```
+
+Refer to `fixtures/stage_runbook.md` for the complete Input → Command → Output matrix.

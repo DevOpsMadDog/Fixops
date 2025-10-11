@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import os
 import re
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
@@ -66,6 +68,11 @@ class EvidenceHub:
                 self._fernet = Fernet(key.encode("utf-8"))
             except Exception as exc:  # pragma: no cover - invalid key handling
                 raise RuntimeError("Invalid evidence encryption key supplied") from exc
+        retention_value = self.settings.get("retention_days", 2555)
+        try:
+            self.retention_days = int(retention_value)
+        except (TypeError, ValueError):
+            self.retention_days = 2555
 
     def _base_directory(self) -> Path:
         directory = self.overlay.data_directories.get("evidence_dir")
@@ -162,6 +169,7 @@ class EvidenceHub:
             final_path = final_path.with_suffix(final_path.suffix + ".enc")
             encrypted = True
 
+        bundle_hash = hashlib.sha256(final_bytes).hexdigest()
         _atomic_write(final_path, final_bytes)
 
         manifest = {
@@ -175,10 +183,13 @@ class EvidenceHub:
             ],
             "compressed": compressed,
             "encrypted": encrypted,
+            "sha256": bundle_hash,
+            "retention_days": self.retention_days,
         }
         manifest_path = base_dir / "manifest.json"
         manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
         _atomic_write(manifest_path, manifest_bytes)
+        self._record_audit_entry(run_id, final_path, bundle_hash)
 
         return {
             "bundle_id": run_id,
@@ -190,7 +201,23 @@ class EvidenceHub:
             "sections": included_sections,
             "compressed": compressed,
             "encrypted": encrypted,
+            "sha256": bundle_hash,
+            "retention_days": self.retention_days,
         }
+
+    def _record_audit_entry(self, run_id: str, bundle_path: Path, checksum: str) -> None:
+        try:
+            audit_path = self._base_directory().parent / "audit.log"
+            entry = {
+                "run_id": run_id,
+                "bundle": str(bundle_path),
+                "sha256": checksum,
+                "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+            with audit_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(entry) + "\n")
+        except Exception:  # pragma: no cover - audit logs must not break persistence
+            pass
 
 
 __all__ = ["EvidenceHub"]

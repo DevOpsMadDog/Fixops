@@ -1,0 +1,43 @@
+[
+  {
+    "id": "pattern-sql-injection",
+    "title": "SQL injection guardrails",
+    "description": "Sanitise user-controlled input, enforce parameterised queries, and audit ORM usage to prevent SQL injection vulnerabilities.",
+    "category": "Application Security",
+    "controls": ["OWASP ASVS 5.3.2", "NIST SP 800-53 SI-10"],
+    "tags": ["database", "query", "sanitisation"]
+  },
+  {
+    "id": "pattern-credential-hygiene",
+    "title": "Credential hygiene enforcement",
+    "description": "Rotate shared secrets, enable multi-factor authentication, and store credentials in a managed vault service with least-privilege access.",
+    "category": "Identity",
+    "controls": ["ISO27001 A.9.2", "CIS IG1 4.3"],
+    "tags": ["mfa", "vault", "rotation"]
+  },
+  {
+    "id": "pattern-runtime-hardening",
+    "title": "Runtime hardening",
+    "description": "Enable container runtime policies, restrict network egress, and continuously monitor runtime behaviour for anomaly detection.",
+    "category": "Cloud Native Security",
+    "controls": ["NIST SP 800-190 RA-5", "CIS Kubernetes 5.1"],
+    "tags": ["cnapp", "runtime", "network"]
+  },
+  {
+    "id": "pattern-supply-chain",
+    "title": "Supply-chain integrity",
+    "description": "Continuously validate SBOM components, track upstream advisories, and apply VEX attestations to prioritise remediation.",
+    "category": "Supply Chain",
+    "controls": ["SLSA L2", "NIST SSDF PO.3"],
+    "tags": ["sbom", "vex", "integrity"]
+  },
+  {
+    "id": "pattern-iac-governance",
+    "title": "Infrastructure-as-code governance",
+    "description": "Scan Terraform and Kubernetes artefacts for policy drift, enforce immutable infrastructure, and gate changes through policy-as-code.",
+    "category": "Infrastructure Security",
+    "controls": ["PCI DSS 6.6", "CIS AWS 1.2"],
+    "tags": ["iac", "terraform", "policy"]
+  }
+]
+

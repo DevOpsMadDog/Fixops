@@ -15,7 +15,14 @@ if ENTERPRISE_SRC.exists():
         sys.path.insert(0, enterprise_path)
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
-from apps.api.normalizers import InputNormalizer, NormalizedCVEFeed, NormalizedSARIF, NormalizedSBOM
+from apps.api.normalizers import (
+    InputNormalizer,
+    NormalizedCNAPP,
+    NormalizedCVEFeed,
+    NormalizedSARIF,
+    NormalizedSBOM,
+    NormalizedVEX,
+)
 from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import OverlayConfig, load_overlay
 from core.demo_runner import run_demo_pipeline
@@ -23,6 +30,8 @@ from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from core.probabilistic import ProbabilisticForecastEngine
 from core.stage_runner import StageRunner
+from core.processing_layer import ProcessingLayer
+from core.evidence import EvidenceHub
 from src.services.run_registry import RunRegistry
 from src.services import id_allocator, signing
 
@@ -59,6 +68,9 @@ def _load_inputs(
     sbom_path: Optional[Path],
     sarif_path: Optional[Path],
     cve_path: Optional[Path],
+    vex_path: Optional[Path],
+    cnapp_path: Optional[Path],
+    context_path: Optional[Path],
 ) -> Dict[str, Any]:
     payload: Dict[str, Any] = {}
 
@@ -73,6 +85,16 @@ def _load_inputs(
 
     if cve_path is not None:
         payload["cve"] = normalizer.load_cve_feed(_load_file(cve_path) or b"")
+
+    if vex_path is not None:
+        payload["vex"] = normalizer.load_vex(_load_file(vex_path) or b"")
+
+    if cnapp_path is not None:
+        payload["cnapp"] = normalizer.load_cnapp(_load_file(cnapp_path) or b"")
+
+    if context_path is not None:
+        raw_bytes = _load_file(context_path) or b""
+        payload["context"] = normalizer.load_business_context(raw_bytes, content_type=None)
 
     return payload
 
@@ -131,12 +153,19 @@ def _ensure_inputs(
     sarif: NormalizedSARIF = inputs["sarif"]
     cve: NormalizedCVEFeed = inputs["cve"]
     design_dataset = inputs.get("design", {"columns": [], "rows": []})
-    return {
+    prepared: Dict[str, Any] = {
         "design_dataset": design_dataset,
         "sbom": sbom,
         "sarif": sarif,
         "cve": cve,
     }
+    if "vex" in inputs:
+        prepared["vex"] = inputs["vex"]
+    if "cnapp" in inputs:
+        prepared["cnapp"] = inputs["cnapp"]
+    if "context" in inputs:
+        prepared["context"] = inputs["context"]
+    return prepared
 
 
 def _set_module_enabled(overlay: OverlayConfig, module: str, enabled: bool) -> None:
@@ -163,6 +192,271 @@ def _copy_evidence(result: Dict[str, Any], destination: Optional[Path]) -> Optio
     return target
 
 
+def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
+    if getattr(args, "env", None):
+        _apply_env_overrides(args.env)
+
+    if getattr(args, "signing_provider", None):
+        os.environ["SIGNING_PROVIDER"] = args.signing_provider
+    if getattr(args, "signing_key_id", None):
+        os.environ["KEY_ID"] = args.signing_key_id
+    if getattr(args, "signing_region", None):
+        os.environ["AWS_REGION"] = args.signing_region
+    if getattr(args, "azure_vault_url", None):
+        os.environ["AZURE_VAULT_URL"] = args.azure_vault_url
+    if getattr(args, "rotation_sla_days", None) is not None:
+        os.environ["SIGNING_ROTATION_SLA_DAYS"] = str(args.rotation_sla_days)
+    if getattr(args, "opa_url", None):
+        os.environ["OPA_SERVER_URL"] = args.opa_url
+    if getattr(args, "opa_token", None):
+        os.environ["OPA_AUTH_TOKEN"] = args.opa_token
+    if getattr(args, "opa_package", None):
+        os.environ["OPA_POLICY_PACKAGE"] = args.opa_package
+    if getattr(args, "opa_health_path", None):
+        os.environ["OPA_HEALTH_PATH"] = args.opa_health_path
+    if getattr(args, "opa_bundle_status_path", None):
+        os.environ["OPA_BUNDLE_STATUS_PATH"] = args.opa_bundle_status_path
+    if getattr(args, "opa_timeout", None) is not None:
+        os.environ["OPA_REQUEST_TIMEOUT"] = str(args.opa_timeout)
+    if getattr(args, "enable_rl", False):
+        os.environ["ENABLE_RL_EXPERIMENTS"] = "true"
+    if getattr(args, "enable_shap", False):
+        os.environ["ENABLE_SHAP_EXPERIMENTS"] = "true"
+
+    overlay = load_overlay(args.overlay)
+    if getattr(args, "disable_modules", None):
+        for module in args.disable_modules:
+            _set_module_enabled(overlay, module, False)
+    if getattr(args, "enable_modules", None):
+        for module in args.enable_modules:
+            _set_module_enabled(overlay, module, True)
+    if getattr(args, "offline", False):
+        auto_refresh = overlay.exploit_signals.get("auto_refresh")
+        if isinstance(auto_refresh, dict):
+            auto_refresh["enabled"] = False
+    allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
+    for directory in overlay.data_directories.values():
+        secure_path = verify_allowlisted_path(directory, allowlist)
+        ensure_secure_directory(secure_path)
+
+    archive_dir = overlay.data_directories.get("archive_dir")
+    if archive_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        archive_dir = (root / "archive" / overlay.mode).resolve()
+    archive_dir = verify_allowlisted_path(archive_dir, allowlist)
+    archive = ArtefactArchive(archive_dir, allowlist=allowlist)
+
+    normalizer = InputNormalizer()
+    inputs = _load_inputs(
+        normalizer=normalizer,
+        design_path=args.design,
+        sbom_path=args.sbom,
+        sarif_path=args.sarif,
+        cve_path=args.cve,
+        vex_path=args.vex,
+        cnapp_path=getattr(args, "cnapp", None),
+        context_path=getattr(args, "context", None),
+    )
+    orchestrator = PipelineOrchestrator()
+    prepared = _ensure_inputs(
+        overlay=overlay,
+        inputs=inputs,
+        design_path=args.design,
+        sbom_path=args.sbom,
+        sarif_path=args.sarif,
+        cve_path=args.cve,
+    )
+
+    archive_records: Dict[str, Dict[str, Any]] = {}
+    try:
+        if args.design is not None and "design" in inputs:
+            archive_records["design"] = archive.persist(
+                "design",
+                prepared["design_dataset"],
+                original_filename=args.design.name,
+                raw_bytes=args.design.read_bytes(),
+            )
+        if args.sbom is not None:
+            archive_records["sbom"] = archive.persist(
+                "sbom",
+                prepared["sbom"],
+                original_filename=args.sbom.name,
+                raw_bytes=args.sbom.read_bytes(),
+            )
+        if args.sarif is not None:
+            archive_records["sarif"] = archive.persist(
+                "sarif",
+                prepared["sarif"],
+                original_filename=args.sarif.name,
+                raw_bytes=args.sarif.read_bytes(),
+            )
+        if args.cve is not None:
+            archive_records["cve"] = archive.persist(
+                "cve",
+                prepared["cve"],
+                original_filename=args.cve.name,
+                raw_bytes=args.cve.read_bytes(),
+            )
+        if getattr(args, "vex", None) is not None and "vex" in prepared:
+            archive_records["vex"] = archive.persist(
+                "vex",
+                prepared["vex"],
+                original_filename=args.vex.name,
+                raw_bytes=args.vex.read_bytes(),
+            )
+        if getattr(args, "cnapp", None) is not None and "cnapp" in prepared:
+            archive_records["cnapp"] = archive.persist(
+                "cnapp",
+                prepared["cnapp"],
+                original_filename=args.cnapp.name,
+                raw_bytes=args.cnapp.read_bytes(),
+            )
+        if getattr(args, "context", None) is not None and "context" in prepared:
+            archive_records["context"] = archive.persist(
+                "context",
+                prepared["context"],
+                original_filename=args.context.name,
+                raw_bytes=args.context.read_bytes(),
+            )
+    except Exception as exc:  # pragma: no cover - archival should not abort CLI runs
+        print(f"Warning: failed to persist artefacts locally: {exc}", file=sys.stderr)
+
+    result = orchestrator.run(
+        overlay=overlay,
+        vex=prepared.get("vex"),
+        cnapp=prepared.get("cnapp"),
+        context=prepared.get("context"),
+        **{
+            key: value
+            for key, value in prepared.items()
+            if key not in {"vex", "cnapp", "context"}
+        },
+    )
+    if getattr(args, "include_overlay", False):
+        result["overlay"] = overlay.to_sanitised_dict()
+
+    if archive_records:
+        result["artifact_archive"] = ArtefactArchive.summarise(archive_records)
+
+    return result
+
+
+
+def _write_output(path: Path, payload: Mapping[str, Any], *, pretty: bool) -> None:
+    ensure_secure_directory(path.parent)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2 if pretty else None)
+        if pretty:
+            handle.write("\n")
+
+
+def _handle_ingest(args: argparse.Namespace) -> int:
+    result = _build_pipeline_result(args)
+
+    output_path: Optional[Path] = getattr(args, "output", None)
+    if output_path is not None:
+        output_path = output_path.expanduser().resolve()
+        _write_output(output_path, result, pretty=getattr(args, "pretty", False))
+    else:
+        payload = json.dumps(result, indent=2 if getattr(args, "pretty", False) else None)
+        print(payload)
+
+    _copy_evidence(result, getattr(args, "evidence_dir", None))
+    return 0
+
+def _derive_decision_exit(result: Mapping[str, Any]) -> tuple[str, int]:
+    decision = (
+        str(result.get("enhanced_decision", {}).get("final_decision") or "")
+        .strip()
+        .lower()
+    )
+    if not decision:
+        decision = str(result.get("guardrail_evaluation", {}).get("status") or "defer").lower()
+    mapping = {
+        "allow": 0,
+        "pass": 0,
+        "ok": 0,
+        "block": 1,
+        "fail": 1,
+        "defer": 2,
+        "warn": 2,
+    }
+    return decision, mapping.get(decision, 2)
+
+
+def _handle_make_decision(args: argparse.Namespace) -> int:
+    result = _build_pipeline_result(args)
+    decision, exit_code = _derive_decision_exit(result)
+
+    output_path: Optional[Path] = getattr(args, "output", None)
+    if output_path is not None:
+        output_path = output_path.expanduser().resolve()
+        _write_output(output_path, result, pretty=getattr(args, "pretty", False))
+
+    _copy_evidence(result, getattr(args, "evidence_dir", None))
+
+    summary = {
+        "decision": decision,
+        "exit_code": exit_code,
+        "confidence": result.get("enhanced_decision", {}).get("consensus_confidence"),
+        "severity": result.get("severity_overview", {}).get("highest"),
+        "guardrail": result.get("guardrail_evaluation", {}).get("status"),
+    }
+    print(json.dumps(summary, indent=2 if getattr(args, "pretty", False) else None))
+    return exit_code
+
+def _handle_health(args: argparse.Namespace) -> int:
+    overlay = load_overlay(args.overlay)
+    processing = ProcessingLayer()
+    health: Dict[str, Any] = {
+        "overlay_mode": overlay.mode,
+        "pgmpy_available": processing.pgmpy_available,
+        "pomegranate_available": processing.pomegranate_available,
+        "mchmm_available": processing.mchmm_available,
+    }
+    try:
+        evidence = EvidenceHub(overlay)
+    except Exception as exc:
+        health["evidence_ready"] = False
+        health["evidence_error"] = str(exc)
+    else:
+        health["evidence_ready"] = True
+        health["evidence_retention_days"] = getattr(evidence, "retention_days", None)
+    opa_settings = overlay.policy_settings.get("opa") if isinstance(overlay.policy_settings, Mapping) else {}
+    health["opa_configured"] = bool(opa_settings and opa_settings.get("url"))
+    print(json.dumps({"status": "ok", "checks": health}, indent=2 if args.pretty else None))
+    return 0
+
+
+def _handle_get_evidence(args: argparse.Namespace) -> int:
+    result_path: Path = args.result.expanduser().resolve()
+    if not result_path.exists():
+        print(f"Error: result file {result_path} not found", file=sys.stderr)
+        return 1
+    payload = json.loads(result_path.read_text(encoding="utf-8"))
+    bundle_section = payload.get("evidence_bundle")
+    if not isinstance(bundle_section, Mapping):
+        print("Error: evidence bundle not available in result", file=sys.stderr)
+        return 1
+    files_section = bundle_section.get("files")
+    if not isinstance(files_section, Mapping):
+        print("Error: evidence bundle files missing", file=sys.stderr)
+        return 1
+    bundle_path = files_section.get("bundle")
+    if not bundle_path:
+        print("Error: bundle path missing", file=sys.stderr)
+        return 1
+    source = Path(bundle_path).expanduser().resolve()
+    if not source.exists():
+        print(f"Error: bundle {source} does not exist", file=sys.stderr)
+        return 1
+    destination = args.destination.expanduser().resolve() if args.destination else Path.cwd()
+    ensure_secure_directory(destination)
+    target = destination / source.name
+    target.write_bytes(source.read_bytes())
+    print(json.dumps({"status": "ok", "bundle": str(target)}, indent=2 if args.pretty else None))
+    return 0
 def _handle_stage_run(args: argparse.Namespace) -> int:
     input_path: Optional[Path] = args.input
     if input_path is not None:
@@ -215,6 +509,41 @@ def _handle_stage_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _configure_pipeline_parser(parser: argparse.ArgumentParser, *, include_quiet: bool = False, include_overlay_flag: bool = True) -> None:
+    parser.add_argument('--overlay', type=Path, default=None, help='Path to an overlay file (defaults to repository overlay)')
+    parser.add_argument('--design', type=Path, help='Path to design CSV artefact')
+    parser.add_argument('--sbom', type=Path, required=True, help='Path to SBOM JSON artefact')
+    parser.add_argument('--sarif', type=Path, required=True, help='Path to SARIF JSON artefact')
+    parser.add_argument('--cve', type=Path, required=True, help='Path to CVE/KEV JSON artefact')
+    parser.add_argument('--vex', type=Path, help='Optional path to a CycloneDX VEX document used for noise reduction')
+    parser.add_argument('--cnapp', type=Path, help='Optional path to CNAPP findings JSON for threat-path enrichment')
+    parser.add_argument('--context', type=Path, help='Optional FixOps.yaml, OTM.json, or SSVC YAML business context artefact')
+    parser.add_argument('--output', type=Path, help='Location to write the pipeline result JSON')
+    parser.add_argument('--pretty', action='store_true', help='Pretty-print JSON output when saving to disk')
+    if include_overlay_flag:
+        parser.add_argument('--include-overlay', action='store_true', help='Attach the sanitised overlay to the result payload')
+    parser.add_argument('--disable', dest='disable_modules', action='append', default=[], metavar='MODULE', help='Disable a module for this run (e.g. exploit_signals)')
+    parser.add_argument('--enable', dest='enable_modules', action='append', default=[], metavar='MODULE', help='Force-enable a module for this run')
+    parser.add_argument('--env', action='append', default=[], metavar='KEY=VALUE', help='Set environment variables before loading the overlay')
+    parser.add_argument('--offline', action='store_true', help='Disable exploit feed auto-refresh to avoid network calls')
+    parser.add_argument('--signing-provider', choices=['env', 'aws_kms', 'azure_key_vault'], help='Override the signing backend provider for this run')
+    parser.add_argument('--signing-key-id', help='Signing key alias or identifier when using remote providers')
+    parser.add_argument('--signing-region', help='AWS region to use when invoking KMS')
+    parser.add_argument('--azure-vault-url', help='Azure Key Vault URL for remote signing')
+    parser.add_argument('--rotation-sla-days', type=int, help='Override the signing key rotation SLA in days')
+    parser.add_argument('--opa-url', help='Override the OPA server URL for remote policy checks')
+    parser.add_argument('--opa-token', help='Bearer token for authenticating with the OPA server')
+    parser.add_argument('--opa-package', help='OPA policy package to query (e.g. core.policies)')
+    parser.add_argument('--opa-health-path', help='Custom OPA health endpoint path')
+    parser.add_argument('--opa-bundle-status-path', help='OPA bundle status endpoint for readiness checks')
+    parser.add_argument('--opa-timeout', type=int, help='Timeout in seconds for OPA requests')
+    parser.add_argument('--enable-rl', action='store_true', help='Enable reinforcement learning experiments for this run')
+    parser.add_argument('--enable-shap', action='store_true', help='Enable SHAP explainability experiments for this run')
+    parser.add_argument('--evidence-dir', type=Path, help='Directory to copy the generated evidence bundle into')
+    if include_quiet:
+        parser.add_argument('--quiet', action='store_true', help='Suppress the human-readable summary output')
+
+
 def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path: Optional[Path]) -> None:
     severity_overview = result.get("severity_overview", {})
     guardrail = result.get("guardrail_evaluation", {})
@@ -241,6 +570,20 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
         print(f"  Pricing plan: {pricing_plan}")
     if executed:
         print(f"  Modules executed: {', '.join(executed)}")
+    noise_reduction = result.get("noise_reduction")
+    if isinstance(noise_reduction, Mapping):
+        suppressed_total = noise_reduction.get("suppressed_total")
+        if suppressed_total:
+            print(
+                f"  VEX noise reduction suppressed {suppressed_total} findings"
+            )
+    cnapp_summary = result.get("cnapp_summary")
+    if isinstance(cnapp_summary, Mapping):
+        added = cnapp_summary.get("added_severity")
+        if isinstance(added, Mapping):
+            added_total = sum(int(value) for value in added.values())
+            if added_total:
+                print(f"  CNAPP findings added: {added_total}")
     roi_overview = analytics.get("overview") if isinstance(analytics, dict) else None
     if isinstance(roi_overview, dict):
         currency = roi_overview.get("currency", "USD")
@@ -271,133 +614,18 @@ def _print_summary(result: Dict[str, Any], output: Optional[Path], evidence_path
 
 
 def _handle_run(args: argparse.Namespace) -> int:
-    if args.env:
-        _apply_env_overrides(args.env)
-
-    if getattr(args, "signing_provider", None):
-        os.environ["SIGNING_PROVIDER"] = args.signing_provider
-    if getattr(args, "signing_key_id", None):
-        os.environ["KEY_ID"] = args.signing_key_id
-    if getattr(args, "signing_region", None):
-        os.environ["AWS_REGION"] = args.signing_region
-    if getattr(args, "azure_vault_url", None):
-        os.environ["AZURE_VAULT_URL"] = args.azure_vault_url
-    if getattr(args, "rotation_sla_days", None) is not None:
-        os.environ["SIGNING_ROTATION_SLA_DAYS"] = str(args.rotation_sla_days)
-    if getattr(args, "opa_url", None):
-        os.environ["OPA_SERVER_URL"] = args.opa_url
-    if getattr(args, "opa_token", None):
-        os.environ["OPA_AUTH_TOKEN"] = args.opa_token
-    if getattr(args, "opa_package", None):
-        os.environ["OPA_POLICY_PACKAGE"] = args.opa_package
-    if getattr(args, "opa_health_path", None):
-        os.environ["OPA_HEALTH_PATH"] = args.opa_health_path
-    if getattr(args, "opa_bundle_status_path", None):
-        os.environ["OPA_BUNDLE_STATUS_PATH"] = args.opa_bundle_status_path
-    if getattr(args, "opa_timeout", None) is not None:
-        os.environ["OPA_REQUEST_TIMEOUT"] = str(args.opa_timeout)
-    if getattr(args, "enable_rl", False):
-        os.environ["ENABLE_RL_EXPERIMENTS"] = "true"
-    if getattr(args, "enable_shap", False):
-        os.environ["ENABLE_SHAP_EXPERIMENTS"] = "true"
-
-    overlay = load_overlay(args.overlay)
-    if args.disable_modules:
-        for module in args.disable_modules:
-            _set_module_enabled(overlay, module, False)
-    if args.enable_modules:
-        for module in args.enable_modules:
-            _set_module_enabled(overlay, module, True)
-    if args.offline:
-        auto_refresh = overlay.exploit_signals.get("auto_refresh")
-        if isinstance(auto_refresh, dict):
-            auto_refresh["enabled"] = False
-    allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
-    for directory in overlay.data_directories.values():
-        secure_path = verify_allowlisted_path(directory, allowlist)
-        ensure_secure_directory(secure_path)
-
-    archive_dir = overlay.data_directories.get("archive_dir")
-    if archive_dir is None:
-        root = allowlist[0]
-        root = verify_allowlisted_path(root, allowlist)
-        archive_dir = (root / "archive" / overlay.mode).resolve()
-    archive_dir = verify_allowlisted_path(archive_dir, allowlist)
-    archive = ArtefactArchive(archive_dir, allowlist=allowlist)
-
-    normalizer = InputNormalizer()
-    inputs = _load_inputs(
-        normalizer=normalizer,
-        design_path=args.design,
-        sbom_path=args.sbom,
-        sarif_path=args.sarif,
-        cve_path=args.cve,
-    )
-    orchestrator = PipelineOrchestrator()
-    prepared = _ensure_inputs(
-        overlay=overlay,
-        inputs=inputs,
-        design_path=args.design,
-        sbom_path=args.sbom,
-        sarif_path=args.sarif,
-        cve_path=args.cve,
-    )
-
-    archive_records: Dict[str, Dict[str, Any]] = {}
-    try:
-        if args.design is not None and "design" in inputs:
-            archive_records["design"] = archive.persist(
-                "design",
-                prepared["design_dataset"],
-                original_filename=args.design.name,
-                raw_bytes=args.design.read_bytes(),
-            )
-        if args.sbom is not None:
-            archive_records["sbom"] = archive.persist(
-                "sbom",
-                prepared["sbom"],
-                original_filename=args.sbom.name,
-                raw_bytes=args.sbom.read_bytes(),
-            )
-        if args.sarif is not None:
-            archive_records["sarif"] = archive.persist(
-                "sarif",
-                prepared["sarif"],
-                original_filename=args.sarif.name,
-                raw_bytes=args.sarif.read_bytes(),
-            )
-        if args.cve is not None:
-            archive_records["cve"] = archive.persist(
-                "cve",
-                prepared["cve"],
-                original_filename=args.cve.name,
-                raw_bytes=args.cve.read_bytes(),
-            )
-    except Exception as exc:  # pragma: no cover - archival should not abort CLI runs
-        print(f"Warning: failed to persist artefacts locally: {exc}", file=sys.stderr)
-
-    result = orchestrator.run(overlay=overlay, **prepared)
-    if args.include_overlay:
-        result["overlay"] = overlay.to_sanitised_dict()
-
-    if archive_records:
-        result["artifact_archive"] = ArtefactArchive.summarise(archive_records)
+    result = _build_pipeline_result(args)
 
     output_path: Optional[Path] = args.output
     if output_path:
-        ensure_secure_directory(output_path.parent)
-        with output_path.open("w", encoding="utf-8") as handle:
-            json.dump(result, handle, indent=2 if args.pretty else None)
-            if args.pretty:
-                handle.write("\n")
+        _write_output(output_path, result, pretty=args.pretty)
 
-    copied_bundle = _copy_evidence(result, args.evidence_dir)
+    copied_bundle = _copy_evidence(result, getattr(args, "evidence_dir", None))
 
-    if not args.quiet:
+    if not getattr(args, "quiet", False):
         _print_summary(result, output_path, copied_bundle)
 
     return 0
-
 
 def _handle_show_overlay(args: argparse.Namespace) -> int:
     if args.env:
@@ -513,110 +741,27 @@ def build_parser() -> argparse.ArgumentParser:
     stage_parser.set_defaults(func=_handle_stage_run)
 
     run_parser = subparsers.add_parser("run", help="Execute the FixOps pipeline locally")
-    run_parser.add_argument("--overlay", type=Path, default=None, help="Path to an overlay file (defaults to repository overlay)")
-    run_parser.add_argument("--design", type=Path, help="Path to design CSV artefact")
-    run_parser.add_argument("--sbom", type=Path, required=True, help="Path to SBOM JSON artefact")
-    run_parser.add_argument("--sarif", type=Path, required=True, help="Path to SARIF JSON artefact")
-    run_parser.add_argument("--cve", type=Path, required=True, help="Path to CVE/KEV JSON artefact")
-    run_parser.add_argument("--output", type=Path, help="Location to write the pipeline result JSON")
-    run_parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output when saving to disk")
-    run_parser.add_argument("--include-overlay", action="store_true", help="Attach the sanitised overlay to the result payload")
-    run_parser.add_argument(
-        "--disable",
-        dest="disable_modules",
-        action="append",
-        default=[],
-        metavar="MODULE",
-        help="Disable a module for this run (e.g. exploit_signals)",
-    )
-    run_parser.add_argument(
-        "--enable",
-        dest="enable_modules",
-        action="append",
-        default=[],
-        metavar="MODULE",
-        help="Force-enable a module for this run",
-    )
-    run_parser.add_argument(
-        "--env",
-        action="append",
-        default=[],
-        metavar="KEY=VALUE",
-        help="Set environment variables before loading the overlay",
-    )
-    run_parser.add_argument(
-        "--offline",
-        action="store_true",
-        help="Disable exploit feed auto-refresh to avoid network calls",
-    )
-    run_parser.add_argument(
-        "--signing-provider",
-        choices=["env", "aws_kms", "azure_key_vault"],
-        help="Override the signing backend provider for this run",
-    )
-    run_parser.add_argument(
-        "--signing-key-id",
-        help="Signing key alias or identifier when using remote providers",
-    )
-    run_parser.add_argument(
-        "--signing-region",
-        help="AWS region to use when invoking KMS",
-    )
-    run_parser.add_argument(
-        "--azure-vault-url",
-        help="Azure Key Vault URL for remote signing",
-    )
-    run_parser.add_argument(
-        "--rotation-sla-days",
-        type=int,
-        help="Override the signing key rotation SLA in days",
-    )
-    run_parser.add_argument(
-        "--opa-url",
-        help="Override the OPA server URL for remote policy checks",
-    )
-    run_parser.add_argument(
-        "--opa-token",
-        help="Bearer token for authenticating with the OPA server",
-    )
-    run_parser.add_argument(
-        "--opa-package",
-        help="OPA policy package to query (e.g. core.policies)",
-    )
-    run_parser.add_argument(
-        "--opa-health-path",
-        help="Custom OPA health endpoint path",
-    )
-    run_parser.add_argument(
-        "--opa-bundle-status-path",
-        help="OPA bundle status endpoint for readiness checks",
-    )
-    run_parser.add_argument(
-        "--opa-timeout",
-        type=int,
-        help="Timeout in seconds for OPA requests",
-    )
-    run_parser.add_argument(
-        "--enable-rl",
-        action="store_true",
-        help="Enable reinforcement learning experiments for this run",
-    )
-    run_parser.add_argument(
-        "--enable-shap",
-        action="store_true",
-        help="Enable SHAP explainability experiments for this run",
-    )
-    run_parser.add_argument(
-        "--evidence-dir",
-        type=Path,
-        help="Directory to copy the generated evidence bundle into",
-    )
-    run_parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress the human-readable summary output",
-    )
+    _configure_pipeline_parser(run_parser, include_quiet=True, include_overlay_flag=True)
     run_parser.set_defaults(func=_handle_run)
+
+    ingest_parser = subparsers.add_parser("ingest", help="Normalise artefacts and print the pipeline response")
+    _configure_pipeline_parser(ingest_parser, include_quiet=False, include_overlay_flag=True)
+    ingest_parser.set_defaults(func=_handle_ingest)
+
+    decision_parser = subparsers.add_parser("make-decision", help="Execute the pipeline and use the decision as the exit code")
+    _configure_pipeline_parser(decision_parser, include_quiet=False, include_overlay_flag=True)
+    decision_parser.set_defaults(func=_handle_make_decision)
+
+    health_parser = subparsers.add_parser("health", help="Check integration readiness for local runs")
+    health_parser.add_argument("--overlay", type=Path, default=None, help='Path to an overlay file')
+    health_parser.add_argument("--pretty", action='store_true', help='Pretty-print JSON output')
+    health_parser.set_defaults(func=_handle_health)
+
+    evidence_parser = subparsers.add_parser("get-evidence", help="Copy the evidence bundle referenced in a pipeline result")
+    evidence_parser.add_argument("--result", type=Path, required=True, help='Path to a pipeline result JSON file')
+    evidence_parser.add_argument("--destination", type=Path, help='Directory to copy the bundle into (defaults to CWD)')
+    evidence_parser.add_argument("--pretty", action='store_true', help='Pretty-print JSON output')
+    evidence_parser.set_defaults(func=_handle_get_evidence)
 
     overlay_parser = subparsers.add_parser("show-overlay", help="Print the sanitised overlay configuration")
     overlay_parser.add_argument("--overlay", type=Path, default=None, help="Path to an overlay file")

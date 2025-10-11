@@ -10,7 +10,11 @@ from apps.api.normalizers import InputNormalizer
 def _reset_converter(monkeypatch):
     """Ensure tests control the optional Snyk converter."""
 
-    monkeypatch.setattr("backend.normalizers.snyk_converter", None)
+    monkeypatch.setattr(
+        "apps.api.normalizers.snyk_converter",
+        None,
+        raising=False,
+    )
 
 
 def _build_sarif_document():
@@ -65,3 +69,41 @@ def test_load_sarif_logs_actionable_error_without_converter(caplog):
             normalizer.load_sarif(raw_payload)
 
     assert "snyk-to-sarif" in caplog.text
+
+
+def test_load_sarif_converts_snyk_payload_without_converter():
+    normalizer = InputNormalizer()
+
+    payload = {
+        "ok": False,
+        "snykVersion": "1.1200.0",
+        "projectName": "customer-suite",
+        "org": "fixops", 
+        "issues": {
+            "vulnerabilities": [
+                {
+                    "id": "SNYK-JS-SQLINJECTION",
+                    "title": "SQL injection in query builder",
+                    "severity": "high",
+                    "from": [
+                        "customer-api@1.4.2",
+                        "express@4.18.0",
+                    ],
+                    "packageManager": "npm",
+                    "packageName": "customer-api",
+                    "identifiers": {"CVE": ["CVE-2023-1234"]},
+                    "cvssScore": 8.1,
+                }
+            ]
+        },
+    }
+
+    normalized = normalizer.load_sarif(json.dumps(payload))
+
+    assert normalized.metadata["finding_count"] == 1
+    assert normalized.tool_names == ["Snyk"]
+    finding = normalized.findings[0]
+    assert finding.rule_id == "SNYK-JS-SQLINJECTION"
+    assert finding.level == "error"
+    assert finding.file in {"express@4.18.0", "customer-api@1.4.2"}
+    assert "dependency_path" in finding.raw.get("properties", {})

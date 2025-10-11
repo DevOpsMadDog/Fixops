@@ -10,7 +10,12 @@ import sys
 import zipfile
 from contextlib import suppress
 from dataclasses import dataclass, field, asdict
-from typing import Any, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+
+try:  # Optional dependency for YAML parsing
+    import yaml
+except Exception:  # pragma: no cover - optional dependency
+    yaml = None  # type: ignore[assignment]
 
 try:  # Optional dependency for rich SBOM parsing
     from lib4sbom import parser as sbom_parser  # type: ignore
@@ -58,6 +63,202 @@ SUPPORTED_SARIF_SCHEMAS = {
 
 
 logger = logging.getLogger(__name__)
+
+_SNYK_SEVERITY_TO_LEVEL = {
+    "critical": "error",
+    "high": "error",
+    "medium": "warning",
+    "moderate": "warning",
+    "low": "note",
+    "info": "note",
+}
+
+
+def _extract_first_identifier(payload: Mapping[str, Any] | None) -> Optional[str]:
+    """Return the first interesting identifier from a Snyk issue payload."""
+
+    if not isinstance(payload, Mapping):
+        return None
+
+    for key in ("CVE", "GHSA", "CWE", "OSV"):
+        values = payload.get(key)
+        if isinstance(values, Iterable) and not isinstance(
+            values, (str, bytes, bytearray)
+        ):
+            for value in values:
+                if isinstance(value, str) and value.strip():
+                    return f"{key}:{value}" if not value.startswith(key) else value
+    return None
+
+
+def _derive_snyk_location(issue: Mapping[str, Any]) -> str:
+    """Best-effort derivation of a SARIF location from a Snyk issue."""
+
+    dependency_path = issue.get("from")
+    if isinstance(dependency_path, Iterable) and not isinstance(
+        dependency_path, (str, bytes, bytearray)
+    ):
+        for candidate in reversed(list(dependency_path)):
+            if isinstance(candidate, str) and candidate.strip():
+                return candidate
+
+    for candidate_key in ("file", "path", "targetFile", "packageName", "projectName"):
+        candidate = issue.get(candidate_key)
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate
+
+    package_manager = issue.get("packageManager")
+    package_name = issue.get("package") or issue.get("packageName")
+    if isinstance(package_name, str) and package_name.strip():
+        if isinstance(package_manager, str) and package_manager.strip():
+            return f"{package_manager}:{package_name}"
+        return package_name
+
+    return "dependency"
+
+
+def _collect_snyk_issues(payload: Mapping[str, Any]) -> List[dict[str, Any]]:
+    """Gather issues from the many Snyk JSON representations."""
+
+    issues: List[dict[str, Any]] = []
+    catalogue = payload.get("issues")
+
+    if isinstance(catalogue, Mapping):
+        for category, entries in catalogue.items():
+            if isinstance(entries, Iterable) and not isinstance(
+                entries, (str, bytes, bytearray)
+            ):
+                for entry in entries:
+                    if isinstance(entry, Mapping):
+                        issue = dict(entry)
+                        issue.setdefault("_category", category)
+                        issues.append(issue)
+    elif isinstance(catalogue, Iterable) and not isinstance(
+        catalogue, (str, bytes, bytearray)
+    ):
+        for entry in catalogue:
+            if isinstance(entry, Mapping):
+                issues.append(dict(entry))
+
+    for key in (
+        "vulnerabilities",
+        "licenses",
+        "securityIssues",
+        "codeIssues",
+        "infrastructureAsCodeIssues",
+    ):
+        entries = payload.get(key)
+        if isinstance(entries, Iterable) and not isinstance(
+            entries, (str, bytes, bytearray)
+        ):
+            for entry in entries:
+                if isinstance(entry, Mapping):
+                    issue = dict(entry)
+                    issue.setdefault("_category", key)
+                    issues.append(issue)
+
+    return issues
+
+
+def _convert_snyk_payload_to_sarif(
+    payload: Mapping[str, Any]
+) -> Optional[dict[str, Any]]:
+    """Fallback conversion when `snyk-to-sarif` is unavailable."""
+
+    issues = _collect_snyk_issues(payload)
+    results: List[dict[str, Any]] = []
+
+    for issue in issues:
+        severity = str(issue.get("severity") or "").lower()
+        level = _SNYK_SEVERITY_TO_LEVEL.get(severity, "warning")
+        rule_id = issue.get("id") or issue.get("issueId") or issue.get("issueType")
+        if not isinstance(rule_id, str) or not rule_id.strip():
+            rule_id = _extract_first_identifier(issue.get("identifiers")) or "SNYK-ISSUE"
+
+        message = issue.get("title") or issue.get("message") or issue.get("description")
+        if not isinstance(message, str) or not message.strip():
+            message = "Snyk vulnerability detected"
+
+        location = _derive_snyk_location(issue)
+
+        properties: dict[str, Any] = {}
+        for key in (
+            "severity",
+            "packageManager",
+            "packageName",
+            "identifiers",
+            "cvssScore",
+            "exploitMaturity",
+            "isPatchable",
+            "isFixable",
+            "isUpgradable",
+        ):
+            value = issue.get(key)
+            if value is not None:
+                properties[key] = value
+
+        dependency_path = issue.get("from")
+        if isinstance(dependency_path, Iterable) and not isinstance(
+            dependency_path, (str, bytes, bytearray)
+        ):
+            properties["dependency_path"] = list(dependency_path)
+
+        category = issue.get("_category")
+        if isinstance(category, str) and category:
+            properties["category"] = category
+
+        result: dict[str, Any] = {
+            "ruleId": rule_id,
+            "level": level,
+            "message": {"text": message},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": location},
+                        "region": {"startLine": 1},
+                    }
+                }
+            ],
+        }
+
+        if properties:
+            result["properties"] = properties
+
+        results.append(result)
+
+    if not results:
+        return None
+
+    tool: dict[str, Any] = {
+        "driver": {
+            "name": "Snyk",
+            "informationUri": "https://snyk.io",
+        }
+    }
+
+    snyk_version = payload.get("snykVersion") or payload.get("snykCliVersion")
+    if isinstance(snyk_version, str) and snyk_version.strip():
+        tool["driver"]["version"] = snyk_version
+
+    run_properties: dict[str, Any] = {}
+    for key, alias in (("projectName", "project"), ("org", "organisation")):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            run_properties[alias] = value
+
+    run: dict[str, Any] = {
+        "tool": tool,
+        "results": results,
+    }
+
+    if run_properties:
+        run["properties"] = run_properties
+
+    return {
+        "version": "2.1.0",
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "runs": [run],
+    }
 
 
 @dataclass
@@ -128,6 +329,112 @@ class NormalizedCVEFeed:
         return {
             "records": [record.to_dict() for record in self.records],
             "errors": self.errors,
+            "metadata": self.metadata,
+        }
+
+
+@dataclass
+class VEXAssertion:
+    """Individual VEX assertion mapped to a component reference."""
+
+    vulnerability_id: str
+    ref: str
+    status: str
+    detail: Optional[str] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = {
+            "vulnerability_id": self.vulnerability_id,
+            "ref": self.ref,
+            "status": self.status,
+        }
+        if self.detail:
+            payload["detail"] = self.detail
+        return payload
+
+
+@dataclass
+class NormalizedVEX:
+    """Simplified CycloneDX VEX representation."""
+
+    assertions: List[VEXAssertion]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def suppressed_refs(self) -> set[str]:
+        return {
+            assertion.ref
+            for assertion in self.assertions
+            if assertion.status == "not_affected"
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "assertions": [assertion.to_dict() for assertion in self.assertions],
+            "metadata": self.metadata,
+        }
+
+
+@dataclass
+class CNAPPAsset:
+    """Asset metadata derived from CNAPP findings."""
+
+    asset_id: str
+    attributes: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.asset_id, **self.attributes}
+
+
+@dataclass
+class CNAPPFinding:
+    """Normalised CNAPP finding with consistent severity semantics."""
+
+    asset: str
+    finding_type: str
+    severity: str
+    raw: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "asset": self.asset,
+            "type": self.finding_type,
+            "severity": self.severity,
+            "raw": self.raw,
+        }
+
+
+@dataclass
+class NormalizedCNAPP:
+    """Structured CNAPP payload with assets and findings."""
+
+    assets: List[CNAPPAsset]
+    findings: List[CNAPPFinding]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "assets": [asset.to_dict() for asset in self.assets],
+            "findings": [finding.to_dict() for finding in self.findings],
+            "metadata": self.metadata,
+        }
+
+
+@dataclass
+class NormalizedBusinessContext:
+    """Business context payload supporting FixOps, OTM and SSVC formats."""
+
+    format: str
+    components: List[Dict[str, Any]] = field(default_factory=list)
+    ssvc: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "format": self.format,
+            "components": self.components,
+            "ssvc": self.ssvc,
             "metadata": self.metadata,
         }
 
@@ -647,6 +954,25 @@ class InputNormalizer:
                 if not schema_uri and isinstance(data, dict):
                     schema_uri = data.get("$schema")
 
+        if (not runs) and isinstance(original_data, Mapping):
+            fallback_document = _convert_snyk_payload_to_sarif(original_data)
+            if fallback_document:
+                data = fallback_document
+                runs = data.get("runs") if isinstance(data, Mapping) else None
+                if not schema_uri and isinstance(data, Mapping):
+                    schema_uri = data.get("$schema")
+                result_count = 0
+                if isinstance(runs, list):
+                    for run in runs:
+                        if isinstance(run, Mapping):
+                            entries = run.get("results")
+                            if isinstance(entries, list):
+                                result_count += len(entries)
+                logger.info(
+                    "Converted Snyk JSON payload via built-in fallback",
+                    extra={"finding_count": result_count},
+                )
+
         if not runs:
             if isinstance(original_data, dict) and snyk_converter is None:
                 snyk_markers = {
@@ -729,3 +1055,251 @@ class InputNormalizer:
         )
         logger.debug("Normalised SARIF", extra={"metadata": metadata})
         return normalized
+
+    def load_vex(self, raw: Any) -> NormalizedVEX:
+        """Parse a CycloneDX VEX document and extract actionable assertions."""
+
+        payload = self._prepare_text(raw)
+        try:
+            document = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise ValueError("The provided VEX document is not valid JSON") from exc
+
+        vulnerabilities = document.get("vulnerabilities")
+        assertions: List[VEXAssertion] = []
+        if isinstance(vulnerabilities, Iterable):
+            for entry in vulnerabilities:
+                if not isinstance(entry, Mapping):
+                    continue
+                vuln_id = str(entry.get("id") or entry.get("vulnerability") or "unknown")
+                analysis = entry.get("analysis") if isinstance(entry.get("analysis"), Mapping) else {}
+                state = str(analysis.get("state") or analysis.get("status") or "unknown").lower()
+                detail = analysis.get("detail")
+                affects = entry.get("affects")
+                if not isinstance(affects, Iterable):
+                    affects = []
+                for target in affects:
+                    ref = None
+                    if isinstance(target, Mapping):
+                        ref = target.get("ref") or target.get("name")
+                    elif target:
+                        ref = str(target)
+                    if not ref:
+                        continue
+                    assertions.append(
+                        VEXAssertion(
+                            vulnerability_id=vuln_id,
+                            ref=str(ref),
+                            status=state,
+                            detail=str(detail) if detail else None,
+                        )
+                    )
+
+        metadata = {
+            "assertion_count": len(assertions),
+            "not_affected_count": sum(1 for assertion in assertions if assertion.status == "not_affected"),
+        }
+        return NormalizedVEX(assertions=assertions, metadata=metadata)
+
+    def load_cnapp(self, raw: Any) -> NormalizedCNAPP:
+        """Normalise CNAPP asset inventory and findings payloads."""
+
+        payload = self._prepare_text(raw)
+        try:
+            document = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise ValueError("The provided CNAPP document is not valid JSON") from exc
+
+        raw_assets = document.get("assets") if isinstance(document, Mapping) else None
+        assets: List[CNAPPAsset] = []
+        if isinstance(raw_assets, Iterable):
+            for entry in raw_assets:
+                if not isinstance(entry, Mapping):
+                    continue
+                asset_id = entry.get("id") or entry.get("asset")
+                if not asset_id:
+                    continue
+                attributes = {
+                    key: value
+                    for key, value in entry.items()
+                    if key not in {"id", "asset"}
+                }
+                assets.append(CNAPPAsset(asset_id=str(asset_id), attributes=attributes))
+
+        raw_findings = document.get("findings") if isinstance(document, Mapping) else None
+        findings: List[CNAPPFinding] = []
+        if isinstance(raw_findings, Iterable):
+            for entry in raw_findings:
+                if not isinstance(entry, Mapping):
+                    continue
+                asset = entry.get("asset") or entry.get("target")
+                severity = str(entry.get("sev") or entry.get("severity") or "low").lower()
+                finding_type = entry.get("type") or entry.get("category") or "finding"
+                if not asset:
+                    continue
+                findings.append(
+                    CNAPPFinding(
+                        asset=str(asset),
+                        finding_type=str(finding_type),
+                        severity=severity,
+                        raw=dict(entry),
+                    )
+                )
+
+        metadata = {
+            "asset_count": len(assets),
+            "finding_count": len(findings),
+        }
+        return NormalizedCNAPP(assets=assets, findings=findings, metadata=metadata)
+
+    def _parse_business_payload(
+        self, text: str, content_type: Optional[str]
+    ) -> Tuple[Any, str]:
+        """Return the decoded document and detected format."""
+
+        preferred_type = (content_type or "").lower()
+        document: Any = None
+        source = "unknown"
+        try:
+            document = json.loads(text)
+            source = "json"
+        except json.JSONDecodeError:
+            if yaml is None:
+                raise ValueError(
+                    "Business context payload is not valid JSON and PyYAML is unavailable"
+                )
+            document = yaml.safe_load(text)
+            source = "yaml"
+        if document is None:
+            raise ValueError("Business context payload was empty")
+        if preferred_type:
+            source = preferred_type.split(";")[0]
+        if isinstance(document, list) and document:
+            document = document[0]
+        if not isinstance(document, Mapping):
+            raise ValueError("Business context payload must decode to a mapping")
+        return document, source
+
+    @staticmethod
+    def _normalise_ssvc(mapping: Mapping[str, Any]) -> Dict[str, Any]:
+        defaults = {
+            "exploitation": "none",
+            "exposure": "controlled",
+            "utility": "efficient",
+            "safety_impact": "negligible",
+            "mission_impact": "degraded",
+        }
+        ssvc: Dict[str, Any] = dict(defaults)
+        for key in defaults:
+            value = mapping.get(key)
+            if isinstance(value, str) and value.strip():
+                ssvc[key] = value.strip().lower()
+        return ssvc
+
+    def _from_fixops_context(
+        self, document: Mapping[str, Any], source: str
+    ) -> NormalizedBusinessContext:
+        components = []
+        for entry in document.get("components", []) or []:
+            if isinstance(entry, Mapping):
+                components.append({k: v for k, v in entry.items() if v is not None})
+        ssvc_payload = document.get("ssvc") if isinstance(document.get("ssvc"), Mapping) else {}
+        ssvc = self._normalise_ssvc(ssvc_payload)
+        metadata = {
+            "component_count": len(components),
+            "source": source,
+            "profile": document.get("profile"),
+        }
+        return NormalizedBusinessContext(
+            format="fixops.yaml" if source.endswith("yaml") else "fixops.json",
+            components=components,
+            ssvc=ssvc,
+            metadata=metadata,
+            raw=dict(document),
+        )
+
+    def _from_otm(self, document: Mapping[str, Any], source: str) -> NormalizedBusinessContext:
+        components = []
+        otm_components = document.get("components") if isinstance(document.get("components"), Iterable) else []
+        for entry in otm_components:
+            if not isinstance(entry, Mapping):
+                continue
+            node = {
+                "name": entry.get("name"),
+                "type": entry.get("type"),
+                "trust_zone": entry.get("parent", {}).get("trustZone") if isinstance(entry.get("parent"), Mapping) else None,
+                "tags": entry.get("tags"),
+            }
+            data_assets = entry.get("data") if isinstance(entry.get("data"), Iterable) else []
+            if data_assets:
+                classifications = []
+                for asset in data_assets:
+                    if isinstance(asset, Mapping) and asset.get("classification"):
+                        classifications.append(asset["classification"])
+                if classifications:
+                    node["data_classification"] = ",".join(str(value) for value in classifications)
+            components.append({k: v for k, v in node.items() if v is not None})
+
+        trust_zones = document.get("trustZones") if isinstance(document.get("trustZones"), Iterable) else []
+        highest_trust = 0
+        for zone in trust_zones:
+            if not isinstance(zone, Mapping):
+                continue
+            rating = zone.get("risk", {}).get("trustRating") if isinstance(zone.get("risk"), Mapping) else None
+            try:
+                rating_value = int(rating)
+            except (TypeError, ValueError):
+                continue
+            highest_trust = max(highest_trust, rating_value)
+        ssvc = self._normalise_ssvc(
+            {
+                "exposure": "open" if highest_trust <= 3 else "controlled",
+                "mission_impact": "mev" if highest_trust <= 3 else "degraded",
+            }
+        )
+        metadata = {
+            "component_count": len(components),
+            "trust_zones": len(list(trust_zones)),
+            "source": source,
+        }
+        return NormalizedBusinessContext(
+            format="otm.json",
+            components=components,
+            ssvc=ssvc,
+            metadata=metadata,
+            raw=dict(document),
+        )
+
+    def _from_ssvc(self, document: Mapping[str, Any], source: str) -> NormalizedBusinessContext:
+        ssvc = self._normalise_ssvc(document)
+        metadata = {"source": source}
+        return NormalizedBusinessContext(
+            format="ssvc.yaml" if source.endswith("yaml") else "ssvc.json",
+            components=[],
+            ssvc=ssvc,
+            metadata=metadata,
+            raw=dict(document),
+        )
+
+    def load_business_context(
+        self, raw: Any, *, content_type: Optional[str] = None
+    ) -> NormalizedBusinessContext:
+        """Parse FixOps business context, OTM JSON, or SSVC YAML inputs."""
+
+        payload = self._prepare_text(raw)
+        document, source = self._parse_business_payload(payload, content_type)
+        if "otm" in (document.get("format") or "").lower() or document.get("otmVersion"):
+            return self._from_otm(document, source)
+        if document.get("components") and document.get("ssvc"):
+            return self._from_fixops_context(document, source)
+        required_ssvc_keys = {"exploitation", "exposure", "utility", "safety_impact", "mission_impact"}
+        if required_ssvc_keys.intersection(document.keys()) == required_ssvc_keys:
+            return self._from_ssvc(document, source)
+        # Attempt to coerce legacy FixOps structures
+        if document.get("business_context"):
+            nested = document.get("business_context")
+            if isinstance(nested, Mapping):
+                return self._from_fixops_context(nested, source)
+        raise ValueError(
+            "Unsupported business context document; expected FixOps, OTM, or SSVC payload"
+        )

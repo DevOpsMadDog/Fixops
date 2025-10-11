@@ -1,0 +1,15 @@
+{
+  "stage": "decision",
+  "input": [
+    "fixtures/sample_inputs/decision/decision-input.json"
+  ],
+  "programs_invoked": [
+    "python -m apps.fixops_cli stage-run --stage decision --input fixtures/sample_inputs/decision/decision-input.json --app life-claims-portal --mode demo"
+  ],
+  "outputs": [
+    "fixtures/expected_outputs/decision/decision.json",
+    "fixtures/expected_outputs/decision/manifest.json",
+    "fixtures/expected_outputs/decision/evidence_bundle.zip"
+  ],
+  "notes": "Evidence bundle contains the canonical stage outputs for audit hand-off"
+}
