@@ -788,6 +788,94 @@ flowchart LR
   engine = ProbabilisticForecastEngine()
   forecast = engine.evaluate(history=[{"component": "service-a", "severities": ["medium", "high"]}])
   ```
+- **CI/CD**: QA runs probabilistic tests; dashboards visualise escalation signals; docs provide transparency for regulators.【F:tests/test_probabilistic.py†L1-L120】【F:ui/dashboard/script.js†L80-L180】【F:docs/ARCH-INVENTORY.md†L20-L120】
+
+#### 5. Sample artefacts
+| Input | Processing | Output |
+| --- | --- | --- |
+| Severity history JSON | Transition calibration | Forecast posterior JSON |
+| Incident CSV | Bayesian update | Updated risk trajectory |
+| Forecast output | Dashboard ingestion | Executive readiness gauges |
+
+### Multi-LLM consensus
+#### 1. Why it exists
+Blend deterministic heuristics with LLM reasoning while capturing audit trails for AI-assisted decisions.
+
+#### 2. Primary implementation
+- Enterprise enhancements call optional OpenAI/Anthropic/Gemini providers via `fixops-enterprise/src/services/enhanced_decision_engine.py`; results are reconciled with deterministic context and logged for transparency.【F:fixops-enterprise/src/services/enhanced_decision_engine.py†L1-L200】【F:fixops-enterprise/src/api/v1/enhanced.py†L1-L200】
+
+#### 3. Data flow
+```mermaid
+flowchart TD
+    Prompt[Context-rich prompt] --> Fanout[EnhancedDecisionEngine]
+    Fanout -->|OpenAI| Provider1
+    Fanout -->|Anthropic| Provider2
+    Fanout -->|Gemini| Provider3
+    Provider1 --> Reducer[Consensus reducer]
+    Provider2 --> Reducer
+    Provider3 --> Reducer
+    Reducer --> Verdict[Decision + Rationale]
+    Verdict --> Pipeline
+```
+
+#### 4. Usage & setup
+- Configure provider keys in environment variables referenced by enterprise overlay.
+- Call enterprise API endpoints or CLI overlays to obtain consensus responses.
+- Evidence bundles archive LLM rationales when policy requires.【F:docs/EVIDENCE-BUNDLES.md†L120-L200】
+
+#### 5. Sample artefacts
+| Input | Processing | Output |
+| --- | --- | --- |
+| Risk + provenance context | Prompt enrichment across providers | Consensus rationale |
+| Reviewer query | LLM fan-out + voting | Ranked recommendation |
+| Policy template | Completion with citations | Draft report |
+
+### Observability & demo stack
+#### 1. Why it exists
+Provide investors and CISOs with a one-command experience to view risk posture, provenance status, and reproducible build health.
+
+#### 2. Primary implementation
+- OpenTelemetry wiring with no-op fallbacks in `telemetry/` ensures metrics even in air-gapped runs.【F:telemetry/__init__.py†L1-L160】
+- Dashboard UI under `ui/dashboard/` visualises SBOM quality, EPSS/KEV tables, provenance, and repro status.【F:ui/dashboard/script.js†L1-L180】【F:ui/dashboard/index.html†L1-L160】
+- `docker-compose.demo.yml` orchestrates backend, graph worker, dashboard, and collector; docs include screenshots and tour script.【F:docker-compose.demo.yml†L1-L80】【F:docs/DEMO.md†L1-L200】
+
+#### 3. Data flow
+- Telemetry spans flow to `config/otel-collector-demo.yaml` collector when environment variables are set.【F:config/otel-collector-demo.yaml†L1-L80】
+- Dashboard polls API endpoints for SBOM quality, risk, provenance, and repro status visualisations.【F:ui/dashboard/script.js†L40-L180】
+
+#### 4. Usage & setup
+```bash
+docker compose -f docker-compose.demo.yml up
+open http://localhost:8080  # dashboard
+```
+
+#### 5. Sample artefacts
+| Input | Processing | Output |
+| --- | --- | --- |
+| Telemetry spans | Export via OTLP collector | Grafana/Jaeger traces |
+| API metrics | Dashboard polling | Gauges + tables |
+| Demo compose file | docker compose up | Running investor demo stack |
+
+### Security posture & compliance guardrails
+#### 1. Why it exists
+Align engineering, security, and audit teams on operational procedures, signed releases, and branch protections.
+
+#### 2. Primary implementation
+- Playbooks for developers, security, and auditors plus overarching security posture guide.【F:docs/PLAYBOOK-DEV.md†L1-L160】【F:docs/PLAYBOOK-SEC.md†L1-L160】【F:docs/PLAYBOOK-AUDIT.md†L1-L120】【F:docs/SECURITY-POSTURE.md†L1-L160】
+- CI enforcing formatting, linting, typing, and coverage ≥ 70% with QA workflow; changelog capturing Phase 1–10 milestones.【F:.github/workflows/qa.yml†L1-L160】【F:CHANGELOG.md†L1-L160】
+- Release workflows attach provenance and evidence for auditors.【F:.github/workflows/release-sign.yml†L1-L200】
+
+#### 3. Usage & setup
+- Follow playbooks for role-specific response steps.
+- Enable branch protection + signed commits per `docs/SECURITY-POSTURE.md`.
+- Provision Dependabot and required secrets listed in `docs/CI-SECRETS.md`.
+
+#### 4. Sample artefacts
+| Input | Processing | Output |
+| --- | --- | --- |
+| QA workflow | Run lint, type, coverage gates | ≥70% coverage + green checks |
+| Signed commit policy | GitHub branch protection | Enforced review gates |
+| Evidence manifest | Embedded signed artefact references | Audit-ready bundle |
 
 ### Multi-LLM consensus
 - **Architecture diagram**:
