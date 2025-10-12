@@ -1,5 +1,16 @@
 # FixOps Platform Deep Reference
 
+> Use this as the authoritative guide for onboarding, architecture reviews, compliance audits, and CI/CD dry runs. It extends the root README with diagrams, capability maps, and end-to-end validation recipes.
+
+## Table of contents
+- [Feature index & usage map](#feature-index--usage-map)
+- [Executive summary](#executive-summary)
+- [Orientation](#orientation)
+- [Repository topology](#repository-topology)
+- [Quick start (CLI & demo)](#quick-start-cli--demo)
+- [Runtime architecture](#runtime-architecture)
+- [Capability matrix](#capability-matrix)
+- [End-to-end data flow](#end-to-end-data-flow)
 > This document expands the root README with an exhaustive, implementation-linked walkthrough of the FixOps supply-chain, compliance, and automation platform. Use it as the authoritative orientation for architecture reviews, SOC hand-offs, and CI/CD enablement.
 
 ## Table of contents
@@ -13,6 +24,7 @@
   - [Provenance graph service](#provenance-graph-service)
   - [Reproducible build verification](#reproducible-build-verification)
   - [Evidence bundles & CI agent](#evidence-bundles--ci-agent)
+  - [SSDLC lifecycle evaluation](#ssdlc-lifecycle-evaluation)
   - [Probabilistic forecasting, Markov & Bayesian analytics](#probabilistic-forecasting-markov--bayesian-analytics)
   - [Multi-LLM consensus](#multi-llm-consensus)
   - [Observability & demo stack](#observability--demo-stack)
@@ -21,6 +33,42 @@
 - [API surface](#api-surface)
 - [CI/CD automation](#cicd-automation)
 - [Setup & verification checklists](#setup--verification-checklists)
+  - [Stage-by-stage CLI workflow](#stage-by-stage-cli-workflow)
+- [Reference documents](#reference-documents)
+
+## Feature index & usage map
+The table below links every FixOps capability to its primary use cases, when teams should prefer the CLI versus the API, and
+where to find the backing implementation and documentation. Use it as a quick index before diving deeper into individual
+sections.
+
+| Capability | Primary use cases | Preferred CLI commands | Relevant API endpoints | When to choose CLI vs API | Core modules & docs |
+| --- | --- | --- | --- | --- | --- |
+| SBOM normalisation & quality | Merge SBOMs from Syft/Trivy, produce deterministic quality metrics for audits. | `fixops-sbom normalize --in …`<br>`fixops-sbom quality --in …` | `GET /api/v1/sbom/quality` *(if published via backend)* | Use CLI for local/air-gapped triage and CI steps; expose API when dashboards or downstream services need JSON outputs. | `lib4sbom/normalizer.py`, `docs/SBOM-QUALITY.md` |
+| Risk scoring (FixOpsRisk) | Prioritise remediation via EPSS/KEV, quantify release posture. | `fixops-risk score --sbom …` | `GET /api/v1/risk/component/{id}`<br>`GET /api/v1/risk/cve/{id}` | CLI is ideal for pipeline gating and artefact generation; API powers portals and integrations that need on-demand lookups. | `risk/feeds/*`, `risk/scoring.py`, `docs/RISK-SCORING.md` |
+| Provenance attestations & signing | Generate SLSA v1 provenance, verify releases before consumption. | `fixops-provenance attest --artifact …`<br>`fixops-provenance verify --artifact …` | `GET /api/v1/provenance/{artifact}` | Run CLI inside CI or local validation loops; surface API to external auditors who only need attestation JSON. | `services/provenance/attestation.py`, `docs/PROVENANCE.md`, `docs/SIGNING.md` |
+| Provenance graph analytics | Trace lineage, find KEV regressions, detect downgrades across releases. | `fixops-ci graph lineage --artifact …` *(via CI agent)* | `GET /api/v1/graph/lineage`<br>`GET /api/v1/graph/kev`<br>`GET /api/v1/graph/anomalies` | Use API for interactive queries and UI dashboards; invoke CLI during automated compliance checks or scheduled reports. | `services/graph/graph.py`, `backend/api/graph/router.py`, `docs/PROVENANCE-GRAPH.md` |
+| Reproducible build verification | Rebuild tagged releases and compare digests to prove reproducibility. | `fixops-repro verify --tag … --plan build/plan.yaml` | `GET /api/v1/repro/{tag}` *(if enabled)* | CLI runs hermetic jobs on builders; API publishes attestation status to stakeholders. | `services/repro/verifier.py`, `docs/REPRO-BUILDS.md` |
+| Evidence bundles & policy agent | Package SBOM, risk, provenance, and repro artefacts into signed bundles. | `fixops-ci evidence bundle --release …` | `GET /api/v1/evidence/{release}` | Prefer CLI to generate bundles inside release pipelines; API exposes ready-made bundles to auditors. | `evidence/packager.py`, `cli/fixops_ci.py`, `docs/EVIDENCE-BUNDLES.md` |
+| Observability & dashboards | Demo FixOps posture with OTEL traces and dashboard visualisations. | `docker compose -f docker-compose.demo.yml up` | `GET /api/v1/metrics/*` *(exported via collector)* | CLI/docker commands spin up demo stacks; APIs feed dashboards/collectors. | `telemetry/`, `ui/dashboard/`, `docs/DEMO.md` |
+| Probabilistic forecasting, Markov & Bayesian analytics | Model remediation timelines, predict drift, and justify roadmap commitments. | `fixops-ci analytics forecast --plan …` *(where configured)* | `GET /api/v1/analytics/forecast` | CLI enables batched planning; API supports UI overlays and stakeholder queries. | `core/`, `simulations/`, `docs/ARCHITECTURE.md` |
+| Multi-LLM consensus | Cross-validate vulnerability triage or policy decisions via multiple LLMs. | `fixops-ci ai review --input …` | `POST /api/v1/ai/consensus` | CLI gives offline reviewers reproducible prompts; API integrates with ticketing/chatops. | `fixops-enterprise/`, `docs/ARCHITECTURE.md` |
+
+**Choosing between surfaces:** Pick the CLI when you need deterministic artefacts inside CI/CD, when working air-gapped, or when
+running scheduled governance jobs. Use the API when interactive tooling, dashboards, or external auditors require live data.
+
+## Executive summary
+- **Who it serves**: Release managers, compliance teams, SOC analysts, and platform engineers needing verifiable supply-chain provenance.
+- **What you can do quickly**: Normalise SBOMs, score risk, issue SLSA attestations, verify reproducible builds, assemble signed evidence bundles, and visualise posture via dashboards.
+- **Why it matters**: Reduces audit prep to minutes, proves build provenance, prioritises remediation with EPSS/KEV intel, and demonstrates continuous controls across CI/CD.
+
+## Orientation
+FixOps unifies SBOM intelligence, exploit scoring, provenance evidence, reproducible builds, observability, and audit automation into a single DevSecOps workflow. The platform ships both a FastAPI surface and parity CLIs that read overlay-driven configuration and deliver:
+
+- Deterministic artefact processing (SBOM, SARIF, CVE) with reproducible outputs.
+- Risk-first guardrails enriched with EPSS/KEV feeds, version lag heuristics, and exposure flags.
+- Signed provenance, reproducible build attestations, and policy-driven evidence bundles for downstream verification.
+- A provenance graph that connects commits, CI runs, artefacts, components, and CVEs across releases.
+- Observability dashboards and demo automation that compress compliance reviews from days to minutes.
 - [Reference documents](#reference-documents)
 
 ## Orientation
@@ -50,10 +98,76 @@ The table highlights the directories most practitioners touch during integration
 | `docker-compose.demo.yml` & `config/otel-collector-demo.yaml` | One-command demo stack bundling backend, graph worker, dashboard UI, and collector for investor/CISO walk-throughs.【F:docker-compose.demo.yml†L1-L80】【F:config/otel-collector-demo.yaml†L1-L80】 |
 | `.github/workflows/` | Release, provenance, reproducible build, signing, and QA pipelines producing signed, attestable artefacts.【F:.github/workflows/provenance.yml†L1-L120】【F:.github/workflows/release-sign.yml†L1-L200】【F:.github/workflows/repro-verify.yml†L1-L120】【F:.github/workflows/qa.yml†L1-L160】 |
 
+## Quick start (CLI & demo)
+Use this checklist to bootstrap local environments, reproduce the original README quick-start path, and launch canonical demos.
+
+1. **Prepare environment**
+   ```bash
+   cp .env.example .env  # populate secrets before starting services
+   pip install -r requirements.txt
+   pip install -r requirements.dev.txt  # linters, tests, typing helpers
+   export PYTHONPATH=$(pwd)
+   ```
+2. **Run the bootstrap helper (optional but recommended)**
+   ```bash
+   ./scripts/bootstrap.sh
+   ```
+3. **Execute core quality gates**
+   ```bash
+   make fmt lint typecheck test
+   ```
+4. **Launch demo stacks**
+   ```bash
+   make demo             # local parity experience
+   make demo-enterprise  # hardened overlay profile
+   docker compose -f docker-compose.demo.yml up --build  # dashboard + OTEL collector
+   ```
+5. **Play through curated walkthroughs**
+   ```bash
+   python -m core.cli demo --mode demo --output out/demo.json --pretty
+   python -m core.cli demo --mode enterprise --output out/enterprise.json --pretty
+   ```
+   These commands seed deterministic fixtures (design, SBOM, SARIF, CVE) and emit artefacts identical to the API surface, including compliance summaries and automation payload previews saved under `out/`.
+6. **Iterate with your artefacts**
+   ```bash
+   python -m core.cli run --stage build --input path/to/sbom.json
+   python -m core.cli show-overlay --pretty
+   ```
+7. **Re-run the regression suite**
+   ```bash
+   pytest
+   ```
+
+> **Tip:** When running the enterprise stack with Docker Compose, copy `enterprise/.env.example` to `.env`, rotate secrets, and keep `FIXOPS_AUTH_DISABLED=false` to enforce API-key authentication.
+
 ## Runtime architecture
 
 ```mermaid
 flowchart LR
+    subgraph Config["Overlay & Policy"]
+        A1["config/policy.yml"]
+        A2["docs/playbooks"]
+    end
+    subgraph Execution["Execution Surfaces"]
+        B1["CLI & CI<br/>cli/*"]
+        B2["FastAPI<br/>apps/api/app.py"]
+    end
+    subgraph Engines["Decision Engines"]
+        C1["Pipeline Orchestrator<br/>apps/api/pipeline.py"]
+        C2["Probabilistic + Markov + Bayesian<br/>core/probabilistic.py"]
+        C3["Multi-LLM Consensus<br/>fixops-enterprise/"]
+    end
+    subgraph Evidence["Evidence Services"]
+        D1["Evidence Packager<br/>evidence/packager.py"]
+        D2["Provenance Graph<br/>services/graph/graph.py"]
+        D3["Repro Verifier<br/>services/repro/verifier.py"]
+        D4["Provenance Attestations<br/>services/provenance/attestation.py"]
+    end
+    subgraph Observability["Observability"]
+        E1["OpenTelemetry SDK<br/>telemetry/"]
+        E2["Dashboard<br/>ui/dashboard"]
+    end
+
     subgraph Config[Overlay & Policy]
         A1[config/\npolicy.yml]
         A2[docs/ playbooks]
@@ -89,6 +203,10 @@ flowchart LR
     C1 --> D4
     C2 --> C1
     C3 --> C1
+    D1 -->|bundles| E2
+    D2 -->|lineage events| E1
+    D3 -->|attestations| D1
+    D4 -->|SLSA statements| D1
     D1 -->|bundles| Observability
     D2 -->|lineage events| Observability
     D3 -->|attestations| D1
@@ -99,6 +217,100 @@ flowchart LR
     E1 --> D1
     E1 --> D2
     E1 --> D3
+    E2 --> B2
+```
+
+### Component interaction (ASCII)
+The original README included an ASCII view showing how overlay configuration, FastAPI ingestion, and downstream automations connect. Keep it handy when whiteboarding with teams that prefer text-based diagrams.
+
+```
+┌────────────┐   auth/token   ┌───────────────────┐    artefact cache     ┌───────────────────────┐
+│ CLI runner │──────────────▶│ FastAPI ingestion │──────────────────────▶│ Storage + evidence    │
+│ core.cli   │               │  apps/api/app.py  │◀──────────────────────│ data/uploads/*        │
+└────────────┘               └────────┬──────────┘     archive bundles    └──────────┬────────────┘
+        ▲                              │                                   decrypt/compress │
+        │ module toggles               │ orchestrate()                      ▼                │
+        │                              ▼                            ┌─────────────┐        │
+        │                      ┌───────────────────┐                │ Destinations│◀───────┘
+        ├────────────────────▶│ Pipeline modules  │───────────────▶│ Jira/Slack │   automation manifests
+        │                      │ context/guardrail │ ROI & telemetry │ GRC repos │
+        │                      └────────┬──────────┘                └─────────────┘
+        │                               │ enhanced_run()
+        │                               ▼
+        │                      ┌───────────────────┐
+        └────────────────────▶│ Enhanced decision │
+                               │ multi-LLM + KG   │
+                               │ explanations     │
+                               └───────────────────┘
+```
+
+## Capability matrix
+
+| Capability | Primary modules | Why it exists | Inputs | Outputs | CI job | CLI / API |
+| --- | --- | --- | --- | --- | --- | --- |
+| SBOM normalisation & quality | `lib4sbom/normalizer.py`, `cli/fixops-sbom`, `reports/sbom_quality_report.html` | Standardise multi-generator SBOMs so risk, evidence, and audits consume deterministic data. | CycloneDX/SPDX files | `artifacts/sbom/normalized.json`, HTML report | `qa.yml` | `cli/fixops-sbom normalize`, `/sbom/quality` (HTML via evidence) |
+| FixOpsRisk scoring | `risk/scoring.py`, `risk/feeds/*`, `backend/api/risk` | Blend EPSS, KEV, version lag, and exposure context to prioritise remediation. | Normalised SBOM + feeds | `artifacts/risk.json` | `qa.yml` | `cli/fixops-risk score`, `/risk/*` |
+| Provenance attestations | `services/provenance/attestation.py`, `cli/fixops-provenance`, `.github/workflows/provenance.yml` | Provide verifiable SLSA v1 provenance for every release artefact. | Build metadata, materials | `artifacts/attestations/*.json` | `provenance.yml`, `release-sign.yml` | `cli/fixops-provenance attest/verify`, `/provenance/*` |
+| Provenance graph | `services/graph/graph.py`, `backend/api/graph` | Answer lineage, KEV exposure, and downgrade anomaly questions quickly. | Git, attestations, SBOM, risk, releases | SQLite graph DB | `graph worker (scripts/graph_worker.py)` | `/graph/*` |
+| Reproducible builds | `services/repro/verifier.py`, `cli/fixops-repro`, `.github/workflows/repro-verify.yml` | Prove binaries match source by re-building hermetically. | `build/plan.yaml`, release tags | `artifacts/repro/attestations/*.json` | `repro-verify.yml` | `cli/fixops-repro verify` |
+| Evidence bundles | `evidence/packager.py`, `cli/fixops-ci`, `config/policy.yml` | Bundle signed proof (SBOM, risk, provenance, repro) for auditors. | Normalised artefacts, policies | Signed `evidence/*.zip` with `MANIFEST.yaml` | `release-sign.yml` | `cli/fixops-ci evidence bundle`, `/evidence/{release}` |
+| Observability & demo | `telemetry/*`, `ui/dashboard`, `docker-compose.demo.yml` | Showcase posture to execs/CISOs with live metrics and dashboards. | Service telemetry, artefact metadata | Traces, metrics, demo UI | `qa.yml` | Dashboard, demo compose |
+| Probabilistic & Bayesian analytics | `core/probabilistic.py`, `simulations/*` | Model remediation timelines and control health using Markov chains + Bayesian updates. | Risk outputs, historical incidents | Forecast JSON, dashboards | `qa.yml` | Consumed by orchestrator |
+| Multi-LLM consensus | `fixops-enterprise/llm/*` | Provide AI-assisted triage and policy recommendations with consensus voting. | Risk + provenance context | Recommendations, summarised alerts | Enterprise workflows | API/CLI plug-ins |
+
+## End-to-end data flow
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer/CI
+    participant SBOM as SBOM Engine
+    participant Risk as Risk Engine
+    participant Prov as Provenance Service
+    participant Repro as Repro Verifier
+    participant Graph as Provenance Graph
+    participant Evidence as Evidence Packager
+    participant Obs as Observability
+    Dev->>SBOM: Generate CycloneDX/SPDX
+    SBOM-->>Dev: artifacts/sbom/normalized.json
+    SBOM->>Risk: Normalised components
+    Risk-->>Dev: artifacts/risk.json
+    Dev->>Prov: fixops-provenance attest
+    Prov-->>Dev: artifacts/attestations/*.json
+    Dev->>Repro: fixops-repro verify --plan build/plan.yaml
+    Repro-->>Dev: artifacts/repro/attestations/*.json
+    Prov->>Graph: Push commit/job/artifact nodes
+    Risk->>Graph: Push component + CVE scores
+    Graph-->>Dev: /graph/queries responses
+    Dev->>Evidence: fixops-ci evidence bundle
+    Evidence-->>Dev: evidence/*.zip + signed MANIFEST.yaml
+    Evidence->>Obs: Emit verification metrics
+    Obs-->>Dev: Dashboard gauges + traces
+```
+
+## Feature deep dives
+Each subsection captures the “why / what / how / CI-CD fit / setup” rubric requested by reviewers in a consistent template.
+
+### SBOM normalisation & quality scoring
+#### 1. Why it exists
+Harmonise heterogeneous SBOMs for deterministic downstream risk, evidence, and compliance pipelines.
+
+#### 2. Primary implementation
+- `lib4sbom/normalizer.py` ingests CycloneDX & SPDX, deduplicates components, and computes quality metrics.【F:lib4sbom/normalizer.py†L1-L330】
+- `cli/fixops-sbom` exposes `normalize` and `quality` subcommands for CLI/CI usage.【F:cli/fixops_sbom.py†L1-L200】
+- `tests/test_sbom_quality.py` guards parsing, dedupe, and HTML rendering regressions.【F:tests/test_sbom_quality.py†L1-L220】
+
+#### 3. Data flow
+```mermaid
+flowchart LR
+    In1["Raw SBOMs<br/>syft.json<br/>trivy.xml"] -->|parse| P1["Normalizer<br/>lib4sbom/normalizer.py"]
+    P1 -->|dedupe + metrics| P2["Normalized JSON<br/>artifacts/sbom/normalized.json"]
+    P2 -->|render| P3["HTML Report<br/>reports/sbom_quality_report.html"]
+    P2 -->|feed| Risk["risk/scoring.py"]
+    P3 --> Evidence["evidence/packager.py"]
+```
+
+#### 4. Usage & setup
+- **CLI**
 ```
 
 ## Feature deep dives
@@ -142,7 +354,7 @@ Each subsection captures the “why / what / how / CI-CD fit / setup” rubric r
 ### Risk intelligence & FixOpsRisk
 #### 1. Why it exists
 Prioritise remediation by blending exploit probability (EPSS), KEV status, version lag, and exposure hints into a composite score.
-1
+
 #### 2. Primary implementation
 - Feed updaters populate `data/feeds/epss.json` and `data/feeds/kev.json` from upstream sources.【F:risk/feeds/epss.py†L1-L200】【F:risk/feeds/kev.py†L1-L200】
 - `risk/scoring.py` joins feeds with the normalised SBOM and emits FixOpsRisk metrics consumed by API, CLI, and evidence flows.【F:risk/scoring.py†L1-L360】
@@ -151,12 +363,12 @@ Prioritise remediation by blending exploit probability (EPSS), KEV status, versi
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    SBOM[Normalized SBOM] -->|join| Joiner[risk/scoring.py]
-    EPSS[data/feeds/epss.json] --> Joiner
-    KEV[data/feeds/kev.json] --> Joiner
-    Joiner -->|FixOpsRisk| RiskOut[artifacts/risk.json]
-    RiskOut --> API[backend/api/risk]
-    RiskOut --> Evidence
+    SBOM["Normalized SBOM"] -->|join| Joiner["risk/scoring.py"]
+    EPSS["data/feeds/epss.json"] --> Joiner
+    KEV["data/feeds/kev.json"] --> Joiner
+    Joiner -->|FixOpsRisk| RiskOut["artifacts/risk.json"]
+    RiskOut --> API["backend/api/risk"]
+    RiskOut --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -186,12 +398,12 @@ Guarantee downstream consumers can verify the supply-chain lineage for every bui
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    Artifact[Build artefact] -->|hash| Hasher[services/provenance/attestation.py]
-    Hasher --> SLSA[SLSA Statement]
-    SLSA -->|sign| Cosign[scripts/signing/sign-artifact.sh]
-    Cosign --> Bundle[.sig / bundle]
-    SLSA --> APIProv[backend/api/provenance]
-    Bundle --> Evidence
+    Artifact["Build artefact"] -->|hash| Hasher["services/provenance/attestation.py"]
+    Hasher --> SLSA["SLSA Statement"]
+    SLSA -->|sign| Cosign["scripts/signing/sign-artifact.sh"]
+    Cosign --> Bundle[".sig / bundle"]
+    SLSA --> APIProv["backend/api/provenance"]
+    Bundle --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -271,24 +483,24 @@ Provide a queryable knowledge graph linking commits, CI jobs, artefacts, SBOM co
 #### 3. Data flow
 ```mermaid
 flowchart TD
-    subgraph Data
-        SBOMNodes[Normalized SBOM]
-        RiskNodes[Risk JSON]
-        AttNodes[Attestations]
-        GitNodes[Git metadata]
+    subgraph Data["Ingested Data"]
+        SBOMNodes["Normalized SBOM"]
+        RiskNodes["Risk JSON"]
+        AttNodes["Attestations"]
+        GitNodes["Git metadata"]
     end
-    subgraph GraphEngine[services/graph]
-        Loader[GraphLoader]
-        Queries[Query API]
+    subgraph GraphEngine["services/graph"]
+        Loader["GraphLoader"]
+        Queries["Query API"]
     end
     SBOMNodes --> Loader
     RiskNodes --> Loader
     AttNodes --> Loader
     GitNodes --> Loader
-    Loader --> DB[(SQLite store)]
+    Loader --> DB[("SQLite store")]
     DB --> Queries
-    Queries --> API[backend/api/graph]
-    API --> Consumers[CLI / UI]
+    Queries --> API["backend/api/graph"]
+    API --> Consumers["CLI / UI"]
 ```
 
 #### 4. Usage & setup
@@ -318,12 +530,12 @@ Ensure published artefacts can be recreated byte-for-byte from source via hermet
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    Plan[build/plan.yaml] --> Runner[services/repro/verifier.py]
-    Release[Release artefact] --> Runner
-    Runner -->|rebuild| Sandbox[(Temp build env)]
-    Sandbox -->|digest| Compare[Digest compare]
-    Compare --> Att[artifacts/repro/attestations/<tag>.json]
-    Att --> Evidence
+    Plan["build/plan.yaml"] --> Runner["services/repro/verifier.py"]
+    Release["Release artefact"] --> Runner
+    Runner -->|rebuild| Sandbox[("Temp build env")]
+    Sandbox -->|digest| Compare["Digest compare"]
+    Compare --> Att["artifacts/repro/attestations/<tag>.json"]
+    Att --> Evidence["evidence/packager.py"]
 ```
 
 #### 4. Usage & setup
@@ -353,19 +565,19 @@ Offer a single command to package SBOM, risk, provenance, and repro evidence, si
 #### 3. Data flow
 ```mermaid
 flowchart TD
-    subgraph Inputs
-        SBOMIn[artifacts/sbom/normalized.json]
-        RiskIn[artifacts/risk.json]
-        ProvIn[artifacts/attestations/*.json]
-        ReproIn[artifacts/repro/attestations/*.json]
+    subgraph Inputs["Evidence inputs"]
+        SBOMIn["artifacts/sbom/normalized.json"]
+        RiskIn["artifacts/risk.json"]
+        ProvIn["artifacts/attestations/*.json"]
+        ReproIn["artifacts/repro/attestations/*.json"]
     end
-    Policy[config/policy.yml]
-    CLI[cli/fixops-ci]
+    Policy["config/policy.yml"]
+    CLI["cli/fixops-ci"]
     CLI -->|policy evaluate| Policy
     Inputs --> CLI
-    CLI --> BundleZip[evidence/bundles/<release>.zip]
-    BundleZip --> Manifest[Signed MANIFEST.yaml]
-    BundleZip --> APIEvidence[backend/api/evidence]
+    CLI --> BundleZip["evidence/bundles/<release>.zip"]
+    BundleZip --> Manifest["Signed MANIFEST.yaml"]
+    BundleZip --> APIEvidence["backend/api/evidence"]
 ```
 
 #### 4. Usage & setup
@@ -385,6 +597,59 @@ flowchart TD
 | `artifacts/sbom/normalized.json` + `artifacts/risk.json` | Aggregated by `fixops-ci` | `evidence/workdir/<release>/` staging area |
 | Staged artefacts + cosign key | Manifest hashed & signed | `evidence/bundles/<release>.zip` |
 
+### SSDLC lifecycle evaluation
+#### 1. Why it exists
+Demonstrate secure software development lifecycle coverage with deterministic artefacts that auditors can diff across releases. The SSDLC evaluator transforms raw design, control, SBOM, SARIF, infrastructure-as-code, and exploit-signal inputs into stage-specific JSON payloads for downstream dashboards and the enterprise API.
+
+#### 2. Primary implementation
+- `apps/fixops_cli/__main__.py` exposes the canonical stage runner (`python -m apps.fixops_cli stage-run`) that orchestrates SSDLC processing with signing/verification toggles for CI pipelines.【F:apps/fixops_cli/__main__.py†L1-L118】
+- `core/ssdlc.py` parses overlay-defined lifecycle requirements and evaluates them against pipeline artefacts, returning per-stage status summaries.【F:core/ssdlc.py†L1-L170】
+- `apps/api/pipeline.py` invokes the evaluator when the overlay enables SSDLC checks, wiring results into the broader decision pipeline response.【F:apps/api/pipeline.py†L835-L863】
+- `simulations/ssdlc/run.py` provides the CLI used during demos and tests to materialise canonical stage outputs with optional overlays.【F:simulations/ssdlc/run.py†L1-L239】
+- `tests/test_ssdlc_runner.py` ensures every stage command emits the correct filenames and supports `--stage all` generation.【F:tests/test_ssdlc_runner.py†L35-L59】
+
+#### 3. Data flow
+```mermaid
+flowchart TD
+    subgraph Inputs
+        D[design/inputs/design_context.csv]
+        R[requirements/inputs/controls.json]
+        B[build/inputs/sbom.json]
+        T[test/inputs/scanner.sarif]
+        De[deploy/inputs/iac.tfplan.json]
+        O1[operate/inputs/kev.json]
+        O2[operate/inputs/epss.json]
+    end
+    CLI[python -m simulations.ssdlc.run]
+    Eval[core/ssdlc.SSDLCEvaluator]
+    Outputs{{Stage JSON artefacts}}
+    Inputs --> CLI --> Eval --> Outputs
+    Outputs --> API[apps/api/pipeline.py]
+```
+
+#### 4. Usage & stage-by-stage inputs/outputs
+- **CLI skeleton**
+  ```bash
+  python -m simulations.ssdlc.run --stage <stage> --out artifacts/ssdlc
+  python -m simulations.ssdlc.run --stage all --out artifacts/ssdlc --overlay config/ssdlc.overlay.json
+  ```
+- **Stage matrix**
+
+| Stage (`--stage …`) | Required inputs | Generated output | What the payload captures |
+| --- | --- | --- | --- |
+| `design` | `simulations/ssdlc/design/inputs/design_context.csv` | `design_crosswalk.json` | Service exposure summary plus any overlay-injected risk annotations for architecture reviews.【F:simulations/ssdlc/run.py†L85-L101】 |
+| `requirements` | `simulations/ssdlc/requirements/inputs/controls.json` | `policy_plan.json` | Normalised control map detailing satisfied vs. in-progress guardrails.【F:simulations/ssdlc/run.py†L104-L117】 |
+| `build` | `simulations/ssdlc/build/inputs/sbom.json` | `component_index.json` | Component manifest aligned to SBOM entries for dependency governance.【F:simulations/ssdlc/run.py†L119-L141】 |
+| `test` | `simulations/ssdlc/test/inputs/scanner.sarif` | `normalized_findings.json` | Tool list and severity histogram derived from SARIF scanners for QA sign-off.【F:simulations/ssdlc/run.py†L144-L174】 |
+| `deploy` | `simulations/ssdlc/deploy/inputs/iac.tfplan.json` | `iac_posture.json` | Terraform change analysis showing exposed ports and internet-facing resources.【F:simulations/ssdlc/run.py†L177-L205】 |
+| `operate` | `simulations/ssdlc/operate/inputs/kev.json`, `simulations/ssdlc/operate/inputs/epss.json` | `exploitability.json` | KEV/EPSS fusion that flags urgent operational response priorities.【F:simulations/ssdlc/run.py†L207-L231】 |
+
+#### 5. Sample artefacts & downstream usage
+- `python -m apps.fixops_cli stage-run --stage <stage> --input <artefact> --app <name>` mirrors the API execution path, ensuring canonical artefacts land in `artefacts/<app>/<stage>/` for SSDLC evidence, signing, and transparency index capture.【F:apps/fixops_cli/__main__.py†L48-L118】【F:core/stage_runner.py†L214-L413】
+- `--stage all` prints a JSON map of every generated file, which can be zipped into evidence bundles or imported into dashboards.【F:simulations/ssdlc/run.py†L234-L239】【F:tests/test_ssdlc_runner.py†L45-L59】
+- The pipeline API surfaces `ssdlc_assessment.summary` counts so CI gates and overlays can assert minimum lifecycle coverage.【F:apps/api/pipeline.py†L846-L860】
+- Evidence bundles embed each stage artefact alongside provenance, risk, and repro proof, giving auditors lifecycle-to-release traceability.【F:evidence/packager.py†L180-L260】
+
 ### Probabilistic forecasting, Markov & Bayesian analytics
 #### 1. Why it exists
 Quantify future severity drift and escalation pressure with explainable probabilistic models for leadership planning.
@@ -396,10 +661,10 @@ Quantify future severity drift and escalation pressure with explainable probabil
 #### 3. Data flow
 ```mermaid
 flowchart LR
-    Hist[Historical severity timeline] --> Engine[core/probabilistic.py]
-    Engine -->|posterior| Forecast[Forecast JSON]
-    Forecast --> Pipeline
-    Pipeline --> Dashboard
+    Hist["Historical severity timeline"] --> Engine["core/probabilistic.py"]
+    Engine -->|posterior| Forecast["Forecast JSON"]
+    Forecast --> Pipeline["apps/api/pipeline.py"]
+    Pipeline --> Dashboard["ui/dashboard"]
 ```
 
 #### 4. Usage & setup
