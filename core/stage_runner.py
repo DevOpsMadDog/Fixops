@@ -134,9 +134,12 @@ class StageRunner:
         if stage_key == "design":
             design_payload = self._load_design_payload(input_bytes, source_path)
             if app_name:
-                design_payload = {**design_payload, "app_name": app_name}
+                design_payload.setdefault("app_name", app_name)
             design_payload = self.allocator.ensure_ids(design_payload)
             if app_id:
+                # Preserve explicit identifiers passed on the command line but allow
+                # the design document to override implicit values minted from the
+                # application name.
                 design_payload["app_id"] = app_id
             app_id = str(design_payload.get("app_id") or app_id or "APP-0001")
             app_name = str(design_payload.get("app_name") or app_name or app_id)
@@ -360,6 +363,14 @@ class StageRunner:
             score += 0.16
         if posture.get("tls_policy"):
             score += 0.03
+        if posture.get("open_security_groups"):
+            score += 0.14
+        if posture.get("unpinned_images"):
+            score += 0.08
+        if posture.get("privileged_containers"):
+            score += 0.1
+        if posture.get("encryption_gaps"):
+            score += 0.05
         return {
             "app_id": context.app_id,
             "run_id": context.run_id,
@@ -638,7 +649,11 @@ class StageRunner:
         return payload
 
     def _analyse_posture(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        public_buckets: list[str] = []
+        public_buckets: set[str] = set()
+        open_security_groups: set[str] = set()
+        unpinned_images: set[str] = set()
+        privileged_containers: set[str] = set()
+        encryption_gaps: set[str] = set()
         tls_policy = None
 
         resources: Iterable[Any]
@@ -658,8 +673,15 @@ class StageRunner:
             name = str(resource.get("name") or resource.get("metadata", {}).get("name") or "resource")
             changes = resource.get("changes") if isinstance(resource.get("changes"), Mapping) else {}
             after = changes.get("after") if isinstance(changes.get("after"), Mapping) else {}
-            if rtype == "aws_s3_bucket" and after.get("acl") == "public-read":
-                public_buckets.append(name)
+
+            if rtype == "aws_s3_bucket":
+                acl = after.get("acl") or resource.get("acl")
+                if acl == "public-read":
+                    public_buckets.add(name)
+                encryption = after.get("server_side_encryption_configuration")
+                if not encryption:
+                    encryption_gaps.add(name)
+
             if rtype in {"aws_lb_listener", "Ingress", "Service"}:
                 candidate_tls = after.get("ssl_policy")
                 if not candidate_tls:
@@ -672,7 +694,58 @@ class StageRunner:
                                 candidate_tls = first.get("secretName")
                 if candidate_tls:
                     tls_policy = candidate_tls
-        return {"public_buckets": public_buckets, "tls_policy": tls_policy}
+
+            if rtype in {"aws_security_group", "aws_security_group_rule"}:
+                ingress_rules = after.get("ingress") or resource.get("ingress") or []
+                if isinstance(ingress_rules, Mapping):
+                    ingress_rules = [ingress_rules]
+                for rule in ingress_rules:
+                    if not isinstance(rule, Mapping):
+                        continue
+                    cidrs = rule.get("cidr_blocks") or rule.get("cidrs") or rule.get("cidr")
+                    if isinstance(cidrs, (str, bytes)):
+                        cidr_values = [cidrs]
+                    elif isinstance(cidrs, Iterable):
+                        cidr_values = [str(item) for item in cidrs]
+                    else:
+                        cidr_values = []
+                    if any(value == "0.0.0.0/0" for value in cidr_values):
+                        open_security_groups.add(name)
+
+            if rtype in {"aws_db_instance", "aws_rds_cluster"}:
+                encrypted = after.get("storage_encrypted")
+                if encrypted is False or encrypted is None:
+                    encryption_gaps.add(name)
+
+            if rtype in {"Deployment", "StatefulSet", "DaemonSet", "Pod"}:
+                spec = resource.get("spec")
+                if isinstance(spec, Mapping) and "template" in spec:
+                    template = spec.get("template")
+                    spec = template.get("spec") if isinstance(template, Mapping) else spec
+                if isinstance(spec, Mapping):
+                    containers = spec.get("containers") or []
+                    if isinstance(containers, Mapping):
+                        containers = [containers]
+                    for container in containers:
+                        if not isinstance(container, Mapping):
+                            continue
+                        cname = str(container.get("name") or name)
+                        image = container.get("image")
+                        if isinstance(image, str):
+                            if ":" not in image or image.endswith(":latest"):
+                                unpinned_images.add(f"{cname}@{image}")
+                        security_context = container.get("securityContext")
+                        if isinstance(security_context, Mapping) and security_context.get("privileged"):
+                            privileged_containers.add(cname)
+
+        return {
+            "public_buckets": sorted(public_buckets),
+            "tls_policy": tls_policy,
+            "open_security_groups": sorted(open_security_groups),
+            "unpinned_images": sorted(unpinned_images),
+            "privileged_containers": sorted(privileged_containers),
+            "encryption_gaps": sorted(encryption_gaps),
+        }
 
     def _extract_digests(self, context) -> list[str]:
         provenance = context.inputs_dir / "provenance.slsa.json"
@@ -690,6 +763,11 @@ class StageRunner:
     def _control_evidence(self, posture: Mapping[str, Any]) -> list[dict[str, Any]]:
         public_buckets = posture.get("public_buckets", [])
         tls_policy = posture.get("tls_policy")
+        open_security_groups = posture.get("open_security_groups", [])
+        unpinned_images = posture.get("unpinned_images", [])
+        privileged_containers = posture.get("privileged_containers", [])
+        encryption_gaps = posture.get("encryption_gaps", [])
+
         evidence = []
         evidence.append(
             {
@@ -703,6 +781,34 @@ class StageRunner:
                 "control": "ISO27001:AC-1",
                 "result": "pass" if tls_policy else "fail",
                 "source": "tls_policy",
+            }
+        )
+        evidence.append(
+            {
+                "control": "ISO27001:AC-3",
+                "result": "fail" if open_security_groups else "pass",
+                "source": "open_security_groups" if open_security_groups else "checks",
+            }
+        )
+        evidence.append(
+            {
+                "control": "CIS-K8S:5.4.1",
+                "result": "fail" if unpinned_images else "pass",
+                "source": "unpinned_images" if unpinned_images else "checks",
+            }
+        )
+        evidence.append(
+            {
+                "control": "CIS-K8S:5.2.2",
+                "result": "fail" if privileged_containers else "pass",
+                "source": "privileged_containers" if privileged_containers else "checks",
+            }
+        )
+        evidence.append(
+            {
+                "control": "ISO27001:SC-28",
+                "result": "fail" if encryption_gaps else "pass",
+                "source": "encryption_gaps" if encryption_gaps else "checks",
             }
         )
         return evidence

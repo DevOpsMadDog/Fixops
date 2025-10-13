@@ -200,28 +200,36 @@ sections highlight the exact request payloads, the relevant API calls, and the p
 
 * **Output highlights (`deploy.manifest.json`):**
 
-  ```json
-  {
-    "digests": ["sha256:aaaaaaaa..."],
-    "posture": {
-      "public_buckets": ["payments-logs"],
-      "tls_policy": "ELBSecurityPolicy-2016-08"
-    },
-    "control_evidence": [
-      {"control": "ISO27001:AC-1", "result": "pass", "source": "tls_policy"},
-      {"control": "ISO27001:AC-2", "result": "fail", "source": "public_buckets"}
-    ],
-    "marketplace_recommendations": [
-      {
-        "control_id": "ISO27001:AC-2",
-        "pack_id": "iso-ac2-lp",
-        "title": "Least-Privilege Access Playbook",
-        "link": "/api/v1/marketplace/packs/iso/ac-2"
-      }
-    ],
-    "deploy_risk_score": 0.71
-  }
-  ```
+    ```json
+    {
+      "digests": ["sha256:aaaaaaaa..."],
+      "control_evidence": [
+        {"control": "ISO27001:AC-1", "result": "pass", "source": "tls_policy"},
+        {"control": "ISO27001:AC-2", "result": "fail", "source": "public_buckets"},
+        {"control": "ISO27001:AC-3", "result": "pass", "source": "checks"},
+        {"control": "CIS-K8S:5.4.1", "result": "pass", "source": "checks"},
+        {"control": "CIS-K8S:5.2.2", "result": "pass", "source": "checks"},
+        {"control": "ISO27001:SC-28", "result": "fail", "source": "encryption_gaps"}
+      ],
+      "marketplace_recommendations": [
+        {
+          "control_id": "ISO27001:AC-2",
+          "pack_id": "iso-ac2-lp",
+          "title": "Least-Privilege Access Playbook",
+          "link": "/api/v1/marketplace/packs/iso/ac-2"
+        }
+      ],
+      "posture": {
+        "encryption_gaps": ["payments-logs"],
+        "open_security_groups": [],
+        "privileged_containers": [],
+        "public_buckets": ["payments-logs"],
+        "tls_policy": "ELBSecurityPolicy-2016-08",
+        "unpinned_images": []
+      },
+      "deploy_risk_score": 0.76
+    }
+    ```
 
 * **Key features surfaced:** compliance evidence mapping from requirements, automatic marketplace recommendations, digest
   capture for IaC posture checks.

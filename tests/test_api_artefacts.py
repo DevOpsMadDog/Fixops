@@ -51,5 +51,16 @@ def test_artefact_ingest_persists_outputs(api_client: TestClient, tmp_path: Path
     assert design_output.exists()
     document = json.loads(design_output.read_text(encoding="utf-8"))
     assert document.get("app_id", "").startswith("APP-")
-    assert summary_design["run_id"] == summary_requirements["run_id"]
+    assert summary_design["run_id"] != summary_requirements["run_id"]
+
+
+def test_downstream_stages_reuse_design_run(api_client: TestClient, tmp_path: Path) -> None:
+    summary_requirements = _post_stage(api_client, "requirements", "requirements-input.csv")
+    summary_design = _post_stage(api_client, "design", "design-input.json")
+
+    assert summary_design["run_id"] != summary_requirements["run_id"]
+
+    summary_build = _post_stage(api_client, "build", "sbom.json")
+    assert summary_build["run_id"] == summary_design["run_id"]
+    assert summary_build["app_id"] == summary_design["app_id"]
 

@@ -70,7 +70,13 @@ def _invoke_stage(stage: str, input_file: Path | None, env: dict[str, str]) -> N
 def _latest_run(tmp_path: Path) -> tuple[str, str, Path]:
     app_dirs = [entry for entry in tmp_path.iterdir() if entry.is_dir() and entry.name.startswith("APP-")]
     assert app_dirs, f"expected artefact directory under {tmp_path}"
-    app_root = app_dirs[0]
+    def _latest_timestamp(path: Path) -> float:
+        marker = path / "LATEST"
+        if marker.exists():
+            return marker.stat().st_mtime
+        return path.stat().st_mtime
+
+    app_root = max(app_dirs, key=_latest_timestamp)
     latest = json.loads((app_root / "LATEST").read_text(encoding="utf-8"))
     run_id = latest["run_id"]
     outputs_dir = app_root / run_id / "outputs"
@@ -122,7 +128,7 @@ def test_requirements_stage_starts_new_run(tmp_path: Path) -> None:
     assert second_run_id != first_run_id
 
 
-def test_design_stage_reuses_current_run(tmp_path: Path) -> None:
+def test_design_stage_starts_new_run(tmp_path: Path) -> None:
     env = _pythonpath_env(tmp_path)
     requirements_path = SIM_ROOT / "requirements-input.csv"
     design_path = SIM_ROOT / "design-input.json"
@@ -133,5 +139,21 @@ def test_design_stage_reuses_current_run(tmp_path: Path) -> None:
     _invoke_stage("design", design_path, env)
     _app_id, second_run_id, _ = _latest_run(tmp_path)
 
-    assert second_run_id == first_run_id
+    assert second_run_id != first_run_id
+
+
+def test_build_stage_reuses_design_run(tmp_path: Path) -> None:
+    env = _pythonpath_env(tmp_path)
+    requirements_path = SIM_ROOT / "requirements-input.csv"
+    design_path = SIM_ROOT / "design-input.json"
+    sbom_path = SIM_ROOT / "sbom.json"
+
+    _invoke_stage("requirements", requirements_path, env)
+    _invoke_stage("design", design_path, env)
+    _app_id, design_run_id, _ = _latest_run(tmp_path)
+
+    _invoke_stage("build", sbom_path, env)
+    _app_id, build_run_id, _ = _latest_run(tmp_path)
+
+    assert build_run_id == design_run_id
 

@@ -118,20 +118,12 @@ class RunRegistry:
         if existing is None:
             return self.create_run(app_id, sign_outputs=sign_outputs)
 
-        # Seed stages (requirements/design) should start a brand-new run so we don't
-        # blend artefacts from prior executions. The lone exception is when the
-        # design stage immediately follows requirements in the same run; in that
-        # case we reuse the freshly minted run from the requirements stage.
-        if stage_key == "requirements":
+        # Requirements and design runs should always materialise a fresh run to
+        # avoid bleeding artefacts between distinct planning cycles. Downstream
+        # stages can safely reuse the most recent design run for incremental
+        # updates.
+        if stage_key in {"requirements", "design"}:
             return self.create_run(app_id, sign_outputs=sign_outputs)
-
-        if stage_key == "design":
-            requirements_only = (
-                (existing.run_path / "outputs" / "requirements.json").exists()
-                and not (existing.run_path / "outputs" / "design.manifest.json").exists()
-            )
-            if not requirements_only:
-                return self.create_run(app_id, sign_outputs=sign_outputs)
 
         context = RunContext(
             app_id=existing.app_id,
