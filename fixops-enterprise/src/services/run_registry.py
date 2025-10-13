@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as _dt
 import json
 import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -122,8 +123,15 @@ class RunRegistry:
         # avoid bleeding artefacts between distinct planning cycles. Downstream
         # stages can safely reuse the most recent design run for incremental
         # updates.
-        if stage_key in {"requirements", "design"}:
+        if stage_key == "requirements":
             return self.create_run(app_id, sign_outputs=sign_outputs)
+
+        if stage_key == "design":
+            if existing is None:
+                return self.create_run(app_id, sign_outputs=sign_outputs)
+            rollover = self.create_run(app_id, sign_outputs=sign_outputs)
+            self._carry_requirements(existing, rollover)
+            return rollover
 
         context = RunContext(
             app_id=existing.app_id,
@@ -252,6 +260,20 @@ class RunRegistry:
             return "APP-UNKNOWN"
         safe = [ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in candidate]
         return "".join(safe)
+
+    def _carry_requirements(self, source: RunContext, target: RunContext) -> None:
+        """Copy requirements artefacts from *source* into *target* if present."""
+
+        source_requirements = source.outputs_dir / "requirements.json"
+        if source_requirements.exists():
+            target.outputs_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_requirements, target.outputs_dir / source_requirements.name)
+
+        source_inputs = list(source.inputs_dir.glob("requirements*"))
+        if source_inputs:
+            target.inputs_dir.mkdir(parents=True, exist_ok=True)
+            for path in source_inputs:
+                shutil.copy2(path, target.inputs_dir / path.name)
 
 
 _DEFAULT_REGISTRY = RunRegistry()

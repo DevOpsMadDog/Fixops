@@ -925,11 +925,12 @@ class StageRunner:
     def _marketplace_recommendations(self, failing_controls: list[Any]) -> list[dict[str, Any]]:
         if not failing_controls:
             return []
+        matches = sorted({str(control) for control in failing_controls if control})
         return [
             {
                 "id": "guardrail-remediation",
                 "title": "Enable auto-remediation playbooks",
-                "match": list({str(control) for control in failing_controls if control}),
+                "match": matches,
             }
         ]
 

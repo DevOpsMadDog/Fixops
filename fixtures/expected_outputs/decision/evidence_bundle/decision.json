@@ -29,12 +29,13 @@
     {
       "id": "guardrail-remediation",
       "match": [
-        "ISO27001:AC-2"
+        "ISO27001:AC-2",
+        "ISO27001:SC-28"
       ],
       "title": "Enable auto-remediation playbooks"
     }
   ],
-  "run_id": "SAMPLE-RUN",
+  "run_id": "SAMPLE-RUN-02",
   "top_factors": [
     {
       "name": "Critical severity detected",

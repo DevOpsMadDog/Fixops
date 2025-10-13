@@ -6,5 +6,5 @@
     "sbom": "../inputs/sbom.json"
   },
   "risk_flags": [],
-  "run_id": "SAMPLE-RUN"
+  "run_id": "SAMPLE-RUN-02"
 }
