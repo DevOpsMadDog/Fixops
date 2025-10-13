@@ -15,6 +15,8 @@ from zipfile import ZipFile
 
 import yaml
 
+from fixops.utils.paths import resolve_within_root
+
 DEFAULT_POLICY: dict[str, Any] = {
     "sbom_quality": {
         "coverage_percent": {"warn_below": 80.0, "fail_below": 60.0},
@@ -49,7 +51,7 @@ def load_policy(policy_path: Path | None) -> dict[str, Any]:
     with policy_path.open("r", encoding="utf-8") as handle:
         loaded = yaml.safe_load(handle) or {}
     if not isinstance(loaded, Mapping):
-        return DEFAULT_POLICY
+        raise ValueError("Policy file must decode to a mapping")
     merged = copy.deepcopy(DEFAULT_POLICY)
     for section, rules in loaded.items():
         if isinstance(rules, Mapping):
@@ -164,9 +166,9 @@ def _sign_manifest(manifest_path: Path, signature_path: Path, key_path: Path) ->
 
 def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
     tag = inputs.tag
-    output_root = inputs.output_dir
-    bundle_dir = output_root / "bundles"
-    manifest_dir = output_root / "manifests"
+    output_root = inputs.output_dir.resolve()
+    bundle_dir = resolve_within_root(output_root, "bundles")
+    manifest_dir = resolve_within_root(output_root, "manifests")
     bundle_dir.mkdir(parents=True, exist_ok=True)
     manifest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -259,11 +261,11 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
         "evaluations": evaluations,
     }
 
-    manifest_path = manifest_dir / f"{tag}.yaml"
+    manifest_path = resolve_within_root(manifest_dir, f"{tag}.yaml")
     with manifest_path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(manifest, handle, sort_keys=False)
 
-    bundle_path = bundle_dir / f"{tag}.zip"
+    bundle_path = resolve_within_root(bundle_dir, f"{tag}.zip")
     with ZipFile(bundle_path, "w") as archive:
         for source, arcname in bundle_files:
             archive.write(source, arcname)

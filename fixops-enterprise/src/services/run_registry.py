@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from fixops.utils.paths import resolve_within_root
+
 ARTEFACTS_ROOT = Path("artefacts")
 
 _CANONICAL_OUTPUTS: set[str] = {
@@ -51,7 +53,7 @@ class RunContext:
 
     @property
     def transparency_index(self) -> Path:
-        return self.outputs_dir / "transparency.index"
+        return resolve_within_root(self.outputs_dir, "transparency.index")
 
 
 class RunRegistry:
@@ -151,7 +153,7 @@ class RunRegistry:
     ) -> Path:
         """Persist an input payload beneath the run's inputs directory."""
 
-        target = context.inputs_dir / filename
+        target = resolve_within_root(context.inputs_dir, filename)
         target.parent.mkdir(parents=True, exist_ok=True)
         if isinstance(payload, (bytes, bytearray)):
             target.write_bytes(bytes(payload))
@@ -171,14 +173,14 @@ class RunRegistry:
 
         if name not in _CANONICAL_OUTPUTS:
             raise ValueError(f"Unsupported output name: {name}")
-        target = context.outputs_dir / name
+        target = resolve_within_root(context.outputs_dir, name)
         target.parent.mkdir(parents=True, exist_ok=True)
         text = self._json_dumps(document)
         target.write_text(text, encoding="utf-8")
         return target
 
     def write_binary_output(self, context: RunContext, name: str, blob: bytes) -> Path:
-        target = context.outputs_dir / name
+        target = resolve_within_root(context.outputs_dir, name)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(blob)
         return target
@@ -186,7 +188,9 @@ class RunRegistry:
     def write_signed_manifest(
         self, context: RunContext, name: str, envelope: Mapping[str, Any]
     ) -> Path:
-        target = context.signed_outputs_dir / f"{name}.manifest.json"
+        target = resolve_within_root(
+            context.signed_outputs_dir, f"{name}.manifest.json"
+        )
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(self._json_dumps(envelope), encoding="utf-8")
         return target
@@ -194,12 +198,13 @@ class RunRegistry:
     def append_transparency_index(
         self, context: RunContext, canonical: str, digest: str, kid: str | None
     ) -> Path:
-        context.transparency_index.parent.mkdir(parents=True, exist_ok=True)
+        target = resolve_within_root(context.outputs_dir, "transparency.index")
+        target.parent.mkdir(parents=True, exist_ok=True)
         timestamp = _dt.datetime.utcnow().isoformat() + "Z"
         line = f"TS={timestamp} FILE={canonical} SHA256={digest} KID={kid or 'unknown'}\n"
-        with context.transparency_index.open("a", encoding="utf-8") as handle:
+        with target.open("a", encoding="utf-8") as handle:
             handle.write(line)
-        return context.transparency_index
+        return target
 
     def list_runs(self, app_id: str | None) -> list[str]:
         normalised = self._normalise_app_id(app_id)

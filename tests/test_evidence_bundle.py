@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from zipfile import ZipFile
 
+import pytest
 import yaml
 
 from cli.fixops_ci import main as ci_main
@@ -202,3 +203,11 @@ def test_collect_files_handles_nested_directories(tmp_path: Path) -> None:
     files = _collect_files([extras, tmp_path / "missing"])
     names = sorted(path.relative_to(extras).as_posix() for path in files)
     assert names == ["a.txt", "nested/b.txt"]
+
+
+def test_load_policy_requires_mapping(tmp_path: Path) -> None:
+    policy_path = tmp_path / "invalid-policy.yml"
+    policy_path.write_text("- not-a-mapping", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_policy(policy_path)

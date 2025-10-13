@@ -118,9 +118,13 @@ def create_app() -> FastAPI:
 
     async def _verify_api_key(api_key: Optional[str] = Depends(api_key_header)) -> None:
         if auth_strategy == "token":
-            if not api_key or api_key not in expected_tokens:
+            if not api_key:
                 raise HTTPException(
-                    status_code=401, detail="Invalid or missing API token"
+                    status_code=401, detail="Missing API token"
+                )
+            if api_key not in expected_tokens:
+                raise HTTPException(
+                    status_code=403, detail="Invalid API token"
                 )
             return
         if auth_strategy == "jwt":

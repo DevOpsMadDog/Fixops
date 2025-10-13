@@ -40,6 +40,16 @@ def test_save_input_and_write_output(tmp_path: Path, monkeypatch: pytest.MonkeyP
         ctx.write_output("unexpected.json", {})
 
 
+def test_save_input_rejects_parent_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = _prepare(monkeypatch, tmp_path)
+    with pytest.raises(ValueError):
+        ctx.save_input("..", b"nope")
+
+    safe_path = ctx.save_input("../../escape.txt", b"safe")
+    assert safe_path.parent == ctx.inputs_dir
+    assert safe_path.name == "escape.txt"
+
+
 def test_reopen_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ctx = _prepare(monkeypatch, tmp_path)
     reopened = run_registry.reopen_run(ctx.app_id, ctx.run_id)
