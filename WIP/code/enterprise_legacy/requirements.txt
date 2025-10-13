@@ -196,7 +196,7 @@ s3transfer==0.14.0
 s5cmd==0.2.0
 safetensors==0.6.2
 sarif-tools==3.0.5
-scikit-learn==1.4.0
+scikit-learn==1.5.0
 scipy==1.12.0
 semantic-version==2.10.0
 sentence-transformers==5.1.1
