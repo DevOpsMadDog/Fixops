@@ -10,7 +10,7 @@ from cli.fixops_provenance import main as provenance_main
 from cli.fixops_repro import main as repro_main
 from cli.fixops_risk import main as risk_main
 from cli.fixops_sbom import main as sbom_main
-from evidence.packager import BundleInputs, create_bundle
+from services.evidence.packager import BundleInputs, EvidencePackager
 
 DEFAULT_NORMALIZED = Path("artifacts/sbom/normalized.json")
 DEFAULT_QUALITY_JSON = Path("analysis/sbom_quality_report.json")
@@ -140,8 +140,11 @@ def _handle_bundle(args: argparse.Namespace) -> int:
         extra_paths=[Path(item) for item in args.extra],
         sign_key=Path(args.sign_key) if args.sign_key else None,
     )
+    packager = EvidencePackager()
+    run_id = packager.register_run({"mode": "cli"})
+    packager.sign_manifest(run_id, {"tag": tag})
     try:
-        manifest = create_bundle(inputs)
+        manifest = packager.bundle(inputs)
     except FileNotFoundError as exc:
         print(str(exc), file=sys.stderr)
         return 1

@@ -5,13 +5,14 @@ from zipfile import ZipFile
 import yaml
 
 from cli.fixops_ci import main as ci_main
-from evidence.packager import (
+from services.evidence.packager import (
     BundleInputs,
-    _collect_files,
-    create_bundle,
+    EvidencePackager,
     evaluate_policy,
     load_policy,
 )
+from services.evidence.store import EvidenceStore
+from evidence.packager import _collect_files
 
 
 def _write_json(path: Path, payload: dict) -> Path:
@@ -71,7 +72,10 @@ def test_create_bundle(tmp_path: Path) -> None:
         policy_path=policy_path,
         output_dir=tmp_path / "evidence",
     )
-    manifest = create_bundle(inputs)
+    packager = EvidencePackager(EvidenceStore())
+    run_id = packager.register_run({"mode": "test"})
+    packager.sign_manifest(run_id, {"tag": tag})
+    manifest = packager.bundle(inputs)
     bundle_path = Path(manifest["bundle_path"])
     assert bundle_path.is_file()
     with ZipFile(bundle_path, "r") as archive:

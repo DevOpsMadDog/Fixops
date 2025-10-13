@@ -2,6 +2,12 @@
 
 FixOps turns raw security artefacts into contextual risk, compliance, and automation outputs in minutes. A lightweight FastAPI service and a parity CLI accept push-style uploads, hydrate an overlay-driven pipeline, and emit guardrail verdicts, context summaries, evidence bundles, pricing signals, and automation manifests that match demo or enterprise guardrails without code changes.
 
+| What it does | One command demo | Where to dig deeper |
+| --- | --- | --- |
+| **Ingest → Normalise → Correlate → Score → Prove.** Upload design, SBOM, SARIF, and CVE feeds, then let the orchestrator stitch context, guardrails, probabilistic risk, and evidence bundles in a single pass. | ```bash\ndocker compose -f docker-compose.demo.yml up -d\n``` Visit [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive API and use `python -m core.cli demo --mode demo` for the CLI mirror. | - [Architecture (canonical)](docs/ARCHITECTURE.md)  \n- [Developer handbook](readme_updated.md)  \n- [SBOM quality](docs/SBOM-QUALITY.md)  \n- [Risk scoring](docs/RISK-SCORING.md)  \n- [Provenance](docs/PROVENANCE.md)  \n- [Evidence bundles](docs/EVIDENCE-BUNDLES.md) |
+
+> **Canonical docs:** start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the platform map, then dive into [`readme_updated.md`](readme_updated.md) for feature-by-feature deep dives.
+
 ## Quick start
 
 For a fully reproducible setup run the bootstrap helper (installs runtime + dev tooling, pre-commit, and fixtures) or use the Makefile targets:
@@ -76,9 +82,9 @@ Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<
 - **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, and knowledge graph analytics in a single pass (`apps/api/pipeline.py`, `new_apps/api/processing/knowledge_graph.py`).
 - **Probabilistic escalation intelligence** – The `core.probabilistic.ProbabilisticForecastEngine` applies Dirichlet-smoothed calibration, spectral diagnostics, Markov chains, and Bayesian posterior updates to forecast severity drift, quantify stationary risk, and surface explainable escalation pressure for decision makers.
 - **Multi-LLM consensus & transparency** – The enhanced decision engine layers deterministic heuristics with optional OpenAI/Anthropic/Gemini calls (when API keys are present), reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`fixops-enterprise/src/services/enhanced_decision_engine.py`, `fixops-enterprise/src/api/v1/enhanced.py`).
-- **Security-as-code provenance & trust** – SLSA v1 attestations, provenance graph relationships, reproducible build attestations, and cosign signing keep releases anchored to verifiable supply-chain evidence (`services/provenance`, `services/graph`, `services/repro`, `scripts/signing`, `evidence/packager.py`).
+- **Security-as-code provenance & trust** – SLSA v1 attestations, provenance graph relationships, reproducible build attestations, and cosign signing keep releases anchored to verifiable supply-chain evidence (`services/provenance`, `services/graph`, `services/repro`, `scripts/signing`, `services/evidence/packager.py`).
 - **Risk-first posture** – Normalised SBOMs, EPSS/KEV feed joins, FixOpsRisk scoring, and anomaly detection correlate exploit probability, exposure, and downgrade drift before pull requests merge (`lib4sbom/normalizer.py`, `risk/scoring.py`, `risk/feeds`, `services/graph/graph.py`).
-- **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`, `evidence/packager.py`).
+- **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`, `services/evidence/packager.py`).
 - **Observability & demo-ready experiences** – Telemetry hooks, dashboards, and docker-compose demos provide investor-ready tours while keeping operators in control of data flow (`telemetry`, `docker-compose.demo.yml`, `ui/dashboard`).
 
 ### Architecture overview
@@ -203,7 +209,7 @@ FixOps Platform
 │   ├── Probabilistic (Markov/Bayesian) forecasts (`core/probabilistic/*`)
 │   └── Multi-LLM consensus (`fixops-enterprise/src/services/enhanced_decision_engine.py`)
 ├── Evidence & automation
-│   ├── Evidence bundling (`evidence/packager.py`)
+│   ├── Evidence bundling (`services/evidence/packager.py`)
 │   ├── Cosign signing & provenance (`scripts/signing/*`, `services/provenance`)
 │   └── Reproducible build attestations (`services/repro`)
 ├── Observability & demo
