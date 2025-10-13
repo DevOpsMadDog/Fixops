@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import json
-import re
-from collections import Counter, defaultdict
-from functools import lru_cache
+from collections import Counter
 from pathlib import Path
-from re import Pattern
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from core.ai_agents import AIAgentAdvisor
 from core.analytics import ROIDashboard
@@ -30,6 +27,11 @@ from core.vector_store import SecurityPatternMatcher
 
 from .knowledge_graph import KnowledgeGraphService
 
+from domain import CrosswalkRow
+from services.match.indexes import build_component_index, build_cve_index, build_finding_index
+from services.match.join import build_crosswalk
+from services.match.utils import build_lookup_tokens, extract_component_name
+
 from .normalizers import (
     CVERecordSummary,
     NormalizedBusinessContext,
@@ -38,16 +40,7 @@ from .normalizers import (
     NormalizedSARIF,
     NormalizedSBOM,
     NormalizedVEX,
-    SBOMComponent,
-    SarifFinding,
 )
-
-
-@lru_cache(maxsize=1024)
-def _lower(value: Optional[str]) -> Optional[str]:
-    return value.lower() if isinstance(value, str) else None
-
-
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 _SARIF_LEVEL_MAP = {
     None: "low",
@@ -176,88 +169,11 @@ class PipelineOrchestrator:
         self._repo_root = Path(__file__).resolve().parents[2]
 
     @staticmethod
-    def _extract_component_name(row: Dict[str, Any]) -> Optional[str]:
-        """Return the first non-empty component identifier in a design row."""
-
-        for key in ("component", "Component", "service", "name"):
-            value = row.get(key)
-            if isinstance(value, str):
-                stripped = value.strip()
-                if stripped:
-                    return stripped
-        return None
-
-    @staticmethod
-    def _build_finding_search_text(finding: SarifFinding) -> str:
-        """Concatenate searchable portions of a SARIF finding once."""
-
-        parts: List[str] = []
-        if finding.file:
-            parts.append(finding.file)
-        if finding.message:
-            parts.append(finding.message)
-        if finding.rule_id:
-            parts.append(finding.rule_id)
-        analysis_target = finding.raw.get("analysisTarget") if finding.raw else None
-        if analysis_target:
-            try:
-                parts.append(
-                    json.dumps(
-                        analysis_target,
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    )
-                )
-            except TypeError:
-                parts.append(str(analysis_target))
-        return " ".join(parts)
-
-    @staticmethod
-    def _build_record_search_text(record: CVERecordSummary) -> str:
-        parts: List[str] = []
-        if record.cve_id:
-            parts.append(record.cve_id)
-        if record.title:
-            parts.append(record.title)
-        if record.severity:
-            parts.append(record.severity)
-        try:
-            parts.append(json.dumps(record.raw, sort_keys=True, separators=(",", ":")))
-        except TypeError:
-            parts.append(str(record.raw))
-        return " ".join(parts)
-
-    @staticmethod
     def _determine_highest_severity(counts: Mapping[str, int]) -> str:
         for level in reversed(_SEVERITY_ORDER):
             if counts.get(level, 0) > 0:
                 return level
         return _SEVERITY_ORDER[0]
-
-    def _match_components(
-        self,
-        sbom_components: Iterable[SBOMComponent],
-    ) -> Dict[str, SBOMComponent]:
-        lookup: Dict[str, SBOMComponent] = {}
-        for component in sbom_components:
-            key = _lower(component.name)
-            if key:
-                lookup[key] = component
-        return lookup
-
-    @staticmethod
-    @lru_cache(maxsize=256)
-    def _compile_token_pattern(tokens: Tuple[str, ...]) -> Optional[Pattern[str]]:
-        """Build a compiled regex for substring lookups across artefacts."""
-
-        cleaned = [token for token in tokens if token]
-        if not cleaned:
-            return None
-        # Sort by length (descending) so the regex prefers longer tokens over
-        # substrings. Escaping protects special characters in component names.
-        sorted_tokens = sorted(cleaned, key=len, reverse=True)
-        pattern = "|".join(re.escape(token) for token in sorted_tokens)
-        return re.compile(pattern)
 
     @staticmethod
     def _normalise_sarif_severity(level: Optional[str]) -> str:
@@ -447,22 +363,22 @@ class PipelineOrchestrator:
         cnapp: Optional[NormalizedCNAPP] = None,
         context: Optional[NormalizedBusinessContext] = None,
     ) -> Dict[str, Any]:
-        rows = [row for row in design_dataset.get("rows", []) if isinstance(row, dict)]
+        rows: List[Mapping[str, Any]] = [
+            row for row in design_dataset.get("rows", []) if isinstance(row, Mapping)
+        ]
 
-        design_components: List[str] = []
-        token_by_index: Dict[int, str] = {}
-        for index, row in enumerate(rows):
-            name = self._extract_component_name(row)
-            if not name:
-                continue
-            normalised = _lower(name)
-            if not normalised:
-                continue
-            design_components.append(name)
-            token_by_index[index] = normalised
-
-        lookup_tokens = set(token_by_index.values())
-        sbom_lookup = self._match_components(sbom.components)
+        lookup_tokens = build_lookup_tokens(rows)
+        design_components = lookup_tokens.components
+        component_index = build_component_index(sbom.components)
+        finding_matches = build_finding_index(sarif.findings, lookup_tokens)
+        cve_matches = build_cve_index(cve.records, lookup_tokens)
+        crosswalk_rows = build_crosswalk(
+            rows,
+            lookup_tokens,
+            component_index=component_index,
+            finding_index=finding_matches,
+            cve_index=cve_matches,
+        )
 
         findings_by_level = Counter(
             finding.level or "none" for finding in sarif.findings
@@ -503,44 +419,6 @@ class PipelineOrchestrator:
                     "exploited": record.exploited,
                 }
 
-        finding_matches: Dict[str, List[dict[str, Any]]] = defaultdict(list)
-        token_pattern = self._compile_token_pattern(tuple(sorted(lookup_tokens)))
-
-        if token_pattern:
-            for finding in sarif.findings:
-                haystack = self._build_finding_search_text(finding)
-                if not haystack:
-                    continue
-                haystack = haystack.lower()
-                payload = finding.to_dict()
-                for token in set(token_pattern.findall(haystack)):
-                    finding_matches[token].append(dict(payload))
-
-        cve_matches: Dict[str, List[dict[str, Any]]] = defaultdict(list)
-        if token_pattern:
-            for record in cve.records:
-                haystack = self._build_record_search_text(record)
-                if not haystack:
-                    continue
-                haystack = haystack.lower()
-                payload = record.to_dict()
-                for token in set(token_pattern.findall(haystack)):
-                    cve_matches[token].append(dict(payload))
-
-        crosswalk: List[dict[str, Any]] = []
-        for index, row in enumerate(rows):
-            token = token_by_index.get(index)
-            match = sbom_lookup.get(token) if token else None
-
-            crosswalk.append(
-                {
-                    "design_row": row,
-                    "sbom_component": match.to_dict() if match else None,
-                    "findings": list(finding_matches.get(token, [])),
-                    "cves": list(cve_matches.get(token, [])),
-                    "design_index": index,
-                }
-            )
 
         if context is not None:
             context_map: Dict[str, Mapping[str, Any]] = {}
@@ -551,16 +429,18 @@ class PipelineOrchestrator:
                 if not name:
                     continue
                 context_map[name.lower()] = component
-            for entry in crosswalk:
-                design_row = entry.get("design_row")
-                if not isinstance(design_row, Mapping):
-                    continue
-                candidate = self._extract_component_name(design_row)
+            updated_rows: List[CrosswalkRow] = []
+            for entry in crosswalk_rows:
+                candidate = extract_component_name(entry.design_row)
                 if not candidate:
+                    updated_rows.append(entry)
                     continue
                 key = candidate.lower()
                 if key in context_map:
-                    entry["business_context"] = dict(context_map[key])
+                    updated_rows.append(entry.with_business_context(context_map[key]))
+                else:
+                    updated_rows.append(entry)
+            crosswalk_rows = updated_rows
 
         original_counts = dict(severity_counts)
         noise_reduction: Optional[Dict[str, Any]] = None
@@ -569,27 +449,35 @@ class PipelineOrchestrator:
             suppressed_counts: Counter[str] = Counter()
             suppressed_refs = vex.suppressed_refs
             if suppressed_refs:
-                for entry in crosswalk:
-                    component = entry.get("sbom_component") or {}
+                updated_rows: List[CrosswalkRow] = []
+                for entry in crosswalk_rows:
+                    component = entry.sbom_component or {}
                     component_ref: Optional[str] = None
                     if isinstance(component, Mapping):
                         component_ref = component.get("purl") or component.get("name")
-                    if not component_ref:
-                        continue
-                    if str(component_ref) not in suppressed_refs:
-                        continue
-                    suppressed_findings: List[dict[str, Any]] = []
-                    remaining: List[dict[str, Any]] = []
-                    for finding in entry.get("findings", []):
-                        severity = self._normalise_sarif_severity(finding.get("level"))
-                        suppressed_counts[severity] += 1
-                        suppressed_findings.append(finding)
-                    if suppressed_findings:
-                        entry.setdefault("suppressed", {})["vex"] = suppressed_findings
-                        entry["findings"] = remaining
+                    if component_ref and str(component_ref) in suppressed_refs:
+                        findings = [dict(item) for item in entry.findings]
+                        if findings:
+                            for finding in findings:
+                                severity = self._normalise_sarif_severity(
+                                    finding.get("level")
+                                )
+                                suppressed_counts[severity] += 1
+                            updated_rows.append(
+                                entry.with_filtered_findings([]).with_suppressed(
+                                    "vex", findings
+                                )
+                            )
+                        else:
+                            updated_rows.append(entry)
+                    else:
+                        updated_rows.append(entry)
+                crosswalk_rows = updated_rows
                 if suppressed_counts:
                     for severity, count in suppressed_counts.items():
-                        severity_counts[severity] = max(0, severity_counts.get(severity, 0) - count)
+                        severity_counts[severity] = max(
+                            0, severity_counts.get(severity, 0) - count
+                        )
                         source_breakdown["sarif"][severity] = max(
                             0, source_breakdown["sarif"].get(severity, 0) - count
                         )
@@ -601,6 +489,8 @@ class PipelineOrchestrator:
                 "final": dict(severity_counts),
                 "suppressed_total": sum(suppressed_counts.values()),
             }
+
+        crosswalk: List[dict[str, Any]] = [entry.to_dict() for entry in crosswalk_rows]
 
         cnapp_counts: Counter[str] = Counter()
         cnapp_exposures: List[Dict[str, Any]] = []

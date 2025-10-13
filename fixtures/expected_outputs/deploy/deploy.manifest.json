@@ -10,15 +10,41 @@
       "control": "ISO27001:AC-1",
       "result": "pass",
       "source": "tls_policy"
+    },
+    {
+      "control": "ISO27001:AC-3",
+      "result": "pass",
+      "source": "checks"
+    },
+    {
+      "control": "CIS-K8S:5.4.1",
+      "result": "pass",
+      "source": "checks"
+    },
+    {
+      "control": "CIS-K8S:5.2.2",
+      "result": "pass",
+      "source": "checks"
+    },
+    {
+      "control": "ISO27001:SC-28",
+      "result": "fail",
+      "source": "encryption_gaps"
     }
   ],
-  "deploy_risk_score": 0.71,
+  "deploy_risk_score": 0.76,
   "digests": [],
   "posture": {
+    "encryption_gaps": [
+      "compliance-logs"
+    ],
+    "open_security_groups": [],
+    "privileged_containers": [],
     "public_buckets": [
       "compliance-logs"
     ],
-    "tls_policy": "ELBSecurityPolicy-2016-08"
+    "tls_policy": "ELBSecurityPolicy-2016-08",
+    "unpinned_images": []
   },
-  "run_id": "SAMPLE-RUN"
+  "run_id": "SAMPLE-RUN-02"
 }

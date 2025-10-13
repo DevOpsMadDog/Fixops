@@ -23,6 +23,8 @@ This document is assembled from the repository index (`index/INVENTORY.csv`) and
 Using `index/graph.json`, the following modules exhibit the highest fan-out (number of same-package imports):
 - `core/demo_runner.py` → orchestrates CLI demos across analytics, evidence, and storage helpers.
 - `apps/api/pipeline.py` → centralizes analytics, compliance, context, and policy modules for the simulation/demo pipeline.
+- `services/match/` → pure matching/index helpers used by adapters to build crosswalks without embedding business rules in the API layer.
+- `services/evidence/` → lifecycle store + packager that register runs, capture artefacts, and assemble signed bundles.
 - `core/feedback.py` → coordinates analytics, configuration, connectors, and storage adapters.
 
 Highly-referenced foundational modules include:

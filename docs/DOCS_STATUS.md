@@ -20,7 +20,7 @@ workflows introduced across Phases 1–10.
 | `CONTRIBUTING.md` | Contributor workflow guidelines aligned with `.github/workflows/qa.yml`. | Retain |
 | `DATA_MODEL.md` | Domain model definitions mirroring classes in `core/context_engine.py` and `services/graph/graph.py`. | Retain |
 | `DEMO.md` | One-command demo instructions tied to `docker-compose.demo.yml` and telemetry setup. | Retain |
-| `EVIDENCE-BUNDLES.md` | Documents bundle schema implemented by `evidence/packager.py` and `fixops-ci evidence bundle`. | Retain |
+| `EVIDENCE-BUNDLES.md` | Documents bundle schema implemented by `services/evidence/packager.py` and `fixops-ci evidence bundle`. | Retain |
 | `FIXOPS_ADOPTION_GUIDE.md` | Enablement guidance referencing CLI tools and overlays in `config/`. | Retain |
 | `FOLDER_README.md` | Explains docs folder structure for maintainers. | Retain |
 | `FixOps_Demo_IO_Contract.md` | Documents demo API contracts matching payloads in `apps/api/app.py`. | Retain |
