@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Optional
 
+from fixops.utils.paths import resolve_within_root
+
 from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBOM
 
 def _current_utc_timestamp() -> str:
@@ -962,7 +964,7 @@ class StageRunner:
         ]
 
     def _write_evidence_bundle(self, context, documents: Mapping[str, Mapping[str, Any]]) -> Path:
-        bundle_path = context.outputs_dir / "evidence_bundle.zip"
+        bundle_path = resolve_within_root(context.outputs_dir, "evidence_bundle.zip")
         with zipfile.ZipFile(bundle_path, "w") as archive:
             for key, filename in self._OUTPUT_FILENAMES.items():
                 document = documents.get(key)
