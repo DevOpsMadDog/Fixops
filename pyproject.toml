@@ -1,0 +1,56 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+extend-exclude = '''
+(
+  ^/(?:apps|backend|build|cli|core|data|domain|enterprise|evidence|fixops-enterprise|integrations|lib4sbom|marketplace|new_apps|pydantic_settings|risk|scripts|services|simulations|ssvc|telemetry|tests|WIP|vendor)/
+  |^/artefacts/
+  |^/fixtures/
+  |^/reports/
+  |^/test_frontend\.py$
+  |^/sarif_om\.py$
+  |^/real_components_test\.py$
+  |^/backend_test\.py$
+  |^/create_tables\.py$
+  |^/create_minimal_tables\.py$
+)
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_glob = [
+  "apps/*",
+  "backend/*",
+  "build/*",
+  "cli/*",
+  "core/*",
+  "data/*",
+  "domain/*",
+  "enterprise/*",
+  "evidence/*",
+  "fixops-enterprise/*",
+  "integrations/*",
+  "lib4sbom/*",
+  "marketplace/*",
+  "new_apps/*",
+  "pydantic_settings/*",
+  "risk/*",
+  "scripts/*",
+  "services/*",
+  "simulations/*",
+  "ssvc/*",
+  "telemetry/*",
+  "tests/*",
+  "WIP/*",
+  "vendor/*",
+  "artefacts/*",
+  "fixtures/*",
+  "reports/*",
+  "test_frontend.py",
+  "sarif_om.py",
+  "real_components_test.py",
+  "backend_test.py",
+  "create_tables.py",
+  "create_minimal_tables.py",
+]
