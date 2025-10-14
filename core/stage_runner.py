@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Optional
 
+from fixops.utils.paths import resolve_within_root
+
 from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBOM
 
 def _current_utc_timestamp() -> str:
@@ -666,6 +668,32 @@ class StageRunner:
         else:
             resources = [payload]
 
+        def _extract_cidrs(source: Mapping[str, Any] | None, *, include_ipv6: bool = True) -> list[str]:
+            if not isinstance(source, Mapping):
+                return []
+            values: list[str] = []
+            for key in ("cidr_blocks", "cidrs", "cidr"):
+                entries = source.get(key)
+                if isinstance(entries, (str, bytes)):
+                    values.append(str(entries))
+                elif isinstance(entries, Iterable) and not isinstance(entries, (str, bytes, bytearray)):
+                    values.extend(str(item) for item in entries)
+            if include_ipv6:
+                for key in ("ipv6_cidr_blocks", "ipv6_cidrs"):
+                    entries = source.get(key)
+                    if isinstance(entries, (str, bytes)):
+                        values.append(str(entries))
+                    elif isinstance(entries, Iterable) and not isinstance(entries, (str, bytes, bytearray)):
+                        values.extend(str(item) for item in entries)
+            return values
+
+        def _contains_open_rule(cidrs: Iterable[str]) -> bool:
+            for value in cidrs:
+                candidate = str(value).strip()
+                if candidate in {"0.0.0.0/0", "::/0"}:
+                    return True
+            return False
+
         for resource in resources:
             if not isinstance(resource, Mapping):
                 continue
@@ -695,22 +723,23 @@ class StageRunner:
                 if candidate_tls:
                     tls_policy = candidate_tls
 
-            if rtype in {"aws_security_group", "aws_security_group_rule"}:
+            if rtype == "aws_security_group":
                 ingress_rules = after.get("ingress") or resource.get("ingress") or []
                 if isinstance(ingress_rules, Mapping):
                     ingress_rules = [ingress_rules]
                 for rule in ingress_rules:
                     if not isinstance(rule, Mapping):
                         continue
-                    cidrs = rule.get("cidr_blocks") or rule.get("cidrs") or rule.get("cidr")
-                    if isinstance(cidrs, (str, bytes)):
-                        cidr_values = [cidrs]
-                    elif isinstance(cidrs, Iterable):
-                        cidr_values = [str(item) for item in cidrs]
-                    else:
-                        cidr_values = []
-                    if any(value == "0.0.0.0/0" for value in cidr_values):
+                    cidr_values = _extract_cidrs(rule)
+                    if _contains_open_rule(cidr_values):
                         open_security_groups.add(name)
+
+            if rtype == "aws_security_group_rule":
+                cidr_values = _extract_cidrs(after)
+                if not cidr_values:
+                    cidr_values = _extract_cidrs(resource)
+                if _contains_open_rule(cidr_values):
+                    open_security_groups.add(name)
 
             if rtype in {"aws_db_instance", "aws_rds_cluster"}:
                 encrypted = after.get("storage_encrypted")
@@ -935,7 +964,7 @@ class StageRunner:
         ]
 
     def _write_evidence_bundle(self, context, documents: Mapping[str, Mapping[str, Any]]) -> Path:
-        bundle_path = context.outputs_dir / "evidence_bundle.zip"
+        bundle_path = resolve_within_root(context.outputs_dir, "evidence_bundle.zip")
         with zipfile.ZipFile(bundle_path, "w") as archive:
             for key, filename in self._OUTPUT_FILENAMES.items():
                 document = documents.get(key)

@@ -54,6 +54,22 @@ def test_enhanced_routes_require_api_key(enhanced_client: TestClient) -> None:
     assert response.status_code == 401
 
 
+def test_enhanced_routes_reject_invalid_token(enhanced_client: TestClient) -> None:
+    response = enhanced_client.get(
+        "/api/v1/enhanced/capabilities",
+        headers={"X-API-Key": "wrong-token"},
+    )
+    assert response.status_code == 403
+
+
+def test_enhanced_routes_accept_case_insensitive_header(enhanced_client: TestClient) -> None:
+    response = enhanced_client.get(
+        "/api/v1/enhanced/capabilities",
+        headers={"x-api-key": API_TOKEN},
+    )
+    assert response.status_code == 200
+
+
 def test_analysis_returns_consensus_payload(enhanced_client: TestClient) -> None:
     body = {
         "service_name": "customer-api",

@@ -107,3 +107,32 @@ def test_load_sarif_converts_snyk_payload_without_converter():
     assert finding.level == "error"
     assert finding.file in {"express@4.18.0", "customer-api@1.4.2"}
     assert "dependency_path" in finding.raw.get("properties", {})
+
+
+def test_load_sarif_rejects_unknown_severity():
+    normalizer = InputNormalizer()
+    sarif_document = _build_sarif_document()
+    sarif_document["runs"][0]["results"][0]["level"] = "critical"
+
+    with pytest.raises(ValueError):
+        normalizer.load_sarif(json.dumps(sarif_document))
+
+
+def test_load_sarif_rejects_empty_rule_id():
+    normalizer = InputNormalizer()
+    sarif_document = _build_sarif_document()
+    sarif_document["runs"][0]["results"][0]["ruleId"] = ""
+
+    with pytest.raises(ValueError):
+        normalizer.load_sarif(json.dumps(sarif_document))
+
+
+def test_load_sarif_guard_oversized_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("apps.api.normalizers.MAX_DOCUMENT_BYTES", 16)
+    normalizer = InputNormalizer()
+    oversized = json.dumps({"runs": ["a" * 32]})
+
+    with pytest.raises(ValueError) as exc:
+        normalizer.load_sarif(oversized)
+
+    assert "maximum allowed size" in str(exc.value)
