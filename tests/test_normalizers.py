@@ -107,3 +107,24 @@ def test_load_sarif_converts_snyk_payload_without_converter():
     assert finding.level == "error"
     assert finding.file in {"express@4.18.0", "customer-api@1.4.2"}
     assert "dependency_path" in finding.raw.get("properties", {})
+
+
+def test_load_sarif_rejects_invalid_severity():
+    normalizer = InputNormalizer()
+    sarif_document = _build_sarif_document()
+    sarif_document["runs"][0]["results"][0]["level"] = "critical"
+
+    with pytest.raises(ValueError):
+        normalizer.load_sarif(json.dumps(sarif_document))
+
+
+def test_load_sarif_rejects_oversized_payload():
+    normalizer = InputNormalizer(max_document_bytes=128)
+    oversized = {
+        "version": "2.1.0",
+        "runs": [],
+        "padding": "x" * 256,
+    }
+
+    with pytest.raises(ValueError):
+        normalizer.load_sarif(json.dumps(oversized))

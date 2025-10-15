@@ -13,6 +13,7 @@ from typing import Any, Dict, Mapping, Optional
 
 from core.configuration import OverlayConfig
 from core.paths import ensure_secure_directory
+from fixops.utils.paths import resolve_within_root
 
 try:  # Optional dependency used when regulated tenants request encryption
     from cryptography.fernet import Fernet
@@ -101,7 +102,8 @@ class EvidenceHub:
         policy_summary: Optional[Mapping[str, Any]],
     ) -> Dict[str, Any]:
         run_id = uuid.uuid4().hex
-        base_dir = ensure_secure_directory(self._base_directory() / run_id)
+        evidence_root = self._base_directory()
+        base_dir = ensure_secure_directory(resolve_within_root(evidence_root, run_id))
 
         sections = self.settings.get("include_sections", [])
         included_sections: list[str] = []
@@ -136,7 +138,9 @@ class EvidenceHub:
 
         bundle_json = json.dumps(bundle_payload, indent=2)
         bundle_bytes = bundle_json.encode("utf-8")
-        bundle_path = base_dir / f"{self._bundle_name()}-bundle.json"
+        bundle_path = resolve_within_root(
+            base_dir, f"{self._bundle_name()}-bundle.json"
+        )
         compressed = False
 
         final_bytes = bundle_bytes
@@ -186,7 +190,7 @@ class EvidenceHub:
             "sha256": bundle_hash,
             "retention_days": self.retention_days,
         }
-        manifest_path = base_dir / "manifest.json"
+        manifest_path = resolve_within_root(base_dir, "manifest.json")
         manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
         _atomic_write(manifest_path, manifest_bytes)
         self._record_audit_entry(run_id, final_path, bundle_hash)
@@ -207,7 +211,9 @@ class EvidenceHub:
 
     def _record_audit_entry(self, run_id: str, bundle_path: Path, checksum: str) -> None:
         try:
-            audit_path = self._base_directory().parent / "audit.log"
+            audit_root = self._base_directory().parent
+            audit_root.mkdir(parents=True, exist_ok=True)
+            audit_path = resolve_within_root(audit_root, "audit.log")
             entry = {
                 "run_id": run_id,
                 "bundle": str(bundle_path),

@@ -10,7 +10,16 @@ import sys
 import zipfile
 from contextlib import suppress
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Tuple
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    StrictInt,
+    StrictStr,
+    ValidationError,
+    field_validator,
+)
 
 try:  # Optional dependency for YAML parsing
     import yaml
@@ -63,6 +72,8 @@ SUPPORTED_SARIF_SCHEMAS = {
 
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
 
 _SNYK_SEVERITY_TO_LEVEL = {
     "critical": "error",
@@ -474,11 +485,48 @@ class NormalizedSARIF:
         }
 
 
+class SarifFindingSchema(BaseModel):
+    """Strict validator for normalised SARIF findings."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: StrictStr | None = None
+    message: StrictStr | None = None
+    level: Literal["error", "warning", "note", "none"] | None = None
+    file: StrictStr | None = None
+    line: StrictInt | None = None
+
+    @field_validator("rule_id")
+    @classmethod
+    def _reject_empty_rule_ids(cls, value: StrictStr | None) -> StrictStr | None:
+        if value is not None and not value.strip():
+            raise ValueError("rule_id must not be empty")
+        return value
+
+
+class NormalizedSarifSchema(BaseModel):
+    """Strict validator for the SARIF summary emitted by the normalizer."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: StrictStr
+    schema_uri: StrictStr | None = None
+    tool_names: List[StrictStr]
+    findings: List[SarifFindingSchema]
+    metadata: Dict[str, Any]
+
 class InputNormalizer:
     """Normalise artefacts using dedicated OSS parsers."""
 
-    def __init__(self, sbom_type: str = "auto") -> None:
+    def __init__(
+        self, sbom_type: str = "auto", *, max_document_bytes: int | None = None
+    ) -> None:
         self.sbom_type = sbom_type
+        self.max_document_bytes = (
+            max_document_bytes
+            if max_document_bytes is not None
+            else DEFAULT_MAX_DOCUMENT_BYTES
+        )
 
     @staticmethod
     def _ensure_bytes(content: Any) -> bytes:
@@ -561,6 +609,10 @@ class InputNormalizer:
         data = self._ensure_bytes(raw)
         data = self._maybe_decode_base64(data)
         data = self._maybe_decompress(data)
+        if self.max_document_bytes and len(data) > self.max_document_bytes:
+            raise ValueError(
+                f"Input document exceeds maximum allowed size of {self.max_document_bytes} bytes"
+            )
         return data.decode("utf-8", errors="ignore")
 
     def load_sbom(self, raw: Any) -> NormalizedSBOM:
@@ -659,7 +711,7 @@ class InputNormalizer:
 
     def _load_sbom_from_provider(self, payload: str) -> NormalizedSBOM | None:
         try:
-            document = json.loads(payload)
+            document = json.loads(payload)  # TODO: streaming parse for very large SBOM documents.
         except json.JSONDecodeError:
             return None
 
@@ -918,7 +970,7 @@ class InputNormalizer:
         """Normalise SARIF logs via sarif-om with optional Snyk conversion."""
 
         payload = self._prepare_text(raw)
-        data = json.loads(payload)
+        data = json.loads(payload)  # TODO: support streaming parse for very large SARIF inputs.
         original_data = data
 
         runs = data.get("runs") if isinstance(data, dict) else None
@@ -999,6 +1051,7 @@ class InputNormalizer:
         )
 
         findings: List[SarifFinding] = []
+        validated_findings: List[SarifFindingSchema] = []
         tool_names: List[str] = []
 
         for run in runs:
@@ -1008,30 +1061,67 @@ class InputNormalizer:
                 else {}
             )
             tool_name = tool.get("name")
-            if tool_name:
-                tool_names.append(tool_name)
+            if isinstance(tool_name, str) and tool_name.strip():
+                tool_names.append(tool_name.strip())
 
             results = run.get("results") if isinstance(run, dict) else None
             for result in results or []:
+                rule_id_value = result.get("ruleId")
+                rule_id: str | None = None
+                if isinstance(rule_id_value, str):
+                    rule_id = rule_id_value.strip()
+                elif rule_id_value is not None:
+                    rule_id = str(rule_id_value).strip()
+
                 message = None
                 if "message" in result:
-                    if isinstance(result["message"], dict):
-                        message = result["message"].get("text")
-                    else:
-                        message = str(result["message"])
+                    raw_message = result["message"]
+                    if isinstance(raw_message, Mapping):
+                        candidate_text = raw_message.get("text")
+                        if isinstance(candidate_text, str):
+                            message = candidate_text
+                    elif raw_message is not None:
+                        message = str(raw_message)
 
                 location = (result.get("locations") or [{}])[0]
                 physical = location.get("physicalLocation", {})
                 artifact = physical.get("artifactLocation", {})
                 region = physical.get("region", {})
+                level_value = result.get("level")
+                level = level_value.lower() if isinstance(level_value, str) else None
 
+                file_path = artifact.get("uri")
+                if file_path is not None and not isinstance(file_path, str):
+                    file_path = str(file_path)
+
+                line_value = region.get("startLine")
+                line_number: int | None = None
+                if isinstance(line_value, int):
+                    line_number = line_value
+                elif isinstance(line_value, str):
+                    stripped_line = line_value.strip()
+                    if stripped_line.isdigit():
+                        line_number = int(stripped_line)
+
+                try:
+                    validated = SarifFindingSchema(
+                        rule_id=rule_id,
+                        message=message,
+                        level=level,
+                        file=file_path,
+                        line=line_number,
+                    )
+                except ValidationError as exc:
+                    raise ValueError("SARIF result failed validation") from exc
+
+                validated_findings.append(validated)
                 findings.append(
                     SarifFinding(
-                        rule_id=result.get("ruleId"),
-                        message=message,
-                        level=result.get("level"),
-                        file=artifact.get("uri"),
-                        line=region.get("startLine"),
+                        rule_id=validated.rule_id,
+                        message=validated.message,
+                        level=validated.level,
+                        file=validated.file,
+                        line=validated.line,
                         raw=result,
                     )
                 )
@@ -1046,9 +1136,28 @@ class InputNormalizer:
         if tool_names:
             metadata["tool_count"] = len(tool_names)
 
+        try:
+            NormalizedSarifSchema(
+                version=str(sarif_log.version),
+                schema_uri=(
+                    str(sarif_log.schema_uri)
+                    if isinstance(sarif_log.schema_uri, str)
+                    else None
+                ),
+                tool_names=tool_names,
+                findings=validated_findings,
+                metadata=metadata,
+            )
+        except ValidationError as exc:
+            raise ValueError("Normalised SARIF payload failed validation") from exc
+
         normalized = NormalizedSARIF(
-            version=sarif_log.version,
-            schema_uri=sarif_log.schema_uri,
+            version=str(sarif_log.version),
+            schema_uri=(
+                str(sarif_log.schema_uri)
+                if isinstance(sarif_log.schema_uri, str)
+                else sarif_log.schema_uri
+            ),
             tool_names=tool_names,
             findings=findings,
             metadata=metadata,

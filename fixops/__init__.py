@@ -1,8 +1,12 @@
 """Compatibility package exposing the public FixOps CLI entrypoints."""
 
-from core.cli import main as _main
+__all__ = ["_main", "main"]
 
-__all__ = ["_main"]
+
+def _main(*args, **kwargs):
+    from core.cli import main as cli_main
+
+    return cli_main(*args, **kwargs)
 
 
 def main() -> int:
