@@ -49,7 +49,7 @@ def load_policy(policy_path: Path | None) -> dict[str, Any]:
     with policy_path.open("r", encoding="utf-8") as handle:
         loaded = yaml.safe_load(handle) or {}
     if not isinstance(loaded, Mapping):
-        return DEFAULT_POLICY
+        raise ValueError("Policy document must be a mapping at the root level")
     merged = copy.deepcopy(DEFAULT_POLICY)
     for section, rules in loaded.items():
         if isinstance(rules, Mapping):

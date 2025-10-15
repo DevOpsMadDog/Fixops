@@ -63,3 +63,17 @@ def test_signed_outputs_create_transparency_index(
     assert index.exists()
     contents = index.read_text().strip()
     assert "requirements.json" in contents
+
+
+def test_registry_rejects_escaping_paths(tmp_path: Path) -> None:
+    registry = run_registry.RunRegistry(root=tmp_path)
+    context = registry.create_run("APP-1234")
+
+    with pytest.raises(ValueError):
+        registry.save_input(context, "../../escape.txt", b"data")
+
+    with pytest.raises(ValueError):
+        registry.save_input(context, "/tmp/escape.txt", b"data")
+
+    with pytest.raises(ValueError):
+        registry.write_binary_output(context, "../../malicious.bin", b"bad")
