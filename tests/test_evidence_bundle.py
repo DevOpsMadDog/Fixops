@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from zipfile import ZipFile
 
+import pytest
 import yaml
 
 from cli.fixops_ci import main as ci_main
@@ -170,6 +171,14 @@ def test_load_policy_merges_overrides(tmp_path: Path) -> None:
     merged = load_policy(policy_path)
     assert merged["risk"]["max_risk_score"]["fail_above"] == 75.0
     assert merged["provenance"]["require_attestations"] is False
+
+
+def test_load_policy_rejects_non_mapping(tmp_path: Path) -> None:
+    policy_path = tmp_path / "invalid-policy.yml"
+    policy_path.write_text("- not-a-mapping", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_policy(policy_path)
 
 
 def test_evaluate_policy_warn_and_fail() -> None:

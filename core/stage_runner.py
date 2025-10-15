@@ -666,6 +666,21 @@ class StageRunner:
         else:
             resources = [payload]
 
+        def _normalise_cidr_values(raw: Any) -> list[str]:
+            if isinstance(raw, (str, bytes, bytearray)):
+                return [str(raw)]
+            if isinstance(raw, Iterable) and not isinstance(raw, (str, bytes, bytearray)):
+                values: list[str] = []
+                for item in raw:
+                    if item is None:
+                        continue
+                    values.append(str(item))
+                return values
+            return []
+
+        def _has_open_cidr(values: Iterable[str]) -> bool:
+            return any(value in {"0.0.0.0/0", "::/0"} for value in values)
+
         for resource in resources:
             if not isinstance(resource, Mapping):
                 continue
@@ -695,22 +710,29 @@ class StageRunner:
                 if candidate_tls:
                     tls_policy = candidate_tls
 
-            if rtype in {"aws_security_group", "aws_security_group_rule"}:
+            if rtype == "aws_security_group":
                 ingress_rules = after.get("ingress") or resource.get("ingress") or []
                 if isinstance(ingress_rules, Mapping):
                     ingress_rules = [ingress_rules]
                 for rule in ingress_rules:
                     if not isinstance(rule, Mapping):
                         continue
-                    cidrs = rule.get("cidr_blocks") or rule.get("cidrs") or rule.get("cidr")
-                    if isinstance(cidrs, (str, bytes)):
-                        cidr_values = [cidrs]
-                    elif isinstance(cidrs, Iterable):
-                        cidr_values = [str(item) for item in cidrs]
-                    else:
-                        cidr_values = []
-                    if any(value == "0.0.0.0/0" for value in cidr_values):
+                    cidr_values = _normalise_cidr_values(
+                        rule.get("cidr_blocks") or rule.get("cidrs") or rule.get("cidr")
+                    )
+                    ipv6_values = _normalise_cidr_values(rule.get("ipv6_cidr_blocks"))
+                    if _has_open_cidr(cidr_values + ipv6_values):
                         open_security_groups.add(name)
+
+            if rtype == "aws_security_group_rule":
+                cidr_fields = []
+                for key in ("cidr_blocks", "ipv6_cidr_blocks"):
+                    if key in after:
+                        cidr_fields.extend(_normalise_cidr_values(after.get(key)))
+                    elif key in resource:
+                        cidr_fields.extend(_normalise_cidr_values(resource.get(key)))
+                if _has_open_cidr(cidr_fields):
+                    open_security_groups.add(name)
 
             if rtype in {"aws_db_instance", "aws_rds_cluster"}:
                 encrypted = after.get("storage_encrypted")
