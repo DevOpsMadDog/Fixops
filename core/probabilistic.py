@@ -6,6 +6,7 @@ from math import ceil, log, log2, sqrt
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
+_SEVERITY_INDEX_MAP = {severity: idx for idx, severity in enumerate(_SEVERITY_ORDER)}
 
 
 def _coerce_severity(value: Any) -> Optional[str]:
@@ -68,10 +69,7 @@ def _extract_state_sequence(incident: Mapping[str, Any]) -> list[str]:
 
 
 def _severity_index(severity: str) -> int:
-    try:
-        return _SEVERITY_ORDER.index(severity)
-    except ValueError:
-        return _SEVERITY_ORDER.index("medium")
+    return _SEVERITY_INDEX_MAP.get(severity, _SEVERITY_INDEX_MAP["medium"])
 
 
 def _normalise_transition_row(row: Mapping[str, Any]) -> Dict[str, float]:
