@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+import importlib.util
+from argparse import ArgumentError
 from typing import Generator, Iterable, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -124,21 +126,49 @@ class SimpleCoverage:
             handle.write(f"<coverage line-rate='{rate:.3f}' branch-rate='0.0' version='simple'/>\n")
 
 
+def _has_pytest_cov(obj: object) -> bool:
+    plugin_manager = getattr(obj, "pluginmanager", None) or getattr(obj, "_pluginmanager", None)
+    if plugin_manager and plugin_manager.hasplugin("pytest_cov"):
+        return True
+    return importlib.util.find_spec("pytest_cov") is not None
+
+
 def pytest_addoption(parser: pytest.Parser) -> None:
+    if _has_pytest_cov(parser):
+        return
     group = parser.getgroup("coverage")
-    group.addoption("--cov", action="append", default=[], help="Coverage targets (paths or modules)")
-    group.addoption("--cov-branch", action="store_true", default=False, help="Enable branch coverage")
-    group.addoption("--cov-fail-under", action="store", default=None, type=float, help="Fail if coverage below threshold")
-    group.addoption("--cov-report", action="append", default=[], help="Coverage report types (term, xml)")
+
+    def _add(*args, **kwargs) -> bool:
+        try:
+            group.addoption(*args, **kwargs)
+            return True
+        except ArgumentError:
+            return False
+
+    if not _add("--cov", action="append", default=[], help="Coverage targets (paths or modules)"):
+        return
+    _add("--cov-branch", action="store_true", default=False, help="Enable branch coverage")
+    _add(
+        "--cov-fail-under",
+        action="store",
+        default=None,
+        type=float,
+        help="Fail if coverage below threshold",
+    )
+    _add("--cov-report", action="append", default=[], help="Coverage report types (term, xml)")
 
 
 def pytest_configure(config: pytest.Config) -> None:
+    if _has_pytest_cov(config):
+        return
     cov_reports = config.getoption("--cov")
     config._fixops_cov = SimpleCoverage(cov_reports or [])
     config._fixops_cov.start()
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
+    if _has_pytest_cov(config):
+        return
     cov = getattr(config, "_fixops_cov", None)
     if cov is None:
         return

@@ -4,9 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
-import networkx as nx  # type: ignore[import]
+try:  # networkx is optional but preferred for rich graph metrics
+    import networkx as nx  # type: ignore[import]
+except Exception:  # pragma: no cover - optional dependency
+    nx = None  # type: ignore[assignment]
+
+logger = logging.getLogger(__name__)
 
 try:  # pgmpy is declared in requirements and provides Bayesian inference
     from pgmpy.factors.discrete import TabularCPD
@@ -55,6 +61,11 @@ class ProcessingLayer:
         self.pgmpy_available = BayesianNetwork is not None and VariableElimination is not None
         self.pomegranate_available = PomegranateBayes is not None
         self.mchmm_available = mchmm is not None
+        self.networkx_available = nx is not None
+        if not self.networkx_available:
+            logger.warning(
+                "networkx not available; knowledge graph metrics will use simplified fallbacks"
+            )
 
     # ------------------------------------------------------------------
     # Public API
@@ -81,7 +92,7 @@ class ProcessingLayer:
             "pgmpy": self.pgmpy_available,
             "pomegranate": self.pomegranate_available,
             "mchmm": self.mchmm_available,
-            "networkx": True,
+            "networkx": self.networkx_available,
         }
         return ProcessingLayerResult(
             bayesian_priors=priors,
@@ -231,6 +242,11 @@ class ProcessingLayer:
         cve_records: Sequence[Mapping[str, Any]],
         cnapp_exposures: Sequence[Mapping[str, Any]],
     ) -> Dict[str, Any]:
+        if nx is None:
+            return self._build_knowledge_graph_fallback(
+                sbom_components, sarif_findings, cve_records, cnapp_exposures
+            )
+
         graph = nx.DiGraph()
         for component in sbom_components:
             if not isinstance(component, Mapping):
@@ -291,6 +307,97 @@ class ProcessingLayer:
         top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:5]
         return {
             "metrics": metrics,
+            "top_centrality": top_nodes,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+    def _build_knowledge_graph_fallback(
+        self,
+        sbom_components: Sequence[Mapping[str, Any]],
+        sarif_findings: Sequence[Mapping[str, Any]],
+        cve_records: Sequence[Mapping[str, Any]],
+        cnapp_exposures: Sequence[Mapping[str, Any]],
+    ) -> Dict[str, Any]:
+        nodes: Dict[str, Dict[str, Any]] = {}
+        edges: list[tuple[str, str, str]] = []
+
+        def _ensure_node(node_id: str, **attrs: Any) -> None:
+            payload = nodes.setdefault(node_id, {})
+            for key, value in attrs.items():
+                if value is not None:
+                    payload[key] = value
+
+        def _add_edge(source: str, target: str, relation: str) -> None:
+            edges.append((source, target, relation))
+
+        for component in sbom_components:
+            if not isinstance(component, Mapping):
+                continue
+            name = component.get("name") or component.get("component")
+            if not name:
+                continue
+            _ensure_node(
+                str(name),
+                type="component",
+                severity=component.get("severity"),
+                version=component.get("version"),
+            )
+        for finding in sarif_findings:
+            if not isinstance(finding, Mapping):
+                continue
+            rule_id = finding.get("rule_id") or finding.get("ruleId") or "finding"
+            node_id = f"finding:{rule_id}"
+            _ensure_node(node_id, type="finding", severity=finding.get("level"))
+            target = finding.get("raw", {}).get("locations", [{}])[0]
+            component_ref = None
+            if isinstance(target, Mapping):
+                physical = target.get("physicalLocation")
+                if isinstance(physical, Mapping):
+                    artifact = physical.get("artifactLocation", {})
+                    if isinstance(artifact, Mapping):
+                        component_ref = artifact.get("uri")
+            if component_ref and component_ref in nodes:
+                _add_edge(component_ref, node_id, "affected_by")
+        for record in cve_records:
+            if not isinstance(record, Mapping):
+                continue
+            cve_id = record.get("cve_id") or record.get("cveID")
+            if not cve_id:
+                continue
+            node_id = f"cve:{cve_id}"
+            _ensure_node(node_id, type="cve", severity=record.get("severity"))
+            affected = record.get("components") or []
+            for component in affected:
+                if component and component in nodes:
+                    _add_edge(component, node_id, "referenced_by")
+        for exposure in cnapp_exposures:
+            if not isinstance(exposure, Mapping):
+                continue
+            asset = exposure.get("asset") or exposure.get("id")
+            if asset and asset in nodes:
+                traits = exposure.get("traits") or []
+                node_traits = nodes[asset].setdefault("traits", [])
+                for trait in traits:
+                    if trait not in node_traits:
+                        node_traits.append(trait)
+
+        node_count = len(nodes)
+        edge_count = len(edges)
+        density = 0.0
+        if node_count > 1:
+            density = round(edge_count / (node_count * (node_count - 1)), 3)
+
+        degree: Dict[str, int] = {key: 0 for key in nodes}
+        for source, target, _ in edges:
+            degree[source] = degree.get(source, 0) + 1
+            degree[target] = degree.get(target, 0) + 1
+        normaliser = max(1, node_count - 1)
+        centrality = {
+            node: round(weight / normaliser, 3) for node, weight in degree.items()
+        }
+        top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:5]
+        return {
+            "metrics": {"nodes": node_count, "edges": edge_count, "density": density},
             "top_centrality": top_nodes,
             "generated_at": datetime.utcnow().isoformat() + "Z",
         }
