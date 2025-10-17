@@ -29,7 +29,7 @@ jobs:
           source .venv/bin/activate
           uvicorn apps.api.app:create_app --factory --reload &
           API_PID=$!
-          sleep 2
+          sleep 10
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/design.csv;type=text/csv" http://127.0.0.1:8000/inputs/design
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/sbom.cdx.json;type=application/json" http://127.0.0.1:8000/inputs/sbom
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/cve.json;type=application/json" http://127.0.0.1:8000/inputs/cve
