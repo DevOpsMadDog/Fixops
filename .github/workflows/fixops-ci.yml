@@ -24,12 +24,13 @@ jobs:
           python -m compileall backend fixops simulations tests
       - name: API push-ingestion regression
         env:
-          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN }}
+          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
+          FIXOPS_DISABLE_TELEMETRY: '1'
         run: |
           source .venv/bin/activate
           uvicorn apps.api.app:create_app --factory --reload &
           API_PID=$!
-          sleep 2
+          sleep 10
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/design.csv;type=text/csv" http://127.0.0.1:8000/inputs/design
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/sbom.cdx.json;type=application/json" http://127.0.0.1:8000/inputs/sbom
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/cve.json;type=application/json" http://127.0.0.1:8000/inputs/cve
@@ -40,10 +41,10 @@ jobs:
           kill $API_PID
       - name: CLI enterprise
         env:
-          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN }}
-          FIXOPS_JIRA_ENDPOINT: ${{ secrets.FIXOPS_JIRA_ENDPOINT }}
-          FIXOPS_JIRA_TOKEN: ${{ secrets.FIXOPS_JIRA_TOKEN }}
-          FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY }}
+          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
+          FIXOPS_JIRA_ENDPOINT: ${{ secrets.FIXOPS_JIRA_ENDPOINT || '' }}
+          FIXOPS_JIRA_TOKEN: ${{ secrets.FIXOPS_JIRA_TOKEN || 'demo-jira-token' }}
+          FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
         run: |
           source .venv/bin/activate
           python -m fixops.cli run \
@@ -55,7 +56,8 @@ jobs:
             --evidence-dir out/evidence --output out/pipeline-enterprise.json --pretty
       - name: Operations steady-state
         env:
-          FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY }}
+          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
+          FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
         run: |
           source .venv/bin/activate
           python -m fixops.cli run \
