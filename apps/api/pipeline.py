@@ -42,6 +42,7 @@ from .normalizers import (
     NormalizedVEX,
 )
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
+_SEVERITY_INDEX_MAP = {severity: idx for idx, severity in enumerate(_SEVERITY_ORDER)}
 _SARIF_LEVEL_MAP = {
     None: "low",
     "": "low",
@@ -188,10 +189,7 @@ class PipelineOrchestrator:
 
     @staticmethod
     def _severity_index(severity: str) -> int:
-        try:
-            return _SEVERITY_ORDER.index(severity)
-        except ValueError:
-            return _SEVERITY_ORDER.index("medium")
+        return _SEVERITY_INDEX_MAP.get(severity, _SEVERITY_INDEX_MAP["medium"])
 
     @staticmethod
     def _normalise_cve_severity(record: CVERecordSummary) -> str:
