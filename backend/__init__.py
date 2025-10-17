@@ -1,4 +1,3 @@
-"""Compat package exposing the FastAPI factory for uvicorn."""
-from .app import create_app
+"""Compat package for backend modules."""
 
-__all__ = ["create_app"]
+__all__ = []
