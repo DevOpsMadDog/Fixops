@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
@@ -19,8 +20,77 @@ _COUNTER = get_meter("fixops.provenance").create_counter(
 )
 
 
+def _now() -> datetime:
+    seed = os.getenv("FIXOPS_TEST_SEED")
+    if seed:
+        normalized_seed = seed.replace("Z", "+00:00")
+        seeded = datetime.fromisoformat(normalized_seed)
+        if seeded.tzinfo is None:
+            seeded = seeded.replace(tzinfo=timezone.utc)
+        else:
+            seeded = seeded.astimezone(timezone.utc)
+        return seeded
+    return datetime.now(timezone.utc)
+
+
 class ProvenanceVerificationError(Exception):
     """Raised when provenance verification fails."""
+
+
+def _normalise_subject_name(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        relative = resolved.relative_to(Path.cwd())
+    except ValueError:
+        relative = resolved
+    return relative.as_posix()
+
+
+def _validate_schema(payload: Mapping[str, Any]) -> None:
+    required_fields = {
+        "slsaVersion",
+        "builder",
+        "buildType",
+        "source",
+        "metadata",
+        "subject",
+    }
+    missing = [field for field in required_fields if field not in payload]
+    if missing:
+        raise ProvenanceVerificationError(
+            f"Attestation missing required fields: {', '.join(sorted(missing))}"
+        )
+
+    if not isinstance(payload.get("subject"), Sequence) or not payload["subject"]:
+        raise ProvenanceVerificationError("Attestation must include at least one subject")
+
+    for index, subject in enumerate(payload["subject"]):
+        if not isinstance(subject, Mapping):
+            raise ProvenanceVerificationError(
+                f"Subject entry {index} is not a mapping"
+            )
+        name = subject.get("name")
+        digest = subject.get("digest")
+        if not isinstance(name, str) or not name:
+            raise ProvenanceVerificationError(
+                f"Subject entry {index} is missing a valid name"
+            )
+        if not isinstance(digest, Mapping) or "sha256" not in digest:
+            raise ProvenanceVerificationError(
+                f"Subject entry {index} must include a sha256 digest"
+            )
+
+    builder = payload.get("builder", {})
+    if not isinstance(builder, Mapping) or "id" not in builder:
+        raise ProvenanceVerificationError("Builder block must include an 'id'")
+
+    source = payload.get("source", {})
+    if not isinstance(source, Mapping) or "uri" not in source:
+        raise ProvenanceVerificationError("Source block must include a 'uri'")
+
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, Mapping):
+        raise ProvenanceVerificationError("Metadata block must be a mapping")
 
 
 @dataclass(slots=True)
@@ -65,6 +135,7 @@ class ProvenanceAttestation:
     def from_dict(cls, payload: Mapping[str, Any]) -> "ProvenanceAttestation":
         """Hydrate an attestation from a dictionary, validating basic structure."""
 
+        _validate_schema(payload)
         try:
             version = payload["slsaVersion"]
             builder = payload["builder"]
@@ -84,15 +155,15 @@ class ProvenanceAttestation:
             )
 
         subjects = [
-            ProvenanceSubject(name=item["name"], digest=dict(item["digest"]))
+            ProvenanceSubject(name=str(item["name"]), digest=dict(item["digest"]))
             for item in raw_subjects
         ]
         materials = [
             ProvenanceMaterial(
-                uri=item["uri"],
+                uri=str(item["uri"]),
                 digest=dict(item.get("digest", {})) if item.get("digest") else None,
             )
-            for item in raw_materials
+            for item in sorted(raw_materials, key=lambda entry: str(entry.get("uri", "")))
         ]
         return cls(
             slsaVersion=version,
@@ -108,7 +179,7 @@ class ProvenanceAttestation:
 def _ensure_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
     """Return attestation metadata with timestamps ensured."""
 
-    now = datetime.now(timezone.utc)
+    now = _now()
     formatted_now = now.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     defaults: dict[str, Any] = {
         "buildStartedOn": formatted_now,
@@ -144,13 +215,18 @@ def _normalise_materials(materials: Sequence[Mapping[str, Any]] | None) -> list[
     normalised: list[ProvenanceMaterial] = []
     if not materials:
         return normalised
-    for item in materials:
+    for item in sorted(materials, key=lambda entry: str(entry.get("uri", ""))):
         if "uri" not in item:
             raise ValueError("Each material must include a 'uri' field")
         digest_mapping = item.get("digest")
+        raw_uri = item["uri"]
+        if isinstance(raw_uri, str) and "://" not in raw_uri:
+            uri = Path(raw_uri).resolve().as_posix()
+        else:
+            uri = str(raw_uri)
         normalised.append(
             ProvenanceMaterial(
-                uri=str(item["uri"]),
+                uri=uri,
                 digest=dict(digest_mapping) if digest_mapping else None,
             )
         )
@@ -175,8 +251,9 @@ def generate_attestation(
         span.set_attribute("fixops.source_uri", source_uri)
         digest = compute_sha256(path)
         metadata_block = _ensure_metadata(metadata)
+        subject_name = _normalise_subject_name(path)
         subject = ProvenanceSubject(
-            name=path.name,
+            name=subject_name,
             digest={"sha256": digest},
         )
         attestation = ProvenanceAttestation(
@@ -242,9 +319,21 @@ def verify_attestation(
     statement = load_attestation(attestation)
     path = Path(artefact_path)
     expected_digest = compute_sha256(path)
+    expected_names = {
+        path.name,
+        path.resolve().as_posix(),
+        _normalise_subject_name(path),
+    }
 
     subjects = _expect_field(statement.subject, "subject entry")
-    subject = next((item for item in subjects if item.name == path.name), subjects[0])
+    subject = next(
+        (item for item in subjects if item.name in expected_names),
+        None,
+    )
+    if subject is None:
+        raise ProvenanceVerificationError(
+            "No attestation subject matched the provided artefact"
+        )
     attested_digest = subject.digest.get("sha256")
     if attested_digest != expected_digest:
         raise ProvenanceVerificationError(

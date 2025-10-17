@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -62,7 +63,20 @@ def _handle_score(sbom: str, output: str, epss: str | None, kev: str | None) -> 
 
     report = write_risk_report(sbom, output, epss_scores, kev_catalog)
     component_count = len(report.get("components", []))
+    weights = report.get("weights", {})
+    summary = report.get("summary", {})
     print(f"Wrote risk profile for {component_count} components to {output}")
+    if weights:
+        weight_breakdown = ", ".join(
+            f"{name}={value}" for name, value in sorted(weights.items())
+        )
+        print(f"Risk weight breakdown: {weight_breakdown}")
+    if summary:
+        print(
+            "Summary: highest risk component="
+            f"{summary.get('highest_risk_component')} (score="
+            f"{summary.get('max_risk_score')})"
+        )
     return 0
 
 

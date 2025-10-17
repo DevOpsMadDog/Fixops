@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -233,6 +235,7 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
     generator_components: Dict[str, set[Tuple[str, str, str]]] = defaultdict(set)
     total_components = 0
     sources: List[Dict[str, Any]] = []
+    validation_errors: List[Dict[str, Any]] = []
 
     for raw_path in paths:
         path = Path(raw_path)
@@ -261,14 +264,43 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
             )
             generators = [path.stem]
         for name, version, purl, hashes, licenses in components:
-            identity = _identity_for(purl, version, hashes)
+            normalized_name = name.lower().strip() if isinstance(name, str) else None
+            normalized_version = version.strip() if isinstance(version, str) else None
+            normalized_purl = purl.lower().strip() if isinstance(purl, str) else None
+
+            missing_fields = [
+                field
+                for field, value in (
+                    ("name", normalized_name),
+                    ("version", normalized_version),
+                    ("purl", normalized_purl),
+                )
+                if not value
+            ]
+            if missing_fields:
+                validation_errors.append(
+                    {
+                        "path": str(path),
+                        "generator": generators,
+                        "missing_fields": missing_fields,
+                    }
+                )
+                LOGGER.warning(
+                    "Component missing required fields %s in %s", missing_fields, path
+                )
+
+            identity = _identity_for(normalized_purl, normalized_version, hashes)
             component = aggregated.get(identity)
             if component is None:
-                component = NormalizedComponent(name=name, version=version, purl=purl)
+                component = NormalizedComponent(
+                    name=normalized_name,
+                    version=normalized_version,
+                    purl=normalized_purl,
+                )
                 aggregated[identity] = component
-            component.name = _prefer_value(component.name, name)
-            component.version = _prefer_value(component.version, version)
-            component.purl = _prefer_value(component.purl, purl)
+            component.name = _prefer_value(component.name, normalized_name)
+            component.version = _prefer_value(component.version, normalized_version)
+            component.purl = _prefer_value(component.purl, normalized_purl)
             component.hashes.update({k.upper(): v for k, v in hashes.items()})
             component.licenses.update(licenses)
             component.generators.update(generators)
@@ -285,7 +317,7 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
     )
 
     metadata = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": _now().isoformat(),
         "total_components": total_components,
         "unique_components": len(aggregated),
         "generator_count": len(generator_components),
@@ -293,6 +325,7 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
             generator: ["|".join(identity) for identity in sorted(identities)]
             for generator, identities in generator_components.items()
         },
+        "validation_errors": validation_errors,
     }
 
     return {
@@ -360,8 +393,14 @@ def build_quality_report(normalized: Mapping[str, Any]) -> Dict[str, Any]:
     else:
         variance = round(1.0 - (len(intersection) / len(union)), 4)
 
+    policy_status = "pass"
+    warnings: List[str] = []
+    if coverage < 80:
+        policy_status = "warn"
+        warnings.append("Component coverage below 80 percent")
+
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": _now().isoformat(),
         "unique_components": unique_components,
         "total_components": total_components,
         "metrics": {
@@ -370,6 +409,8 @@ def build_quality_report(normalized: Mapping[str, Any]) -> Dict[str, Any]:
             "resolvability_percent": resolvability,
             "generator_variance_score": variance,
         },
+        "policy_status": policy_status,
+        "warnings": warnings,
     }
 
 
@@ -454,3 +495,19 @@ def build_and_write_quality_outputs(
     report = write_quality_report(normalized, json_destination)
     render_html_report(report, html_destination)
     return report
+LOGGER = logging.getLogger(__name__)
+
+
+def _now() -> datetime:
+    """Return a reproducible timestamp when FIXOPS_TEST_SEED is present."""
+
+    seed = os.getenv("FIXOPS_TEST_SEED")
+    if seed:
+        normalized_seed = seed.replace("Z", "+00:00")
+        seeded = datetime.fromisoformat(normalized_seed)
+        if seeded.tzinfo is None:
+            seeded = seeded.replace(tzinfo=timezone.utc)
+        else:
+            seeded = seeded.astimezone(timezone.utc)
+        return seeded
+    return datetime.now(timezone.utc)
