@@ -5,6 +5,8 @@ import argparse
 import json
 import os
 import sys
+from base64 import b64decode, b64encode
+from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from services.provenance import (
@@ -80,6 +82,14 @@ def build_parser() -> argparse.ArgumentParser:
             "and may provide a 'digest' mapping."
         ),
     )
+    attest_parser.add_argument(
+        "--signing-key",
+        help="Optional path to a PEM-encoded Ed25519 private key for signing",
+    )
+    attest_parser.add_argument(
+        "--signature-out",
+        help="Optional path for the generated signature (defaults to attestation path + .sig)",
+    )
 
     verify_parser = subparsers.add_parser(
         "verify", help="Verify a provenance attestation against an artefact"
@@ -104,8 +114,68 @@ def build_parser() -> argparse.ArgumentParser:
         "--build-type",
         help="Expected build type URI; checked if provided",
     )
+    verify_parser.add_argument(
+        "--signature",
+        help="Optional signature file to verify alongside the attestation",
+    )
+    verify_parser.add_argument(
+        "--public-key",
+        help="Optional PEM-encoded Ed25519 public key matching the signature",
+    )
 
     return parser
+
+
+def _load_private_key(path: str):
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError(
+            "cryptography is required for signing attestations"
+        ) from exc
+
+    data = Path(path).read_bytes()
+    key = serialization.load_pem_private_key(data, password=None)
+    if not isinstance(key, Ed25519PrivateKey):
+        raise RuntimeError("Signing key must be an Ed25519 private key")
+    return key
+
+
+def _load_public_key(path: str):
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError(
+            "cryptography is required for signature verification"
+        ) from exc
+
+    data = Path(path).read_bytes()
+    key = serialization.load_pem_public_key(data)
+    if not isinstance(key, Ed25519PublicKey):
+        raise RuntimeError("Public key must be an Ed25519 key")
+    return key
+
+
+def _sign_attestation(path: Path, signing_key: str, signature_out: str | None) -> Path:
+    key = _load_private_key(signing_key)
+    payload = path.read_bytes()
+    signature = key.sign(payload)
+    destination = Path(signature_out) if signature_out else path.with_suffix(path.suffix + ".sig")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(b64encode(signature).decode("ascii"), encoding="utf-8")
+    return destination
+
+
+def _verify_signature(attestation: Path, signature_path: str, public_key: str) -> None:
+    key = _load_public_key(public_key)
+    payload = attestation.read_bytes()
+    signature_bytes = b64decode(Path(signature_path).read_text(encoding="utf-8"))
+    try:
+        key.verify(signature_bytes, payload)
+    except Exception as exc:  # pragma: no cover - verification failure
+        raise RuntimeError(f"Signature verification failed: {exc}") from exc
 
 
 def _handle_attest(args: argparse.Namespace) -> int:
@@ -120,11 +190,27 @@ def _handle_attest(args: argparse.Namespace) -> int:
     )
     destination = write_attestation(attestation, args.out)
     print(f"Wrote attestation to {destination}")
+    if args.signing_key:
+        try:
+            signature_path = _sign_attestation(Path(destination), args.signing_key, args.signature_out)
+        except Exception as exc:
+            print(f"Failed to sign attestation: {exc}", file=sys.stderr)
+            return 2
+        print(f"Wrote attestation signature to {signature_path}")
     return 0
 
 
 def _handle_verify(args: argparse.Namespace) -> int:
+    if bool(args.signature) != bool(args.public_key):
+        print(
+            "Signature verification requires both --signature and --public-key",
+            file=sys.stderr,
+        )
+        return 2
     try:
+        attestation_path = Path(args.attestation)
+        if args.signature and args.public_key:
+            _verify_signature(attestation_path, args.signature, args.public_key)
         verify_attestation(
             args.attestation,
             artefact_path=args.artifact,
@@ -132,7 +218,7 @@ def _handle_verify(args: argparse.Namespace) -> int:
             source_uri=args.source_uri,
             build_type=args.build_type,
         )
-    except (FileNotFoundError, ProvenanceVerificationError) as exc:
+    except (FileNotFoundError, ProvenanceVerificationError, RuntimeError) as exc:
         print(f"Verification failed: {exc}", file=sys.stderr)
         return 1
     print("Verification succeeded")

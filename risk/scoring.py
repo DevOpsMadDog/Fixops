@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Sequence
@@ -56,6 +58,20 @@ _RISK_COUNTER = _METER.create_counter(
     "fixops_risk_profiles",
     description="Number of risk profiles computed",
 )
+LOGGER = logging.getLogger(__name__)
+
+
+def _now() -> datetime:
+    seed = os.getenv("FIXOPS_TEST_SEED")
+    if seed:
+        normalized_seed = seed.replace("Z", "+00:00")
+        seeded = datetime.fromisoformat(normalized_seed)
+        if seeded.tzinfo is None:
+            seeded = seeded.replace(tzinfo=timezone.utc)
+        else:
+            seeded = seeded.astimezone(timezone.utc)
+        return seeded
+    return datetime.now(timezone.utc)
 
 def _component_key(component: Mapping[str, Any]) -> str:
     purl = component.get("purl")
@@ -186,6 +202,7 @@ def _score_vulnerability(
 ) -> Dict[str, Any] | None:
     cve = vulnerability.get("cve") or vulnerability.get("cve_id") or vulnerability.get("id")
     if not isinstance(cve, str) or not cve:
+        LOGGER.warning("Skipping vulnerability without CVE identifier: %s", vulnerability)
         return None
     cve_id = cve.upper()
 
@@ -282,6 +299,10 @@ def compute_risk_profile(
                     cve_info["components"].append(slug)
             if component_entry["vulnerabilities"]:
                 component_entry["component_risk"] = round(max_score, 2)
+                component_entry["vulnerabilities"] = sorted(
+                    component_entry["vulnerabilities"],
+                    key=lambda item: item["cve"],
+                )
                 components.append(component_entry)
 
         highest_component = max(
@@ -291,7 +312,7 @@ def compute_risk_profile(
         )
 
         report = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": _now().isoformat(),
             "weights": dict(weights),
             "components": sorted(components, key=lambda item: item["id"]),
             "cves": {
@@ -300,7 +321,7 @@ def compute_risk_profile(
                     "max_risk": round(details["max_risk"], 2),
                     "components": sorted(details["components"]),
                 }
-                for cve, details in cve_index.items()
+                for cve, details in sorted(cve_index.items())
             },
         }
         report["summary"] = {
