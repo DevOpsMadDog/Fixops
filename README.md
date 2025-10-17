@@ -307,6 +307,7 @@ pip install -r requirements.txt
 ### 2. Configure credentials & overlays
 - Copy `config/fixops.overlay.yml` and adjust tokens, directories, module toggles, and pricing tiers as needed.
 - Export `FIXOPS_API_TOKEN` (used by API and CLI) and any connector secrets declared in the overlay (e.g., `FIXOPS_JIRA_TOKEN`).
+- **Telemetry configuration**: By default, FixOps attempts to export OpenTelemetry metrics and traces to a collector at `http://collector:4318`. To disable telemetry when running locally without a collector, set `FIXOPS_DISABLE_TELEMETRY=1` in your environment. Alternatively, configure `OTEL_EXPORTER_OTLP_ENDPOINT` to point to your own collector endpoint.
 
 ### 3. Launch the API (demo profile)
 ```bash
