@@ -1,4 +1,12 @@
 """Processing helpers for the enhanced API surface."""
-from .knowledge_graph import KnowledgeGraphProcessor, KnowledgeGraphError
 
-__all__ = ["KnowledgeGraphProcessor", "KnowledgeGraphError"]
+from .explanation import ExplanationError, ExplanationGenerator, RateLimiter
+from .knowledge_graph import KnowledgeGraphError, KnowledgeGraphProcessor
+
+__all__ = [
+    "ExplanationError",
+    "ExplanationGenerator",
+    "RateLimiter",
+    "KnowledgeGraphError",
+    "KnowledgeGraphProcessor",
+]
