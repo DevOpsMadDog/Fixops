@@ -197,7 +197,7 @@ class RunRegistry:
         self, context: RunContext, canonical: str, digest: str, kid: str | None
     ) -> Path:
         context.transparency_index.parent.mkdir(parents=True, exist_ok=True)
-        timestamp = _dt.datetime.utcnow().isoformat() + "Z"
+        timestamp = _dt.datetime.now(_dt.timezone.utc).isoformat().replace('+00:00', 'Z')
         line = f"TS={timestamp} FILE={canonical} SHA256={digest} KID={kid or 'unknown'}\n"
         with context.transparency_index.open("a", encoding="utf-8") as handle:
             handle.write(line)
@@ -219,7 +219,7 @@ class RunRegistry:
     ) -> RunContext:
         normalised = self._normalise_app_id(app_id)
         seed = os.environ.get("FIXOPS_RUN_ID_SEED")
-        timestamp = _dt.datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        timestamp = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
         if seed:
             sanitized = "".join(
                 ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in seed.strip()
@@ -242,7 +242,7 @@ class RunRegistry:
         marker.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "run_id": context.run_id,
-            "updated_at": _dt.datetime.utcnow().isoformat() + "Z",
+            "updated_at": _dt.datetime.now(_dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
         }
         marker.write_text(self._json_dumps(payload), encoding="utf-8")
 

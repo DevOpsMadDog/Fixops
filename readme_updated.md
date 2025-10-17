@@ -107,6 +107,8 @@ Use this checklist to bootstrap local environments, reproduce the original READM
    pip install -r requirements.txt
    pip install -r requirements.dev.txt  # linters, tests, typing helpers
    export PYTHONPATH=$(pwd)
+   # Optional: disable telemetry if not running with a collector
+   export FIXOPS_DISABLE_TELEMETRY=1
    ```
 2. **Run the bootstrap helper (optional but recommended)**
    ```bash
