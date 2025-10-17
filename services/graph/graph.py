@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import subprocess
 from collections import defaultdict
@@ -11,7 +12,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
-import networkx as nx
+try:  # NetworkX provides the richest graph experience but is optional
+    import networkx as nx  # type: ignore[import]
+except Exception:  # pragma: no cover - optional dependency
+    nx = None  # type: ignore[assignment]
+
 from packaging.version import InvalidVersion, Version
 
 from services.provenance.attestation import ProvenanceAttestation, load_attestation
@@ -28,6 +33,8 @@ class GraphSources:
     risk_report: Path | None
     releases_path: Path | None
 
+
+logger = logging.getLogger(__name__)
 
 _TRACER = get_tracer("fixops.graph")
 _METER = get_meter("fixops.graph")
@@ -73,6 +80,97 @@ def _component_slug(component: Mapping[str, Any]) -> str:
     return slug.strip("-") or "component"
 
 
+class _SimpleNodeView:
+    def __init__(self, storage: dict[str, MutableMapping[str, Any]]) -> None:
+        self._storage = storage
+
+    def get(self, node_id: str, default: MutableMapping[str, Any] | None = None) -> MutableMapping[str, Any] | None:
+        return self._storage.get(node_id, default)
+
+    def __getitem__(self, node_id: str) -> MutableMapping[str, Any]:
+        return self._storage[node_id]
+
+    def __iter__(self):
+        return iter(self._storage)
+
+    def items(self):
+        return self._storage.items()
+
+    def __call__(self, data: bool = False):
+        if data:
+            for item in self._storage.items():
+                yield item
+        else:
+            for key in self._storage:
+                yield key
+
+
+class _SimpleEdgeView:
+    def __init__(self, storage: list[tuple[str, str, MutableMapping[str, Any]]]) -> None:
+        self._storage = storage
+
+    def __call__(self, data: bool = False):
+        if data:
+            for source, target, payload in self._storage:
+                yield source, target, payload
+        else:
+            for source, target, _ in self._storage:
+                yield source, target
+
+    def __iter__(self):
+        return self.__call__(data=False)
+
+
+class _SimpleMultiDiGraph:
+    def __init__(self) -> None:
+        self._nodes: dict[str, MutableMapping[str, Any]] = {}
+        self._edges: list[tuple[str, str, MutableMapping[str, Any]]] = []
+        self.nodes = _SimpleNodeView(self._nodes)
+        self.edges = _SimpleEdgeView(self._edges)
+
+    def add_node(self, node_id: str, **attrs: Any) -> None:
+        payload = self._nodes.setdefault(node_id, {})
+        for key, value in attrs.items():
+            if value is not None:
+                payload[key] = value
+
+    def add_edge(self, source: str, target: str, relation: str, **attrs: Any) -> None:
+        payload: MutableMapping[str, Any] = dict(attrs)
+        payload["relation"] = relation
+        self._edges.append((source, target, payload))
+
+    def has_node(self, node_id: str) -> bool:
+        return node_id in self._nodes
+
+    def number_of_nodes(self) -> int:
+        return len(self._nodes)
+
+    def number_of_edges(self) -> int:
+        return len(self._edges)
+
+    def ancestors(self, node_id: str) -> set[str]:
+        visited: set[str] = set()
+        stack = [node_id]
+        while stack:
+            current = stack.pop()
+            for source, target, _ in self._edges:
+                if target == current and source not in visited:
+                    visited.add(source)
+                    stack.append(source)
+        return visited
+
+
+def _ancestors(graph: Any, node_id: str) -> set[str]:
+    if nx is not None:
+        try:
+            return nx.ancestors(graph, node_id)
+        except Exception:  # pragma: no cover - defensive guard
+            return set()
+    if hasattr(graph, "ancestors"):
+        return set(graph.ancestors(node_id))
+    return set()
+
+
 class ProvenanceGraph:
     """Manage a provenance graph persisted in SQLite and exposed via NetworkX."""
 
@@ -99,7 +197,13 @@ class ProvenanceGraph:
             )
             """
         )
-        self.graph = nx.MultiDiGraph()
+        if nx is None:
+            logger.warning(
+                "networkx unavailable; falling back to simplified provenance graph implementation"
+            )
+            self.graph = _SimpleMultiDiGraph()
+        else:
+            self.graph = nx.MultiDiGraph()
 
     def close(self) -> None:
         self.connection.close()
@@ -363,7 +467,7 @@ class ProvenanceGraph:
                     break
             if target_node is None:
                 return {"artifact": artifact_name, "nodes": [], "edges": []}
-            ancestors = nx.ancestors(self.graph, target_node)
+            ancestors = _ancestors(self.graph, target_node)
             relevant = ancestors | {target_node}
             nodes = [
                 {"id": node_id, **self.graph.nodes[node_id]}
