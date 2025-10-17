@@ -13,7 +13,7 @@ from services.evidence.packager import (
     load_policy,
 )
 from services.evidence.store import EvidenceStore
-from evidence.packager import _collect_files
+from evidence.packager import _collect_files, create_bundle
 
 
 def _write_json(path: Path, payload: dict) -> Path:
@@ -188,6 +188,63 @@ def test_evaluate_policy_warn_and_fail() -> None:
     assert evaluations["checks"]["risk_max_risk_score"]["status"] == "warn"
     assert evaluations["checks"]["repro_match"]["status"] == "fail"
     assert evaluations["checks"]["provenance_attestations"]["status"] == "fail"
+
+
+def test_create_bundle_with_namespaced_tag(tmp_path: Path) -> None:
+    tag = "namespace/repo:v1.0.0"
+    normalized = _write_json(
+        tmp_path / "artifacts/sbom/normalized.json", {"components": []}
+    )
+    quality_json = _write_json(
+        tmp_path / "analysis/sbom_quality_report.json",
+        {"metrics": {"coverage_percent": 95.0, "license_coverage_percent": 90.0}},
+    )
+    quality_html = tmp_path / "reports/sbom_quality_report.html"
+    quality_html.parent.mkdir(parents=True, exist_ok=True)
+    quality_html.write_text("<html>quality</html>", encoding="utf-8")
+    risk_report = _write_json(
+        tmp_path / "artifacts/risk.json",
+        {"summary": {"component_count": 2, "cve_count": 1, "max_risk_score": 60.0}},
+    )
+    provenance_dir = tmp_path / "artifacts/attestations"
+    provenance_dir.mkdir(parents=True, exist_ok=True)
+    (provenance_dir / "build.json").write_text("{}", encoding="utf-8")
+    repro_attestation = _write_json(
+        tmp_path / "artifacts/repro/attestations" / f"{tag.replace('/', '_').replace(':', '_')}.json",
+        {"match": True},
+    )
+
+    inputs = BundleInputs(
+        tag=tag,
+        normalized_sbom=normalized,
+        sbom_quality_json=quality_json,
+        sbom_quality_html=quality_html,
+        risk_report=risk_report,
+        provenance_dir=provenance_dir,
+        repro_attestation=repro_attestation,
+        output_dir=tmp_path / "evidence",
+    )
+    manifest = create_bundle(inputs)
+    
+    # Verify the bundle and manifest are created in the namespace directories
+    bundle_path = Path(manifest["bundle_path"])
+    manifest_path = Path(manifest["manifest_path"])
+    
+    # Check that the paths preserve the namespace structure
+    assert bundle_path.parent.name == "repo"
+    assert bundle_path.parent.parent.name == "namespace"
+    assert manifest_path.parent.name == "repo"  
+    assert manifest_path.parent.parent.name == "namespace"
+    
+    # Check that the files exist
+    assert bundle_path.is_file()
+    assert manifest_path.is_file()
+    
+    # Verify manifest contains the full tag
+    import yaml
+    with manifest_path.open("r", encoding="utf-8") as f:
+        manifest_data = yaml.safe_load(f)
+    assert manifest_data["tag"] == tag
 
 
 def test_collect_files_handles_nested_directories(tmp_path: Path) -> None:
