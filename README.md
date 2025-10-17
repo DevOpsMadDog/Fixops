@@ -15,12 +15,14 @@ For a fully reproducible setup run the bootstrap helper (installs runtime + dev 
 ```bash
 $ cp .env.example .env  # update secrets before running services
 $ ./scripts/bootstrap.sh
-$ make fmt lint typecheck test
+$ make fmt lint test
 $ make demo
 $ make demo-enterprise
 ```
 
 The repository ships with a pair of curated fixtures and overlay profiles so you can experience the full pipeline without wiring external systems or secrets.
+
+> **Static typing (optional):** Run `python -m mypy --config-file mypy.ini core apps scripts` after installing the stub packages listed in `dev-requirements.txt`. The command currently surfaces known typing gaps that are being tracked in the backlog; use it to spot regressions when touching the typed modules.
 
 1. **Install dependencies**
 
