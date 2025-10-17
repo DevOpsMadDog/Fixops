@@ -261,11 +261,17 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
         "evaluations": evaluations,
     }
 
-    manifest_path = resolve_within_root(manifest_dir, f"{tag}.yaml")
+    tag_path = Path(tag)
+    tag_manifest_dir = resolve_within_root(manifest_dir, str(tag_path.parent)) if tag_path.parent != Path(".") else manifest_dir
+    tag_bundle_dir = resolve_within_root(bundle_dir, str(tag_path.parent)) if tag_path.parent != Path(".") else bundle_dir
+    tag_manifest_dir.mkdir(parents=True, exist_ok=True)
+    tag_bundle_dir.mkdir(parents=True, exist_ok=True)
+    
+    manifest_path = tag_manifest_dir / f"{tag_path.name}.yaml"
     with manifest_path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(manifest, handle, sort_keys=False)
 
-    bundle_path = resolve_within_root(bundle_dir, f"{tag}.zip")
+    bundle_path = tag_bundle_dir / f"{tag_path.name}.zip"
     with ZipFile(bundle_path, "w") as archive:
         for source, arcname in bundle_files:
             archive.write(source, arcname)
