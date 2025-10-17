@@ -1,4 +1,5 @@
 """Runtime helpers for working with overlay configurations."""
+
 from __future__ import annotations
 
 import os
@@ -43,17 +44,28 @@ def prepare_overlay(
 
     limits = dict(getattr(overlay, "limits", {}) or {})
     evidence_limits = _normalise_evidence_limits(limits)
+    runtime_warnings: List[str] = []
+
     if evidence_limits.get("encrypt"):
         encryption_env = str(evidence_limits.get("encryption_env") or "").strip()
         key_missing = bool(encryption_env and not os.getenv(encryption_env))
         crypto_missing = Fernet is None
         if crypto_missing or key_missing:
             evidence_limits["encrypt"] = False
+            if crypto_missing:
+                runtime_warnings.append(
+                    "Evidence encryption disabled: cryptography library not installed. "
+                    "Install with: pip install cryptography"
+                )
+            if key_missing:
+                runtime_warnings.append(
+                    f"Evidence encryption disabled: {encryption_env} environment variable not set. "
+                    "Evidence bundles will be stored in plaintext."
+                )
     if evidence_limits:
         limits["evidence"] = evidence_limits
         overlay.limits = limits
 
-    runtime_warnings: List[str] = []
     missing_tokens: set[tuple[str, str]] = set()
 
     def _check_token(section: Mapping[str, object], label: str) -> None:

@@ -1,4 +1,5 @@
 """Utilities for running the FixOps pipeline with bundled demo fixtures."""
+
 from __future__ import annotations
 
 import csv
@@ -16,7 +17,6 @@ _DEMO_ENV_DEFAULTS: Dict[str, str] = {
     "FIXOPS_API_TOKEN": "demo-api-token",
     "FIXOPS_JIRA_TOKEN": "demo-jira-token",
     "FIXOPS_CONFLUENCE_TOKEN": "demo-confluence-token",
-    "FIXOPS_EVIDENCE_KEY": "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=",
 }
 
 _FIXTURE_DIR = Path(__file__).resolve().parent.parent / "demo" / "fixtures"
@@ -30,7 +30,11 @@ def _ensure_env_defaults() -> None:
 def _read_design(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
-        rows = [row for row in reader if any((value or "").strip() for value in row.values())]
+        rows = [
+            row
+            for row in reader
+            if any((value or "").strip() for value in row.values())
+        ]
     return {"columns": reader.fieldnames or [], "rows": rows}
 
 

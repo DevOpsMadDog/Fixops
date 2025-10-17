@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 import sys
-from pathlib import Path
-import importlib.util
 from argparse import ArgumentError
+from pathlib import Path
 from typing import Generator, Iterable, Tuple
+
+os.environ.setdefault("FIXOPS_MODE", "demo")
+os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("FIXOPS_JWT_SECRET", "test-jwt-secret-for-testing-only")
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTERPRISE_SRC_ROOT = ROOT / "fixops-enterprise"
@@ -15,7 +20,6 @@ if str(ENTERPRISE_SRC_ROOT) not in sys.path:
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-
 from src.config.settings import get_settings
 
 
@@ -36,7 +40,12 @@ def signing_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
         yield
     finally:
         get_settings.cache_clear()
-        for var in ["FIXOPS_SIGNING_KEY", "FIXOPS_SIGNING_KID", "FIXOPS_API_KEY", "FIXOPS_ALLOWED_ORIGINS"]:
+        for var in [
+            "FIXOPS_SIGNING_KEY",
+            "FIXOPS_SIGNING_KID",
+            "FIXOPS_API_KEY",
+            "FIXOPS_ALLOWED_ORIGINS",
+        ]:
             os.environ.pop(var, None)
 
 
@@ -93,7 +102,7 @@ class SimpleCoverage:
                         stripped = line.strip()
                         if not stripped or stripped.startswith("#"):
                             continue
-                        if stripped.startswith("\"\"\"") or stripped.startswith("'''"):
+                        if stripped.startswith('"""') or stripped.startswith("'''"):
                             continue
                         if "# pragma: no cover" in stripped:
                             continue
@@ -123,11 +132,15 @@ class SimpleCoverage:
         rate = 1.0 if total == 0 else covered / total
         with open(outfile, "w", encoding="utf-8") as handle:
             handle.write("<?xml version='1.0' encoding='UTF-8'?>\n")
-            handle.write(f"<coverage line-rate='{rate:.3f}' branch-rate='0.0' version='simple'/>\n")
+            handle.write(
+                f"<coverage line-rate='{rate:.3f}' branch-rate='0.0' version='simple'/>\n"
+            )
 
 
 def _has_pytest_cov(obj: object) -> bool:
-    plugin_manager = getattr(obj, "pluginmanager", None) or getattr(obj, "_pluginmanager", None)
+    plugin_manager = getattr(obj, "pluginmanager", None) or getattr(
+        obj, "_pluginmanager", None
+    )
     if plugin_manager and plugin_manager.hasplugin("pytest_cov"):
         return True
     return importlib.util.find_spec("pytest_cov") is not None
@@ -145,9 +158,16 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         except ArgumentError:
             return False
 
-    if not _add("--cov", action="append", default=[], help="Coverage targets (paths or modules)"):
+    if not _add(
+        "--cov", action="append", default=[], help="Coverage targets (paths or modules)"
+    ):
         return
-    _add("--cov-branch", action="store_true", default=False, help="Enable branch coverage")
+    _add(
+        "--cov-branch",
+        action="store_true",
+        default=False,
+        help="Enable branch coverage",
+    )
     _add(
         "--cov-fail-under",
         action="store",
@@ -155,7 +175,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         type=float,
         help="Fail if coverage below threshold",
     )
-    _add("--cov-report", action="append", default=[], help="Coverage report types (term, xml)")
+    _add(
+        "--cov-report",
+        action="append",
+        default=[],
+        help="Coverage report types (term, xml)",
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -185,5 +210,6 @@ def pytest_unconfigure(config: pytest.Config) -> None:
         summary = cov.report(show_missing=False, file=open(os.devnull, "w"))
     threshold = config.getoption("--cov-fail-under")
     if threshold is not None and summary < threshold:
-        raise pytest.UsageError(f"Coverage {summary:.2f}% is below fail-under {threshold}%")
-
+        raise pytest.UsageError(
+            f"Coverage {summary:.2f}% is below fail-under {threshold}%"
+        )

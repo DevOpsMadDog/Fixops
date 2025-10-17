@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import csv
-import io
 import importlib.util
+import io
 import logging
 import os
 import secrets
-import uuid
-from datetime import datetime, timedelta
-from contextlib import suppress
-import json
 import shutil
+import uuid
+from contextlib import suppress
+from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
@@ -21,17 +20,16 @@ from fastapi import Body, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
-from core.analytics import AnalyticsStore
-from core.configuration import OverlayConfig, load_overlay
-from core.paths import ensure_secure_directory, verify_allowlisted_path
-from core.storage import ArtefactArchive
-from core.feedback import FeedbackRecorder
-from core.enhanced_decision import EnhancedDecisionEngine
-
+from backend.api.evidence import router as evidence_router
+from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
-from backend.api.graph import router as graph_router
-from backend.api.evidence import router as evidence_router
+from core.analytics import AnalyticsStore
+from core.configuration import OverlayConfig, load_overlay
+from core.enhanced_decision import EnhancedDecisionEngine
+from core.feedback import FeedbackRecorder
+from core.paths import ensure_secure_directory, verify_allowlisted_path
+from core.storage import ArtefactArchive
 from telemetry import configure as configure_telemetry
 
 if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
@@ -56,7 +54,23 @@ logger = logging.getLogger(__name__)
 
 JWT_ALGORITHM = "HS256"
 JWT_EXP_MINUTES = int(os.getenv("FIXOPS_JWT_EXP_MINUTES", "120"))
-JWT_SECRET = os.getenv("FIXOPS_JWT_SECRET") or secrets.token_hex(32)
+
+_jwt_secret_env = os.getenv("FIXOPS_JWT_SECRET")
+if _jwt_secret_env:
+    JWT_SECRET = _jwt_secret_env
+else:
+    mode = os.getenv("FIXOPS_MODE", "").lower()
+    if mode == "demo":
+        JWT_SECRET = secrets.token_hex(32)
+        logger.warning(
+            "JWT_SECRET not set - using auto-generated secret. "
+            "Tokens will be invalid after restart. Set FIXOPS_JWT_SECRET for persistence."
+        )
+    else:
+        raise ValueError(
+            "FIXOPS_JWT_SECRET environment variable must be set in non-demo mode. "
+            "Generate one with: python -c 'import secrets; print(secrets.token_hex(32))'"
+        )
 
 
 def generate_access_token(data: Dict[str, Any]) -> str:
@@ -247,8 +261,8 @@ def create_app() -> FastAPI:
 
         limit = overlay.upload_limit(stage)
         total = 0
-        buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
         try:
+            buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
             while total < limit:
                 remaining = limit - total
                 chunk = await file.read(min(_CHUNK_SIZE, remaining))
@@ -258,10 +272,7 @@ def create_app() -> FastAPI:
                 if total > limit:
                     raise HTTPException(
                         status_code=413,
-                        detail={
-                            "message": f"Upload for stage '{stage}' exceeded limit",
-                            "max_bytes": limit,
-                        },
+                        detail=f"Upload for stage '{stage}' exceeded limit of {limit} bytes",
                     )
                 buffer.write(chunk)
         except Exception:
@@ -327,7 +338,9 @@ def create_app() -> FastAPI:
         "context",
     }
 
-    def _process_design(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+    def _process_design(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
         text_stream = io.TextIOWrapper(
             buffer, encoding="utf-8", errors="ignore", newline=""
         )
@@ -354,28 +367,38 @@ def create_app() -> FastAPI:
             "data": dataset,
         }
 
-    def _process_sbom(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+    def _process_sbom(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
         try:
             sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
         except Exception as exc:  # pragma: no cover - pass to FastAPI
             logger.exception("SBOM normalisation failed")
-            raise HTTPException(status_code=400, detail=f"Failed to parse SBOM: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse SBOM: {exc}"
+            ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
         return {
             "stage": "sbom",
             "input_filename": filename,
             "metadata": sbom.metadata,
-            "component_preview": [component.to_dict() for component in sbom.components[:5]],
+            "component_preview": [
+                component.to_dict() for component in sbom.components[:5]
+            ],
             "format": sbom.format,
         }
 
-    def _process_cve(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+    def _process_cve(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
         try:
             cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
         except Exception as exc:  # pragma: no cover - FastAPI serialises
             logger.exception("CVE feed normalisation failed")
-            raise HTTPException(status_code=400, detail=f"Failed to parse CVE feed: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CVE feed: {exc}"
+            ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
         return {
@@ -385,12 +408,16 @@ def create_app() -> FastAPI:
             "validation_errors": cve_feed.errors,
         }
 
-    def _process_vex(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+    def _process_vex(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
         try:
             vex_doc: NormalizedVEX = normalizer.load_vex(buffer)
         except Exception as exc:
             logger.exception("VEX normalisation failed")
-            raise HTTPException(status_code=400, detail=f"Failed to parse VEX document: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse VEX document: {exc}"
+            ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("vex", vex_doc, original_filename=filename, raw_bytes=raw_bytes)
         return {
@@ -400,27 +427,39 @@ def create_app() -> FastAPI:
             "not_affected": len(vex_doc.suppressed_refs),
         }
 
-    def _process_cnapp(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+    def _process_cnapp(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
         try:
             cnapp_payload: NormalizedCNAPP = normalizer.load_cnapp(buffer)
         except Exception as exc:
             logger.exception("CNAPP normalisation failed")
-            raise HTTPException(status_code=400, detail=f"Failed to parse CNAPP payload: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CNAPP payload: {exc}"
+            ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cnapp", cnapp_payload, original_filename=filename, raw_bytes=raw_bytes)
         return {
             "stage": "cnapp",
             "input_filename": filename,
-            "asset_count": cnapp_payload.metadata.get("asset_count", len(cnapp_payload.assets)),
-            "finding_count": cnapp_payload.metadata.get("finding_count", len(cnapp_payload.findings)),
+            "asset_count": cnapp_payload.metadata.get(
+                "asset_count", len(cnapp_payload.assets)
+            ),
+            "finding_count": cnapp_payload.metadata.get(
+                "finding_count", len(cnapp_payload.findings)
+            ),
         }
 
-    def _process_sarif(buffer: SpooledTemporaryFile, total: int, filename: str) -> Dict[str, Any]:
+    def _process_sarif(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
         try:
             sarif: NormalizedSARIF = normalizer.load_sarif(buffer)
         except Exception as exc:
             logger.exception("SARIF normalisation failed")
-            raise HTTPException(status_code=400, detail=f"Failed to parse SARIF: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse SARIF: {exc}"
+            ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sarif", sarif, original_filename=filename, raw_bytes=raw_bytes)
         return {
@@ -430,12 +469,21 @@ def create_app() -> FastAPI:
             "tools": sarif.tool_names,
         }
 
-    def _process_context(buffer: SpooledTemporaryFile, total: int, filename: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+    def _process_context(
+        buffer: SpooledTemporaryFile,
+        total: int,
+        filename: str,
+        content_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
         try:
-            context: NormalizedBusinessContext = normalizer.load_business_context(buffer, content_type=content_type)
+            context: NormalizedBusinessContext = normalizer.load_business_context(
+                buffer, content_type=content_type
+            )
         except Exception as exc:
             logger.exception("Business context normalisation failed")
-            raise HTTPException(status_code=400, detail=f"Failed to parse business context: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse business context: {exc}"
+            ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("context", context, original_filename=filename, raw_bytes=raw_bytes)
         return {
@@ -446,7 +494,13 @@ def create_app() -> FastAPI:
             "components": context.components,
         }
 
-    def _process_from_buffer(stage: str, buffer: SpooledTemporaryFile, total: int, filename: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+    def _process_from_buffer(
+        stage: str,
+        buffer: SpooledTemporaryFile,
+        total: int,
+        filename: str,
+        content_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
         if stage == "design":
             return _process_design(buffer, total, filename)
         if stage == "sbom":
@@ -463,7 +517,9 @@ def create_app() -> FastAPI:
             return _process_context(buffer, total, filename, content_type)
         raise HTTPException(status_code=400, detail=f"Unsupported stage '{stage}'")
 
-    def _process_from_path(stage: str, path: Path, filename: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+    def _process_from_path(
+        stage: str, path: Path, filename: str, content_type: Optional[str] = None
+    ) -> Dict[str, Any]:
         buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
         try:
             with path.open("rb") as handle:
@@ -579,18 +635,30 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "context")
         try:
-            return _process_context(buffer, total, file.filename or "context.yaml", file.content_type)
+            return _process_context(
+                buffer, total, file.filename or "context.yaml", file.content_type
+            )
         finally:
             with suppress(Exception):
                 buffer.close()
 
     @app.post("/inputs/{stage}/chunks/start", dependencies=[Depends(_verify_api_key)])
-    async def initialise_chunk_upload(stage: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    async def initialise_chunk_upload(
+        stage: str, payload: Dict[str, Any] = Body(...)
+    ) -> Dict[str, Any]:
         if stage not in supported_stages:
-            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
-        filename = str(payload.get("file_name") or payload.get("filename") or f"{stage}.bin")
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
+        filename = str(
+            payload.get("file_name") or payload.get("filename") or f"{stage}.bin"
+        )
         try:
-            total_bytes = int(payload.get("total_size")) if payload.get("total_size") is not None else None
+            total_bytes = (
+                int(payload.get("total_size"))
+                if payload.get("total_size") is not None
+                else None
+            )
         except (TypeError, ValueError):
             raise HTTPException(status_code=400, detail="total_size must be an integer")
         checksum = payload.get("checksum")
@@ -604,10 +672,19 @@ def create_app() -> FastAPI:
         )
         return {"status": "initialised", "session": session.to_dict()}
 
-    @app.put("/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)])
-    async def upload_chunk(stage: str, session_id: str, chunk: UploadFile = File(...), offset: Optional[int] = None) -> Dict[str, Any]:
+    @app.put(
+        "/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)]
+    )
+    async def upload_chunk(
+        stage: str,
+        session_id: str,
+        chunk: UploadFile = File(...),
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
         if stage not in supported_stages:
-            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
         data = await chunk.read()
         try:
             session = upload_manager.append_chunk(session_id, data, offset=offset)
@@ -617,10 +694,15 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc))
         return {"status": "chunk_received", "session": session.to_dict()}
 
-    @app.post("/inputs/{stage}/chunks/{session_id}/complete", dependencies=[Depends(_verify_api_key)])
+    @app.post(
+        "/inputs/{stage}/chunks/{session_id}/complete",
+        dependencies=[Depends(_verify_api_key)],
+    )
     async def complete_upload(stage: str, session_id: str) -> Dict[str, Any]:
         if stage not in supported_stages:
-            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
         try:
             session = upload_manager.finalise(session_id)
         except KeyError:
@@ -630,14 +712,20 @@ def create_app() -> FastAPI:
         path = session.path
         if path is None:
             raise HTTPException(status_code=500, detail="Upload payload missing")
-        response = _process_from_path(stage, path, session.filename, session.content_type)
+        response = _process_from_path(
+            stage, path, session.filename, session.content_type
+        )
         response["upload_session"] = session.to_dict()
         return response
 
-    @app.get("/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)])
+    @app.get(
+        "/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)]
+    )
     async def upload_status(stage: str, session_id: str) -> Dict[str, Any]:
         if stage not in supported_stages:
-            raise HTTPException(status_code=404, detail=f"Stage '{stage}' not recognised")
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
         try:
             session = upload_manager.status(session_id)
         except KeyError:
