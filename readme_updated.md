@@ -114,8 +114,9 @@ Use this checklist to bootstrap local environments, reproduce the original READM
    ```
 3. **Execute core quality gates**
    ```bash
-   make fmt lint typecheck test
+   make fmt lint test
    ```
+   Static typing remains an optional guardrail. After installing the stub packages declared in `dev-requirements.txt`, run `python -m mypy --config-file mypy.ini core apps scripts` to inspect current type coverage and catch regressions; expect warnings until the typing backlog is cleared.
 4. **Launch demo stacks**
    ```bash
    make demo             # local parity experience

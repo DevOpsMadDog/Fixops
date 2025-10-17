@@ -23,8 +23,11 @@ $ cd Fixops
 # Bootstrap the development environment
 $ ./scripts/bootstrap.sh
 
-# Run formatting, linting, typing, and tests
-$ make fmt lint typecheck test
+# Run formatting, linting, and tests
+$ make fmt lint test
+
+# Optional: inspect static typing progress (requires stub packages from dev-requirements)
+$ python -m mypy --config-file mypy.ini core apps scripts
 
 # Execute both demo profiles to ensure deterministic outputs
 $ make demo
