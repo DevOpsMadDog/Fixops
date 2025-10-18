@@ -588,7 +588,7 @@ cat enterprise_demo_outputs/complete_pipeline_result.json | jq '.modules.custom.
 ### Step 5: Generate Summary Report
 
 ```bash
-cat > enterprise_demo_outputs/DEMO_SUMMARY_REPORT.md << 'REPORT'
+cat > enterprise_demo_outputs/DEMO_SUMMARY_REPORT.md << REPORT
 # FixOps Enterprise Demo - Summary Report
 
 ## Execution Timestamp
