@@ -1,0 +1,400 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fixops-docker-deployment
+  title: Deploy FixOps with Docker Compose
+  description: |
+    Deploy FixOps Decision Engine using Docker Compose.
+    Supports standalone deployments, development environments, and edge deployments.
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/DevOpsMadDog/Fixops/tree/main/deployment-packs/docker
+  tags:
+    - docker
+    - docker-compose
+    - security
+    - devsecops
+    - fixops
+    - standalone
+spec:
+  owner: platform-engineering
+  type: infrastructure
+  
+  parameters:
+    - title: Deployment Configuration
+      required:
+        - deployment_name
+        - environment
+      properties:
+        deployment_name:
+          title: Deployment Name
+          type: string
+          description: Unique name for this FixOps deployment
+          default: fixops-decision-engine
+          pattern: '^[a-z0-9-]+$'
+        environment:
+          title: Environment
+          type: string
+          description: Target deployment environment
+          enum:
+            - development
+            - staging
+            - production
+          enumNames:
+            - Development
+            - Staging
+            - Production
+        deployment_type:
+          title: Deployment Type
+          type: string
+          description: Type of Docker deployment
+          enum:
+            - standalone
+            - edge
+            - development
+          enumNames:
+            - Standalone Server
+            - Edge Deployment
+            - Development Environment
+          default: standalone
+          
+    - title: FixOps Configuration
+      required:
+        - backend_replicas
+      properties:
+        backend_replicas:
+          title: Backend Replicas
+          type: integer
+          description: Number of backend container replicas
+          default: 1
+          minimum: 1
+          maximum: 5
+        workers:
+          title: Uvicorn Workers
+          type: integer
+          description: Number of Uvicorn worker processes per container
+          default: 4
+          minimum: 1
+          maximum: 16
+        enable_frontend:
+          title: Enable Frontend
+          type: boolean
+          description: Deploy React frontend UI
+          default: true
+        enable_nginx:
+          title: Enable Nginx Reverse Proxy
+          type: boolean
+          description: Deploy Nginx as reverse proxy
+          default: false
+        enable_monitoring:
+          title: Enable Monitoring
+          type: boolean
+          description: Deploy Prometheus and Grafana
+          default: false
+        
+    - title: Network Configuration
+      properties:
+        backend_port:
+          title: Backend Port
+          type: integer
+          description: Host port for backend API
+          default: 8001
+        frontend_port:
+          title: Frontend Port
+          type: integer
+          description: Host port for frontend UI
+          default: 3000
+        nginx_http_port:
+          title: Nginx HTTP Port
+          type: integer
+          description: Host port for Nginx HTTP
+          default: 80
+        nginx_https_port:
+          title: Nginx HTTPS Port
+          type: integer
+          description: Host port for Nginx HTTPS
+          default: 443
+
+  steps:
+    - id: fetch-base
+      name: Fetch FixOps Docker Compose Configuration
+      action: fetch:template
+      input:
+        url: https://github.com/DevOpsMadDog/Fixops/tree/main/deployment-packs/docker
+        targetPath: ./
+        values:
+          deployment_name: ${{ parameters.deployment_name }}
+          environment: ${{ parameters.environment }}
+          deployment_type: ${{ parameters.deployment_type }}
+          backend_replicas: ${{ parameters.backend_replicas }}
+          workers: ${{ parameters.workers }}
+          enable_frontend: ${{ parameters.enable_frontend }}
+          enable_nginx: ${{ parameters.enable_nginx }}
+          enable_monitoring: ${{ parameters.enable_monitoring }}
+          backend_port: ${{ parameters.backend_port }}
+          frontend_port: ${{ parameters.frontend_port }}
+          nginx_http_port: ${{ parameters.nginx_http_port }}
+          nginx_https_port: ${{ parameters.nginx_https_port }}
+
+    - id: create-env-file
+      name: Generate .env Configuration
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./.env
+        content: |
+          # Environment: ${{ parameters.environment }}
+          
+          ENVIRONMENT=${{ parameters.environment }}
+          DEMO_MODE=false
+          AUTH_DISABLED=false
+          LOG_LEVEL=info
+          
+          MONGO_USERNAME=fixops
+          MONGO_PASSWORD=CHANGE_ME_SECURE_PASSWORD
+          REDIS_PASSWORD=CHANGE_ME_REDIS_PASSWORD
+          
+          SECRET_KEY=CHANGE_ME_RANDOM_SECRET_KEY
+          EMERGENT_LLM_KEY=your-emergent-llm-key-here
+          
+          JIRA_TOKEN=
+          CONFLUENCE_TOKEN=
+          
+          BACKEND_PORT=${{ parameters.backend_port }}
+          FRONTEND_PORT=${{ parameters.frontend_port }}
+          MONGO_PORT=27017
+          REDIS_PORT=6379
+          NGINX_HTTP_PORT=${{ parameters.nginx_http_port }}
+          NGINX_HTTPS_PORT=${{ parameters.nginx_https_port }}
+          PROMETHEUS_PORT=9090
+          GRAFANA_PORT=3001
+          
+          FIXOPS_BACKEND_IMAGE=fixops/backend:latest
+          FIXOPS_FRONTEND_IMAGE=fixops/frontend:latest
+          
+          WORKERS=${{ parameters.workers }}
+          BACKEND_REPLICAS=${{ parameters.backend_replicas }}
+          
+          FRONTEND_API_URL=http://localhost:${{ parameters.backend_port }}
+          
+          GRAFANA_USER=admin
+          GRAFANA_PASSWORD=CHANGE_ME_GRAFANA_PASSWORD
+
+    - id: create-deploy-script
+      name: Create Deployment Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./deploy.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "🚀 Deploying FixOps with Docker Compose"
+          echo "========================================"
+          echo "Deployment: ${{ parameters.deployment_name }}"
+          echo "Environment: ${{ parameters.environment }}"
+          echo "Type: ${{ parameters.deployment_type }}"
+          echo ""
+          
+          command -v docker >/dev/null 2>&1 || { echo "❌ docker not found"; exit 1; }
+          command -v docker-compose >/dev/null 2>&1 || { echo "❌ docker-compose not found"; exit 1; }
+          
+          if [ ! -f .env ]; then
+            echo "❌ .env file not found. Copy .env.example and configure it."
+            exit 1
+          fi
+          
+          source .env
+          if [ "$MONGO_PASSWORD" = "CHANGE_ME_SECURE_PASSWORD" ]; then
+            echo "⚠️  Warning: MONGO_PASSWORD not configured"
+          fi
+          if [ "$SECRET_KEY" = "CHANGE_ME_RANDOM_SECRET_KEY" ]; then
+            echo "⚠️  Warning: SECRET_KEY not configured"
+          fi
+          if [ -z "$EMERGENT_LLM_KEY" ] || [ "$EMERGENT_LLM_KEY" = "your-emergent-llm-key-here" ]; then
+            echo "⚠️  Warning: EMERGENT_LLM_KEY not configured"
+          fi
+          
+          PROFILES=""
+          {% if parameters.enable_frontend %}
+          PROFILES="$PROFILES --profile frontend"
+          {% endif %}
+          {% if parameters.enable_nginx %}
+          PROFILES="$PROFILES --profile nginx"
+          {% endif %}
+          {% if parameters.enable_monitoring %}
+          PROFILES="$PROFILES --profile monitoring"
+          {% endif %}
+          
+          echo "📥 Pulling Docker images..."
+          docker-compose pull
+          
+          echo "🚀 Starting services..."
+          docker-compose $PROFILES up -d
+          
+          echo "⏳ Waiting for services to be healthy..."
+          sleep 10
+          
+          echo ""
+          echo "📊 Service Status:"
+          docker-compose ps
+          
+          echo ""
+          echo "✅ FixOps deployed successfully!"
+          echo ""
+          echo "🌐 Access Information:"
+          echo "Backend API: http://localhost:${{ parameters.backend_port }}"
+          {% if parameters.enable_frontend %}
+          echo "Frontend UI: http://localhost:${{ parameters.frontend_port }}"
+          {% endif %}
+          {% if parameters.enable_nginx %}
+          echo "Nginx Proxy: http://localhost:${{ parameters.nginx_http_port }}"
+          {% endif %}
+          {% if parameters.enable_monitoring %}
+          echo "Prometheus: http://localhost:9090"
+          echo "Grafana: http://localhost:3001"
+          {% endif %}
+          
+          echo ""
+          echo "🧪 Validation Commands:"
+          echo "docker-compose logs -f fixops-backend"
+          echo "curl http://localhost:${{ parameters.backend_port }}/health"
+
+    - id: create-stop-script
+      name: Create Stop Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./stop.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "🛑 Stopping FixOps services..."
+          docker-compose down
+          
+          echo "✅ Services stopped"
+
+    - id: create-destroy-script
+      name: Create Destroy Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./destroy.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "⚠️  Destroying FixOps deployment"
+          echo "================================"
+          echo "This will remove all containers and volumes (DATA WILL BE LOST)"
+          echo ""
+          
+          read -p "Are you sure you want to destroy this deployment? (yes/no): " confirm
+          if [ "$confirm" != "yes" ]; then
+            echo "❌ Destroy cancelled"
+            exit 0
+          fi
+          
+          echo "🗑️  Removing containers and volumes..."
+          docker-compose down -v
+          
+          echo "✅ FixOps deployment destroyed"
+
+    - id: create-backup-script
+      name: Create Backup Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./backup.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          BACKUP_DIR="./backups/$(date +%Y%m%d_%H%M%S)"
+          mkdir -p "$BACKUP_DIR"
+          
+          echo "💾 Backing up FixOps data..."
+          echo "Backup directory: $BACKUP_DIR"
+          
+          echo "📦 Backing up MongoDB..."
+          docker-compose exec -T mongodb mongodump --archive > "$BACKUP_DIR/mongodb.archive"
+          
+          echo "📦 Backing up volumes..."
+          docker run --rm -v fixops_evidence_data:/data -v $(pwd)/$BACKUP_DIR:/backup alpine tar czf /backup/evidence.tar.gz /data
+          
+          echo "✅ Backup completed: $BACKUP_DIR"
+
+    - id: create-catalog-info
+      name: Create Backstage Catalog Entry
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./catalog-info.yaml
+        content: |
+          apiVersion: backstage.io/v1alpha1
+          kind: Component
+          metadata:
+            name: ${{ parameters.deployment_name }}
+            title: FixOps ${{ parameters.environment | title }} (Docker)
+            description: FixOps Decision Engine deployed with Docker Compose via Backstage
+            annotations:
+              backstage.io/techdocs-ref: dir:.
+              fixops.io/deployment-type: docker-compose
+              fixops.io/api-url: http://localhost:${{ parameters.backend_port }}
+              docker.io/compose-file: docker-compose.yml
+            tags:
+              - docker
+              - docker-compose
+              - security
+              - devsecops
+              - ${{ parameters.environment }}
+              - ${{ parameters.deployment_type }}
+            links:
+              - url: http://localhost:${{ parameters.backend_port }}
+                title: FixOps API
+                icon: web
+              {% if parameters.enable_frontend %}
+              - url: http://localhost:${{ parameters.frontend_port }}
+                title: FixOps UI
+                icon: web
+              {% endif %}
+              - url: https://github.com/DevOpsMadDog/Fixops
+                title: FixOps Repository
+                icon: github
+          spec:
+            type: service
+            lifecycle: ${{ parameters.environment }}
+            owner: platform-engineering
+            system: security-platform
+            providesApis:
+              - fixops-decision-api
+              - fixops-cicd-api
+
+    - id: publish
+      name: Publish to Git Repository
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=DevOpsMadDog&repo=fixops-docker-${{ parameters.deployment_name }}
+        description: FixOps Docker Compose deployment for ${{ parameters.environment }}
+        visibility: private
+        defaultBranch: main
+
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Docker Compose File
+        url: ${{ steps.publish.output.remoteUrl }}/blob/main/docker-compose.yml
+      - title: Deployment Script
+        url: ${{ steps.publish.output.remoteUrl }}/blob/main/deploy.sh
+      - title: README
+        url: ${{ steps.publish.output.remoteUrl }}/blob/main/README.md
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

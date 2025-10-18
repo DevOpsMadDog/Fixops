@@ -1,0 +1,327 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fixops-aws-deployment
+  title: Deploy FixOps to AWS EKS
+  description: |
+    Deploy FixOps Decision Engine to AWS EKS cluster using Terraform.
+    Provisions EKS resources, EBS storage, ALB ingress, and monitoring.
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/DevOpsMadDog/Fixops/tree/main/deployment-packs/aws
+  tags:
+    - aws
+    - eks
+    - terraform
+    - security
+    - devsecops
+    - fixops
+spec:
+  owner: platform-engineering
+  type: infrastructure
+  
+  parameters:
+    - title: AWS Configuration
+      required:
+        - deployment_name
+        - environment
+        - aws_region
+        - cluster_name
+      properties:
+        deployment_name:
+          title: Deployment Name
+          type: string
+          description: Unique name for this FixOps deployment
+          default: fixops-decision-engine
+          pattern: '^[a-z0-9-]+$'
+        environment:
+          title: Environment
+          type: string
+          description: Target deployment environment
+          enum:
+            - development
+            - staging
+            - production
+          enumNames:
+            - Development
+            - Staging
+            - Production
+        aws_region:
+          title: AWS Region
+          type: string
+          description: AWS region for deployment
+          enum:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+            - eu-west-1
+            - eu-central-1
+            - ap-southeast-1
+            - ap-northeast-1
+          default: us-east-1
+        cluster_name:
+          title: EKS Cluster Name
+          type: string
+          description: Existing EKS cluster name
+        vpc_id:
+          title: VPC ID
+          type: string
+          description: VPC ID where EKS cluster is deployed
+        subnet_ids:
+          title: Subnet IDs
+          type: string
+          description: Comma-separated subnet IDs for EKS
+        domain_name:
+          title: Domain Name
+          type: string
+          description: Domain name for FixOps (e.g., example.com)
+          
+    - title: FixOps Configuration
+      required:
+        - backend_replicas
+        - storage_size
+      properties:
+        backend_replicas:
+          title: Backend Replicas
+          type: integer
+          description: Number of backend replicas for high availability
+          default: 3
+          minimum: 1
+          maximum: 10
+        storage_size:
+          title: Evidence Lake Storage
+          type: string
+          description: Persistent storage size for audit data
+          default: 10Gi
+          enum: [10Gi, 50Gi, 100Gi, 500Gi, 1Ti]
+        enable_monitoring:
+          title: Enable Monitoring
+          type: boolean
+          description: Deploy Prometheus/Grafana monitoring stack
+          default: true
+        enable_autoscaling:
+          title: Enable Autoscaling
+          type: boolean
+          description: Enable horizontal pod autoscaling
+          default: true
+        
+    - title: Terraform State
+      required:
+        - terraform_state_bucket
+        - terraform_lock_table
+      properties:
+        terraform_state_bucket:
+          title: Terraform State S3 Bucket
+          type: string
+          description: S3 bucket for Terraform state storage
+        terraform_lock_table:
+          title: Terraform Lock DynamoDB Table
+          type: string
+          description: DynamoDB table for state locking
+
+  steps:
+    - id: fetch-base
+      name: Fetch FixOps Terraform Module
+      action: fetch:template
+      input:
+        url: https://github.com/DevOpsMadDog/Fixops/tree/main/deployment-packs/aws/terraform
+        targetPath: ./terraform
+        values:
+          deployment_name: ${{ parameters.deployment_name }}
+          environment: ${{ parameters.environment }}
+          aws_region: ${{ parameters.aws_region }}
+          cluster_name: ${{ parameters.cluster_name }}
+          vpc_id: ${{ parameters.vpc_id }}
+          subnet_ids: ${{ parameters.subnet_ids }}
+          domain_name: ${{ parameters.domain_name }}
+          backend_replicas: ${{ parameters.backend_replicas }}
+          storage_size: ${{ parameters.storage_size }}
+          enable_monitoring: ${{ parameters.enable_monitoring }}
+          enable_autoscaling: ${{ parameters.enable_autoscaling }}
+          terraform_state_bucket: ${{ parameters.terraform_state_bucket }}
+          terraform_lock_table: ${{ parameters.terraform_lock_table }}
+
+    - id: create-tfvars
+      name: Generate terraform.tfvars
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./terraform/terraform.tfvars
+        content: |
+          deployment_name         = "${{ parameters.deployment_name }}"
+          environment             = "${{ parameters.environment }}"
+          aws_region              = "${{ parameters.aws_region }}"
+          cluster_name            = "${{ parameters.cluster_name }}"
+          vpc_id                  = "${{ parameters.vpc_id }}"
+          subnet_ids              = ["${{ parameters.subnet_ids | replace(',', '","') }}"]
+          domain_name             = "${{ parameters.domain_name }}"
+          backend_replicas        = ${{ parameters.backend_replicas }}
+          storage_size            = "${{ parameters.storage_size }}"
+          enable_monitoring       = ${{ parameters.enable_monitoring }}
+          enable_autoscaling      = ${{ parameters.enable_autoscaling }}
+          terraform_state_bucket  = "${{ parameters.terraform_state_bucket }}"
+          terraform_lock_table    = "${{ parameters.terraform_lock_table }}"
+          
+          tags = {
+            "ManagedBy"   = "Backstage"
+            "Owner"       = "platform-engineering"
+            "Application" = "FixOps"
+          }
+
+    - id: create-deploy-script
+      name: Create Deployment Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./deploy.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "🚀 Deploying FixOps to AWS EKS"
+          echo "================================"
+          echo "Deployment: ${{ parameters.deployment_name }}"
+          echo "Environment: ${{ parameters.environment }}"
+          echo "Region: ${{ parameters.aws_region }}"
+          echo "Cluster: ${{ parameters.cluster_name }}"
+          echo ""
+          
+          command -v terraform >/dev/null 2>&1 || { echo "❌ terraform not found"; exit 1; }
+          command -v aws >/dev/null 2>&1 || { echo "❌ aws cli not found"; exit 1; }
+          command -v kubectl >/dev/null 2>&1 || { echo "❌ kubectl not found"; exit 1; }
+          
+          echo "🔧 Configuring kubectl for EKS cluster..."
+          aws eks update-kubeconfig --region ${{ parameters.aws_region }} --name ${{ parameters.cluster_name }}
+          
+          cd terraform/
+          
+          echo "🔧 Initializing Terraform..."
+          terraform init \
+            -backend-config="bucket=${{ parameters.terraform_state_bucket }}" \
+            -backend-config="key=fixops/${{ parameters.environment }}/terraform.tfstate" \
+            -backend-config="region=${{ parameters.aws_region }}" \
+            -backend-config="dynamodb_table=${{ parameters.terraform_lock_table }}"
+          
+          echo "✅ Validating Terraform configuration..."
+          terraform validate
+          
+          # Plan deployment
+          echo "📋 Planning deployment..."
+          terraform plan \
+            -var="emergent_llm_key=$EMERGENT_LLM_KEY" \
+            -out=fixops.plan
+          
+          # Apply deployment
+          echo "🚀 Applying deployment..."
+          terraform apply -auto-approve fixops.plan
+          
+          echo ""
+          echo "✅ FixOps deployed successfully to AWS EKS!"
+          echo ""
+          echo "🌐 Access Information:"
+          terraform output
+          
+          echo ""
+          echo "🧪 Validation Commands:"
+          echo "kubectl get pods -n $(terraform output -raw namespace)"
+          echo "kubectl get svc -n $(terraform output -raw namespace)"
+          echo "curl $(terraform output -raw fixops_api_url)/health"
+
+    - id: create-destroy-script
+      name: Create Destroy Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./destroy.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "⚠️  Destroying FixOps deployment from AWS EKS"
+          echo "=============================================="
+          echo "Deployment: ${{ parameters.deployment_name }}"
+          echo "Environment: ${{ parameters.environment }}"
+          echo ""
+          
+          read -p "Are you sure you want to destroy this deployment? (yes/no): " confirm
+          if [ "$confirm" != "yes" ]; then
+            echo "❌ Destroy cancelled"
+            exit 0
+          fi
+          
+          cd terraform/
+          
+          echo "🗑️  Destroying infrastructure..."
+          terraform destroy -auto-approve \
+            -var="emergent_llm_key=$EMERGENT_LLM_KEY"
+          
+          echo "✅ FixOps deployment destroyed"
+
+    - id: create-catalog-info
+      name: Create Backstage Catalog Entry
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./catalog-info.yaml
+        content: |
+          apiVersion: backstage.io/v1alpha1
+          kind: Component
+          metadata:
+            name: ${{ parameters.deployment_name }}
+            title: FixOps ${{ parameters.environment | title }} (AWS)
+            description: FixOps Decision Engine deployed to AWS EKS via Backstage
+            annotations:
+              backstage.io/techdocs-ref: dir:.
+              aws.com/eks-cluster: ${{ parameters.cluster_name }}
+              aws.com/region: ${{ parameters.aws_region }}
+              fixops.io/api-url: https://fixops-${{ parameters.environment }}.${{ parameters.domain_name }}
+              kubernetes.io/namespace: fixops
+              terraform.io/state-bucket: ${{ parameters.terraform_state_bucket }}
+            tags:
+              - aws
+              - eks
+              - security
+              - devsecops
+              - ${{ parameters.environment }}
+              - terraform-managed
+            links:
+              - url: https://fixops-${{ parameters.environment }}.${{ parameters.domain_name }}
+                title: FixOps API
+                icon: web
+              - url: https://console.aws.amazon.com/eks/home?region=${{ parameters.aws_region }}#/clusters/${{ parameters.cluster_name }}
+                title: EKS Console
+                icon: cloud
+          spec:
+            type: service
+            lifecycle: ${{ parameters.environment }}
+            owner: platform-engineering
+            system: security-platform
+            providesApis:
+              - fixops-decision-api
+              - fixops-cicd-api
+
+    - id: publish
+      name: Publish to Git Repository
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=DevOpsMadDog&repo=fixops-aws-${{ parameters.deployment_name }}
+        description: FixOps AWS deployment for ${{ parameters.environment }}
+        visibility: private
+        defaultBranch: main
+
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Terraform Configuration
+        url: ${{ steps.publish.output.remoteUrl }}/tree/main/terraform
+      - title: Deployment Script
+        url: ${{ steps.publish.output.remoteUrl }}/blob/main/deploy.sh
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
