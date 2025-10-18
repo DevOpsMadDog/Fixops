@@ -85,13 +85,9 @@ security_posture:
         - from_port: 443
           to_port: 443
           protocol: "tcp"
-          cidr: "54.187.174.169/32"
-          description: "HTTPS to Stripe API (api.stripe.com)"
-        - from_port: 443
-          to_port: 443
-          protocol: "tcp"
-          cidr: "54.187.205.235/32"
-          description: "HTTPS to Stripe API (backup)"
+          cidr: "0.0.0.0/0"
+          description: "HTTPS egress (required for Stripe API - uses dynamic IP pool)"
+      # PCI DSS 1.3.4 limitation: Stripe uses dynamic IPs. Production should use egress proxy with domain filtering or AWS PrivateLink.
           
     - component: "WAF"
       enabled: true
