@@ -47,6 +47,7 @@ from .normalizers import (
     NormalizedVEX,
 )
 from .pipeline import PipelineOrchestrator
+from .rate_limiter import create_rate_limiter
 from .routes.enhanced import router as enhanced_router
 from .upload_manager import ChunkUploadManager
 
@@ -157,6 +158,19 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+    
+    # Add rate limiting middleware
+    rate_limit_enabled = os.getenv("FIXOPS_RATE_LIMIT_ENABLED", "true").lower() == "true"
+    rate_limit_requests = int(os.getenv("FIXOPS_RATE_LIMIT_REQUESTS", "100"))
+    rate_limit_window = int(os.getenv("FIXOPS_RATE_LIMIT_WINDOW_SECONDS", "60"))
+    
+    app.add_middleware(
+        create_rate_limiter(
+            requests_per_window=rate_limit_requests,
+            window_seconds=rate_limit_window,
+            enabled=rate_limit_enabled
+        )
     )
 
     normalizer = InputNormalizer()
