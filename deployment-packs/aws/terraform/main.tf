@@ -17,11 +17,8 @@ terraform {
   }
   
   backend "s3" {
-    bucket = var.terraform_state_bucket
-    key    = "fixops/${var.environment}/terraform.tfstate"
-    region = var.aws_region
+    # terraform init -backend-config="bucket=BUCKET" -backend-config="key=fixops/ENV/terraform.tfstate" \
     encrypt = true
-    dynamodb_table = var.terraform_lock_table
   }
 }
 
@@ -147,6 +144,10 @@ data "aws_eks_cluster_auth" "cluster" {
   name = var.cluster_name
 }
 
+data "aws_iam_openid_connect_provider" "eks" {
+  url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
+}
+
 # Kubernetes provider
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.cluster.endpoint
@@ -171,7 +172,13 @@ resource "aws_iam_role" "ebs_csi_driver" {
       Action = "sts:AssumeRoleWithWebIdentity"
       Effect = "Allow"
       Principal = {
-        Federated = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
+        Federated = data.aws_iam_openid_connect_provider.eks.arn
+      }
+      Condition = {
+        StringEquals = {
+          "${replace(data.aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          "${replace(data.aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud" = "sts.amazonaws.com"
+        }
       }
     }]
   })

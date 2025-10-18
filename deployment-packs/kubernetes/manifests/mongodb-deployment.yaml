@@ -50,17 +50,17 @@ spec:
         livenessProbe:
           exec:
             command:
-            - mongosh
-            - --eval
-            - "db.adminCommand('ping')"
+            - sh
+            - -c
+            - mongosh -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --eval "db.adminCommand('ping')"
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
             command:
-            - mongosh
-            - --eval
-            - "db.adminCommand('ping')"
+            - sh
+            - -c
+            - mongosh -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --eval "db.adminCommand('ping')"
           initialDelaySeconds: 10
           periodSeconds: 5
       volumes:

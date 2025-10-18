@@ -152,7 +152,7 @@ spec:
           aws_region              = "${{ parameters.aws_region }}"
           cluster_name            = "${{ parameters.cluster_name }}"
           vpc_id                  = "${{ parameters.vpc_id }}"
-          subnet_ids              = [${{ parameters.subnet_ids.split(',').map(s => '"' + s.trim() + '"').join(', ') }}]
+          subnet_ids              = ["${{ parameters.subnet_ids | replace(',', '","') }}"]
           domain_name             = "${{ parameters.domain_name }}"
           backend_replicas        = ${{ parameters.backend_replicas }}
           storage_size            = "${{ parameters.storage_size }}"
@@ -194,9 +194,12 @@ spec:
           
           cd terraform/
           
-          # Initialize Terraform
           echo "🔧 Initializing Terraform..."
-          terraform init
+          terraform init \
+            -backend-config="bucket=${{ parameters.terraform_state_bucket }}" \
+            -backend-config="key=fixops/${{ parameters.environment }}/terraform.tfstate" \
+            -backend-config="region=${{ parameters.aws_region }}" \
+            -backend-config="dynamodb_table=${{ parameters.terraform_lock_table }}"
           
           echo "✅ Validating Terraform configuration..."
           terraform validate

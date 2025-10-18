@@ -44,15 +44,17 @@ spec:
         livenessProbe:
           exec:
             command:
-            - redis-cli
-            - ping
+            - sh
+            - -c
+            - redis-cli -a "$REDIS_PASSWORD" ping
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           exec:
             command:
-            - redis-cli
-            - ping
+            - sh
+            - -c
+            - redis-cli -a "$REDIS_PASSWORD" ping
           initialDelaySeconds: 5
           periodSeconds: 5
 ---

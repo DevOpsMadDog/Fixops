@@ -197,9 +197,11 @@ spec:
           
           cd terraform/
           
-          # Initialize Terraform
           echo "🔧 Initializing Terraform..."
-          terraform init
+          terraform init \
+            -backend-config="resource_group_name=${{ parameters.terraform_resource_group }}" \
+            -backend-config="storage_account_name=${{ parameters.terraform_storage_account }}" \
+            -backend-config="key=fixops/${{ parameters.environment }}/terraform.tfstate"
           
           echo "✅ Validating Terraform configuration..."
           terraform validate
@@ -249,6 +251,12 @@ spec:
           fi
           
           cd terraform/
+          
+          echo "🔧 Initializing Terraform..."
+          terraform init \
+            -backend-config="resource_group_name=${{ parameters.terraform_resource_group }}" \
+            -backend-config="storage_account_name=${{ parameters.terraform_storage_account }}" \
+            -backend-config="key=fixops/${{ parameters.environment }}/terraform.tfstate"
           
           echo "🗑️  Destroying infrastructure..."
           terraform destroy -auto-approve \

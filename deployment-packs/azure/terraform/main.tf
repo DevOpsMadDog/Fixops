@@ -17,10 +17,7 @@ terraform {
   }
   
   backend "azurerm" {
-    resource_group_name  = var.terraform_resource_group
-    storage_account_name = var.terraform_storage_account
-    container_name       = "tfstate"
-    key                  = "fixops/${var.environment}/terraform.tfstate"
+    container_name = "tfstate"
   }
 }
 
