@@ -732,6 +732,14 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=404, detail=f"Stage '{stage}' not recognised"
             )
+        
+        # Validate offset parameter
+        if offset is not None and offset < 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid offset: {offset}. Offset must be non-negative."
+            )
+        
         data = await chunk.read()
         try:
             session = upload_manager.append_chunk(session_id, data, offset=offset)
