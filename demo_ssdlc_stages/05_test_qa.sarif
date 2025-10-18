@@ -1,0 +1,249 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [{
+    "tool": {
+      "driver": {
+        "name": "FixOps Security Test Suite",
+        "version": "2.1.0",
+        "informationUri": "https://fixops.io/security-testing",
+        "semanticVersion": "2.1.0"
+      }
+    },
+    "automationDetails": {
+      "id": "security-testing/2025-10-17",
+      "guid": "bc9f1e56-8d20-4c93-9e67-3c4a5b7d9f12"
+    },
+    "results": [
+      {
+        "ruleId": "SQL-INJECTION-001",
+        "level": "error",
+        "message": {
+          "text": "Potential SQL injection vulnerability in payment query endpoint"
+        },
+        "locations": [{
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "src/main/java/com/acme/payment/PaymentRepository.java"
+            },
+            "region": {
+              "startLine": 145,
+              "startColumn": 12,
+              "endLine": 145,
+              "endColumn": 68
+            }
+          }
+        }],
+        "properties": {
+          "severity": "high",
+          "cwe": "CWE-89",
+          "owasp": "A03:2021-Injection",
+          "fix_recommendation": "Use parameterized queries instead of string concatenation",
+          "fix_applied": true,
+          "fix_verified": true
+        }
+      },
+      {
+        "ruleId": "XSS-001",
+        "level": "warning",
+        "message": {
+          "text": "Potential cross-site scripting vulnerability in user profile rendering"
+        },
+        "locations": [{
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "src/main/resources/templates/profile.html"
+            },
+            "region": {
+              "startLine": 67,
+              "startColumn": 8
+            }
+          }
+        }],
+        "properties": {
+          "severity": "medium",
+          "cwe": "CWE-79",
+          "owasp": "A03:2021-Injection",
+          "fix_recommendation": "Apply HTML entity encoding to user-supplied data",
+          "fix_applied": true,
+          "fix_verified": true
+        }
+      },
+      {
+        "ruleId": "HARDCODED-SECRET-001",
+        "level": "error",
+        "message": {
+          "text": "Hardcoded API key detected in configuration file"
+        },
+        "locations": [{
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "src/main/resources/application.properties"
+            },
+            "region": {
+              "startLine": 23,
+              "startColumn": 1
+            }
+          }
+        }],
+        "properties": {
+          "severity": "critical",
+          "cwe": "CWE-798",
+          "owasp": "A07:2021-Identification and Authentication Failures",
+          "fix_recommendation": "Move secrets to AWS Secrets Manager",
+          "fix_applied": true,
+          "fix_verified": true
+        }
+      },
+      {
+        "ruleId": "INSECURE-DESERIALIZATION-001",
+        "level": "warning",
+        "message": {
+          "text": "Unsafe deserialization of user-controlled data"
+        },
+        "locations": [{
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "src/main/java/com/acme/session/SessionHandler.java"
+            },
+            "region": {
+              "startLine": 89,
+              "startColumn": 16
+            }
+          }
+        }],
+        "properties": {
+          "severity": "high",
+          "cwe": "CWE-502",
+          "owasp": "A08:2021-Software and Data Integrity Failures",
+          "fix_recommendation": "Use safe serialization with type checking",
+          "fix_applied": true,
+          "fix_verified": true
+        }
+      },
+      {
+        "ruleId": "MISSING-AUTH-CHECK-001",
+        "level": "warning",
+        "message": {
+          "text": "Missing authorization check on admin endpoint"
+        },
+        "locations": [{
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "src/main/java/com/acme/admin/AdminController.java"
+            },
+            "region": {
+              "startLine": 34,
+              "startColumn": 5
+            }
+          }
+        }],
+        "properties": {
+          "severity": "high",
+          "cwe": "CWE-284",
+          "owasp": "A01:2021-Broken Access Control",
+          "fix_recommendation": "Add @PreAuthorize annotation with ROLE_ADMIN check",
+          "fix_applied": true,
+          "fix_verified": true
+        }
+      },
+      {
+        "ruleId": "WEAK-CRYPTO-001",
+        "level": "note",
+        "message": {
+          "text": "Weak cryptographic algorithm SHA-1 detected"
+        },
+        "locations": [{
+          "physicalLocation": {
+            "artifactLocation": {
+              "uri": "src/main/java/com/acme/crypto/HashUtil.java"
+            },
+            "region": {
+              "startLine": 12,
+              "startColumn": 20
+            }
+          }
+        }],
+        "properties": {
+          "severity": "low",
+          "cwe": "CWE-327",
+          "owasp": "A02:2021-Cryptographic Failures",
+          "fix_recommendation": "Upgrade to SHA-256 or SHA-3",
+          "fix_applied": false,
+          "reason": "Used only for non-security checksums"
+        }
+      }
+    ],
+    "invocations": [{
+      "executionSuccessful": true,
+      "properties": {
+        "stage": "test",
+        "test_type": "security",
+        "total_tests": 1247,
+        "tests_passed": 1247,
+        "tests_failed": 0,
+        "coverage_percentage": 87.3,
+        "duration_seconds": 189,
+        "test_suites": [
+          {
+            "name": "Unit Tests",
+            "tests": 384,
+            "passed": 384,
+            "failed": 0,
+            "duration_seconds": 67
+          },
+          {
+            "name": "Integration Tests",
+            "tests": 56,
+            "passed": 56,
+            "failed": 0,
+            "duration_seconds": 124
+          },
+          {
+            "name": "Security Tests",
+            "tests": 127,
+            "passed": 127,
+            "failed": 0,
+            "duration_seconds": 98,
+            "categories": [
+              "Authentication",
+              "Authorization",
+              "Input Validation",
+              "Cryptography",
+              "Session Management"
+            ]
+          },
+          {
+            "name": "Performance Tests",
+            "tests": 45,
+            "passed": 45,
+            "failed": 0,
+            "duration_seconds": 234,
+            "metrics": {
+              "avg_response_time_ms": 67,
+              "p95_response_time_ms": 145,
+              "p99_response_time_ms": 234,
+              "throughput_rps": 1247
+            }
+          },
+          {
+            "name": "Penetration Tests",
+            "tests": 89,
+            "passed": 89,
+            "failed": 0,
+            "duration_seconds": 456,
+            "attack_scenarios": [
+              "SQL Injection",
+              "XSS",
+              "CSRF",
+              "SSRF",
+              "XXE",
+              "Authentication Bypass",
+              "Privilege Escalation"
+            ]
+          }
+        ]
+      }
+    }]
+  }]
+}
