@@ -1,0 +1,259 @@
+# FixOps Docker Compose Deployment Pack
+# Production-ready Docker Compose configuration for FixOps Decision Engine
+
+version: '3.8'
+
+services:
+  # MongoDB for Evidence Lake
+  mongodb:
+    image: mongo:7.0
+    container_name: fixops-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-fixops}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Set MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: fixops_production
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    container_name: fixops-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # FixOps Backend
+  fixops-backend:
+    image: ${FIXOPS_BACKEND_IMAGE:-fixops/backend:latest}
+    container_name: fixops-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Core Configuration
+      FIXOPS_ENVIRONMENT: ${ENVIRONMENT:-production}
+      FIXOPS_DEMO_MODE: ${DEMO_MODE:-false}
+      FIXOPS_AUTH_DISABLED: ${AUTH_DISABLED:-false}
+      FIXOPS_LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+      # Database Configuration
+      MONGO_URL: mongodb://${MONGO_USERNAME:-fixops}:${MONGO_PASSWORD}@mongodb:27017/fixops_production?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      
+      # Security
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-}
+      
+      # Optional Integrations
+      FIXOPS_JIRA_TOKEN: ${JIRA_TOKEN:-}
+      FIXOPS_CONFLUENCE_TOKEN: ${CONFLUENCE_TOKEN:-}
+      
+      # Performance
+      UVICORN_WORKERS: ${WORKERS:-4}
+      UVICORN_HOST: 0.0.0.0
+      UVICORN_PORT: 8001
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    volumes:
+      - evidence_data:/app/data/evidence
+      - uploads_data:/app/data/uploads
+      - ./config:/app/config:ro
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, http.client; conn=http.client.HTTPConnection('localhost', 8001); conn.request('GET', '/health'); sys.exit(0) if conn.getresponse().status == 200 else sys.exit(1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      replicas: ${BACKEND_REPLICAS:-1}
+
+  # FixOps Frontend (Optional)
+  fixops-frontend:
+    image: ${FIXOPS_FRONTEND_IMAGE:-fixops/frontend:latest}
+    container_name: fixops-frontend
+    restart: unless-stopped
+    depends_on:
+      fixops-backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://fixops-backend:8001
+      VITE_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8001}
+      REACT_APP_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8001}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    profiles:
+      - frontend
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: fixops-nginx
+    restart: unless-stopped
+    depends_on:
+      - fixops-backend
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - fixops-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    profiles:
+      - nginx
+
+  # Prometheus Monitoring (Optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fixops-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - fixops-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    profiles:
+      - monitoring
+
+  # Grafana Dashboards (Optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fixops-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?Set GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - fixops-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    profiles:
+      - monitoring
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+  evidence_data:
+    driver: local
+  uploads_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  fixops-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

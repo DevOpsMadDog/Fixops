@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fixops-backend
+  namespace: fixops
+  labels:
+    app.kubernetes.io/name: fixops
+    app.kubernetes.io/component: backend
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fixops-backend-role
+  namespace: fixops
+  labels:
+    app.kubernetes.io/name: fixops
+    app.kubernetes.io/component: backend
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fixops-backend-rolebinding
+  namespace: fixops
+  labels:
+    app.kubernetes.io/name: fixops
+    app.kubernetes.io/component: backend
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fixops-backend-role
+subjects:
+- kind: ServiceAccount
+  name: fixops-backend
+  namespace: fixops
