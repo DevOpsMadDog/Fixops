@@ -261,6 +261,7 @@ def create_app() -> FastAPI:
 
         limit = overlay.upload_limit(stage)
         total = 0
+        buffer = None
         try:
             buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
             while total < limit:
@@ -276,7 +277,8 @@ def create_app() -> FastAPI:
                     )
                 buffer.write(chunk)
         except Exception:
-            buffer.close()
+            if buffer is not None:
+                buffer.close()
             raise
         buffer.seek(0)
         return buffer, total
