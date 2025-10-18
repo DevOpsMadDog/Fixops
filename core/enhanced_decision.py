@@ -1,10 +1,20 @@
 """Multi-LLM consensus helpers powering the enhanced decision endpoints."""
+
 from __future__ import annotations
 
 import hashlib
 import statistics
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+)
 
 from core.llm_providers import (
     AnthropicMessagesProvider,
@@ -15,7 +25,6 @@ from core.llm_providers import (
     OpenAIChatProvider,
     SentinelCyberProvider,
 )
-
 
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 _MITRE_LIBRARY: Dict[str, Dict[str, Any]] = {
@@ -103,7 +112,9 @@ class MultiLLMResult:
             "consensus_confidence": round(self.consensus_confidence, 3),
             "method": self.method,
             "summary": self.summary,
-            "individual_analyses": [analysis.to_dict() for analysis in self.individual_analyses],
+            "individual_analyses": [
+                analysis.to_dict() for analysis in self.individual_analyses
+            ],
             "disagreement_areas": list(self.disagreement_areas),
             "expert_validation_required": self.expert_validation_required,
             "telemetry": dict(self.telemetry),
@@ -115,10 +126,21 @@ class MultiLLMConsensusEngine:
     """Derive deterministic consensus verdicts for enhanced decisions."""
 
     DEFAULT_PROVIDERS = (
-        ProviderSpec("gpt-5", weight=1.0, style="strategist", focus=["mitre", "context"]),
-        ProviderSpec("claude-3", weight=0.95, style="analyst", focus=["compliance", "guardrails"]),
-        ProviderSpec("gemini-2", weight=0.9, style="signals", focus=["exploit", "cnapp"]),
-        ProviderSpec("sentinel-cyber", weight=0.85, style="threat", focus=["marketplace", "agents"]),
+        ProviderSpec(
+            "gpt-5", weight=1.0, style="strategist", focus=["mitre", "context"]
+        ),
+        ProviderSpec(
+            "claude-3", weight=0.95, style="analyst", focus=["compliance", "guardrails"]
+        ),
+        ProviderSpec(
+            "gemini-2", weight=0.9, style="signals", focus=["exploit", "cnapp"]
+        ),
+        ProviderSpec(
+            "sentinel-cyber",
+            weight=0.85,
+            style="threat",
+            focus=["marketplace", "agents"],
+        ),
     )
 
     def __init__(self, settings: Optional[Mapping[str, Any]] = None) -> None:
@@ -137,7 +159,9 @@ class MultiLLMConsensusEngine:
                 for value in entry.get("focus", [])
                 if isinstance(value, str) and value.strip()
             ]
-            providers.append(ProviderSpec(name=name, weight=weight, style=style, focus=focus))
+            providers.append(
+                ProviderSpec(name=name, weight=weight, style=style, focus=focus)
+            )
         self.providers: List[ProviderSpec] = providers or list(self.DEFAULT_PROVIDERS)
         self.knowledge_graph = settings.get(
             "knowledge_graph",
@@ -178,14 +202,20 @@ class MultiLLMConsensusEngine:
         highest = _normalise_severity(severity_overview.get("highest"))
         counts = _as_counter(severity_overview.get("counts"))
         total_findings = sum(counts.values())
-        base_action, base_confidence, mitre_candidates = self._base_profile(highest, total_findings)
+        base_action, base_confidence, mitre_candidates = self._base_profile(
+            highest, total_findings
+        )
         guardrail_status = (guardrail or {}).get("status", "pass")
         compliance_gaps = _extract_compliance_gaps(compliance_status)
         exposures = _extract_exposures(cnapp_summary)
         exploit_stats = _extract_exploit_stats(exploitability)
         agent_components = _extract_agent_components(ai_agent_analysis)
         suppressed = int((noise_reduction or {}).get("suppressed_total", 0))
-        marketplace_focus = [item.get("id") for item in marketplace_recommendations or [] if isinstance(item, Mapping)]
+        marketplace_focus = [
+            item.get("id")
+            for item in marketplace_recommendations or []
+            if isinstance(item, Mapping)
+        ]
         context_details = dict(context_summary or {})
         analysis_context = self._analysis_context(
             context_details,
@@ -267,7 +297,9 @@ class MultiLLMConsensusEngine:
             reasoning = llm_result.reasoning or reasoning
             mitre = list({*mitre, *llm_result.mitre_techniques})[:4]
             attack_vectors = list(llm_result.attack_vectors or attack_vectors)
-            compliance_concerns = list(llm_result.compliance_concerns or compliance_concerns)
+            compliance_concerns = list(
+                llm_result.compliance_concerns or compliance_concerns
+            )
             metadata = dict(llm_result.metadata or {})
             provider_metadata.append({"provider": provider.name, **metadata})
 
@@ -295,7 +327,9 @@ class MultiLLMConsensusEngine:
             )
 
         final_decision = _majority(actions, base_action)
-        consensus_confidence = statistics.fmean(confidences) if confidences else self.baseline_confidence
+        consensus_confidence = (
+            statistics.fmean(confidences) if confidences else self.baseline_confidence
+        )
         if exploit_stats["kev_count"]:
             consensus_confidence += 0.05
         if exposures:
@@ -303,7 +337,9 @@ class MultiLLMConsensusEngine:
         if suppressed:
             consensus_confidence -= 0.02
         consensus_confidence = max(0.45, min(0.99, consensus_confidence))
-        expert_validation = consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
+        expert_validation = (
+            consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
+        )
 
         disagreement = []
         if len(set(actions)) > 1:
@@ -313,14 +349,18 @@ class MultiLLMConsensusEngine:
         if agent_components:
             disagreement.append("ai_agent_components")
 
-        summary = _build_summary(final_decision, consensus_confidence, counts, exposures, exploit_stats)
+        summary = _build_summary(
+            final_decision, consensus_confidence, counts, exposures, exploit_stats
+        )
         signals = self._signals(final_decision, consensus_confidence, exploit_stats)
 
         telemetry = {
             "models_consulted": len(analyses),
             "providers": [analysis.provider for analysis in analyses],
             "provider_modes": provider_metadata,
-            "mean_confidence": round(statistics.fmean(confidences), 3) if confidences else None,
+            "mean_confidence": (
+                round(statistics.fmean(confidences), 3) if confidences else None
+            ),
             "max_processing_time_ms": max_processing,
             "knowledge_graph": self.knowledge_graph_summary,
             "marketplace_references": marketplace_focus,
@@ -338,19 +378,30 @@ class MultiLLMConsensusEngine:
             signals=signals,
         )
 
-    def _build_provider_clients(self, settings: Mapping[str, Any]) -> List[BaseLLMProvider]:
+    def _build_provider_clients(
+        self, settings: Mapping[str, Any]
+    ) -> List[BaseLLMProvider]:
         llm_settings = settings.get("llm", {}) if isinstance(settings, Mapping) else {}
         clients: List[BaseLLMProvider] = []
         for spec in self.providers:
             config: Mapping[str, Any]
             if isinstance(llm_settings, Mapping):
-                config = llm_settings.get(spec.name) or llm_settings.get(spec.name.lower()) or {}
+                config = (
+                    llm_settings.get(spec.name)
+                    or llm_settings.get(spec.name.lower())
+                    or {}
+                )
             else:
                 config = {}
             clients.append(self._provider_from_spec(spec, config))
-        return clients or [DeterministicLLMProvider(spec.name, style=spec.style, focus=spec.focus) for spec in self.providers]
+        return clients or [
+            DeterministicLLMProvider(spec.name, style=spec.style, focus=spec.focus)
+            for spec in self.providers
+        ]
 
-    def _provider_from_spec(self, spec: ProviderSpec, config: Mapping[str, Any]) -> BaseLLMProvider:
+    def _provider_from_spec(
+        self, spec: ProviderSpec, config: Mapping[str, Any]
+    ) -> BaseLLMProvider:
         config = dict(config or {})
         timeout = float(config.get("timeout", 30.0))
         focus = spec.focus
@@ -407,7 +458,9 @@ class MultiLLMConsensusEngine:
             or "unknown-service"
         )
         environment = context_details.get("environment", "production")
-        business_impact = context_details.get("business_impact") or context_details.get("business_context")
+        business_impact = context_details.get("business_impact") or context_details.get(
+            "business_context"
+        )
         return {
             "service_name": service_name,
             "environment": environment,
@@ -425,15 +478,25 @@ class MultiLLMConsensusEngine:
 
     def _build_prompt(self, analysis_context: Mapping[str, Any]) -> str:
         severity_counts = analysis_context.get("severity_counts", {})
-        severity_section = ", ".join(f"{key}:{value}" for key, value in severity_counts.items()) or "none"
+        severity_section = (
+            ", ".join(f"{key}:{value}" for key, value in severity_counts.items())
+            or "none"
+        )
         compliance = analysis_context.get("compliance_gaps", [])
         compliance_text = ", ".join(compliance) if compliance else "none"
         exposures = analysis_context.get("exposures", [])
-        exposure_text = ", ".join(
-            f"{item.get('asset')}:{item.get('type')}" for item in exposures if isinstance(item, Mapping)
-        ) or "none"
+        exposure_text = (
+            ", ".join(
+                f"{item.get('asset')}:{item.get('type')}"
+                for item in exposures
+                if isinstance(item, Mapping)
+            )
+            or "none"
+        )
         exploit = analysis_context.get("exploitability", {})
-        exploit_text = ", ".join(f"{key}:{value}" for key, value in exploit.items()) or "none"
+        exploit_text = (
+            ", ".join(f"{key}:{value}" for key, value in exploit.items()) or "none"
+        )
         agents = analysis_context.get("ai_agents", [])
         agent_text = ", ".join(str(value) for value in agents) or "none"
         return (
@@ -452,10 +515,16 @@ class MultiLLMConsensusEngine:
         )
 
     def evaluate_from_payload(self, payload: Mapping[str, Any]) -> MultiLLMResult:
-        findings = [item for item in payload.get("security_findings", []) if isinstance(item, Mapping)]
+        findings = [
+            item
+            for item in payload.get("security_findings", [])
+            if isinstance(item, Mapping)
+        ]
         counts: MutableMapping[str, int] = {severity: 0 for severity in _SEVERITY_ORDER}
         for finding in findings:
-            severity = _normalise_severity(finding.get("severity") or finding.get("level"))
+            severity = _normalise_severity(
+                finding.get("severity") or finding.get("level")
+            )
             counts[severity] = counts.get(severity, 0) + 1
         highest = _determine_highest(counts)
         severity_overview = {
@@ -463,7 +532,15 @@ class MultiLLMConsensusEngine:
             "counts": dict(counts),
             "sources": {"payload": dict(counts)},
         }
-        guardrail = {"status": "fail" if _SEVERITY_ORDER.index(highest) >= _SEVERITY_ORDER.index("high") else "warn" if highest == "medium" else "pass"}
+        guardrail = {
+            "status": (
+                "fail"
+                if _SEVERITY_ORDER.index(highest) >= _SEVERITY_ORDER.index("high")
+                else "warn"
+                if highest == "medium"
+                else "pass"
+            )
+        }
         context_summary = {
             "service": payload.get("service_name"),
             "environment": payload.get("environment", "production"),
@@ -494,8 +571,16 @@ class MultiLLMConsensusEngine:
 
     @property
     def knowledge_graph_summary(self) -> Dict[str, Any]:
-        nodes = self.knowledge_graph.get("nodes", []) if isinstance(self.knowledge_graph, Mapping) else []
-        edges = self.knowledge_graph.get("edges", []) if isinstance(self.knowledge_graph, Mapping) else []
+        nodes = (
+            self.knowledge_graph.get("nodes", [])
+            if isinstance(self.knowledge_graph, Mapping)
+            else []
+        )
+        edges = (
+            self.knowledge_graph.get("edges", [])
+            if isinstance(self.knowledge_graph, Mapping)
+            else []
+        )
         return {
             "nodes": len(list(nodes)),
             "edges": len(list(edges)),
@@ -514,14 +599,28 @@ class MultiLLMConsensusEngine:
         return "Track"
 
     # internal helpers -------------------------------------------------
-    def _base_profile(self, highest: str, total_findings: int) -> tuple[str, float, List[str]]:
+    def _base_profile(
+        self, highest: str, total_findings: int
+    ) -> tuple[str, float, List[str]]:
         index = _SEVERITY_ORDER.index(highest) if highest in _SEVERITY_ORDER else 0
         if index >= 3:
-            return "block", max(self.baseline_confidence, 0.9), ["T1190", "T1059", "T1078"]
+            return (
+                "block",
+                max(self.baseline_confidence, 0.9),
+                ["T1190", "T1059", "T1078"],
+            )
         if index == 2:
-            return "review", max(self.baseline_confidence - 0.05, 0.78), ["T1059", "T1046", "T1078"]
+            return (
+                "review",
+                max(self.baseline_confidence - 0.05, 0.78),
+                ["T1059", "T1046", "T1078"],
+            )
         if index == 1:
-            return "review", max(self.baseline_confidence - 0.12, 0.7), ["T1046", "T1190"]
+            return (
+                "review",
+                max(self.baseline_confidence - 0.12, 0.7),
+                ["T1046", "T1190"],
+            )
         if total_findings == 0:
             return "allow", 0.6, ["T1046"]
         return "allow", max(self.baseline_confidence - 0.18, 0.65), ["T1046"]
@@ -570,7 +669,15 @@ class MultiLLMConsensusEngine:
                 f"EPSS probability peaked at {exploit_stats['epss_max']:.2f}"
             )
         if exposures:
-            assets = ", ".join(sorted({exposure.get("asset") for exposure in exposures if exposure.get("asset")}))
+            assets = ", ".join(
+                sorted(
+                    {
+                        exposure.get("asset")
+                        for exposure in exposures
+                        if exposure.get("asset")
+                    }
+                )
+            )
             phrases.append(f"CNAPP exposure detected on {assets}")
         if compliance_concerns:
             phrases.append("Compliance gaps open: " + ", ".join(compliance_concerns))
@@ -578,7 +685,9 @@ class MultiLLMConsensusEngine:
             phrases.append("AI-agent surfaces require sentinel oversight")
         if suppressed:
             phrases.append(f"VEX suppressed {suppressed} noisy findings")
-        phrases.append(f"Recommended action: {action.upper()} based on multi-signal weighting")
+        phrases.append(
+            f"Recommended action: {action.upper()} based on multi-signal weighting"
+        )
         return ". ".join(phrases)
 
     def _signals(
@@ -601,6 +710,7 @@ class MultiLLMConsensusEngine:
 # Helper functions
 # ----------------------------------------------------------------------
 
+
 def _normalise_severity(value: Any) -> str:
     text = str(value or "low").strip().lower()
     if text not in _SEVERITY_ORDER:
@@ -610,7 +720,9 @@ def _normalise_severity(value: Any) -> str:
 
 def _as_counter(payload: Any) -> Dict[str, int]:
     if isinstance(payload, Mapping):
-        return {key: int(value) for key, value in payload.items() if isinstance(value, int)}
+        return {
+            key: int(value) for key, value in payload.items() if isinstance(value, int)
+        }
     return {severity: 0 for severity in _SEVERITY_ORDER}
 
 
@@ -694,13 +806,28 @@ def _extract_exploit_stats(summary: Optional[Mapping[str, Any]]) -> Dict[str, An
             "last_updated_epss": None,
             "last_updated_kev": None,
         }
-    overview = summary.get("overview") if isinstance(summary.get("overview"), Mapping) else summary
-    kev_count = int(overview.get("kev_matches") or overview.get("kev_hits") or overview.get("kev_count") or 0)
+    overview = (
+        summary.get("overview")
+        if isinstance(summary.get("overview"), Mapping)
+        else summary
+    )
+    kev_count = int(
+        overview.get("kev_matches")
+        or overview.get("kev_hits")
+        or overview.get("kev_count")
+        or 0
+    )
     epss_records = overview.get("epss_scores") or overview.get("epss") or []
     if isinstance(epss_records, Mapping):
-        epss_values = [float(value) for value in epss_records.values() if isinstance(value, (int, float))]
+        epss_values = [
+            float(value)
+            for value in epss_records.values()
+            if isinstance(value, (int, float))
+        ]
     elif isinstance(epss_records, Iterable):
-        epss_values = [float(value) for value in epss_records if isinstance(value, (int, float))]
+        epss_values = [
+            float(value) for value in epss_records if isinstance(value, (int, float))
+        ]
     else:
         epss_values = []
     epss_count = len(epss_values)
@@ -721,11 +848,17 @@ def _extract_agent_components(summary: Optional[Mapping[str, Any]]) -> List[str]
     if isinstance(analysis, Mapping):
         components = analysis.get("components")
         if isinstance(components, Iterable):
-            return [str(component) for component in components if isinstance(component, str)]
-    summary_section = summary.get("summary") if isinstance(summary.get("summary"), Mapping) else {}
+            return [
+                str(component) for component in components if isinstance(component, str)
+            ]
+    summary_section = (
+        summary.get("summary") if isinstance(summary.get("summary"), Mapping) else {}
+    )
     components = summary_section.get("components_with_agents")
     if isinstance(components, Iterable):
-        return [str(component) for component in components if isinstance(component, str)]
+        return [
+            str(component) for component in components if isinstance(component, str)
+        ]
     if isinstance(components, int) and components > 0:
         return ["detected"]
     return []
@@ -739,12 +872,21 @@ def _build_summary(
     exploit_stats: Mapping[str, Any],
 ) -> str:
     total = sum(counts.values())
-    exposure_assets = ", ".join(sorted({exposure.get("asset") for exposure in exposures if exposure.get("asset")}))
+    exposure_assets = ", ".join(
+        sorted(
+            {exposure.get("asset") for exposure in exposures if exposure.get("asset")}
+        )
+    )
     exposure_text = f" Exposure across {exposure_assets}." if exposure_assets else ""
-    exploit_text = " Known exploited vulnerabilities detected." if exploit_stats.get("kev_count") else ""
+    exploit_text = (
+        " Known exploited vulnerabilities detected."
+        if exploit_stats.get("kev_count")
+        else ""
+    )
     return (
-        f"Consensus {decision.upper()} at {confidence * 100:.1f}% confidence across {total} findings." +
-        exposure_text + exploit_text
+        f"Consensus {decision.upper()} at {confidence * 100:.1f}% confidence across {total} findings."
+        + exposure_text
+        + exploit_text
     )
 
 
@@ -793,12 +935,15 @@ class EnhancedDecisionEngine:
             severity_overview=pipeline_result.get("severity_overview", {}),
             guardrail=pipeline_result.get("guardrail_evaluation"),
             context_summary=context_summary or pipeline_result.get("context_summary"),
-            compliance_status=compliance_status or pipeline_result.get("compliance_status"),
+            compliance_status=compliance_status
+            or pipeline_result.get("compliance_status"),
             cnapp_summary=pipeline_result.get("cnapp_summary"),
             exploitability=pipeline_result.get("exploitability_insights"),
             noise_reduction=pipeline_result.get("noise_reduction"),
             ai_agent_analysis=pipeline_result.get("ai_agent_analysis"),
-            marketplace_recommendations=pipeline_result.get("marketplace_recommendations"),
+            marketplace_recommendations=pipeline_result.get(
+                "marketplace_recommendations"
+            ),
             knowledge_graph=knowledge_graph or pipeline_result.get("knowledge_graph"),
         )
         return self._record(result)
@@ -818,7 +963,9 @@ class EnhancedDecisionEngine:
             "mean_confidence": self._metrics.get("mean_confidence"),
         }
 
-    def signals(self, *, verdict: Optional[str] = None, confidence: Optional[float] = None) -> Dict[str, Any]:
+    def signals(
+        self, *, verdict: Optional[str] = None, confidence: Optional[float] = None
+    ) -> Dict[str, Any]:
         payload = dict(self._last_signals)
         if verdict is not None:
             payload["ssvc_label"] = self.consensus.ssvc_label(verdict, confidence)
@@ -826,7 +973,9 @@ class EnhancedDecisionEngine:
             payload["confidence"] = round(confidence, 3)
         else:
             payload["confidence"] = self._metrics.get("last_confidence")
-        payload["models_consulted"] = self._metrics.get("last_models", len(self.consensus.provider_names))
+        payload["models_consulted"] = self._metrics.get(
+            "last_models", len(self.consensus.provider_names)
+        )
         return payload
 
     # internal ---------------------------------------------------------
@@ -838,7 +987,11 @@ class EnhancedDecisionEngine:
         self._metrics["last_decision"] = payload.get("final_decision")
         self._metrics["last_confidence"] = payload.get("consensus_confidence")
         self._metrics["last_models"] = len(payload.get("individual_analyses", []))
-        confidences = [analysis["confidence"] for analysis in payload.get("individual_analyses", []) if isinstance(analysis, Mapping)]
+        confidences = [
+            analysis["confidence"]
+            for analysis in payload.get("individual_analyses", [])
+            if isinstance(analysis, Mapping)
+        ]
         if confidences:
             self._metrics["mean_confidence"] = round(statistics.fmean(confidences), 3)
         return payload

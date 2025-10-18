@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
-import logging
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 try:  # networkx is optional but preferred for rich graph metrics
@@ -58,7 +58,9 @@ class ProcessingLayer:
     """Combine Bayesian inference, Markov projections, and knowledge graph analytics."""
 
     def __init__(self) -> None:
-        self.pgmpy_available = BayesianNetwork is not None and VariableElimination is not None
+        self.pgmpy_available = (
+            BayesianNetwork is not None and VariableElimination is not None
+        )
         self.pomegranate_available = PomegranateBayes is not None
         self.mchmm_available = mchmm is not None
         self.networkx_available = nx is not None
@@ -116,7 +118,11 @@ class ProcessingLayer:
         if not self.pgmpy_available:
             return {**defaults, "risk": "medium", "confidence": 0.5}
 
-        assert BayesianNetwork is not None and VariableElimination is not None and TabularCPD is not None
+        assert (
+            BayesianNetwork is not None
+            and VariableElimination is not None
+            and TabularCPD is not None
+        )
         model = BayesianNetwork(
             [
                 ("exploitation", "risk"),
@@ -188,7 +194,9 @@ class ProcessingLayer:
         if self.mchmm_available:
             try:
                 chain = mchmm.MarkovChain()
-                states = [record.get("severity", "medium").lower() for record in cve_records]
+                states = [
+                    record.get("severity", "medium").lower() for record in cve_records
+                ]
                 chain.fit([states])
                 forecast = chain.predict(states[-1], n_steps=3)
                 return {
@@ -199,9 +207,13 @@ class ProcessingLayer:
             except Exception:  # pragma: no cover - handle modelling error
                 pass
 
-        severities = [record.get("severity", "medium").lower() for record in cve_records]
+        severities = [
+            record.get("severity", "medium").lower() for record in cve_records
+        ]
         severity_counts = {level: severities.count(level) for level in set(severities)}
-        ordered = sorted(severity_counts.items(), key=lambda item: item[1], reverse=True)
+        ordered = sorted(
+            severity_counts.items(), key=lambda item: item[1], reverse=True
+        )
         projection = [level for level, _ in ordered[:3]]
         return {
             "transitions": severity_counts,
@@ -298,13 +310,17 @@ class ProcessingLayer:
         metrics = {
             "nodes": graph.number_of_nodes(),
             "edges": graph.number_of_edges(),
-            "density": round(nx.density(graph), 3) if graph.number_of_nodes() > 1 else 0.0,
+            "density": (
+                round(nx.density(graph), 3) if graph.number_of_nodes() > 1 else 0.0
+            ),
         }
         try:
             centrality = nx.degree_centrality(graph)
         except Exception:
             centrality = {}
-        top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:5]
+        top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[
+            :5
+        ]
         return {
             "metrics": metrics,
             "top_centrality": top_nodes,
@@ -395,7 +411,9 @@ class ProcessingLayer:
         centrality = {
             node: round(weight / normaliser, 3) for node, weight in degree.items()
         }
-        top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[:5]
+        top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[
+            :5
+        ]
         return {
             "metrics": {"nodes": node_count, "edges": edge_count, "density": density},
             "top_centrality": top_nodes,
@@ -404,4 +422,3 @@ class ProcessingLayer:
 
 
 __all__ = ["ProcessingLayer", "ProcessingLayerResult"]
-

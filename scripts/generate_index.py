@@ -51,7 +51,9 @@ DEFAULT_TARGET_DIRS = [
 ]
 ENV_TARGETS = os.getenv("FIXOPS_INDEX_TARGETS")
 if ENV_TARGETS:
-    TARGET_DIRS: Sequence[str] = [segment.strip() for segment in ENV_TARGETS.split(",") if segment.strip()]
+    TARGET_DIRS: Sequence[str] = [
+        segment.strip() for segment in ENV_TARGETS.split(",") if segment.strip()
+    ]
 else:
     TARGET_DIRS = DEFAULT_TARGET_DIRS
 
@@ -155,7 +157,11 @@ def write_tree(root: Path, destination: Path, max_depth: int = TREE_MAX_DEPTH) -
     def walk(base: Path, depth: int, prefix: str, lines: List[str]) -> None:
         if depth > max_depth:
             return
-        children = [p for p in sorted(base.iterdir(), key=lambda p: p.name) if not should_skip(p)]
+        children = [
+            p
+            for p in sorted(base.iterdir(), key=lambda p: p.name)
+            if not should_skip(p)
+        ]
         for index, child in enumerate(children):
             connector = "└── " if index == len(children) - 1 else "├── "
             lines.append(f"{prefix}{connector}{child.name}")
@@ -179,7 +185,9 @@ def main() -> None:
 
     inventory_rows.sort(key=lambda row: row[0])
 
-    with (INDEX_DIR / "INVENTORY.csv").open("w", newline="", encoding="utf-8") as handle:
+    with (INDEX_DIR / "INVENTORY.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as handle:
         writer = csv.writer(handle)
         writer.writerow(["path", "sloc", "language", "role"])
         writer.writerows(inventory_rows)

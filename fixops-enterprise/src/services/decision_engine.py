@@ -6,10 +6,9 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Mapping
 
 import structlog
-
+from src.services import signing
 from src.services.compliance import ComplianceEngine
 from src.services.evidence import EvidenceRecord, EvidenceStore
-from src.services import signing
 from src.services.marketplace import get_recommendations
 
 
@@ -34,7 +33,11 @@ class DecisionEngine:
         "low": 0.25,
     }
 
-    def __init__(self, evidence_store: EvidenceStore | None = None, compliance_engine: ComplianceEngine | None = None) -> None:
+    def __init__(
+        self,
+        evidence_store: EvidenceStore | None = None,
+        compliance_engine: ComplianceEngine | None = None,
+    ) -> None:
         self._evidence_store = evidence_store or EvidenceStore()
         self._compliance = compliance_engine or ComplianceEngine()
         self._logger = structlog.get_logger()
@@ -49,17 +52,36 @@ class DecisionEngine:
         verdict, confidence = self._score_findings(findings)
         framework_targets = submission.get("frameworks")
         opa_rules = submission.get("opa_rules")
-        opa_input = submission.get("opa_input") or {"findings": findings, "controls": controls}
+        opa_input = submission.get("opa_input") or {
+            "findings": findings,
+            "controls": controls,
+        }
         compliance = self._compliance.evaluate(
             controls,
             frameworks=framework_targets,
             opa_rules=opa_rules,
             opa_input=opa_input,
         )
-        build_report = submission.get("build") if isinstance(submission.get("build"), Mapping) else {}
-        test_report = submission.get("test") if isinstance(submission.get("test"), Mapping) else {}
-        deploy_manifest = submission.get("deploy") if isinstance(submission.get("deploy"), Mapping) else {}
-        operate_snapshot = submission.get("operate") if isinstance(submission.get("operate"), Mapping) else {}
+        build_report = (
+            submission.get("build")
+            if isinstance(submission.get("build"), Mapping)
+            else {}
+        )
+        test_report = (
+            submission.get("test")
+            if isinstance(submission.get("test"), Mapping)
+            else {}
+        )
+        deploy_manifest = (
+            submission.get("deploy")
+            if isinstance(submission.get("deploy"), Mapping)
+            else {}
+        )
+        operate_snapshot = (
+            submission.get("operate")
+            if isinstance(submission.get("operate"), Mapping)
+            else {}
+        )
         compliance_rollup = self._compliance_rollup(deploy_manifest)
         top_factors = self._top_factors(
             findings,
@@ -85,7 +107,9 @@ class DecisionEngine:
         evidence = self._evidence_store.create(evidence_payload)
         manifest = evidence.manifest
         if isinstance(manifest, dict):
-            manifest.setdefault("evidence_url", f"/api/v1/evidence/{evidence.evidence_id}")
+            manifest.setdefault(
+                "evidence_url", f"/api/v1/evidence/{evidence.evidence_id}"
+            )
         self._apply_signature(evidence)
         return DecisionOutcome(
             verdict=verdict,
@@ -97,7 +121,9 @@ class DecisionEngine:
             compliance_rollup=compliance_rollup,
         )
 
-    def _score_findings(self, findings: Iterable[Mapping[str, Any]]) -> tuple[str, float]:
+    def _score_findings(
+        self, findings: Iterable[Mapping[str, Any]]
+    ) -> tuple[str, float]:
         if not findings:
             return "allow", 0.6
         scores = [self._weight(finding) for finding in findings]
@@ -118,7 +144,11 @@ class DecisionEngine:
         except signing.SigningError:
             self._logger.debug("evidence.signing.disabled")
             return
-        kid = signature.get("kid") if isinstance(signature, dict) else signing.get_active_kid()
+        kid = (
+            signature.get("kid")
+            if isinstance(signature, dict)
+            else signing.get_active_kid()
+        )
         alg = signature.get("alg") if isinstance(signature, dict) else signing.ALGORITHM
         self._evidence_store.attach_signature(evidence.evidence_id, signature, kid, alg)
         self._logger.info(
@@ -141,7 +171,9 @@ class DecisionEngine:
     ) -> list[Dict[str, Any]]:
         factors: list[Dict[str, Any]] = []
 
-        severity_factor = self._severity_factor(findings, build_report, test_report, verdict)
+        severity_factor = self._severity_factor(
+            findings, build_report, test_report, verdict
+        )
         if severity_factor:
             factors.append(severity_factor)
 
@@ -173,8 +205,12 @@ class DecisionEngine:
         verdict: str,
     ) -> Dict[str, Any] | None:
         findings_list = list(findings or [])
-        severities = [str(item.get("severity") or "low").lower() for item in findings_list]
-        test_summary = test_report.get("summary") if isinstance(test_report, Mapping) else {}
+        severities = [
+            str(item.get("severity") or "low").lower() for item in findings_list
+        ]
+        test_summary = (
+            test_report.get("summary") if isinstance(test_report, Mapping) else {}
+        )
         if isinstance(test_summary, Mapping):
             for severity in ("critical", "high", "medium", "low"):
                 count = test_summary.get(severity)
@@ -183,7 +219,9 @@ class DecisionEngine:
                     break
         if not severities:
             return None
-        highest = max(severities, key=lambda value: self.SEVERITY_WEIGHTS.get(value, 0.25))
+        highest = max(
+            severities, key=lambda value: self.SEVERITY_WEIGHTS.get(value, 0.25)
+        )
         weight = round(self.SEVERITY_WEIGHTS.get(highest, 0.25), 3)
         total_findings = len(findings_list)
         return {
@@ -198,7 +236,9 @@ class DecisionEngine:
         compliance_rollup: Mapping[str, Any],
     ) -> Dict[str, Any] | None:
         failing_frameworks: list[str] = []
-        framework_summary = compliance.get("frameworks") if isinstance(compliance, Mapping) else {}
+        framework_summary = (
+            compliance.get("frameworks") if isinstance(compliance, Mapping) else {}
+        )
         if isinstance(framework_summary, Mapping):
             for name, stats in framework_summary.items():
                 if isinstance(stats, Mapping) and stats.get("fail"):
@@ -223,13 +263,21 @@ class DecisionEngine:
             "rationale": f"Frameworks requiring remediation: {rationale}.",
         }
 
-    def _exploit_factor(self, operate_snapshot: Mapping[str, Any]) -> Dict[str, Any] | None:
-        kev = operate_snapshot.get("kev_hits") if isinstance(operate_snapshot, Mapping) else []
+    def _exploit_factor(
+        self, operate_snapshot: Mapping[str, Any]
+    ) -> Dict[str, Any] | None:
+        kev = (
+            operate_snapshot.get("kev_hits")
+            if isinstance(operate_snapshot, Mapping)
+            else []
+        )
         pressure = 0.0
         if isinstance(operate_snapshot, Mapping):
             pressure_entries = operate_snapshot.get("pressure_by_service") or []
             for entry in pressure_entries:
-                if isinstance(entry, Mapping) and isinstance(entry.get("pressure"), (int, float)):
+                if isinstance(entry, Mapping) and isinstance(
+                    entry.get("pressure"), (int, float)
+                ):
                     pressure = max(pressure, float(entry.get("pressure")))
         if not kev and pressure <= 0.2:
             return {
@@ -245,7 +293,8 @@ class DecisionEngine:
         return {
             "name": "Exploit pressure",
             "weight": 0.25 if kev else 0.18,
-            "rationale": ", ".join(rationale_parts) or "Telemetry indicates elevated activity.",
+            "rationale": ", ".join(rationale_parts)
+            or "Telemetry indicates elevated activity.",
         }
 
     def _compliance_rollup(self, deploy_manifest: Mapping[str, Any]) -> Dict[str, Any]:
@@ -275,16 +324,25 @@ class DecisionEngine:
     ) -> list[str]:
         failing: list[str] = []
         for evidence in deploy_manifest.get("control_evidence", []) or []:
-            if isinstance(evidence, Mapping) and str(evidence.get("result")).lower() == "fail":
+            if (
+                isinstance(evidence, Mapping)
+                and str(evidence.get("result")).lower() == "fail"
+            ):
                 failing.append(str(evidence.get("control")))
-        controls_section = compliance.get("controls") if isinstance(compliance, Mapping) else []
+        controls_section = (
+            compliance.get("controls") if isinstance(compliance, Mapping) else []
+        )
         for item in controls_section or []:
             if not isinstance(item, Mapping):
                 continue
-            if str(item.get("status")).lower() in {"fail", "failed", "gap", "non_compliant"}:
+            if str(item.get("status")).lower() in {
+                "fail",
+                "failed",
+                "gap",
+                "non_compliant",
+            }:
                 failing.append(str(item.get("control_id") or item.get("id")))
         return sorted({control for control in failing if control})
 
 
 __all__ = ["DecisionEngine", "DecisionOutcome"]
-

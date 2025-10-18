@@ -1,4 +1,5 @@
 """CLI helpers for generating and verifying FixOps provenance."""
+
 from __future__ import annotations
 
 import argparse
@@ -20,9 +21,7 @@ DEFAULT_BUILDER_ID = os.getenv("FIXOPS_BUILDER_ID", "urn:fixops:builder:local")
 DEFAULT_SOURCE_URI = os.getenv(
     "FIXOPS_SOURCE_URI", "https://github.com/DevOpsMadDog/Fixops"
 )
-DEFAULT_BUILD_TYPE = os.getenv(
-    "FIXOPS_BUILD_TYPE", "https://github.com/actions/run"
-)
+DEFAULT_BUILD_TYPE = os.getenv("FIXOPS_BUILD_TYPE", "https://github.com/actions/run")
 
 
 def _parse_json(value: str, *, description: str) -> Mapping[str, Any]:
@@ -49,7 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
     attest_parser = subparsers.add_parser(
         "attest", help="Generate a provenance attestation for an artefact"
     )
-    attest_parser.add_argument("--artifact", required=True, help="Path to artefact file")
+    attest_parser.add_argument(
+        "--artifact", required=True, help="Path to artefact file"
+    )
     attest_parser.add_argument(
         "--out", required=True, help="Destination path for the generated attestation"
     )
@@ -131,9 +132,7 @@ def _load_private_key(path: str):
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     except ImportError as exc:  # pragma: no cover - optional dependency
-        raise RuntimeError(
-            "cryptography is required for signing attestations"
-        ) from exc
+        raise RuntimeError("cryptography is required for signing attestations") from exc
 
     data = Path(path).read_bytes()
     key = serialization.load_pem_private_key(data, password=None)
@@ -162,7 +161,9 @@ def _sign_attestation(path: Path, signing_key: str, signature_out: str | None) -
     key = _load_private_key(signing_key)
     payload = path.read_bytes()
     signature = key.sign(payload)
-    destination = Path(signature_out) if signature_out else path.with_suffix(path.suffix + ".sig")
+    destination = (
+        Path(signature_out) if signature_out else path.with_suffix(path.suffix + ".sig")
+    )
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(b64encode(signature).decode("ascii"), encoding="utf-8")
     return destination
@@ -192,7 +193,9 @@ def _handle_attest(args: argparse.Namespace) -> int:
     print(f"Wrote attestation to {destination}")
     if args.signing_key:
         try:
-            signature_path = _sign_attestation(Path(destination), args.signing_key, args.signature_out)
+            signature_path = _sign_attestation(
+                Path(destination), args.signing_key, args.signature_out
+            )
         except Exception as exc:
             print(f"Failed to sign attestation: {exc}", file=sys.stderr)
             return 2

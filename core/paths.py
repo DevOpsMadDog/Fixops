@@ -1,4 +1,5 @@
 """Path utilities for enforcing secure data directories."""
+
 from __future__ import annotations
 
 import os

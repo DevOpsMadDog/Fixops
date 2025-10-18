@@ -1,4 +1,5 @@
 """Evidence hub responsible for persisting contextual bundles."""
+
 from __future__ import annotations
 
 import gzip
@@ -38,9 +39,13 @@ class EvidenceHub:
         self.overlay = overlay
         self.settings = overlay.evidence_settings
         limits = overlay.evidence_limits
-        max_bytes = limits.get("bundle_max_bytes") if isinstance(limits, Mapping) else None
+        max_bytes = (
+            limits.get("bundle_max_bytes") if isinstance(limits, Mapping) else None
+        )
         try:
-            self.max_bundle_bytes = int(max_bytes) if max_bytes is not None else 2 * 1024 * 1024
+            self.max_bundle_bytes = (
+                int(max_bytes) if max_bytes is not None else 2 * 1024 * 1024
+            )
         except (TypeError, ValueError):
             self.max_bundle_bytes = 2 * 1024 * 1024
         compress_flag = limits.get("compress") if isinstance(limits, Mapping) else False
@@ -120,7 +125,13 @@ class EvidenceHub:
                 bundle_payload[key] = value
                 included_sections.append(key)
 
-        for key in ("design_summary", "sbom_summary", "sarif_summary", "cve_summary", "severity_overview"):
+        for key in (
+            "design_summary",
+            "sbom_summary",
+            "sarif_summary",
+            "cve_summary",
+            "severity_overview",
+        ):
             _include(key, pipeline_result.get(key))
         _include("context_summary", context_summary)
         _include("guardrail_evaluation", pipeline_result.get("guardrail_evaluation"))
@@ -130,8 +141,12 @@ class EvidenceHub:
         _include("tenant_lifecycle", pipeline_result.get("tenant_lifecycle"))
         _include("performance_profile", pipeline_result.get("performance_profile"))
         _include("ai_agent_analysis", pipeline_result.get("ai_agent_analysis"))
-        _include("probabilistic_forecast", pipeline_result.get("probabilistic_forecast"))
-        _include("exploitability_insights", pipeline_result.get("exploitability_insights"))
+        _include(
+            "probabilistic_forecast", pipeline_result.get("probabilistic_forecast")
+        )
+        _include(
+            "exploitability_insights", pipeline_result.get("exploitability_insights")
+        )
         _include("ssdlc_assessment", pipeline_result.get("ssdlc_assessment"))
         _include("iac_posture", pipeline_result.get("iac_posture"))
         _include("module_execution", pipeline_result.get("modules"))
@@ -209,7 +224,9 @@ class EvidenceHub:
             "retention_days": self.retention_days,
         }
 
-    def _record_audit_entry(self, run_id: str, bundle_path: Path, checksum: str) -> None:
+    def _record_audit_entry(
+        self, run_id: str, bundle_path: Path, checksum: str
+    ) -> None:
         try:
             audit_root = self._base_directory().parent
             audit_root.mkdir(parents=True, exist_ok=True)

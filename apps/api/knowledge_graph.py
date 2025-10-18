@@ -1,4 +1,5 @@
 """Knowledge graph builder wiring contextual insights to the enhanced engine."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -27,7 +28,11 @@ class KnowledgeGraphService:
         entities: Dict[str, Dict[str, Any]] = {}
         relationships: list[Dict[str, Any]] = []
 
-        def _ensure_entity(entity_id: str, entity_type: str, properties: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+        def _ensure_entity(
+            entity_id: str,
+            entity_type: str,
+            properties: Optional[Mapping[str, Any]] = None,
+        ) -> Dict[str, Any]:
             if not entity_id:
                 return {}
             if entity_id in entities:
@@ -40,7 +45,9 @@ class KnowledgeGraphService:
             payload = {
                 "id": entity_id,
                 "type": entity_type,
-                "properties": {k: v for k, v in (properties or {}).items() if v is not None},
+                "properties": {
+                    k: v for k, v in (properties or {}).items() if v is not None
+                },
             }
             entities[entity_id] = payload
             return payload
@@ -90,7 +97,11 @@ class KnowledgeGraphService:
         advisory_nodes: Dict[str, Dict[str, Any]] = {}
 
         for component, entry in crosswalk_by_token.items():
-            findings = entry.get("findings", []) if isinstance(entry.get("findings"), Iterable) else []
+            findings = (
+                entry.get("findings", [])
+                if isinstance(entry.get("findings"), Iterable)
+                else []
+            )
             for finding in findings:
                 if not isinstance(finding, Mapping):
                     continue
@@ -119,18 +130,25 @@ class KnowledgeGraphService:
                         "metadata": {"source": "sarif"},
                     }
                 )
-            advisories = entry.get("cves", []) if isinstance(entry.get("cves"), Iterable) else []
+            advisories = (
+                entry.get("cves", []) if isinstance(entry.get("cves"), Iterable) else []
+            )
             for advisory in advisories:
                 if not isinstance(advisory, Mapping):
                     continue
-                advisory_id = str(advisory.get("cve_id") or advisory.get("id") or f"cve:{component}:{len(advisory_nodes)}")
+                advisory_id = str(
+                    advisory.get("cve_id")
+                    or advisory.get("id")
+                    or f"cve:{component}:{len(advisory_nodes)}"
+                )
                 node = _ensure_entity(
                     advisory_id,
                     "advisory",
                     {
                         "severity": advisory.get("severity"),
                         "exploited": advisory.get("exploited"),
-                        "description": advisory.get("description") or advisory.get("summary"),
+                        "description": advisory.get("description")
+                        or advisory.get("summary"),
                     },
                 )
                 advisory_nodes[advisory_id] = node
@@ -158,7 +176,9 @@ class KnowledgeGraphService:
             for control in framework.get("controls", []) or []:
                 if not isinstance(control, Mapping):
                     continue
-                control_id = str(control.get("id") or control.get("title") or len(controls_map))
+                control_id = str(
+                    control.get("id") or control.get("title") or len(controls_map)
+                )
                 node_id = f"{framework_name}:{control_id}"
                 node = _ensure_entity(
                     node_id,
@@ -191,7 +211,11 @@ class KnowledgeGraphService:
         for recommendation in marketplace_recommendations or []:
             if not isinstance(recommendation, Mapping):
                 continue
-            rec_id = str(recommendation.get("id") or recommendation.get("title") or len(rec_targets))
+            rec_id = str(
+                recommendation.get("id")
+                or recommendation.get("title")
+                or len(rec_targets)
+            )
             _ensure_entity(
                 rec_id,
                 "mitigation",
@@ -264,7 +288,9 @@ class KnowledgeGraphService:
             "entities": list(entities.values()),
             "relationships": relationships,
             "metadata": {
-                "services": sum(1 for item in entities.values() if item.get("type") == "service"),
+                "services": sum(
+                    1 for item in entities.values() if item.get("type") == "service"
+                ),
                 "findings": len(finding_nodes),
                 "advisories": len(advisory_nodes),
                 "controls": len(controls_map),

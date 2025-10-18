@@ -16,16 +16,24 @@ class EvidenceStore:
     def __init__(self) -> None:
         self._runs: MutableMapping[str, EvidenceRun] = {}
 
-    def register_run(self, overlay: OverlayConfig | Mapping[str, object]) -> EvidenceRun:
+    def register_run(
+        self, overlay: OverlayConfig | Mapping[str, object]
+    ) -> EvidenceRun:
         """Create a new evidence run anchored to the overlay mode."""
 
-        mode = overlay.mode if isinstance(overlay, OverlayConfig) else str(overlay.get("mode", "demo"))
+        mode = (
+            overlay.mode
+            if isinstance(overlay, OverlayConfig)
+            else str(overlay.get("mode", "demo"))
+        )
         run_id = uuid.uuid4().hex
         run = EvidenceRun(run_id=run_id, overlay_mode=mode)
         self._runs[run_id] = run
         return run
 
-    def attach_artifact(self, run_id: str, kind: str, path: Path, sha256: str) -> EvidenceAttachment:
+    def attach_artifact(
+        self, run_id: str, kind: str, path: Path, sha256: str
+    ) -> EvidenceAttachment:
         """Associate an artefact with the stored run."""
 
         run = self._require_run(run_id)
@@ -33,7 +41,9 @@ class EvidenceStore:
         run.add_attachment(attachment)
         return attachment
 
-    def sign_manifest(self, run_id: str, manifest: Mapping[str, object]) -> Mapping[str, object]:
+    def sign_manifest(
+        self, run_id: str, manifest: Mapping[str, object]
+    ) -> Mapping[str, object]:
         """Persist the manifest metadata alongside attachments."""
 
         run = self._require_run(run_id)

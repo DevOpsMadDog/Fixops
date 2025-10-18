@@ -30,7 +30,9 @@ class CrosswalkRow:
     ) -> "CrosswalkRow":
         """Return a copy with suppressed artefacts recorded."""
 
-        payload: MutableMapping[str, Sequence[Mapping[str, Any]]] = dict(self.suppressed)
+        payload: MutableMapping[str, Sequence[Mapping[str, Any]]] = dict(
+            self.suppressed
+        )
         payload[kind] = tuple(dict(entry) for entry in entries)
         return replace(self, suppressed=dict(payload))
 
@@ -46,9 +48,11 @@ class CrosswalkRow:
         payload: dict[str, Any] = {
             "design_index": self.design_index,
             "design_row": dict(self.design_row),
-            "sbom_component": dict(self.sbom_component)
-            if isinstance(self.sbom_component, Mapping)
-            else self.sbom_component,
+            "sbom_component": (
+                dict(self.sbom_component)
+                if isinstance(self.sbom_component, Mapping)
+                else self.sbom_component
+            ),
             "findings": [dict(item) for item in self.findings],
             "cves": [dict(item) for item in self.cves],
         }

@@ -2,15 +2,11 @@ from __future__ import annotations
 
 from typing import Dict
 
-from typing import Dict
-
 import pytest
 from fastapi.testclient import TestClient
-
-from src.main import create_app
 from src.config.settings import get_settings
+from src.main import create_app
 from src.services.enhanced_decision_engine import EnhancedDecisionService
-
 
 API_TOKEN = "enterprise-token"
 
@@ -31,7 +27,9 @@ def enterprise_enhanced_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     get_settings.cache_clear()
     service = EnhancedDecisionService()
     monkeypatch.setattr("src.api.v1.enhanced.enhanced_decision_service", service)
-    monkeypatch.setattr("src.services.enhanced_decision_engine.enhanced_decision_service", service)
+    monkeypatch.setattr(
+        "src.services.enhanced_decision_engine.enhanced_decision_service", service
+    )
     app = create_app()
     client = TestClient(app)
     try:
@@ -60,7 +58,9 @@ def enterprise_enhanced_client_missing_tokens(
     get_settings.cache_clear()
     service = EnhancedDecisionService()
     monkeypatch.setattr("src.api.v1.enhanced.enhanced_decision_service", service)
-    monkeypatch.setattr("src.services.enhanced_decision_engine.enhanced_decision_service", service)
+    monkeypatch.setattr(
+        "src.services.enhanced_decision_engine.enhanced_decision_service", service
+    )
     app = create_app()
     client = TestClient(app)
     try:
@@ -75,7 +75,9 @@ def _auth() -> Dict[str, str]:
 
 
 def test_capabilities_return_signals(enterprise_enhanced_client: TestClient) -> None:
-    response = enterprise_enhanced_client.get("/api/v1/enhanced/capabilities", headers=_auth())
+    response = enterprise_enhanced_client.get(
+        "/api/v1/enhanced/capabilities", headers=_auth()
+    )
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ready"
@@ -84,7 +86,9 @@ def test_capabilities_return_signals(enterprise_enhanced_client: TestClient) -> 
     assert signals.get("ssvc_label") in {"Track", "Attend", "Act"}
 
 
-def test_analysis_endpoint_returns_consensus(enterprise_enhanced_client: TestClient) -> None:
+def test_analysis_endpoint_returns_consensus(
+    enterprise_enhanced_client: TestClient,
+) -> None:
     body = {
         "service_name": "claims-api",
         "security_findings": [
@@ -136,7 +140,9 @@ def test_capabilities_surface_runtime_warnings_when_tokens_missing(
     assert response.status_code == 200
     payload = response.json()
     warnings = payload.get("runtime_warnings")
-    assert warnings, "runtime warnings should be surfaced when automation tokens missing"
+    assert (
+        warnings
+    ), "runtime warnings should be surfaced when automation tokens missing"
     assert payload.get("automation_ready") is False
 
 

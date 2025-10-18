@@ -6,12 +6,11 @@ import asyncio
 import time
 from typing import MutableMapping, Tuple
 
+from src.config.settings import get_settings, resolve_allowed_origins
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp
-
-from src.config.settings import get_settings, resolve_allowed_origins
 
 
 class PerformanceMiddleware(BaseHTTPMiddleware):  # pragma: no cover - trivial wrapper
@@ -25,7 +24,9 @@ class PerformanceMiddleware(BaseHTTPMiddleware):  # pragma: no cover - trivial w
         return response
 
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):  # pragma: no cover - trivial wrapper
+class SecurityHeadersMiddleware(
+    BaseHTTPMiddleware
+):  # pragma: no cover - trivial wrapper
     """Add a conservative set of security headers to each response."""
 
     _HEADERS = {
@@ -80,9 +81,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def _consume_token(self, client_ip: str) -> Tuple[bool, int]:
         now = time.monotonic()
         async with self._lock:
-            tokens, last_refill = self._buckets.get(client_ip, (float(self.capacity), now))
+            tokens, last_refill = self._buckets.get(
+                client_ip, (float(self.capacity), now)
+            )
             elapsed = now - last_refill
-            tokens = min(float(self.capacity), tokens + elapsed * self.refill_per_second)
+            tokens = min(
+                float(self.capacity), tokens + elapsed * self.refill_per_second
+            )
             if tokens < 1.0:
                 retry_after = max(1, int((1.0 - tokens) / self.refill_per_second))
                 self._buckets[client_ip] = (tokens, now)
@@ -90,4 +95,3 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             tokens -= 1.0
             self._buckets[client_ip] = (tokens, now)
             return True, 0
-

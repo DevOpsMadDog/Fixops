@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
-          if [ -f apps/api/requirements-optional.txt ]; then pip install -r apps/api/requirements-optional.txt; fi
+          if [ -f apps/api/requirements-optional.txt ]; then pip install -r apps/api/requirements-optional.txt || echo "Optional dependencies skipped"; fi
       - name: Formatting checks
         run: |
           black --check .

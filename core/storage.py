@@ -1,4 +1,5 @@
 """Artefact archival utilities for persisting uploaded inputs."""
+
 from __future__ import annotations
 
 import json
@@ -75,9 +76,13 @@ class ArtefactArchive:
         data_path.write_text(json.dumps(serialised, indent=2), encoding="utf-8")
         record["normalized_path"] = str(data_path)
 
-        manifest_path = stage_dir / f"{timestamp.replace(':', '')}-{identifier}-manifest.json"
+        manifest_path = (
+            stage_dir / f"{timestamp.replace(':', '')}-{identifier}-manifest.json"
+        )
         manifest_payload = dict(record)
-        manifest_path.write_text(json.dumps(manifest_payload, indent=2), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps(manifest_payload, indent=2), encoding="utf-8"
+        )
         record["manifest"] = str(manifest_path)
 
         return record
@@ -89,7 +94,14 @@ class ArtefactArchive:
             trimmed = {
                 key: value
                 for key, value in record.items()
-                if key in {"id", "stored_at", "normalized_path", "raw_path", "original_filename"}
+                if key
+                in {
+                    "id",
+                    "stored_at",
+                    "normalized_path",
+                    "raw_path",
+                    "original_filename",
+                }
             }
             summary[stage] = trimmed
         return summary

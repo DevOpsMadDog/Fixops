@@ -1,4 +1,5 @@
 """Simplified SSVC deployer methodology used in tests."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -96,7 +97,9 @@ class DecisionDeployer:
 
     def __post_init__(self) -> None:
         self.exploitation = self._coerce_enum(self.exploitation, ExploitationStatus)
-        self.system_exposure = self._coerce_enum(self.system_exposure, SystemExposureLevel)
+        self.system_exposure = self._coerce_enum(
+            self.system_exposure, SystemExposureLevel
+        )
         self.utility = self._coerce_enum(self.utility, UtilityLevel)
         self.human_impact = self._coerce_enum(self.human_impact, HumanImpactLevel)
 
@@ -109,7 +112,9 @@ class DecisionDeployer:
             try:
                 return enum_cls[key]
             except KeyError as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Unknown value '{value}' for {enum_cls.__name__}") from exc
+                raise ValueError(
+                    f"Unknown value '{value}' for {enum_cls.__name__}"
+                ) from exc
         raise TypeError(f"Expected {enum_cls.__name__} or str, got {type(value)!r}")
 
     def evaluate(self) -> DecisionOutcome:
@@ -132,7 +137,9 @@ class DecisionDeployer:
         action = ACTION_FOR_PRIORITY[priority]
         vector = self.to_vector()
         timestamp = self._timestamp()
-        return DecisionOutcome(action=action, priority=priority, vector=vector, timestamp=timestamp)
+        return DecisionOutcome(
+            action=action, priority=priority, vector=vector, timestamp=timestamp
+        )
 
     def to_vector(self) -> str:
         timestamp = self._timestamp()

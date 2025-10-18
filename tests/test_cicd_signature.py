@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import asyncio
 import base64
 import json
@@ -23,11 +22,7 @@ class _BaseSettings:
             setattr(self, key, overrides.get(key, value))
 
     def model_dump(self) -> Dict[str, Any]:
-        return {
-            name: getattr(self, name)
-            for name in dir(self)
-            if name.isupper()
-        }
+        return {name: getattr(self, name) for name in dir(self) if name.isupper()}
 
 
 pydantic_settings.BaseSettings = _BaseSettings
@@ -36,24 +31,29 @@ sys.modules.setdefault("pydantic_settings", pydantic_settings)
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-
 from src.api.v1.cicd import verify_signature
 from src.utils import crypto
 from src.utils.crypto import EnvKeyProvider
 
 
 @pytest.fixture()
-def signing_provider(monkeypatch: pytest.MonkeyPatch) -> Generator[EnvKeyProvider, None, None]:
+def signing_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[EnvKeyProvider, None, None]:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     private_key = key.private_bytes(
         serialization.Encoding.PEM,
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
     ).decode()
-    public_key = key.public_key().public_bytes(
-        serialization.Encoding.PEM,
-        serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode()
+    public_key = (
+        key.public_key()
+        .public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode()
+    )
     provider = EnvKeyProvider(private_key_pem=private_key, public_key_pem=public_key)
     crypto._KEY_PROVIDER = provider  # type: ignore[attr-defined]
     try:

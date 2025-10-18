@@ -39,7 +39,9 @@ class Settings:
 
     ENVIRONMENT: str = "development"
     FIXOPS_API_KEY: str = "local-dev-key"
-    FIXOPS_ALLOWED_ORIGINS: List[str] = field(default_factory=lambda: ["http://localhost"])
+    FIXOPS_ALLOWED_ORIGINS: List[str] = field(
+        default_factory=lambda: ["http://localhost"]
+    )
     FIXOPS_MAX_PAYLOAD_BYTES: int = 1024 * 1024
 
     FIXOPS_RL_ENABLED: bool = True
@@ -59,27 +61,44 @@ class Settings:
 def get_settings() -> Settings:
     defaults = Settings()
     origins_env = os.environ.get("FIXOPS_ALLOWED_ORIGINS")
-    origins = _coerce_origins(origins_env) if origins_env is not None else defaults.FIXOPS_ALLOWED_ORIGINS
+    origins = (
+        _coerce_origins(origins_env)
+        if origins_env is not None
+        else defaults.FIXOPS_ALLOWED_ORIGINS
+    )
     settings = Settings(
         ENVIRONMENT=os.environ.get("ENVIRONMENT", defaults.ENVIRONMENT),
         FIXOPS_API_KEY=os.environ.get("FIXOPS_API_KEY", defaults.FIXOPS_API_KEY),
         FIXOPS_ALLOWED_ORIGINS=origins,
-        FIXOPS_MAX_PAYLOAD_BYTES=_env_int("FIXOPS_MAX_PAYLOAD_BYTES", defaults.FIXOPS_MAX_PAYLOAD_BYTES),
+        FIXOPS_MAX_PAYLOAD_BYTES=_env_int(
+            "FIXOPS_MAX_PAYLOAD_BYTES", defaults.FIXOPS_MAX_PAYLOAD_BYTES
+        ),
         FIXOPS_RL_ENABLED=_env_bool("FIXOPS_RL_ENABLED", defaults.FIXOPS_RL_ENABLED),
-        FIXOPS_RL_REQ_PER_MIN=_env_int("FIXOPS_RL_REQ_PER_MIN", defaults.FIXOPS_RL_REQ_PER_MIN),
-        FIXOPS_SCHED_ENABLED=_env_bool("FIXOPS_SCHED_ENABLED", defaults.FIXOPS_SCHED_ENABLED),
-        FIXOPS_SCHED_INTERVAL_HOURS=_env_int("FIXOPS_SCHED_INTERVAL_HOURS", defaults.FIXOPS_SCHED_INTERVAL_HOURS),
-        FIXOPS_SIGNING_KEY=os.environ.get("FIXOPS_SIGNING_KEY", defaults.FIXOPS_SIGNING_KEY),
-        FIXOPS_SIGNING_KID=os.environ.get("FIXOPS_SIGNING_KID", defaults.FIXOPS_SIGNING_KID),
+        FIXOPS_RL_REQ_PER_MIN=_env_int(
+            "FIXOPS_RL_REQ_PER_MIN", defaults.FIXOPS_RL_REQ_PER_MIN
+        ),
+        FIXOPS_SCHED_ENABLED=_env_bool(
+            "FIXOPS_SCHED_ENABLED", defaults.FIXOPS_SCHED_ENABLED
+        ),
+        FIXOPS_SCHED_INTERVAL_HOURS=_env_int(
+            "FIXOPS_SCHED_INTERVAL_HOURS", defaults.FIXOPS_SCHED_INTERVAL_HOURS
+        ),
+        FIXOPS_SIGNING_KEY=os.environ.get(
+            "FIXOPS_SIGNING_KEY", defaults.FIXOPS_SIGNING_KEY
+        ),
+        FIXOPS_SIGNING_KID=os.environ.get(
+            "FIXOPS_SIGNING_KID", defaults.FIXOPS_SIGNING_KID
+        ),
     )
     return settings
 
 
 def resolve_allowed_origins(config: Settings) -> list[str]:
     if config.ENVIRONMENT.lower() == "production" and not config.FIXOPS_ALLOWED_ORIGINS:
-        raise RuntimeError("FIXOPS_ALLOWED_ORIGINS must be configured in production mode")
+        raise RuntimeError(
+            "FIXOPS_ALLOWED_ORIGINS must be configured in production mode"
+        )
     return config.FIXOPS_ALLOWED_ORIGINS
 
 
 __all__ = ["Settings", "get_settings", "resolve_allowed_origins"]
-

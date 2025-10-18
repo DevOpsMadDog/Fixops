@@ -13,7 +13,11 @@ def test_ai_agent_advisor_detects_frameworks() -> None:
                 "autogpt": {"recommended_controls": ["manual"]},
             },
             "playbooks": [
-                {"name": "AI Hardening", "triggers": ["agent"], "frameworks": ["LangChain"]}
+                {
+                    "name": "AI Hardening",
+                    "triggers": ["agent"],
+                    "frameworks": ["LangChain"],
+                }
             ],
         }
     )

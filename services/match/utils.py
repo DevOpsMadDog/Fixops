@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
-
 Matcher = Callable[[Any], str]
 
 
@@ -54,7 +53,9 @@ def build_lookup_tokens(rows: Iterable[Mapping[str, Any]]) -> LookupTokens:
         components.append(name)
         token_by_index[index] = normalised
     tokens = tuple(sorted(set(token_by_index.values())))
-    return LookupTokens(components=components, token_by_index=token_by_index, tokens=tokens)
+    return LookupTokens(
+        components=components, token_by_index=token_by_index, tokens=tokens
+    )
 
 
 @lru_cache(maxsize=256)

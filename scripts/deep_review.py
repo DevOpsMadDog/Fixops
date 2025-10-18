@@ -12,7 +12,19 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ENTERPRISE_SRC = REPO_ROOT / "fixops-enterprise"
@@ -134,7 +146,9 @@ def module_report(path: Path) -> ModuleReport:
                         FunctionReport(
                             name=body_item.name,
                             lineno=body_item.lineno,
-                            end_lineno=getattr(body_item, "end_lineno", body_item.lineno),
+                            end_lineno=getattr(
+                                body_item, "end_lineno", body_item.lineno
+                            ),
                             docstring=method_doc,
                             complexity=cyclomatic_complexity(body_item),
                             calls=collect_calls(body_item),
@@ -150,7 +164,13 @@ def module_report(path: Path) -> ModuleReport:
                 )
             )
 
-    return ModuleReport(path=path, docstring=module_docstring, imports=sorted(set(imports)), classes=classes, functions=functions)
+    return ModuleReport(
+        path=path,
+        docstring=module_docstring,
+        imports=sorted(set(imports)),
+        classes=classes,
+        functions=functions,
+    )
 
 
 def serialise_module(report: ModuleReport) -> Dict[str, Any]:
@@ -212,7 +232,9 @@ def write_import_graph(graph: Mapping[str, Iterable[str]], out_dir: Path) -> Non
     (out_dir / "import_graph.dot").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def build_callgraph(reports: Sequence[ModuleReport]) -> Dict[str, List[Tuple[str, str]]]:
+def build_callgraph(
+    reports: Sequence[ModuleReport],
+) -> Dict[str, List[Tuple[str, str]]]:
     grouped: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
     for report in reports:
         rel_path = report.path.relative_to(REPO_ROOT)
@@ -230,7 +252,9 @@ def build_callgraph(reports: Sequence[ModuleReport]) -> Dict[str, List[Tuple[str
     return grouped
 
 
-def write_callgraph(callgraph: Mapping[str, List[Tuple[str, str]]], out_dir: Path) -> None:
+def write_callgraph(
+    callgraph: Mapping[str, List[Tuple[str, str]]], out_dir: Path
+) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for group, edges in callgraph.items():
         path = out_dir / f"{group}.dot"
@@ -268,8 +292,18 @@ def stage_runner_overview() -> Dict[str, Any]:
     stages = []
     for stage, output in outputs.items():
         method = f"_process_{stage}"
-        stages.append({"stage": stage, "input_hint": inputs.get(stage), "processor": method, "output": output})
-    return {"stages": stages, "risk_rules": len(getattr(StageRunner, "_RISK_RULES", {}))}
+        stages.append(
+            {
+                "stage": stage,
+                "input_hint": inputs.get(stage),
+                "processor": method,
+                "output": output,
+            }
+        )
+    return {
+        "stages": stages,
+        "risk_rules": len(getattr(StageRunner, "_RISK_RULES", {})),
+    }
 
 
 def detect_gaps(stage_runner_path: Path) -> Dict[str, Any]:
@@ -300,12 +334,21 @@ def detect_gaps(stage_runner_path: Path) -> Dict[str, Any]:
 
 def write_json(payload: Mapping[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate FixOps deep review artefacts")
-    parser.add_argument("--out", type=Path, default=REPO_ROOT / "reports" / "deep_review", help="Output directory")
+    parser = argparse.ArgumentParser(
+        description="Generate FixOps deep review artefacts"
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=REPO_ROOT / "reports" / "deep_review",
+        help="Output directory",
+    )
     args = parser.parse_args(argv)
 
     out_dir: Path = args.out
@@ -321,7 +364,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     index_payload = {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "files": {
-            report.path.relative_to(REPO_ROOT).as_posix(): serialise_module(report) for report in reports
+            report.path.relative_to(REPO_ROOT).as_posix(): serialise_module(report)
+            for report in reports
         },
     }
     write_json(index_payload, out_dir / "codewalk" / "index.json")

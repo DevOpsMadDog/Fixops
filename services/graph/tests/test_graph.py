@@ -95,16 +95,12 @@ def test_graph_queries(tmp_path: Path) -> None:
             "tag": "v1.2.0",
             "date": "2024-01-05T00:00:00Z",
             "artifacts": [artefact.name],
-            "components": [
-                {"slug": "pkg-a", "name": "pkgA", "version": "1.2.0"}
-            ],
+            "components": [{"slug": "pkg-a", "name": "pkgA", "version": "1.2.0"}],
         },
         {
             "tag": "v1.0.0",
             "date": "2024-02-05T00:00:00Z",
-            "components": [
-                {"slug": "pkg-a", "name": "pkgA", "version": "1.0.0"}
-            ],
+            "components": [{"slug": "pkg-a", "name": "pkgA", "version": "1.0.0"}],
         },
     ]
     graph.ingest_releases(releases)

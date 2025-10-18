@@ -18,7 +18,9 @@ class _DummyResponse:
         return self._payload
 
 
-def test_policy_automation_triggers_actions_and_calls_opa(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_policy_automation_triggers_actions_and_calls_opa(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     overlay = OverlayConfig(
         mode="enterprise",
         jira={"project_key": "SEC"},
@@ -59,7 +61,9 @@ def test_policy_automation_triggers_actions_and_calls_opa(monkeypatch: pytest.Mo
         "sbom_summary": {"components": []},
         "design_summary": {"rows": []},
     }
-    plan = automation.plan(pipeline_result, context_summary=None, compliance_status=None)
+    plan = automation.plan(
+        pipeline_result, context_summary=None, compliance_status=None
+    )
 
     assert plan["actions"], "Expected at least one planned automation action"
     assert plan["actions"][0]["type"] == "jira_issue"

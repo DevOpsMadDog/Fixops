@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pytest
-
-from src.services import signing
 from src.config.settings import get_settings
+from src.services import signing
 
 
 def test_sign_verify_roundtrip(signing_env: None) -> None:
@@ -25,4 +24,3 @@ def test_signing_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     signing._load_private_key.cache_clear()
     with pytest.raises(signing.SigningError):
         signing.sign_manifest({"sample": True})
-

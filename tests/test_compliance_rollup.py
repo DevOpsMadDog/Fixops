@@ -23,4 +23,3 @@ def test_opa_bridge_skips_without_binary(signing_env: None) -> None:
     rules = [{"name": "allow", "rego": "package policy\n default allow = true"}]
     result = engine.evaluate([], opa_rules=rules, opa_input={"example": True})
     assert result["opa"]["status"] in {"skipped", "completed"}
-

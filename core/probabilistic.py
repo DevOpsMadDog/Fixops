@@ -1,4 +1,5 @@
 """Probabilistic risk forecasting utilities for FixOps."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -84,7 +85,7 @@ def _normalise_transition_row(row: Mapping[str, Any]) -> Dict[str, float]:
             continue
         weights[str(key).lower()] = weight
         total += weight
-    if not weights or total <= 0:
+    if not weights or total <= 1e-10:
         return {"low": 1.0}
     return {severity: weight / total for severity, weight in weights.items()}
 
@@ -132,11 +133,11 @@ def _highest_severity(entry: Mapping[str, Any]) -> str:
             candidate = (
                 "critical"
                 if level == "critical"
-                else "high"
-                if level in {"error", "high"}
-                else "medium"
-                if level in {"warning", "medium"}
-                else "low"
+                else (
+                    "high"
+                    if level in {"error", "high"}
+                    else "medium" if level in {"warning", "medium"} else "low"
+                )
             )
             if _severity_index(candidate) > _severity_index(highest):
                 highest = candidate
@@ -149,11 +150,11 @@ def _highest_severity(entry: Mapping[str, Any]) -> str:
             candidate = (
                 "critical"
                 if severity == "critical"
-                else "high"
-                if severity in {"high"}
-                else "medium"
-                if severity in {"medium", "moderate"}
-                else "low"
+                else (
+                    "high"
+                    if severity in {"high"}
+                    else "medium" if severity in {"medium", "moderate"} else "low"
+                )
             )
             if _severity_index(candidate) > _severity_index(highest):
                 highest = candidate
@@ -173,7 +174,8 @@ class ComponentForecast:
             "current_severity": self.current_severity,
             "escalation_probability": round(self.escalation_probability, 4),
             "next_state_distribution": {
-                key: round(value, 4) for key, value in self.next_state_distribution.items()
+                key: round(value, 4)
+                for key, value in self.next_state_distribution.items()
             },
         }
 
@@ -189,7 +191,9 @@ class CalibrationResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "bayesian_prior": {key: round(value, 4) for key, value in self.prior.items()},
+            "bayesian_prior": {
+                key: round(value, 4) for key, value in self.prior.items()
+            },
             "markov_transitions": {
                 state: {target: round(weight, 4) for target, weight in row.items()}
                 for state, row in self.transitions.items()
@@ -225,8 +229,12 @@ class ProbabilisticForecastEngine:
             self.transitions = self._default_transitions()
 
         self.component_limit = int(payload.get("component_limit", 5))
-        self.escalation_threshold = _severity_index(payload.get("escalate_from", "medium"))
-        self.dirichlet_strength = max(float(payload.get("dirichlet_strength", 6.0)), 1.0)
+        self.escalation_threshold = _severity_index(
+            payload.get("escalate_from", "medium")
+        )
+        self.dirichlet_strength = max(
+            float(payload.get("dirichlet_strength", 6.0)), 1.0
+        )
         self.forecast_horizon = max(int(payload.get("forecast_horizon", 3)), 0)
         self.stationary_tolerance = float(payload.get("stationary_tolerance", 1e-6))
         self.mixing_tolerance = max(float(payload.get("mixing_tolerance", 1e-3)), 1e-6)
@@ -275,13 +283,18 @@ class ProbabilisticForecastEngine:
         calibrated: Dict[str, Dict[str, float]] = {}
         baseline = dict(self.transitions)
         for state in _SEVERITY_ORDER:
-            baseline_row = baseline.get(state) or self._default_transitions().get(state, {})
+            baseline_row = baseline.get(state) or self._default_transitions().get(
+                state, {}
+            )
             pseudocounts: Dict[str, float] = {}
             for target, weight in (baseline_row or {}).items():
                 target_key = _coerce_severity(target)
                 if target_key is None:
                     continue
-                pseudocounts[target_key] = pseudocounts.get(target_key, 0.0) + float(weight) * self.dirichlet_strength
+                pseudocounts[target_key] = (
+                    pseudocounts.get(target_key, 0.0)
+                    + float(weight) * self.dirichlet_strength
+                )
             counts = transition_counts.get(state, {})
             for target, value in (counts or {}).items():
                 target_key = _coerce_severity(target)
@@ -303,7 +316,9 @@ class ProbabilisticForecastEngine:
         *,
         enforce_validation: bool = False,
     ) -> CalibrationResult:
-        severity_counts: Dict[str, float] = {severity: 0.0 for severity in _SEVERITY_ORDER}
+        severity_counts: Dict[str, float] = {
+            severity: 0.0 for severity in _SEVERITY_ORDER
+        }
         transition_counts: Dict[str, Dict[str, float]] = {}
         incident_count = 0
         transition_observations = 0
@@ -353,7 +368,9 @@ class ProbabilisticForecastEngine:
         )
 
     def _posterior(self, counts: Mapping[str, Any]) -> Dict[str, float]:
-        totals: Dict[str, float] = {severity: self.prior.get(severity, 0.25) for severity in _SEVERITY_ORDER}
+        totals: Dict[str, float] = {
+            severity: self.prior.get(severity, 0.25) for severity in _SEVERITY_ORDER
+        }
         for severity, value in counts.items():
             key = str(severity).lower()
             if key not in totals:
@@ -371,7 +388,9 @@ class ProbabilisticForecastEngine:
     def _forecast_next_state(self, posterior: Mapping[str, float]) -> Dict[str, float]:
         next_state: Dict[str, float] = {severity: 0.0 for severity in _SEVERITY_ORDER}
         for state, probability in posterior.items():
-            row = self.transitions.get(state, self.transitions.get("medium", {"medium": 1.0}))
+            row = self.transitions.get(
+                state, self.transitions.get("medium", {"medium": 1.0})
+            )
             for target, weight in row.items():
                 key = target if target in next_state else str(target).lower()
                 if key not in next_state:
@@ -425,9 +444,7 @@ class ProbabilisticForecastEngine:
                 row = matrix[i]
                 for j in range(n):
                     next_distribution[j] += weight * row[j]
-            delta = max(
-                abs(next_distribution[j] - distribution[j]) for j in range(n)
-            )
+            delta = max(abs(next_distribution[j] - distribution[j]) for j in range(n))
             distribution = next_distribution
             if delta <= self.stationary_tolerance:
                 break
@@ -480,7 +497,10 @@ class ProbabilisticForecastEngine:
     def _mixing_time(self, spectral_gap: float, stationary: Mapping[str, float]) -> int:
         if spectral_gap <= 1e-9:
             return self.max_iterations
-        pi_min = min((value for value in stationary.values() if value > 0.0), default=1.0 / len(stationary or {"_": None}))
+        pi_min = min(
+            (value for value in stationary.values() if value > 0.0),
+            default=1.0 / len(stationary or {"_": None}),
+        )
         epsilon = self.mixing_tolerance
         upper = log(1.0 / max(epsilon * pi_min, 1e-12)) / spectral_gap
         return int(ceil(upper))
@@ -536,10 +556,22 @@ class ProbabilisticForecastEngine:
         for entry in crosswalk:
             if not isinstance(entry, Mapping):
                 continue
-            design_row = entry.get("design_row") if isinstance(entry.get("design_row"), Mapping) else {}
-            name = str(design_row.get("component") or design_row.get("Component") or design_row.get("service") or design_row.get("name") or "unknown")
+            design_row = (
+                entry.get("design_row")
+                if isinstance(entry.get("design_row"), Mapping)
+                else {}
+            )
+            name = str(
+                design_row.get("component")
+                or design_row.get("Component")
+                or design_row.get("service")
+                or design_row.get("name")
+                or "unknown"
+            )
             highest = _highest_severity(entry)
-            row = self.transitions.get(highest, self.transitions.get("medium", {"medium": 1.0}))
+            row = self.transitions.get(
+                highest, self.transitions.get("medium", {"medium": 1.0})
+            )
             escalation_probability = sum(
                 weight
                 for target, weight in row.items()
@@ -568,10 +600,14 @@ class ProbabilisticForecastEngine:
         high_index = _severity_index("high")
         critical_index = _severity_index("critical")
         expected_high = sum(
-            probability for severity, probability in posterior.items() if _severity_index(severity) >= high_index
+            probability
+            for severity, probability in posterior.items()
+            if _severity_index(severity) >= high_index
         )
         expected_critical = sum(
-            probability for severity, probability in next_state.items() if _severity_index(severity) >= critical_index
+            probability
+            for severity, probability in next_state.items()
+            if _severity_index(severity) >= critical_index
         )
         matrix, states, index = self._transition_matrix()
         stationary = self._stationary_distribution(matrix, states)
@@ -592,19 +628,30 @@ class ProbabilisticForecastEngine:
             if record.get("exploited") or record.get("knownExploited"):
                 exploited += 1
         forecasts = self._component_forecasts(crosswalk)
-        escalation_hotspots = [forecast for forecast in forecasts if _severity_index(forecast.current_severity) >= self.escalation_threshold and forecast.escalation_probability >= 0.2]
+        escalation_hotspots = [
+            forecast
+            for forecast in forecasts
+            if _severity_index(forecast.current_severity) >= self.escalation_threshold
+            and forecast.escalation_probability >= 0.2
+        ]
         notes: list[str] = []
         if exploited:
-            notes.append(f"{exploited} exploited vulnerabilities increase prior weight on escalation events")
-        if escalation_hotspots:
-            component_names = ", ".join(forecast.name for forecast in escalation_hotspots)
             notes.append(
-                f"Components likely to escalate: {component_names}"
+                f"{exploited} exploited vulnerabilities increase prior weight on escalation events"
             )
+        if escalation_hotspots:
+            component_names = ", ".join(
+                forecast.name for forecast in escalation_hotspots
+            )
+            notes.append(f"Components likely to escalate: {component_names}")
         if entropy_bits < 1.0:
-            notes.append("Posterior distribution is peaked; guardrails may tighten remediation SLAs")
+            notes.append(
+                "Posterior distribution is peaked; guardrails may tighten remediation SLAs"
+            )
         if spectral_gap < 0.1:
-            notes.append("Markov chain mixing is slow; latent escalation risk persists across cycles")
+            notes.append(
+                "Markov chain mixing is slow; latent escalation risk persists across cycles"
+            )
         if critical_horizon >= 0.25:
             notes.append(
                 f"{critical_horizon:.0%} chance of reaching critical severity within {max(self.forecast_horizon, 1)} cycles"

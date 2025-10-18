@@ -22,7 +22,9 @@ class DummyResponse:
         return dict(self._payload)
 
 
-def test_policy_automation_executes_connectors(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_policy_automation_executes_connectors(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("JIRA_TOKEN", "secret-token")
     monkeypatch.setenv("CONF_TOKEN", "secret-conf")
     monkeypatch.setenv("WEBHOOK_TOKEN", "https://hooks.slack.test/demo")
@@ -45,8 +47,16 @@ def test_policy_automation_executes_connectors(monkeypatch: pytest.MonkeyPatch, 
         policy_automation={
             "slack_webhook_env": "WEBHOOK_TOKEN",
             "actions": [
-                {"trigger": "guardrail:fail", "type": "jira_issue", "summary": "Fix guardrail"},
-                {"trigger": "compliance:gap", "type": "confluence_page", "title": "Gap"},
+                {
+                    "trigger": "guardrail:fail",
+                    "type": "jira_issue",
+                    "summary": "Fix guardrail",
+                },
+                {
+                    "trigger": "compliance:gap",
+                    "type": "confluence_page",
+                    "title": "Gap",
+                },
                 {"trigger": "context:high", "type": "slack", "text": "Context high"},
             ],
         },

@@ -14,7 +14,9 @@ from .utils import (
 )
 
 
-def build_component_index(components: Iterable[SBOMComponent]) -> Dict[str, Mapping[str, Any]]:
+def build_component_index(
+    components: Iterable[SBOMComponent],
+) -> Dict[str, Mapping[str, Any]]:
     """Return a token → component index for SBOM lookups."""
 
     lookup: Dict[str, Mapping[str, Any]] = {}

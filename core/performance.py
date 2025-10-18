@@ -1,7 +1,8 @@
 """Performance simulation utilities for FixOps pipeline runs."""
+
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from core.configuration import OverlayConfig
@@ -14,7 +15,9 @@ class PerformanceSimulator:
         self.settings = dict(settings or {})
         self.baseline = self._coerce_mapping(self.settings.get("baseline"))
         self.capacity = self._coerce_mapping(self.settings.get("capacity"))
-        self.module_latency = self._coerce_mapping(self.settings.get("module_latency_ms"))
+        self.module_latency = self._coerce_mapping(
+            self.settings.get("module_latency_ms")
+        )
         self.threshold_ms = self._to_int(
             self.settings.get("near_real_time_threshold_ms"), 5000
         )
@@ -47,9 +50,21 @@ class PerformanceSimulator:
         pipeline_result: Mapping[str, Any],
         overlay: Optional["OverlayConfig"] = None,
     ) -> Dict[str, Any]:
-        modules_status = pipeline_result.get("modules", {}) if isinstance(pipeline_result, Mapping) else {}
-        executed = modules_status.get("executed", []) if isinstance(modules_status, Mapping) else []
-        crosswalk = pipeline_result.get("crosswalk", []) if isinstance(pipeline_result, Mapping) else []
+        modules_status = (
+            pipeline_result.get("modules", {})
+            if isinstance(pipeline_result, Mapping)
+            else {}
+        )
+        executed = (
+            modules_status.get("executed", [])
+            if isinstance(modules_status, Mapping)
+            else []
+        )
+        crosswalk = (
+            pipeline_result.get("crosswalk", [])
+            if isinstance(pipeline_result, Mapping)
+            else []
+        )
         severity_counts = pipeline_result.get("severity_overview", {}).get("counts", {})
 
         baseline_per_module = self._to_int(self.baseline.get("per_module_ms"), 200)
@@ -57,7 +72,9 @@ class PerformanceSimulator:
         timeline = []
         for module in executed:
             module_name = str(module)
-            latency = self._to_int(self.module_latency.get(module_name), baseline_per_module)
+            latency = self._to_int(
+                self.module_latency.get(module_name), baseline_per_module
+            )
             cumulative += latency
             timeline.append(
                 {
@@ -90,7 +107,9 @@ class PerformanceSimulator:
                 f"Backlog detected for {backlog} artefact(s); consider scaling ingestion workers"
             )
         if severity_counts:
-            high = int(severity_counts.get("high", 0) + severity_counts.get("critical", 0))
+            high = int(
+                severity_counts.get("high", 0) + severity_counts.get("critical", 0)
+            )
             if high > 0 and not meets_threshold:
                 recommendations.append(
                     "Prioritise high/critical findings queue to preserve response SLAs"

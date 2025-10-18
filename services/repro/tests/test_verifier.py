@@ -35,12 +35,16 @@ def test_run_verification_match(tmp_path: Path) -> None:
     }
     plan_path = _write_plan(repo / "build" / "plan.yaml", plan_data)
 
-    result = run_verification(plan_path, "v1.0.0", output_dir=repo / "artifacts" / "repro", repo_root=repo)
+    result = run_verification(
+        plan_path, "v1.0.0", output_dir=repo / "artifacts" / "repro", repo_root=repo
+    )
     assert result.match is True
     assert result.attestation_path is not None
     payload = json.loads(Path(result.attestation_path).read_text(encoding="utf-8"))
     assert payload["match"] is True
-    assert payload["reference_digest"]["sha256"] == payload["generated_digest"]["sha256"]
+    assert (
+        payload["reference_digest"]["sha256"] == payload["generated_digest"]["sha256"]
+    )
 
 
 def test_verify_plan_mismatch(tmp_path: Path) -> None:
@@ -65,7 +69,9 @@ def test_verify_plan_mismatch(tmp_path: Path) -> None:
         "reference_artifact": str(reference.relative_to(repo)),
     }
     plan_path = _write_plan(repo / "plan.yaml", plan_data)
-    plan = run_verification(plan_path, "v1.0.0", output_dir=repo / "artifacts" / "repro", repo_root=repo)
+    plan = run_verification(
+        plan_path, "v1.0.0", output_dir=repo / "artifacts" / "repro", repo_root=repo
+    )
     assert plan.match is False
     assert plan.reference_digest is not None
     assert plan.generated_digest["sha256"] != plan.reference_digest["sha256"]

@@ -1,4 +1,5 @@
 """Feature matrix aggregation utilities for FixOps pipeline runs."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -60,7 +61,9 @@ def _onboarding_metrics(pipeline_result: Mapping[str, Any]) -> Dict[str, Any]:
     return {
         "mode": onboarding.get("mode"),
         "step_count": len(steps),
-        "time_to_value_minutes": _to_float(onboarding.get("time_to_value_minutes"), 0.0),
+        "time_to_value_minutes": _to_float(
+            onboarding.get("time_to_value_minutes"), 0.0
+        ),
         "integrations_configured": len(integrations),
     }
 
@@ -154,7 +157,9 @@ def _probabilistic_metrics(pipeline_result: Mapping[str, Any]) -> Dict[str, Any]
     metrics = _as_mapping(forecast.get("metrics"))
     components = _as_sequence(forecast.get("components"))
     return {
-        "expected_high_or_critical": _to_float(metrics.get("expected_high_or_critical")),
+        "expected_high_or_critical": _to_float(
+            metrics.get("expected_high_or_critical")
+        ),
         "entropy_bits": _to_float(metrics.get("entropy_bits")),
         "hotspot_count": len(
             [
@@ -206,7 +211,9 @@ def _performance_metrics(pipeline_result: Mapping[str, Any]) -> Dict[str, Any]:
     summary = _as_mapping(performance.get("summary"))
     timeline = _as_sequence(performance.get("timeline"))
     return {
-        "total_estimated_latency_ms": _to_float(summary.get("total_estimated_latency_ms")),
+        "total_estimated_latency_ms": _to_float(
+            summary.get("total_estimated_latency_ms")
+        ),
         "module_execution_ms": _to_float(summary.get("module_execution_ms")),
         "timeline_events": len(timeline),
         "status": summary.get("status"),
@@ -252,7 +259,9 @@ def build_feature_matrix(pipeline_result: Mapping[str, Any]) -> Dict[str, Any]:
         status_text = str(status)
         available = status_text == "executed"
         metrics_builder = _MODULE_BUILDERS.get(name)
-        metrics = metrics_builder(pipeline_result) if (metrics_builder and available) else {}
+        metrics = (
+            metrics_builder(pipeline_result) if (metrics_builder and available) else {}
+        )
         features[name] = {
             "status": status_text,
             "available": available,

@@ -1,4 +1,5 @@
 """SBOM normalization and quality scoring utilities."""
+
 from __future__ import annotations
 
 import json
@@ -8,7 +9,17 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 PREFERRED_HASH_ORDER = (
     "SHA512",
@@ -108,7 +119,11 @@ def _extract_hashes(candidate: Mapping[str, Any]) -> Dict[str, str]:
         for entry in hash_entries:
             if isinstance(entry, Mapping):
                 algorithm = entry.get("alg") or entry.get("algorithm")
-                value = entry.get("content") or entry.get("value") or entry.get("checksumValue")
+                value = (
+                    entry.get("content")
+                    or entry.get("value")
+                    or entry.get("checksumValue")
+                )
                 if isinstance(algorithm, str) and isinstance(value, str):
                     hashes[algorithm.upper()] = value
     checksum_entries = candidate.get("checksums")
@@ -162,27 +177,39 @@ def _extract_purl(candidate: Mapping[str, Any]) -> Optional[str]:
     return None
 
 
-def _component_from_cyclonedx(candidate: Mapping[str, Any]) -> Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]:
+def _component_from_cyclonedx(
+    candidate: Mapping[str, Any]
+) -> Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]:
     name = candidate.get("name") if isinstance(candidate.get("name"), str) else None
-    version = candidate.get("version") if isinstance(candidate.get("version"), str) else None
+    version = (
+        candidate.get("version") if isinstance(candidate.get("version"), str) else None
+    )
     purl = _extract_purl(candidate)
     hashes = _extract_hashes(candidate)
     licenses = _extract_licenses(candidate)
     return name, version, purl, hashes, licenses
 
 
-def _component_from_spdx(candidate: Mapping[str, Any]) -> Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]:
+def _component_from_spdx(
+    candidate: Mapping[str, Any]
+) -> Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]:
     name = candidate.get("name") if isinstance(candidate.get("name"), str) else None
     version = candidate.get("versionInfo")
     if not isinstance(version, str):
-        version = candidate.get("version") if isinstance(candidate.get("version"), str) else None
+        version = (
+            candidate.get("version")
+            if isinstance(candidate.get("version"), str)
+            else None
+        )
     purl = _extract_purl(candidate)
     hashes = _extract_hashes(candidate)
     licenses = _extract_licenses(candidate)
     return name, version, purl, hashes, licenses
 
 
-def _normalise_candidates(document: Mapping[str, Any]) -> List[Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]]:
+def _normalise_candidates(
+    document: Mapping[str, Any]
+) -> List[Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]]:
     format_hint = _detect_format(document)
     candidates: Sequence[Any]
     if format_hint.startswith("cyclonedx") or "components" in document:
@@ -209,7 +236,9 @@ def _prefer_value(existing: Optional[str], candidate: Optional[str]) -> Optional
     return candidate or existing
 
 
-def _identity_for(purl: Optional[str], version: Optional[str], hashes: Mapping[str, str]) -> Tuple[str, str, str]:
+def _identity_for(
+    purl: Optional[str], version: Optional[str], hashes: Mapping[str, str]
+) -> Tuple[str, str, str]:
     preferred_hash = ""
     if hashes:
         for algorithm in PREFERRED_HASH_ORDER:
@@ -335,7 +364,9 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
     }
 
 
-def write_normalized_sbom(paths: Iterable[str | Path], destination: str | Path) -> Dict[str, Any]:
+def write_normalized_sbom(
+    paths: Iterable[str | Path], destination: str | Path
+) -> Dict[str, Any]:
     normalized = normalize_sboms(paths)
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
@@ -365,12 +396,16 @@ def build_quality_report(normalized: Mapping[str, Any]) -> Dict[str, Any]:
     resolvable_count = 0
     for component in components:
         licenses = component.get("licenses", [])
-        if isinstance(licenses, Sequence) and any(isinstance(item, str) and item for item in licenses):
+        if isinstance(licenses, Sequence) and any(
+            isinstance(item, str) and item for item in licenses
+        ):
             license_count += 1
         if component.get("purl") or component.get("hashes"):
             resolvable_count += 1
 
-    coverage = _safe_percentage(unique_components, total_components or unique_components)
+    coverage = _safe_percentage(
+        unique_components, total_components or unique_components
+    )
     license_coverage = _safe_percentage(license_count, unique_components)
     resolvability = _safe_percentage(resolvable_count, unique_components)
 
@@ -447,9 +482,7 @@ def render_html_report(report: Mapping[str, Any], destination: str | Path) -> Pa
         else:
             display = "N/A"
             gauge = ""
-        rows.append(
-            f"<tr><th>{label}</th><td>{display}</td><td>{gauge}</td></tr>"
-        )
+        rows.append(f"<tr><th>{label}</th><td>{display}</td><td>{gauge}</td></tr>")
 
     html = f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -495,6 +528,8 @@ def build_and_write_quality_outputs(
     report = write_quality_report(normalized, json_destination)
     render_html_report(report, html_destination)
     return report
+
+
 LOGGER = logging.getLogger(__name__)
 
 

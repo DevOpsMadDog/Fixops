@@ -1240,7 +1240,9 @@ def load_overlay(
         data_directories = raw.get("data_directories")
         if isinstance(data_directories, Mapping):
             merged_directories = dict(data_directories)
-            existing_data = raw.get("data") if isinstance(raw.get("data"), Mapping) else {}
+            existing_data = (
+                raw.get("data") if isinstance(raw.get("data"), Mapping) else {}
+            )
             merged_directories.update(dict(existing_data))
             raw["data"] = merged_directories
         raw.pop("data_directories", None)

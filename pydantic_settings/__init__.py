@@ -1,9 +1,10 @@
 """Minimal shim for :mod:`pydantic_settings` compatible with in-repo stubs."""
+
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Iterable, Tuple, Type, Union, get_origin, get_args
 import types
+from typing import Any, Dict, Iterable, Tuple, Type, Union, get_args, get_origin
 
 from pydantic import FieldInfo
 
@@ -22,7 +23,11 @@ class BaseSettings:
 
         for name, annotation in self.__annotations__.items():  # type: ignore[attr-defined]
             default_value = self._default_for(name)
-            env_key = f"{env_prefix}{name}" if case_sensitive else f"{env_prefix}{name}".upper()
+            env_key = (
+                f"{env_prefix}{name}"
+                if case_sensitive
+                else f"{env_prefix}{name}".upper()
+            )
             raw_env = os.getenv(env_key)
             if raw_env is not None:
                 value = self._coerce(annotation, raw_env)
@@ -66,7 +71,10 @@ class BaseSettings:
             if not raw:
                 return []
             element_type = get_args(target)[0] if get_args(target) else str
-            return [BaseSettings._coerce(element_type, item.strip()) for item in raw.split(",")]
+            return [
+                BaseSettings._coerce(element_type, item.strip())
+                for item in raw.split(",")
+            ]
         return raw
 
     @staticmethod

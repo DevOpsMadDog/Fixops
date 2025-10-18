@@ -46,7 +46,9 @@ def test_load_overlay_merges_profile_and_defaults(overlay_file: Path) -> None:
     assert exported["modules"]["guardrails"]["enabled"] is True
 
 
-def test_environment_variable_override(monkeypatch: pytest.MonkeyPatch, overlay_file: Path) -> None:
+def test_environment_variable_override(
+    monkeypatch: pytest.MonkeyPatch, overlay_file: Path
+) -> None:
     monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_file))
     config = load_overlay()
     assert config.metadata["source_path"] == str(overlay_file)
@@ -103,7 +105,9 @@ def test_overlay_rejects_outside_data_directory(tmp_path: Path) -> None:
         load_overlay(path)
 
 
-def test_token_strategy_requires_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_token_strategy_requires_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)
     path = tmp_path / "fixops.overlay.yml"
     overlay_content = {

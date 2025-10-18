@@ -23,7 +23,9 @@ def _create_required_files(tmp_path: Path) -> tuple[Path, Path, Path]:
     return sbom, sarif, cve
 
 
-def test_ingest_command_writes_output_and_copies_bundle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, parser: argparse.ArgumentParser) -> None:
+def test_ingest_command_writes_output_and_copies_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, parser: argparse.ArgumentParser
+) -> None:
     bundle = tmp_path / "bundle.json"
     bundle.write_text("{}", encoding="utf-8")
 
@@ -58,7 +60,12 @@ def test_ingest_command_writes_output_and_copies_bundle(tmp_path: Path, monkeypa
     assert copied_bundle.exists()
 
 
-def test_make_decision_command_returns_exit_code(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, parser: argparse.ArgumentParser, capsys: pytest.CaptureFixture[str]) -> None:
+def test_make_decision_command_returns_exit_code(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    parser: argparse.ArgumentParser,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     bundle = tmp_path / "bundle.json"
     bundle.write_text("{}", encoding="utf-8")
 
@@ -100,7 +107,9 @@ def test_make_decision_command_returns_exit_code(tmp_path: Path, monkeypatch: py
     assert (evidence_dir / bundle.name).exists()
 
 
-def test_get_evidence_command_copies_bundle(tmp_path: Path, parser: argparse.ArgumentParser, capsys: pytest.CaptureFixture[str]) -> None:
+def test_get_evidence_command_copies_bundle(
+    tmp_path: Path, parser: argparse.ArgumentParser, capsys: pytest.CaptureFixture[str]
+) -> None:
     bundle = tmp_path / "bundle.json"
     bundle.write_text("{}", encoding="utf-8")
     result_payload = {"evidence_bundle": {"files": {"bundle": str(bundle)}}}
@@ -127,11 +136,18 @@ def test_get_evidence_command_copies_bundle(tmp_path: Path, parser: argparse.Arg
     assert output["status"] == "ok"
 
 
-def test_health_command_reports_status(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, parser: argparse.ArgumentParser, capsys: pytest.CaptureFixture[str]) -> None:
+def test_health_command_reports_status(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    parser: argparse.ArgumentParser,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     overlay = OverlayConfig(
         mode="enterprise",
         data={"evidence_dir": str(tmp_path / "evidence")},
-        limits={"evidence": {"bundle_max_bytes": 2048, "compress": False, "encrypt": False}},
+        limits={
+            "evidence": {"bundle_max_bytes": 2048, "compress": False, "encrypt": False}
+        },
     )
     overlay.allowed_data_roots = (tmp_path,)
 

@@ -110,7 +110,9 @@ class ExplanationGenerator:
         if summary:
             extra_sections.append(f"Context summary: {summary}")
         if metadata:
-            formatted = "\n".join(f"- {key}: {value}" for key, value in metadata.items())
+            formatted = "\n".join(
+                f"- {key}: {value}" for key, value in metadata.items()
+            )
             extra_sections.append(f"Context metadata:\n{formatted}")
 
         formatted_findings = []
@@ -153,7 +155,9 @@ class ExplanationGenerator:
             try:
                 self._client = self._client_factory()
             except Exception as exc:  # pragma: no cover - defensive guard
-                raise ExplanationError("Unable to initialise SentinelGPT client") from exc
+                raise ExplanationError(
+                    "Unable to initialise SentinelGPT client"
+                ) from exc
         return self._client
 
     def _default_client_factory(self) -> Any:

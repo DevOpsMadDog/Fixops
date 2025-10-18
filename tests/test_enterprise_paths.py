@@ -14,7 +14,11 @@ ARTEFACTS = Path(__file__).resolve().parents[1] / "artefacts"
 def _read_design_csv(path: Path) -> dict[str, object]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
-        rows = [row for row in reader if any((value or "").strip() for value in row.values())]
+        rows = [
+            row
+            for row in reader
+            if any((value or "").strip() for value in row.values())
+        ]
         columns = reader.fieldnames or []
     return {"columns": columns, "rows": rows}
 
@@ -57,7 +61,9 @@ def pipeline_result(enterprise_env: None) -> dict[str, object]:
     return _execute_pipeline()
 
 
-def test_vex_noise_reduction_and_cnapp_enrichment(pipeline_result: dict[str, object]) -> None:
+def test_vex_noise_reduction_and_cnapp_enrichment(
+    pipeline_result: dict[str, object]
+) -> None:
     result = pipeline_result
     noise = result.get("noise_reduction", {})
     assert isinstance(noise, dict)
@@ -78,14 +84,18 @@ def test_vex_noise_reduction_and_cnapp_enrichment(pipeline_result: dict[str, obj
     assert any("guardrail" in str(entry).lower() for entry in match)
 
 
-def test_evidence_encrypted_when_overlay_requests_it(pipeline_result: dict[str, object]) -> None:
+def test_evidence_encrypted_when_overlay_requests_it(
+    pipeline_result: dict[str, object]
+) -> None:
     result = pipeline_result
     bundle = result.get("evidence_bundle", {})
     assert isinstance(bundle, dict)
     assert bundle.get("encrypted") is True
 
 
-def test_module_matrix_includes_promised_modules(pipeline_result: dict[str, object]) -> None:
+def test_module_matrix_includes_promised_modules(
+    pipeline_result: dict[str, object]
+) -> None:
     result = pipeline_result
     modules = result.get("modules", {})
     assert isinstance(modules, dict)
@@ -107,7 +117,9 @@ def test_module_matrix_includes_promised_modules(pipeline_result: dict[str, obje
         assert status.get(module) == "executed"
 
 
-def test_enhanced_decision_outputs_consensus(pipeline_result: dict[str, object]) -> None:
+def test_enhanced_decision_outputs_consensus(
+    pipeline_result: dict[str, object]
+) -> None:
     enhanced = pipeline_result.get("enhanced_decision", {})
     assert isinstance(enhanced, dict)
     assert enhanced.get("final_decision")

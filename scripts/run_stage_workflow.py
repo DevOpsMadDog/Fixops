@@ -16,10 +16,11 @@ if str(REPO_ROOT) not in sys.path:
 if str(ENTERPRISE_SRC) not in sys.path:
     sys.path.insert(0, str(ENTERPRISE_SRC))
 
-from apps.api.normalizers import InputNormalizer
-from core.stage_runner import StageRunner
 from src.services import id_allocator, signing
 from src.services.run_registry import RunRegistry
+
+from apps.api.normalizers import InputNormalizer
+from core.stage_runner import StageRunner
 
 STAGE_SEQUENCE: list[tuple[str, str | None]] = [
     ("requirements", "requirements/requirements-input.csv"),
@@ -114,8 +115,12 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=REPO_ROOT / "artefacts",
         help="Destination for generated artefacts",
     )
-    parser.add_argument("--app", default="life-claims-portal", help="Application name for the run")
-    parser.add_argument("--mode", default="demo", help="Stage runner mode (demo or enterprise)")
+    parser.add_argument(
+        "--app", default="life-claims-portal", help="Application name for the run"
+    )
+    parser.add_argument(
+        "--mode", default="demo", help="Stage runner mode (demo or enterprise)"
+    )
     parser.add_argument(
         "--run-id-seed",
         help="Optional deterministic run identifier seed (sets FIXOPS_RUN_ID_SEED)",
@@ -124,7 +129,9 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
         "--fake-now",
         help="Override timestamp used in manifests and bundles (sets FIXOPS_FAKE_NOW)",
     )
-    parser.add_argument("--sign", action="store_true", help="Request manifest signing if configured")
+    parser.add_argument(
+        "--sign", action="store_true", help="Request manifest signing if configured"
+    )
     parser.add_argument(
         "--verify",
         action="store_true",

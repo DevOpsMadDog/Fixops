@@ -3,11 +3,11 @@ import zipfile
 from pathlib import Path
 
 import pytest
+from src.services import id_allocator, signing
+from src.services.run_registry import RunRegistry
 
 from apps.api.normalizers import InputNormalizer
 from core.stage_runner import StageRunner
-from src.services import id_allocator, signing
-from src.services.run_registry import RunRegistry
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INPUT_ROOT = REPO_ROOT / "fixtures" / "sample_inputs"
@@ -24,7 +24,9 @@ STAGES = [
 ]
 
 
-def test_sample_stage_outputs_match_expected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sample_stage_outputs_match_expected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("FIXOPS_RUN_ID_SEED", "SAMPLE-RUN")
     monkeypatch.setenv("FIXOPS_FAKE_NOW", "2024-01-01T00:00:00Z")
 
@@ -66,7 +68,8 @@ def test_sample_stage_outputs_match_expected(tmp_path: Path, monkeypatch: pytest
 
     with zipfile.ZipFile(actual_bundle_path, "r") as actual_zip:
         actual_documents = {
-            info.filename: actual_zip.read(info).decode("utf-8") for info in actual_zip.infolist()
+            info.filename: actual_zip.read(info).decode("utf-8")
+            for info in actual_zip.infolist()
         }
 
     expected_documents = {

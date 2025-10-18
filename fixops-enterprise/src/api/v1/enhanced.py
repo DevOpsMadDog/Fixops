@@ -1,12 +1,15 @@
 """Enhanced decision API endpoints for the enterprise deployment."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Mapping, MutableMapping
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-
 from src.api.dependencies import authenticate, authenticated_payload
-from src.services.enhanced_decision_engine import enhanced_decision_service, EnhancedDecisionService
+from src.services.enhanced_decision_engine import (
+    EnhancedDecisionService,
+    enhanced_decision_service,
+)
 
 router = APIRouter(tags=["enhanced"])
 

@@ -1,4 +1,5 @@
 """FastAPI entrypoint compatible with the README uvicorn command."""
+
 from __future__ import annotations
 
 from apps.api.app import create_app as _create_app

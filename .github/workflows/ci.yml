@@ -37,7 +37,7 @@ jobs:
           python scripts/run_demo_steps.py --app "life-claims-portal"
       - name: Upload decision artefact
         if: env.RUN_FIXOPS_INTEGRATION_TESTS == '1'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: demo-decision
           path: artefacts/**/outputs/decision.json

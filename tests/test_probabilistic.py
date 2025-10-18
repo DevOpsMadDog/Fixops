@@ -30,7 +30,13 @@ def test_probabilistic_engine_generates_posterior_and_forecast() -> None:
 
     payload = engine.evaluate(severity_counts, crosswalk, exploited_records)
 
-    assert set(payload.keys()) == {"posterior", "next_state", "metrics", "components", "notes"}
+    assert set(payload.keys()) == {
+        "posterior",
+        "next_state",
+        "metrics",
+        "components",
+        "notes",
+    }
     assert abs(sum(payload["posterior"].values()) - 1.0) < 1e-4
     assert any(component["name"] == "payments" for component in payload["components"])
     assert payload["metrics"]["expected_high_or_critical"] >= 0.0
@@ -46,8 +52,16 @@ def test_probabilistic_engine_respects_component_limit() -> None:
     engine = ProbabilisticForecastEngine({"component_limit": 1})
 
     crosswalk = [
-        {"design_row": {"component": "a"}, "findings": [{"level": "error"}], "cves": []},
-        {"design_row": {"component": "b"}, "findings": [], "cves": [{"severity": "critical"}]},
+        {
+            "design_row": {"component": "a"},
+            "findings": [{"level": "error"}],
+            "cves": [],
+        },
+        {
+            "design_row": {"component": "b"},
+            "findings": [],
+            "cves": [{"severity": "critical"}],
+        },
     ]
 
     payload = engine.evaluate({"high": 1}, crosswalk, [])

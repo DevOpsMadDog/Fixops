@@ -7,9 +7,13 @@ import os
 from typing import Optional
 
 _NOOP = False
-if importlib.util.find_spec("opentelemetry") and importlib.util.find_spec("opentelemetry.sdk"):
+if importlib.util.find_spec("opentelemetry") and importlib.util.find_spec(
+    "opentelemetry.sdk"
+):
     from opentelemetry import metrics, trace
-    from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+    from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+        OTLPMetricExporter,
+    )
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader

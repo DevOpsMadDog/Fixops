@@ -2,9 +2,8 @@
 
 import asyncio
 import sys
-from pathlib import Path
-
 import types
+from pathlib import Path
 
 import pytest
 
@@ -52,7 +51,9 @@ if "src.config.settings" not in sys.modules:
 
     settings_module.get_settings = get_settings
     sys.modules["src.config.settings"] = settings_module
-    config_package = sys.modules.setdefault("src.config", types.ModuleType("src.config"))
+    config_package = sys.modules.setdefault(
+        "src.config", types.ModuleType("src.config")
+    )
     config_package.settings = settings_module
 
 if "src.services.cache_service" not in sys.modules:
@@ -132,7 +133,10 @@ def test_store_lookup_matches_service_and_cve():
     assert case_ids == {"payment-2024-01", "payment-2024-02"}
 
     context_map = {case["case_id"]: case["match_context"] for case in lookup["cases"]}
-    assert {entry["type"] for entry in context_map["payment-2024-01"]} == {"service", "cve"}
+    assert {entry["type"] for entry in context_map["payment-2024-01"]} == {
+        "service",
+        "cve",
+    }
     assert {entry["type"] for entry in context_map["payment-2024-02"]} == {"service"}
 
 

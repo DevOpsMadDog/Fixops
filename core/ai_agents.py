@@ -1,4 +1,5 @@
 """Advisor for AI-agent components detected in design artefacts."""
+
 from __future__ import annotations
 
 import re
@@ -107,8 +108,12 @@ class AIAgentAdvisor:
 
     def _controls_for(self, framework: FrameworkSignature) -> Dict[str, Any]:
         key = framework.name.lower()
-        controls = self.controls.get(key) if isinstance(self.controls, Mapping) else None
-        default = self.controls.get("default") if isinstance(self.controls, Mapping) else None
+        controls = (
+            self.controls.get(key) if isinstance(self.controls, Mapping) else None
+        )
+        default = (
+            self.controls.get("default") if isinstance(self.controls, Mapping) else None
+        )
         payload: Dict[str, Any] = {}
         if isinstance(default, Mapping):
             payload.update(default)
@@ -124,7 +129,9 @@ class AIAgentAdvisor:
                 continue
             frameworks = playbook.get("frameworks")
             if frameworks and isinstance(frameworks, Iterable):
-                normalised = {str(item).lower() for item in frameworks if isinstance(item, str)}
+                normalised = {
+                    str(item).lower() for item in frameworks if isinstance(item, str)
+                }
                 if normalised and framework_key not in normalised:
                     continue
             triggers = playbook.get("triggers")
@@ -156,11 +163,11 @@ class AIAgentAdvisor:
                 continue
             haystack_parts = [component_name]
             haystack_parts.extend(
-                str(value)
-                for value in design_row.values()
-                if isinstance(value, str)
+                str(value) for value in design_row.values() if isinstance(value, str)
             )
-            sbom_component = item.get("sbom_component") if isinstance(item, Mapping) else None
+            sbom_component = (
+                item.get("sbom_component") if isinstance(item, Mapping) else None
+            )
             if isinstance(sbom_component, Mapping):
                 haystack_parts.extend(
                     str(value)
@@ -189,7 +196,9 @@ class AIAgentAdvisor:
             if not signature_matches:
                 continue
             for signature in signature_matches:
-                frameworks_detected[signature.name] = frameworks_detected.get(signature.name, 0) + 1
+                frameworks_detected[signature.name] = (
+                    frameworks_detected.get(signature.name, 0) + 1
+                )
                 components_flagged.add(component_name)
                 controls = self._controls_for(signature)
                 playbooks = self._playbooks_for(signature)

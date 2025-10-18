@@ -1,4 +1,5 @@
 """CLI helpers for SBOM normalization and quality reporting."""
+
 from __future__ import annotations
 
 import argparse

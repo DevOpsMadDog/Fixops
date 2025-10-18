@@ -3,9 +3,9 @@
 import base64
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-
 from src.services.metrics import FixOpsMetrics
 from src.utils.crypto import (
     AWSKMSProvider,
@@ -62,7 +62,9 @@ class StubKMSClient:
         metadata["KeyId"] = resolved
         return {"KeyMetadata": metadata}
 
-    def sign(self, KeyId: str, Message: bytes, MessageType: str, SigningAlgorithm: str):  # noqa: N802
+    def sign(
+        self, KeyId: str, Message: bytes, MessageType: str, SigningAlgorithm: str
+    ):  # noqa: N802
         resolved = self._resolve(KeyId)
         signature = self._keys[resolved].sign(
             Message,
@@ -82,9 +84,9 @@ class StubKMSClient:
     def age_current_key(self, days: int) -> None:
         key_id = self._aliases.get("alias/decision")
         if key_id:
-            self._metadata[key_id]["CreationDate"] = datetime.now(timezone.utc) - timedelta(
-                days=days
-            )
+            self._metadata[key_id]["CreationDate"] = datetime.now(
+                timezone.utc
+            ) - timedelta(days=days)
 
 
 class StubAzureKeyClient:
@@ -110,7 +112,11 @@ class StubAzureKeyClient:
             raise ValueError("unknown key requested")
         private = self._versions[self.current_version]
         numbers = private.public_key().public_numbers()
-        jwk = {"kty": "RSA", "n": _encode_b64url(numbers.n), "e": _encode_b64url(numbers.e)}
+        jwk = {
+            "kty": "RSA",
+            "n": _encode_b64url(numbers.n),
+            "e": _encode_b64url(numbers.e),
+        }
         identifier = f"{self.vault_url}/keys/{self.key_name}/{self.current_version}"
         properties = SimpleNamespace(
             version=self.current_version,

@@ -1,4 +1,5 @@
 """FastAPI router exposing risk scoring results."""
+
 from __future__ import annotations
 
 import json
@@ -61,7 +62,9 @@ async def component_risk(component_slug: str, request: Request) -> Dict[str, Any
     index = _component_index(report)
     component = index.get(component_slug.lower())
     if component is None:
-        raise HTTPException(status_code=404, detail="Component not found in risk report")
+        raise HTTPException(
+            status_code=404, detail="Component not found in risk report"
+        )
     return component
 
 

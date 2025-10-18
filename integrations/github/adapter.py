@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Mapping
 
 import structlog
-
 from src.services.decision_engine import DecisionEngine, DecisionOutcome
 
 logger = structlog.get_logger()
@@ -78,8 +77,12 @@ class GitHubCIAdapter:
         raise ValueError("pull request number not present in payload")
 
     def _build_submission(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
-        findings = payload.get("findings") or payload.get("analysis", {}).get("findings") or []
-        controls = payload.get("controls") or payload.get("analysis", {}).get("controls") or []
+        findings = (
+            payload.get("findings") or payload.get("analysis", {}).get("findings") or []
+        )
+        controls = (
+            payload.get("controls") or payload.get("analysis", {}).get("controls") or []
+        )
         return {"findings": list(findings), "controls": list(controls)}
 
     def _render_comment(self, outcome: DecisionOutcome) -> GitHubComment:
@@ -88,12 +91,15 @@ class GitHubCIAdapter:
             f"- Confidence: {outcome.confidence:.2f}",
             f"- Evidence ID: `{outcome.evidence.evidence_id}`",
         ]
-        evidence_url = outcome.evidence.manifest.get("url") or outcome.evidence.manifest.get("evidence_url")
+        evidence_url = outcome.evidence.manifest.get(
+            "url"
+        ) or outcome.evidence.manifest.get("evidence_url")
         if evidence_url:
             summary.append(f"- Evidence: {evidence_url}")
         if outcome.top_factors:
             summary.append("\n**Top factors**:")
             for factor in outcome.top_factors:
-                summary.append(f"- {factor['name']} ({factor['weight']:.3f}): {factor['rationale']}")
+                summary.append(
+                    f"- {factor['name']} ({factor['weight']:.3f}): {factor['rationale']}"
+                )
         return GitHubComment(repository="", pull_request=0, body="\n".join(summary))
-

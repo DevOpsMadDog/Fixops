@@ -1,4 +1,5 @@
 """Opinionated compliance pack evaluation."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional
@@ -9,22 +10,42 @@ class ComplianceEvaluator:
 
     def __init__(self, settings: Mapping[str, Any]):
         self.settings = dict(settings or {})
-        self.frameworks = [framework for framework in self.settings.get("frameworks", []) if isinstance(framework, Mapping)]
+        self.frameworks = [
+            framework
+            for framework in self.settings.get("frameworks", [])
+            if isinstance(framework, Mapping)
+        ]
 
-    def _check_requirement(self, requirement: str, pipeline_result: Mapping[str, Any], context_summary: Optional[Mapping[str, Any]]) -> bool:
+    def _check_requirement(
+        self,
+        requirement: str,
+        pipeline_result: Mapping[str, Any],
+        context_summary: Optional[Mapping[str, Any]],
+    ) -> bool:
         requirement = str(requirement)
         if requirement == "design":
             return bool(pipeline_result.get("design_summary", {}).get("row_count"))
         if requirement == "sbom":
             metadata = pipeline_result.get("sbom_summary", {})
-            return bool(metadata and metadata.get("component_count", metadata.get("componentCount")))
+            return bool(
+                metadata
+                and metadata.get("component_count", metadata.get("componentCount"))
+            )
         if requirement == "sarif":
             metadata = pipeline_result.get("sarif_summary", {})
-            return bool(metadata and metadata.get("finding_count", metadata.get("findingCount")))
+            return bool(
+                metadata and metadata.get("finding_count", metadata.get("findingCount"))
+            )
         if requirement == "cve":
-            return bool(pipeline_result.get("cve_summary", {}).get("exploited_count", 0) or pipeline_result.get("cve_summary", {}).get("record_count"))
+            return bool(
+                pipeline_result.get("cve_summary", {}).get("exploited_count", 0)
+                or pipeline_result.get("cve_summary", {}).get("record_count")
+            )
         if requirement == "context":
-            return bool(context_summary and context_summary.get("summary", {}).get("components_evaluated", 0))
+            return bool(
+                context_summary
+                and context_summary.get("summary", {}).get("components_evaluated", 0)
+            )
         if requirement == "guardrails":
             status = pipeline_result.get("guardrail_evaluation", {})
             return bool(status)
@@ -34,14 +55,26 @@ class ComplianceEvaluator:
             policy_payload = pipeline_result.get("policy_automation", {})
             if not isinstance(policy_payload, Mapping):
                 return False
-            actions = policy_payload.get("actions") if isinstance(policy_payload.get("actions"), list) else []
-            execution = policy_payload.get("execution") if isinstance(policy_payload.get("execution"), Mapping) else {}
+            actions = (
+                policy_payload.get("actions")
+                if isinstance(policy_payload.get("actions"), list)
+                else []
+            )
+            execution = (
+                policy_payload.get("execution")
+                if isinstance(policy_payload.get("execution"), Mapping)
+                else {}
+            )
             dispatched = execution.get("dispatched_count")
             try:
                 dispatched_count = int(dispatched)
             except (TypeError, ValueError):
                 dispatched_count = 0
-            return bool(actions and dispatched_count > 0 and execution.get("status") in {"completed", "partial"})
+            return bool(
+                actions
+                and dispatched_count > 0
+                and execution.get("status") in {"completed", "partial"}
+            )
         return False
 
     def evaluate(
@@ -61,14 +94,18 @@ class ComplianceEvaluator:
                 satisfied_requirements = []
                 missing_requirements = []
                 for requirement in requires:
-                    if self._check_requirement(requirement, pipeline_result, context_summary):
+                    if self._check_requirement(
+                        requirement, pipeline_result, context_summary
+                    ):
                         satisfied_requirements.append(requirement)
                     else:
                         missing_requirements.append(requirement)
                 status = "satisfied" if not missing_requirements else "gap"
                 control_results.append(status == "satisfied")
                 if status == "gap":
-                    gaps.append(f"{framework.get('name')}: {control.get('id')} missing {', '.join(missing_requirements)}")
+                    gaps.append(
+                        f"{framework.get('name')}: {control.get('id')} missing {', '.join(missing_requirements)}"
+                    )
                 controls_output.append(
                     {
                         "id": control.get("id"),
@@ -78,7 +115,11 @@ class ComplianceEvaluator:
                         "missing": missing_requirements,
                     }
                 )
-            overall_status = "satisfied" if all(control_results) and control_results else "in_progress"
+            overall_status = (
+                "satisfied"
+                if all(control_results) and control_results
+                else "in_progress"
+            )
             frameworks_output.append(
                 {
                     "name": framework.get("name"),

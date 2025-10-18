@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import pytest
-from fastapi.testclient import TestClient
-
 import asyncio
 
+import pytest
+from fastapi.testclient import TestClient
 from src.config.settings import get_settings
 from src.core.middleware import RateLimitMiddleware
 from src.main import create_app
 
 
-def test_rate_limit_enforced(monkeypatch: pytest.MonkeyPatch, signing_env: None) -> None:
+def test_rate_limit_enforced(
+    monkeypatch: pytest.MonkeyPatch, signing_env: None
+) -> None:
     monkeypatch.setenv("FIXOPS_RL_REQ_PER_MIN", "1")
     get_settings.cache_clear()
     middleware = RateLimitMiddleware(lambda request: None)
@@ -33,4 +34,3 @@ def test_production_requires_allowed_origins(monkeypatch: pytest.MonkeyPatch) ->
         create_app()
     monkeypatch.delenv("ENVIRONMENT", raising=False)
     get_settings.cache_clear()
-

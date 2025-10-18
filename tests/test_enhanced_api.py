@@ -1,4 +1,5 @@
 """Regression coverage for the enhanced decision API endpoints."""
+
 from __future__ import annotations
 
 from typing import Dict
@@ -33,7 +34,9 @@ def _auth_headers() -> Dict[str, str]:
 
 
 def test_capabilities_exposes_supported_models(enhanced_client: TestClient) -> None:
-    response = enhanced_client.get("/api/v1/enhanced/capabilities", headers=_auth_headers())
+    response = enhanced_client.get(
+        "/api/v1/enhanced/capabilities", headers=_auth_headers()
+    )
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ready"

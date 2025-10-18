@@ -16,7 +16,9 @@ except Exception:  # pragma: no cover - degrade gracefully when FastAPI is missi
     create_app = None  # type: ignore
 
 
-@pytest.mark.skipif(TestClient is None or create_app is None, reason="FastAPI not available")
+@pytest.mark.skipif(
+    TestClient is None or create_app is None, reason="FastAPI not available"
+)
 def test_api_key_header_enforcement(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
     app = create_app()

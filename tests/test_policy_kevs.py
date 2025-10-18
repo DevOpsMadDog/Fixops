@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable, Callable, Dict
 import sys
 import types
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timedelta, timezone
+from typing import Any, Awaitable, Callable, Dict
 
 from pydantic import FieldInfo
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 pydantic_settings = types.ModuleType("pydantic_settings")
 
@@ -25,11 +24,7 @@ class _BaseSettings:
             setattr(self, name, overrides.get(name, default))
 
     def model_dump(self) -> Dict[str, Any]:
-        return {
-            name: getattr(self, name)
-            for name in dir(self)
-            if name.isupper()
-        }
+        return {name: getattr(self, name) for name in dir(self) if name.isupper()}
 
 
 pydantic_settings.BaseSettings = _BaseSettings
@@ -41,7 +36,9 @@ from src.models import security_sqlite  # noqa: F401  # Ensure metadata is popul
 from src.models.base_sqlite import Base
 
 
-async def _execute_with_session(test_fn: Callable[[AsyncSession], Awaitable[None]]) -> None:
+async def _execute_with_session(
+    test_fn: Callable[[AsyncSession], Awaitable[None]]
+) -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
     try:
         async with engine.begin() as connection:

@@ -50,7 +50,11 @@ def test_knowledge_graph_service_builds_snapshot() -> None:
             "maturity": "scaling",
         },
         marketplace_recommendations=[
-            {"id": "guardrail-remediation", "title": "Enable playbooks", "match": ["guardrail:fail"]}
+            {
+                "id": "guardrail-remediation",
+                "title": "Enable playbooks",
+                "match": ["guardrail:fail"],
+            }
         ],
         severity_overview={"highest": "critical", "counts": {"critical": 1}},
     )

@@ -16,10 +16,16 @@ def test_analytics_store_persist_and_load(tmp_path: Path) -> None:
             "exploited_records": 1,
         },
         "components": [
-            {"name": "payments", "escalation_probability": 0.4, "current_severity": "high"}
+            {
+                "name": "payments",
+                "escalation_probability": 0.4,
+                "current_severity": "high",
+            }
         ],
     }
-    store.record_forecast(run_id, forecast_payload, severity_overview={"counts": {"high": 2}})
+    store.record_forecast(
+        run_id, forecast_payload, severity_overview={"counts": {"high": 2}}
+    )
 
     exploit_payload = {
         "overview": {

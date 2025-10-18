@@ -8,11 +8,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+from src.api.dependencies import authenticate
+from src.services import id_allocator, signing
+from src.services.run_registry import RunRegistry
 
 from core.stage_runner import StageRunner
-from src.api.dependencies import authenticate
-from src.services.run_registry import RunRegistry
-from src.services import id_allocator, signing
 
 router = APIRouter(tags=["artefacts"])
 
@@ -22,11 +22,15 @@ class ArtefactSummary(BaseModel):
     app_id: str = Field(..., description="Resolved application identifier")
     run_id: str = Field(..., description="Allocated run identifier")
     output_file: str = Field(..., description="Canonical output file path")
-    outputs_dir: str = Field(..., description="Folder containing all outputs for the run")
+    outputs_dir: str = Field(
+        ..., description="Folder containing all outputs for the run"
+    )
     signed_manifests: list[str] = Field(default_factory=list)
     transparency_index: Optional[str] = None
     evidence_bundle: Optional[str] = None
-    verified: Optional[bool] = Field(default=None, description="Signature verification result when requested")
+    verified: Optional[bool] = Field(
+        default=None, description="Signature verification result when requested"
+    )
 
 
 def _bool_from_form(value: bool | str | None) -> bool:
@@ -48,15 +52,27 @@ async def ingest_artefact(
     _: None = Depends(authenticate),
 ) -> ArtefactSummary:
     stage = artefact_type.lower().strip()
-    if stage not in {"requirements", "design", "build", "test", "deploy", "operate", "decision"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported artefact type")
+    if stage not in {
+        "requirements",
+        "design",
+        "build",
+        "test",
+        "deploy",
+        "operate",
+        "decision",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported artefact type"
+        )
 
     temp_path: Path | None = None
     if payload is not None:
         try:
             contents = await payload.read()
         except Exception as exc:  # pragma: no cover - runtime protection
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
         suffix = Path(payload.filename or f"{stage}.dat").suffix or ".json"
         handle = NamedTemporaryFile(delete=False, suffix=suffix)
         try:
@@ -78,7 +94,9 @@ async def ingest_artefact(
             verify=_bool_from_form(verify),
         )
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
     finally:
         if temp_path is not None:
             try:
@@ -93,7 +111,9 @@ async def ingest_artefact(
         output_file=str(result.output_file),
         outputs_dir=str(result.outputs_dir),
         signed_manifests=[str(path) for path in result.signatures],
-        transparency_index=str(result.transparency_index) if result.transparency_index else None,
+        transparency_index=(
+            str(result.transparency_index) if result.transparency_index else None
+        ),
         evidence_bundle=str(result.bundle) if result.bundle else None,
         verified=result.verified,
     )
@@ -101,4 +121,3 @@ async def ingest_artefact(
 
 
 __all__ = ["router"]
-

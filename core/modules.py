@@ -1,9 +1,19 @@
 """Utility helpers for overlay-driven pipeline modules."""
+
 from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+)
 
 from core.configuration import OverlayConfig
 
@@ -37,7 +47,9 @@ class PipelineContext:
     cnapp: Optional["NormalizedCNAPP"] = None
 
 
-def _resolve_callable(entrypoint: str) -> Callable[[MutableMapping[str, Any], PipelineContext, Mapping[str, Any]], Any]:
+def _resolve_callable(
+    entrypoint: str,
+) -> Callable[[MutableMapping[str, Any], PipelineContext, Mapping[str, Any]], Any]:
     """Import a custom module callable from a string path."""
 
     if not entrypoint:
@@ -105,7 +117,9 @@ def execute_custom_modules(
         config = spec.get("config") if isinstance(spec.get("config"), Mapping) else {}
         try:
             result = handler(context.result, context, config)
-        except Exception as exc:  # pragma: no cover - module failures reported as outcome
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - module failures reported as outcome
             outcomes.append(
                 {
                     "name": spec.get("name") or entrypoint,

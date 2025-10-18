@@ -24,6 +24,7 @@ when present. The override file accepts a JSON object of the following shape:
 }
 ```
 """
+
 from __future__ import annotations
 
 import csv
@@ -90,7 +91,14 @@ DEFAULT_RULES: Tuple[Rule, ...] = (
         reason="Human-facing documentation that accelerates onboarding and reviews.",
     ),
     Rule(
-        patterns=("fixops-enterprise/**", "apps/**", "core/**", "backend/**", "enterprise/**", "integrations/**"),
+        patterns=(
+            "fixops-enterprise/**",
+            "apps/**",
+            "core/**",
+            "backend/**",
+            "enterprise/**",
+            "integrations/**",
+        ),
         status="needed",
         category="core",
         reason="Core product implementation files.",
@@ -164,7 +172,9 @@ def classify(path: str, overrides: Dict[str, Dict[str, str]]) -> InventoryEntry:
         reason = override.get("reason", "Marked via override file.")
         rule_source = "override"
     else:
-        matching_rule: Optional[Rule] = next((rule for rule in DEFAULT_RULES if rule.matches(path)), None)
+        matching_rule: Optional[Rule] = next(
+            (rule for rule in DEFAULT_RULES if rule.matches(path)), None
+        )
         if matching_rule:
             status = matching_rule.status
             category = matching_rule.category
@@ -176,7 +186,14 @@ def classify(path: str, overrides: Dict[str, Dict[str, str]]) -> InventoryEntry:
             reason = "No specific rule matched; defaulting to supporting."
             rule_source = "default"
     lines = count_lines(REPO_ROOT / path)
-    return InventoryEntry(path=path, lines=lines, status=status, category=category, reason=reason, rule_source=rule_source)
+    return InventoryEntry(
+        path=path,
+        lines=lines,
+        status=status,
+        category=category,
+        reason=reason,
+        rule_source=rule_source,
+    )
 
 
 def write_summary(entries: Iterable[InventoryEntry]) -> None:
@@ -185,7 +202,16 @@ def write_summary(entries: Iterable[InventoryEntry]) -> None:
         writer = csv.writer(handle)
         writer.writerow(["file", "lines", "status", "category", "reason", "source"])
         for entry in entries:
-            writer.writerow([entry.path, entry.lines, entry.status, entry.category, entry.reason, entry.rule_source])
+            writer.writerow(
+                [
+                    entry.path,
+                    entry.lines,
+                    entry.status,
+                    entry.category,
+                    entry.reason,
+                    entry.rule_source,
+                ]
+            )
 
 
 def write_totals(entries: Iterable[InventoryEntry]) -> None:
@@ -194,7 +220,9 @@ def write_totals(entries: Iterable[InventoryEntry]) -> None:
         status_bucket = totals.setdefault(entry.status, {"files": 0, "lines": 0})
         status_bucket["files"] += 1
         status_bucket["lines"] += entry.lines
-    TOTALS_PATH.write_text(json.dumps({"by_status": totals}, indent=2) + "\n", encoding="utf-8")
+    TOTALS_PATH.write_text(
+        json.dumps({"by_status": totals}, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def write_report(entries: Iterable[InventoryEntry]) -> None:

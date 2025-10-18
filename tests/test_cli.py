@@ -79,7 +79,9 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
                         "locations": [
                             {
                                 "physicalLocation": {
-                                    "artifactLocation": {"uri": "services/payment-service/app.py"},
+                                    "artifactLocation": {
+                                        "uri": "services/payment-service/app.py"
+                                    },
                                     "region": {"startLine": 42},
                                 }
                             }
@@ -187,7 +189,9 @@ def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
     assert overlay_payload.get("limits", {}).get("evidence", {}).get("encrypt") is False
     metadata = overlay_payload.get("metadata", {})
     warnings = metadata.get("runtime_warnings", [])
-    assert warnings, "runtime warnings should be surfaced when automation tokens missing"
+    assert (
+        warnings
+    ), "runtime warnings should be surfaced when automation tokens missing"
     assert metadata.get("automation_ready") is False
     assert "automation token" in captured.err
 
@@ -222,7 +226,9 @@ def test_cli_train_forecast(tmp_path: Path, capsys):
     assert "Probabilistic calibration complete" in summary
 
 
-def test_cli_demo_command(tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_demo_command(
+    tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
 
     output_path = tmp_path / "demo.json"

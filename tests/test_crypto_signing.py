@@ -9,7 +9,6 @@ pytest.importorskip("cryptography")
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-
 from src.utils.crypto import (
     get_key_provider,
     reset_key_provider_cache,
@@ -25,10 +24,14 @@ def _generate_rsa_keypair() -> Tuple[str, str]:
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
     ).decode()
-    public_pem = key.public_key().public_bytes(
-        serialization.Encoding.PEM,
-        serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode()
+    public_pem = (
+        key.public_key()
+        .public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode()
+    )
     return private_pem, public_pem
 
 

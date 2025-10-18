@@ -1,4 +1,5 @@
 """Execute the FixOps demo pipeline with bundled fixtures."""
+
 from __future__ import annotations
 
 import argparse
@@ -47,7 +48,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run(mode: str, output: Optional[Path], pretty: bool, summary: bool) -> None:
-    run_demo_pipeline(mode=mode, output_path=output, pretty=pretty, include_summary=summary)
+    run_demo_pipeline(
+        mode=mode, output_path=output, pretty=pretty, include_summary=summary
+    )
 
 
 def main() -> None:

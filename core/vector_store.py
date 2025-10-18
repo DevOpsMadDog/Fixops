@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
-import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
-
 
 try:  # Optional dependency – available when enterprise extras installed
     import chromadb  # type: ignore
@@ -55,10 +54,14 @@ class BaseVectorStore:
 
     provider: str = "base"
 
-    def index(self, records: Sequence[VectorRecord]) -> None:  # pragma: no cover - interface
+    def index(
+        self, records: Sequence[VectorRecord]
+    ) -> None:  # pragma: no cover - interface
         raise NotImplementedError
 
-    def search(self, query: str, *, top_k: int = 3) -> list[VectorMatch]:  # pragma: no cover
+    def search(
+        self, query: str, *, top_k: int = 3
+    ) -> list[VectorMatch]:  # pragma: no cover
         raise NotImplementedError
 
 
@@ -121,7 +124,7 @@ class InMemoryVectorStore(BaseVectorStore):
                 )
             )
         matches.sort(key=lambda match: match.similarity, reverse=True)
-        return matches[:max(1, top_k)]
+        return matches[: max(1, top_k)]
 
 
 class ChromaVectorStore(BaseVectorStore):
@@ -135,7 +138,9 @@ class ChromaVectorStore(BaseVectorStore):
         collection_name: str = "fixops-security-patterns",
         persist_directory: Optional[Path] = None,
     ) -> None:
-        if chromadb is None or ChromaSettings is None:  # pragma: no cover - optional dependency
+        if (
+            chromadb is None or ChromaSettings is None
+        ):  # pragma: no cover - optional dependency
             raise VectorStoreError("ChromaDB dependencies are not installed")
         settings = ChromaSettings(
             anonymized_telemetry=False,
@@ -170,7 +175,9 @@ class ChromaVectorStore(BaseVectorStore):
         metadatas = [dict(record.metadata) for record in records]
         documents = [record.text for record in records]
         self._collection.delete(ids=ids)
-        self._collection.add(ids=ids, embeddings=embeddings, metadatas=metadatas, documents=documents)
+        self._collection.add(
+            ids=ids, embeddings=embeddings, metadatas=metadatas, documents=documents
+        )
 
     def search(self, query: str, *, top_k: int = 3) -> list[VectorMatch]:
         if not query.strip():
@@ -193,13 +200,15 @@ class ChromaVectorStore(BaseVectorStore):
             similarity = max(0.0, 1.0 - float(distance))
             matches.append(
                 VectorMatch(
-                    identifier=str(metadata.get("id") or metadata.get("pattern_id") or index),
+                    identifier=str(
+                        metadata.get("id") or metadata.get("pattern_id") or index
+                    ),
                     similarity=similarity,
                     metadata=dict(metadata),
                 )
             )
         matches.sort(key=lambda match: match.similarity, reverse=True)
-        return matches[:max(1, top_k)]
+        return matches[: max(1, top_k)]
 
 
 def _cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
@@ -240,7 +249,9 @@ class SecurityPatternMatcher:
         return candidate
 
     def _load_patterns(self) -> list[VectorRecord]:
-        path_value = self.settings.get("patterns_path") or "fixtures/security_patterns.json"
+        path_value = (
+            self.settings.get("patterns_path") or "fixtures/security_patterns.json"
+        )
         path = self._resolve_path(str(path_value))
         if not path.exists():
             raise FileNotFoundError(f"Security pattern catalogue not found at {path}")
@@ -261,9 +272,16 @@ class SecurityPatternMatcher:
                 "tags": entry.get("tags") or [],
             }
             text = " ".join(
-                [title, description, " ".join(metadata.get("controls", [])), " ".join(metadata.get("tags", []))]
+                [
+                    title,
+                    description,
+                    " ".join(metadata.get("controls", [])),
+                    " ".join(metadata.get("tags", [])),
+                ]
             )
-            records.append(VectorRecord(identifier=identifier, text=text, metadata=metadata))
+            records.append(
+                VectorRecord(identifier=identifier, text=text, metadata=metadata)
+            )
         if not records:
             raise ValueError("Security pattern catalogue was empty")
         return records
@@ -272,7 +290,9 @@ class SecurityPatternMatcher:
     # Store initialisation
     # ------------------------------------------------------------------
     def _initialise_store(self) -> tuple[BaseVectorStore, Dict[str, Any]]:
-        provider = str(self.settings.get("provider") or self.settings.get("mode") or "auto").lower()
+        provider = str(
+            self.settings.get("provider") or self.settings.get("mode") or "auto"
+        ).lower()
         metadata: Dict[str, Any] = {}
         try:
             if provider in {"chroma", "chromadb"}:
@@ -283,7 +303,9 @@ class SecurityPatternMatcher:
                     persist_directory=self._resolve_persist_directory(),
                 )
             elif provider in {"memory", "demo"}:
-                store = InMemoryVectorStore(dimensions=int(self.settings.get("dimensions", 32)))
+                store = InMemoryVectorStore(
+                    dimensions=int(self.settings.get("dimensions", 32))
+                )
             else:  # auto
                 store = ChromaVectorStore(
                     collection_name=str(
@@ -292,10 +314,14 @@ class SecurityPatternMatcher:
                     persist_directory=self._resolve_persist_directory(),
                 )
         except VectorStoreError as exc:
-            store = InMemoryVectorStore(dimensions=int(self.settings.get("dimensions", 32)))
+            store = InMemoryVectorStore(
+                dimensions=int(self.settings.get("dimensions", 32))
+            )
             metadata["fallback_reason"] = str(exc)
         metadata.setdefault("provider", store.provider)
-        metadata.setdefault("collection", self.settings.get("collection", "fixops-security-patterns"))
+        metadata.setdefault(
+            "collection", self.settings.get("collection", "fixops-security-patterns")
+        )
         metadata.setdefault("patterns_indexed", len(self.patterns))
         return store, metadata
 
@@ -330,7 +356,11 @@ class SecurityPatternMatcher:
             if not results:
                 continue
             component = self._resolve_component(entry)
-            findings = [finding.get("rule_id") for finding in entry.get("findings", []) if isinstance(finding, Mapping)]
+            findings = [
+                finding.get("rule_id")
+                for finding in entry.get("findings", [])
+                if isinstance(finding, Mapping)
+            ]
             patterns = [
                 {
                     "pattern_id": match.metadata.get("id", match.identifier),
@@ -355,7 +385,9 @@ class SecurityPatternMatcher:
     def _resolve_component(entry: Mapping[str, Any]) -> Optional[str]:
         design = entry.get("design_row")
         if isinstance(design, Mapping):
-            component = design.get("component") or design.get("service") or design.get("name")
+            component = (
+                design.get("component") or design.get("service") or design.get("name")
+            )
             if component:
                 return str(component)
         sbom_component = entry.get("sbom_component")
@@ -370,7 +402,12 @@ class SecurityPatternMatcher:
         parts: list[str] = []
         design = entry.get("design_row")
         if isinstance(design, Mapping):
-            for key in ("component", "customer_impact", "data_classification", "exposure"):
+            for key in (
+                "component",
+                "customer_impact",
+                "data_classification",
+                "exposure",
+            ):
                 value = design.get(key)
                 if isinstance(value, str) and value:
                     parts.append(value)
@@ -405,4 +442,3 @@ __all__ = [
     "VectorRecord",
     "VectorStoreError",
 ]
-

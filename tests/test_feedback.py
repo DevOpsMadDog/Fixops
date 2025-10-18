@@ -105,7 +105,11 @@ def test_feedback_forwarding_records_connector_outcomes(tmp_path: Path) -> None:
 
     log_path = tmp_path / "feedback" / "demo456" / "feedback_forwarding.jsonl"
     assert log_path.exists()
-    lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    lines = [
+        line
+        for line in log_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     assert lines
     record = json.loads(lines[-1])
     assert record["outcomes"]["jira"]["status"] == "sent"

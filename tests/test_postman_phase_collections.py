@@ -13,9 +13,7 @@ def _load_json(path: str) -> dict:
 
 
 def test_phase_one_health_collection_targets_core_probes() -> None:
-    collection = _load_json(
-        "enterprise/postman/FixOps-Bank-API-Collection.json"
-    )
+    collection = _load_json("enterprise/postman/FixOps-Bank-API-Collection.json")
     folders = collection.get("item", [])
     health_folder = next(
         (item for item in folders if item.get("name") == "🏥 Health & Monitoring"),
@@ -75,7 +73,9 @@ def test_phase_two_cicd_collection_covers_allow_block_defer() -> None:
         url = request.get("url")
         raw = url.get("raw") if isinstance(url, dict) else url
         assert isinstance(raw, str)
-        assert expected_path in raw, f"Scenario '{name}' should reference {expected_path}"
+        assert (
+            expected_path in raw
+        ), f"Scenario '{name}' should reference {expected_path}"
 
 
 def test_phase_three_performance_collection_targets_hot_path() -> None:

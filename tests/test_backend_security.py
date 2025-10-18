@@ -16,7 +16,9 @@ def _make_overlay(root: Path) -> OverlayConfig:
     return overlay
 
 
-def test_create_app_rejects_insecure_allowlisted_root(monkeypatch, tmp_path: Path) -> None:
+def test_create_app_rejects_insecure_allowlisted_root(
+    monkeypatch, tmp_path: Path
+) -> None:
     insecure_root = tmp_path / "insecure"
     insecure_root.mkdir()
     os.chmod(insecure_root, 0o777)

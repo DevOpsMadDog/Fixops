@@ -45,7 +45,7 @@ class VerificationResult:
             "match": self.match,
             "verified_at": self.verified_at,
             "reference_source": self.reference_source,
-        "attestation_path": self.attestation_path,
+            "attestation_path": self.attestation_path,
         }
 
 
@@ -100,7 +100,9 @@ def _copy_source(source: Path, destination: Path) -> None:
         shutil.copy2(source, destination)
 
 
-def _materialise_sources(sources: Iterable[Any], repo_root: Path, workspace: Path) -> None:
+def _materialise_sources(
+    sources: Iterable[Any], repo_root: Path, workspace: Path
+) -> None:
     for entry in sources or []:
         if isinstance(entry, str):
             source_path = (repo_root / entry).resolve()
@@ -119,7 +121,9 @@ def _materialise_sources(sources: Iterable[Any], repo_root: Path, workspace: Pat
         _copy_source(source_path, destination)
 
 
-def _run_steps(steps: Iterable[Any], workspace: Path, env: Mapping[str, Any] | None) -> None:
+def _run_steps(
+    steps: Iterable[Any], workspace: Path, env: Mapping[str, Any] | None
+) -> None:
     if not steps:
         raise ValueError("Plan must include at least one step")
     base_env = {"PATH": os.environ.get("PATH", "")}
@@ -163,19 +167,26 @@ def _compute_digest(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _resolve_reference(plan: Mapping[str, Any], repo_root: Path, artifact_name: str) -> tuple[str | None, str | None]:
+def _resolve_reference(
+    plan: Mapping[str, Any], repo_root: Path, artifact_name: str
+) -> tuple[str | None, str | None]:
     expected = _normalise_digest(plan.get("expected_digest"))
     if expected:
         return expected, "expected_digest"
 
-    attestation_path_value = plan.get("reference_attestation") or plan.get("attestation")
+    attestation_path_value = plan.get("reference_attestation") or plan.get(
+        "attestation"
+    )
     if isinstance(attestation_path_value, str):
         attestation_path = (repo_root / attestation_path_value).resolve()
         if not attestation_path.is_file():
             raise FileNotFoundError(f"Attestation '{attestation_path}' not found")
         attestation = load_attestation(attestation_path)
         for subject in attestation.subject:
-            if subject.name == artifact_name or subject.name == Path(artifact_name).name:
+            if (
+                subject.name == artifact_name
+                or subject.name == Path(artifact_name).name
+            ):
                 digest_value = subject.digest.get("sha256")
                 if digest_value:
                     return digest_value, f"attestation:{attestation_path_value}"
@@ -184,7 +195,9 @@ def _resolve_reference(plan: Mapping[str, Any], repo_root: Path, artifact_name: 
             if digest_value:
                 return digest_value, f"attestation:{attestation_path_value}"
 
-    reference_artifact = plan.get("reference_artifact") or plan.get("artifact_reference")
+    reference_artifact = plan.get("reference_artifact") or plan.get(
+        "artifact_reference"
+    )
     if isinstance(reference_artifact, str):
         reference_path = (repo_root / reference_artifact).resolve()
         if not reference_path.is_file():
@@ -194,7 +207,9 @@ def _resolve_reference(plan: Mapping[str, Any], repo_root: Path, artifact_name: 
     return None, None
 
 
-def verify_plan(plan: Mapping[str, Any], *, repo_root: Path | str = Path(".")) -> VerificationResult:
+def verify_plan(
+    plan: Mapping[str, Any], *, repo_root: Path | str = Path(".")
+) -> VerificationResult:
     """Execute *plan* in a temporary workspace and return the verification result."""
 
     repo_path = Path(repo_root).resolve()
@@ -213,23 +228,31 @@ def verify_plan(plan: Mapping[str, Any], *, repo_root: Path | str = Path(".")) -
             _run_steps(steps, workspace, environment)
             artefact_path = (workspace / artifact_rel).resolve()
             if not artefact_path.is_file():
-                raise FileNotFoundError(f"Expected artefact '{artifact_rel}' not produced")
+                raise FileNotFoundError(
+                    f"Expected artefact '{artifact_rel}' not produced"
+                )
             generated_digest = _compute_digest(artefact_path)
-            expected_digest, reference_source = _resolve_reference(plan, repo_path, Path(artifact_rel).name)
+            expected_digest, reference_source = _resolve_reference(
+                plan, repo_path, Path(artifact_rel).name
+            )
             result = VerificationResult(
                 tag=tag,
                 plan=str(plan.get("__plan_path__", "")),
                 artifact=artifact_rel,
                 artifact_path=str(artefact_path),
                 generated_digest={"sha256": generated_digest},
-                reference_digest={"sha256": expected_digest} if expected_digest else None,
+                reference_digest=(
+                    {"sha256": expected_digest} if expected_digest else None
+                ),
                 match=bool(expected_digest and generated_digest == expected_digest),
                 verified_at=datetime.now(timezone.utc).isoformat(),
                 reference_source=reference_source,
             )
             span.set_attribute("fixops.repro.match", result.match)
             if expected_digest:
-                span.set_attribute("fixops.repro.reference", reference_source or "unknown")
+                span.set_attribute(
+                    "fixops.repro.reference", reference_source or "unknown"
+                )
             return result
 
 

@@ -1,8 +1,8 @@
 import types
 
 from core.analytics import ROIDashboard
-from core.tenancy import TenantLifecycleManager
 from core.performance import PerformanceSimulator
+from core.tenancy import TenantLifecycleManager
 
 
 def _overlay_stub(mode: str = "demo") -> object:
@@ -44,7 +44,9 @@ def test_roi_dashboard_calculates_value() -> None:
     assert analytics["overview"]["estimated_value"] > 0
     assert analytics["roi"]["noise_hours_saved"] >= 0
     assert analytics["overlay"]["mode"] == "demo"
-    assert any(entry["module"] == "guardrails" for entry in analytics["value_by_module"])
+    assert any(
+        entry["module"] == "guardrails" for entry in analytics["value_by_module"]
+    )
     assert analytics["insights"]
 
 
@@ -72,7 +74,9 @@ def test_tenant_lifecycle_summary() -> None:
         }
     )
 
-    result = manager.evaluate({"modules": {"executed": ["guardrails", "performance"]}}, _overlay_stub())
+    result = manager.evaluate(
+        {"modules": {"executed": ["guardrails", "performance"]}}, _overlay_stub()
+    )
 
     assert result["summary"]["total_tenants"] == 1
     tenant = result["tenants"][0]

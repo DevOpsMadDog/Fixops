@@ -78,7 +78,7 @@ def test_load_sarif_converts_snyk_payload_without_converter():
         "ok": False,
         "snykVersion": "1.1200.0",
         "projectName": "customer-suite",
-        "org": "fixops", 
+        "org": "fixops",
         "issues": {
             "vulnerabilities": [
                 {

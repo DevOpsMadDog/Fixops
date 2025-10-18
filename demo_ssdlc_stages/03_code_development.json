@@ -1,0 +1,155 @@
+{
+  "stage": "code",
+  "timestamp": "2025-10-17T14:00:00Z",
+  "lead_developer": "Alex Thompson",
+  "code_review_lead": "Maria Garcia",
+  
+  "repository": {
+    "url": "https://github.com/acme-corp/payment-platform",
+    "branch": "feature/payment-integration",
+    "commit": "a3f7b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "commit_message": "feat: implement Stripe payment integration with security hardening"
+  },
+  
+  "sbom_cyclonedx": {
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.5",
+    "version": 1,
+    "metadata": {
+      "timestamp": "2025-10-17T14:00:00Z",
+      "component": {
+        "name": "payment-platform",
+        "version": "2.1.0"
+      }
+    },
+    "components": [
+      {
+        "type": "library",
+        "name": "stripe-java",
+        "version": "24.1.0",
+        "purl": "pkg:maven/com.stripe/stripe-java@24.1.0",
+        "licenses": [{"license": {"id": "MIT"}}],
+        "hashes": [{"alg": "SHA-256", "content": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]
+      },
+      {
+        "type": "library",
+        "name": "log4j-core",
+        "version": "2.21.0",
+        "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.21.0",
+        "licenses": [{"license": {"id": "Apache-2.0"}}],
+        "hashes": [{"alg": "SHA-256", "content": "9daec4aa67065f669375b7add294498b7ebf3afb4e297e62cb0f67d8ee7822bf"}]
+      },
+      {
+        "type": "library",
+        "name": "spring-boot-starter-web",
+        "version": "3.2.0",
+        "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.0",
+        "licenses": [{"license": {"id": "Apache-2.0"}}]
+      },
+      {
+        "type": "library",
+        "name": "postgresql",
+        "version": "42.7.1",
+        "purl": "pkg:maven/org.postgresql/postgresql@42.7.1",
+        "licenses": [{"license": {"id": "BSD-2-Clause"}}]
+      },
+      {
+        "type": "library",
+        "name": "bcrypt",
+        "version": "0.9.0",
+        "purl": "pkg:maven/at.favre.lib/bcrypt@0.9.0",
+        "licenses": [{"license": {"id": "Apache-2.0"}}]
+      },
+      {
+        "type": "library",
+        "name": "jackson-databind",
+        "version": "2.15.3",
+        "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.3",
+        "licenses": [{"license": {"id": "Apache-2.0"}}]
+      }
+    ],
+    "dependencies": [
+      {
+        "ref": "pkg:maven/com.stripe/stripe-java@24.1.0",
+        "dependsOn": ["pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.3"]
+      }
+    ]
+  },
+  
+  "code_quality_metrics": {
+    "lines_of_code": 12450,
+    "test_coverage": 87.3,
+    "cyclomatic_complexity_avg": 4.2,
+    "maintainability_index": 78.5,
+    "code_duplication_percentage": 3.1
+  },
+  
+  "security_code_review": {
+    "reviewer": "Maria Garcia",
+    "findings": [
+      {
+        "finding_id": "CR-001",
+        "severity": "high",
+        "category": "Input Validation",
+        "description": "Payment amount validation missing for negative values",
+        "location": "PaymentController.java:145",
+        "status": "fixed",
+        "fix_commit": "b4c8d3e2f1a0"
+      },
+      {
+        "finding_id": "CR-002",
+        "severity": "medium",
+        "category": "Logging",
+        "description": "PII logged in exception handler",
+        "location": "ErrorHandler.java:67",
+        "status": "fixed",
+        "fix_commit": "c5d9e4f3g2b1"
+      }
+    ],
+    "approved": true,
+    "approval_timestamp": "2025-10-17T15:30:00Z"
+  },
+  
+  "static_analysis_tools": [
+    {
+      "tool": "SonarQube",
+      "version": "10.2",
+      "scan_timestamp": "2025-10-17T14:15:00Z",
+      "bugs": 0,
+      "vulnerabilities": 0,
+      "code_smells": 12,
+      "security_hotspots": 3,
+      "quality_gate": "passed"
+    },
+    {
+      "tool": "Checkmarx SAST",
+      "version": "2023.4.1",
+      "scan_timestamp": "2025-10-17T14:20:00Z",
+      "high_severity": 0,
+      "medium_severity": 2,
+      "low_severity": 8,
+      "status": "passed"
+    }
+  ],
+  
+  "dependency_scanning": {
+    "tool": "Snyk",
+    "version": "1.1246.0",
+    "scan_timestamp": "2025-10-17T14:25:00Z",
+    "critical_vulns": 0,
+    "high_vulns": 0,
+    "medium_vulns": 3,
+    "low_vulns": 12,
+    "vulnerabilities": [
+      {
+        "cve": "CVE-2023-42794",
+        "package": "jackson-databind",
+        "version": "2.15.3",
+        "severity": "medium",
+        "cvss": 5.5,
+        "fix_available": "2.16.0",
+        "exploitability": "proof_of_concept"
+      }
+    ]
+  }
+}

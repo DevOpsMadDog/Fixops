@@ -1,8 +1,19 @@
 """Lifecycle evaluation across Secure SDLC stages."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from core.configuration import OverlayConfig
 
@@ -104,7 +115,11 @@ class SSDLCEvaluator:
                     satisfied_any = True
                 else:
                     satisfied = False
-                requirements.append(RequirementResult(key=key, title=title, status=status, details=details))
+                requirements.append(
+                    RequirementResult(
+                        key=key, title=title, status=status, details=details
+                    )
+                )
             if not requirements:
                 stage_status = "informational"
             elif satisfied:
@@ -163,7 +178,9 @@ class SSDLCEvaluator:
             if stage.status == "gap":
                 recommendations.append(f"Close requirements for {stage.name} stage")
             elif stage.status == "in_progress":
-                recommendations.append(f"Complete outstanding items for {stage.name} stage")
+                recommendations.append(
+                    f"Complete outstanding items for {stage.name} stage"
+                )
         summary = totals
         if recommendations:
             summary["recommendations"] = recommendations
@@ -242,13 +259,20 @@ class SSDLCEvaluator:
         analysis = kwargs.get("pipeline_result", {}).get("ai_agent_analysis")
         if analysis and analysis.get("matches"):
             frameworks = analysis.get("summary", {}).get("frameworks_detected", [])
-            return "satisfied", f"Agent frameworks registered: {', '.join(frameworks) or 'detected'}"
+            return (
+                "satisfied",
+                f"Agent frameworks registered: {', '.join(frameworks) or 'detected'}",
+            )
         return "in_progress", "No agent frameworks detected in current run"
 
     @staticmethod
     def _check_sbom(**kwargs: Any) -> Tuple[str, str]:
         sbom = kwargs.get("sbom")
-        component_count = getattr(sbom, "metadata", {}).get("component_count") if hasattr(sbom, "metadata") else None
+        component_count = (
+            getattr(sbom, "metadata", {}).get("component_count")
+            if hasattr(sbom, "metadata")
+            else None
+        )
         try:
             total = int(component_count)
         except Exception:
@@ -303,8 +327,13 @@ class SSDLCEvaluator:
         cve_feed = kwargs.get("cve")
         records = getattr(cve_feed, "records", []) or []
         if records:
-            exploited = sum(1 for record in records if getattr(record, "exploited", False))
-            return "satisfied", f"{len(records)} CVE records ingested ({exploited} exploited)"
+            exploited = sum(
+                1 for record in records if getattr(record, "exploited", False)
+            )
+            return (
+                "satisfied",
+                f"{len(records)} CVE records ingested ({exploited} exploited)",
+            )
         return "gap", "No CVE feed provided"
 
     @staticmethod
@@ -312,8 +341,14 @@ class SSDLCEvaluator:
         policy = kwargs.get("policy_summary") or {}
         if not isinstance(policy, Mapping):
             return "in_progress", "Policy automation not evaluated"
-        actions = policy.get("actions") if isinstance(policy.get("actions"), list) else []
-        execution = policy.get("execution") if isinstance(policy.get("execution"), Mapping) else {}
+        actions = (
+            policy.get("actions") if isinstance(policy.get("actions"), list) else []
+        )
+        execution = (
+            policy.get("execution")
+            if isinstance(policy.get("execution"), Mapping)
+            else {}
+        )
         dispatched = execution.get("dispatched_count")
         try:
             dispatched_count = int(dispatched)
@@ -328,7 +363,9 @@ class SSDLCEvaluator:
     @staticmethod
     def _check_compliance(**kwargs: Any) -> Tuple[str, str]:
         compliance = kwargs.get("compliance_status") or {}
-        frameworks = compliance.get("frameworks") if isinstance(compliance, Mapping) else []
+        frameworks = (
+            compliance.get("frameworks") if isinstance(compliance, Mapping) else []
+        )
         if not frameworks:
             return "in_progress", "No compliance packs evaluated"
         statuses = [framework.get("status") for framework in frameworks]
@@ -346,11 +383,15 @@ class SSDLCEvaluator:
             action
             for action in actions
             if isinstance(action, Mapping)
-            and action.get("type") in {"jira_issue", "confluence_page", "change_request"}
+            and action.get("type")
+            in {"jira_issue", "confluence_page", "change_request"}
         ]
         if approval_actions:
             channels = {action.get("type") for action in approval_actions}
-            return "satisfied", f"Approval hooks configured: {', '.join(sorted(str(channel) for channel in channels))}"
+            return (
+                "satisfied",
+                f"Approval hooks configured: {', '.join(sorted(str(channel) for channel in channels))}",
+            )
         return "gap", "No deployment approval hooks configured"
 
     @staticmethod

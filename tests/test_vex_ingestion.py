@@ -3,12 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from src.services import vex_ingestion
 from src.services.vex_ingestion import VEXIngestor
 
 
-def test_vex_ingestion_suppresses_not_affected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_vex_ingestion_suppresses_not_affected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """CycloneDX ingestion should flag `not_affected` findings as suppressed."""
 
     cache_dir = tmp_path / "vex"
@@ -19,7 +20,10 @@ def test_vex_ingestion_suppresses_not_affected(tmp_path: Path, monkeypatch: pyte
         "vulnerabilities": [
             {
                 "id": "CVE-2024-0001",
-                "analysis": {"state": "not_affected", "justification": "component_not_present"},
+                "analysis": {
+                    "state": "not_affected",
+                    "justification": "component_not_present",
+                },
             }
         ]
     }

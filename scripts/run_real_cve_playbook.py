@@ -5,21 +5,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 from rich.console import Console
 from rich.table import Table
 
-import sys
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "enterprise") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "enterprise"))
 
-from src.services.risk_scorer import ContextualRiskScorer  # noqa: E402
 from src.services.compliance_engine import ComplianceEngine  # noqa: E402
-
+from src.services.risk_scorer import ContextualRiskScorer  # noqa: E402
 
 DEFAULT_CONTEXT = {
     "service_name": "payment-service",
@@ -80,13 +78,18 @@ def build_table(findings: List[Dict[str, Any]]) -> Table:
     return table
 
 
-def print_compliance_results(console: Console, context: Dict[str, Any], findings: List[Dict[str, Any]]) -> None:
+def print_compliance_results(
+    console: Console, context: Dict[str, Any], findings: List[Dict[str, Any]]
+) -> None:
     engine = ComplianceEngine()
     frameworks = context.get("compliance_requirements", [])
     if not frameworks:
         return
 
-    results = [engine._evaluate_framework(framework, findings, context.get("business_context")) for framework in frameworks]
+    results = [
+        engine._evaluate_framework(framework, findings, context.get("business_context"))
+        for framework in frameworks
+    ]
     for result in results:
         console.print(
             f"[bold]{result['framework'].upper()}[/bold] status: {result['status']} "

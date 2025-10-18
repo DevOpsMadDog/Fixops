@@ -1,4 +1,5 @@
 """Infrastructure-as-code posture evaluation utilities."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -35,7 +36,9 @@ class IACTarget:
         identifier = str(payload.get("id") or payload.get("name") or "").strip()
         if not identifier:
             raise ValueError("IaC target requires an identifier")
-        display_name = str(payload.get("display_name") or payload.get("name") or identifier)
+        display_name = str(
+            payload.get("display_name") or payload.get("name") or identifier
+        )
         keywords = _normalise_tokens(payload.get("match") or payload.get("keywords"))
         required_artifacts = [
             str(item).strip()
@@ -106,7 +109,12 @@ class IaCPostureEvaluator:
                 if target.match_keywords and target.match_keywords.isdisjoint(tokens):
                     continue
                 component_name = (
-                    str(row.get("component") or row.get("name") or row.get("service") or "")
+                    str(
+                        row.get("component")
+                        or row.get("name")
+                        or row.get("service")
+                        or ""
+                    )
                 ).strip()
                 if component_name:
                     matched_components.append(component_name)
@@ -147,7 +155,12 @@ class IaCPostureEvaluator:
             if not isinstance(design_row, Mapping):
                 continue
             name = (
-                str(design_row.get("component") or design_row.get("name") or design_row.get("service") or "")
+                str(
+                    design_row.get("component")
+                    or design_row.get("name")
+                    or design_row.get("service")
+                    or ""
+                )
             ).strip()
             if not name:
                 continue
@@ -158,7 +171,9 @@ class IaCPostureEvaluator:
                 design_row.get("deployment"),
                 design_row.get("notes"),
             )
-            if any(not target.match_keywords.isdisjoint(tokens) for target in self.targets):
+            if any(
+                not target.match_keywords.isdisjoint(tokens) for target in self.targets
+            ):
                 continue
             unmatched_components.add(name)
 

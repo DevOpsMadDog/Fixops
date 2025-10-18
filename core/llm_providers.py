@@ -1,4 +1,5 @@
 """LLM provider adapters for the enhanced decision engine."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,9 @@ class LLMResponse:
 class BaseLLMProvider:
     """Base class for LLM provider adapters."""
 
-    def __init__(self, name: str, *, style: str = "consensus", focus: Sequence[str] | None = None) -> None:
+    def __init__(
+        self, name: str, *, style: str = "consensus", focus: Sequence[str] | None = None
+    ) -> None:
         self.name = name
         self.style = style
         self.focus = list(focus or [])
@@ -84,7 +87,9 @@ class OpenAIChatProvider(BaseLLMProvider):
     ) -> None:
         super().__init__(name, style=style, focus=focus)
         self.model = model
-        self.api_key_envs = list(api_key_envs or ("OPENAI_API_KEY", "FIXOPS_OPENAI_KEY"))
+        self.api_key_envs = list(
+            api_key_envs or ("OPENAI_API_KEY", "FIXOPS_OPENAI_KEY")
+        )
         self.timeout = timeout
         self.api_key = self._resolve_api_key()
 
@@ -139,22 +144,111 @@ class OpenAIChatProvider(BaseLLMProvider):
                 timeout=self.timeout,
             )
             response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
+            response_json = response.json()
+
+            if "choices" not in response_json or not response_json["choices"]:
+                raise ValueError("OpenAI response missing choices")
+
+            content = response_json["choices"][0]["message"]["content"]
             parsed = json.loads(content)
+        except requests.Timeout as exc:
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": f"Timeout after {self.timeout}s",
+                "model": self.model,
+                "error_type": "timeout",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenAI timeout: {exc}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except requests.HTTPError as exc:
+            error_detail = "HTTP error"
+            if exc.response is not None:
+                try:
+                    error_json = exc.response.json()
+                    error_detail = error_json.get("error", {}).get("message", str(exc))
+                except Exception:
+                    error_detail = str(exc)
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": error_detail,
+                "model": self.model,
+                "error_type": "http_error",
+                "status_code": exc.response.status_code if exc.response else None,
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenAI error: {error_detail}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except (json.JSONDecodeError, KeyError, ValueError) as exc:
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": f"Invalid response format: {exc}",
+                "model": self.model,
+                "error_type": "parse_error",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[OpenAI parse error: {exc}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
         except Exception as exc:  # noqa: BLE001 - capture provider error
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
                 "error": str(exc),
                 "model": self.model,
+                "error_type": "unknown",
             }
             return LLMResponse(
                 recommended_action=default_action,
                 confidence=default_confidence,
                 reasoning=f"{default_reasoning}\n[OpenAI fallback: {exc}]",
-                mitre_techniques=_ensure_list((mitigation_hints or {}).get("mitre_candidates")),
-                compliance_concerns=_ensure_list((mitigation_hints or {}).get("compliance")),
-                attack_vectors=_ensure_list((mitigation_hints or {}).get("attack_vectors")),
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
                 metadata=metadata,
             )
         duration = (time.perf_counter() - start) * 1000
@@ -197,7 +291,9 @@ class AnthropicMessagesProvider(BaseLLMProvider):
     ) -> None:
         super().__init__(name, style=style, focus=focus)
         self.model = model
-        self.api_key_envs = list(api_key_envs or ("ANTHROPIC_API_KEY", "FIXOPS_ANTHROPIC_KEY"))
+        self.api_key_envs = list(
+            api_key_envs or ("ANTHROPIC_API_KEY", "FIXOPS_ANTHROPIC_KEY")
+        )
         self.timeout = timeout
         self.api_key = self._resolve_api_key()
 
@@ -262,9 +358,15 @@ class AnthropicMessagesProvider(BaseLLMProvider):
                 recommended_action=default_action,
                 confidence=default_confidence,
                 reasoning=f"{default_reasoning}\n[Anthropic fallback: {exc}]",
-                mitre_techniques=_ensure_list((mitigation_hints or {}).get("mitre_candidates")),
-                compliance_concerns=_ensure_list((mitigation_hints or {}).get("compliance")),
-                attack_vectors=_ensure_list((mitigation_hints or {}).get("attack_vectors")),
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
                 metadata=metadata,
             )
         duration = (time.perf_counter() - start) * 1000
@@ -307,7 +409,9 @@ class GeminiProvider(BaseLLMProvider):
     ) -> None:
         super().__init__(name, style=style, focus=focus)
         self.model = model
-        self.api_key_envs = list(api_key_envs or ("GOOGLE_API_KEY", "FIXOPS_GEMINI_KEY"))
+        self.api_key_envs = list(
+            api_key_envs or ("GOOGLE_API_KEY", "FIXOPS_GEMINI_KEY")
+        )
         self.timeout = timeout
         self.api_key = self._resolve_api_key()
 
@@ -339,7 +443,8 @@ class GeminiProvider(BaseLLMProvider):
                         {
                             "text": (
                                 "Respond with JSON containing recommended_action, confidence, reasoning, "
-                                "mitre_techniques, compliance_concerns, attack_vectors.\n" + prompt
+                                "mitre_techniques, compliance_concerns, attack_vectors.\n"
+                                + prompt
                             )
                         }
                     ],
@@ -349,7 +454,9 @@ class GeminiProvider(BaseLLMProvider):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         start = time.perf_counter()
         try:
-            response = requests.post(url, params=params, json=payload, timeout=self.timeout)
+            response = requests.post(
+                url, params=params, json=payload, timeout=self.timeout
+            )
             response.raise_for_status()
             candidates = response.json().get("candidates", [])
             if not candidates:
@@ -367,9 +474,15 @@ class GeminiProvider(BaseLLMProvider):
                 recommended_action=default_action,
                 confidence=default_confidence,
                 reasoning=f"{default_reasoning}\n[Gemini fallback: {exc}]",
-                mitre_techniques=_ensure_list((mitigation_hints or {}).get("mitre_candidates")),
-                compliance_concerns=_ensure_list((mitigation_hints or {}).get("compliance")),
-                attack_vectors=_ensure_list((mitigation_hints or {}).get("attack_vectors")),
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
                 metadata=metadata,
             )
         duration = (time.perf_counter() - start) * 1000
@@ -453,16 +566,24 @@ def _response_from_payload(
     metadata: Mapping[str, Any],
 ) -> LLMResponse:
     hints = dict(mitigation_hints or {})
-    recommended_action = str(payload.get("recommended_action") or default_action).lower()
+    recommended_action = str(
+        payload.get("recommended_action") or default_action
+    ).lower()
     confidence_value = payload.get("confidence", default_confidence)
     try:
         confidence = float(confidence_value)
     except (TypeError, ValueError):  # noqa: PERF203 - defensive conversion
         confidence = default_confidence
     reasoning = str(payload.get("reasoning") or default_reasoning)
-    mitre = _ensure_list(payload.get("mitre_techniques")) or _ensure_list(hints.get("mitre_candidates"))
-    compliance = _ensure_list(payload.get("compliance_concerns")) or _ensure_list(hints.get("compliance"))
-    attack_vectors = _ensure_list(payload.get("attack_vectors")) or _ensure_list(hints.get("attack_vectors"))
+    mitre = _ensure_list(payload.get("mitre_techniques")) or _ensure_list(
+        hints.get("mitre_candidates")
+    )
+    compliance = _ensure_list(payload.get("compliance_concerns")) or _ensure_list(
+        hints.get("compliance")
+    )
+    attack_vectors = _ensure_list(payload.get("attack_vectors")) or _ensure_list(
+        hints.get("attack_vectors")
+    )
     return LLMResponse(
         recommended_action=recommended_action,
         confidence=confidence,

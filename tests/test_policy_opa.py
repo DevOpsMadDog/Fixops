@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import pytest
-
 from src.api.v1 import policy
+
 from tests.test_policy_kevs import run_with_session
 
 
@@ -18,7 +18,9 @@ class _StubEngine:
     async def health_check(self) -> bool:
         return True
 
-    async def evaluate_policy(self, policy_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def evaluate_policy(
+        self, policy_name: str, payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
         self.seen_payloads.append({"name": policy_name, "payload": payload})
         return dict(self._decision)
 
@@ -57,11 +59,15 @@ def test_policy_blocks_when_opa_denies(monkeypatch: pytest.MonkeyPatch) -> None:
     """OPA block responses should fail the gate even when local checks pass."""
 
     async def scenario(session: Any) -> None:
-        engine = _StubEngine(decision={"decision": "block", "rationale": "policy violation"})
+        engine = _StubEngine(
+            decision={"decision": "block", "rationale": "policy violation"}
+        )
         response = await _evaluate_with_stub(monkeypatch, engine, session)
         assert response.allow is False
         assert "OPA policy" in response.reason
-        assert engine.seen_payloads and engine.seen_payloads[0]["name"] == "vulnerability"
+        assert (
+            engine.seen_payloads and engine.seen_payloads[0]["name"] == "vulnerability"
+        )
 
     run_with_session(scenario)
 
@@ -70,7 +76,9 @@ def test_policy_allows_when_opa_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     """OPA allow responses should permit the deployment when no other guardrail blocks it."""
 
     async def scenario(session: Any) -> None:
-        engine = _StubEngine(decision={"decision": "allow", "rationale": "policy satisfied"})
+        engine = _StubEngine(
+            decision={"decision": "allow", "rationale": "policy satisfied"}
+        )
         response = await _evaluate_with_stub(monkeypatch, engine, session)
         assert response.allow is True
         assert response.reason == "Policy checks passed"

@@ -49,6 +49,9 @@ def test_markov_builder_fallback_uses_epss_and_kev_bias() -> None:
     assert result["real_mchmm_used"] is False
     assert result["predictions"]
     prediction = result["predictions"][0]
-    assert pytest.approx(sum(prediction["predicted_transitions"].values()), rel=1e-6) == 1.0
+    assert (
+        pytest.approx(sum(prediction["predicted_transitions"].values()), rel=1e-6)
+        == 1.0
+    )
     exploited_probability = prediction["predicted_transitions"]["exploited"]
     assert exploited_probability > 0.5

@@ -29,7 +29,9 @@ def build_crosswalk(
             CrosswalkRow(
                 design_index=index,
                 design_row=dict(row),
-                sbom_component=dict(component) if isinstance(component, Mapping) else component,
+                sbom_component=(
+                    dict(component) if isinstance(component, Mapping) else component
+                ),
                 findings=tuple(dict(item) for item in findings),
                 cves=tuple(dict(item) for item in cves),
             )

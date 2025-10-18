@@ -72,7 +72,9 @@ class ChunkUploadManager:
         content_type: Optional[str] = None,
         checksum: Optional[str] = None,
     ) -> UploadSession:
-        session_id = sha256(f"{stage}:{filename}:{time.time()}".encode("utf-8")).hexdigest()[:32]
+        session_id = sha256(
+            f"{stage}:{filename}:{time.time()}".encode("utf-8")
+        ).hexdigest()[:32]
         with self._lock:
             session_dir = self._session_dir(session_id)
             session_dir.mkdir(parents=True, exist_ok=True)
@@ -125,7 +127,10 @@ class ChunkUploadManager:
             path = session.path
             if path is None or not path.exists():
                 raise ValueError("Upload payload missing for completion")
-            if session.total_bytes is not None and path.stat().st_size != session.total_bytes:
+            if (
+                session.total_bytes is not None
+                and path.stat().st_size != session.total_bytes
+            ):
                 raise ValueError(
                     "Uploaded size does not match declared total bytes",
                 )
@@ -204,4 +209,3 @@ class ChunkUploadManager:
 
 
 __all__ = ["ChunkUploadManager", "UploadSession"]
-
