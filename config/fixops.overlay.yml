@@ -76,11 +76,48 @@ compliance:
         - id: CC7.2
           title: Continuous Vulnerability Management
           requires: [sarif, cve, context]
+        - id: CC6.1
+          title: Logical and Physical Access Controls
+          requires: [design, context]
+        - id: CC6.6
+          title: Vulnerabilities Are Identified and Addressed
+          requires: [sarif, cve, guardrails]
     - name: ISO27001
       controls:
         - id: A.12.6.1
           title: Application vulnerability management
           requires: [sbom, cve]
+        - id: A.14.2.8
+          title: System security testing
+          requires: [sarif, guardrails]
+    - name: PCI_DSS
+      controls:
+        - id: "6.2"
+          title: Ensure all system components are protected from known vulnerabilities
+          requires: [sbom, cve, guardrails]
+        - id: "6.5.1"
+          title: Injection flaws, particularly SQL injection
+          requires: [sarif, guardrails]
+        - id: "6.5.3"
+          title: Insecure cryptographic storage
+          requires: [sarif, design]
+        - id: "6.5.8"
+          title: Improper access control
+          requires: [sarif, design, context]
+        - id: "11.2"
+          title: Run internal and external network vulnerability scans quarterly
+          requires: [sarif, cve]
+        - id: "11.3"
+          title: Implement penetration testing methodology
+          requires: [sarif, guardrails, evidence]
+    - name: GDPR
+      controls:
+        - id: Article_32
+          title: Security of Processing
+          requires: [design, evidence, guardrails]
+        - id: Article_25
+          title: Data Protection by Design and Default
+          requires: [design, context]
   profiles:
     enterprise:
       frameworks:
@@ -89,6 +126,14 @@ compliance:
             - id: A.12.6.1
               title: Application vulnerability management
               requires: [sbom, cve]
+        - name: PCI_DSS
+          controls:
+            - id: "6.2"
+              title: Ensure all system components are protected from known vulnerabilities
+              requires: [sbom, cve, guardrails]
+            - id: "11.2"
+              title: Run vulnerability scans quarterly
+              requires: [sarif, cve]
 context_engine:
   fields:
     criticality: customer_impact
