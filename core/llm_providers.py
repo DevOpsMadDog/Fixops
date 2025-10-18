@@ -92,6 +92,7 @@ class OpenAIChatProvider(BaseLLMProvider):
         )
         self.timeout = timeout
         self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
 
     def analyse(
         self,
@@ -137,7 +138,7 @@ class OpenAIChatProvider(BaseLLMProvider):
         }
         start = time.perf_counter()
         try:
-            response = requests.post(
+            response = self._session.post(
                 "https://api.openai.com/v1/chat/completions",
                 json=payload,
                 headers=headers,
@@ -296,6 +297,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
         )
         self.timeout = timeout
         self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
 
     def analyse(
         self,
@@ -338,7 +340,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
         }
         start = time.perf_counter()
         try:
-            response = requests.post(
+            response = self._session.post(
                 "https://api.anthropic.com/v1/messages",
                 json=payload,
                 headers=headers,
@@ -414,6 +416,7 @@ class GeminiProvider(BaseLLMProvider):
         )
         self.timeout = timeout
         self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
 
     def analyse(
         self,
@@ -454,7 +457,7 @@ class GeminiProvider(BaseLLMProvider):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         start = time.perf_counter()
         try:
-            response = requests.post(
+            response = self._session.post(
                 url, params=params, json=payload, timeout=self.timeout
             )
             response.raise_for_status()

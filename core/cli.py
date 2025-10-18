@@ -14,27 +14,28 @@ if ENTERPRISE_SRC.exists():
     enterprise_path = str(ENTERPRISE_SRC)
     if enterprise_path not in sys.path:
         sys.path.insert(0, enterprise_path)
-from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Optional, Sequence
 
-from src.services import id_allocator, signing
-from src.services.run_registry import RunRegistry
+if TYPE_CHECKING:
+    from src.services import id_allocator, signing  # noqa: F401
+    from src.services.run_registry import RunRegistry  # noqa: F401
+    from apps.api.normalizers import (  # noqa: F401
+        InputNormalizer,
+        NormalizedCVEFeed,
+        NormalizedSARIF,
+        NormalizedSBOM,
+    )
+    from apps.api.pipeline import PipelineOrchestrator  # noqa: F401
+    from core.configuration import OverlayConfig  # noqa: F401
+    from core.demo_runner import run_demo_pipeline  # noqa: F401
+    from core.evidence import EvidenceHub  # noqa: F401
+    from core.probabilistic import ProbabilisticForecastEngine  # noqa: F401
+    from core.processing_layer import ProcessingLayer  # noqa: F401
+    from core.stage_runner import StageRunner  # noqa: F401
+    from core.storage import ArtefactArchive  # noqa: F401
 
-from apps.api.normalizers import (
-    InputNormalizer,
-    NormalizedCVEFeed,
-    NormalizedSARIF,
-    NormalizedSBOM,
-)
-from apps.api.pipeline import PipelineOrchestrator
-from core.configuration import OverlayConfig
-from core.demo_runner import run_demo_pipeline
-from core.evidence import EvidenceHub
 from core.overlay_runtime import prepare_overlay
 from core.paths import ensure_secure_directory, verify_allowlisted_path
-from core.probabilistic import ProbabilisticForecastEngine
-from core.processing_layer import ProcessingLayer
-from core.stage_runner import StageRunner
-from core.storage import ArtefactArchive
 
 
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
@@ -217,6 +218,10 @@ def _copy_evidence(
 
 
 def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
+    from apps.api.normalizers import InputNormalizer  # noqa: F811
+    from apps.api.pipeline import PipelineOrchestrator  # noqa: F811
+    from core.storage import ArtefactArchive  # noqa: F811
+
     if getattr(args, "env", None):
         _apply_env_overrides(args.env)
 
@@ -449,6 +454,9 @@ def _handle_make_decision(args: argparse.Namespace) -> int:
 
 
 def _handle_health(args: argparse.Namespace) -> int:
+    from core.evidence import EvidenceHub  # noqa: F811
+    from core.processing_layer import ProcessingLayer  # noqa: F811
+
     overlay = prepare_overlay(path=args.overlay, ensure_directories=False)
     processing = ProcessingLayer()
     health: Dict[str, Any] = {
@@ -516,6 +524,11 @@ def _handle_get_evidence(args: argparse.Namespace) -> int:
 
 
 def _handle_stage_run(args: argparse.Namespace) -> int:
+    from src.services import id_allocator, signing  # noqa: F811
+    from src.services.run_registry import RunRegistry  # noqa: F811
+
+    from core.stage_runner import StageRunner  # noqa: F811
+
     input_path: Optional[Path] = args.input
     if input_path is not None:
         input_path = input_path.expanduser().resolve()
@@ -817,6 +830,8 @@ def _handle_show_overlay(args: argparse.Namespace) -> int:
 
 
 def _handle_train_forecast(args: argparse.Namespace) -> int:
+    from core.probabilistic import ProbabilisticForecastEngine  # noqa: F811
+
     config_payload: Dict[str, Any] = {}
     if args.config:
         config_payload = json.loads(args.config.read_text(encoding="utf-8"))
@@ -849,6 +864,8 @@ def _handle_train_forecast(args: argparse.Namespace) -> int:
 
 
 def _handle_demo(args: argparse.Namespace) -> int:
+    from core.demo_runner import run_demo_pipeline  # noqa: F811
+
     _result, summary_lines = run_demo_pipeline(
         mode=args.mode,
         output_path=args.output,
