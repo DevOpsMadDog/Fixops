@@ -12,22 +12,20 @@ from apps.api.normalizers import (
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
-    SBOMComponent,
     SarifFinding,
+    SBOMComponent,
 )
 from apps.api.pipeline import PipelineOrchestrator
-from core.configuration import (
-    DEFAULT_OVERLAY_PATH,
-    OverlayConfig,
-    load_overlay,
-)
+from core.configuration import DEFAULT_OVERLAY_PATH, OverlayConfig
 from core.configuration import _deep_merge as _merge_overlay  # type: ignore
 from core.configuration import _parse_overlay as _parse_overlay_config  # type: ignore
 from core.configuration import _read_text as _read_overlay_text  # type: ignore
+from core.configuration import load_overlay
 
 # Import the contextual risk scorer from the blended enterprise package.
 # The repository ships with the module but it is not installed as a package,
 # so we add it to ``sys.path`` on demand.
+
 
 def _resolve_risk_scorer() -> "ContextualRiskScorer":
     try:
@@ -132,7 +130,9 @@ def _build_artifacts() -> tuple[NormalizedSBOM, NormalizedSARIF, NormalizedCVEFe
         },
     )
 
-    cve = NormalizedCVEFeed(records=[cve_record], errors=[], metadata={"record_count": 1})
+    cve = NormalizedCVEFeed(
+        records=[cve_record], errors=[], metadata={"record_count": 1}
+    )
     return sbom, sarif, cve
 
 
@@ -215,7 +215,9 @@ def _ensure_overlay_for_mode(
     )
 
 
-def _write_design_context(design_rows: list[Mapping[str, Any]], overlay: OverlayConfig, mode: str) -> Optional[Path]:
+def _write_design_context(
+    design_rows: list[Mapping[str, Any]], overlay: OverlayConfig, mode: str
+) -> Optional[Path]:
     directory = overlay.data_directories.get("design_context_dir")
     if not directory:
         return None
@@ -235,7 +237,9 @@ def run_simulation(
     """Execute the CVE-2021-44228 simulation for the requested overlay mode."""
 
     overlay = load_overlay(Path(overlay_path) if overlay_path else None)
-    overlay = _ensure_overlay_for_mode(overlay, mode, Path(overlay_path) if overlay_path else None)
+    overlay = _ensure_overlay_for_mode(
+        overlay, mode, Path(overlay_path) if overlay_path else None
+    )
     active_mode = overlay.mode
 
     contexts = _load_contexts()
@@ -261,9 +265,7 @@ def run_simulation(
     )
 
     risk_scorer = _resolve_risk_scorer()
-    scanner_severity = str(
-        scenario.get("scanner_severity") or cve.records[0].severity
-    )
+    scanner_severity = str(scenario.get("scanner_severity") or cve.records[0].severity)
     adjusted = risk_scorer.apply(
         [
             {
@@ -345,7 +347,9 @@ def run_simulation(
     if bundle_path and manifest_path:
         # Ensure simulation evidence references the overlay-managed bundle.
         evidence_payload["evidence_bundle"] = evidence_bundle
-        evidence_path.write_text(json.dumps(evidence_payload, indent=2), encoding="utf-8")
+        evidence_path.write_text(
+            json.dumps(evidence_payload, indent=2), encoding="utf-8"
+        )
 
     _write_design_context(design_rows, overlay, active_mode)
 

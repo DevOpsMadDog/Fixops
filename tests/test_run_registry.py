@@ -6,16 +6,19 @@ import json
 from pathlib import Path
 
 import pytest
-
 from src.services import run_registry, signing
 
 
-def _prepare(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> run_registry.RunContext:
+def _prepare(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> run_registry.RunContext:
     monkeypatch.setattr(run_registry, "ARTEFACTS_ROOT", tmp_path)
     return run_registry.resolve_run("APP-1234")
 
 
-def test_resolve_run_creates_expected_structure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_run_creates_expected_structure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ctx = _prepare(monkeypatch, tmp_path)
     assert ctx.app_id == "APP-1234"
     assert ctx.run_path.exists()
@@ -24,7 +27,9 @@ def test_resolve_run_creates_expected_structure(tmp_path: Path, monkeypatch: pyt
     assert ctx.signed_outputs_dir.exists()
 
 
-def test_save_input_and_write_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_save_input_and_write_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     ctx = _prepare(monkeypatch, tmp_path)
     raw_path = ctx.save_input("requirements-input.csv", b"feature,enabled\nfoo,true\n")
     assert raw_path.read_text() == "feature,enabled\nfoo,true\n"

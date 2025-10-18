@@ -29,7 +29,9 @@ def _graph_config(request: Request) -> dict[str, Any]:
 
 def _build_sources(config: dict[str, Any]) -> GraphSources:
     repo_path = Path(config.get("repo_path", ".")).resolve()
-    attestation_dir = Path(config.get("attestation_dir", "artifacts/attestations")).resolve()
+    attestation_dir = Path(
+        config.get("attestation_dir", "artifacts/attestations")
+    ).resolve()
     sbom_dir = Path(config.get("sbom_dir", "artifacts/sbom")).resolve()
     risk_dir = Path(config.get("risk_dir", "artifacts")).resolve()
     releases_path_value = config.get("releases_path")
@@ -78,7 +80,9 @@ async def artifact_lineage(artifact_name: str, request: Request) -> dict[str, An
 
 
 @router.get("/kev-components")
-async def kev_components(request: Request, last: int = Query(3, ge=1, le=50)) -> list[dict[str, Any]]:
+async def kev_components(
+    request: Request, last: int = Query(3, ge=1, le=50)
+) -> list[dict[str, Any]]:
     graph, _ = _build_graph(request)
     try:
         return graph.components_with_kev(last_releases=last)

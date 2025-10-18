@@ -12,7 +12,12 @@ def _sample_design() -> dict:
         "app_name": "life-claims-portal",
         "components": [
             {"name": "login-ui", "tier": "tier-0", "exposure": "internet", "pii": True},
-            {"name": "claims-core", "tier": "tier-0", "exposure": "internal", "pii": True},
+            {
+                "name": "claims-core",
+                "tier": "tier-0",
+                "exposure": "internal",
+                "pii": True,
+            },
         ],
     }
 

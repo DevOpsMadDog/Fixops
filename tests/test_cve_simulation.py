@@ -30,7 +30,10 @@ def _build_overlay(tmp_path: Path) -> Path:
                 {
                     "name": "SOC 2",
                     "controls": [
-                        {"id": "CC8.1", "requires": ["design", "guardrails", "evidence"]}
+                        {
+                            "id": "CC8.1",
+                            "requires": ["design", "guardrails", "evidence"],
+                        }
                     ],
                 }
             ],
@@ -40,7 +43,10 @@ def _build_overlay(tmp_path: Path) -> Path:
                         {
                             "name": "PCI DSS",
                             "controls": [
-                                {"id": "6.5", "requires": ["cve", "context", "guardrails"]}
+                                {
+                                    "id": "6.5",
+                                    "requires": ["cve", "context", "guardrails"],
+                                }
                             ],
                         }
                     ]
@@ -48,9 +54,7 @@ def _build_overlay(tmp_path: Path) -> Path:
             },
         },
         "policy_automation": {
-            "actions": [
-                {"trigger": "guardrail:fail", "type": "jira_issue"}
-            ],
+            "actions": [{"trigger": "guardrail:fail", "type": "jira_issue"}],
             "profiles": {
                 "enterprise": {
                     "actions": [
@@ -62,7 +66,7 @@ def _build_overlay(tmp_path: Path) -> Path:
         "ssdlc": {
             "stages": [
                 {"id": "plan", "requirements": ["design"]},
-                {"id": "deploy", "requirements": ["compliance"]}
+                {"id": "deploy", "requirements": ["compliance"]},
             ]
         },
         "exploit_signals": {
@@ -70,13 +74,9 @@ def _build_overlay(tmp_path: Path) -> Path:
                 "kev": {
                     "mode": "boolean",
                     "fields": ["knownExploited", "kev"],
-                    "escalate_to": "critical"
+                    "escalate_to": "critical",
                 },
-                "epss": {
-                    "mode": "probability",
-                    "fields": ["epss"],
-                    "threshold": 0.4
-                }
+                "epss": {"mode": "probability", "fields": ["epss"], "threshold": 0.4},
             }
         },
         "profiles": {

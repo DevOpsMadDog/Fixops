@@ -1,4 +1,5 @@
 """Overlay-guided onboarding helpers."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Mapping, Sequence
@@ -28,7 +29,10 @@ class OnboardingGuide:
         steps = []
         for step in self._iter_steps():
             steps.append({"label": step.get("step"), "modes": step.get("modes", [])})
-        steps.extend({"label": f"Provide {item.upper()} artefact", "modes": [self.overlay.mode]} for item in required_inputs)
+        steps.extend(
+            {"label": f"Provide {item.upper()} artefact", "modes": [self.overlay.mode]}
+            for item in required_inputs
+        )
         integrations = {
             "jira": self.overlay.jira,
             "confluence": self.overlay.confluence,

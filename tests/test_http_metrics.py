@@ -22,7 +22,11 @@ if "pydantic_settings" not in sys.modules:  # pragma: no cover - import guard
     class _BaseSettings:
         def __init__(self, **overrides):
             for name, value in self.__class__.__dict__.items():
-                if name.startswith("_") or callable(value) or isinstance(value, property):
+                if (
+                    name.startswith("_")
+                    or callable(value)
+                    or isinstance(value, property)
+                ):
                     continue
                 default = value.default if isinstance(value, FieldInfo) else value
                 setattr(self, name, overrides.get(name, default))

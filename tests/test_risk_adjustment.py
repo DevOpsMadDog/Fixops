@@ -1,10 +1,11 @@
 import sys
+import types
 from pathlib import Path
 
 import pytest
-import types
 
 if "structlog" not in sys.modules:
+
     class _StubLogger:
         def info(self, *args, **kwargs):
             pass
@@ -25,8 +26,8 @@ FIXOPS_ROOT = REPO_ROOT / "enterprise"
 if str(FIXOPS_ROOT) not in sys.path:
     sys.path.insert(0, str(FIXOPS_ROOT))
 
-from src.services.risk_scorer import ContextualRiskScorer  # noqa: E402
 from src.services.compliance_engine import ComplianceEngine  # noqa: E402
+from src.services.risk_scorer import ContextualRiskScorer  # noqa: E402
 
 
 @pytest.fixture()
@@ -34,7 +35,9 @@ def scorer() -> ContextualRiskScorer:
     return ContextualRiskScorer()
 
 
-def test_contextual_risk_scorer_downgrades_low_impact(scorer: ContextualRiskScorer) -> None:
+def test_contextual_risk_scorer_downgrades_low_impact(
+    scorer: ContextualRiskScorer,
+) -> None:
     findings = [
         {
             "id": "CVE-LOW-1",
@@ -53,7 +56,9 @@ def test_contextual_risk_scorer_downgrades_low_impact(scorer: ContextualRiskScor
     assert adjusted[0]["risk_adjustment"] == -1
 
 
-def test_contextual_risk_scorer_upgrades_high_impact(scorer: ContextualRiskScorer) -> None:
+def test_contextual_risk_scorer_upgrades_high_impact(
+    scorer: ContextualRiskScorer,
+) -> None:
     findings = [
         {
             "id": "CVE-HIGH-1",

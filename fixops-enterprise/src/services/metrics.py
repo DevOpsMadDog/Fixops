@@ -18,7 +18,9 @@ class FixOpsMetrics:
         return None
 
     @classmethod
-    def record_request(cls, endpoint: str, method: str, status: int, duration: float) -> None:  # pragma: no cover
+    def record_request(
+        cls, endpoint: str, method: str, status: int, duration: float
+    ) -> None:  # pragma: no cover
         cls._hot_path_latency[endpoint] = duration
 
     @classmethod
@@ -28,4 +30,3 @@ class FixOpsMetrics:
     @classmethod
     def get_rate_limit_triggers(cls) -> int:
         return cls._rate_limit_triggers
-

@@ -1,8 +1,9 @@
 """Multi-tenant lifecycle evaluation helpers for FixOps."""
+
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any, Dict, Iterable, Mapping, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - imported for typing only
     from core.configuration import OverlayConfig
@@ -29,7 +30,9 @@ class TenantLifecycleManager:
             for entry in tenants:
                 if not isinstance(entry, Mapping):
                     continue
-                tenant_id = str(entry.get("id") or entry.get("name") or "tenant").strip()
+                tenant_id = str(
+                    entry.get("id") or entry.get("name") or "tenant"
+                ).strip()
                 if not tenant_id:
                     continue
                 status = str(entry.get("status") or "active").lower()
@@ -59,7 +62,9 @@ class TenantLifecycleManager:
 
     def _resolve_required_modules(self, tenant: Mapping[str, Any]) -> set[str]:
         explicit = tenant.get("modules")
-        modules: set[str] = set(str(module) for module in explicit) if explicit else set()
+        modules: set[str] = (
+            set(str(module) for module in explicit) if explicit else set()
+        )
         default_modules = self.defaults.get("modules")
         if isinstance(default_modules, Iterable):
             modules.update(str(module) for module in default_modules)
@@ -77,9 +82,19 @@ class TenantLifecycleManager:
         pipeline_result: Mapping[str, Any],
         overlay: Optional["OverlayConfig"] = None,
     ) -> Dict[str, Any]:
-        modules_status = pipeline_result.get("modules", {}) if isinstance(pipeline_result, Mapping) else {}
-        executed = modules_status.get("executed", []) if isinstance(modules_status, Mapping) else []
-        executed_modules = {str(module) for module in executed if isinstance(module, (str, int))}
+        modules_status = (
+            pipeline_result.get("modules", {})
+            if isinstance(pipeline_result, Mapping)
+            else {}
+        )
+        executed = (
+            modules_status.get("executed", [])
+            if isinstance(modules_status, Mapping)
+            else []
+        )
+        executed_modules = {
+            str(module) for module in executed if isinstance(module, (str, int))
+        }
 
         status_counts = Counter()
         stage_counts = Counter()

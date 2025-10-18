@@ -1,4 +1,5 @@
 """Enhanced decision API routes exposing the multi-LLM consensus engine."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Mapping, Optional
@@ -22,7 +23,9 @@ def _get_engine(request: Request) -> EnhancedDecisionEngine:
 
 
 class EnhancedDecisionRequest(BaseModel):
-    service_name: str = Field(..., description="Primary service or application identifier")
+    service_name: str = Field(
+        ..., description="Primary service or application identifier"
+    )
     environment: str = Field("production", description="Deployment environment")
     business_context: Dict[str, Any] = Field(default_factory=dict)
     security_findings: List[Dict[str, Any]] = Field(default_factory=list)

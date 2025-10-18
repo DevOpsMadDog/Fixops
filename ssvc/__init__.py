@@ -1,4 +1,5 @@
 """Lightweight SSVC stub tailored for the FixOps test-suite."""
+
 from __future__ import annotations
 
 import importlib
@@ -35,7 +36,9 @@ class Decision:
                 break
 
         if decision_cls is None:  # pragma: no cover - ensure clear failure in tests
-            raise ValueError(f"Methodology '{methodology}' does not expose a Decision class")
+            raise ValueError(
+                f"Methodology '{methodology}' does not expose a Decision class"
+            )
 
         self._decision_instance = decision_cls(**kwargs)
         self._last_outcome: DecisionOutcome | None = None
@@ -43,14 +46,18 @@ class Decision:
     def evaluate(self) -> DecisionOutcome:
         outcome = self._decision_instance.evaluate()
         if not isinstance(outcome, DecisionOutcome):
-            raise TypeError("Decision implementations must return a DecisionOutcome instance")
+            raise TypeError(
+                "Decision implementations must return a DecisionOutcome instance"
+            )
         self._last_outcome = outcome
         return outcome
 
     def to_vector(self) -> str:
         if hasattr(self._decision_instance, "to_vector"):
             return self._decision_instance.to_vector()
-        raise NotImplementedError("Decision implementation does not support vector serialisation")
+        raise NotImplementedError(
+            "Decision implementation does not support vector serialisation"
+        )
 
 
 __all__ = ["Decision", "DecisionOutcome"]

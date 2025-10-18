@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 from pathlib import Path
-
-import asyncio
 
 import pytest
 
@@ -54,9 +53,7 @@ def test_evaluate_with_mock_engine(tmp_path: Path) -> None:
                 "service_name": "payments-service",
                 "environment": "production",
                 "business_context": {"service_tier": "tier-0"},
-                "security_findings": [
-                    {"source": "scanner", "severity": "CRITICAL"}
-                ],
+                "security_findings": [{"source": "scanner", "severity": "CRITICAL"}],
             },
         },
         {
@@ -67,9 +64,7 @@ def test_evaluate_with_mock_engine(tmp_path: Path) -> None:
                 "service_name": "inventory-service",
                 "environment": "staging",
                 "business_context": {"service_tier": "tier-2"},
-                "security_findings": [
-                    {"source": "sbom", "severity": "MEDIUM"}
-                ],
+                "security_findings": [{"source": "sbom", "severity": "MEDIUM"}],
             },
         },
         {
@@ -80,9 +75,7 @@ def test_evaluate_with_mock_engine(tmp_path: Path) -> None:
                 "service_name": "auth-service",
                 "environment": "production",
                 "business_context": {"service_tier": "tier-1"},
-                "security_findings": [
-                    {"source": "vendor", "severity": "HIGH"}
-                ],
+                "security_findings": [{"source": "vendor", "severity": "HIGH"}],
             },
         },
     ]

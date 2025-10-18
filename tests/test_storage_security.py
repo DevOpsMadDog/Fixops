@@ -13,7 +13,9 @@ def allowlisted_root(tmp_path: Path) -> Path:
     return root
 
 
-def test_archive_rejects_directory_outside_allowlist(tmp_path: Path, allowlisted_root: Path) -> None:
+def test_archive_rejects_directory_outside_allowlist(
+    tmp_path: Path, allowlisted_root: Path
+) -> None:
     outside = tmp_path / "outside"
     outside.mkdir()
     with pytest.raises(PermissionError):

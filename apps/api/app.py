@@ -37,9 +37,15 @@ if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor
 
-from .normalizers import (InputNormalizer, NormalizedBusinessContext,
-                          NormalizedCNAPP, NormalizedCVEFeed, NormalizedSARIF,
-                          NormalizedSBOM, NormalizedVEX)
+from .normalizers import (
+    InputNormalizer,
+    NormalizedBusinessContext,
+    NormalizedCNAPP,
+    NormalizedCVEFeed,
+    NormalizedSARIF,
+    NormalizedSBOM,
+    NormalizedVEX,
+)
 from .pipeline import PipelineOrchestrator
 from .routes.enhanced import router as enhanced_router
 from .upload_manager import ChunkUploadManager

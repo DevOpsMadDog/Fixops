@@ -11,7 +11,6 @@ from typing import Any, Mapping
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
-
 from src.config.settings import get_settings
 
 ALGORITHM = "RS256"
@@ -104,4 +103,3 @@ def get_active_kid() -> str | None:
     """Expose configured key identifier for API responses."""
 
     return get_settings().FIXOPS_SIGNING_KID
-

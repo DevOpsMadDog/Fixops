@@ -1,10 +1,11 @@
 """Utilities for generating and verifying SLSA v1 provenance attestations."""
+
 from __future__ import annotations
 
 import json
 import os
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Sequence
@@ -62,13 +63,13 @@ def _validate_schema(payload: Mapping[str, Any]) -> None:
         )
 
     if not isinstance(payload.get("subject"), Sequence) or not payload["subject"]:
-        raise ProvenanceVerificationError("Attestation must include at least one subject")
+        raise ProvenanceVerificationError(
+            "Attestation must include at least one subject"
+        )
 
     for index, subject in enumerate(payload["subject"]):
         if not isinstance(subject, Mapping):
-            raise ProvenanceVerificationError(
-                f"Subject entry {index} is not a mapping"
-            )
+            raise ProvenanceVerificationError(f"Subject entry {index} is not a mapping")
         name = subject.get("name")
         digest = subject.get("digest")
         if not isinstance(name, str) or not name:
@@ -163,7 +164,9 @@ class ProvenanceAttestation:
                 uri=str(item["uri"]),
                 digest=dict(item.get("digest", {})) if item.get("digest") else None,
             )
-            for item in sorted(raw_materials, key=lambda entry: str(entry.get("uri", "")))
+            for item in sorted(
+                raw_materials, key=lambda entry: str(entry.get("uri", ""))
+            )
         ]
         return cls(
             slsaVersion=version,
@@ -198,7 +201,9 @@ def compute_sha256(path: Path | str) -> str:
         resolved = Path(path)
         span.set_attribute("fixops.artifact", str(resolved))
         if not resolved.is_file():
-            raise FileNotFoundError(f"Artefact '{resolved}' does not exist or is not a file")
+            raise FileNotFoundError(
+                f"Artefact '{resolved}' does not exist or is not a file"
+            )
 
         digest = sha256()
         with resolved.open("rb") as handle:
@@ -209,7 +214,9 @@ def compute_sha256(path: Path | str) -> str:
         return hex_digest
 
 
-def _normalise_materials(materials: Sequence[Mapping[str, Any]] | None) -> list[ProvenanceMaterial]:
+def _normalise_materials(
+    materials: Sequence[Mapping[str, Any]] | None
+) -> list[ProvenanceMaterial]:
     """Convert user-supplied material mappings to dataclass instances."""
 
     normalised: list[ProvenanceMaterial] = []
@@ -269,7 +276,9 @@ def generate_attestation(
         return attestation
 
 
-def load_attestation(source: Path | str | Mapping[str, Any] | ProvenanceAttestation) -> ProvenanceAttestation:
+def load_attestation(
+    source: Path | str | Mapping[str, Any] | ProvenanceAttestation
+) -> ProvenanceAttestation:
     """Load an attestation from a path, mapping or existing object."""
 
     with _TRACER.start_as_current_span("provenance.load_attestation") as span:
@@ -288,7 +297,9 @@ def load_attestation(source: Path | str | Mapping[str, Any] | ProvenanceAttestat
         return ProvenanceAttestation.from_dict(payload)
 
 
-def write_attestation(attestation: ProvenanceAttestation, destination: Path | str) -> Path:
+def write_attestation(
+    attestation: ProvenanceAttestation, destination: Path | str
+) -> Path:
     """Persist *attestation* to *destination* as JSON."""
 
     with _TRACER.start_as_current_span("provenance.write_attestation") as span:
@@ -366,7 +377,9 @@ def verify_attestation(
                     "Attestation completion time is unreasonably in the future"
                 )
         except ValueError:  # pragma: no cover - defensive guard
-            raise ProvenanceVerificationError("Invalid buildFinishedOn timestamp format")
+            raise ProvenanceVerificationError(
+                "Invalid buildFinishedOn timestamp format"
+            )
 
     # No return value on success.
 

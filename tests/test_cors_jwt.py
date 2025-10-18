@@ -1,15 +1,19 @@
-import jwt
 from datetime import datetime, timedelta
 
+import jwt
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api import app as app_module
 
 
 def test_cors_origins_applied(monkeypatch):
-    monkeypatch.setenv("FIXOPS_ALLOWED_ORIGINS", "https://fixops.ai,https://demo.fixops.ai")
+    monkeypatch.setenv(
+        "FIXOPS_ALLOWED_ORIGINS", "https://fixops.ai,https://demo.fixops.ai"
+    )
     application = app_module.create_app()
-    cors_middleware = [mw for mw in application.user_middleware if mw.cls is CORSMiddleware][0]
+    cors_middleware = [
+        mw for mw in application.user_middleware if mw.cls is CORSMiddleware
+    ][0]
     assert cors_middleware.options["allow_origins"] == [
         "https://fixops.ai",
         "https://demo.fixops.ai",

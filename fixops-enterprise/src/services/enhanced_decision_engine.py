@@ -1,4 +1,5 @@
 """Enterprise-facing facade for the enhanced decision engine."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Mapping, MutableMapping, Optional
@@ -6,8 +7,8 @@ from typing import Any, Dict, Mapping, MutableMapping, Optional
 import structlog
 
 from core.configuration import OverlayConfig
-from core.overlay_runtime import prepare_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
+from core.overlay_runtime import prepare_overlay
 
 logger = structlog.get_logger(__name__)
 

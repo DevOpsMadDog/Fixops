@@ -17,7 +17,9 @@ def test_load_business_context_fixops_yaml(tmp_path: Path) -> None:
         "  mission_impact: degraded\n"
     )
     normalizer = InputNormalizer()
-    context = normalizer.load_business_context(payload.encode("utf-8"), content_type="application/x-yaml")
+    context = normalizer.load_business_context(
+        payload.encode("utf-8"), content_type="application/x-yaml"
+    )
     assert context.format.startswith("fixops")
     assert context.components and context.components[0]["name"] == "customer-api"
     assert context.ssvc["exposure"] == "limited"
@@ -57,7 +59,9 @@ def test_load_business_context_ssvc_yaml() -> None:
         "mission_impact: mev\n"
     )
     normalizer = InputNormalizer()
-    context = normalizer.load_business_context(payload.encode("utf-8"), content_type="application/x-yaml")
+    context = normalizer.load_business_context(
+        payload.encode("utf-8"), content_type="application/x-yaml"
+    )
     assert context.format.startswith("ssvc")
     assert context.components == []
     assert context.ssvc["exploitation"] == "active"

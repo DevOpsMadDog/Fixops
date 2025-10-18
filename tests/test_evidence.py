@@ -9,7 +9,9 @@ def test_evidence_hub_persists_manifest_and_checksum(tmp_path: Path) -> None:
     overlay = OverlayConfig(
         mode="enterprise",
         data={"evidence_dir": str(tmp_path / "evidence")},
-        limits={"evidence": {"bundle_max_bytes": 4096, "compress": False, "encrypt": False}},
+        limits={
+            "evidence": {"bundle_max_bytes": 4096, "compress": False, "encrypt": False}
+        },
         evidence_hub={"bundle_name": "integration-test"},
     )
     overlay.allowed_data_roots = (tmp_path,)
@@ -26,7 +28,9 @@ def test_evidence_hub_persists_manifest_and_checksum(tmp_path: Path) -> None:
     compliance_status = {"status": "satisfied"}
     policy_summary = {"status": "ready"}
 
-    result = hub.persist(pipeline_result, context_summary, compliance_status, policy_summary)
+    result = hub.persist(
+        pipeline_result, context_summary, compliance_status, policy_summary
+    )
 
     bundle_path = Path(result["files"]["bundle"])
     manifest_path = Path(result["files"]["manifest"])

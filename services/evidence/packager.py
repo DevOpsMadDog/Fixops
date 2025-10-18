@@ -27,7 +27,9 @@ class EvidencePackager:
 
         self._store.attach_artifact(run_id, kind, path, sha256)
 
-    def sign_manifest(self, run_id: str, manifest: Mapping[str, Any]) -> Mapping[str, Any]:
+    def sign_manifest(
+        self, run_id: str, manifest: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         """Persist manifest metadata before bundling."""
 
         return self._store.sign_manifest(run_id, manifest)

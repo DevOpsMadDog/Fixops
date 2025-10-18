@@ -8,10 +8,13 @@ from contextlib import asynccontextmanager, suppress
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from src.api.v1 import router as api_router
 from src.config.settings import get_settings
-from src.core.middleware import PerformanceMiddleware, RateLimitMiddleware, SecurityHeadersMiddleware
+from src.core.middleware import (
+    PerformanceMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 from src.services.feeds_service import FeedsService
 
 logger = structlog.get_logger()
@@ -22,6 +25,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     scheduler_task: asyncio.Task | None = None
     if settings.FIXOPS_SCHED_ENABLED:
+
         async def _run_scheduler() -> None:
             await FeedsService.scheduler(settings, settings.FIXOPS_SCHED_INTERVAL_HOURS)
 
@@ -37,9 +41,14 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    if settings.ENVIRONMENT.lower() == "production" and not settings.FIXOPS_ALLOWED_ORIGINS:
+    if (
+        settings.ENVIRONMENT.lower() == "production"
+        and not settings.FIXOPS_ALLOWED_ORIGINS
+    ):
         logger.error("FIXOPS_ALLOWED_ORIGINS must be configured in production mode")
-        raise RuntimeError("FIXOPS_ALLOWED_ORIGINS must be configured in production mode")
+        raise RuntimeError(
+            "FIXOPS_ALLOWED_ORIGINS must be configured in production mode"
+        )
 
     app = FastAPI(title="FixOps Blended Enterprise", version="2.0.0", lifespan=lifespan)
     app.add_middleware(SecurityHeadersMiddleware)
@@ -58,4 +67,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

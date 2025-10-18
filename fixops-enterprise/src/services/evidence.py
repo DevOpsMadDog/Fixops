@@ -31,7 +31,9 @@ class EvidenceStore:
 
     def create(self, manifest: Mapping[str, Any]) -> EvidenceRecord:
         evidence_id = f"EVD-{uuid.uuid4().hex[:12].upper()}"
-        record = EvidenceRecord(evidence_id=evidence_id, manifest=_canonicalize(manifest))
+        record = EvidenceRecord(
+            evidence_id=evidence_id, manifest=_canonicalize(manifest)
+        )
         self._store[evidence_id] = record
         return record
 
@@ -51,4 +53,3 @@ class EvidenceStore:
         record.signature = signature
         record.kid = kid
         record.algorithm = algorithm
-

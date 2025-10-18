@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional
 
 from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBOM
 
+
 def _current_utc_timestamp() -> str:
     """Return an ISO8601 timestamp with optional test overrides."""
 
@@ -94,7 +95,9 @@ class StageRunner:
 
     _APP_ID_PATTERN = re.compile(r"^APP-\d{4,}$", re.IGNORECASE)
 
-    def __init__(self, registry, allocator, signer, *, normalizer: InputNormalizer | None = None) -> None:
+    def __init__(
+        self, registry, allocator, signer, *, normalizer: InputNormalizer | None = None
+    ) -> None:
         self.registry = registry
         self.allocator = allocator
         self.signer = signer
@@ -154,7 +157,9 @@ class StageRunner:
             if not app_id:
                 app_id = "APP-0001"
 
-        context = self.registry.ensure_run(app_id, stage=stage_key, sign_outputs=sign_requested)
+        context = self.registry.ensure_run(
+            app_id, stage=stage_key, sign_outputs=sign_requested
+        )
 
         input_filename = self._INPUT_FILENAMES.get(stage_key)
         if input_filename and input_bytes is not None:
@@ -184,7 +189,9 @@ class StageRunner:
             envelope = self.signer.sign_manifest(document)
             digest = envelope.get("digest", {}).get("sha256")
             kid = envelope.get("kid")
-            signature_path = self.registry.write_signed_manifest(context, canonical_name, envelope)
+            signature_path = self.registry.write_signed_manifest(
+                context, canonical_name, envelope
+            )
             signatures.append(signature_path)
             if digest:
                 transparency_path = self.registry.append_transparency_index(
@@ -250,7 +257,9 @@ class StageRunner:
         if isinstance(components, list):
             for component in components:
                 if isinstance(component, dict):
-                    component.setdefault("component_id", self._component_token(component.get("name")))
+                    component.setdefault(
+                        "component_id", self._component_token(component.get("name"))
+                    )
         manifest.setdefault("app_name", manifest.get("app_id"))
         manifest["design_risk_score"] = self._design_risk_score(components)
         manifest.setdefault("app_id", context.app_id)
@@ -277,14 +286,20 @@ class StageRunner:
                 if extra.exists():
                     self.registry.save_input(context, extra.name, extra.read_bytes())
         sbom: NormalizedSBOM = self.normalizer.load_sbom(input_bytes)
-        components = [component.to_dict() for component in getattr(sbom, "components", [])]
+        components = [
+            component.to_dict() for component in getattr(sbom, "components", [])
+        ]
         risk_flags = []
         for component in components:
             identifier = component.get("purl") or component.get("name")
             if not identifier:
                 continue
             reason = self._RISK_RULES.get(str(identifier))
-            if not reason and isinstance(identifier, str) and "log4j" in identifier.lower():
+            if (
+                not reason
+                and isinstance(identifier, str)
+                and "log4j" in identifier.lower()
+            ):
                 reason = "historical RCE family"
             if reason:
                 risk_flags.append({"purl": str(identifier), "reason": reason})
@@ -296,8 +311,12 @@ class StageRunner:
                 relative = Path("..") / candidate.relative_to(context.run_path)
                 links[key] = str(relative)
         component_count = len(components)
-        score = min(0.45 + 0.1 * len(risk_flags) + min(component_count / 500, 0.15), 0.99)
-        design_manifest = self._read_optional_json(context.outputs_dir / "design.manifest.json")
+        score = min(
+            0.45 + 0.1 * len(risk_flags) + min(component_count / 500, 0.15), 0.99
+        )
+        design_manifest = self._read_optional_json(
+            context.outputs_dir / "design.manifest.json"
+        )
         app_id = str((design_manifest or {}).get("app_id") or context.app_id)
         return {
             "app_id": app_id,
@@ -317,10 +336,19 @@ class StageRunner:
         mode: str,
         source_path: Path | None,
     ) -> Mapping[str, Any]:
-        findings, tests_input_override = self._load_test_inputs(context, input_bytes, source_path)
-        tests_input = tests_input_override or self._read_optional_json(context.inputs_dir / "tests-input.json")
-        severity_counts = Counter(finding.get("severity", "low") for finding in findings)
-        summary = {key: severity_counts.get(key, 0) for key in ("critical", "high", "medium", "low")}
+        findings, tests_input_override = self._load_test_inputs(
+            context, input_bytes, source_path
+        )
+        tests_input = tests_input_override or self._read_optional_json(
+            context.inputs_dir / "tests-input.json"
+        )
+        severity_counts = Counter(
+            finding.get("severity", "low") for finding in findings
+        )
+        summary = {
+            key: severity_counts.get(key, 0)
+            for key in ("critical", "high", "medium", "low")
+        }
         drift = {"new_findings": len((tests_input or {}).get("new_findings", []))}
         coverage_data = (tests_input or {}).get("coverage")
         if not isinstance(coverage_data, Mapping):
@@ -331,7 +359,10 @@ class StageRunner:
                 "branches": round(float(coverage_data.get("branches", 0.0)), 2),
             }
         score = min(
-            0.3 + 0.12 * summary["critical"] + 0.1 * summary["high"] + 0.02 * drift["new_findings"],
+            0.3
+            + 0.12 * summary["critical"]
+            + 0.1 * summary["high"]
+            + 0.02 * drift["new_findings"],
             0.99,
         )
         return {
@@ -392,14 +423,23 @@ class StageRunner:
         telemetry = {}
         if input_bytes:
             telemetry = json.loads(input_bytes.decode("utf-8"))
-        build_report = self._read_optional_json(context.outputs_dir / "build.report.json") or {}
+        build_report = (
+            self._read_optional_json(context.outputs_dir / "build.report.json") or {}
+        )
         kev_feed = self._read_optional_json(Path("data/feeds/kev.json")) or {}
         epss_feed = self._read_optional_json(Path("data/feeds/epss.json")) or {}
         kev_hits = []
         epss_records = []
-        risk_components = build_report.get("risk_flags", []) if isinstance(build_report, Mapping) else []
+        risk_components = (
+            build_report.get("risk_flags", [])
+            if isinstance(build_report, Mapping)
+            else []
+        )
         for flag in risk_components:
-            if isinstance(flag, Mapping) and "log4j" in str(flag.get("purl", "")).lower():
+            if (
+                isinstance(flag, Mapping)
+                and "log4j" in str(flag.get("purl", "")).lower()
+            ):
                 kev_hits.append("CVE-2021-44228")
                 epss_records.append({"cve": "CVE-2021-44228", "score": 0.97})
                 break
@@ -408,10 +448,14 @@ class StageRunner:
         if not epss_records and isinstance(epss_feed, Mapping):
             epss_records = list(epss_feed.get("top", []))
         pressure = 0.4
-        latency = telemetry.get("latency_ms_p95") if isinstance(telemetry, Mapping) else None
+        latency = (
+            telemetry.get("latency_ms_p95") if isinstance(telemetry, Mapping) else None
+        )
         if isinstance(latency, (int, float)):
             pressure = min(0.95, max(pressure, latency / 650))
-        design_manifest = self._read_optional_json(context.outputs_dir / "design.manifest.json")
+        design_manifest = self._read_optional_json(
+            context.outputs_dir / "design.manifest.json"
+        )
         service_name = str((design_manifest or {}).get("app_name") or context.app_id)
         score = 0.45 + (0.08 if kev_hits else 0) + (0.06 if pressure >= 0.6 else 0.02)
         return {
@@ -419,7 +463,9 @@ class StageRunner:
             "run_id": context.run_id,
             "kev_hits": kev_hits,
             "epss": epss_records,
-            "pressure_by_service": [{"service": service_name, "pressure": round(pressure, 2)}],
+            "pressure_by_service": [
+                {"service": service_name, "pressure": round(pressure, 2)}
+            ],
             "operate_risk_score": round(min(score, 0.99), 2),
         }
 
@@ -447,9 +493,15 @@ class StageRunner:
             for entry in deploy_manifest.get("control_evidence", [])
             if isinstance(entry, Mapping) and entry.get("result") == "fail"
         ]
-        kev_hits = operate_snapshot.get("kev_hits", []) if isinstance(operate_snapshot, Mapping) else []
+        kev_hits = (
+            operate_snapshot.get("kev_hits", [])
+            if isinstance(operate_snapshot, Mapping)
+            else []
+        )
         verdict = "DEFER" if failing_controls or kev_hits else "ALLOW"
-        top_factors = self._decision_factors(build_report, test_report, deploy_manifest, operate_snapshot)
+        top_factors = self._decision_factors(
+            build_report, test_report, deploy_manifest, operate_snapshot
+        )
         compliance_rollup = self._compliance_rollup(requirements, deploy_manifest)
         confidence = min(0.6 + 0.08 * len(top_factors), 0.95)
         evidence_id = f"ev_{context.app_id}_{mode.lower()}"
@@ -459,7 +511,9 @@ class StageRunner:
             "confidence_score": round(confidence, 2),
             "top_factors": top_factors,
             "compliance_rollup": compliance_rollup,
-            "marketplace_recommendations": self._marketplace_recommendations(failing_controls),
+            "marketplace_recommendations": self._marketplace_recommendations(
+                failing_controls
+            ),
             "evidence_id": evidence_id,
         }
         decision_document["app_id"] = context.app_id
@@ -478,7 +532,10 @@ class StageRunner:
 
     # ------------------------------------------------------------------
     def _signing_available(self) -> bool:
-        return bool(os.environ.get("FIXOPS_SIGNING_KEY") and os.environ.get("FIXOPS_SIGNING_KID"))
+        return bool(
+            os.environ.get("FIXOPS_SIGNING_KEY")
+            and os.environ.get("FIXOPS_SIGNING_KID")
+        )
 
     def _load_design_payload(
         self, input_bytes: bytes | None, input_path: Optional[Path]
@@ -488,7 +545,11 @@ class StageRunner:
         text = input_bytes.decode("utf-8")
         if input_path and input_path.suffix.lower() == ".csv":
             reader = csv.DictReader(io.StringIO(text))
-            rows = [row for row in reader if any((value or "").strip() for value in row.values())]
+            rows = [
+                row
+                for row in reader
+                if any((value or "").strip() for value in row.values())
+            ]
             return {"rows": rows, "columns": reader.fieldnames or []}
         return json.loads(text)
 
@@ -497,8 +558,14 @@ class StageRunner:
         text = peek.decode("utf-8")
         if text.strip().startswith("{"):
             payload = json.loads(text)
-            items = payload.get("requirements", []) if isinstance(payload, Mapping) else []
-            records = [self._normalise_requirement(item) for item in items if isinstance(item, Mapping)]
+            items = (
+                payload.get("requirements", []) if isinstance(payload, Mapping) else []
+            )
+            records = [
+                self._normalise_requirement(item)
+                for item in items
+                if isinstance(item, Mapping)
+            ]
             return records
         stream.seek(0)
         reader = csv.DictReader(io.TextIOWrapper(stream, encoding="utf-8"))
@@ -562,10 +629,14 @@ class StageRunner:
 
     def _component_token(self, value: Any) -> str:
         text = str(value or "component").lower().replace(" ", "-")
-        cleaned = "".join(ch if ch.isalnum() or ch == "-" else "-" for ch in text).strip("-")
+        cleaned = "".join(
+            ch if ch.isalnum() or ch == "-" else "-" for ch in text
+        ).strip("-")
         return f"C-{(cleaned or 'component').split('-')[0]}"
 
-    def _design_risk_score(self, components: Iterable[Mapping[str, Any]] | None) -> float:
+    def _design_risk_score(
+        self, components: Iterable[Mapping[str, Any]] | None
+    ) -> float:
         score = 0.5
         if not components:
             return round(score, 2)
@@ -657,11 +728,17 @@ class StageRunner:
         tls_policy = None
 
         resources: Iterable[Any]
-        resources_field = payload.get("resources") if isinstance(payload, Mapping) else None
+        resources_field = (
+            payload.get("resources") if isinstance(payload, Mapping) else None
+        )
         items_field = payload.get("items") if isinstance(payload, Mapping) else None
-        if isinstance(resources_field, Iterable) and not isinstance(resources_field, (str, bytes, bytearray)):
+        if isinstance(resources_field, Iterable) and not isinstance(
+            resources_field, (str, bytes, bytearray)
+        ):
             resources = resources_field or []
-        elif isinstance(items_field, Iterable) and not isinstance(items_field, (str, bytes, bytearray)):
+        elif isinstance(items_field, Iterable) and not isinstance(
+            items_field, (str, bytes, bytearray)
+        ):
             resources = items_field or []
         else:
             resources = [payload]
@@ -669,7 +746,9 @@ class StageRunner:
         def _normalise_cidr_values(raw: Any) -> list[str]:
             if isinstance(raw, (str, bytes, bytearray)):
                 return [str(raw)]
-            if isinstance(raw, Iterable) and not isinstance(raw, (str, bytes, bytearray)):
+            if isinstance(raw, Iterable) and not isinstance(
+                raw, (str, bytes, bytearray)
+            ):
                 values: list[str] = []
                 for item in raw:
                     if item is None:
@@ -685,9 +764,21 @@ class StageRunner:
             if not isinstance(resource, Mapping):
                 continue
             rtype = resource.get("type") or resource.get("kind")
-            name = str(resource.get("name") or resource.get("metadata", {}).get("name") or "resource")
-            changes = resource.get("changes") if isinstance(resource.get("changes"), Mapping) else {}
-            after = changes.get("after") if isinstance(changes.get("after"), Mapping) else {}
+            name = str(
+                resource.get("name")
+                or resource.get("metadata", {}).get("name")
+                or "resource"
+            )
+            changes = (
+                resource.get("changes")
+                if isinstance(resource.get("changes"), Mapping)
+                else {}
+            )
+            after = (
+                changes.get("after")
+                if isinstance(changes.get("after"), Mapping)
+                else {}
+            )
 
             if rtype == "aws_s3_bucket":
                 acl = after.get("acl") or resource.get("acl")
@@ -743,7 +834,9 @@ class StageRunner:
                 spec = resource.get("spec")
                 if isinstance(spec, Mapping) and "template" in spec:
                     template = spec.get("template")
-                    spec = template.get("spec") if isinstance(template, Mapping) else spec
+                    spec = (
+                        template.get("spec") if isinstance(template, Mapping) else spec
+                    )
                 if isinstance(spec, Mapping):
                     containers = spec.get("containers") or []
                     if isinstance(containers, Mapping):
@@ -757,7 +850,9 @@ class StageRunner:
                             if ":" not in image or image.endswith(":latest"):
                                 unpinned_images.add(f"{cname}@{image}")
                         security_context = container.get("securityContext")
-                        if isinstance(security_context, Mapping) and security_context.get("privileged"):
+                        if isinstance(
+                            security_context, Mapping
+                        ) and security_context.get("privileged"):
                             privileged_containers.add(cname)
 
         return {
@@ -823,7 +918,9 @@ class StageRunner:
             {
                 "control": "CIS-K8S:5.2.2",
                 "result": "fail" if privileged_containers else "pass",
-                "source": "privileged_containers" if privileged_containers else "checks",
+                "source": (
+                    "privileged_containers" if privileged_containers else "checks"
+                ),
             }
         )
         evidence.append(
@@ -835,7 +932,9 @@ class StageRunner:
         )
         return evidence
 
-    def _collect_documents(self, context, requested: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
+    def _collect_documents(
+        self, context, requested: Mapping[str, Any] | None
+    ) -> dict[str, Mapping[str, Any]]:
         artefacts = {
             "requirements": "requirements.json",
             "design": "design.manifest.json",
@@ -884,7 +983,11 @@ class StageRunner:
                     ),
                 }
             )
-        public_buckets = deploy.get("posture", {}).get("public_buckets", []) if isinstance(deploy, Mapping) else []
+        public_buckets = (
+            deploy.get("posture", {}).get("public_buckets", [])
+            if isinstance(deploy, Mapping)
+            else []
+        )
         if public_buckets:
             factors.append(
                 {
@@ -932,7 +1035,8 @@ class StageRunner:
                 coverage = 1.0 if result == "pass" else 0.0 if result == "fail" else 0.5
                 controls[control_id] = coverage
         control_rollup = [
-            {"id": control_id, "coverage": round(value, 2)} for control_id, value in sorted(controls.items())
+            {"id": control_id, "coverage": round(value, 2)}
+            for control_id, value in sorted(controls.items())
         ]
         frameworks: dict[str, list[float]] = {}
         for control_id, value in controls.items():
@@ -944,7 +1048,9 @@ class StageRunner:
         ]
         return {"controls": control_rollup, "frameworks": framework_rollup}
 
-    def _marketplace_recommendations(self, failing_controls: list[Any]) -> list[dict[str, Any]]:
+    def _marketplace_recommendations(
+        self, failing_controls: list[Any]
+    ) -> list[dict[str, Any]]:
         if not failing_controls:
             return []
         matches = sorted({str(control) for control in failing_controls if control})
@@ -956,7 +1062,9 @@ class StageRunner:
             }
         ]
 
-    def _write_evidence_bundle(self, context, documents: Mapping[str, Mapping[str, Any]]) -> Path:
+    def _write_evidence_bundle(
+        self, context, documents: Mapping[str, Mapping[str, Any]]
+    ) -> Path:
         bundle_path = context.outputs_dir / "evidence_bundle.zip"
         with zipfile.ZipFile(bundle_path, "w") as archive:
             for key, filename in self._OUTPUT_FILENAMES.items():
@@ -964,16 +1072,22 @@ class StageRunner:
                 if isinstance(document, Mapping):
                     info = zipfile.ZipInfo(filename)
                     info.date_time = _zip_date_time_tuple()
-                    archive.writestr(info, json.dumps(document, indent=2, sort_keys=True))
+                    archive.writestr(
+                        info, json.dumps(document, indent=2, sort_keys=True)
+                    )
         return bundle_path
 
-    def _bundle_manifest(self, documents: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
+    def _bundle_manifest(
+        self, documents: Mapping[str, Mapping[str, Any]]
+    ) -> Mapping[str, Any]:
         entries = {}
         for key, filename in self._OUTPUT_FILENAMES.items():
             document = documents.get(key)
             if not isinstance(document, Mapping):
                 continue
-            digest = hashlib.sha256(json.dumps(document, sort_keys=True).encode("utf-8")).hexdigest()
+            digest = hashlib.sha256(
+                json.dumps(document, sort_keys=True).encode("utf-8")
+            ).hexdigest()
             entries[filename] = digest
         return {
             "bundle": "evidence_bundle.zip",
@@ -1014,4 +1128,3 @@ class StageRunner:
 
 
 __all__ = ["StageRunner", "StageSummary"]
-

@@ -67,7 +67,9 @@ class RunRegistry:
 
     # ------------------------------------------------------------------
     # Public helpers
-    def create_run(self, app_id: str | None, *, sign_outputs: bool = False) -> RunContext:
+    def create_run(
+        self, app_id: str | None, *, sign_outputs: bool = False
+    ) -> RunContext:
         """Create a brand new run directory for *app_id*."""
 
         context = self._make_context(app_id, sign_outputs=sign_outputs)
@@ -81,7 +83,9 @@ class RunRegistry:
         """Re-open an existing run directory."""
 
         normalised = self._normalise_app_id(app_id)
-        context = RunContext(app_id=normalised, run_id=run_id, root=self.root, sign_outputs=sign_outputs)
+        context = RunContext(
+            app_id=normalised, run_id=run_id, root=self.root, sign_outputs=sign_outputs
+        )
         if not context.run_path.exists():
             raise FileNotFoundError(context.run_path)
         self._prepare_directories(context)
@@ -102,7 +106,9 @@ class RunRegistry:
         run_id = payload.get("run_id")
         if not isinstance(run_id, str):
             return None
-        context = RunContext(app_id=normalised, run_id=run_id, root=self.root, sign_outputs=False)
+        context = RunContext(
+            app_id=normalised, run_id=run_id, root=self.root, sign_outputs=False
+        )
         if not context.run_path.exists():
             return None
         return context
@@ -167,7 +173,10 @@ class RunRegistry:
         return target
 
     def write_output(
-        self, context: RunContext, name: str, document: Mapping[str, Any] | Iterable[Any]
+        self,
+        context: RunContext,
+        name: str,
+        document: Mapping[str, Any] | Iterable[Any],
     ) -> Path:
         """Persist *document* to the outputs directory and return the file path."""
 
@@ -188,7 +197,9 @@ class RunRegistry:
     def write_signed_manifest(
         self, context: RunContext, name: str, envelope: Mapping[str, Any]
     ) -> Path:
-        target = resolve_within_root(context.signed_outputs_dir, f"{name}.manifest.json")
+        target = resolve_within_root(
+            context.signed_outputs_dir, f"{name}.manifest.json"
+        )
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(self._json_dumps(envelope), encoding="utf-8")
         return target
@@ -197,8 +208,12 @@ class RunRegistry:
         self, context: RunContext, canonical: str, digest: str, kid: str | None
     ) -> Path:
         context.transparency_index.parent.mkdir(parents=True, exist_ok=True)
-        timestamp = _dt.datetime.now(_dt.timezone.utc).isoformat().replace('+00:00', 'Z')
-        line = f"TS={timestamp} FILE={canonical} SHA256={digest} KID={kid or 'unknown'}\n"
+        timestamp = (
+            _dt.datetime.now(_dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        )
+        line = (
+            f"TS={timestamp} FILE={canonical} SHA256={digest} KID={kid or 'unknown'}\n"
+        )
         with context.transparency_index.open("a", encoding="utf-8") as handle:
             handle.write(line)
         return context.transparency_index
@@ -231,7 +246,9 @@ class RunRegistry:
         while (self.root / normalised / run_id).exists():
             counter += 1
             run_id = f"{timestamp}-{counter:02d}"
-        return RunContext(app_id=normalised, run_id=run_id, root=self.root, sign_outputs=sign_outputs)
+        return RunContext(
+            app_id=normalised, run_id=run_id, root=self.root, sign_outputs=sign_outputs
+        )
 
     def _prepare_directories(self, context: RunContext) -> None:
         context.inputs_dir.mkdir(parents=True, exist_ok=True)
@@ -242,7 +259,9 @@ class RunRegistry:
         marker.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "run_id": context.run_id,
-            "updated_at": _dt.datetime.now(_dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
+            "updated_at": _dt.datetime.now(_dt.timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z"),
         }
         marker.write_text(self._json_dumps(payload), encoding="utf-8")
 
@@ -269,7 +288,9 @@ class RunRegistry:
         source_requirements = source.outputs_dir / "requirements.json"
         if source_requirements.exists():
             target.outputs_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_requirements, target.outputs_dir / source_requirements.name)
+            shutil.copy2(
+                source_requirements, target.outputs_dir / source_requirements.name
+            )
 
         source_inputs = list(source.inputs_dir.glob("requirements*"))
         if source_inputs:
@@ -285,7 +306,9 @@ def resolve_run(app_id: str | None, *, sign_outputs: bool = False) -> RunContext
     return _DEFAULT_REGISTRY.create_run(app_id, sign_outputs=sign_outputs)
 
 
-def reopen_run(app_id: str | None, run_id: str, *, sign_outputs: bool = False) -> RunContext:
+def reopen_run(
+    app_id: str | None, run_id: str, *, sign_outputs: bool = False
+) -> RunContext:
     return _DEFAULT_REGISTRY.reopen_run(app_id, run_id, sign_outputs=sign_outputs)
 
 
@@ -294,4 +317,3 @@ def list_runs(app_id: str | None) -> list[str]:
 
 
 __all__ = ["RunRegistry", "RunContext", "resolve_run", "reopen_run", "list_runs"]
-

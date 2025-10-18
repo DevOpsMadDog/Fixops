@@ -7,7 +7,9 @@ from dataclasses import dataclass
 
 
 class _NoopSpan:
-    def set_attribute(self, *_: object, **__: object) -> None:  # pragma: no cover - no-op
+    def set_attribute(
+        self, *_: object, **__: object
+    ) -> None:  # pragma: no cover - no-op
         return None
 
     def end(self) -> None:  # pragma: no cover - no-op
@@ -21,7 +23,9 @@ def _span_context() -> _NoopSpan:
 
 
 class _NoopTracer:
-    def start_as_current_span(self, *_: object, **__: object):  # pragma: no cover - no-op
+    def start_as_current_span(
+        self, *_: object, **__: object
+    ):  # pragma: no cover - no-op
         return _span_context()
 
 
@@ -30,7 +34,9 @@ class _NoopMeter:
         def add(self, *_: object, **__: object) -> None:  # pragma: no cover - no-op
             return None
 
-    def create_counter(self, *_: object, **__: object) -> "_NoopMeter._Counter":  # pragma: no cover
+    def create_counter(
+        self, *_: object, **__: object
+    ) -> "_NoopMeter._Counter":  # pragma: no cover
         return self._Counter()
 
 

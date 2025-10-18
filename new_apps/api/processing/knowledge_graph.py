@@ -1,10 +1,21 @@
 """Knowledge graph orchestration for enhanced decision analytics."""
+
 from __future__ import annotations
 
 import importlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +44,14 @@ class KnowledgeGraphProcessor:
     def __init__(
         self,
         builder_factory: Optional[Callable[[], Any]] = None,
-        serializer_factory: Optional[Callable[[Any], Callable[[Any], Mapping[str, Any]]]] = None,
+        serializer_factory: Optional[
+            Callable[[Any], Callable[[Any], Mapping[str, Any]]]
+        ] = None,
     ) -> None:
         self._builder_factory = builder_factory or self._default_builder_factory
-        self._serializer_factory = serializer_factory or self._default_serializer_factory
+        self._serializer_factory = (
+            serializer_factory or self._default_serializer_factory
+        )
 
     # ------------------------------------------------------------------
     # Public API
@@ -64,7 +79,9 @@ class KnowledgeGraphProcessor:
         try:
             builder = self._builder_factory()
         except Exception as exc:  # pragma: no cover - defensive guard
-            raise KnowledgeGraphError("Failed to construct CTINexus graph builder") from exc
+            raise KnowledgeGraphError(
+                "Failed to construct CTINexus graph builder"
+            ) from exc
         if builder is None:
             raise KnowledgeGraphError("CTINexus builder factory returned None")
         return builder
@@ -130,7 +147,9 @@ class KnowledgeGraphProcessor:
         if callable(extractor):
             result = extractor(scan_snapshot)
             entities = self._normalise_entities(result.get("entities", []))
-            relationships = self._normalise_relationships(result.get("relationships", []))
+            relationships = self._normalise_relationships(
+                result.get("relationships", [])
+            )
             return _ExtractionResult(entities=entities, relationships=relationships)
 
         entities = self._normalise_entities(scan_snapshot.get("entities", []))
@@ -172,10 +191,18 @@ class KnowledgeGraphProcessor:
         for index, relation in enumerate(raw_relationships):
             if isinstance(relation, Mapping):
                 relation_dict: MutableMapping[str, Any] = dict(relation)
-                relation_dict.setdefault("id", relation_dict.get("relationship_id", f"edge-{index}"))
-                relation_dict.setdefault("source", relation_dict.get("from") or relation_dict.get("source"))
-                relation_dict.setdefault("target", relation_dict.get("to") or relation_dict.get("target"))
-                relation_dict.setdefault("type", relation_dict.get("relationship", "related"))
+                relation_dict.setdefault(
+                    "id", relation_dict.get("relationship_id", f"edge-{index}")
+                )
+                relation_dict.setdefault(
+                    "source", relation_dict.get("from") or relation_dict.get("source")
+                )
+                relation_dict.setdefault(
+                    "target", relation_dict.get("to") or relation_dict.get("target")
+                )
+                relation_dict.setdefault(
+                    "type", relation_dict.get("relationship", "related")
+                )
                 relation_dict.setdefault("metadata", relation_dict.get("metadata", {}))
                 normalised.append(dict(relation_dict))
                 continue
@@ -190,8 +217,12 @@ class KnowledgeGraphProcessor:
             )
         return normalised
 
-    def _ingest_entities(self, builder: Any, entities: Sequence[Mapping[str, Any]]) -> None:
-        self._invoke_builder(builder, ("ingest_entities", "add_entities", "add_nodes"), entities)
+    def _ingest_entities(
+        self, builder: Any, entities: Sequence[Mapping[str, Any]]
+    ) -> None:
+        self._invoke_builder(
+            builder, ("ingest_entities", "add_entities", "add_nodes"), entities
+        )
 
     def _ingest_relationships(
         self, builder: Any, relationships: Sequence[Mapping[str, Any]]
@@ -202,7 +233,9 @@ class KnowledgeGraphProcessor:
             relationships,
         )
 
-    def _invoke_builder(self, builder: Any, candidate_names: Sequence[str], *args: Any) -> None:
+    def _invoke_builder(
+        self, builder: Any, candidate_names: Sequence[str], *args: Any
+    ) -> None:
         for name in candidate_names:
             method = getattr(builder, name, None)
             if callable(method):
@@ -223,7 +256,9 @@ class KnowledgeGraphProcessor:
                 if isinstance(graph, Mapping):
                     return graph
                 return dict(graph)
-        raise KnowledgeGraphError("Builder does not expose a graph materialisation method")
+        raise KnowledgeGraphError(
+            "Builder does not expose a graph materialisation method"
+        )
 
     def _derive_analytics(
         self,
@@ -238,10 +273,14 @@ class KnowledgeGraphProcessor:
                 if isinstance(analytics, Mapping):
                     analytics_dict = dict(analytics)
                     analytics_dict.setdefault("entity_count", len(extraction.entities))
-                    analytics_dict.setdefault("relationship_count", len(extraction.relationships))
+                    analytics_dict.setdefault(
+                        "relationship_count", len(extraction.relationships)
+                    )
                     return analytics_dict
             except Exception:  # pragma: no cover - best effort fallback
-                logger.exception("CTINexus analytics callback failed; falling back to local metrics")
+                logger.exception(
+                    "CTINexus analytics callback failed; falling back to local metrics"
+                )
         return {
             "entity_count": len(extraction.entities),
             "relationship_count": len(extraction.relationships),

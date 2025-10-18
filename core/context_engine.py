@@ -1,4 +1,5 @@
 """Context Engine for deriving FixOps business-aware signals."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,18 +43,23 @@ class ContextEngine:
 
     def __init__(self, settings: Mapping[str, Any]):
         self.settings = dict(settings or {})
-        fields = self.settings.get("fields", {}) if isinstance(settings, Mapping) else {}
+        fields = (
+            self.settings.get("fields", {}) if isinstance(settings, Mapping) else {}
+        )
         self.criticality_field = str(fields.get("criticality", "customer_impact"))
         self.data_field = str(fields.get("data", "data_classification"))
         self.exposure_field = str(fields.get("exposure", "exposure"))
         self.criticality_weights = self._normalise_weights(
-            self.settings.get("criticality_weights"), default={"mission_critical": 4, "internal": 1}
+            self.settings.get("criticality_weights"),
+            default={"mission_critical": 4, "internal": 1},
         )
         self.data_weights = self._normalise_weights(
-            self.settings.get("data_weights"), default={"pii": 4, "internal": 2, "public": 1}
+            self.settings.get("data_weights"),
+            default={"pii": 4, "internal": 2, "public": 1},
         )
         self.exposure_weights = self._normalise_weights(
-            self.settings.get("exposure_weights"), default={"internet": 3, "internal": 1}
+            self.settings.get("exposure_weights"),
+            default={"internet": 3, "internal": 1},
         )
         self.playbooks = self._parse_playbooks(self.settings.get("playbooks", []))
 
@@ -97,7 +103,9 @@ class ContextEngine:
     def _normalise_sarif_severity(self, level: Optional[str]) -> str:
         if level is None:
             return "low"
-        normalised = _SARIF_LEVEL_MAP.get(level.lower()) if isinstance(level, str) else None
+        normalised = (
+            _SARIF_LEVEL_MAP.get(level.lower()) if isinstance(level, str) else None
+        )
         if normalised:
             return normalised
         return "medium"
@@ -120,7 +128,10 @@ class ContextEngine:
 
     def _score_data_classification(self, classification: Any) -> int:
         if isinstance(classification, (list, tuple, set)):
-            return max((self._score_value(item, self.data_weights) for item in classification), default=0)
+            return max(
+                (self._score_value(item, self.data_weights) for item in classification),
+                default=0,
+            )
         return self._score_value(classification, self.data_weights)
 
     def _extract_component_name(self, entry: Mapping[str, Any]) -> str:
@@ -133,17 +144,29 @@ class ContextEngine:
     def _derive_component_context(
         self, entry: Mapping[str, Any], crosswalk_item: Mapping[str, Any]
     ) -> ComponentContext:
-        findings = crosswalk_item.get("findings", []) if isinstance(crosswalk_item, Mapping) else []
-        cves = crosswalk_item.get("cves", []) if isinstance(crosswalk_item, Mapping) else []
+        findings = (
+            crosswalk_item.get("findings", [])
+            if isinstance(crosswalk_item, Mapping)
+            else []
+        )
+        cves = (
+            crosswalk_item.get("cves", [])
+            if isinstance(crosswalk_item, Mapping)
+            else []
+        )
         highest = "low"
         exploited = False
         for finding in findings:
             level = finding.get("level") if isinstance(finding, Mapping) else None
-            severity = self._normalise_sarif_severity(level if isinstance(level, str) else None)
+            severity = self._normalise_sarif_severity(
+                level if isinstance(level, str) else None
+            )
             if self._severity_index(severity) > self._severity_index(highest):
                 highest = severity
         for record in cves:
-            severity = self._normalise_cve_severity(record.get("severity") if isinstance(record, Mapping) else None)
+            severity = self._normalise_cve_severity(
+                record.get("severity") if isinstance(record, Mapping) else None
+            )
             if self._severity_index(severity) > self._severity_index(highest):
                 highest = severity
             exploited = exploited or bool(record.get("exploited"))
@@ -164,7 +187,9 @@ class ContextEngine:
             "finding_count": len(findings),
             "cve_count": len(cves),
         }
-        classification = data_raw if isinstance(data_raw, list) else [data_raw] if data_raw else []
+        classification = (
+            data_raw if isinstance(data_raw, list) else [data_raw] if data_raw else []
+        )
         return ComponentContext(
             name=self._extract_component_name(entry),
             severity=highest,
@@ -193,7 +218,9 @@ class ContextEngine:
         for index, row in enumerate(design_rows):
             if not isinstance(row, Mapping):
                 continue
-            crosswalk_entry = crosswalk_by_index.get(index, {"findings": [], "cves": []})
+            crosswalk_entry = crosswalk_by_index.get(
+                index, {"findings": [], "cves": []}
+            )
             component_context = self._derive_component_context(row, crosswalk_entry)
             components.append(component_context)
 
@@ -201,7 +228,9 @@ class ContextEngine:
             return {"summary": {"components_evaluated": 0}, "components": []}
 
         highest_score = max(component.context_score for component in components)
-        average_score = sum(component.context_score for component in components) / len(components)
+        average_score = sum(component.context_score for component in components) / len(
+            components
+        )
         highest_component = max(components, key=lambda item: item.context_score)
 
         summary = {
@@ -215,9 +244,15 @@ class ContextEngine:
             },
         }
         signals = {
-            "criticality_distribution": self._bucket(components, key=lambda item: item.criticality),
-            "exposure_distribution": self._bucket(components, key=lambda item: item.exposure),
-            "playbook_usage": self._bucket(components, key=lambda item: item.playbook.get("name", "unknown")),
+            "criticality_distribution": self._bucket(
+                components, key=lambda item: item.criticality
+            ),
+            "exposure_distribution": self._bucket(
+                components, key=lambda item: item.exposure
+            ),
+            "playbook_usage": self._bucket(
+                components, key=lambda item: item.playbook.get("name", "unknown")
+            ),
         }
         summary["signals"] = signals
 

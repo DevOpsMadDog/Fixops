@@ -1,4 +1,5 @@
 """Minimal parser shim used for tests when lib4sbom is unavailable."""
+
 from __future__ import annotations
 
 import json
@@ -25,9 +26,7 @@ class SBOMParser:
 
     def get_packages(self) -> List[Dict[str, Any]]:
         candidates = (
-            self._document.get("components")
-            or self._document.get("packages")
-            or []
+            self._document.get("components") or self._document.get("packages") or []
         )
         if isinstance(candidates, list):
             return [item for item in candidates if isinstance(item, dict)]

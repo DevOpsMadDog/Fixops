@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import tempfile
-import copy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from hashlib import sha256
@@ -55,7 +55,9 @@ def load_policy(policy_path: Path | None) -> dict[str, Any]:
         if isinstance(rules, Mapping):
             existing = merged.setdefault(section, {})
             if isinstance(existing, Mapping):
-                existing.update(rules)  # shallow merge is sufficient for numeric thresholds
+                existing.update(
+                    rules
+                )  # shallow merge is sufficient for numeric thresholds
             else:
                 merged[section] = rules
     return merged
@@ -86,20 +88,35 @@ def _evaluate_rules(value: float, rules: Mapping[str, Any]) -> str:
     return status
 
 
-def evaluate_policy(policy: Mapping[str, Any], *, metrics: Mapping[str, Any]) -> dict[str, Any]:
+def evaluate_policy(
+    policy: Mapping[str, Any], *, metrics: Mapping[str, Any]
+) -> dict[str, Any]:
     evaluations: dict[str, Any] = {"checks": {}, "overall": "pass"}
 
-    sbom_metrics = metrics.get("sbom", {}) if isinstance(metrics.get("sbom"), Mapping) else {}
-    sbom_policy = policy.get("sbom_quality", {}) if isinstance(policy.get("sbom_quality"), Mapping) else {}
+    sbom_metrics = (
+        metrics.get("sbom", {}) if isinstance(metrics.get("sbom"), Mapping) else {}
+    )
+    sbom_policy = (
+        policy.get("sbom_quality", {})
+        if isinstance(policy.get("sbom_quality"), Mapping)
+        else {}
+    )
     for metric in ("coverage_percent", "license_coverage_percent"):
         value = sbom_metrics.get(metric)
         if value is None:
             continue
         status = _evaluate_rules(float(value), sbom_policy.get(metric, {}))
-        evaluations["checks"][f"sbom_{metric}"] = {"value": float(value), "status": status}
+        evaluations["checks"][f"sbom_{metric}"] = {
+            "value": float(value),
+            "status": status,
+        }
 
-    risk_metrics = metrics.get("risk", {}) if isinstance(metrics.get("risk"), Mapping) else {}
-    risk_policy = policy.get("risk", {}) if isinstance(policy.get("risk"), Mapping) else {}
+    risk_metrics = (
+        metrics.get("risk", {}) if isinstance(metrics.get("risk"), Mapping) else {}
+    )
+    risk_policy = (
+        policy.get("risk", {}) if isinstance(policy.get("risk"), Mapping) else {}
+    )
     max_risk = risk_metrics.get("max_risk_score")
     if max_risk is not None:
         status = _evaluate_rules(float(max_risk), risk_policy.get("max_risk_score", {}))
@@ -108,14 +125,27 @@ def evaluate_policy(policy: Mapping[str, Any], *, metrics: Mapping[str, Any]) ->
             "status": status,
         }
 
-    repro_match = metrics.get("repro", {}).get("match") if isinstance(metrics.get("repro"), Mapping) else None
-    repro_policy = policy.get("repro", {}) if isinstance(policy.get("repro"), Mapping) else {}
+    repro_match = (
+        metrics.get("repro", {}).get("match")
+        if isinstance(metrics.get("repro"), Mapping)
+        else None
+    )
+    repro_policy = (
+        policy.get("repro", {}) if isinstance(policy.get("repro"), Mapping) else {}
+    )
     if repro_match is not None:
         required = bool(repro_policy.get("require_match", True))
         status = "pass" if (not required or repro_match) else "fail"
-        evaluations["checks"]["repro_match"] = {"value": bool(repro_match), "status": status}
+        evaluations["checks"]["repro_match"] = {
+            "value": bool(repro_match),
+            "status": status,
+        }
 
-    provenance_policy = policy.get("provenance", {}) if isinstance(policy.get("provenance"), Mapping) else {}
+    provenance_policy = (
+        policy.get("provenance", {})
+        if isinstance(policy.get("provenance"), Mapping)
+        else {}
+    )
     attestation_count = int(metrics.get("provenance", {}).get("count", 0))
     if provenance_policy.get("require_attestations"):
         status = "pass" if attestation_count > 0 else "fail"
@@ -180,13 +210,17 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
         if not Path(path).is_file():
             raise FileNotFoundError(f"Required evidence file missing: {path}")
     if inputs.provenance_dir and not inputs.provenance_dir.exists():
-        raise FileNotFoundError(f"Provenance directory '{inputs.provenance_dir}' not found")
+        raise FileNotFoundError(
+            f"Provenance directory '{inputs.provenance_dir}' not found"
+        )
 
     quality_payload = json.loads(inputs.sbom_quality_json.read_text(encoding="utf-8"))
     risk_payload = json.loads(inputs.risk_report.read_text(encoding="utf-8"))
     repro_payload = json.loads(inputs.repro_attestation.read_text(encoding="utf-8"))
 
-    provenance_files = _collect_files([inputs.provenance_dir]) if inputs.provenance_dir else []
+    provenance_files = (
+        _collect_files([inputs.provenance_dir]) if inputs.provenance_dir else []
+    )
     extra_files = _collect_files(inputs.extra_paths)
     bundle_files: list[tuple[Path, str]] = []
     artefact_descriptors: list[dict[str, Any]] = []
@@ -269,13 +303,15 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
             archive.write(source, arcname)
         archive.write(manifest_path, "MANIFEST.yaml")
         if inputs.sign_key:
-            with tempfile.NamedTemporaryFile(suffix=".sig", delete=False) as tmp_signature:
+            with tempfile.NamedTemporaryFile(
+                suffix=".sig", delete=False
+            ) as tmp_signature:
                 tmp_path = Path(tmp_signature.name)
             try:
                 _sign_manifest(manifest_path, tmp_path, inputs.sign_key)
                 archive.write(tmp_path, "MANIFEST.yaml.sig")
             finally:
-                if 'tmp_path' in locals() and tmp_path.exists():
+                if "tmp_path" in locals() and tmp_path.exists():
                     tmp_path.unlink()
 
     manifest["bundle_path"] = str(bundle_path)

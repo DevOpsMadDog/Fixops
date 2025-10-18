@@ -1,4 +1,5 @@
 """CISA KEV feed helpers."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,9 @@ def _default_fetcher(url: str) -> bytes:
 
 def _write_cache(cache_path: Path, payload: dict) -> None:
     cache_file = cache_path / KEV_CACHE_FILENAME
-    cache_file.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    cache_file.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
 
 def _load_cache(cache_path: Path) -> dict | None:

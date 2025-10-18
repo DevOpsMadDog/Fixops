@@ -2,23 +2,28 @@ from pathlib import Path
 
 import pytest
 
-from apps.api.pipeline import PipelineOrchestrator
 from apps.api.normalizers import (
     CVERecordSummary,
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
-    SBOMComponent,
     SarifFinding,
+    SBOMComponent,
 )
+from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import load_overlay
 
 
-@pytest.mark.parametrize("customer_impact,data_classification,exposure", [
-    ("mission_critical", "pii", "internet"),
-    ("external", "financial", "partner"),
-])
-def test_feature_matrix_alignment(tmp_path, monkeypatch, customer_impact, data_classification, exposure):
+@pytest.mark.parametrize(
+    "customer_impact,data_classification,exposure",
+    [
+        ("mission_critical", "pii", "internet"),
+        ("external", "financial", "partner"),
+    ],
+)
+def test_feature_matrix_alignment(
+    tmp_path, monkeypatch, customer_impact, data_classification, exposure
+):
     monkeypatch.setenv("FIXOPS_API_TOKEN", "matrix-token")
     monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(tmp_path))
 
@@ -128,7 +133,9 @@ def test_feature_matrix_alignment(tmp_path, monkeypatch, customer_impact, data_c
 
     assert result["status"] == "ok"
     assert len(result["crosswalk"]) == len(design_dataset["rows"])
-    assert result["context_summary"]["summary"]["components_evaluated"] == len(design_dataset["rows"])
+    assert result["context_summary"]["summary"]["components_evaluated"] == len(
+        design_dataset["rows"]
+    )
 
     evidence_bundle = result["evidence_bundle"]
     assert evidence_bundle["files"]
@@ -151,7 +158,9 @@ def test_feature_matrix_alignment(tmp_path, monkeypatch, customer_impact, data_c
     exploit_summary = result["exploitability_insights"]
     assert exploit_summary["overview"]["matched_records"] >= 1
 
-    automation_delivery = result["policy_automation"]["execution"]["results"][0]["delivery"]
+    automation_delivery = result["policy_automation"]["execution"]["results"][0][
+        "delivery"
+    ]
     assert automation_delivery["status"] in {"sent", "skipped", "failed"}
 
     modules = result["modules"]["status"]
@@ -191,16 +200,14 @@ def test_feature_matrix_alignment(tmp_path, monkeypatch, customer_impact, data_c
     )
 
     compliance_metrics = matrix["features"]["compliance"]["metrics"]
-    assert (
-        compliance_metrics["framework_count"]
-        == len(result["compliance_status"]["frameworks"])
+    assert compliance_metrics["framework_count"] == len(
+        result["compliance_status"]["frameworks"]
     )
 
     policy_metrics = matrix["features"]["policy_automation"]["metrics"]
     assert policy_metrics["action_count"] == len(result["policy_automation"]["actions"])
-    assert (
-        policy_metrics["results_recorded"]
-        == len(result["policy_automation"]["execution"]["results"])
+    assert policy_metrics["results_recorded"] == len(
+        result["policy_automation"]["execution"]["results"]
     )
 
     evidence_metrics = matrix["features"]["evidence"]["metrics"]
@@ -209,8 +216,7 @@ def test_feature_matrix_alignment(tmp_path, monkeypatch, customer_impact, data_c
 
     analytics_metrics = matrix["features"]["analytics"]["metrics"]
     assert (
-        analytics_metrics["estimated_value"]
-        == analytics["overview"]["estimated_value"]
+        analytics_metrics["estimated_value"] == analytics["overview"]["estimated_value"]
     )
 
     ai_metrics = matrix["features"]["ai_agents"]["metrics"]

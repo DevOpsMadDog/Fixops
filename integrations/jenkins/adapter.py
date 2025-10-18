@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, Dict, Mapping
 
 import structlog
-
 from src.services import signing
 from src.services.decision_engine import DecisionEngine
 
@@ -40,7 +39,14 @@ class JenkinsCIAdapter:
             signature = signing.sign_manifest(decision)
             decision.update(signature)
         except signing.SigningError:
-            decision.update({"signature": None, "kid": None, "alg": signing.ALGORITHM, "digest": None})
+            decision.update(
+                {
+                    "signature": None,
+                    "kid": None,
+                    "alg": signing.ALGORITHM,
+                    "digest": None,
+                }
+            )
         return decision
 
     def _normalize(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -55,7 +61,11 @@ class JenkinsCIAdapter:
                         continue
                     findings.append(
                         {
-                            "title": result.get("message", {}).get("text") if isinstance(result.get("message"), Mapping) else result.get("message"),
+                            "title": (
+                                result.get("message", {}).get("text")
+                                if isinstance(result.get("message"), Mapping)
+                                else result.get("message")
+                            ),
                             "severity": str(result.get("level") or "medium").lower(),
                         }
                     )
@@ -70,4 +80,3 @@ class JenkinsCIAdapter:
                     }
                 )
         return {"findings": findings, "controls": controls}
-

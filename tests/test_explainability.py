@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import pytest
-
-from new_apps.api.processing.explanation import (
-    ExplanationError,
-    ExplanationGenerator,
-)
 from src.services.compliance import ComplianceEngine
 from src.services.decision_engine import DecisionEngine
 from src.services.evidence import EvidenceStore
+
+from new_apps.api.processing.explanation import ExplanationError, ExplanationGenerator
 
 
 def test_top_factors_deterministic(signing_env: None) -> None:
@@ -53,13 +50,19 @@ def test_decision_engine_compliance_rollup_and_marketplace(signing_env: None) ->
         "test": {"summary": {"critical": 1, "high": 0, "medium": 0, "low": 0}},
         "operate": {
             "kev_hits": ["CVE-2021-44228"],
-            "pressure_by_service": [{"service": "life-claims-portal", "pressure": 0.65}],
+            "pressure_by_service": [
+                {"service": "life-claims-portal", "pressure": 0.65}
+            ],
         },
     }
     outcome = engine.evaluate(submission)
-    assert outcome.compliance_rollup["controls"], "Compliance rollup should include control coverage"
+    assert outcome.compliance_rollup[
+        "controls"
+    ], "Compliance rollup should include control coverage"
     assert any(factor["name"] == "Compliance gaps" for factor in outcome.top_factors)
-    assert outcome.marketplace_recommendations, "Marketplace packs should surface for failing controls"
+    assert (
+        outcome.marketplace_recommendations
+    ), "Marketplace packs should surface for failing controls"
 
 
 def test_explanation_generator_produces_narrative_and_respects_rate_limit() -> None:
@@ -126,4 +129,3 @@ def test_explanation_generator_requires_findings() -> None:
 
     with pytest.raises(ExplanationError):
         generator.generate([])
-

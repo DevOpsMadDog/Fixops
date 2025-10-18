@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
-
 from src.db.session import DatabaseManager
 from src.services.evidence_lake import EvidenceLake
 
@@ -28,7 +27,9 @@ class _FakeSession:
         return _FakeResult((self._payload,))
 
 
-def test_evidence_retrieval_validates_integrity(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_evidence_retrieval_validates_integrity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     base_record = {
         "evidence_id": "EVD-123",
         "context": {"service": "payments"},
@@ -38,7 +39,9 @@ def test_evidence_retrieval_validates_integrity(monkeypatch: pytest.MonkeyPatch)
     payload_to_hash = base_record.copy()
     payload_to_hash.pop("stored_timestamp")
     payload_to_hash.pop("evidence_lake_version")
-    digest = hashlib.sha256(json.dumps(payload_to_hash, sort_keys=True).encode()).hexdigest()
+    digest = hashlib.sha256(
+        json.dumps(payload_to_hash, sort_keys=True).encode()
+    ).hexdigest()
     base_record["immutable_hash"] = f"SHA256:{digest}"
     fake_payload = json.dumps(base_record, sort_keys=True)
 

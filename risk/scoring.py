@@ -1,4 +1,5 @@
 """Risk scoring utilities using EPSS, KEV, and SBOM metadata."""
+
 from __future__ import annotations
 
 import json
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Sequence
 
 from packaging.version import InvalidVersion, Version
+
 from telemetry import get_meter, get_tracer
 
 EXPOSURE_ALIASES = {
@@ -73,6 +75,7 @@ def _now() -> datetime:
         return seeded
     return datetime.now(timezone.utc)
 
+
 def _component_key(component: Mapping[str, Any]) -> str:
     purl = component.get("purl")
     if isinstance(purl, str) and purl:
@@ -97,7 +100,9 @@ def _collect_strings(candidate: Any) -> Iterable[str]:
     elif isinstance(candidate, Mapping):
         for value in candidate.values():
             yield from _collect_strings(value)
-    elif isinstance(candidate, Sequence) and not isinstance(candidate, (bytes, bytearray)):
+    elif isinstance(candidate, Sequence) and not isinstance(
+        candidate, (bytes, bytearray)
+    ):
         for item in candidate:
             yield from _collect_strings(item)
 
@@ -122,7 +127,9 @@ def _collect_exposure_flags(*sources: Any) -> list[str]:
 def _exposure_factor(flags: Sequence[str]) -> float:
     if not flags:
         return EXPOSURE_WEIGHTS["unknown"]
-    weight = max(EXPOSURE_WEIGHTS.get(flag, EXPOSURE_WEIGHTS["unknown"]) for flag in flags)
+    weight = max(
+        EXPOSURE_WEIGHTS.get(flag, EXPOSURE_WEIGHTS["unknown"]) for flag in flags
+    )
     return weight
 
 
@@ -156,15 +163,21 @@ def _estimate_lag_from_versions(current: str, target: str) -> float:
         return 0.0
     if target_version <= current_version:
         return 0.0
-    current_release = list(current_version.release) + [0] * (3 - len(current_version.release))
-    target_release = list(target_version.release) + [0] * (3 - len(target_version.release))
+    current_release = list(current_version.release) + [0] * (
+        3 - len(current_version.release)
+    )
+    target_release = list(target_version.release) + [0] * (
+        3 - len(target_version.release)
+    )
     major_delta = max(target_release[0] - current_release[0], 0)
     minor_delta = max(target_release[1] - current_release[1], 0)
     patch_delta = max(target_release[2] - current_release[2], 0)
     return major_delta * 365 + minor_delta * 90 + patch_delta * 30
 
 
-def _infer_version_lag_days(component: Mapping[str, Any], vulnerability: Mapping[str, Any]) -> float:
+def _infer_version_lag_days(
+    component: Mapping[str, Any], vulnerability: Mapping[str, Any]
+) -> float:
     for key in ("version_lag_days", "lag_days", "age_days"):
         if key in vulnerability:
             return max(0.0, _coerce_float(vulnerability[key]))
@@ -172,7 +185,9 @@ def _infer_version_lag_days(component: Mapping[str, Any], vulnerability: Mapping
         if key in component:
             return max(0.0, _coerce_float(component[key]))
 
-    fix_version = vulnerability.get("fix_version") or vulnerability.get("patched_version")
+    fix_version = vulnerability.get("fix_version") or vulnerability.get(
+        "patched_version"
+    )
     current_version = component.get("version")
     if isinstance(fix_version, str) and isinstance(current_version, str):
         lag = _estimate_lag_from_versions(current_version, fix_version)
@@ -180,7 +195,9 @@ def _infer_version_lag_days(component: Mapping[str, Any], vulnerability: Mapping
             return lag
 
     fix_date = _parse_datetime(vulnerability.get("fixed_release_date"))
-    last_seen = _parse_datetime(component.get("last_observed") or component.get("last_seen"))
+    last_seen = _parse_datetime(
+        component.get("last_observed") or component.get("last_seen")
+    )
     if fix_date and last_seen and fix_date > last_seen:
         return float((fix_date - last_seen).days)
 
@@ -200,9 +217,15 @@ def _score_vulnerability(
     kev_entries: Mapping[str, Any],
     weights: Mapping[str, float],
 ) -> Dict[str, Any] | None:
-    cve = vulnerability.get("cve") or vulnerability.get("cve_id") or vulnerability.get("id")
+    cve = (
+        vulnerability.get("cve")
+        or vulnerability.get("cve_id")
+        or vulnerability.get("id")
+    )
     if not isinstance(cve, str) or not cve:
-        LOGGER.warning("Skipping vulnerability without CVE identifier: %s", vulnerability)
+        LOGGER.warning(
+            "Skipping vulnerability without CVE identifier: %s", vulnerability
+        )
         return None
     cve_id = cve.upper()
 
@@ -285,7 +308,9 @@ def compute_risk_profile(
             for vulnerability in vulnerabilities:
                 if not isinstance(vulnerability, Mapping):
                     continue
-                scored = _score_vulnerability(component, vulnerability, epss_scores, kev_entries, weights)
+                scored = _score_vulnerability(
+                    component, vulnerability, epss_scores, kev_entries, weights
+                )
                 if not scored:
                     continue
                 component_entry["vulnerabilities"].append(scored)
@@ -327,10 +352,18 @@ def compute_risk_profile(
         report["summary"] = {
             "component_count": len(report["components"]),
             "cve_count": len(report["cves"]),
-            "highest_risk_component": highest_component["slug"] if highest_component else None,
-            "max_risk_score": highest_component.get("component_risk", 0.0) if highest_component else 0.0,
+            "highest_risk_component": (
+                highest_component["slug"] if highest_component else None
+            ),
+            "max_risk_score": (
+                highest_component.get("component_risk", 0.0)
+                if highest_component
+                else 0.0
+            ),
         }
-        span.set_attribute("fixops.risk.components", report["summary"]["component_count"])
+        span.set_attribute(
+            "fixops.risk.components", report["summary"]["component_count"]
+        )
         span.set_attribute("fixops.risk.cves", report["summary"]["cve_count"])
         _RISK_COUNTER.add(1, {"status": "computed"})
         return report

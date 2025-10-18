@@ -57,9 +57,7 @@ def test_knowledge_graph_processor_invokes_ctinexus(monkeypatch):
             {"id": "svc", "type": "service", "properties": {"critical": True}},
             {"name": "database", "category": "data"},
         ],
-        "relationships": [
-            {"from": "svc", "to": "database", "relationship": "queries"}
-        ],
+        "relationships": [{"from": "svc", "to": "database", "relationship": "queries"}],
     }
 
     result = processor.build_graph(snapshot)
@@ -81,16 +79,20 @@ def test_explanation_generator_uses_sentinel_gpt(monkeypatch):
             self.calls = []
 
         def generate(self, *, prompt, max_tokens, temperature):
-            self.calls.append({
-                "prompt": prompt,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            })
+            self.calls.append(
+                {
+                    "prompt": prompt,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                }
+            )
             return {"text": "Critical dependency on payment-db. Prioritise patching."}
 
     submodule.SentinelGPT = FakeClient
     monkeypatch.setitem(sys.modules, "awesome_llm4cybersecurity", pkg)
-    monkeypatch.setitem(sys.modules, "awesome_llm4cybersecurity.sentinel_gpt", submodule)
+    monkeypatch.setitem(
+        sys.modules, "awesome_llm4cybersecurity.sentinel_gpt", submodule
+    )
     setattr(pkg, "sentinel_gpt", submodule)
 
     module = importlib.import_module("new_backend.processing.explanation")

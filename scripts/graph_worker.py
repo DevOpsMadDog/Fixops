@@ -7,7 +7,8 @@ import time
 from pathlib import Path
 
 from services.graph.graph import GraphSources, build_graph_from_sources
-from telemetry import configure as configure_telemetry, get_tracer
+from telemetry import configure as configure_telemetry
+from telemetry import get_tracer
 
 configure_telemetry(service_name="fixops-graph-worker")
 _TRACER = get_tracer("fixops.graph.worker")
@@ -22,10 +23,16 @@ def _optional_path(value: str | None) -> Path | None:
 
 def main() -> None:
     repo_path = Path(os.getenv("FIXOPS_REPO", ".")).resolve()
-    attest_dir = Path(os.getenv("FIXOPS_ATTESTATIONS", "artifacts/attestations")).resolve()
-    sbom_path = _optional_path(os.getenv("FIXOPS_NORMALIZED_SBOM", "artifacts/sbom/normalized.json"))
+    attest_dir = Path(
+        os.getenv("FIXOPS_ATTESTATIONS", "artifacts/attestations")
+    ).resolve()
+    sbom_path = _optional_path(
+        os.getenv("FIXOPS_NORMALIZED_SBOM", "artifacts/sbom/normalized.json")
+    )
     risk_path = _optional_path(os.getenv("FIXOPS_RISK_REPORT", "artifacts/risk.json"))
-    releases_path = _optional_path(os.getenv("FIXOPS_RELEASES", "analysis/releases.json"))
+    releases_path = _optional_path(
+        os.getenv("FIXOPS_RELEASES", "analysis/releases.json")
+    )
     interval = int(os.getenv("FIXOPS_GRAPH_INTERVAL", "300"))
 
     sources = GraphSources(

@@ -4,18 +4,17 @@ from pathlib import Path
 
 import pytest
 
-from apps.api.pipeline import PipelineOrchestrator
 from apps.api.normalizers import (
     CVERecordSummary,
     InputNormalizer,
     NormalizedCVEFeed,
     NormalizedSARIF,
     NormalizedSBOM,
-    SBOMComponent,
     SarifFinding,
+    SBOMComponent,
 )
+from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import OverlayConfig
-
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
@@ -298,9 +297,7 @@ def test_pipeline_emits_ai_agent_analysis_when_enabled():
     overlay = OverlayConfig(
         mode="enterprise",
         ai_agents={
-            "framework_signatures": [
-                {"name": "LangChain", "keywords": ["langchain"]}
-            ],
+            "framework_signatures": [{"name": "LangChain", "keywords": ["langchain"]}],
             "controls": {"default": {"recommended_controls": ["audit"]}},
         },
     )
@@ -358,7 +355,11 @@ def test_pipeline_emits_exploitability_summary():
     overlay = OverlayConfig(
         exploit_signals={
             "signals": {
-                "kev": {"mode": "boolean", "fields": ["knownExploited"], "escalate_to": "critical"},
+                "kev": {
+                    "mode": "boolean",
+                    "fields": ["knownExploited"],
+                    "escalate_to": "critical",
+                },
                 "epss": {"mode": "probability", "fields": ["epss"], "threshold": 0.5},
             }
         }
@@ -378,7 +379,10 @@ def test_pipeline_emits_exploitability_summary():
     assert exploitability["overview"]["matched_records"] >= 2
     assert exploitability["signals"]["kev"]["match_count"] == 1
     assert exploitability["signals"]["epss"]["match_count"] == 1
-    assert any(entry["recommended_severity"] == "critical" for entry in exploitability.get("escalations", []))
+    assert any(
+        entry["recommended_severity"] == "critical"
+        for entry in exploitability.get("escalations", [])
+    )
 
 
 def test_pipeline_supports_design_rows_with_name_column():

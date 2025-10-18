@@ -9,7 +9,7 @@ import logging
 import sys
 import zipfile
 from contextlib import suppress
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Tuple
 
 from pydantic import (
@@ -184,7 +184,9 @@ def _convert_snyk_payload_to_sarif(
         level = _SNYK_SEVERITY_TO_LEVEL.get(severity, "warning")
         rule_id = issue.get("id") or issue.get("issueId") or issue.get("issueType")
         if not isinstance(rule_id, str) or not rule_id.strip():
-            rule_id = _extract_first_identifier(issue.get("identifiers")) or "SNYK-ISSUE"
+            rule_id = (
+                _extract_first_identifier(issue.get("identifiers")) or "SNYK-ISSUE"
+            )
 
         message = issue.get("title") or issue.get("message") or issue.get("description")
         if not isinstance(message, str) or not message.strip():
@@ -515,6 +517,7 @@ class NormalizedSarifSchema(BaseModel):
     findings: List[SarifFindingSchema]
     metadata: Dict[str, Any]
 
+
 class InputNormalizer:
     """Normalise artefacts using dedicated OSS parsers."""
 
@@ -711,7 +714,9 @@ class InputNormalizer:
 
     def _load_sbom_from_provider(self, payload: str) -> NormalizedSBOM | None:
         try:
-            document = json.loads(payload)  # TODO: streaming parse for very large SBOM documents.
+            document = json.loads(
+                payload
+            )  # TODO: streaming parse for very large SBOM documents.
         except json.JSONDecodeError:
             return None
 
@@ -970,7 +975,9 @@ class InputNormalizer:
         """Normalise SARIF logs via sarif-om with optional Snyk conversion."""
 
         payload = self._prepare_text(raw)
-        data = json.loads(payload)  # TODO: support streaming parse for very large SARIF inputs.
+        data = json.loads(
+            payload
+        )  # TODO: support streaming parse for very large SARIF inputs.
         original_data = data
 
         runs = data.get("runs") if isinstance(data, dict) else None
@@ -1180,9 +1187,17 @@ class InputNormalizer:
             for entry in vulnerabilities:
                 if not isinstance(entry, Mapping):
                     continue
-                vuln_id = str(entry.get("id") or entry.get("vulnerability") or "unknown")
-                analysis = entry.get("analysis") if isinstance(entry.get("analysis"), Mapping) else {}
-                state = str(analysis.get("state") or analysis.get("status") or "unknown").lower()
+                vuln_id = str(
+                    entry.get("id") or entry.get("vulnerability") or "unknown"
+                )
+                analysis = (
+                    entry.get("analysis")
+                    if isinstance(entry.get("analysis"), Mapping)
+                    else {}
+                )
+                state = str(
+                    analysis.get("state") or analysis.get("status") or "unknown"
+                ).lower()
                 detail = analysis.get("detail")
                 affects = entry.get("affects")
                 if not isinstance(affects, Iterable):
@@ -1206,7 +1221,9 @@ class InputNormalizer:
 
         metadata = {
             "assertion_count": len(assertions),
-            "not_affected_count": sum(1 for assertion in assertions if assertion.status == "not_affected"),
+            "not_affected_count": sum(
+                1 for assertion in assertions if assertion.status == "not_affected"
+            ),
         }
         return NormalizedVEX(assertions=assertions, metadata=metadata)
 
@@ -1235,14 +1252,18 @@ class InputNormalizer:
                 }
                 assets.append(CNAPPAsset(asset_id=str(asset_id), attributes=attributes))
 
-        raw_findings = document.get("findings") if isinstance(document, Mapping) else None
+        raw_findings = (
+            document.get("findings") if isinstance(document, Mapping) else None
+        )
         findings: List[CNAPPFinding] = []
         if isinstance(raw_findings, Iterable):
             for entry in raw_findings:
                 if not isinstance(entry, Mapping):
                     continue
                 asset = entry.get("asset") or entry.get("target")
-                severity = str(entry.get("sev") or entry.get("severity") or "low").lower()
+                severity = str(
+                    entry.get("sev") or entry.get("severity") or "low"
+                ).lower()
                 finding_type = entry.get("type") or entry.get("category") or "finding"
                 if not asset:
                     continue
@@ -1312,7 +1333,9 @@ class InputNormalizer:
         for entry in document.get("components", []) or []:
             if isinstance(entry, Mapping):
                 components.append({k: v for k, v in entry.items() if v is not None})
-        ssvc_payload = document.get("ssvc") if isinstance(document.get("ssvc"), Mapping) else {}
+        ssvc_payload = (
+            document.get("ssvc") if isinstance(document.get("ssvc"), Mapping) else {}
+        )
         ssvc = self._normalise_ssvc(ssvc_payload)
         metadata = {
             "component_count": len(components),
@@ -1327,34 +1350,56 @@ class InputNormalizer:
             raw=dict(document),
         )
 
-    def _from_otm(self, document: Mapping[str, Any], source: str) -> NormalizedBusinessContext:
+    def _from_otm(
+        self, document: Mapping[str, Any], source: str
+    ) -> NormalizedBusinessContext:
         components = []
-        otm_components = document.get("components") if isinstance(document.get("components"), Iterable) else []
+        otm_components = (
+            document.get("components")
+            if isinstance(document.get("components"), Iterable)
+            else []
+        )
         for entry in otm_components:
             if not isinstance(entry, Mapping):
                 continue
             node = {
                 "name": entry.get("name"),
                 "type": entry.get("type"),
-                "trust_zone": entry.get("parent", {}).get("trustZone") if isinstance(entry.get("parent"), Mapping) else None,
+                "trust_zone": (
+                    entry.get("parent", {}).get("trustZone")
+                    if isinstance(entry.get("parent"), Mapping)
+                    else None
+                ),
                 "tags": entry.get("tags"),
             }
-            data_assets = entry.get("data") if isinstance(entry.get("data"), Iterable) else []
+            data_assets = (
+                entry.get("data") if isinstance(entry.get("data"), Iterable) else []
+            )
             if data_assets:
                 classifications = []
                 for asset in data_assets:
                     if isinstance(asset, Mapping) and asset.get("classification"):
                         classifications.append(asset["classification"])
                 if classifications:
-                    node["data_classification"] = ",".join(str(value) for value in classifications)
+                    node["data_classification"] = ",".join(
+                        str(value) for value in classifications
+                    )
             components.append({k: v for k, v in node.items() if v is not None})
 
-        trust_zones = document.get("trustZones") if isinstance(document.get("trustZones"), Iterable) else []
+        trust_zones = (
+            document.get("trustZones")
+            if isinstance(document.get("trustZones"), Iterable)
+            else []
+        )
         highest_trust = 0
         for zone in trust_zones:
             if not isinstance(zone, Mapping):
                 continue
-            rating = zone.get("risk", {}).get("trustRating") if isinstance(zone.get("risk"), Mapping) else None
+            rating = (
+                zone.get("risk", {}).get("trustRating")
+                if isinstance(zone.get("risk"), Mapping)
+                else None
+            )
             try:
                 rating_value = int(rating)
             except (TypeError, ValueError):
@@ -1379,7 +1424,9 @@ class InputNormalizer:
             raw=dict(document),
         )
 
-    def _from_ssvc(self, document: Mapping[str, Any], source: str) -> NormalizedBusinessContext:
+    def _from_ssvc(
+        self, document: Mapping[str, Any], source: str
+    ) -> NormalizedBusinessContext:
         ssvc = self._normalise_ssvc(document)
         metadata = {"source": source}
         return NormalizedBusinessContext(
@@ -1397,11 +1444,19 @@ class InputNormalizer:
 
         payload = self._prepare_text(raw)
         document, source = self._parse_business_payload(payload, content_type)
-        if "otm" in (document.get("format") or "").lower() or document.get("otmVersion"):
+        if "otm" in (document.get("format") or "").lower() or document.get(
+            "otmVersion"
+        ):
             return self._from_otm(document, source)
         if document.get("components") and document.get("ssvc"):
             return self._from_fixops_context(document, source)
-        required_ssvc_keys = {"exploitation", "exposure", "utility", "safety_impact", "mission_impact"}
+        required_ssvc_keys = {
+            "exploitation",
+            "exposure",
+            "utility",
+            "safety_impact",
+            "mission_impact",
+        }
         if required_ssvc_keys.intersection(document.keys()) == required_ssvc_keys:
             return self._from_ssvc(document, source)
         # Attempt to coerce legacy FixOps structures

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from src.services import signing
 from src.services.ci_adapters import GitHubCIAdapter, JenkinsCIAdapter, SonarQubeAdapter
 from src.services.compliance import ComplianceEngine
 from src.services.decision_engine import DecisionEngine
 from src.services.evidence import EvidenceStore
-from src.services import signing
 
 
 def _engine() -> DecisionEngine:
@@ -57,7 +57,11 @@ def test_jenkins_signed_response(signing_env: None) -> None:
     assert response["signature"]
     assert response["kid"] == "test-kid"
     assert response["alg"] == signing.ALGORITHM
-    canonical = {k: v for k, v in response.items() if k not in {"signature", "kid", "alg", "digest"}}
+    canonical = {
+        k: v
+        for k, v in response.items()
+        if k not in {"signature", "kid", "alg", "digest"}
+    }
     assert signing.verify_manifest(canonical, response["signature"])
     assert "marketplace_recommendations" in response
 
@@ -66,8 +70,18 @@ def test_sonarqube_ingest_top_factors(signing_env: None) -> None:
     adapter = SonarQubeAdapter(_engine())
     payload = {
         "issues": [
-            {"key": "ISS-1", "severity": "CRITICAL", "type": "BUG", "component": "svc.py"},
-            {"key": "ISS-2", "severity": "MAJOR", "type": "VULNERABILITY", "component": "svc.py"},
+            {
+                "key": "ISS-1",
+                "severity": "CRITICAL",
+                "type": "BUG",
+                "component": "svc.py",
+            },
+            {
+                "key": "ISS-2",
+                "severity": "MAJOR",
+                "type": "VULNERABILITY",
+                "component": "svc.py",
+            },
         ],
         "controls": [{"id": "CM-1", "framework": "nist_ssdf", "status": "gap"}],
     }
@@ -76,4 +90,3 @@ def test_sonarqube_ingest_top_factors(signing_env: None) -> None:
     weights = [factor["weight"] for factor in decision["top_factors"]]
     assert weights == sorted(weights, reverse=True)
     assert "marketplace_recommendations" in decision
-

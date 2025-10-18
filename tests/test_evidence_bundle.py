@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from cli.fixops_ci import main as ci_main
+from evidence.packager import _collect_files
 from services.evidence.packager import (
     BundleInputs,
     EvidencePackager,
@@ -13,7 +14,6 @@ from services.evidence.packager import (
     load_policy,
 )
 from services.evidence.store import EvidenceStore
-from evidence.packager import _collect_files
 
 
 def _write_json(path: Path, payload: dict) -> Path:

@@ -7,31 +7,33 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from core.ai_agents import AIAgentAdvisor
 from core.analytics import ROIDashboard
+from core.compliance import ComplianceEvaluator
 from core.configuration import OverlayConfig
 from core.context_engine import ContextEngine
-from core.evidence import EvidenceHub
 from core.enhanced_decision import EnhancedDecisionEngine
-from core.compliance import ComplianceEvaluator
+from core.evidence import EvidenceHub
+from core.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
+from core.feature_matrix import build_feature_matrix
+from core.iac import IaCPostureEvaluator
+from core.modules import PipelineContext, execute_custom_modules
 from core.onboarding import OnboardingGuide
+from core.performance import PerformanceSimulator
 from core.policy import PolicyAutomation
 from core.probabilistic import ProbabilisticForecastEngine
-from core.ssdlc import SSDLCEvaluator
-from core.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
-from core.iac import IaCPostureEvaluator
-from core.feature_matrix import build_feature_matrix
-from core.modules import PipelineContext, execute_custom_modules
-from core.tenancy import TenantLifecycleManager
-from core.performance import PerformanceSimulator
 from core.processing_layer import ProcessingLayer
+from core.ssdlc import SSDLCEvaluator
+from core.tenancy import TenantLifecycleManager
 from core.vector_store import SecurityPatternMatcher
-
-from .knowledge_graph import KnowledgeGraphService
-
 from domain import CrosswalkRow
-from services.match.indexes import build_component_index, build_cve_index, build_finding_index
+from services.match.indexes import (
+    build_component_index,
+    build_cve_index,
+    build_finding_index,
+)
 from services.match.join import build_crosswalk
 from services.match.utils import build_lookup_tokens, extract_component_name
 
+from .knowledge_graph import KnowledgeGraphService
 from .normalizers import (
     CVERecordSummary,
     NormalizedBusinessContext,
@@ -41,6 +43,7 @@ from .normalizers import (
     NormalizedSBOM,
     NormalizedVEX,
 )
+
 _SEVERITY_ORDER = ("low", "medium", "high", "critical")
 _SEVERITY_INDEX_MAP = {severity: idx for idx, severity in enumerate(_SEVERITY_ORDER)}
 _SARIF_LEVEL_MAP = {
@@ -274,7 +277,9 @@ class PipelineOrchestrator:
 
         if isinstance(compliance_status, Mapping):
             frameworks = compliance_status.get("frameworks", [])
-            if isinstance(frameworks, Iterable) and not isinstance(frameworks, (str, bytes)):
+            if isinstance(frameworks, Iterable) and not isinstance(
+                frameworks, (str, bytes)
+            ):
                 iterable_frameworks = frameworks
             else:
                 iterable_frameworks = []
@@ -283,7 +288,10 @@ class PipelineOrchestrator:
                     continue
                 framework_name = framework.get("name")
                 controls = framework.get("controls", [])
-                if not (isinstance(controls, Iterable) and not isinstance(controls, (str, bytes))):
+                if not (
+                    isinstance(controls, Iterable)
+                    and not isinstance(controls, (str, bytes))
+                ):
                     controls = []
                 for control in controls or []:
                     if not isinstance(control, Mapping):
@@ -317,7 +325,9 @@ class PipelineOrchestrator:
             execution = policy_summary.get("execution")
             if isinstance(execution, Mapping):
                 results = execution.get("results", [])
-                if isinstance(results, Iterable) and not isinstance(results, (str, bytes)):
+                if isinstance(results, Iterable) and not isinstance(
+                    results, (str, bytes)
+                ):
                     iterable_results = results
                 else:
                     iterable_results = []
@@ -338,7 +348,13 @@ class PipelineOrchestrator:
                 if highest:
                     matches.append(f"guardrail:{highest}")
 
-        unique_matches = sorted({match.strip() for match in matches if isinstance(match, str) and match.strip()})
+        unique_matches = sorted(
+            {
+                match.strip()
+                for match in matches
+                if isinstance(match, str) and match.strip()
+            }
+        )
         if not unique_matches:
             return []
         return [
@@ -417,13 +433,14 @@ class PipelineOrchestrator:
                     "exploited": record.exploited,
                 }
 
-
         if context is not None:
             context_map: Dict[str, Mapping[str, Any]] = {}
             for component in context.components:
                 if not isinstance(component, Mapping):
                     continue
-                name = str(component.get("name") or component.get("component") or "").strip()
+                name = str(
+                    component.get("name") or component.get("component") or ""
+                ).strip()
                 if not name:
                     continue
                 context_map[name.lower()] = component
@@ -499,7 +516,9 @@ class PipelineOrchestrator:
                 cnapp_counts[mapped_severity] += 1
                 severity_counts[mapped_severity] += 1
                 cnapp_sources[mapped_severity] += 1
-                if self._severity_index(mapped_severity) > self._severity_index(highest_severity):
+                if self._severity_index(mapped_severity) > self._severity_index(
+                    highest_severity
+                ):
                     highest_severity = mapped_severity
                     highest_trigger = {
                         "source": "cnapp",
@@ -581,7 +600,9 @@ class PipelineOrchestrator:
             if cnapp_exposures:
                 cnapp_summary["exposures"] = cnapp_exposures
             if cnapp_counts:
-                cnapp_summary["risk_multiplier"] = round(1.0 + 0.1 * sum(cnapp_counts.values()), 2)
+                cnapp_summary["risk_multiplier"] = round(
+                    1.0 + 0.1 * sum(cnapp_counts.values()), 2
+                )
             result["cnapp_summary"] = cnapp_summary
 
         if overlay is not None:
@@ -593,7 +614,9 @@ class PipelineOrchestrator:
             overlay_metadata = dict(getattr(overlay, "metadata", {}) or {})
             runtime_warnings = list(overlay_metadata.get("runtime_warnings") or [])
             automation_requirements = overlay_metadata.get("automation_requirements")
-            automation_ready = bool(overlay_metadata.get("automation_ready", not runtime_warnings))
+            automation_ready = bool(
+                overlay_metadata.get("automation_ready", not runtime_warnings)
+            )
             if runtime_warnings:
                 result["runtime_warnings"] = runtime_warnings
             if automation_requirements:
@@ -664,7 +687,9 @@ class PipelineOrchestrator:
                     policy_plan = policy_automation.plan(
                         result, context_summary, compliance_status
                     )
-                    execution_summary = policy_automation.execute(policy_plan["actions"])
+                    execution_summary = policy_automation.execute(
+                        policy_plan["actions"]
+                    )
                     policy_summary = dict(policy_plan)
                     policy_summary["execution"] = execution_summary
                     result["policy_automation"] = policy_summary

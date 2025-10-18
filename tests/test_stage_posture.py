@@ -4,7 +4,9 @@ from core.stage_runner import StageRunner
 
 
 class _Dummy:
-    def __getattr__(self, name):  # pragma: no cover - defensive default for unused services
+    def __getattr__(
+        self, name
+    ):  # pragma: no cover - defensive default for unused services
         raise AttributeError(name)
 
 

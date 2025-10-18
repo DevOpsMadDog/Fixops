@@ -167,14 +167,22 @@ def test_end_to_end_demo_pipeline():
         assert pipeline_payload["design_summary"]["row_count"] == 3
         assert len(pipeline_payload["crosswalk"]) == 3
         assert pipeline_payload["crosswalk"][0]["findings"]
-        assert pipeline_payload["guardrail_evaluation"]["status"] in {"pass", "warn", "fail"}
-        assert pipeline_payload["context_summary"]["summary"]["components_evaluated"] >= 1
+        assert pipeline_payload["guardrail_evaluation"]["status"] in {
+            "pass",
+            "warn",
+            "fail",
+        }
+        assert (
+            pipeline_payload["context_summary"]["summary"]["components_evaluated"] >= 1
+        )
         assert pipeline_payload["onboarding"]["mode"] == "demo"
         assert pipeline_payload["compliance_status"]["frameworks"]
         policy_payload = pipeline_payload["policy_automation"]
         assert "execution" in policy_payload
         assert policy_payload["execution"]["status"] in {"completed", "partial"}
-        assert all("delivery" in entry for entry in policy_payload["execution"]["results"])
+        assert all(
+            "delivery" in entry for entry in policy_payload["execution"]["results"]
+        )
         assert "bundle" in pipeline_payload["evidence_bundle"]["files"]
         assert "compressed" in pipeline_payload["evidence_bundle"]
         assert "plans" in pipeline_payload["pricing_summary"]
@@ -249,7 +257,9 @@ def test_end_to_end_demo_pipeline():
         spooled.close()
 
         sarif_zip_buffer = SpooledTemporaryFile(max_size=1024, mode="w+b")
-        with zipfile.ZipFile(sarif_zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            sarif_zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
             archive.writestr("scan.sarif", json.dumps(sarif_document))
         sarif_zip_buffer.seek(0)
         sarif_spooled = normalizer.load_sarif(sarif_zip_buffer)
@@ -269,11 +279,26 @@ def test_end_to_end_demo_pipeline():
         assert len(pipeline_payload["crosswalk"]) == 3
         assert isinstance(pipeline_payload["crosswalk"][0]["findings"], list)
         if "ai_agent_analysis" in pipeline_payload:
-            assert pipeline_payload["ai_agent_analysis"]["summary"]["components_with_agents"] >= 1
+            assert (
+                pipeline_payload["ai_agent_analysis"]["summary"][
+                    "components_with_agents"
+                ]
+                >= 1
+            )
         if "exploitability_insights" in pipeline_payload:
-            assert pipeline_payload["exploitability_insights"]["overview"]["signals_configured"] >= 1
+            assert (
+                pipeline_payload["exploitability_insights"]["overview"][
+                    "signals_configured"
+                ]
+                >= 1
+            )
         if "probabilistic_forecast" in pipeline_payload:
-            assert pipeline_payload["probabilistic_forecast"]["metrics"]["expected_high_or_critical"] >= 0
+            assert (
+                pipeline_payload["probabilistic_forecast"]["metrics"][
+                    "expected_high_or_critical"
+                ]
+                >= 0
+            )
 
 
 def test_api_rejects_missing_token(tmp_path):
@@ -297,7 +322,9 @@ def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
     if TestClient is None or create_app is None:
         return
 
-    safe_root = (Path(__file__).resolve().parent / "tmp_feedback" / tmp_path.name).resolve()
+    safe_root = (
+        Path(__file__).resolve().parent / "tmp_feedback" / tmp_path.name
+    ).resolve()
     safe_root.mkdir(parents=True, exist_ok=True)
 
     overlay_payload = {
@@ -374,7 +401,9 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
             for idx in range(300)
         ]
         cve_zip = BytesIO()
-        with zipfile.ZipFile(cve_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            cve_zip, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
             archive.writestr("kev.json", json.dumps({"vulnerabilities": cve_entries}))
         cve_zip.seek(0)
         cve_spool = SpooledTemporaryFile(max_size=1024, mode="w+b")
@@ -400,9 +429,16 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
             }
             for idx in range(200)
         ]
-        sarif_document = {"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "HeavyScanner"}}, "results": sarif_results}]}
+        sarif_document = {
+            "version": "2.1.0",
+            "runs": [
+                {"tool": {"driver": {"name": "HeavyScanner"}}, "results": sarif_results}
+            ],
+        }
         sarif_zip = BytesIO()
-        with zipfile.ZipFile(sarif_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            sarif_zip, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
             archive.writestr("scan.sarif", json.dumps(sarif_document))
         sarif_zip.seek(0)
         sarif_spool = SpooledTemporaryFile(max_size=1024, mode="w+b")
@@ -413,7 +449,9 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
         sarif_spool.close()
         return
 
-    safe_root = (Path(__file__).resolve().parent / "tmp_stream" / tmp_path.name).resolve()
+    safe_root = (
+        Path(__file__).resolve().parent / "tmp_stream" / tmp_path.name
+    ).resolve()
     safe_root.mkdir(parents=True, exist_ok=True)
 
     overlay_payload = {
@@ -483,7 +521,9 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
             for idx in range(300)
         ]
         cve_zip = BytesIO()
-        with zipfile.ZipFile(cve_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            cve_zip, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
             archive.writestr("kev.json", json.dumps({"vulnerabilities": cve_entries}))
         cve_zip.seek(0)
 
@@ -511,9 +551,16 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
             }
             for idx in range(200)
         ]
-        sarif_document = {"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "HeavyScanner"}}, "results": sarif_results}]}
+        sarif_document = {
+            "version": "2.1.0",
+            "runs": [
+                {"tool": {"driver": {"name": "HeavyScanner"}}, "results": sarif_results}
+            ],
+        }
         sarif_zip = BytesIO()
-        with zipfile.ZipFile(sarif_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            sarif_zip, mode="w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
             archive.writestr("scan.sarif", json.dumps(sarif_document))
         sarif_zip.seek(0)
 

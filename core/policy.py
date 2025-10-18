@@ -1,4 +1,5 @@
 """Policy automation planner for FixOps."""
+
 from __future__ import annotations
 
 import json
@@ -25,7 +26,9 @@ class _OPAClient:
         self.timeout = float(self.settings.get("timeout", 5.0))
         self.enabled = bool(self.url)
 
-    def evaluate(self, policy: str, payload: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    def evaluate(
+        self, policy: str, payload: Mapping[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         if not self.enabled:
             return None
         try:
@@ -71,7 +74,9 @@ class _AutomationDispatcher:
         payload = {
             "id": identifier,
             "type": action.get("type"),
-            "target": action.get("project_key") or action.get("space") or action.get("endpoint"),
+            "target": action.get("project_key")
+            or action.get("space")
+            or action.get("endpoint"),
             "payload": dict(action),
             "dispatched_at": datetime.utcnow().isoformat() + "Z",
         }
@@ -87,7 +92,9 @@ class PolicyAutomation:
         self.overlay = overlay
         self.settings = overlay.policy_settings
         actions = self.settings.get("actions", [])
-        self.actions_config = [action for action in actions if isinstance(action, Mapping)]
+        self.actions_config = [
+            action for action in actions if isinstance(action, Mapping)
+        ]
         self.dispatcher = _AutomationDispatcher(overlay)
         self.connectors = AutomationConnectors(
             {
@@ -109,7 +116,9 @@ class PolicyAutomation:
         rendered.setdefault("context", pipeline_result.get("severity_overview"))
         if rendered.get("type") == "jira_issue":
             rendered.setdefault("project_key", self.overlay.jira.get("project_key"))
-            rendered.setdefault("issue_type", self.overlay.jira.get("default_issue_type", "Task"))
+            rendered.setdefault(
+                "issue_type", self.overlay.jira.get("default_issue_type", "Task")
+            )
         if rendered.get("type") == "confluence_page":
             rendered.setdefault("space", self.overlay.confluence.get("space_key"))
         return rendered
@@ -122,9 +131,13 @@ class PolicyAutomation:
         compliance_status: Optional[Mapping[str, Any]],
     ) -> bool:
         if trigger == "guardrail:fail":
-            return pipeline_result.get("guardrail_evaluation", {}).get("status") == "fail"
+            return (
+                pipeline_result.get("guardrail_evaluation", {}).get("status") == "fail"
+            )
         if trigger == "guardrail:warn":
-            return pipeline_result.get("guardrail_evaluation", {}).get("status") == "warn"
+            return (
+                pipeline_result.get("guardrail_evaluation", {}).get("status") == "warn"
+            )
         if trigger == "context:high":
             if not context_summary:
                 return False
@@ -145,22 +158,36 @@ class PolicyAutomation:
         skipped: List[Dict[str, Any]] = []
         for action in self.actions_config:
             trigger = str(action.get("trigger") or "").strip().lower()
-            if self._should_trigger(trigger, pipeline_result, context_summary, compliance_status):
+            if self._should_trigger(
+                trigger, pipeline_result, context_summary, compliance_status
+            ):
                 planned.append(self._render_action(action, pipeline_result))
             else:
-                skipped.append({"id": action.get("id"), "reason": f"trigger '{trigger}' not met"})
+                skipped.append(
+                    {"id": action.get("id"), "reason": f"trigger '{trigger}' not met"}
+                )
         status = "ready" if planned else "idle"
-        plan_summary: Dict[str, Any] = {"actions": planned, "skipped": skipped, "status": status}
+        plan_summary: Dict[str, Any] = {
+            "actions": planned,
+            "skipped": skipped,
+            "status": status,
+        }
         opa_evaluations = self._evaluate_with_opa(pipeline_result)
         if opa_evaluations:
             plan_summary["opa"] = opa_evaluations
         return plan_summary
 
-    def _evaluate_with_opa(self, pipeline_result: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    def _evaluate_with_opa(
+        self, pipeline_result: Mapping[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         if not self.opa_client.enabled:
             return None
         vulnerability_input = {
-            "vulnerabilities": [finding for finding in pipeline_result.get("crosswalk", []) if finding.get("cves")],
+            "vulnerabilities": [
+                finding
+                for finding in pipeline_result.get("crosswalk", [])
+                if finding.get("cves")
+            ],
             "severity_overview": pipeline_result.get("severity_overview"),
         }
         sbom_input = {
@@ -168,7 +195,9 @@ class PolicyAutomation:
             "design": pipeline_result.get("design_summary"),
         }
         evaluations = {
-            "vulnerability": self.opa_client.evaluate("vulnerability", vulnerability_input),
+            "vulnerability": self.opa_client.evaluate(
+                "vulnerability", vulnerability_input
+            ),
             "sbom": self.opa_client.evaluate("sbom", sbom_input),
         }
         return {key: value for key, value in evaluations.items() if value is not None}
@@ -183,14 +212,20 @@ class PolicyAutomation:
             try:
                 outcome = self.dispatcher.dispatch(action)
             except Exception as exc:  # pragma: no cover - defensive logging
-                outcome = {"status": "failed", "error": str(exc), "id": action.get("id")}
+                outcome = {
+                    "status": "failed",
+                    "error": str(exc),
+                    "id": action.get("id"),
+                }
             delivery = self.connectors.deliver(action)
             delivery_payload = delivery.to_dict()
             remote_results.append(delivery_payload)
             combined = dict(outcome)
             combined["delivery"] = delivery_payload
             results.append(combined)
-        dispatched = [result for result in results if result.get("status") == "dispatched"]
+        dispatched = [
+            result for result in results if result.get("status") == "dispatched"
+        ]
         failed = [result for result in results if result.get("status") != "dispatched"]
         summary: MutableMapping[str, Any] = {
             "dispatched_count": len(dispatched),

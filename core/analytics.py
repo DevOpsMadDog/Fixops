@@ -1,4 +1,5 @@
 """Analytics and ROI computations for FixOps pipeline runs."""
+
 from __future__ import annotations
 
 import json
@@ -6,7 +7,17 @@ import time
 import uuid
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+)
 
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 
@@ -14,7 +25,9 @@ if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from core.configuration import OverlayConfig
 
 
-_SAFE_RUN_ID_CHARACTERS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+_SAFE_RUN_ID_CHARACTERS = set(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+)
 
 
 def _validate_run_id(run_id: str) -> str:
@@ -22,7 +35,9 @@ def _validate_run_id(run_id: str) -> str:
         raise ValueError("run_id must be a non-empty string for analytics persistence")
     candidate = run_id.strip()
     if not set(candidate) <= _SAFE_RUN_ID_CHARACTERS:
-        raise ValueError("run_id contains unsupported characters for analytics persistence")
+        raise ValueError(
+            "run_id contains unsupported characters for analytics persistence"
+        )
     return candidate
 
 
@@ -120,14 +135,14 @@ class AnalyticsStore:
         return entries
 
     @staticmethod
-    def _slice(entries: Sequence[Mapping[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    def _slice(
+        entries: Sequence[Mapping[str, Any]], limit: int
+    ) -> List[Dict[str, Any]]:
         limited: List[Dict[str, Any]] = []
         for entry in entries[: max(limit, 0)]:
-            limited.append({
-                key: value
-                for key, value in entry.items()
-                if key not in {"_path"}
-            })
+            limited.append(
+                {key: value for key, value in entry.items() if key not in {"_path"}}
+            )
         return limited
 
     # ------------------------------------------------------------------
@@ -141,17 +156,30 @@ class AnalyticsStore:
         severity_overview: Optional[Mapping[str, Any]] = None,
     ) -> Path:
         safe_run_id = _validate_run_id(run_id)
-        metrics = forecast.get("metrics") if isinstance(forecast.get("metrics"), Mapping) else {}
+        metrics = (
+            forecast.get("metrics")
+            if isinstance(forecast.get("metrics"), Mapping)
+            else {}
+        )
         components = forecast.get("components")
         component_count = len(components) if isinstance(components, Sequence) else 0
-        hotspots = [
-            entry
-            for entry in components
-            if isinstance(entry, Mapping) and entry.get("escalation_probability", 0) >= 0.2
-        ] if isinstance(components, Sequence) else []
+        hotspots = (
+            [
+                entry
+                for entry in components
+                if isinstance(entry, Mapping)
+                and entry.get("escalation_probability", 0) >= 0.2
+            ]
+            if isinstance(components, Sequence)
+            else []
+        )
         summary = {
-            "expected_high_or_critical": float(metrics.get("expected_high_or_critical", 0.0)),
-            "expected_critical_next_cycle": float(metrics.get("expected_critical_next_cycle", 0.0)),
+            "expected_high_or_critical": float(
+                metrics.get("expected_high_or_critical", 0.0)
+            ),
+            "expected_critical_next_cycle": float(
+                metrics.get("expected_critical_next_cycle", 0.0)
+            ),
             "entropy_bits": float(metrics.get("entropy_bits", 0.0)),
             "exploited_records": int(metrics.get("exploited_records", 0)),
             "component_count": component_count,
@@ -162,7 +190,11 @@ class AnalyticsStore:
             "timestamp": self._timestamp(),
             "forecast": dict(forecast),
             "summary": summary,
-            "severity_overview": dict(severity_overview) if isinstance(severity_overview, Mapping) else None,
+            "severity_overview": (
+                dict(severity_overview)
+                if isinstance(severity_overview, Mapping)
+                else None
+            ),
         }
         return self._write_entry(self._FORECASTS, safe_run_id, payload)
 
@@ -172,9 +204,21 @@ class AnalyticsStore:
         snapshot: Mapping[str, Any],
     ) -> Path:
         safe_run_id = _validate_run_id(run_id)
-        overview = snapshot.get("overview") if isinstance(snapshot.get("overview"), Mapping) else {}
-        signals = snapshot.get("signals") if isinstance(snapshot.get("signals"), Mapping) else {}
-        escalations = snapshot.get("escalations") if isinstance(snapshot.get("escalations"), Sequence) else []
+        overview = (
+            snapshot.get("overview")
+            if isinstance(snapshot.get("overview"), Mapping)
+            else {}
+        )
+        signals = (
+            snapshot.get("signals")
+            if isinstance(snapshot.get("signals"), Mapping)
+            else {}
+        )
+        escalations = (
+            snapshot.get("escalations")
+            if isinstance(snapshot.get("escalations"), Sequence)
+            else []
+        )
         summary = {
             "signals_configured": int(overview.get("signals_configured", len(signals))),
             "matched_records": int(overview.get("matched_records", 0)),
@@ -195,7 +239,11 @@ class AnalyticsStore:
         policy_summary: Mapping[str, Any],
     ) -> Path:
         safe_run_id = _validate_run_id(run_id)
-        execution = policy_summary.get("execution") if isinstance(policy_summary.get("execution"), Mapping) else {}
+        execution = (
+            policy_summary.get("execution")
+            if isinstance(policy_summary.get("execution"), Mapping)
+            else {}
+        )
         delivered = execution.get("delivery_results")
         delivery_results = delivered if isinstance(delivered, Sequence) else []
         status_counts: Counter[str] = Counter()
@@ -235,7 +283,10 @@ class AnalyticsStore:
         payload = {
             "run_id": safe_run_id,
             "timestamp": int(entry.get("timestamp") or self._timestamp()),
-            "feedback": {key: entry.get(key) for key in ("decision", "notes", "submitted_by", "tags")},
+            "feedback": {
+                key: entry.get(key)
+                for key in ("decision", "notes", "submitted_by", "tags")
+            },
             "summary": summary,
         }
         return self._write_entry(self._FEEDBACK_EVENTS, safe_run_id, payload)
@@ -270,7 +321,9 @@ class AnalyticsStore:
         forecast = pipeline_result.get("probabilistic_forecast")
         if isinstance(forecast, Mapping):
             severity_overview = pipeline_result.get("severity_overview")
-            path = self.record_forecast(run_id, forecast, severity_overview=severity_overview)
+            path = self.record_forecast(
+                run_id, forecast, severity_overview=severity_overview
+            )
             records["forecasts"] = str(path)
 
         exploit_snapshot = pipeline_result.get("exploitability_insights")
@@ -300,15 +353,23 @@ class AnalyticsStore:
         recent = self._slice(entries, limit)
         averages = {
             "expected_high_or_critical": round(
-                self._average(entry.get("summary", {}).get("expected_high_or_critical", 0.0) for entry in entries),
+                self._average(
+                    entry.get("summary", {}).get("expected_high_or_critical", 0.0)
+                    for entry in entries
+                ),
                 4,
             ),
             "entropy_bits": round(
-                self._average(entry.get("summary", {}).get("entropy_bits", 0.0) for entry in entries),
+                self._average(
+                    entry.get("summary", {}).get("entropy_bits", 0.0)
+                    for entry in entries
+                ),
                 4,
             ),
         }
-        hotspots = sum(entry.get("summary", {}).get("hotspot_count", 0) for entry in entries)
+        hotspots = sum(
+            entry.get("summary", {}).get("hotspot_count", 0) for entry in entries
+        )
         return {
             "recent": recent,
             "totals": {
@@ -324,7 +385,9 @@ class AnalyticsStore:
         status_counts: Counter[str] = Counter(
             str(entry.get("summary", {}).get("status", "unknown")) for entry in entries
         )
-        matches = sum(entry.get("summary", {}).get("matched_records", 0) for entry in entries)
+        matches = sum(
+            entry.get("summary", {}).get("matched_records", 0) for entry in entries
+        )
         return {
             "recent": recent,
             "totals": {
@@ -337,8 +400,12 @@ class AnalyticsStore:
     def _ticket_dashboard(self, limit: int) -> Dict[str, Any]:
         entries = self._load_entries(self._TICKETS)
         recent = self._slice(entries, limit)
-        dispatched = sum(entry.get("summary", {}).get("dispatched_count", 0) for entry in entries)
-        failed = sum(entry.get("summary", {}).get("failed_count", 0) for entry in entries)
+        dispatched = sum(
+            entry.get("summary", {}).get("dispatched_count", 0) for entry in entries
+        )
+        failed = sum(
+            entry.get("summary", {}).get("failed_count", 0) for entry in entries
+        )
         status_counts: Counter[str] = Counter()
         connector_usage: Counter[str] = Counter()
         for entry in entries:
@@ -407,7 +474,9 @@ class AnalyticsStore:
             "ticket_metrics": self._load_run_entries(self._TICKETS, safe_run_id),
             "feedback": {
                 "events": self._load_run_entries(self._FEEDBACK_EVENTS, safe_run_id),
-                "outcomes": self._load_run_entries(self._FEEDBACK_OUTCOMES, safe_run_id),
+                "outcomes": self._load_run_entries(
+                    self._FEEDBACK_OUTCOMES, safe_run_id
+                ),
             },
         }
 
@@ -490,7 +559,9 @@ class ROIDashboard:
 
         hourly_rate = self._to_float(self.costs.get("hourly_rate"), 150.0)
         currency = str(self.costs.get("currency") or "USD")
-        total_hours_saved = noise_hours_saved + self.automation_hours_saved + audit_hours_saved
+        total_hours_saved = (
+            noise_hours_saved + self.automation_hours_saved + audit_hours_saved
+        )
         estimated_value = round(total_hours_saved * hourly_rate, 2)
 
         executed_modules = (
@@ -509,12 +580,12 @@ class ROIDashboard:
         module_values = []
         if weight_total <= 0:
             weight_total = float(len(executed_list) or 1)
-            self.module_weights = {
-                module: 1.0 for module in executed_list
-            }
+            self.module_weights = {module: 1.0 for module in executed_list}
         for module in executed_list:
             weight = self._to_float(self.module_weights.get(module), 1.0)
-            module_share = (weight / weight_total) * estimated_value if weight_total else 0.0
+            module_share = (
+                (weight / weight_total) * estimated_value if weight_total else 0.0
+            )
             module_values.append(
                 {
                     "module": module,
@@ -535,14 +606,22 @@ class ROIDashboard:
                 f"Audit preparation hours reduced by {round(audit_hours_saved, 1)}"
             )
         if context_summary:
-            summary = context_summary.get("summary", {}) if isinstance(context_summary, Mapping) else {}
+            summary = (
+                context_summary.get("summary", {})
+                if isinstance(context_summary, Mapping)
+                else {}
+            )
             components = summary.get("components_evaluated")
             if components:
                 insights.append(
                     f"Context engine evaluated {components} components for business impact"
                 )
         if compliance_status:
-            frameworks = compliance_status.get("frameworks", []) if isinstance(compliance_status, Mapping) else []
+            frameworks = (
+                compliance_status.get("frameworks", [])
+                if isinstance(compliance_status, Mapping)
+                else []
+            )
             if frameworks:
                 names = {
                     str(item.get("id", "framework"))
@@ -554,7 +633,11 @@ class ROIDashboard:
                         "Compliance coverage confirmed for: " + ", ".join(sorted(names))
                     )
         if policy_summary:
-            actions = policy_summary.get("actions", []) if isinstance(policy_summary, Mapping) else []
+            actions = (
+                policy_summary.get("actions", [])
+                if isinstance(policy_summary, Mapping)
+                else []
+            )
             if actions:
                 insights.append(
                     f"Policy automation prepared {len(list(actions))} remediation playbook(s)"

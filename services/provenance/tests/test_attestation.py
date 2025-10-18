@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
+from cli.fixops_provenance import main as provenance_main
 from services.provenance import (
     ProvenanceVerificationError,
     generate_attestation,
     verify_attestation,
     write_attestation,
 )
-from cli.fixops_provenance import main as provenance_main
 
 
 @pytest.fixture()
@@ -58,7 +58,9 @@ def test_verify_attestation_round_trip(sample_artifact: Path, tmp_path: Path) ->
     )
 
 
-def test_verify_attestation_detects_digest_mismatch(sample_artifact: Path, tmp_path: Path) -> None:
+def test_verify_attestation_detects_digest_mismatch(
+    sample_artifact: Path, tmp_path: Path
+) -> None:
     attestation = generate_attestation(
         sample_artifact,
         builder_id="urn:fixops:builder:test",

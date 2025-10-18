@@ -1,4 +1,5 @@
 """External automation connectors for delivering policy actions."""
+
 from __future__ import annotations
 
 import json
@@ -40,7 +41,9 @@ class _BaseConnector:
         self.timeout = timeout
 
     def _request(self, method: str, url: str, **kwargs: Any) -> Response:
-        return self.session.request(method=method, url=url, timeout=self.timeout, **kwargs)
+        return self.session.request(
+            method=method, url=url, timeout=self.timeout, **kwargs
+        )
 
 
 class JiraConnector(_BaseConnector):
@@ -66,7 +69,9 @@ class JiraConnector(_BaseConnector):
 
     def create_issue(self, action: Mapping[str, Any]) -> ConnectorOutcome:
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "jira connector not fully configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "jira connector not fully configured"}
+            )
 
         summary = action.get("summary") or "FixOps automation task"
         description = action.get("description") or json.dumps(action, indent=2)
@@ -142,10 +147,14 @@ class ConfluenceConnector(_BaseConnector):
 
     def create_page(self, action: Mapping[str, Any]) -> ConnectorOutcome:
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "confluence connector not fully configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "confluence connector not fully configured"}
+            )
 
         title = action.get("title") or f"FixOps Automation {action.get('id')}"
-        body = action.get("body") or action.get("content") or json.dumps(action, indent=2)
+        body = (
+            action.get("body") or action.get("content") or json.dumps(action, indent=2)
+        )
 
         payload = {
             "type": "page",
@@ -216,7 +225,9 @@ class SlackConnector(_BaseConnector):
     def post_message(self, action: Mapping[str, Any]) -> ConnectorOutcome:
         webhook = action.get("webhook_url") or self.default_webhook
         if not webhook:
-            return ConnectorOutcome("skipped", {"reason": "slack webhook not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "slack webhook not configured"}
+            )
 
         payload = {
             "text": action.get("text")
@@ -230,7 +241,9 @@ class SlackConnector(_BaseConnector):
             response = self._request("POST", webhook, json=payload)
             response.raise_for_status()
         except RequestException as exc:  # pragma: no cover - network failure surface
-            return ConnectorOutcome("failed", {"reason": "slack delivery failed", "error": str(exc)})
+            return ConnectorOutcome(
+                "failed", {"reason": "slack delivery failed", "error": str(exc)}
+            )
 
         return ConnectorOutcome("sent", {"webhook": webhook})
 
@@ -255,7 +268,9 @@ class AutomationConnectors:
 
         if action_type == "confluence_page":
             if not self.enforce_sync and not action.get("force_delivery"):
-                return ConnectorOutcome("skipped", {"reason": "knowledge sync disabled"})
+                return ConnectorOutcome(
+                    "skipped", {"reason": "knowledge sync disabled"}
+                )
             return self.confluence.create_page(action)
 
         if action_type == "slack":

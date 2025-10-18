@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-
 from src.api.dependencies import authenticate
 from src.services import signing
 from src.services.runtime import EVIDENCE_STORE
@@ -15,16 +14,19 @@ router = APIRouter(tags=["evidence"])
 async def verify_evidence(evidence_id: str, _: None = Depends(authenticate)) -> dict:
     record = EVIDENCE_STORE.get(evidence_id)
     if not record:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found"
+        )
     signature = record.signature
     verified = False
     if signature:
         verified = signing.verify_manifest(record.manifest, signature)
-    algorithm = record.algorithm or (signature.get("alg") if isinstance(signature, dict) else None)
+    algorithm = record.algorithm or (
+        signature.get("alg") if isinstance(signature, dict) else None
+    )
     return {
         "evidence_id": record.evidence_id,
         "verified": verified,
         "kid": record.kid,
         "alg": algorithm or signing.ALGORITHM,
     }
-

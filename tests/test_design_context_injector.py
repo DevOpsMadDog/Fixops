@@ -3,9 +3,8 @@ import re
 from pathlib import Path
 
 import ssvc
-from ssvc.plugins import deployer
-
 from core import DesignContextInjector
+from ssvc.plugins import deployer
 
 FIXTURE = Path(__file__).parent / "fixtures" / "design_context.csv"
 
@@ -50,7 +49,9 @@ def test_calculate_priors_matches_ssvc_outcomes():
             assert f"SSVC action: {outcome.action.value}" in prior.rationale
             assert f"SSVC priority: {outcome.priority.value}" in prior.rationale
 
-            vector_entry = next(item for item in prior.rationale if item.startswith("SSVC vector: "))
+            vector_entry = next(
+                item for item in prior.rationale if item.startswith("SSVC vector: ")
+            )
             vector_string = vector_entry.split(": ", 1)[1]
             assert vector_string.startswith("DEPLOYERv1/")
             assert vector_string.endswith("/")

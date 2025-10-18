@@ -84,7 +84,9 @@ class _SimpleNodeView:
     def __init__(self, storage: dict[str, MutableMapping[str, Any]]) -> None:
         self._storage = storage
 
-    def get(self, node_id: str, default: MutableMapping[str, Any] | None = None) -> MutableMapping[str, Any] | None:
+    def get(
+        self, node_id: str, default: MutableMapping[str, Any] | None = None
+    ) -> MutableMapping[str, Any] | None:
         return self._storage.get(node_id, default)
 
     def __getitem__(self, node_id: str) -> MutableMapping[str, Any]:
@@ -106,7 +108,9 @@ class _SimpleNodeView:
 
 
 class _SimpleEdgeView:
-    def __init__(self, storage: list[tuple[str, str, MutableMapping[str, Any]]]) -> None:
+    def __init__(
+        self, storage: list[tuple[str, str, MutableMapping[str, Any]]]
+    ) -> None:
         self._storage = storage
 
     def __call__(self, data: bool = False):
@@ -259,7 +263,9 @@ class ProvenanceGraph:
             if count:
                 _INGEST_COUNTER.add(count, {"type": "commits"})
 
-    def ingest_attestations(self, attestations: Iterable[ProvenanceAttestation]) -> None:
+    def ingest_attestations(
+        self, attestations: Iterable[ProvenanceAttestation]
+    ) -> None:
         with _TRACER.start_as_current_span("graph.ingest_attestations") as span:
             count = 0
             for attestation in attestations:
@@ -415,9 +421,13 @@ class ProvenanceGraph:
                 release_count += 1
                 release_node = f"release:{tag}"
                 released_at = _ensure_datetime(release.get("date"))
-                if released_at is None and isinstance(release.get("date"), (int, float)):
+                if released_at is None and isinstance(
+                    release.get("date"), (int, float)
+                ):
                     released_at = _ensure_datetime(float(release["date"]))
-                iso_date = released_at.isoformat() if released_at else release.get("date")
+                iso_date = (
+                    released_at.isoformat() if released_at else release.get("date")
+                )
                 self._upsert_node(
                     release_node,
                     "release",
@@ -461,7 +471,8 @@ class ProvenanceGraph:
             target_node = None
             for node_id, attrs in self.graph.nodes(data=True):
                 if attrs.get("type") == "artifact" and (
-                    attrs.get("name") == artifact_name or node_id == f"artifact:{artifact_name}"
+                    attrs.get("name") == artifact_name
+                    or node_id == f"artifact:{artifact_name}"
                 ):
                     target_node = node_id
                     break
@@ -477,7 +488,13 @@ class ProvenanceGraph:
             for source, target, data in self.graph.edges(data=True):
                 if source in relevant and target in relevant:
                     edges.append({"source": source, "target": target, **data})
-            edges.sort(key=lambda item: (item["source"], item["target"], item.get("relation", "")))
+            edges.sort(
+                key=lambda item: (
+                    item["source"],
+                    item["target"],
+                    item.get("relation", ""),
+                )
+            )
             _QUERY_COUNTER.add(1, {"type": "lineage"})
             span.set_attribute("fixops.graph.lineage_nodes", len(nodes))
             return {"artifact": artifact_name, "nodes": nodes, "edges": edges}
@@ -493,7 +510,9 @@ class ProvenanceGraph:
             if not releases:
                 return []
 
-            def _sort_key(item: tuple[str, MutableMapping[str, Any]]) -> tuple[Any, int]:
+            def _sort_key(
+                item: tuple[str, MutableMapping[str, Any]]
+            ) -> tuple[Any, int]:
                 attrs = item[1]
                 parsed = _ensure_datetime(attrs.get("date"))
                 return (parsed or datetime.min, attrs.get("order", 0))
@@ -502,22 +521,36 @@ class ProvenanceGraph:
             selected = releases[-last_releases:]
             results: list[dict[str, Any]] = []
             for node_id, attrs in selected:
-                entry = {"release": attrs.get("tag"), "date": attrs.get("date"), "components": []}
-                for _, component_node, edge_data in self.graph.out_edges(node_id, data=True):
+                entry = {
+                    "release": attrs.get("tag"),
+                    "date": attrs.get("date"),
+                    "components": [],
+                }
+                for _, component_node, edge_data in self.graph.out_edges(
+                    node_id, data=True
+                ):
                     if edge_data.get("relation") != "includes_component":
                         continue
                     component_attrs = self.graph.nodes[component_node]
                     kev_cves: set[str] = set()
-                    for _, cve_node, vulnerability in self.graph.out_edges(component_node, data=True):
+                    for _, cve_node, vulnerability in self.graph.out_edges(
+                        component_node, data=True
+                    ):
                         if vulnerability.get("relation") != "affects":
                             continue
-                        if vulnerability.get("kev") or self.graph.nodes[cve_node].get("kev"):
-                            kev_cves.add(self.graph.nodes[cve_node].get("cve", cve_node))
+                        if vulnerability.get("kev") or self.graph.nodes[cve_node].get(
+                            "kev"
+                        ):
+                            kev_cves.add(
+                                self.graph.nodes[cve_node].get("cve", cve_node)
+                            )
                     if kev_cves:
                         entry["components"].append(
                             {
-                                "component": component_attrs.get("slug") or component_attrs.get("name"),
-                                "version": edge_data.get("version") or component_attrs.get("version"),
+                                "component": component_attrs.get("slug")
+                                or component_attrs.get("name"),
+                                "version": edge_data.get("version")
+                                or component_attrs.get("version"),
                                 "cves": sorted(kev_cves),
                             }
                         )
@@ -529,7 +562,9 @@ class ProvenanceGraph:
 
     def detect_version_anomalies(self) -> list[dict[str, Any]]:
         with _TRACER.start_as_current_span("graph.detect_anomalies") as span:
-            releases_by_component: MutableMapping[str, list[tuple[datetime, str, str | None]]] = defaultdict(list)
+            releases_by_component: MutableMapping[
+                str, list[tuple[datetime, str, str | None]]
+            ] = defaultdict(list)
             for release_node, component_node, edge_data in self.graph.edges(data=True):
                 if edge_data.get("relation") != "includes_component":
                     continue
@@ -539,7 +574,9 @@ class ProvenanceGraph:
                 component_attrs = self.graph.nodes.get(component_node, {})
                 if component_attrs.get("type") != "component":
                     continue
-                released_at = _ensure_datetime(release_attrs.get("date")) or datetime.min
+                released_at = (
+                    _ensure_datetime(release_attrs.get("date")) or datetime.min
+                )
                 releases_by_component[component_node].append(
                     (released_at, release_attrs.get("tag"), edge_data.get("version"))
                 )
@@ -553,11 +590,16 @@ class ProvenanceGraph:
                         current_version = Version(version_str) if version_str else None
                     except InvalidVersion:
                         current_version = None
-                    if previous_version and current_version and current_version < previous_version:
+                    if (
+                        previous_version
+                        and current_version
+                        and current_version < previous_version
+                    ):
                         component_attrs = self.graph.nodes[component_node]
                         anomalies.append(
                             {
-                                "component": component_attrs.get("slug") or component_attrs.get("name"),
+                                "component": component_attrs.get("slug")
+                                or component_attrs.get("name"),
                                 "release": release_tag,
                                 "version": version_str,
                                 "previous_release": previous_release,
@@ -656,11 +698,18 @@ def build_graph_from_sources(sources: GraphSources) -> ProvenanceGraph:
             graph.ingest_normalized_sbom(sources.normalized_sbom)
         if sources.risk_report:
             graph.ingest_risk_report(sources.risk_report)
-        releases = _load_releases(sources.releases_path) if sources.releases_path else []
+        releases = (
+            _load_releases(sources.releases_path) if sources.releases_path else []
+        )
         graph.ingest_releases(releases)
         span.set_attribute("fixops.graph.nodes", graph.graph.number_of_nodes())
         span.set_attribute("fixops.graph.edges", graph.graph.number_of_edges())
         return graph
 
 
-__all__ = ["GraphSources", "ProvenanceGraph", "build_graph_from_sources", "collect_git_history"]
+__all__ = [
+    "GraphSources",
+    "ProvenanceGraph",
+    "build_graph_from_sources",
+    "collect_git_history",
+]

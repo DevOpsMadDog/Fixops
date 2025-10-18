@@ -32,6 +32,7 @@ def test_ensure_inputs_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     with pytest.raises(run.StageValidationError):
         run._ensure_inputs("design", ["design_context.csv"])
 
+
 STAGE_OUTPUTS = {
     "design": "design_crosswalk.json",
     "requirements": "policy_plan.json",
@@ -57,4 +58,3 @@ def test_run_all_generates_everything(tmp_path: Path) -> None:
     assert exit_code == 0
     for filename in STAGE_OUTPUTS.values():
         assert (out_dir / filename).exists()
-

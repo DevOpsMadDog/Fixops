@@ -1,4 +1,5 @@
 """EPSS feed helpers."""
+
 from __future__ import annotations
 
 import csv
@@ -125,7 +126,9 @@ def load_epss_scores(
         scores = _parse_epss_csv(csv_path)
         if scores:
             return scores
-        LOGGER.warning("EPSS CSV %s contained no scores; falling back to JSON cache", csv_path)
+        LOGGER.warning(
+            "EPSS CSV %s contained no scores; falling back to JSON cache", csv_path
+        )
 
     scores = _load_json_cache(cache_path)
     if scores is not None:

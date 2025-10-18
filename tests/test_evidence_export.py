@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import io
 import json
-import asyncio
 from typing import Any, Dict
 from zipfile import ZipFile
 
 import pytest
-
-from src.services.evidence_export import EvidenceExportService
 from src.services import evidence_export
+from src.services.evidence_export import EvidenceExportService
 
 
 def test_evidence_export_creates_signed_bundle(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -27,7 +26,9 @@ def test_evidence_export_creates_signed_bundle(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(
         evidence_export,
         "EvidenceLake",
-        type("_StubLake", (), {"retrieve_evidence": staticmethod(fake_retrieve_evidence)}),
+        type(
+            "_StubLake", (), {"retrieve_evidence": staticmethod(fake_retrieve_evidence)}
+        ),
     )
 
     async def _run() -> None:
@@ -36,7 +37,9 @@ def test_evidence_export_creates_signed_bundle(monkeypatch: pytest.MonkeyPatch) 
 
         with ZipFile(io.BytesIO(archive_bytes)) as bundle:
             names = set(bundle.namelist())
-            assert {"evidence.json", "evidence.signed.json", "evidence.pdf"}.issubset(names)
+            assert {"evidence.json", "evidence.signed.json", "evidence.pdf"}.issubset(
+                names
+            )
             signed_payload = json.loads(bundle.read("evidence.signed.json"))
             assert signed_payload["fingerprint"] == metadata["fingerprint"]
             assert signed_payload["signature"] == metadata["signature"]

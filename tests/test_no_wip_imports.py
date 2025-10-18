@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 CHECK_DIRECTORIES = [
     Path("core"),
     Path("apps"),
@@ -16,4 +15,3 @@ def test_no_wip_imports() -> None:
             text = path.read_text(encoding="utf-8")
             assert "import WIP" not in text, f"disallowed import in {path}"
             assert "from WIP" not in text, f"disallowed import in {path}"
-

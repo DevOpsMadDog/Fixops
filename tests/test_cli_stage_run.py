@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SIM_ROOT = REPO_ROOT / "simulations" / "demo_pack"
 
@@ -64,12 +63,19 @@ def _invoke_stage(stage: str, input_file: Path | None, env: dict[str, str]) -> N
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, f"stage {stage} failed: {result.stdout}\n{result.stderr}"
+    assert (
+        result.returncode == 0
+    ), f"stage {stage} failed: {result.stdout}\n{result.stderr}"
 
 
 def _latest_run(tmp_path: Path) -> tuple[str, str, Path]:
-    app_dirs = [entry for entry in tmp_path.iterdir() if entry.is_dir() and entry.name.startswith("APP-")]
+    app_dirs = [
+        entry
+        for entry in tmp_path.iterdir()
+        if entry.is_dir() and entry.name.startswith("APP-")
+    ]
     assert app_dirs, f"expected artefact directory under {tmp_path}"
+
     def _latest_timestamp(path: Path) -> float:
         marker = path / "LATEST"
         if marker.exists():
@@ -156,4 +162,3 @@ def test_build_stage_reuses_design_run(tmp_path: Path) -> None:
     _app_id, build_run_id, _ = _latest_run(tmp_path)
 
     assert build_run_id == design_run_id
-

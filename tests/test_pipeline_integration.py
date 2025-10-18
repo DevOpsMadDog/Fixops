@@ -7,8 +7,14 @@ from core.configuration import load_overlay
 
 def test_pipeline_emits_compliance_results(tmp_path):
     normalizer = InputNormalizer()
-    sbom = normalizer.load_sbom(json.dumps({"bomFormat": "CycloneDX", "components": []}).encode("utf-8"))
-    sarif = normalizer.load_sarif(json.dumps({"runs": [{"results": [], "tool": {"driver": {"name": "scanner"}}}]}).encode("utf-8"))
+    sbom = normalizer.load_sbom(
+        json.dumps({"bomFormat": "CycloneDX", "components": []}).encode("utf-8")
+    )
+    sarif = normalizer.load_sarif(
+        json.dumps(
+            {"runs": [{"results": [], "tool": {"driver": {"name": "scanner"}}}]}
+        ).encode("utf-8")
+    )
     cve = normalizer.load_cve_feed(json.dumps({"vulnerabilities": []}).encode("utf-8"))
 
     design_dataset = {

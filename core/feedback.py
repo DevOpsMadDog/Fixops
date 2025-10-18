@@ -1,4 +1,5 @@
 """Feedback capture utilities respecting overlay configuration."""
+
 from __future__ import annotations
 
 import json
@@ -13,7 +14,6 @@ from core.analytics import AnalyticsStore, FeedbackOutcomeStore
 from core.configuration import OverlayConfig
 from core.connectors import ConfluenceConnector, ConnectorOutcome, JiraConnector
 from core.paths import ensure_secure_directory
-
 
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -97,12 +97,20 @@ class FeedbackRecorder:
         return {
             "run_id": candidate,
             "decision": decision.strip(),
-            "notes": notes.strip() if isinstance(notes, str) and notes.strip() else None,
-            "submitted_by": submitted_by.strip()
-            if isinstance(submitted_by, str) and submitted_by.strip()
-            else None,
+            "notes": (
+                notes.strip() if isinstance(notes, str) and notes.strip() else None
+            ),
+            "submitted_by": (
+                submitted_by.strip()
+                if isinstance(submitted_by, str) and submitted_by.strip()
+                else None
+            ),
             "tags": tags,
-            "timestamp": int(timestamp) if isinstance(timestamp, (int, float)) else int(time.time()),
+            "timestamp": (
+                int(timestamp)
+                if isinstance(timestamp, (int, float))
+                else int(time.time())
+            ),
         }
 
     def record(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -118,12 +126,19 @@ class FeedbackRecorder:
         try:
             self._outcome_store.record_feedback_event(entry)
         except Exception:  # pragma: no cover - persistence best effort
-            logger.exception("Failed to persist feedback analytics for run %s", entry["run_id"])
+            logger.exception(
+                "Failed to persist feedback analytics for run %s", entry["run_id"]
+            )
         if connectors:
             try:
                 self._outcome_store.record(entry["run_id"], connectors)
-            except Exception as exc:  # pragma: no cover - persistence should not break flow
-                logger.exception("Failed to persist feedback connector outcomes for run %s", entry["run_id"])
+            except (
+                Exception
+            ) as exc:  # pragma: no cover - persistence should not break flow
+                logger.exception(
+                    "Failed to persist feedback connector outcomes for run %s",
+                    entry["run_id"],
+                )
                 connectors.setdefault("_errors", {})
                 connectors["_errors"]["persistence_error"] = str(exc)
         return {
@@ -134,7 +149,9 @@ class FeedbackRecorder:
             "connectors": connectors,
         }
 
-    def _forward_to_connectors(self, entry: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def _forward_to_connectors(
+        self, entry: Mapping[str, Any]
+    ) -> Dict[str, Dict[str, Any]]:
         outcomes: Dict[str, Dict[str, Any]] = {}
         if not self._connectors:
             return outcomes

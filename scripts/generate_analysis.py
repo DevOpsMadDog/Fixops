@@ -110,7 +110,9 @@ def collect_external_imports(tree: ast.AST, module_map: Dict[str, str]) -> List[
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 imports.add(node.module.split(".")[0])
-    external = sorted(name for name in imports if all(not key.startswith(name) for key in module_map))
+    external = sorted(
+        name for name in imports if all(not key.startswith(name) for key in module_map)
+    )
     return external
 
 
@@ -121,7 +123,11 @@ def detect_risks(tree: ast.AST, source: str) -> List[str]:
     if "subprocess" in source:
         risks.add("subprocess-usage")
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "open":
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "open"
+        ):
             risks.add("file-io")
         if isinstance(node, ast.ExceptHandler) and node.type is None:
             risks.add("bare-except")
@@ -152,7 +158,8 @@ def summarise_files(target_dirs: Sequence[str]) -> List[ModuleSummary]:
                 path=rel,
                 role=infer_role(rel),
                 symbols=", ".join(extract_symbols(tree)) or "(module-level)",
-                external_calls=", ".join(collect_external_imports(tree, module_map)) or "(internal)",
+                external_calls=", ".join(collect_external_imports(tree, module_map))
+                or "(internal)",
                 risks=", ".join(detect_risks(tree, source)) or "none",
                 flags=", ".join(detect_flags(source)) or "none",
             )
@@ -163,18 +170,24 @@ def summarise_files(target_dirs: Sequence[str]) -> List[ModuleSummary]:
 
 def write_file_summaries(summaries: Sequence[ModuleSummary]) -> None:
     ANALYSIS_DIR.mkdir(exist_ok=True)
-    with (ANALYSIS_DIR / "FILE_SUMMARIES.csv").open("w", newline="", encoding="utf-8") as handle:
+    with (ANALYSIS_DIR / "FILE_SUMMARIES.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as handle:
         writer = csv.writer(handle)
-        writer.writerow(["path", "role", "key symbols", "external calls", "risks", "flags"])
+        writer.writerow(
+            ["path", "role", "key symbols", "external calls", "risks", "flags"]
+        )
         for summary in summaries:
-            writer.writerow([
-                summary.path,
-                summary.role,
-                summary.symbols,
-                summary.external_calls,
-                summary.risks,
-                summary.flags,
-            ])
+            writer.writerow(
+                [
+                    summary.path,
+                    summary.role,
+                    summary.symbols,
+                    summary.external_calls,
+                    summary.risks,
+                    summary.flags,
+                ]
+            )
 
 
 def write_data_control_flows(summaries: Sequence[ModuleSummary]) -> None:
@@ -186,7 +199,9 @@ def write_data_control_flows(summaries: Sequence[ModuleSummary]) -> None:
     ]
     with (ANALYSIS_DIR / "DATA_CONTROL_FLOWS.md").open("w", encoding="utf-8") as handle:
         handle.write("# Data & Control Flows\n\n")
-        handle.write("This document is generated automatically from the source tree.\n\n")
+        handle.write(
+            "This document is generated automatically from the source tree.\n\n"
+        )
         handle.write("## Inbound Interfaces\n\n")
         for path in inbound:
             handle.write(f"- `{path}`\n")
@@ -197,14 +212,20 @@ def write_data_control_flows(summaries: Sequence[ModuleSummary]) -> None:
         else:
             handle.write("- UNKNOWN\n")
         handle.write("\n## Configuration & Secrets\n\n")
-        config_files = [item.path for item in summaries if "config" in item.path or "settings" in item.path]
+        config_files = [
+            item.path
+            for item in summaries
+            if "config" in item.path or "settings" in item.path
+        ]
         if config_files:
             for path in config_files:
                 handle.write(f"- `{path}`\n")
         else:
             handle.write("- UNKNOWN\n")
         handle.write("\n## Error Handling & Retry Semantics\n\n")
-        handle.write("- See individual modules listed in `FILE_SUMMARIES.csv` for TODO markers.\n")
+        handle.write(
+            "- See individual modules listed in `FILE_SUMMARIES.csv` for TODO markers.\n"
+        )
 
 
 def write_traceability_matrix(summaries: Sequence[ModuleSummary]) -> None:
@@ -220,7 +241,9 @@ def write_traceability_matrix(summaries: Sequence[ModuleSummary]) -> None:
         for file in files:
             trace_rows.append((capability, file, "UNKNOWN"))
 
-    with (ANALYSIS_DIR / "TRACEABILITY.csv").open("w", newline="", encoding="utf-8") as handle:
+    with (ANALYSIS_DIR / "TRACEABILITY.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as handle:
         writer = csv.writer(handle)
         writer.writerow(["capability", "file", "status"])
         for capability, file, status in trace_rows:

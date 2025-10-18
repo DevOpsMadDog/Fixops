@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import pytest
-
 from src.services import real_opa_engine
-from src.services.real_opa_engine import OPAEngineFactory, ProductionOPAEngine, DemoOPAEngine
+from src.services.real_opa_engine import (
+    DemoOPAEngine,
+    OPAEngineFactory,
+    ProductionOPAEngine,
+)
 
 
 class _Settings:
@@ -22,7 +25,9 @@ def test_factory_uses_production_engine(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(engine, ProductionOPAEngine)
 
 
-def test_factory_returns_demo_when_flag_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_factory_returns_demo_when_flag_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class DemoSettings(_Settings):
         DEMO_MODE = True
 

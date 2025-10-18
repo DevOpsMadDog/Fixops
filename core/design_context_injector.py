@@ -6,10 +6,9 @@ import inspect
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, IO, Iterable, List, Mapping, Optional, Union, get_args
+from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Union, get_args
 
 import ssvc
-
 
 CSVSource = Union[str, Path, IO[str]]
 
@@ -36,7 +35,9 @@ class DesignContextInjector:
     ) -> None:
         self.methodology = methodology.lower()
         self.id_column = id_column
-        self._plugin_module = importlib.import_module(f"ssvc.plugins.{self.methodology}")
+        self._plugin_module = importlib.import_module(
+            f"ssvc.plugins.{self.methodology}"
+        )
         self._decision_cls = self._resolve_decision_class()
         self._ensure_enum_aliases()
         self._type_hints = self._resolve_type_hints()
@@ -100,7 +101,9 @@ class DesignContextInjector:
                 continue
             raw_value = row.get(column)
             if raw_value is None or str(raw_value).strip() == "":
-                raise ValueError(f"Missing required value for '{column}' in methodology '{self.methodology}'")
+                raise ValueError(
+                    f"Missing required value for '{column}' in methodology '{self.methodology}'"
+                )
             coerced = self._coerce_parameter(parameter, raw_value)
             kwargs[parameter] = coerced
         return kwargs
@@ -142,7 +145,9 @@ class DesignContextInjector:
         try:
             return self._priority_weights[key]
         except KeyError as exc:
-            raise ValueError(f"No probability mapping defined for priority '{priority}'") from exc
+            raise ValueError(
+                f"No probability mapping defined for priority '{priority}'"
+            ) from exc
 
     def _build_rationale(self, outcome: Any, vector: str) -> List[str]:
         rationales: List[str] = []
@@ -166,7 +171,9 @@ class DesignContextInjector:
             attr = getattr(self._plugin_module, name)
             if inspect.isclass(attr) and name.startswith("Decision"):
                 return attr
-        raise ValueError(f"Unable to locate Decision class for methodology '{self.methodology}'")
+        raise ValueError(
+            f"Unable to locate Decision class for methodology '{self.methodology}'"
+        )
 
     def _build_vector(self, decision: ssvc.Decision) -> str:
         try:
@@ -197,7 +204,10 @@ class DesignContextInjector:
         if instance is None:
             raise ValueError("Unable to build SSVC vector without decision instance")
 
-        prefix = instance.__class__.__name__.replace("Decision", "").upper() or self.methodology.upper()
+        prefix = (
+            instance.__class__.__name__.replace("Decision", "").upper()
+            or self.methodology.upper()
+        )
         segments = [f"{prefix}v1"]
         for label, parameter in self._parameter_prefix_map.items():
             code = self._vector_code(instance, label)
@@ -225,7 +235,11 @@ class DesignContextInjector:
         return token[:1].upper() if token else ""
 
     def _resolve_type_hints(self) -> Dict[str, Any]:
-        return inspect.get_annotations(self._decision_cls.__init__, eval_str=True, globals=self._plugin_module.__dict__)
+        return inspect.get_annotations(
+            self._decision_cls.__init__,
+            eval_str=True,
+            globals=self._plugin_module.__dict__,
+        )
 
     def _extract_enum_types(self) -> Dict[str, type[Enum]]:
         enum_types: Dict[str, type[Enum]] = {}
@@ -250,7 +264,9 @@ class DesignContextInjector:
                 return arg
         return None
 
-    def _normalise_priority_weights(self, weights: Optional[Mapping[str, float]]) -> Dict[str, float]:
+    def _normalise_priority_weights(
+        self, weights: Optional[Mapping[str, float]]
+    ) -> Dict[str, float]:
         default = {
             "immediate": 0.95,
             "high": 0.8,
