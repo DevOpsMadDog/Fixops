@@ -34,7 +34,7 @@ architecture:
       exposure: internal
       data_classification: pii
       environment: production
-      technology: "Python FastAPI 0.109"
+      technology: "Python FastAPI 0.110"
       dependencies:
         - bcrypt: "4.1.2"
         - pyjwt: "2.8.0"
