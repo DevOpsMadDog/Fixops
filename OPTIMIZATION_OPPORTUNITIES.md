@@ -212,7 +212,7 @@ session = requests.Session()  # Reuse across requests
 **Optimization**: Cache decisions with 1-hour TTL keyed by findings hash  
 **Benefit**: Instant responses for duplicate analysis requests  
 
-### Optimization 5.6: Batc Provider Client Creation
+### Optimization 5.6: Batch Provider Client Creation
 **Location**: `core/enhanced_decision.py:341-351` (_build_provider_clients)  
 **Current**: Creates clients in loop  
 **Optimization**: Already efficient, but could parallelize initialization  
