@@ -7,7 +7,7 @@ import logging
 import os
 import secrets
 from dataclasses import dataclass, field
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional
 
@@ -671,7 +671,7 @@ class OverlayConfig:
             return ("design",) + base
         return base
 
-    @property
+    @cached_property
     def data_directories(self) -> Dict[str, Path]:
         directories: Dict[str, Path] = {}
         allowlist = self.allowed_data_roots or (_DEFAULT_DATA_ROOT,)
@@ -720,7 +720,7 @@ class OverlayConfig:
         }
         return payload
 
-    @property
+    @cached_property
     def signing_settings(self) -> Dict[str, Any]:
         settings = dict(self.signing)
         provider = str(settings.get("provider") or "env").lower()
