@@ -85,8 +85,13 @@ security_posture:
         - from_port: 443
           to_port: 443
           protocol: "tcp"
-          cidr: "0.0.0.0/0"
-          description: "HTTPS to Stripe API"
+          cidr: "54.187.174.169/32"
+          description: "HTTPS to Stripe API (api.stripe.com)"
+        - from_port: 443
+          to_port: 443
+          protocol: "tcp"
+          cidr: "54.187.205.235/32"
+          description: "HTTPS to Stripe API (backup)"
           
     - component: "WAF"
       enabled: true

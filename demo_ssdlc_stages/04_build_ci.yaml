@@ -8,7 +8,7 @@ build:
   build_id: "BUILD-2024-1017-001"
   build_number: 1247
   branch: "feature/payment-integration"
-  commit_sha: "a3f7b2c1d4e5f6g7h8i9j0k1l2m3n4o5"
+  commit_sha: "a3f7b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9"
   build_status: "SUCCESS"
   duration_seconds: 342
   
@@ -124,7 +124,7 @@ slsa_provenance:
     config_source:
       uri: "git+https://github.com/acme-corp/payment-platform@refs/heads/feature/payment-integration"
       digest:
-        sha1: "a3f7b2c1d4e5f6g7h8i9j0k1l2m3n4o5"
+        sha1: "a3f7b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9"
       entry_point: ".github/workflows/build.yml"
       
   build_config:
@@ -135,7 +135,7 @@ slsa_provenance:
   materials:
     - uri: "git+https://github.com/acme-corp/payment-platform"
       digest:
-        sha1: "a3f7b2c1d4e5f6g7h8i9j0k1l2m3n4o5"
+        sha1: "a3f7b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9"
 
 quality_gates:
   - gate: "code_coverage"

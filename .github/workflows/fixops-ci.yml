@@ -25,6 +25,8 @@ jobs:
       - name: API push-ingestion regression
         env:
           FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
+          FIXOPS_JWT_SECRET: ${{ secrets.FIXOPS_JWT_SECRET || 'demo-jwt-secret-for-testing-only-do-not-use-in-production-32chars' }}
+          FIXOPS_MODE: demo
           FIXOPS_DISABLE_TELEMETRY: '1'
         run: |
           source .venv/bin/activate

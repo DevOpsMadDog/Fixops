@@ -37,15 +37,9 @@ if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor
 
-from .normalizers import (
-    InputNormalizer,
-    NormalizedBusinessContext,
-    NormalizedCNAPP,
-    NormalizedCVEFeed,
-    NormalizedSARIF,
-    NormalizedSBOM,
-    NormalizedVEX,
-)
+from .normalizers import (InputNormalizer, NormalizedBusinessContext,
+                          NormalizedCNAPP, NormalizedCVEFeed, NormalizedSARIF,
+                          NormalizedSBOM, NormalizedVEX)
 from .pipeline import PipelineOrchestrator
 from .routes.enhanced import router as enhanced_router
 from .upload_manager import ChunkUploadManager
@@ -268,13 +262,16 @@ def create_app() -> FastAPI:
                 chunk = await file.read(min(_CHUNK_SIZE, remaining))
                 if not chunk:
                     break
+                buffer.write(chunk)
                 total += len(chunk)
                 if total > limit:
                     raise HTTPException(
                         status_code=413,
-                        detail=f"Upload for stage '{stage}' exceeded limit of {limit} bytes",
+                        detail={
+                            "message": f"Upload for stage '{stage}' exceeded limit",
+                            "max_bytes": limit,
+                        },
                     )
-                buffer.write(chunk)
         except Exception:
             buffer.close()
             raise

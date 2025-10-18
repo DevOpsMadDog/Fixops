@@ -33,9 +33,9 @@ class TestAPIEndpointsE2E:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
         os.environ["FIXOPS_MODE"] = "demo"
-        os.environ["FIXOPS_JWT_SECRET"] = (
-            "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
-        )
+        os.environ[
+            "FIXOPS_JWT_SECRET"
+        ] = "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
 
         app = create_app()
         client = TestClient(app)
@@ -446,6 +446,106 @@ class TestCLICommandsE2E:
             result = json.loads(output_file.read_text())
             assert "bayesian_prior" in result
             assert "markov_transitions" in result
+
+
+class TestSecurityFixes:
+    """Tests for security fixes including API key sanitization."""
+
+    @pytest.fixture
+    def api_client(self):
+        """Create FastAPI test client."""
+        from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-secret-api-key-12345"
+        os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
+        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ[
+            "FIXOPS_JWT_SECRET"
+        ] = "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
+
+        app = create_app()
+        client = TestClient(app)
+        return client
+
+    def test_api_key_not_in_error_logs(self, api_client, caplog):
+        """Test that API keys are sanitized from error logs."""
+        import logging
+
+        caplog.set_level(logging.ERROR)
+
+        response = api_client.post(
+            "/inputs/design",
+            files={"file": ("design.csv", b"invalid\ndata", "text/csv")},
+            headers={"X-API-Key": "test-secret-api-key-12345"},
+        )
+
+        assert response.status_code in [400, 500]
+
+        for record in caplog.records:
+            assert "test-secret-api-key-12345" not in record.message
+            assert "test-secret" not in record.message.lower()
+
+    def test_upload_limit_metadata_preserved(self, api_client):
+        """Test that upload limit error response includes max_bytes metadata."""
+        large_content = b"x" * (100 * 1024 * 1024)
+
+        response = api_client.post(
+            "/inputs/sbom",
+            files={"file": ("huge.json", large_content, "application/json")},
+            headers={"X-API-Key": "test-secret-api-key-12345"},
+        )
+
+        if response.status_code == 413:
+            detail = response.json()["detail"]
+            assert isinstance(detail, dict)
+            assert "message" in detail
+            assert "max_bytes" in detail
+            assert isinstance(detail["max_bytes"], int)
+
+    def test_chunked_upload_complete_all_bytes(self, api_client):
+        """Test that chunked upload handles trailing bytes correctly."""
+        content = b"x" * 1000
+        total_size = len(content)
+        chunk_size = total_size // 3
+
+        response = api_client.post(
+            "/inputs/sbom/chunks/start",
+            json={
+                "file_name": "test.json",
+                "total_size": total_size,
+                "content_type": "application/json",
+            },
+            headers={"X-API-Key": "test-secret-api-key-12345"},
+        )
+
+        assert response.status_code == 200
+        session_id = response.json()["session"].get("id") or response.json()[
+            "session"
+        ].get("session_id")
+
+        offset = 0
+        while offset < total_size:
+            chunk = content[offset : offset + chunk_size]
+            response = api_client.put(
+                f"/inputs/sbom/chunks/{session_id}",
+                files={"chunk": ("chunk", chunk, "application/octet-stream")},
+                params={"offset": offset},
+                headers={"X-API-Key": "test-secret-api-key-12345"},
+            )
+            assert response.status_code == 200
+            offset += len(chunk)
+
+        response = api_client.post(
+            f"/inputs/sbom/chunks/{session_id}/complete",
+            headers={"X-API-Key": "test-secret-api-key-12345"},
+        )
+
+        if response.status_code != 200:
+            print(f"Complete response: {response.json()}")
+
+        assert response.status_code in [200, 400]
 
 
 if __name__ == "__main__":

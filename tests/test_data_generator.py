@@ -12,8 +12,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict
 
-random.seed(42)
-
 
 class TestDataGenerator:
     """Generate realistic test data for FixOps testing."""
