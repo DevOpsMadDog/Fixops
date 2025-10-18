@@ -60,16 +60,31 @@ def _parse_overlay(text: str) -> Dict[str, Any]:
 def _deep_merge(
     base: MutableMapping[str, Any], overrides: Mapping[str, Any]
 ) -> MutableMapping[str, Any]:
+    """
+    Deep merge two dictionaries, returning a new dictionary without mutating the base.
+    
+    Args:
+        base: Base configuration dictionary (not modified)
+        overrides: Override values to merge in
+        
+    Returns:
+        New dictionary with merged values
+    """
+    import copy
+    
+    # Create a deep copy to avoid mutating the base dictionary
+    result = copy.deepcopy(base)
+    
     for key, value in overrides.items():
         if (
-            key in base
-            and isinstance(base[key], MutableMapping)
+            key in result
+            and isinstance(result[key], MutableMapping)
             and isinstance(value, Mapping)
         ):
-            base[key] = _deep_merge(base[key], value)  # type: ignore[assignment]
+            result[key] = _deep_merge(result[key], value)  # type: ignore[assignment]
         else:
-            base[key] = value  # type: ignore[assignment]
-    return base
+            result[key] = copy.deepcopy(value)  # type: ignore[assignment]
+    return result
 
 
 _DEFAULT_GUARDRAIL_MATURITY = "scaling"
