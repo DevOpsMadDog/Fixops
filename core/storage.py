@@ -34,7 +34,7 @@ def _sanitize_filename(filename: str) -> str:
     if len(filename) > 255:
         name, ext = os.path.splitext(filename)
         max_name_len = 255 - len(ext)
-        filename = name[:max_name_len] + ext
+        filename = (name[:max(0, max_name_len)] + ext)[:255]
 
     return filename
 
