@@ -3,12 +3,40 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 from core.paths import ensure_secure_directory, verify_allowlisted_path
+
+
+def _sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to prevent path traversal and other security issues.
+
+    Args:
+        filename: Original filename from user input
+
+    Returns:
+        Sanitized filename safe for storage in metadata
+    """
+    filename = os.path.basename(filename)
+    filename = filename.replace("\x00", "")
+    filename = re.sub(r'[<>:"|?*]', "_", filename)
+    filename = filename.strip(". ")
+
+    if not filename or filename in (".", ".."):
+        filename = "upload.bin"
+
+    if len(filename) > 255:
+        name, ext = os.path.splitext(filename)
+        max_name_len = 255 - len(ext)
+        filename = name[:max_name_len] + ext
+
+    return filename
 
 
 def _serialise_payload(payload: Any) -> Any:
@@ -64,7 +92,7 @@ class ArtefactArchive:
             "stored_at": timestamp,
         }
         if original_filename:
-            record["original_filename"] = original_filename
+            record["original_filename"] = _sanitize_filename(original_filename)
 
         if raw_bytes is not None:
             raw_path = stage_dir / f"{timestamp.replace(':', '')}-{identifier}.raw"
