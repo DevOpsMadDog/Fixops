@@ -215,7 +215,7 @@ def compute_sha256(path: Path | str) -> str:
 
 
 def _normalise_materials(
-    materials: Sequence[Mapping[str, Any]] | None
+    materials: Sequence[Mapping[str, Any]] | None,
 ) -> list[ProvenanceMaterial]:
     """Convert user-supplied material mappings to dataclass instances."""
 
@@ -277,7 +277,7 @@ def generate_attestation(
 
 
 def load_attestation(
-    source: Path | str | Mapping[str, Any] | ProvenanceAttestation
+    source: Path | str | Mapping[str, Any] | ProvenanceAttestation,
 ) -> ProvenanceAttestation:
     """Load an attestation from a path, mapping or existing object."""
 

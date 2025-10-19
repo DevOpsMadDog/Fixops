@@ -37,7 +37,7 @@ from src.models.base_sqlite import Base
 
 
 async def _execute_with_session(
-    test_fn: Callable[[AsyncSession], Awaitable[None]]
+    test_fn: Callable[[AsyncSession], Awaitable[None]],
 ) -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
     try:

@@ -172,7 +172,7 @@ def _collect_snyk_issues(payload: Mapping[str, Any]) -> List[dict[str, Any]]:
 
 
 def _convert_snyk_payload_to_sarif(
-    payload: Mapping[str, Any]
+    payload: Mapping[str, Any],
 ) -> Optional[dict[str, Any]]:
     """Fallback conversion when `snyk-to-sarif` is unavailable."""
 

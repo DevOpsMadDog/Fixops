@@ -511,7 +511,7 @@ class ProvenanceGraph:
                 return []
 
             def _sort_key(
-                item: tuple[str, MutableMapping[str, Any]]
+                item: tuple[str, MutableMapping[str, Any]],
             ) -> tuple[Any, int]:
                 attrs = item[1]
                 parsed = _ensure_datetime(attrs.get("date"))
