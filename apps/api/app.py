@@ -312,16 +312,20 @@ def create_app() -> FastAPI:
                 chunk = await file.read(min(_CHUNK_SIZE, remaining))
                 if not chunk:
                     break
-                buffer.write(chunk)
-                total += len(chunk)
-                if total > limit:
+                if total + len(chunk) > limit:
+                    buffer.close()
                     raise HTTPException(
                         status_code=413,
                         detail={
                             "message": f"Upload for stage '{stage}' exceeded limit",
                             "max_bytes": limit,
+                            "received_bytes": total + len(chunk),
                         },
                     )
+                buffer.write(chunk)
+                total += len(chunk)
+        except HTTPException:
+            raise
         except Exception:
             buffer.close()
             raise
