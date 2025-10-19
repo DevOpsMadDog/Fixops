@@ -31,3 +31,7 @@ def test_filename_sanitization():
     sanitized = _sanitize_filename(long_name)
     assert len(sanitized) <= 255
     assert sanitized.endswith(".txt")
+
+    very_long_extension = "file." + "x" * 300
+    sanitized = _sanitize_filename(very_long_extension)
+    assert len(sanitized) == 255
