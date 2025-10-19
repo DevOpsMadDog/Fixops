@@ -297,6 +297,9 @@ def build_facts_from_evidence(
             for vuln in component.get("vulnerabilities", []):
                 if vuln.get("kev"):
                     kev_present = True
+                cvss = vuln.get("cvss", 0.0)
+                if cvss > max_cvss:
+                    max_cvss = cvss
                 epss = vuln.get("epss", 0.0)
                 if epss > max_epss:
                     max_epss = epss

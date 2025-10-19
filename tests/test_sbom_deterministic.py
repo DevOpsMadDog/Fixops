@@ -1,7 +1,6 @@
 """Test SBOM normalization determinism."""
 
 import json
-import os
 
 import pytest
 
@@ -31,10 +30,10 @@ def sample_sbom():
     }
 
 
-def test_sbom_deterministic_output(sample_sbom, tmp_path):
+def test_sbom_deterministic_output(sample_sbom, tmp_path, monkeypatch):
     """Test that SBOM normalization produces identical output on consecutive runs."""
     seed = "2025-10-19T12:00:00Z"
-    os.environ["FIXOPS_TEST_SEED"] = seed
+    monkeypatch.setenv("FIXOPS_TEST_SEED", seed)
 
     sbom_path = tmp_path / "input.json"
     sbom_path.write_text(json.dumps(sample_sbom))
@@ -57,10 +56,10 @@ def test_sbom_deterministic_output(sample_sbom, tmp_path):
     assert data1["components"] == data2["components"]
 
 
-def test_sbom_component_ordering(sample_sbom, tmp_path):
+def test_sbom_component_ordering(sample_sbom, tmp_path, monkeypatch):
     """Test that components are sorted consistently."""
     seed = "2025-10-19T12:00:00Z"
-    os.environ["FIXOPS_TEST_SEED"] = seed
+    monkeypatch.setenv("FIXOPS_TEST_SEED", seed)
 
     sbom_path = tmp_path / "input.json"
     sbom_path.write_text(json.dumps(sample_sbom))
@@ -76,10 +75,10 @@ def test_sbom_component_ordering(sample_sbom, tmp_path):
     assert components[1]["purl"] == "pkg:npm/component-b@2.0.0"
 
 
-def test_sbom_strict_schema_validation(sample_sbom, tmp_path):
+def test_sbom_strict_schema_validation(sample_sbom, tmp_path, monkeypatch):
     """Test strict schema validation."""
     seed = "2025-10-19T12:00:00Z"
-    os.environ["FIXOPS_TEST_SEED"] = seed
+    monkeypatch.setenv("FIXOPS_TEST_SEED", seed)
 
     invalid_sbom = {
         "bomFormat": "CycloneDX",
@@ -99,10 +98,10 @@ def test_sbom_strict_schema_validation(sample_sbom, tmp_path):
         write_normalized_sbom([sbom_path], output, strict_schema=True)
 
 
-def test_sbom_json_key_ordering(sample_sbom, tmp_path):
+def test_sbom_json_key_ordering(sample_sbom, tmp_path, monkeypatch):
     """Test that JSON keys are sorted alphabetically."""
     seed = "2025-10-19T12:00:00Z"
-    os.environ["FIXOPS_TEST_SEED"] = seed
+    monkeypatch.setenv("FIXOPS_TEST_SEED", seed)
 
     sbom_path = tmp_path / "input.json"
     sbom_path.write_text(json.dumps(sample_sbom))

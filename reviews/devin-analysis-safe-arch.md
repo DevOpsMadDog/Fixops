@@ -17,11 +17,8 @@ This document analyzes the current FixOps architecture to identify areas requiri
 
 #### lib4sbom/normalizer.py
 - **Current State**: Normalizes SBOM components from multiple formats
-- **Non-Deterministic Issues**:
-  - Uses `datetime.now()` for timestamps (not seeded)
-  - Component ordering relies on dict iteration (Python 3.7+ guarantees insertion order, but sources may vary)
-  - JSON output uses `sort_keys=True` (good) but metadata generation time varies
-- **Missing**: Schema validation, strict mode enforcement
+- **Determinism**: ✅ Now uses FIXOPS_TEST_SEED for timestamps, stable component ordering, sort_keys=True
+- **Schema Validation**: ✅ Supports --strict-schema flag for validation enforcement
 
 #### risk/scoring.py
 - **Current State**: Computes risk scores using EPSS, KEV, version lag, and exposure
@@ -61,19 +58,17 @@ This document analyzes the current FixOps architecture to identify areas requiri
 - **Missing**: PSL-based explainable rules, overrides, coverage requirements
 
 #### build/plan.yaml
-- **Current State**: Basic tar/gzip build plan
-- **Non-Deterministic Issues**:
-  - Missing GZIP=-n flag
-  - Missing --sort=name, --mtime, --owner, --group, --numeric-owner, --pax-option flags
-  - No cleanup of non-deterministic directories
+- **Current State**: Deterministic tar/gzip build plan
+- **Determinism**: ✅ Includes GZIP=-n, --sort=name, --mtime, --owner, --group, --numeric-owner, --pax-option flags
+- **Cleanup**: ✅ Pre-build cleanup of non-deterministic directories
 
 ## Gaps & Opportunities
 
-### 1. Determinism Gaps
-- **Timestamps**: Multiple modules use `datetime.now()` without seeding
-- **Sorting**: Some outputs lack stable ordering
-- **Build Artifacts**: Tar/gzip not configured for reproducibility
-- **JSON Keys**: Most outputs use `sort_keys=True` (good), but need verification
+### 1. Determinism Status
+- **Timestamps**: ✅ Now use FIXOPS_TEST_SEED for reproducible timestamps
+- **Sorting**: ✅ All outputs have stable ordering
+- **Build Artifacts**: ✅ Tar/gzip configured for reproducibility with deterministic flags
+- **JSON Keys**: ✅ All outputs use `sort_keys=True`
 
 ### 2. Offline-First Gaps
 - **Network Calls**: EPSS/KEV feeds have fallback but no explicit offline mode
@@ -96,11 +91,11 @@ This document analyzes the current FixOps architecture to identify areas requiri
 - **Graph Export**: No stable JSON export for debugging
 - **Exposure Tags**: Exist in risk scoring but not used for bounded attack-path analysis
 
-### 6. Reproducible Build Gaps
-- **Build Plan**: Missing deterministic tar/gzip flags
-- **Environment**: LC_ALL=C.UTF-8 set in plan but not enforced in verifier
-- **Seeding**: No workflow for generating reference .sha256 files
-- **Cleanup**: No pre-build cleanup of non-deterministic directories
+### 6. Reproducible Build Status
+- **Build Plan**: ✅ Includes deterministic tar/gzip flags
+- **Environment**: ✅ LC_ALL=C.UTF-8 enforced in build plan
+- **Seeding**: ✅ scripts/repro_seed.sh workflow for generating reference .sha256 files
+- **Cleanup**: ✅ Pre-build cleanup of non-deterministic directories
 
 ## Implementation Strategy
 

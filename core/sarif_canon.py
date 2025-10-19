@@ -54,9 +54,7 @@ def _normalize_path(path: str) -> str:
         return ""
     normalized = path.replace("\\", "/")
     if normalized.startswith("/"):
-        parts = normalized.split("/")
-        if len(parts) > 2:
-            normalized = "/".join(parts[1:])
+        normalized = normalized.lstrip("/")
     return normalized
 
 

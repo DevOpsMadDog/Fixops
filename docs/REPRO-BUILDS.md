@@ -66,7 +66,9 @@ sources:
 steps:
   - run: |
       mkdir -p dist
-      rm -rf source/dist source/artifacts source/analysis source/reports source/tmp source/.pytest_cache source/__pycache__; find source -type d -name '__pycache__' -exec rm -rf {} +; find source -name '*.pyc' -delete
+      rm -rf source/dist source/artifacts source/analysis source/reports source/tmp source/.pytest_cache
+      find source -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+      find source -type f -name '*.pyc' -delete
       GZIP=-n tar --sort=name --mtime='UTC 2023-01-01' \
         --owner=0 --group=0 --numeric-owner \
         --pax-option=delete=atime,delete=ctime,exthdr.name=%d/PaxHeaders/%f \
