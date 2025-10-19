@@ -300,6 +300,9 @@ def build_facts_from_evidence(
                 epss = vuln.get("epss", 0.0)
                 if epss > max_epss:
                     max_epss = epss
+                cvss = vuln.get("cvss", 0.0)
+                if cvss > max_cvss:
+                    max_cvss = cvss
 
         facts["cvss"] = max_cvss
         facts["epss"] = max_epss
