@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -50,6 +51,35 @@ class UploadSession:
         return round(min(1.0, self.received_bytes / self.total_bytes), 4)
 
 
+def _sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to prevent path traversal attacks.
+
+    Args:
+        filename: The original filename from user input
+
+    Returns:
+        A sanitized filename safe for filesystem operations
+    """
+    filename = os.path.basename(filename)
+
+    filename = filename.replace("\x00", "")
+
+    filename = re.sub(r'[<>:"|?*]', "_", filename)
+
+    filename = filename.strip(". ")
+
+    if not filename or filename in (".", ".."):
+        filename = "upload.bin"
+
+    if len(filename) > 255:
+        name, ext = os.path.splitext(filename)
+        max_name_len = 255 - len(ext)
+        filename = name[:max_name_len] + ext
+
+    return filename
+
+
 class ChunkUploadManager:
     """Persist upload chunks to disk so clients can resume transfers."""
 
@@ -72,8 +102,9 @@ class ChunkUploadManager:
         content_type: Optional[str] = None,
         checksum: Optional[str] = None,
     ) -> UploadSession:
+        sanitized_filename = _sanitize_filename(filename)
         session_id = sha256(
-            f"{stage}:{filename}:{time.time()}".encode("utf-8")
+            f"{stage}:{sanitized_filename}:{time.time()}".encode("utf-8")
         ).hexdigest()[:32]
         with self._lock:
             session_dir = self._session_dir(session_id)
@@ -81,7 +112,7 @@ class ChunkUploadManager:
             session = UploadSession(
                 session_id=session_id,
                 stage=stage,
-                filename=filename,
+                filename=sanitized_filename,
                 total_bytes=total_bytes,
                 checksum=checksum,
                 content_type=content_type,

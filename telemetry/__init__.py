@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import os
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 _NOOP = False
 if importlib.util.find_spec("opentelemetry") and importlib.util.find_spec(
@@ -44,27 +47,36 @@ def configure(service_name: str = "fixops-platform") -> None:
     if _CONFIGURED or os.getenv("FIXOPS_DISABLE_TELEMETRY") == "1" or _NOOP:
         return
 
-    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://collector:4318")
-    traces_endpoint = endpoint.rstrip("/")
-    if not traces_endpoint.endswith("v1/traces"):
-        traces_endpoint = f"{traces_endpoint}/v1/traces"
-    metrics_endpoint = endpoint.rstrip("/")
-    if not metrics_endpoint.endswith("v1/metrics"):
-        metrics_endpoint = f"{metrics_endpoint}/v1/metrics"
+    try:
+        endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://collector:4318")
+        traces_endpoint = endpoint.rstrip("/")
+        if not traces_endpoint.endswith("v1/traces"):
+            traces_endpoint = f"{traces_endpoint}/v1/traces"
+        metrics_endpoint = endpoint.rstrip("/")
+        if not metrics_endpoint.endswith("v1/metrics"):
+            metrics_endpoint = f"{metrics_endpoint}/v1/metrics"
 
-    resource = Resource.create({"service.name": service_name})
+        resource = Resource.create({"service.name": service_name})
 
-    tracer_provider = TracerProvider(resource=resource)
-    span_exporter = OTLPSpanExporter(endpoint=traces_endpoint)
-    tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
-    trace.set_tracer_provider(tracer_provider)
+        tracer_provider = TracerProvider(resource=resource)
+        span_exporter = OTLPSpanExporter(endpoint=traces_endpoint, timeout=5)
+        tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
+        trace.set_tracer_provider(tracer_provider)
 
-    metric_exporter = OTLPMetricExporter(endpoint=metrics_endpoint)
-    reader = PeriodicExportingMetricReader(metric_exporter)
-    meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-    metrics.set_meter_provider(meter_provider)
+        metric_exporter = OTLPMetricExporter(endpoint=metrics_endpoint, timeout=5)
+        reader = PeriodicExportingMetricReader(
+            metric_exporter, export_interval_millis=60000
+        )
+        meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+        metrics.set_meter_provider(meter_provider)
 
-    _CONFIGURED = True
+        _CONFIGURED = True
+        logger.info(f"Telemetry configured for {service_name}, endpoint: {endpoint}")
+    except Exception as exc:
+        logger.warning(
+            f"Failed to configure telemetry: {exc}. Application will continue without telemetry."
+        )
+        _CONFIGURED = True
 
 
 def get_tracer(name: Optional[str] = None):
