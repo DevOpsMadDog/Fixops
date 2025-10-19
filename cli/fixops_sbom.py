@@ -37,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(DEFAULT_NORMALIZED_OUTPUT),
         help="Destination for the normalized SBOM JSON",
     )
+    normalize_parser.add_argument(
+        "--strict-schema",
+        dest="strict_schema",
+        action="store_true",
+        help="Enable strict schema validation (fail on missing required fields)",
+    )
 
     quality_parser = subparsers.add_parser(
         "quality", help="Generate SBOM quality metrics and HTML report"
@@ -63,9 +69,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _handle_normalize(inputs: Iterable[str], output: str) -> int:
-    normalized = write_normalized_sbom(inputs, output)
+def _handle_normalize(
+    inputs: Iterable[str], output: str, strict_schema: bool = False
+) -> int:
+    normalized = write_normalized_sbom(inputs, output, strict_schema=strict_schema)
     print(f"Normalized {len(normalized.get('components', []))} components to {output}")
+    if strict_schema:
+        print("Strict schema validation: PASSED")
     return 0
 
 
@@ -83,7 +93,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     if args.command == "normalize":
-        return _handle_normalize(args.inputs, args.output)
+        return _handle_normalize(args.inputs, args.output, args.strict_schema)
     if args.command == "quality":
         return _handle_quality(args.normalized, args.html, args.json_path)
 

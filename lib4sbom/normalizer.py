@@ -211,7 +211,6 @@ def _normalise_candidates(
     document: Mapping[str, Any]
 ) -> List[Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]]:
     format_hint = _detect_format(document)
-    candidates: Sequence[Any]
     if format_hint.startswith("cyclonedx") or "components" in document:
         raw_components = document.get("components")
         if isinstance(raw_components, Sequence):
@@ -365,9 +364,24 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
 
 
 def write_normalized_sbom(
-    paths: Iterable[str | Path], destination: str | Path
+    paths: Iterable[str | Path], destination: str | Path, strict_schema: bool = False
 ) -> Dict[str, Any]:
     normalized = normalize_sboms(paths)
+    if strict_schema:
+        validation_errors = normalized.get("metadata", {}).get("validation_errors", [])
+        if validation_errors:
+            LOGGER.error(
+                "Strict schema validation failed with %d errors", len(validation_errors)
+            )
+            for error in validation_errors:
+                LOGGER.error(
+                    "  %s: missing fields %s",
+                    error.get("path"),
+                    error.get("missing_fields"),
+                )
+            raise ValueError(
+                f"Strict schema validation failed: {len(validation_errors)} components with missing required fields"
+            )
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     with destination_path.open("w", encoding="utf-8") as handle:
