@@ -30,7 +30,7 @@ export LANG=C.UTF-8
 export TZ=UTC
 
 echo "==> Cleaning non-deterministic directories..."
-rm -rf dist artifacts analysis reports tmp .pytest_cache __pycache__ **/__pycache__ **/*.pyc 2>/dev/null || true
+rm -rf artifacts analysis reports tmp .pytest_cache __pycache__ **/__pycache__ **/*.pyc 2>/dev/null || true
 
 echo "==> Creating deterministic archive..."
 GZIP=-n tar --sort=name --mtime='UTC 2023-01-01' \
