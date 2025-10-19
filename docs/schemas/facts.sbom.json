@@ -38,7 +38,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name"],
+        "required": [],
         "properties": {
           "name": {
             "type": "string",
