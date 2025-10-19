@@ -56,7 +56,7 @@ def _normalize_path(path: str) -> str:
     if normalized.startswith("/"):
         parts = normalized.split("/")
         if len(parts) > 2:
-            normalized = "/".join(parts[2:])
+            normalized = "/".join(parts[1:])
     return normalized
 
 
