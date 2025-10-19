@@ -74,6 +74,8 @@ SUPPORTED_SARIF_SCHEMAS = {
 logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
+MAX_JSON_DEPTH = 20
+MAX_JSON_ITEMS = 100000
 
 _SNYK_SEVERITY_TO_LEVEL = {
     "critical": "error",
@@ -83,6 +85,54 @@ _SNYK_SEVERITY_TO_LEVEL = {
     "low": "note",
     "info": "note",
 }
+
+
+def _safe_json_loads(
+    text: str, max_depth: int = MAX_JSON_DEPTH, max_items: int = MAX_JSON_ITEMS
+) -> Any:
+    """
+    Parse JSON with protection against deeply nested structures and excessive items.
+
+    Args:
+        text: JSON string to parse
+        max_depth: Maximum nesting depth allowed
+        max_items: Maximum number of items (dict keys + list items) allowed
+
+    Returns:
+        Parsed JSON object
+
+    Raises:
+        ValueError: If JSON exceeds depth or item limits
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON: {exc}") from exc
+
+    def check_depth_and_size(
+        obj: Any, depth: int = 0, item_count: Dict[str, int] = None
+    ) -> None:
+        if item_count is None:
+            item_count = {"count": 0}
+
+        if depth > max_depth:
+            raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
+
+        if isinstance(obj, dict):
+            item_count["count"] += len(obj)
+            if item_count["count"] > max_items:
+                raise ValueError(f"JSON item count exceeds maximum of {max_items}")
+            for value in obj.values():
+                check_depth_and_size(value, depth + 1, item_count)
+        elif isinstance(obj, list):
+            item_count["count"] += len(obj)
+            if item_count["count"] > max_items:
+                raise ValueError(f"JSON item count exceeds maximum of {max_items}")
+            for item in obj:
+                check_depth_and_size(item, depth + 1, item_count)
+
+    check_depth_and_size(data)
+    return data
 
 
 def _extract_first_identifier(payload: Mapping[str, Any] | None) -> Optional[str]:
@@ -714,10 +764,8 @@ class InputNormalizer:
 
     def _load_sbom_from_provider(self, payload: str) -> NormalizedSBOM | None:
         try:
-            document = json.loads(
-                payload
-            )  # TODO: streaming parse for very large SBOM documents.
-        except json.JSONDecodeError:
+            document = _safe_json_loads(payload)
+        except (json.JSONDecodeError, ValueError):
             return None
 
         for parser in (self._parse_github_dependency_snapshot, self._parse_syft_json):
@@ -883,7 +931,7 @@ class InputNormalizer:
         """Normalise CVE/KEV feeds using cvelib for schema validation."""
 
         payload = self._prepare_text(raw)
-        data = json.loads(payload)
+        data = _safe_json_loads(payload)
 
         if isinstance(data, dict):
             entries = (
@@ -975,9 +1023,7 @@ class InputNormalizer:
         """Normalise SARIF logs via sarif-om with optional Snyk conversion."""
 
         payload = self._prepare_text(raw)
-        data = json.loads(
-            payload
-        )  # TODO: support streaming parse for very large SARIF inputs.
+        data = _safe_json_loads(payload)
         original_data = data
 
         runs = data.get("runs") if isinstance(data, dict) else None
@@ -990,8 +1036,8 @@ class InputNormalizer:
                 embedded = data[key]
                 if isinstance(embedded, str):
                     try:
-                        embedded = json.loads(embedded)
-                    except json.JSONDecodeError:
+                        embedded = _safe_json_loads(embedded)
+                    except (json.JSONDecodeError, ValueError):
                         logger.debug(
                             "Failed to parse embedded SARIF payload",
                             extra={"source_key": key},
@@ -1177,8 +1223,8 @@ class InputNormalizer:
 
         payload = self._prepare_text(raw)
         try:
-            document = json.loads(payload)
-        except json.JSONDecodeError as exc:
+            document = _safe_json_loads(payload)
+        except (json.JSONDecodeError, ValueError) as exc:
             raise ValueError("The provided VEX document is not valid JSON") from exc
 
         vulnerabilities = document.get("vulnerabilities")
@@ -1232,8 +1278,8 @@ class InputNormalizer:
 
         payload = self._prepare_text(raw)
         try:
-            document = json.loads(payload)
-        except json.JSONDecodeError as exc:
+            document = _safe_json_loads(payload)
+        except (json.JSONDecodeError, ValueError) as exc:
             raise ValueError("The provided CNAPP document is not valid JSON") from exc
 
         raw_assets = document.get("assets") if isinstance(document, Mapping) else None
@@ -1291,9 +1337,9 @@ class InputNormalizer:
         document: Any = None
         source = "unknown"
         try:
-            document = json.loads(text)
+            document = _safe_json_loads(text)
             source = "json"
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             if yaml is None:
                 raise ValueError(
                     "Business context payload is not valid JSON and PyYAML is unavailable"
