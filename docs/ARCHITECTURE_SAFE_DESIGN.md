@@ -321,7 +321,7 @@ GZIP=-n tar --sort=name --mtime='UTC 2023-01-01' \
    - Never fail on stale feeds
 
 ### CLI Flags
-- `--offline`: Skip network calls, use local feeds only
+- *(Planned)* `--offline`: Skip network calls, use local feeds only
 - `--strict-schema`: Fail on validation errors (default: warn)
 - `--show-weights`: Display risk weight breakdown
 
