@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fixops.dev/schemas/facts.sbom.json",
+  "title": "FixOps SBOM Facts Schema",
+  "description": "Normalized SBOM data contract for deterministic processing",
+  "type": "object",
+  "required": ["metadata", "components"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["generated_at", "generator"],
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO8601 timestamp of normalization"
+        },
+        "generator": {
+          "type": "string",
+          "description": "Tool name + version that generated the SBOM"
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA256 hash of original SBOM file"
+        },
+        "total_components": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unique_components": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Component name (lowercase, trimmed)"
+          },
+          "version": {
+            "type": ["string", "null"],
+            "description": "Component version"
+          },
+          "purl": {
+            "type": ["string", "null"],
+            "pattern": "^pkg:",
+            "description": "Package URL (canonical, lowercase)"
+          },
+          "hashes": {
+            "type": "object",
+            "patternProperties": {
+              "^(SHA256|SHA384|SHA512|SHA1|MD5)$": {
+                "type": "string",
+                "pattern": "^[a-f0-9]+$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "licenses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "SPDX license identifiers or expressions (sorted)"
+          },
+          "generators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tools that detected this component (sorted)"
+          }
+        },
+        "oneOf": [
+          {"required": ["name", "version"]},
+          {"required": ["purl"]}
+        ]
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string"},
+          "format": {"type": "string"},
+          "generator": {"type": "string"},
+          "component_count": {"type": "integer"}
+        }
+      }
+    }
+  }
+}

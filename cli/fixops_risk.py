@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -50,11 +49,23 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional override path for a cached KEV JSON",
     )
+    score_parser.add_argument(
+        "--show-weights",
+        dest="show_weights",
+        action="store_true",
+        help="Display risk weight breakdown in output",
+    )
 
     return parser
 
 
-def _handle_score(sbom: str, output: str, epss: str | None, kev: str | None) -> int:
+def _handle_score(
+    sbom: str,
+    output: str,
+    epss: str | None,
+    kev: str | None,
+    show_weights: bool = False,
+) -> int:
     try:
         epss_scores = load_epss_scores(path=epss) if epss else load_epss_scores()
         kev_catalog = load_kev_catalog(path=kev) if kev else load_kev_catalog()
@@ -67,7 +78,7 @@ def _handle_score(sbom: str, output: str, epss: str | None, kev: str | None) -> 
     weights = report.get("weights", {})
     summary = report.get("summary", {})
     print(f"Wrote risk profile for {component_count} components to {output}")
-    if weights:
+    if show_weights and weights:
         weight_breakdown = ", ".join(
             f"{name}={value}" for name, value in sorted(weights.items())
         )
@@ -86,7 +97,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     if args.command == "score":
-        return _handle_score(args.sbom, args.output, args.epss, args.kev)
+        return _handle_score(
+            args.sbom, args.output, args.epss, args.kev, args.show_weights
+        )
 
     parser.error("Unknown command")
     return 2

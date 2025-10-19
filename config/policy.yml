@@ -1,7 +1,7 @@
-risk:
-  max_risk_score:
-    warn_above: 70
-    fail_above: 85
+# FixOps Policy Configuration
+# Defines thresholds and rules for evidence evaluation
+# Supports PSL-style explainable policy rules
+
 sbom_quality:
   coverage_percent:
     warn_below: 80
@@ -9,7 +9,72 @@ sbom_quality:
   license_coverage_percent:
     warn_below: 75
     fail_below: 50
+  resolvability_percent:
+    warn_below: 90
+    fail_below: 70
+
+risk:
+  max_risk_score:
+    warn_above: 70
+    fail_above: 85
+  # Industry score thresholds (always shown alongside FixOps scores)
+  cvss_critical_threshold: 9.0
+  epss_high_threshold: 0.5
+  kev_present_action: warn  # warn|fail
+
 repro:
   require_match: true
+  allow_missing_reference: false  # If true, WARN instead of FAIL when no reference
+
 provenance:
   require_attestations: true
+  min_attestations: 1
+
+# PSL-style policy rules (explainable decision support)
+# These rules fire during evidence evaluation and produce structured reasons
+overrides:
+  - name: "BlockCriticalKEV"
+    description: "Block releases with KEV vulnerabilities and CVSS >= 9"
+    condition:
+      all:
+        - cvss: {gte: 9.0}
+        - kev: {present: true}
+        - patched: {available: false}
+    action: "fail"
+    reason: "Critical KEV vulnerability without available patch"
+  
+  - name: "WarnHighEPSS"
+    description: "Warn on high EPSS scores indicating likely exploitation"
+    condition:
+      all:
+        - epss: {gte: 0.5}
+        - cvss: {gte: 7.0}
+    action: "warn"
+    reason: "High exploit probability (EPSS >= 0.5) with significant impact"
+  
+  - name: "WarnLowCoverage"
+    description: "Warn when SBOM coverage is below threshold"
+    condition:
+      coverage_percent: {lt: 80}
+    action: "warn"
+    reason: "SBOM coverage below 80% threshold"
+  
+  - name: "FailMissingRepro"
+    description: "Fail when reproducible build verification fails"
+    condition:
+      repro_match: {eq: false}
+    action: "fail"
+    reason: "Reproducible build verification failed"
+  
+  - name: "WarnMissingProvenance"
+    description: "Warn when provenance attestations are missing"
+    condition:
+      attestation_count: {lt: 1}
+    action: "warn"
+    reason: "No provenance attestations found"
+
+# Calibration settings (optional conformal prediction)
+calibration:
+  enabled: false  # Set to true if analysis/calibration/* exists
+  confidence_threshold: 0.8
+  historical_window_days: 90

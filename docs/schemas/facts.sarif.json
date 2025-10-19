@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fixops.dev/schemas/facts.sarif.json",
+  "title": "FixOps SARIF Facts Schema",
+  "description": "Normalized SARIF findings for deterministic processing",
+  "type": "object",
+  "required": ["metadata", "findings"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["generated_at", "tool"],
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tool": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Scanner name (lowercase)"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "severity"],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+          },
+          "category": {
+            "type": "string",
+            "enum": ["security", "quality", "performance", "other"]
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Relative path (forward slashes)"
+          },
+          "line_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "message": {
+            "type": "string"
+          },
+          "cwe": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^CWE-[0-9]+$"
+            },
+            "description": "CWE identifiers (uppercase, sorted)"
+          },
+          "cvss": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 10.0
+              },
+              "vector": {
+                "type": "string",
+                "pattern": "^CVSS:"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

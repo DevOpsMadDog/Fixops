@@ -1,0 +1,172 @@
+# FixOps Policy Specification Language (PSL) Bundle
+# Explainable policy rules for evidence evaluation
+# These rules produce structured reasons for PASS/WARN/FAIL verdicts
+
+# Rule: HighCVSS
+# Trigger: CVSS score >= 9.0
+# Action: WARN
+rule HighCVSS {
+  when {
+    cvss >= 9.0
+  }
+  then {
+    verdict = "WARN"
+    reason = "Critical CVSS score (>= 9.0) detected"
+    industry_scores_required = ["cvss", "epss", "kev"]
+  }
+}
+
+# Rule: LikelyExploit
+# Trigger: EPSS score > 0.5 (high exploit probability)
+# Action: WARN
+rule LikelyExploit {
+  when {
+    epss > 0.5
+  }
+  then {
+    verdict = "WARN"
+    reason = "High exploit probability (EPSS > 0.5)"
+    industry_scores_required = ["epss", "cvss", "kev"]
+  }
+}
+
+# Rule: KEVPresent
+# Trigger: Vulnerability in CISA KEV catalog
+# Action: WARN (or FAIL if configured)
+rule KEVPresent {
+  when {
+    kev == true
+  }
+  then {
+    verdict = "WARN"
+    reason = "Vulnerability in CISA Known Exploited Vulnerabilities catalog"
+    industry_scores_required = ["kev", "cvss", "epss"]
+  }
+}
+
+# Rule: CriticalKEVUnpatched
+# Trigger: KEV + CVSS >= 9.0 + no patch available
+# Action: FAIL
+rule CriticalKEVUnpatched {
+  when {
+    kev == true
+    cvss >= 9.0
+    patched == false
+  }
+  then {
+    verdict = "FAIL"
+    reason = "Critical KEV vulnerability without available patch"
+    industry_scores_required = ["kev", "cvss", "epss"]
+  }
+}
+
+# Rule: LowCoverage
+# Trigger: SBOM coverage < 80%
+# Action: WARN
+rule LowCoverage {
+  when {
+    coverage_percent < 80
+  }
+  then {
+    verdict = "WARN"
+    reason = "SBOM coverage below 80% threshold"
+  }
+}
+
+# Rule: VeryLowCoverage
+# Trigger: SBOM coverage < 60%
+# Action: FAIL
+rule VeryLowCoverage {
+  when {
+    coverage_percent < 60
+  }
+  then {
+    verdict = "FAIL"
+    reason = "SBOM coverage critically low (< 60%)"
+  }
+}
+
+# Rule: ReproMismatch
+# Trigger: Reproducible build verification failed
+# Action: FAIL
+rule ReproMismatch {
+  when {
+    repro_match == false
+  }
+  then {
+    verdict = "FAIL"
+    reason = "Reproducible build verification failed"
+  }
+}
+
+# Rule: MissingProvenance
+# Trigger: No provenance attestations
+# Action: WARN
+rule MissingProvenance {
+  when {
+    attestation_count < 1
+  }
+  then {
+    verdict = "WARN"
+    reason = "No provenance attestations found"
+  }
+}
+
+# Rule: HighRiskScore
+# Trigger: FixOps risk score > 70
+# Action: WARN
+rule HighRiskScore {
+  when {
+    fixops_risk > 70
+  }
+  then {
+    verdict = "WARN"
+    reason = "FixOps risk score exceeds warning threshold (> 70)"
+    industry_scores_required = ["cvss", "epss", "kev"]
+  }
+}
+
+# Rule: CriticalRiskScore
+# Trigger: FixOps risk score > 85
+# Action: FAIL
+rule CriticalRiskScore {
+  when {
+    fixops_risk > 85
+  }
+  then {
+    verdict = "FAIL"
+    reason = "FixOps risk score exceeds critical threshold (> 85)"
+    industry_scores_required = ["cvss", "epss", "kev"]
+  }
+}
+
+# Rule: InternetExposedHighRisk
+# Trigger: Internet-exposed component with high risk
+# Action: WARN
+rule InternetExposedHighRisk {
+  when {
+    exposure == "internet"
+    fixops_risk > 60
+  }
+  then {
+    verdict = "WARN"
+    reason = "Internet-exposed component with elevated risk (> 60)"
+    industry_scores_required = ["cvss", "epss", "kev"]
+  }
+}
+
+# Rule: Pass
+# Trigger: All checks passed
+# Action: PASS
+rule Pass {
+  when {
+    coverage_percent >= 80
+    fixops_risk <= 70
+    repro_match == true
+    attestation_count >= 1
+  }
+  then {
+    verdict = "PASS"
+    reason = "All policy checks passed"
+  }
+}
