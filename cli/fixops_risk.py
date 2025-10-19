@@ -78,7 +78,7 @@ def _handle_score(
     weights = report.get("weights", {})
     summary = report.get("summary", {})
     print(f"Wrote risk profile for {component_count} components to {output}")
-    if show_weights or weights:
+    if show_weights and weights:
         weight_breakdown = ", ".join(
             f"{name}={value}" for name, value in sorted(weights.items())
         )
