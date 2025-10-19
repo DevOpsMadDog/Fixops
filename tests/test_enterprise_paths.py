@@ -62,7 +62,7 @@ def pipeline_result(enterprise_env: None) -> dict[str, object]:
 
 
 def test_vex_noise_reduction_and_cnapp_enrichment(
-    pipeline_result: dict[str, object]
+    pipeline_result: dict[str, object],
 ) -> None:
     result = pipeline_result
     noise = result.get("noise_reduction", {})
@@ -85,7 +85,7 @@ def test_vex_noise_reduction_and_cnapp_enrichment(
 
 
 def test_evidence_encrypted_when_overlay_requests_it(
-    pipeline_result: dict[str, object]
+    pipeline_result: dict[str, object],
 ) -> None:
     result = pipeline_result
     bundle = result.get("evidence_bundle", {})
@@ -94,7 +94,7 @@ def test_evidence_encrypted_when_overlay_requests_it(
 
 
 def test_module_matrix_includes_promised_modules(
-    pipeline_result: dict[str, object]
+    pipeline_result: dict[str, object],
 ) -> None:
     result = pipeline_result
     modules = result.get("modules", {})
@@ -118,7 +118,7 @@ def test_module_matrix_includes_promised_modules(
 
 
 def test_enhanced_decision_outputs_consensus(
-    pipeline_result: dict[str, object]
+    pipeline_result: dict[str, object],
 ) -> None:
     enhanced = pipeline_result.get("enhanced_decision", {})
     assert isinstance(enhanced, dict)

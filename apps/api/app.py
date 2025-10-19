@@ -60,15 +60,15 @@ _JWT_SECRET_FILE = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data")) / ".jwt_se
 def _load_or_generate_jwt_secret() -> str:
     """
     Load JWT secret from environment or file, or generate and persist a new one.
-    
+
     Priority:
     1. FIXOPS_JWT_SECRET environment variable
     2. Persisted secret file
     3. Generate new secret and persist to file (demo mode only)
-    
+
     Returns:
         str: The JWT secret key
-        
+
     Raises:
         ValueError: If no secret is available in non-demo mode
     """
@@ -77,7 +77,7 @@ def _load_or_generate_jwt_secret() -> str:
     if env_secret:
         logger.info("Using JWT secret from FIXOPS_JWT_SECRET environment variable")
         return env_secret
-    
+
     # Priority 2: Persisted file
     try:
         _JWT_SECRET_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ def _load_or_generate_jwt_secret() -> str:
                 return secret
     except Exception as e:
         logger.warning(f"Failed to read JWT secret file: {e}")
-    
+
     # Priority 3: Generate and persist (demo mode only)
     mode = os.getenv("FIXOPS_MODE", "").lower()
     if mode == "demo":
@@ -732,14 +732,14 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=404, detail=f"Stage '{stage}' not recognised"
             )
-        
+
         # Validate offset parameter
         if offset is not None and offset < 0:
             raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid offset: {offset}. Offset must be non-negative."
+                status_code=400,
+                detail=f"Invalid offset: {offset}. Offset must be non-negative.",
             )
-        
+
         data = await chunk.read()
         try:
             session = upload_manager.append_chunk(session_id, data, offset=offset)

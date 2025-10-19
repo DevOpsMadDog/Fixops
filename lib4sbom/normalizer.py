@@ -178,7 +178,7 @@ def _extract_purl(candidate: Mapping[str, Any]) -> Optional[str]:
 
 
 def _component_from_cyclonedx(
-    candidate: Mapping[str, Any]
+    candidate: Mapping[str, Any],
 ) -> Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]:
     name = candidate.get("name") if isinstance(candidate.get("name"), str) else None
     version = (
@@ -191,7 +191,7 @@ def _component_from_cyclonedx(
 
 
 def _component_from_spdx(
-    candidate: Mapping[str, Any]
+    candidate: Mapping[str, Any],
 ) -> Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]:
     name = candidate.get("name") if isinstance(candidate.get("name"), str) else None
     version = candidate.get("versionInfo")
@@ -208,7 +208,7 @@ def _component_from_spdx(
 
 
 def _normalise_candidates(
-    document: Mapping[str, Any]
+    document: Mapping[str, Any],
 ) -> List[Tuple[str, Optional[str], Optional[str], Dict[str, str], List[str]]]:
     format_hint = _detect_format(document)
     if format_hint.startswith("cyclonedx") or "components" in document:
