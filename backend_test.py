@@ -1,11 +1,8 @@
-import asyncio
-import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
 
 import pytest
 
@@ -86,7 +83,7 @@ class FixOpsDecisionEngineAPITester:
                             print(
                                 f"   Data keys: {list(response_data['data'].keys()) if isinstance(response_data['data'], dict) else 'Non-dict data'}"
                             )
-                except:
+                except Exception:
                     print(f"   Response: {response.text[:100]}...")
             else:
                 print(
@@ -110,7 +107,7 @@ class FixOpsDecisionEngineAPITester:
             )
 
         except requests.exceptions.Timeout:
-            print(f"❌ Failed - Request timeout")
+            print("❌ Failed - Request timeout")
             self.failed_tests.append({"name": name, "error": "Request timeout"})
             return False, {}
         except Exception as e:
@@ -221,7 +218,7 @@ class FixOpsDecisionEngineAPITester:
                 if missing_components:
                     print(f"   ⚠️  Missing components: {missing_components}")
                 else:
-                    print(f"   ✅ All 6 core components present")
+                    print("   ✅ All 6 core components present")
 
         # Test 5: /api/v1/decisions/ssdlc-stages endpoint
         success, response = self.run_test(
@@ -275,7 +272,7 @@ class FixOpsDecisionEngineAPITester:
 
         try:
             with open(sarif_file_path, "rb") as f:
-                files = {"file": ("test.sarif", f, "application/json")}
+                files = {"file": ("test.sari", f, "application/json")}
                 data = {
                     "service_name": "test-service",
                     "environment": "production",
@@ -644,15 +641,15 @@ async def test_decision_engine():
     try:
         await decision_engine.initialize()
         print('Decision engine initialized successfully')
-        
+
         # Test core components
         metrics = await decision_engine.get_decision_metrics()
         print(f'Core components: {list(metrics.get("core_components", {}).keys())}')
-        
+
         # Test recent decisions
         recent = await decision_engine.get_recent_decisions(3)
         print(f'Recent decisions: {len(recent)} entries')
-        
+
         return True
     except Exception as e:
         print(f'Decision engine error: {str(e)}')
@@ -819,11 +816,11 @@ async def test_db():
         await DatabaseManager.initialize()
         health = await DatabaseManager.health_check()
         print(f'Database health: {health}')
-        
+
         # Test session context
         async with DatabaseManager.get_session_context() as session:
             print('Database session created successfully')
-        
+
         await DatabaseManager.close()
         return True
     except Exception as e:
@@ -864,18 +861,18 @@ import sys
 try:
     conn = sqlite3.connect('/app/enterprise/fixops_enterprise.db')
     cursor = conn.cursor()
-    
+
     # Check if main tables exist
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = [row[0] for row in cursor.fetchall()]
-    
+
     expected_tables = ['security_findings', 'services', 'users', 'incidents']
     existing_expected = [t for t in expected_tables if t in tables]
-    
+
     print(f'Tables found: {len(tables)}')
     print(f'Expected tables present: {len(existing_expected)}/{len(expected_tables)}')
     print(f'Tables: {", ".join(tables[:10])}{"..." if len(tables) > 10 else ""}')
-    
+
     conn.close()
     sys.exit(0)
 except Exception as e:
@@ -1030,7 +1027,7 @@ except Exception as e:
                     f"   ✅ supported_llms present: {list(data['supported_llms'].keys())}"
                 )
             else:
-                print(f"   ❌ supported_llms missing from response")
+                print("   ❌ supported_llms missing from response")
                 self.failed_tests.append(
                     {
                         "name": "Enhanced Capabilities - supported_llms",
@@ -1069,7 +1066,7 @@ except Exception as e:
                     f"   ✅ individual_analyses array present with {len(data['individual_analyses'])} items"
                 )
             else:
-                print(f"   ❌ individual_analyses array missing or invalid")
+                print("   ❌ individual_analyses array missing or invalid")
                 self.failed_tests.append(
                     {
                         "name": "Enhanced Compare LLMs - individual_analyses",
@@ -1128,9 +1125,9 @@ except Exception as e:
                             }
                         )
                     else:
-                        print(f"   ✅ Model structure valid")
+                        print("   ✅ Model structure valid")
             else:
-                print(f"   ❌ models array missing")
+                print("   ❌ models array missing")
                 self.failed_tests.append(
                     {
                         "name": "Enhanced Analysis - models",
@@ -1155,9 +1152,9 @@ except Exception as e:
                         }
                     )
                 else:
-                    print(f"   ✅ Consensus structure valid")
+                    print("   ✅ Consensus structure valid")
             else:
-                print(f"   ❌ consensus missing")
+                print("   ❌ consensus missing")
                 self.failed_tests.append(
                     {
                         "name": "Enhanced Analysis - consensus",
@@ -1213,7 +1210,7 @@ except Exception as e:
                             f"   ✅ Single-shot upload successful: {upload_data['findings_processed']} findings processed"
                         )
                     else:
-                        print(f"   ❌ findings_processed count missing")
+                        print("   ❌ findings_processed count missing")
                         self.failed_tests.append(
                             {
                                 "name": "Single-shot Upload - counts",
@@ -1249,7 +1246,7 @@ except Exception as e:
             upload_id = response["data"]["upload_id"]
             print(f"   ✅ Upload initialized with ID: {upload_id}")
         else:
-            print(f"   ❌ Upload init failed - no upload_id returned")
+            print("   ❌ Upload init failed - no upload_id returned")
             self.failed_tests.append(
                 {"name": "Chunked Upload - Init", "error": "No upload_id returned"}
             )
@@ -1275,9 +1272,9 @@ except Exception as e:
                 )
 
                 if success:
-                    print(f"   ✅ Chunk uploaded successfully")
+                    print("   ✅ Chunk uploaded successfully")
                 else:
-                    print(f"   ❌ Chunk upload failed")
+                    print("   ❌ Chunk upload failed")
                     return True
 
         finally:
@@ -1301,7 +1298,7 @@ except Exception as e:
                     f"   ✅ Chunked upload completed: {upload_data['findings_processed']} findings processed"
                 )
             else:
-                print(f"   ❌ findings_processed count missing from completion")
+                print("   ❌ findings_processed count missing from completion")
                 self.failed_tests.append(
                     {
                         "name": "Chunked Upload - Complete counts",
@@ -1363,7 +1360,7 @@ trust_boundaries:
                             f"   ✅ SSVC factors processed: {list(upload_data['ssvc_factors'].keys())}"
                         )
                     else:
-                        print(f"   ❌ SSVC factors missing from response")
+                        print("   ❌ SSVC factors missing from response")
                         self.failed_tests.append(
                             {
                                 "name": "Business Context Upload - SSVC",
@@ -1453,9 +1450,9 @@ trust_boundaries:
                         "ssvc_factors" in upload_data
                         and "business_context" in upload_data
                     ):
-                        print(f"   ✅ OTM converted to SSVC successfully")
+                        print("   ✅ OTM converted to SSVC successfully")
                     else:
-                        print(f"   ❌ OTM to SSVC conversion failed")
+                        print("   ❌ OTM to SSVC conversion failed")
                         self.failed_tests.append(
                             {
                                 "name": "Business Context OTM - SSVC conversion",
@@ -1523,7 +1520,7 @@ trust_boundaries:
                     }
                 )
             else:
-                print(f"   ✅ Production readiness status complete")
+                print("   ✅ Production readiness status complete")
                 print(f"   Demo mode: {status_data.get('demo_mode')}")
                 print(
                     f"   Production ready: {status_data.get('overall_production_ready')}"
@@ -1553,7 +1550,7 @@ trust_boundaries:
                         }
                     )
                 else:
-                    print(f"   ✅ All component statuses present")
+                    print("   ✅ All component statuses present")
 
         # Test 2: GET /api/v1/production-readiness/requirements
         success, response = self.run_test(
@@ -1583,7 +1580,7 @@ trust_boundaries:
                     }
                 )
             else:
-                print(f"   ✅ All production requirements documented")
+                print("   ✅ All production requirements documented")
 
         return True
 
@@ -1617,7 +1614,7 @@ trust_boundaries:
                     }
                 )
             else:
-                print(f"   ✅ System mode status complete")
+                print("   ✅ System mode status complete")
                 print(f"   Current mode: {mode_data.get('current_mode')}")
                 print(f"   Production ready: {mode_data.get('production_ready')}")
 
@@ -1642,7 +1639,7 @@ trust_boundaries:
                         }
                     )
                 else:
-                    print(f"   ✅ All component statuses present")
+                    print("   ✅ All component statuses present")
 
         # Test 2: GET /api/v1/system-mode/production-requirements
         success, response = self.run_test(
@@ -1655,15 +1652,15 @@ trust_boundaries:
         if success and response.get("requirements"):
             requirements = response["requirements"]
             if "critical" in requirements and "optional" in requirements:
-                print(f"   ✅ Production requirements categorized (critical/optional)")
+                print("   ✅ Production requirements categorized (critical/optional)")
                 critical_reqs = requirements["critical"]
                 if (
                     "EMERGENT_LLM_KEY" in critical_reqs
                     and "OPA_SERVER" in critical_reqs
                 ):
-                    print(f"   ✅ Critical requirements present")
+                    print("   ✅ Critical requirements present")
                 else:
-                    print(f"   ❌ Missing critical requirements")
+                    print("   ❌ Missing critical requirements")
                     self.failed_tests.append(
                         {
                             "name": "System Mode - Critical Requirements",
@@ -1671,7 +1668,7 @@ trust_boundaries:
                         }
                     )
             else:
-                print(f"   ❌ Requirements not properly categorized")
+                print("   ❌ Requirements not properly categorized")
                 self.failed_tests.append(
                     {
                         "name": "System Mode - Requirements Structure",
@@ -1691,9 +1688,9 @@ trust_boundaries:
         )
 
         if success:
-            print(f"   ✅ Mode toggle properly validates requirements")
+            print("   ✅ Mode toggle properly validates requirements")
         else:
-            print(f"   ⚠️ Mode toggle validation may not be working correctly")
+            print("   ⚠️ Mode toggle validation may not be working correctly")
 
         return True
 
@@ -1761,7 +1758,7 @@ trust_boundaries:
         )
 
         if success and response.get("decision"):
-            print(f"   ✅ Decision engine processing complex context")
+            print("   ✅ Decision engine processing complex context")
             print(f"   Decision: {response.get('decision')}")
             print(f"   Confidence: {response.get('confidence_score', 'N/A')}")
             print(f"   Evidence ID: {response.get('evidence_id', 'N/A')}")
@@ -1779,9 +1776,9 @@ trust_boundaries:
             )
 
             if success_evidence:
-                print(f"   ✅ Evidence lake storage and retrieval working")
+                print("   ✅ Evidence lake storage and retrieval working")
             else:
-                print(f"   ⚠️ Evidence retrieval endpoint may need authentication")
+                print("   ⚠️ Evidence retrieval endpoint may need authentication")
 
         # Test vector store and policy engine integration via core components
         success, response = self.run_test(
@@ -1868,7 +1865,7 @@ trust_boundaries:
 
         # Print comprehensive results
         print(f"\n{'='*80}")
-        print(f"📊 COMPREHENSIVE TEST RESULTS:")
+        print("📊 COMPREHENSIVE TEST RESULTS:")
         print(f"Tests passed: {self.tests_passed}/{self.tests_run}")
         print(f"Success rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
 

@@ -62,19 +62,19 @@ def _deep_merge(
 ) -> MutableMapping[str, Any]:
     """
     Deep merge two dictionaries, returning a new dictionary without mutating the base.
-    
+
     Args:
         base: Base configuration dictionary (not modified)
         overrides: Override values to merge in
-        
+
     Returns:
         New dictionary with merged values
     """
     import copy
-    
+
     # Create a deep copy to avoid mutating the base dictionary
     result = copy.deepcopy(base)
-    
+
     for key, value in overrides.items():
         if (
             key in result
