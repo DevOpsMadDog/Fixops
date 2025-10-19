@@ -1,480 +1,2125 @@
-# FixOps Contextual Risk & Evidence Platform
+# FixOps: DevSecOps Decision & Verification Engine
 
-FixOps turns raw security artefacts into contextual risk, compliance, and automation outputs in minutes. A lightweight FastAPI service and a parity CLI accept push-style uploads, hydrate an overlay-driven pipeline, and emit guardrail verdicts, context summaries, evidence bundles, pricing signals, and automation manifests that match demo or enterprise guardrails without code changes.
+## Deep Wiki & Comprehensive Documentation
 
-| What it does | One command demo | Where to dig deeper |
-| --- | --- | --- |
-| **Ingest → Normalise → Correlate → Score → Prove.** Upload design, SBOM, SARIF, and CVE feeds, then let the orchestrator stitch context, guardrails, probabilistic risk, and evidence bundles in a single pass. | ```bash\ndocker compose -f docker-compose.demo.yml up -d\n``` Visit [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive API and use `python -m core.cli demo --mode demo` for the CLI mirror. | - [Architecture (canonical)](docs/ARCHITECTURE.md)  \n- [Developer handbook](readme_updated.md)  \n- [SBOM quality](docs/SBOM-QUALITY.md)  \n- [Risk scoring](docs/RISK-SCORING.md)  \n- [Provenance](docs/PROVENANCE.md)  \n- [Evidence bundles](docs/EVIDENCE-BUNDLES.md) |
+FixOps is an intelligent DevSecOps decision and verification platform that transforms raw security artifacts into actionable risk assessments, compliance evidence, and automated remediation workflows. It serves as a contextual intelligence layer for CI/CD pipelines, combining vulnerability data, business context, and multi-source intelligence to produce cryptographically-signed evidence trails with explainable decisions.
 
-> **Canonical docs:** start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the platform map, then dive into [`readme_updated.md`](readme_updated.md) for feature-by-feature deep dives.
+---
 
-## Quick start
+## Table of Contents
 
-For a fully reproducible setup run the bootstrap helper (installs runtime + dev tooling, pre-commit, and fixtures) or use the Makefile targets:
+1. [System Overview](#system-overview)
+2. [Core Architecture](#core-architecture)
+3. [Key Components](#key-components)
+4. [Data Flow & Processing](#data-flow--processing)
+5. [Module Ecosystem](#module-ecosystem)
+6. [API Reference](#api-reference)
+7. [CLI Tools](#cli-tools)
+8. [Configuration System](#configuration-system)
+9. [Security & Cryptography](#security--cryptography)
+10. [Installation & Setup](#installation--setup)
+11. [Development Workflow](#development-workflow)
+12. [Testing Strategy](#testing-strategy)
+13. [Deployment Patterns](#deployment-patterns)
+14. [Integration Guides](#integration-guides)
+15. [Troubleshooting](#troubleshooting)
+16. [Contributing](#contributing)
 
-```bash
-$ cp .env.example .env  # update secrets before running services
-$ ./scripts/bootstrap.sh
-$ make fmt lint test
-$ make demo
-$ make demo-enterprise
+---
+
+## System Overview
+
+### What is FixOps?
+
+FixOps is a contextual risk and evidence platform that:
+
+- **Ingests** security artifacts (SBOM, SARIF, CVE feeds, design context, VEX, CNAPP findings)
+- **Normalizes** data from multiple formats and sources into unified schemas
+- **Correlates** findings across components, vulnerabilities, and business context
+- **Evaluates** risk using multi-layered decision engines (vector patterns, LLM consensus, policy rules)
+- **Produces** cryptographically-signed evidence bundles with explainable verdicts
+- **Automates** remediation workflows (Jira tickets, Confluence pages, Slack notifications)
+
+### Primary Use Cases
+
+1. **CI/CD Gate Decisions**: Automated approve/reject/review decisions for deployment pipelines
+2. **Vulnerability Management**: Context-aware prioritization using KEV, EPSS, and business criticality
+3. **Compliance Automation**: SOC2, ISO27001, PCI-DSS, GDPR evidence generation
+4. **Risk Forecasting**: Probabilistic Bayesian and Markov chain projections
+5. **Supply Chain Security**: SLSA provenance, SBOM analysis, and cryptographic attestations
+
+### Target Users
+
+- **Security Engineers**: Interactive analysis via CLI and API
+- **DevOps Teams**: CI/CD integration for automated security gates
+- **Compliance Officers**: Audit-ready evidence bundles
+- **CISO/Executives**: Risk dashboards and ROI metrics
+- **Platform Engineers**: SSDLC stage orchestration and IaC posture assessment
+
+---
+
+## Core Architecture
+
+### High-Level System Design
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         FixOps Platform                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  ┌──────────────┐         ┌──────────────────┐        ┌──────────────┐ │
+│  │   Ingestion  │────────▶│  Normalization   │───────▶│  Correlation │ │
+│  │   Layer      │         │  & Parsing       │        │  Engine      │ │
+│  └──────────────┘         └──────────────────┘        └──────────────┘ │
+│         │                                                      │         │
+│         │                                                      ▼         │
+│         │                  ┌──────────────────────────────────────┐    │
+│         │                  │   Decision Engine Orchestrator       │    │
+│         │                  ├──────────────────────────────────────┤    │
+│         │                  │ • Vector Store Pattern Matching      │    │
+│         │                  │ • Multi-LLM Consensus (GPT/Claude)   │    │
+│         │                  │ • Policy Engine (OPA)                │    │
+│         │                  │ • SBOM Risk Analysis                 │    │
+│         │                  │ • Golden Regression Baseline         │    │
+│         │                  │ • Consensus Checker                  │    │
+│         │                  └──────────────────────────────────────┘    │
+│         │                                   │                           │
+│         ▼                                   ▼                           │
+│  ┌──────────────────────────────────────────────────────────────┐     │
+│  │              Module Execution Layer                           │     │
+│  ├──────────────────────────────────────────────────────────────┤     │
+│  │ Context Engine │ Guardrails │ Compliance │ Policy Automation │     │
+│  │ SSDLC Eval │ IaC Posture │ Exploit Signals │ Probabilistic   │     │
+│  │ AI Agents │ Analytics │ Tenancy │ Performance │ Knowledge Graph│     │
+│  └──────────────────────────────────────────────────────────────┘     │
+│                                   │                                     │
+│                                   ▼                                     │
+│  ┌──────────────────────────────────────────────────────────────┐     │
+│  │              Evidence & Automation Layer                      │     │
+│  ├──────────────────────────────────────────────────────────────┤     │
+│  │ • Evidence Lake (RSA-SHA256 signed bundles)                  │     │
+│  │ • Automation Connectors (Jira/Confluence/Slack)              │     │
+│  │ • Provenance Graph (SLSA v1 attestations)                    │     │
+│  │ • Artifact Archive (compressed, encrypted storage)           │     │
+│  └──────────────────────────────────────────────────────────────┘     │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The repository ships with a pair of curated fixtures and overlay profiles so you can experience the full pipeline without wiring external systems or secrets.
+### Directory Structure
 
-> **Static typing (optional):** Run `python -m mypy --config-file mypy.ini core apps scripts` after installing the stub packages listed in `dev-requirements.txt`. The command currently surfaces known typing gaps that are being tracked in the backlog; use it to spot regressions when touching the typed modules.
-
-1. **Install dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   # Optional: install backend extras when you have access to private repos
-   pip install -r apps/api/requirements-optional.txt
-   ```
-
-2. **Run the bundled demo experience**
-
-   ```bash
-   python -m core.cli demo --mode demo --output out/demo.json --pretty
-   ```
-
-   The command seeds deterministic tokens, loads the curated design/SBOM/SARIF/CVE fixtures, and executes the same pipeline that powers the API. The JSON result is saved to `out/demo.json` and the console summary highlights severity, guardrail status, compliance frameworks, executed modules, and the active pricing tier.
-
-3. **Switch to the enterprise overlay**
-
-   ```bash
-   python -m core.cli demo --mode enterprise --output out/enterprise.json --pretty
-   ```
-
-   Enterprise mode applies the hardened profile from `config/fixops.overlay.yml`, demonstrating how additional guardrails, automation destinations, and evidence retention settings change the output without touching code. Evidence bundles, cache directories, and automation payloads are created under the allow-listed paths declared in the overlay.
-
-4. **Iterate locally**
-
-   You can point the CLI at your own artefacts with `python -m core.cli run` or import `core.demo_runner.run_demo_pipeline` in a notebook for scripted exploration. Use `python -m core.cli show-overlay --pretty` to inspect the merged overlay for each profile. When running the enterprise stack with Docker Compose, copy `enterprise/.env.example` to `.env`, rotate the secrets, and ensure `FIXOPS_AUTH_DISABLED` remains `false`.
-
-5. **Validate with automated tests**
-
-   The repository ships with a pytest suite that exercises the CLI stage runner, ingest API, compliance rollups, and SSDLC orchestrator logic. Re-run it after local changes to confirm the canonical IO contract still holds.
-
-   ```bash
-   export PYTHONPATH=.
-   pytest
-   ```
-
-### Stage-by-stage local workflow
-
-The unified stage runner gives you the same normalisation logic that powers the API while keeping artefacts local. Each invocation calls `core.stage_runner.StageRunner.run_stage`, which coordinates identity minting via `src.services.id_allocator.ensure_ids`, run persistence through `src.services.run_registry.RunRegistry.ensure_run`, and optional manifest signing with `src.services.signing`.
-
-| Stage | Demo input | Command | Processor |
-| --- | --- | --- | --- |
-| Requirements | `simulations/demo_pack/requirements-input.csv` | `python -m apps.fixops_cli stage-run --stage requirements --input simulations/demo_pack/requirements-input.csv --app life-claims-portal` | `_process_requirements` parses CSV/JSON, mints `Requirement_ID`, and applies SSVC anchoring. |
-| Design | `simulations/demo_pack/design-input.json` | `python -m apps.fixops_cli stage-run --stage design --input simulations/demo_pack/design-input.json --app life-claims-portal` | `_process_design` hydrates IDs via `ensure_ids` and annotates component risk. |
-| Build | `simulations/demo_pack/sbom.json` | `python -m apps.fixops_cli stage-run --stage build --input simulations/demo_pack/sbom.json --app life-claims-portal` | `_process_build` normalises with `apps.api.normalizers.InputNormalizer` and flags risky components. |
-| Test | `simulations/demo_pack/scanner.sarif` | `python -m apps.fixops_cli stage-run --stage test --input simulations/demo_pack/scanner.sarif --app life-claims-portal` | `_process_test` ingests SARIF, folds in coverage, and derives drift metrics. |
-| Deploy | `simulations/demo_pack/tfplan.json` | `python -m apps.fixops_cli stage-run --stage deploy --input simulations/demo_pack/tfplan.json --app life-claims-portal` | `_process_deploy` accepts Terraform or Kubernetes manifests and extracts guardrail evidence. |
-| Operate | `simulations/demo_pack/ops-telemetry.json` | `python -m apps.fixops_cli stage-run --stage operate --input simulations/demo_pack/ops-telemetry.json --app life-claims-portal` | `_process_operate` blends telemetry with KEV/EPSS feeds to compute pressure. |
-| Decision | (auto-discovers prior outputs) | `python -m apps.fixops_cli stage-run --stage decision --app life-claims-portal` | `_process_decision` synthesises stage outputs, bundles evidence, and emits explainable verdicts. |
-
-Run the sequence above to materialise canonical JSON under `artefacts/<app_id>/<run_id>/outputs/`. Each run also records signed manifests (when `FIXOPS_SIGNING_KEY`/`FIXOPS_SIGNING_KID` are configured) and emits a transparency log via `outputs/transparency.index`. After the CLI walkthrough, execute `pytest` to confirm the ingest API and compliance regressions continue to pass end-to-end.
-
-
-## Why teams adopt FixOps
-- **Overlay-governed operating modes** – A single configuration file switches between 30-minute demo onboarding and hardened enterprise guardrails, provisioning directories, tokens, compliance packs, automation connectors, and module toggles on startup (`config/fixops.overlay.yml`).
-- **Push ingestion + parity CLI** – Upload design CSV, SBOM, SARIF, and CVE/KEV data through FastAPI endpoints or run the same flow locally via `python -m core.cli`, with API-key enforcement, MIME validation, byte limits, and evidence export controls (`apps/api/app.py`, `core/cli.py`).
-- **Context-aware decisioning** – The orchestrator correlates design intent with bill-of-materials, findings, and advisories, then layers the context engine, guardrails, SSDLC scoring, IaC posture, exploit intelligence, AI agent detections, and knowledge graph analytics in a single pass (`apps/api/pipeline.py`, `new_apps/api/processing/knowledge_graph.py`).
-- **Probabilistic escalation intelligence** – The `core.probabilistic.ProbabilisticForecastEngine` applies Dirichlet-smoothed calibration, spectral diagnostics, Markov chains, and Bayesian posterior updates to forecast severity drift, quantify stationary risk, and surface explainable escalation pressure for decision makers.
-- **Multi-LLM consensus & transparency** – The enhanced decision engine layers deterministic heuristics with optional OpenAI/Anthropic/Gemini calls (when API keys are present), reconciles verdicts, enriches MITRE ATT&CK, compliance, and marketplace intelligence, and emits explainable consensus telemetry for demos or production pipelines (`fixops-enterprise/src/services/enhanced_decision_engine.py`, `fixops-enterprise/src/api/v1/enhanced.py`).
-- **Security-as-code provenance & trust** – SLSA v1 attestations, provenance graph relationships, reproducible build attestations, and cosign signing keep releases anchored to verifiable supply-chain evidence (`services/provenance`, `services/graph`, `services/repro`, `scripts/signing`, `services/evidence/packager.py`).
-- **Risk-first posture** – Normalised SBOMs, EPSS/KEV feed joins, FixOpsRisk scoring, and anomaly detection correlate exploit probability, exposure, and downgrade drift before pull requests merge (`lib4sbom/normalizer.py`, `risk/scoring.py`, `risk/feeds`, `services/graph/graph.py`).
-- **Evidence & automation built-in** – Compliance packs, policy automation (Jira/Confluence/Slack), onboarding guidance, feedback capture, and evidence bundling persist auditable manifests inside overlay-allowlisted directories (`core/compliance.py`, `core/policy.py`, `core/evidence.py`, `core/feedback.py`, `services/evidence/packager.py`).
-- **Observability & demo-ready experiences** – Telemetry hooks, dashboards, and docker-compose demos provide investor-ready tours while keeping operators in control of data flow (`telemetry`, `docker-compose.demo.yml`, `ui/dashboard`).
-
-### Architecture overview
-```text
-┌────────────┐   uploads    ┌───────────────┐   overlay + artefacts   ┌────────────────────────────┐   probabilistic + LLM intelligence   ┌────────────────────┐   evidence + automations   ┌──────────────┐
-│  Clients    │ ───────────▶│ FastAPI (ing) │────────────────────────▶│ Pipeline orchestrator     │──────────────────────────────────────▶│ Enhanced decisioning │──────────────────────────▶│ Destinations    │
-│ (CLI/API)   │             │  /inputs/*    │                         │ (context, guardrails,     │                                           │ (consensus, MITRE,   │                          │ (Jira, bundle,  │
-│             │◀────────────│ /pipeline/run │◀────────────────────────│ SSDLC, IaC, probabilistic)│◀──────────────────────────────────────│ compliance, KG, LLM) │◀──────────────────────────│ Slack, storage) │
-└────────────┘  JSON status └───────────────┘  overlay metadata       │ overlay module matrix     │                                           └───────────────────────┘                            └──────────────┘
-                                                   │                   └────────────────────────────┘
-                                                   ▼
-                                   Graph + risk engine, evidence hub, pricing, knowledge graph, feedback, docs
+```
+fixops/
+├── core/                      # Core business logic and orchestration
+│   ├── cli.py                 # Command-line interface orchestrator (1097 lines)
+│   ├── configuration.py       # Overlay configuration management
+│   ├── overlay_runtime.py     # Runtime configuration with safeguards
+│   ├── context_engine.py      # Business context enrichment
+│   ├── enhanced_decision.py   # Multi-LLM consensus engine
+│   ├── evidence.py            # Evidence bundle management
+│   ├── compliance.py          # Compliance framework evaluation
+│   ├── policy.py              # Policy automation engine
+│   ├── exploit_signals.py     # KEV/EPSS feed management
+│   ├── probabilistic.py       # Bayesian/Markov forecasting
+│   ├── vector_store.py        # Pattern matching with embeddings
+│   ├── ssdlc.py               # SSDLC stage evaluation
+│   ├── iac.py                 # Infrastructure-as-Code posture
+│   ├── ai_agents.py           # AI agent detection
+│   ├── analytics.py           # ROI and performance metrics
+│   ├── tenancy.py             # Multi-tenant lifecycle management
+│   ├── performance.py         # Performance simulation
+│   ├── stage_runner.py        # SSDLC stage orchestration
+│   ├── processing_layer.py    # Bayesian/Markov analytics
+│   ├── storage.py             # Artifact archival
+│   └── llm_providers.py       # LLM provider abstractions
+│
+├── apps/api/                  # FastAPI ingestion service
+│   ├── app.py                 # Main FastAPI application
+│   ├── pipeline.py            # Pipeline orchestrator (943 lines)
+│   ├── normalizers.py         # Multi-format parsers
+│   ├── knowledge_graph.py     # Knowledge graph service
+│   ├── upload_manager.py      # Chunked upload handler
+│   └── routes/                # API route definitions
+│
+├── backend/                   # Legacy backend components
+│   ├── app.py                 # Legacy FastAPI app
+│   ├── normalizers.py         # Legacy normalizers
+│   └── api/                   # Legacy API routes
+│
+├── fixops-enterprise/         # Enterprise-specific features
+│   └── src/
+│       ├── main.py            # Enterprise FastAPI entry point
+│       ├── services/
+│       │   ├── decision_engine.py        # Simplified decision engine (349 lines)
+│       │   ├── enhanced_decision_engine.py  # Multi-LLM orchestrator
+│       │   ├── evidence.py               # Evidence store
+│       │   ├── compliance.py             # Compliance engine
+│       │   ├── run_registry.py           # Run-specific artifact management
+│       │   ├── id_allocator.py           # Unique ID generation
+│       │   ├── signing.py                # Cryptographic signing
+│       │   ├── feeds_service.py          # Vulnerability feed management
+│       │   ├── vex_ingestion.py          # VEX document processing
+│       │   └── marketplace.py            # Marketplace recommendations
+│       └── api/v1/
+│           ├── artefacts.py              # Artifact upload endpoints
+│           ├── enhanced.py               # Enhanced decision endpoints
+│           ├── evidence.py               # Evidence retrieval
+│           ├── marketplace.py            # Marketplace API
+│           └── cicd.py                   # CI/CD adapter endpoints
+│
+├── services/                  # Shared services
+│   ├── evidence/              # Evidence packaging
+│   ├── graph/                 # Provenance graph (NetworkX)
+│   ├── match/                 # Crosswalk matching algorithms
+│   ├── provenance/            # SLSA attestation generation
+│   └── repro/                 # Reproducible build verification
+│
+├── domain/                    # Domain models
+│   ├── crosswalk.py           # Crosswalk data structures
+│   └── evidence.py            # Evidence models
+│
+├── data/                      # Data storage
+│   ├── feeds/                 # KEV, EPSS feeds
+│   ├── uploads/               # Uploaded artifacts
+│   ├── evidence/              # Evidence bundles
+│   ├── archive/               # Archived artifacts
+│   └── marketplace/           # Marketplace data
+│
+├── config/                    # Configuration files
+│   └── fixops.overlay.yml     # Overlay configuration (240 lines)
+│
+├── tests/                     # Test suite
+│   ├── test_cli.py            # CLI tests
+│   ├── backend_test.py        # API endpoint tests (100+ tests)
+│   ├── real_components_test.py  # Integration tests
+│   └── fixtures/              # Test fixtures
+│
+├── scripts/                   # Utility scripts
+│   ├── bootstrap.sh           # Development environment setup
+│   └── signing/               # Signing utilities
+│
+├── simulations/               # Demo scenarios
+│   ├── demo_pack/             # Demo fixtures
+│   └── ssdlc/                 # SSDLC simulations
+│
+└── docs/                      # Documentation
+    ├── ARCHITECTURE.md        # Architecture overview
+    ├── HANDBOOK.md            # Engineering handbook
+    └── schemas/               # JSON schemas
 ```
 
-### Component interaction diagram
-```
-             ┌────────────────────┐
-             │ Overlay registry   │
-             │ config/*.yml       │
-             └────────┬───────────┘
-                      │
-                      ▼ load_overlay()
-┌────────────┐   auth/token   ┌───────────────────┐    artefact cache     ┌───────────────────────┐
-│ CLI runner │──────────────▶│ FastAPI ingestion │──────────────────────▶│ Storage + evidence    │
-│ core.cli │               │  apps/api/app.py   │◀──────────────────────│ data/uploads/*        │
-└────────────┘               └────────┬──────────┘     archive bundles    └──────────┬────────────┘
-         ▲                             │                                    decrypt/compress │
-         │ module toggles              │ orchestrate()                       ▼                │
-         │                             ▼                             ┌─────────────┐        │
-         │                     ┌───────────────────┐                 │ Destinations│◀───────┘
-         ├────────────────────▶│ Pipeline modules  │───────────────▶ │ Jira/Slack │   automation manifests
-         │                     │ context/guardrail │  ROI & telemetry │ GRC repos │
-         │                     └────────┬──────────┘                 └─────────────┘
-         │                              │ enhanced_run()
-         │                              ▼
-         │                     ┌───────────────────┐
-         └────────────────────▶│ Enhanced decision │
-                               │ multi-LLM + KG    │
-                               │ explanations      │
-                               └───────────────────┘
+**Total Core Code**: ~16,299 lines (core + apps/api + backend)
+
+---
+
+## Key Components
+
+### 1. Pipeline Orchestrator
+
+**Location**: `apps/api/pipeline.py` (943 lines)
+
+The `PipelineOrchestrator` is the central coordinator that:
+
+- Normalizes severity levels across SARIF, CVE, and CNAPP sources
+- Builds crosswalk mappings between design components, SBOM entries, findings, and CVEs
+- Executes enabled modules based on overlay configuration
+- Aggregates results into a unified response
+
+**Key Methods**:
+```python
+def run(
+    design_dataset: Dict[str, Any],
+    sbom: NormalizedSBOM,
+    sarif: NormalizedSARIF,
+    cve: NormalizedCVEFeed,
+    overlay: Optional[OverlayConfig] = None,
+    vex: Optional[NormalizedVEX] = None,
+    cnapp: Optional[NormalizedCNAPP] = None,
+    context: Optional[NormalizedBusinessContext] = None,
+) -> Dict[str, Any]
 ```
 
-The overlay registry feeds both the CLI and FastAPI surfaces with runtime configuration. Artefacts ingested through the API are cached under `data/uploads`, normalised, and handed to modular pipeline stages that emit automation payloads, evidence bundles, and ROI telemetry to downstream destinations.
+**Severity Normalization**:
+- SARIF: `none/note/info → low`, `warning → medium`, `error → high`
+- CVE: `critical → critical`, `high → high`, `medium/moderate → medium`, `low → low`
+- CNAPP: Similar mapping with additional `info → low`
 
-The enhanced decisioning layer augments the classic pipeline by invoking the multi-LLM ensemble, SentinelGPT explanations, and CTINexus-style knowledge graph analytics before returning consensus decisions and reasoning metadata for executive dashboards.
+**Outputs**:
+- Severity overview with counts by level
+- Guardrail evaluation status
+- Context engine summaries
+- Compliance framework coverage
+- Policy automation manifests
+- Evidence bundle paths
+- Module execution matrix
 
-### Sequence diagram (demo → enterprise hand-off)
-```
-Client/CLI -> FastAPI ingestion: POST /inputs/* (design, sbom, cve, sarif)
-FastAPI ingestion -> Artefact cache: store + normalise artefacts
-FastAPI ingestion -> Pipeline orchestrator: invoke /pipeline/run
-Pipeline orchestrator -> Module registry: resolve enabled modules
-Module registry -> Context engine: enrich with business signals
-Module registry -> Guardrails: evaluate maturity thresholds
-Module registry -> Automation pack: dispatch Jira/Slack/Confluence
-Module registry -> Evidence hub: build encrypted bundle
-Module registry -> Analytics: compute ROI + performance profile
-Pipeline orchestrator -> Enhanced decisioning: invoke multi-LLM consensus + explanations
-Enhanced decisioning -> Knowledge graph processor: map attack paths and entities
-Enhanced decisioning -> Explanation engine: craft SentinelGPT executive summary
-Enhanced decisioning -> Pipeline orchestrator: return consensus, MITRE, compliance, KG
-Pipeline orchestrator -> FastAPI ingestion: return aggregated response
-FastAPI ingestion -> Client/CLI: JSON with summaries + bundle paths
+### 2. Decision Engine
+
+**Location**: `fixops-enterprise/src/services/decision_engine.py` (349 lines)
+
+The `DecisionEngine` produces risk verdicts from normalized findings:
+
+**Core Logic**:
+```python
+def evaluate(self, submission: Mapping[str, Any]) -> DecisionOutcome:
+    findings = submission.get("findings") or []
+    verdict, confidence = self._score_findings(findings)
+    compliance = self._compliance.evaluate(...)
+    evidence = self._evidence_store.create(evidence_payload)
+    self._apply_signature(evidence)
+    return DecisionOutcome(...)
 ```
 
-### UML overview
-```
-@startuml
-class OverlayLoader {
-  +load_overlay(path)
-  +resolve_tokens()
+**Verdict Mapping**:
+- `allow`: Aggregate risk score < 0.6
+- `review`: Aggregate risk score 0.6-0.85
+- `block`: Aggregate risk score >= 0.85
+
+**Severity Weights**:
+```python
+SEVERITY_WEIGHTS = {
+    "critical": 1.0,
+    "high": 0.75,
+    "medium": 0.5,
+    "low": 0.25,
 }
+```
 
-class IngestionService {
-  +accept_design()
-  +accept_sbom()
-  +accept_cve()
-  +accept_sarif()
-  +run_pipeline()
+**Top Factors Analysis**:
+1. **Severity Factor**: Highest severity detected with finding count
+2. **Compliance Factor**: Framework gaps and coverage percentages
+3. **Exploit Factor**: KEV overlap and operational pressure metrics
+
+### 3. Enhanced Decision Engine
+
+**Location**: `fixops-enterprise/src/services/enhanced_decision_engine.py`
+
+Multi-LLM consensus engine that:
+
+- Queries multiple LLM providers (GPT-5, Claude-3, Gemini-2, specialized cyber models)
+- Aggregates verdicts with confidence scoring
+- Detects disagreements and escalates when consensus < 50%
+- Enriches with MITRE ATT&CK mappings
+- Generates narrative explanations
+
+**Configuration** (from `config/fixops.overlay.yml`):
+```yaml
+enhanced_decision:
+  baseline_confidence: 0.82
+  providers:
+    - name: gpt-5
+      style: strategist
+      focus: [mitre, context]
+    - name: claude-3
+      style: analyst
+      focus: [compliance, guardrails]
+    - name: gemini-2
+      style: signals
+      focus: [exploit, cnapp]
+    - name: sentinel-cyber
+      style: threat
+      focus: [marketplace, agents]
+```
+
+### 4. Input Normalizers
+
+**Location**: `apps/api/normalizers.py`
+
+The `InputNormalizer` class handles multi-format parsing:
+
+**Supported Formats**:
+- **SBOM**: CycloneDX, SPDX, GitHub Dependency Snapshot, Syft JSON
+- **SARIF**: SARIF 2.1.0 with normalized severity levels
+- **CVE**: CISA KEV format, custom CVE feeds
+- **VEX**: Vulnerability Exploitability eXchange documents
+- **CNAPP**: Cloud-Native Application Protection Platform findings
+- **Business Context**: SSVC YAML, OTM JSON, core.yaml
+
+**Key Methods**:
+```python
+def load_sbom(self, raw_bytes: bytes) -> NormalizedSBOM
+def load_sarif(self, raw_bytes: bytes) -> NormalizedSARIF
+def load_cve_feed(self, raw_bytes: bytes) -> NormalizedCVEFeed
+def load_vex(self, raw_bytes: bytes) -> NormalizedVEX
+def load_cnapp(self, raw_bytes: bytes) -> NormalizedCNAPP
+def load_business_context(self, raw_bytes: bytes, content_type: Optional[str]) -> NormalizedBusinessContext
+```
+
+### 5. Crosswalk Engine
+
+**Location**: `services/match/join.py`
+
+The crosswalk engine correlates data across sources:
+
+**Matching Strategy**:
+1. Build component index from SBOM (by name, purl, version)
+2. Build finding index from SARIF (by file path, component tokens)
+3. Build CVE index from feeds (by component name, version)
+4. Join design rows with matched components, findings, and CVEs
+
+**Output**: `CrosswalkRow` objects containing:
+- Design row (business context)
+- SBOM component (supply chain data)
+- SARIF findings (security issues)
+- CVE records (vulnerability data)
+- Business context (criticality, exposure, data classification)
+
+### 6. Evidence Lake
+
+**Location**: `fixops-enterprise/src/services/evidence.py`
+
+Immutable storage for cryptographically-signed decision records:
+
+**Features**:
+- RSA-SHA256 signatures with public key fingerprints
+- Configurable retention periods (90 days demo, 2555 days enterprise)
+- Optional Fernet encryption for sensitive data
+- Atomic writes with transparency indices
+
+**Evidence Bundle Structure**:
+```json
+{
+  "payload": {
+    "findings": [...],
+    "verdict": "allow",
+    "confidence": 0.85,
+    "compliance": {...},
+    "top_factors": [...]
+  },
+  "signature": "base64_encoded_rsa_signature",
+  "algorithm": "RSA-SHA256",
+  "fingerprint": "public_key_sha256",
+  "signed_at": "2025-10-19T12:00:00Z"
 }
+```
 
-class PipelineOrchestrator {
-  +correlate_artefacts()
-  +execute_modules()
-  +emit_outputs()
+### 7. Vector Store
+
+**Location**: `core/vector_store.py`
+
+Pattern-matching system using sentence transformers:
+
+**Implementations**:
+- `DemoVectorStore`: In-memory with 4 sample patterns
+- `ChromaDBVectorStore`: Persistent vector database
+
+**Configuration**:
+```yaml
+modules:
+  vector_store:
+    enabled: true
+    provider: auto  # auto, demo, chromadb
+    patterns_path: fixtures/security_patterns.json
+    top_k: 3
+```
+
+**Usage**:
+```python
+matcher = SecurityPatternMatcher(config, root=repo_root)
+results = matcher.search_security_patterns(query, top_k=5)
+```
+
+### 8. Exploit Intelligence
+
+**Location**: `core/exploit_signals.py`
+
+Manages vulnerability intelligence feeds:
+
+**Data Sources**:
+- **CISA KEV**: Known Exploited Vulnerabilities (1,422+ CVEs)
+  - Source: `https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json`
+- **FIRST.org EPSS**: Exploit Prediction Scoring System (296,333+ CVEs)
+  - Source: `https://api.first.org/data/v1/epss`
+
+**Auto-Refresh**:
+- Scheduled daily refresh via APScheduler
+- Configurable via `exploit_signals.auto_refresh.enabled`
+- Offline mode support for air-gapped environments
+
+**Escalation Rules**:
+```yaml
+exploit_signals:
+  signals:
+    - type: kev
+      field: kev
+      escalate_to: critical
+    - type: epss
+      field: epss
+      threshold: 0.7
+      escalate_to: high
+```
+
+### 9. Compliance Engine
+
+**Location**: `core/compliance.py`
+
+Evaluates compliance against multiple frameworks:
+
+**Supported Frameworks**:
+- **SOC2**: CC6.1, CC6.6, CC7.2, CC8.1
+- **ISO27001**: A.12.6.1, A.14.2.8
+- **PCI-DSS**: 6.2, 6.5.1, 6.5.3, 6.5.8, 11.2, 11.3
+- **GDPR**: Article 25, Article 32
+
+**Control Mapping**:
+```yaml
+compliance:
+  frameworks:
+    - name: SOC2
+      controls:
+        - id: CC8.1
+          title: Change Management Evidence
+          requires: [design, guardrails, evidence]
+        - id: CC7.2
+          title: Continuous Vulnerability Management
+          requires: [sarif, cve, context]
+```
+
+**Output**:
+```json
+{
+  "frameworks": [
+    {
+      "name": "SOC2",
+      "controls": [
+        {
+          "id": "CC8.1",
+          "title": "Change Management Evidence",
+          "status": "satisfied",
+          "coverage": 1.0
+        }
+      ]
+    }
+  ],
+  "gaps": ["PCI_DSS:6.5.1"],
+  "evidence_refs": [...]
 }
+```
 
-class ModuleRegistry {
-  +enable(name)
-  +disable(name)
-  +register(hook)
+### 10. Policy Automation
+
+**Location**: `core/policy.py`
+
+Trigger-action system for automated remediation:
+
+**Supported Actions**:
+- Jira issue creation
+- Confluence page generation
+- Slack message posting
+
+**Configuration**:
+```yaml
+policy_automation:
+  actions:
+    - id: jira-guardrail-fail
+      trigger: guardrail:fail
+      type: jira_issue
+      summary: Guardrail failure detected
+      priority: High
+    - id: confluence-guardrail-warn
+      trigger: guardrail:warn
+      type: confluence_page
+      title: FixOps guardrail warning summary
+```
+
+**Connectors**:
+- `JiraConnector`: Creates issues via Jira REST API
+- `ConfluenceConnector`: Creates/updates pages via Confluence REST API
+- `SlackConnector`: Posts messages via Slack webhooks
+
+---
+
+## Data Flow & Processing
+
+### End-to-End Pipeline Flow
+
+```
+1. INGESTION
+   ├─ Upload artifacts via API (/inputs/design, /inputs/sbom, /inputs/sarif, /inputs/cve)
+   ├─ Or provide local files via CLI (--design, --sbom, --sarif, --cve)
+   └─ Validate MIME types, size limits, API keys
+
+2. NORMALIZATION
+   ├─ Parse SBOM (CycloneDX/SPDX/GitHub/Syft)
+   ├─ Parse SARIF 2.1.0 with severity normalization
+   ├─ Parse CVE feeds (CISA KEV format)
+   ├─ Parse VEX documents (optional)
+   ├─ Parse CNAPP findings (optional)
+   └─ Parse business context (SSVC/OTM/core.yaml)
+
+3. CORRELATION
+   ├─ Build component index from SBOM
+   ├─ Build finding index from SARIF
+   ├─ Build CVE index from feeds
+   ├─ Match design rows to components
+   ├─ Match findings to components
+   ├─ Match CVEs to components
+   └─ Generate crosswalk rows
+
+4. ENRICHMENT
+   ├─ Merge KEV/EPSS data into CVE records
+   ├─ Apply exploit signal escalation rules
+   ├─ Inject business context (criticality, exposure, data classification)
+   ├─ Apply VEX suppressions (if provided)
+   └─ Merge CNAPP findings (if provided)
+
+5. DECISION ENGINE
+   ├─ Vector Store: Search for similar security patterns
+   ├─ Policy Engine: Evaluate OPA rules
+   ├─ Multi-LLM: Query GPT-5, Claude-3, Gemini-2
+   ├─ Consensus Checker: Aggregate verdicts with confidence
+   ├─ Golden Regression: Compare against historical baseline
+   └─ SBOM Analysis: Assess supply chain risk
+
+6. MODULE EXECUTION
+   ├─ Context Engine: Enrich with business signals
+   ├─ Guardrails: Evaluate maturity thresholds
+   ├─ Compliance: Map to SOC2/ISO27001/PCI-DSS/GDPR
+   ├─ SSDLC: Score plan→audit stages
+   ├─ IaC Posture: Map Terraform/K8s findings
+   ├─ Exploit Signals: Refresh KEV/EPSS feeds
+   ├─ Probabilistic: Bayesian/Markov forecasting
+   ├─ AI Agents: Detect agentic frameworks
+   ├─ Analytics: Compute ROI metrics
+   ├─ Tenancy: Manage tenant lifecycle
+   ├─ Performance: Simulate capacity
+   └─ Knowledge Graph: Map attack paths
+
+7. EVIDENCE & AUTOMATION
+   ├─ Evidence Lake: Store signed decision records
+   ├─ Artifact Archive: Compress and encrypt bundles
+   ├─ Policy Automation: Dispatch Jira/Confluence/Slack
+   ├─ Provenance Graph: Generate SLSA attestations
+   └─ Transparency Index: Record audit trail
+
+8. RESPONSE
+   ├─ Return JSON with severity overview, guardrail status, compliance coverage
+   ├─ Include evidence bundle paths, automation manifests, module matrix
+   └─ Provide sanitized overlay metadata (demo mode only)
+```
+
+### Severity Normalization
+
+**SARIF Level Mapping**:
+```python
+{
+    "none": "low",
+    "note": "low",
+    "info": "low",
+    "warning": "medium",
+    "error": "high"
 }
+```
 
-class EvidenceHub {
-  +archive()
-  +encrypt()
-  +handoff()
+**CVE Severity Mapping**:
+```python
+{
+    "critical": "critical",
+    "high": "high",
+    "medium": "medium",
+    "moderate": "medium",
+    "low": "low"
 }
-
-OverlayLoader --> IngestionService
-IngestionService --> PipelineOrchestrator
-PipelineOrchestrator --> ModuleRegistry
-ModuleRegistry --> EvidenceHub
-PipelineOrchestrator --> Destinations
-@enduml
 ```
 
-The UML block highlights the primary classes composing FixOps: configuration loaders, the ingestion facade, the orchestrator, the modular execution surface, and evidence management.
+**Unified Severity Order**: `low < medium < high < critical`
 
-### Feature mind map
-```
-FixOps Platform
-├── Ingestion
-│   ├── FastAPI endpoints (`backend/api/*`)
-│   └── CLI parity (`cli/fixops-*`)
-├── Normalisation & analytics
-│   ├── SBOM normaliser (`lib4sbom/normalizer.py`)
-│   ├── Risk scoring + feeds (`risk/scoring.py`, `risk/feeds/*`)
-│   └── Provenance graph (`services/graph/graph.py`)
-├── Contextual intelligence
-│   ├── Context engine & guardrails (`apps/api/pipeline.py`)
-│   ├── Probabilistic (Markov/Bayesian) forecasts (`core/probabilistic/*`)
-│   └── Multi-LLM consensus (`fixops-enterprise/src/services/enhanced_decision_engine.py`)
-├── Evidence & automation
-│   ├── Evidence bundling (`services/evidence/packager.py`)
-│   ├── Cosign signing & provenance (`scripts/signing/*`, `services/provenance`)
-│   └── Reproducible build attestations (`services/repro`)
-├── Observability & demo
-│   ├── Telemetry (`telemetry/*`)
-│   ├── Demo stack (`docker-compose.demo.yml`, `config/otel-collector-demo.yaml`)
-│   └── UI dashboards (`ui/dashboard`, `ui/graph-view`)
-└── Developer experience
-    ├── Playbooks & docs (`docs/*.md`)
-    ├── QA automation (`.github/workflows/qa.yml`)
-    └── Coverage + reports (`reports/coverage/*`)
-```
+---
 
-### Detailed feature list
-| Feature | Inputs | Runtime toggles | Outputs | Value delivered |
-| --- | --- | --- | --- | --- |
-| Context engine | Design CSV, SBOM, CVE, SARIF | `modules.context_engine.enabled` | Enriched component scores, prioritised findings | Correlates business impact with exposure to cut remediation noise. |
-| Guardrails | Overlay maturity targets, SSDLC/IaC artefacts | `modules.guardrails.enabled` | Pass/fail gates, downgrade logic | Demonstrates readiness to executives and reduces false positives. |
-| SSDLC evaluator | Design CSV, overlay stage metadata | `modules.ssdlc.enabled` | Stage coverage map, control gaps | Shows pipeline health for governance reviews. |
-| IaC posture | Terraform/K8s scan results | `modules.iac.enabled` | IaC findings embedded in pipeline report | Connects infrastructure risk to application context. |
-| Compliance packs | Overlay compliance packs, evidence hub config | `modules.compliance.enabled` | SOC2/ISO bundles, attestations | Provides audit-ready evidence per run. |
-| Policy automation | Automation connectors, Jira/Slack secrets | `modules.policy_automation.enabled` | Tickets, pages, chat receipts | Automates remediation and documentation workflows. |
-| Evidence hub | Any uploaded artefact | `modules.evidence.enabled` | Compressed, optionally encrypted bundles | Centralises artefacts for hand-off without manual effort. |
-| AI agent advisor | SBOM, SARIF, overlay AI toggles | `modules.ai_agents.enabled` | AI agent detection notes, control guidance
-| Highlights autonomous agents requiring new guardrails. |
-| Multi-LLM consensus | Enhanced API payloads, CLI overrides, marketplace context | Enhanced decision engine toggles | Consensus verdict, MITRE & compliance overlays, disagreement map | Blends deterministic heuristics with optional OpenAI/Anthropic/Gemini calls when API keys are present. |
-| Narrative explanations | Pipeline findings, business context | Enhanced decision engine | Narrative summary, mitigation guidance | Produces Sentinel-style narratives locally; remote providers are optional fallbacks. |
-| Knowledge graph analytics | Normalised entities, relationships from scans | Enhanced decision engine | Graph metrics, attack path highlights | Surfaces CTINexus-style attack path intelligence using the bundled overlay graph. |
-| Exploit signals | CVE feeds, EPSS/KEV overlays | `modules.exploit_signals.enabled` | Exploitability scores, refresh SLAs
-| Keeps remediation focused on weaponised threats. |
-| Probabilistic forecasts | Correlated crosswalk, historical refresh | `modules.probabilistic.enabled` | Bayesian/Markov risk projections | Quantifies breach likelihood for planning and VC narratives. |
-| ROI analytics | Pipeline telemetry, automation success | `modules.analytics.enabled` | Cost savings, MTTR deltas, executive KPIs | Substantiates FixOps value in investor demos. |
-| Tenant lifecycle | Tenant registry, stage definitions | `modules.tenancy.enabled` | Stage transitions, module gaps | Guides shared-service owners through onboarding and renewals. |
-| Performance simulation | Overlay latency targets, benchmark profiles | `modules.performance.enabled` | Backlog predictions, throughput advice | Ensures capacity planning for enterprise pilots. |
+## Module Ecosystem
 
-### CLI/API usage by stage
-| Stage | Interface | Command / Endpoint | Required inputs | Primary value |
-| --- | --- | --- | --- | --- |
-| Demo discovery | CLI | `python -m core.cli run --overlay config/demo.overlay.yml --design samples/design.csv --sbom samples/sbom.json --sarif samples/scan.sarif --cve samples/cve.json --output out/demo.json` | Demo overlay, curated artefacts | Fast investor narrative with contextual scoring and ROI headlines. |
-| Demo discovery | API | `POST /inputs/*`, `GET /pipeline/run` | Same artefacts via multipart uploads | Live walkthrough showing ingestion health checks and guardrail outputs. |
-| Enterprise onboarding | CLI | `python -m core.cli run --overlay config/fixops.overlay.yml --enable compliance --enable policy_automation --evidence-dir out/evidence` | Enterprise overlay, connector secrets | Proves compliance and automation readiness for procurement teams. |
-| Enterprise onboarding | API | `POST /pipeline/run` with `X-API-Key` | Cached artefacts, overlay toggles | Enables integration tests and CI gating. |
-| Operations steady state | CLI | `python -m core.cli run --enable exploit_signals --enable analytics --output out/ops.json` | Latest artefacts, exploit feeds | Keeps vuln management prioritised around active threats and ROI metrics. |
-| Operations steady state | API | `POST /feedback` (if enabled) | Review payloads linked to run IDs | Captures analyst decisions for continuous improvement. |
-| Overlay hardening | CLI | `python -m core.cli run --overlay config/fixops.overlay.yml --enable compliance` | Enterprise overlay, connector secrets | Demonstrates hardened guardrails without additional infrastructure. |
+### Core Modules
 
-Each row outlines the stage of the customer journey, the surface to invoke, the exact commands or endpoints, the minimal inputs required, and the resulting business value to emphasise during demos or enterprise rollouts.
-- **Ingestion service (`apps/api/app.py`)** – Loads the overlay at startup, prepares allowlisted directories, enforces API tokens, validates MIME types, caps uploads, and accepts artefacts at `/inputs/design`, `/inputs/sbom`, `/inputs/cve`, and `/inputs/sarif` before orchestrating `/pipeline/run`.
-- **Pipeline orchestrator (`apps/api/pipeline.py`)** – Normalises severities, builds the design ↔ SBOM ↔ findings ↔ CVE crosswalk, evaluates guardrails and contextual modules, executes automation connectors, and emits the module matrix alongside summaries, evidence bundles, pricing, and sanitized overlay metadata.
-- **Extension surface (`core/modules.py`)** – Overlay-declared modules and custom hooks allow integrators to disable, enable, or extend behaviour (e.g., IaC posture checks, exploit refresh, probabilistic forecasts) without code changes.
+#### 1. Context Engine
+**File**: `core/context_engine.py`
 
-## End-to-end data flow
-1. **Load configuration** – `load_overlay()` merges defaults with demo or enterprise overrides, validates directories, registers tokens, and prepares module toggles (`core/configuration.py`).
-2. **Upload artefacts** – Push CSV/SBOM/SARIF/CVE data (plain JSON or gzip/zip archives) through FastAPI or point the CLI at local files; the normaliser caches parsers to reuse tokens and reduce I/O (`apps/api/normalizers.py`).
-3. **Run the pipeline** – The orchestrator correlates artefacts, executes enabled modules (context engine, compliance packs, policy automation, SSDLC, IaC, AI agents, exploitability, probabilistic forecasts, ROI analytics, tenant lifecycle, performance simulation), invokes the enhanced decision engine for multi-LLM consensus, knowledge graph analytics, and SentinelGPT explanations, and tracks custom module outcomes.
-4. **Persist outputs** – Artefact archives capture raw and normalised inputs, evidence hub writes compressed/encrypted bundles, automation connectors dispatch tickets/messages with manifests, exploit feeds refresh against allowlisted directories, and pricing summaries expose plan/limit data. Enhanced responses also persist consensus telemetry, MITRE mapping, and knowledge graph payloads for replay.
+Enriches findings with business context:
 
-### Validation checklist
+**Input Factors**:
+- Criticality (1-5 scale)
+- Data classification (PII, financial, health, internal, public)
+- Exposure (internet, partner, internal)
 
-1. **Stage canonicalisation** – Execute the stage workflow table above (or run `PYTHONPATH=. pytest tests/test_cli_stage_run.py`) to ensure each command writes the canonical artefact into `artefacts/<app_id>/<run_id>/outputs/` and, when signing variables are present, emits manifests plus `outputs/transparency.index`.
-2. **API ingest parity** – Launch the FastAPI app (`uvicorn apps.api.app:app --reload`) and post artefacts to `/api/v1/artefacts`; confirm the JSON summary echoes the stage, run ID, canonical output path, and signature state.
-3. **Overlay pipeline regression** – `python -m core.cli run --overlay config/fixops.overlay.yml --design simulations/demo_pack/design-input.json --sbom simulations/demo_pack/sbom.json --sarif simulations/demo_pack/scanner.sarif --cve demo/fixtures/sample.cve.json --pretty --output out/pipeline-enterprise.json` should emit the full module matrix, evidence bundle path, and pricing posture for enterprise demos.
-4. **Probabilistic calibration** – `python -m core.cli train-forecast --incidents data/examples/incidents.json --pretty --output out/forecast.json` validates spectral gap, stationary distribution, and multi-step projections, guaranteeing the enhanced analytics remain reproducible.
-5. **Continuous regression** – `pytest` executes the CLI/API regression suites, stage-run coverage, probabilistic diagnostics, and the import guard that prevents active code from depending on archived `WIP/` modules.
-5. **Inspect results** – API/CLI responses include severity overviews, guardrail status, context summaries, compliance coverage, policy execution, SSDLC assessments, IaC posture, AI agent findings, exploitability insights, probabilistic forecasts, ROI dashboards, tenant lifecycle summaries, performance profiles, knowledge graph analytics, SentinelGPT narratives, multi-LLM disagreement matrices, module matrices, feedback endpoints, and sanitized overlay metadata.
-
-## Installation & setup
-This repository ships the CLI workflow, the FastAPI ingestion service, and the overlay profiles used to demonstrate demo vs. enterprise behaviour. Container bundles, React front-ends, and Terraform stacks referenced in earlier drafts are **not** included.
-
-### Local CLI & FastAPI workflow
-1. Create a virtual environment and install dependencies (see below).
-2. Copy `.env.example` to `.env` when running the service locally; for enterprise demos use `enterprise/.env.example` as a reference for additional secrets.
-3. Launch the API with `uvicorn apps.api.app:app --reload` and exercise the `/inputs/*` plus `/pipeline/run` endpoints using the bundled fixtures under `simulations/demo_pack/`.
-4. Use `python -m core.cli demo --mode demo|enterprise` or `make demo` / `make demo-enterprise` to produce canonical pipeline JSON and evidence bundles without wiring external systems.
-
-### Deployment considerations
-- The historical Docker Compose stack has been removed; rely on the CLI or FastAPI app for walkthroughs.
-- There is no checked-in Terraform state. If you need infrastructure automation, treat it as a greenfield addition and document it alongside new modules.
-- The `frontend/` symlink in this snapshot points to an external package and is left for compatibility; there is no bundled UI.
-
-### Prerequisites
-- Python 3.10+ (tested with CPython 3.11)
-- `pip` and `virtualenv`
-- Optional: `uvicorn` for serving the FastAPI application, `jq` for response inspection
-- Optional: `cryptography` if enabling evidence bundle encryption (`limits.evidence.encrypt: true`)
-
-### 1. Install dependencies
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+**Weighting**:
+```yaml
+context_engine:
+  criticality_weights:
+    mission_critical: 4
+    external: 3
+    internal: 1
+  data_weights:
+    pii: 4
+    financial: 4
+    health: 4
+    internal: 2
+    public: 1
+  exposure_weights:
+    internet: 3
+    partner: 2
+    internal: 1
 ```
 
-### 2. Configure credentials & overlays
-- Copy `config/fixops.overlay.yml` and adjust tokens, directories, module toggles, and pricing tiers as needed.
-- Export `FIXOPS_API_TOKEN` (used by API and CLI) and any connector secrets declared in the overlay (e.g., `FIXOPS_JIRA_TOKEN`).
-- **Telemetry configuration**: By default, FixOps attempts to export OpenTelemetry metrics and traces to a collector at `http://collector:4318`. To disable telemetry when running locally without a collector, set `FIXOPS_DISABLE_TELEMETRY=1` in your environment. Alternatively, configure `OTEL_EXPORTER_OTLP_ENDPOINT` to point to your own collector endpoint.
-
-### 3. Launch the API (demo profile)
-```bash
-export FIXOPS_API_TOKEN="demo-token"
-uvicorn backend.app:create_app --factory --reload
+**Playbooks**:
+```yaml
+playbooks:
+  - name: Stabilise Customer Impact
+    min_score: 9
+    channel: sre-pager
+  - name: Sprint Triage
+    min_score: 6
+    channel: appsec-kanban
+  - name: Monitor
+    min_score: 0
+    channel: platform-notifications
 ```
 
-Upload artefacts and execute the pipeline:
-```bash
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/design.csv;type=text/csv" http://127.0.0.1:8000/inputs/design
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json;type=application/json" http://127.0.0.1:8000/inputs/sbom
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/cve.json;type=application/json" http://127.0.0.1:8000/inputs/cve
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/scan.sarif;type=application/json" http://127.0.0.1:8000/inputs/sarif
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/pipeline/run | jq
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/api/v1/enhanced/capabilities | jq
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
-  -H 'Content-Type: application/json' \
-  -d '{\"service_name\":\"demo-app\",\"security_findings\":[{\"rule_id\":\"SAST001\",\"severity\":\"high\",\"description\":\"SQL injection\"}],\"business_context\":{\"environment\":\"demo\",\"criticality\":\"high\"}}' \
-  http://127.0.0.1:8000/api/v1/enhanced/compare-llms | jq
+#### 2. Guardrails
+
+Maturity-level enforcement:
+
+**Profiles**:
+- **Foundational**: Fail on critical, warn on high
+- **Scaling**: Fail on high, warn on medium
+- **Advanced**: Fail on medium, warn on medium
+
+**Configuration**:
+```yaml
+guardrails:
+  maturity: scaling
+  profiles:
+    foundational: { fail_on: critical, warn_on: high }
+    scaling: { fail_on: high, warn_on: medium }
+    advanced: { fail_on: medium, warn_on: medium }
 ```
 
-### 3b. Try the bundled demo & enterprise fixtures
-Skip manual artefact preparation and run the overlay-driven demo or
-enterprise walkthrough in a single command. The CLI seeds required
-environment variables (API token, Jira/Confluence tokens, and an
-encryption key) with safe defaults.
+#### 3. SSDLC Evaluator
+**File**: `core/ssdlc.py`
 
-```bash
-# Demo profile (non-encrypted evidence bundle)
-python -m core.cli demo --mode demo --output out/pipeline-demo.json --pretty
+Scores Software Development Lifecycle stages:
 
-# Enterprise profile (encryption enabled when `cryptography` is installed)
-python -m core.cli demo --mode enterprise --output out/pipeline-enterprise.json --pretty
+**Stages**:
+- Requirements
+- Design
+- Build
+- Test
+- Deploy
+- Operate
+- Decision
+
+**Output**: Stage coverage map, control gaps, risk scores
+
+#### 4. IaC Posture
+**File**: `core/iac.py`
+
+Infrastructure-as-Code evaluation:
+
+**Supported Formats**:
+- Terraform plans
+- Kubernetes manifests
+
+**Output**: Matched targets, missing artifacts, unmatched components
+
+#### 5. Probabilistic Forecasting
+**File**: `core/probabilistic.py`
+
+Bayesian and Markov chain risk projection:
+
+**Features**:
+- Dirichlet-smoothed calibration
+- Spectral gap diagnostics
+- Stationary distribution analysis
+- Multi-step projections
+
+**Metrics**:
+- `spectral_gap`: Convergence rate
+- `mixing_time`: Time to steady state
+- `critical_horizon_risk`: Probability of critical incident
+
+#### 6. AI Agent Advisor
+**File**: `core/ai_agents.py`
+
+Detects agentic frameworks and prescribes controls:
+
+**Detected Frameworks**:
+- LangChain
+- AutoGPT
+- BabyAGI
+- Custom agent patterns
+
+**Output**: Agent detection notes, control guidance
+
+#### 7. Analytics
+**File**: `core/analytics.py`
+
+ROI and performance metrics:
+
+**Metrics**:
+- Cost savings
+- MTTR (Mean Time To Remediation) deltas
+- Executive KPIs
+- Throughput predictions
+
+#### 8. Tenancy
+**File**: `core/tenancy.py`
+
+Multi-tenant lifecycle management:
+
+**Features**:
+- Stage transitions
+- Module gap analysis
+- Onboarding guidance
+
+#### 9. Performance Simulator
+**File**: `core/performance.py`
+
+Capacity planning and backlog predictions:
+
+**Inputs**:
+- Overlay latency targets
+- Benchmark profiles
+
+**Outputs**:
+- Backlog predictions
+- Throughput advice
+
+#### 10. Knowledge Graph
+**File**: `apps/api/knowledge_graph.py`
+
+Attack path and entity relationship mapping:
+
+**Node Types**:
+- Service (asset)
+- Finding (vulnerability)
+- Control (compliance)
+- Mitigation (playbook)
+
+**Edge Types**:
+- `impacted_by`: Service → Finding
+- `mitigated_by`: Finding → Control
+- `remediated_by`: Finding → Mitigation
+
+---
+
+## API Reference
+
+### FastAPI Ingestion Service
+
+**Base URL**: `http://localhost:8000` (default)
+
+**Authentication**: All endpoints require `X-API-Key` header
+
+### Ingestion Endpoints
+
+#### Upload Design Context
+```http
+POST /inputs/design
+Content-Type: multipart/form-data
+X-API-Key: {token}
+
+file: design.csv
 ```
 
-Both commands emit a short textual summary, persist the full pipeline
-response (if `--output` is supplied), and drop evidence bundles inside the
-overlay-approved directories under `data/`.
+**Design CSV Format**:
+```csv
+component_id,service,owner,criticality,name
+comp-001,payment-api,platform-team,5,Payment Gateway
+comp-002,user-service,identity-team,4,User Authentication
+```
 
-### 4. Run the CLI (enterprise profile + module overrides)
+#### Upload SBOM
+```http
+POST /inputs/sbom
+Content-Type: multipart/form-data
+X-API-Key: {token}
+
+file: sbom.json
+```
+
+**Supported Formats**: CycloneDX, SPDX, GitHub Dependency Snapshot, Syft JSON
+
+#### Upload SARIF Scan
+```http
+POST /inputs/sarif
+Content-Type: multipart/form-data
+X-API-Key: {token}
+
+file: scan.sarif
+```
+
+**SARIF Version**: 2.1.0
+
+#### Upload CVE Feed
+```http
+POST /inputs/cve
+Content-Type: multipart/form-data
+X-API-Key: {token}
+
+file: cve.json
+```
+
+**Format**: CISA KEV or custom CVE feed
+
+### Pipeline Execution
+
+#### Run Pipeline
+```http
+POST /pipeline/run
+X-API-Key: {token}
+```
+
+**Response**:
+```json
+{
+  "severity_overview": {
+    "highest": "high",
+    "counts": {
+      "critical": 2,
+      "high": 15,
+      "medium": 42,
+      "low": 103
+    },
+    "source_breakdown": {
+      "sarif": {"high": 10, "medium": 30},
+      "cve": {"critical": 2, "high": 5}
+    }
+  },
+  "guardrail_evaluation": {
+    "maturity": "scaling",
+    "policy": {"fail_on": "high", "warn_on": "medium"},
+    "highest_detected": "high",
+    "status": "fail",
+    "rationale": ["highest severity 'high' meets fail threshold 'high'"]
+  },
+  "context_summary": {
+    "enriched_components": 25,
+    "playbooks_recommended": ["Stabilise Customer Impact"]
+  },
+  "compliance_status": {
+    "frameworks": [
+      {
+        "name": "SOC2",
+        "controls": [
+          {"id": "CC8.1", "status": "satisfied", "coverage": 1.0}
+        ]
+      }
+    ],
+    "gaps": []
+  },
+  "policy_summary": {
+    "actions": [
+      {
+        "id": "jira-guardrail-fail",
+        "type": "jira_issue",
+        "status": "executed",
+        "ticket_key": "SEC-1234"
+      }
+    ]
+  },
+  "evidence_bundle": {
+    "files": {
+      "bundle": "data/evidence/enterprise/bundle_20251019_120000.tar.gz"
+    },
+    "retention_days": 2555
+  },
+  "module_matrix": {
+    "guardrails": {"enabled": true, "executed": true},
+    "context_engine": {"enabled": true, "executed": true},
+    "compliance": {"enabled": true, "executed": true},
+    "policy_automation": {"enabled": true, "executed": true}
+  }
+}
+```
+
+### Enterprise Endpoints
+
+#### Enhanced Decision Analysis
+```http
+POST /api/v1/enhanced/analysis
+Content-Type: application/json
+X-API-Key: {token}
+
+{
+  "service_name": "payment-api",
+  "security_findings": [
+    {
+      "rule_id": "SAST001",
+      "severity": "high",
+      "description": "SQL injection vulnerability"
+    }
+  ],
+  "business_context": {
+    "environment": "production",
+    "criticality": "high"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "models": [
+    {
+      "provider": "gpt-5",
+      "verdict": "block",
+      "confidence": 0.92,
+      "rationale": "SQL injection in production payment system poses critical risk"
+    },
+    {
+      "provider": "claude-3",
+      "verdict": "block",
+      "confidence": 0.89,
+      "rationale": "High severity finding in critical service requires immediate remediation"
+    }
+  ],
+  "consensus": {
+    "verdict": "block",
+    "confidence": 0.905,
+    "method": "weighted_average",
+    "agreement": 1.0
+  },
+  "mitre_mapping": ["T1190"],
+  "compliance_impact": ["PCI_DSS:6.5.1"],
+  "knowledge_graph": {
+    "attack_paths": [
+      ["payment-api", "database", "customer-data"]
+    ]
+  }
+}
+```
+
+#### Compare LLM Models
+```http
+POST /api/v1/enhanced/compare-llms
+Content-Type: application/json
+X-API-Key: {token}
+
+{
+  "service_name": "user-service",
+  "security_findings": [...]
+}
+```
+
+**Response**: Individual model verdicts with disagreement analysis
+
+#### Get Enhanced Capabilities
+```http
+GET /api/v1/enhanced/capabilities
+X-API-Key: {token}
+```
+
+**Response**:
+```json
+{
+  "llm_providers": ["gpt-5", "claude-3", "gemini-2", "sentinel-cyber"],
+  "mitre_coverage": true,
+  "compliance_frameworks": ["SOC2", "ISO27001", "PCI_DSS", "GDPR"],
+  "knowledge_graph_enabled": true,
+  "consensus_methods": ["weighted_average", "majority_vote"]
+}
+```
+
+### Chunked Upload Endpoints
+
+#### Initialize Chunked Upload
+```http
+POST /api/v1/scans/upload/init
+Content-Type: application/json
+X-API-Key: {token}
+
+{
+  "file_name": "large-sbom.json",
+  "total_size": 52428800,
+  "scan_type": "sbom"
+}
+```
+
+**Response**:
+```json
+{
+  "upload_id": "upload_abc123",
+  "chunk_size": 5242880
+}
+```
+
+#### Upload Chunk
+```http
+POST /api/v1/scans/upload/chunk
+Content-Type: multipart/form-data
+X-API-Key: {token}
+
+upload_id: upload_abc123
+chunk_index: 0
+chunk: <binary data>
+```
+
+#### Complete Chunked Upload
+```http
+POST /api/v1/scans/upload/complete
+Content-Type: application/json
+X-API-Key: {token}
+
+{
+  "upload_id": "upload_abc123"
+}
+```
+
+---
+
+## CLI Tools
+
+### Main CLI: `core.cli`
+
+**Entry Point**: `python -m core.cli`
+
+### Commands
+
+#### Run Pipeline
 ```bash
 python -m core.cli run \
   --overlay config/fixops.overlay.yml \
-  --enable policy_automation --enable compliance --enable ssdlc --enable probabilistic \
-  --design artefacts/design.csv --sbom artefacts/sbom.json \
-  --sarif artefacts/scan.sarif --cve artefacts/cve.json \
-  --evidence-dir out/evidence --output out/pipeline-enterprise.json
+  --design artefacts/design.csv \
+  --sbom artefacts/sbom.json \
+  --sarif artefacts/scan.sarif \
+  --cve artefacts/cve.json \
+  --output out/pipeline.json \
+  --evidence-dir out/evidence \
+  --pretty
 ```
 
-Use `python -m core.cli show-overlay --overlay config/fixops.overlay.yml` to inspect sanitized overlay metadata or `python -m core.cli run --offline` to disable automatic exploit feed refresh during air-gapped runs. `python -m core.cli copy-evidence --run out/pipeline-enterprise.json --target ./hand-off` copies bundle archives into hand-off directories for audits.
+**Options**:
+- `--overlay PATH`: Path to overlay configuration (default: `config/fixops.overlay.yml`)
+- `--design PATH`: Design context CSV
+- `--sbom PATH`: SBOM JSON file
+- `--sarif PATH`: SARIF scan results
+- `--cve PATH`: CVE feed JSON
+- `--vex PATH`: VEX document (optional)
+- `--cnapp PATH`: CNAPP findings (optional)
+- `--context PATH`: Business context file (optional)
+- `--output PATH`: Output JSON file
+- `--evidence-dir PATH`: Evidence bundle directory
+- `--pretty`: Pretty-print JSON output
+- `--offline`: Disable exploit feed refresh
+- `--enable MODULE`: Enable specific module
+- `--disable MODULE`: Disable specific module
 
-### 5. Validate the environment
-- `pytest` – exercises ingestion, overlay validation, module toggles, connectors, exploit refresh, probabilistic forecasts, CLI parity, simulations, and SSDLC outputs.
-- `python -m compileall backend fixops simulations tests` – guards against syntax regressions prior to deployment.
+#### Make Decision
+```bash
+python -m core.cli make-decision \
+  --sbom artefacts/sbom.json \
+  --sarif artefacts/scan.sarif \
+  --output out/decision.json
+```
 
-## API reference
-| Endpoint | Method | Purpose | Notes |
-| --- | --- | --- | --- |
-| `/inputs/design` | `POST` | Upload design intent CSV (`component_id`, `service`, `owner`, `criticality`, optional `name`). | Enforces MIME, size, and API key; caches artefacts under overlay-approved directories. |
-| `/inputs/sbom` | `POST` | Upload SBOM JSON. | Accepts JSON, gzip, or zip archives; normalises component tokens and retains version metadata. |
-| `/inputs/cve` | `POST` | Upload CVE or KEV advisories. | Accepts JSON, gzip, or zip archives; exploit refresh annotates staleness and EPSS scores. |
-| `/inputs/sarif` | `POST` | Upload scanner findings (SARIF). | Accepts JSON, gzip, or zip archives; deduplicates rule IDs and severity labels before crosswalk building. |
-| `/pipeline/run` | `POST`/`GET` | Execute pipeline using cached artefacts. | Returns guardrails, context summaries, SSDLC/IaC/AI/exploit/probabilistic insights, automation manifests, pricing telemetry, module matrix, sanitized overlay, and evidence bundle paths. |
-| `/feedback` | `POST` | (Enterprise toggle) Persist review decisions tied to pipeline runs. | Requires `capture_feedback` enabled; identifiers are sanitized and stored within allowlisted audit directories. |
-| `/api/v1/enhanced/capabilities` | `GET` | Discover multi-LLM, MITRE, compliance, and marketplace readiness. | Surfaces enabled LLM providers, ATT&CK coverage, feed status, and consensus telemetry for Enhanced mode. |
-| `/api/v1/enhanced/compare-llms` | `POST` | Compare individual model verdicts and consensus reasoning. | Accepts security findings payload, returns disagreement analysis, MITRE/ATT&CK mapping, and expert validation flags. |
-| `/api/v1/enhanced/analysis` | `POST` | Retrieve standardised multi-LLM schema for CI/CD gating. | Streams consensus verdict, model rationales, evidence, SSVC label, and timing metadata for automated pipelines. |
+**Exit Codes**:
+- `0`: Allow/Pass/OK
+- `1`: Block/Fail
+- `2`: Defer/Warn/Unknown
 
-All endpoints require the `X-API-Key` header. See `docs/PLATFORM_RUNBOOK.md` for persona-specific examples and `docs/INTEGRATIONS.md` for connector payload details.
+#### Demo Mode
+```bash
+# Demo profile
+python -m core.cli demo --mode demo --output out/demo.json --pretty
 
-## CLI workflows by persona
-- **CISO & Executive Reporting** – `python -m core.cli run --overlay config/fixops.overlay.yml --enable probabilistic --enable compliance --enable analytics --output out/ciso.json` surfaces guardrail status, compliance posture, tenant coverage, ROI telemetry, and performance posture for board reporting.
-- **CTEM & Vulnerability Ops** – `python -m core.cli run --enable exploit_signals --enable policy_automation --design ... --sbom ... --sarif ... --cve ...` contextualises findings, executes policy automations, and refreshes exploit intelligence.
-- **DevSecOps / Platform** – `python -m core.cli run --enable ssdlc --enable iac --custom-module modules/custom.py:main` enforces pipeline gates across IaC scans and SSDLC targets.
-- **SIEM & Incident Responders** – `python -m core.cli run --enable ai_agents --enable probabilistic --output out/siem.json` generates AI-agent detections and probabilistic breach forecasts for downstream correlation.
-- **Security Testers** – Combine `--offline` with curated artefacts to validate guardrail outcomes pre-deployment.
-- **Enterprise Architects & Tenant Ops** – `python -m core.cli run --enable tenancy --enable performance --output out/tenant-summary.json` produces tenant lifecycle health, module coverage gaps, and near real-time performance status for shared platforms.
+# Enterprise profile
+python -m core.cli demo --mode enterprise --output out/enterprise.json --pretty
+```
 
-Use `python -m core.cli help` for the full command reference and flags.
+**Features**:
+- Seeds deterministic tokens
+- Loads curated fixtures
+- Executes full pipeline
+- Emits evidence bundles
 
-## Feature catalog
-| Capability | Description | Overlay toggle |
-| --- | --- | --- |
-| Context engine | Blends business criticality, exposure, data sensitivity, exploitability, and scanner signals. | `modules.context_engine.enabled`
-| Guardrails | Applies maturity thresholds and policy checks; downgrades noisy alerts. | `modules.guardrails.enabled`
-| Compliance packs | Generates SOC 2 / ISO evidence bundles per run. | `modules.compliance.enabled`
-| Policy automation | Dispatches Jira, Confluence, and Slack actions with manifest receipts. | `modules.policy_automation.enabled`
-| SSDLC evaluator | Scores plan→audit stages and flags gaps per component. | `modules.ssdlc.enabled`
-| IaC posture | Maps Terraform/Kubernetes findings into guardrail outputs. | `modules.iac.enabled`
-| AI agent advisor | Detects agentic frameworks and prescribes controls. | `modules.ai_agents.enabled`
-| Multi-LLM consensus | Fuses GPT-5, Claude, Gemini, and vertical models with variance checks and expert escalation. | Enhanced decision engine (`api/v1/enhanced/*`)
-| SentinelGPT explanations | Generates natural-language narratives and mitigation guidance from findings. | Enhanced decision engine (`new_apps/api/processing/explanation.py`)
-| Knowledge graph analytics | Builds CTINexus graphs to expose attack paths and clustered risk. | Enhanced decision engine (`new_apps/api/processing/knowledge_graph.py`)
-| Exploit signals | Merges EPSS, KEV, and overlay refresh schedules to score exploitability. | `modules.exploit_signals.enabled`
-| Probabilistic forecasts | Bayesian/Markov projections of breach likelihood based on crosswalk. | `modules.probabilistic.enabled`
-| ROI analytics | Computes noise reduction, MTTR deltas, automation savings, and assigns ROI value per module. | `modules.analytics.enabled`
-| Tenant lifecycle | Summarises tenant health, stage transitions, and module coverage gaps. | `modules.tenancy.enabled`
-| Performance simulation | Estimates near real-time latency, throughput, and backlog recommendations. | `modules.performance.enabled`
-| Evidence hub | Compresses artefacts, redacts secrets, persists manifests. | `modules.evidence.enabled`
-| Module registry | Supports organisation-specific hooks and toggles. | `modules.custom`
+#### Show Overlay
+```bash
+python -m core.cli show-overlay \
+  --overlay config/fixops.overlay.yml \
+  --pretty
+```
 
-## Analytics, dashboards & ROI storytelling
-- Pipeline responses include dedicated `analytics`, `pricing_summary`, `performance_profile`, and `tenant_lifecycle` blocks that feed executive dashboards outlined in `market/DEMO_STORY.md` and `market/ENTERPRISE_READINESS.md`.
-- Evidence bundles automatically embed ROI, tenant, and performance sections when the corresponding modules are enabled, giving CISOs auditable proof of value per run.
-- Roadmap: extend analytics with historical warehousing, interactive ROI dashboards, and connector-level cost attribution (tracked in `audit/GAPS.md`).
+**Output**: Sanitized overlay metadata with runtime warnings
 
-## Multi-tenant lifecycle tooling
-- Overlay-driven tenancy settings now define tenant inventories, lifecycle stages, stage defaults, and module expectations (`tenancy` section in `config/fixops.overlay.yml`).
-- Pipeline runs emit `tenant_lifecycle` summaries highlighting stage distribution, module gaps, and support/billing metadata for each tenant.
-- Roadmap: add overlay versioning, tenant-specific RBAC, and approval workflows for managed multi-tenant environments (tracked in `audit/GAPS.md` and `docs/PR_SUMMARY.md`).
+#### Health Check
+```bash
+python -m core.cli health \
+  --overlay config/fixops.overlay.yml \
+  --pretty
+```
 
-## Performance simulation & observability
-- **Pipeline performance module** – The `performance_profile` block computes cumulative latency, throughput, and backlog recommendations based on overlay targets for demo and enterprise runs.
-- **Scenario replay** – `python -m simulations.cve_scenario.runner --mode {demo,enterprise}` still mirrors production flows (context, automation, evidence) against CVE-2021-44228, now capturing ROI and performance outputs alongside severity shifts.
-- **Benchmarks & profiling** – `perf/BENCHMARKS.csv` captures timing; extend via `python scripts/generate_index.py --bench` to aggregate additional profiles while aligning with overlay thresholds.
+**Checks**:
+- Overlay mode
+- Library availability (pgmpy, pomegranate, mchmm)
+- Evidence hub readiness
+- OPA configuration
 
-## Troubleshooting & support
-- Verify artefact cache health with `python -m core.cli show-overlay` and inspect `data/uploads/` for sanitized filenames.
-- Review `docs/PLATFORM_RUNBOOK.md` for stage-by-stage troubleshooting, persona runbooks, and escalation paths.
-- Consult `audit/SECURITY.md` and `docs/SDLC_SSDLC.md` when integrating FixOps into enterprise governance.
+#### Train Forecast
+```bash
+python -m core.cli train-forecast \
+  --incidents data/examples/incidents.json \
+  --output out/forecast.json \
+  --pretty
+```
 
+**Output**: Bayesian priors, Markov transitions, spectral diagnostics
 
-## Configuration overlays
-- **Schema** – Authentication, data directories, upload limits, guardrail thresholds, onboarding checklists, compliance packs, policy automation targets, SSDLC objectives, IaC checks, AI agent watchlists, exploit feeds, probabilistic priors, pricing tiers, and module toggles live in `config/fixops.overlay.yml`.
-- **Modes** – Profiles labelled `demo` and `enterprise` adjust required artefacts, Jira/Confluence/Slack enforcement, evidence maturity, automation aggressiveness, pricing plans, and module enablement.
-- **Customization** – Supply environment overrides (`--env KEY=VALUE` via CLI) or add custom modules under `modules.custom` to execute organisation-specific logic alongside first-party modules.
+### Stage Runner CLI: `apps.fixops_cli`
 
-Refer to `docs/CONFIG_GUIDE.md` for field-level descriptions and overlay extension patterns, and `docs/USAGE_GUIDE.html` for a persona-focused walkthrough.
+**Entry Point**: `python -m apps.fixops_cli stage-run`
 
-## Simulations, benchmarks, and testing
-- **CVE contextual re-scoring** – `python -m simulations.cve_scenario.runner --mode demo` (or `enterprise`) replays CVE-2021-44228 (Log4Shell) with overlay-governed context, producing severity shifts, evidence bundles, guardrail outcomes, and pricing summaries (`simulations/cve_scenario/runner.py`).
-- **Performance telemetry** – `perf/BENCHMARKS.csv` captures representative timings for pipeline crosswalks and probabilistic forecasts; `perf/CHANGES.md` and `perf/BASELINE.md` document optimisation rationale.
-- **Automated tests** – `pytest` exercises ingestion endpoints, overlay validation, module toggles, connectors, exploit refresh, probabilistic forecasts, CLI parity, and simulations; `python -m compileall backend fixops simulations tests` guards against syntax regressions.
+#### Run SSDLC Stage
+```bash
+python -m apps.fixops_cli stage-run \
+  --stage requirements \
+  --input simulations/demo_pack/requirements-input.csv \
+  --app life-claims-portal
+```
 
-## Documentation map
-- **Market & positioning** – `market/` contains competitive analysis, pricing strategy, GTM plans, and demo storyboards.
-- **Architecture & SDLC** – `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/SDLC_SSDLC.md`, and `docs/INTEGRATIONS.md` outline components, data flows, lifecycle coverage, and integration contracts.
-- **Architecture inventory & roadmap** – `docs/ARCH-INVENTORY.md` summarises modules/services/data models while `docs/TASK-PLAN.md` maps Phases 2–10 with concrete code touchpoints.
-- **Security & audits** – `audit/SECURITY.md`, `audit/GAPS.md`, and `audit/CTEM_ASSESSMENT.md` track mitigations, residual risk, and CTEM readiness.
-- **SBOM normalisation & quality** – `docs/SBOM-QUALITY.md` explains deduplication logic, quality scoring metrics, CLI usage, and HTML reporting expectations.
-- **Risk scoring & exposure** – `docs/RISK-SCORING.md` documents EPSS/KEV ingestion, FixOpsRisk weighting, CLI usage, and API endpoints for the risk pipeline.
-- **Provenance & signing** – `docs/PROVENANCE.md`, `docs/SIGNING.md`, and `docs/CI-SECRETS.md` cover SLSA attestations, cosign signing flows, required secrets, and verification guidance.
-- **Provenance graph intelligence** – `docs/PROVENANCE-GRAPH.md` details graph ingestion sources, query surface, anomaly detection, and API integration.
-- **Reproducible builds** – `docs/REPRO-BUILDS.md` explains the hermetic verifier, plan structure, CLI usage, and CI workflow outputs.
-- **Evidence bundles & policy** – `docs/EVIDENCE-BUNDLES.md` covers policy-driven packaging, manifest signing, API endpoints, and CLI automation.
-- **Demo stack & telemetry** – `docs/DEMO.md` walks through the OpenTelemetry-enabled docker-compose demo and dashboard.
-- **Runbooks & usage** – `docs/PLATFORM_RUNBOOK.md`, `docs/USAGE_GUIDE.html`, and `docs/PR_SUMMARY.md` provide persona guides, troubleshooting steps, and an executive summary for reviewers.
-- **Operational playbooks** – `docs/PLAYBOOK-DEV.md`, `docs/PLAYBOOK-SEC.md`, and `docs/PLAYBOOK-AUDIT.md` equip engineering, security, and audit stakeholders with repeatable workflows.
-- **Security posture & audits** – `docs/SECURITY-POSTURE.md`, `audit/SECURITY.md`, `audit/GAPS.md`, and `audit/CTEM_ASSESSMENT.md` capture branch protections, mitigations, residual risk, and CTEM readiness.
+**Stages**:
+- `requirements`: Requirements analysis
+- `design`: Design context ingestion
+- `build`: Build artifact processing (SBOM)
+- `test`: Test result analysis (SARIF)
+- `deploy`: Deployment manifest generation (Terraform/K8s)
+- `operate`: Operational posture assessment
+- `decision`: Final decision rendering
 
-Whether you launch the API or the CLI, FixOps now delivers overlay-governed context, compliance, automation, and probabilistic insight with auditable artefacts that keep demo and enterprise buyers on the same code path.
+**Output**: Canonical JSON under `artefacts/<app_id>/<run_id>/outputs/`
 
-## Local stage workflow commands
+---
 
-Run the bundled stage fixtures end-to-end with a single target:
+## Configuration System
+
+### Overlay Configuration
+
+**File**: `config/fixops.overlay.yml` (240 lines)
+
+The overlay system provides dual-mode operation (demo vs enterprise) with runtime safeguards.
+
+### Key Sections
+
+#### Mode Selection
+```yaml
+mode: enterprise  # or demo
+```
+
+#### Authentication
+```yaml
+auth:
+  strategy: token
+  token_env: FIXOPS_API_TOKEN
+  header: X-API-Key
+```
+
+#### Data Directories
+```yaml
+data:
+  design_context_dir: data/design_context
+  evidence_dir: data/evidence
+  archive_dir: data/archive
+  analytics_dir: data/analytics
+  automation_dir: data/automation
+  feedback_dir: data/feedback
+```
+
+#### Upload Limits
+```yaml
+limits:
+  max_upload_bytes:
+    default: 3145728      # 3 MB
+    sarif: 6291456        # 6 MB
+    cve: 6291456          # 6 MB
+  evidence:
+    bundle_max_bytes: 1048576  # 1 MB
+    compress: true
+    encrypt: true
+    encryption_env: FIXOPS_EVIDENCE_KEY
+```
+
+#### Module Toggles
+```yaml
+modules:
+  guardrails: { enabled: true }
+  context_engine: { enabled: true }
+  compliance: { enabled: true }
+  policy_automation: { enabled: true }
+  evidence: { enabled: true }
+  ssdlc: { enabled: true }
+  iac_posture: { enabled: true }
+  exploit_signals: { enabled: true }
+  probabilistic: { enabled: true }
+  ai_agents: { enabled: true }
+  analytics: { enabled: true }
+  tenancy: { enabled: true }
+  performance: { enabled: true }
+  vector_store:
+    enabled: true
+    provider: auto  # auto, demo, chromadb
+    patterns_path: fixtures/security_patterns.json
+    top_k: 3
+  enhanced_decision: { enabled: true }
+```
+
+#### Guardrails
+```yaml
+guardrails:
+  maturity: scaling
+  profiles:
+    foundational: { fail_on: critical, warn_on: high }
+    scaling: { fail_on: high, warn_on: medium }
+    advanced: { fail_on: medium, warn_on: medium }
+```
+
+#### Context Engine
+```yaml
+context_engine:
+  fields:
+    criticality: customer_impact
+    data: data_classification
+    exposure: exposure
+  criticality_weights:
+    mission_critical: 4
+    external: 3
+    internal: 1
+  data_weights:
+    pii: 4
+    financial: 4
+    health: 4
+    internal: 2
+    public: 1
+  exposure_weights:
+    internet: 3
+    partner: 2
+    internal: 1
+  playbooks:
+    - name: Stabilise Customer Impact
+      min_score: 9
+      channel: sre-pager
+    - name: Sprint Triage
+      min_score: 6
+      channel: appsec-kanban
+```
+
+#### Compliance Frameworks
+```yaml
+compliance:
+  frameworks:
+    - name: SOC2
+      controls:
+        - id: CC8.1
+          title: Change Management Evidence
+          requires: [design, guardrails, evidence]
+        - id: CC7.2
+          title: Continuous Vulnerability Management
+          requires: [sarif, cve, context]
+    - name: ISO27001
+      controls:
+        - id: A.12.6.1
+          title: Application vulnerability management
+          requires: [sbom, cve]
+    - name: PCI_DSS
+      controls:
+        - id: "6.2"
+          title: Ensure all system components are protected
+          requires: [sbom, cve, guardrails]
+    - name: GDPR
+      controls:
+        - id: Article_32
+          title: Security of Processing
+          requires: [design, evidence, guardrails]
+```
+
+#### Policy Automation
+```yaml
+policy_automation:
+  actions:
+    - id: jira-guardrail-fail
+      trigger: guardrail:fail
+      type: jira_issue
+      summary: Guardrail failure detected
+      priority: High
+    - id: confluence-guardrail-warn
+      trigger: guardrail:warn
+      type: confluence_page
+      title: FixOps guardrail warning summary
+```
+
+#### Integrations
+```yaml
+jira:
+  url: https://jira.example.com
+  project_key: SEC
+  default_issue_type: Task
+  user_email: bot@fixops.local
+  token_env: FIXOPS_JIRA_TOKEN
+
+confluence:
+  base_url: https://confluence.example.com
+  space_key: SECOPS
+  user: fixops-bot
+  token_env: FIXOPS_CONFLUENCE_TOKEN
+```
+
+#### Enhanced Decision Engine
+```yaml
+enhanced_decision:
+  baseline_confidence: 0.82
+  providers:
+    - name: gpt-5
+      style: strategist
+      focus: [mitre, context]
+    - name: claude-3
+      style: analyst
+      focus: [compliance, guardrails]
+    - name: gemini-2
+      style: signals
+      focus: [exploit, cnapp]
+    - name: sentinel-cyber
+      style: threat
+      focus: [marketplace, agents]
+  knowledge_graph:
+    nodes:
+      - { id: service, type: asset }
+      - { id: finding, type: vulnerability }
+      - { id: control, type: compliance }
+      - { id: mitigation, type: playbook }
+    edges:
+      - { source: service, target: finding, type: impacted_by }
+      - { source: finding, target: control, type: mitigated_by }
+      - { source: finding, target: mitigation, type: remediated_by }
+```
+
+### Runtime Safeguards
+
+**Location**: `core/overlay_runtime.py`
+
+The `prepare_overlay()` function applies runtime safeguards:
+
+**Auto-Disables**:
+- Evidence encryption if `cryptography.fernet` unavailable or `FIXOPS_EVIDENCE_KEY` missing
+- Policy automation if connector credentials missing (`FIXOPS_JIRA_TOKEN`, `FIXOPS_CONFLUENCE_TOKEN`)
+
+**Generates Warnings**:
+- "Evidence encryption disabled (Fernet unavailable)"
+- "Jira token missing"
+- "Confluence token missing"
+
+**Access Warnings**:
+```python
+overlay = prepare_overlay(path="config/fixops.overlay.yml")
+warnings = overlay.metadata.get("runtime_warnings", [])
+```
+
+---
+
+## Security & Cryptography
+
+### Signing Provider
+
+**Location**: `fixops-enterprise/src/services/signing.py`
+
+Abstraction for cryptographic key management:
+
+**Supported Providers**:
+- `env`: Environment variables (`SIGNING_PRIVATE_KEY`, `SIGNING_PUBLIC_KEY`)
+- `aws`: AWS KMS
+- `azure`: Azure Key Vault
+- `hsm`: Hardware Security Module
+
+**Configuration**:
+```bash
+export SIGNING_PROVIDER=env
+export SIGNING_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
+export SIGNING_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----..."
+export KEY_ID="fixops-signing-key-v1"
+```
+
+**Methods**:
+```python
+def sign_manifest(payload: dict) -> dict:
+    """Sign payload with RSA-SHA256"""
+    
+def verify_signature(payload: dict, signature: str, public_key: str) -> bool:
+    """Verify RSA-SHA256 signature"""
+    
+def get_active_kid() -> str:
+    """Get active key ID"""
+    
+def rotate_key() -> None:
+    """Rotate signing key"""
+```
+
+### Evidence Encryption
+
+**Algorithm**: Fernet (symmetric encryption with AES)
+
+**Key Generation**:
+```python
+from cryptography.fernet import Fernet
+key = Fernet.generate_key()  # Returns base64-encoded key
+```
+
+**Configuration**:
+```bash
+export FIXOPS_EVIDENCE_KEY="<base64_fernet_key>"
+```
+
+**Auto-Disable**: If `cryptography` library unavailable or key not set
+
+### SLSA Provenance
+
+**Location**: `services/provenance/attestation.py`
+
+Generates SLSA v1 build provenance:
+
+**Structure**:
+```json
+{
+  "subject": {
+    "name": "myapp.tar.gz",
+    "digest": {"sha256": "abc123..."}
+  },
+  "predicate": {
+    "builder": {"id": "https://github.com/DevOpsMadDog/Fixops"},
+    "materials": [
+      {"uri": "git+https://github.com/...", "digest": {"sha1": "..."}}
+    ],
+    "metadata": {
+      "buildStartedOn": "2025-10-19T12:00:00Z",
+      "buildFinishedOn": "2025-10-19T12:05:00Z"
+    }
+  }
+}
+```
+
+**CLI**:
+```bash
+fixops-provenance attest --artifact myapp.tar.gz
+fixops-provenance verify --artifact myapp.tar.gz --attestation att.json
+```
+
+### Transparency Index
+
+**Location**: Evidence bundles include `transparency.index`
+
+**Format**:
+```json
+{
+  "entries": [
+    {
+      "timestamp": "2025-10-19T12:00:00Z",
+      "evidence_id": "evidence_abc123",
+      "fingerprint": "sha256:def456...",
+      "signature": "base64_encoded..."
+    }
+  ]
+}
+```
+
+---
+
+## Installation & Setup
+
+### Prerequisites
+
+- Python 3.10+ (tested with CPython 3.11)
+- `pip` and `virtualenv`
+- Optional: `uvicorn` for FastAPI
+- Optional: `cryptography` for evidence encryption
+
+### Quick Start
 
 ```bash
-make stage-workflow
+# Clone repository
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy environment template
+cp .env.example .env
+
+# Configure credentials
+export FIXOPS_API_TOKEN="demo-token"
+export FIXOPS_EVIDENCE_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+
+# Run demo
+python -m core.cli demo --mode demo --output out/demo.json --pretty
 ```
 
-The target seeds deterministic identifiers (`FIXOPS_RUN_ID_SEED=stage-demo`, `FIXOPS_FAKE_NOW=2024-01-01T00:00:00Z`) and calls `scripts/run_stage_workflow.py` to materialise canonical outputs under `artefacts/stage-demo/`. To execute individual stages or capture a JSON summary without Make, invoke the script directly:
+### Bootstrap Script
 
 ```bash
-python scripts/run_stage_workflow.py \
-  --fixtures fixtures/sample_inputs \
-  --artefacts artefacts/stage-demo \
-  --summary artefacts/stage-demo/summary.json
+./scripts/bootstrap.sh
 ```
 
-Refer to `fixtures/stage_runbook.md` for the complete Input → Command → Output matrix.
+**Actions**:
+- Creates `.venv`
+- Installs runtime + dev dependencies
+- Configures pre-commit hooks
+- Sets up test fixtures
+
+### Launch FastAPI Service
+
+```bash
+# Demo mode
+export FIXOPS_API_TOKEN="demo-token"
+uvicorn backend.app:create_app --factory --reload
+
+# Enterprise mode
+export FIXOPS_API_TOKEN="<secure-token>"
+export FIXOPS_JIRA_TOKEN="<jira-token>"
+export FIXOPS_CONFLUENCE_TOKEN="<confluence-token>"
+export FIXOPS_EVIDENCE_KEY="<fernet-key>"
+uvicorn backend.app:create_app --factory --reload --port 8000
+```
+
+### Telemetry Configuration
+
+**Default**: Exports to OpenTelemetry collector at `http://collector:4318`
+
+**Disable**:
+```bash
+export FIXOPS_DISABLE_TELEMETRY=1
+```
+
+**Custom Endpoint**:
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://my-collector:4318"
+```
+
+### Docker Compose (Demo)
+
+```bash
+docker compose -f docker-compose.demo.yml up -d
+```
+
+**Services**:
+- FastAPI ingestion service (port 8000)
+- OpenTelemetry collector (port 4318)
+
+---
+
+## Development Workflow
+
+### Code Style
+
+- Follow PEP 8 conventions
+- Use Google-style docstrings
+- Format with Ruff/Black
+- Type hints encouraged (mypy configuration in `mypy.ini`)
+
+### Pre-Commit Hooks
+
+```bash
+pre-commit run --all-files
+```
+
+**Hooks**:
+- Ruff/Black formatting
+- mypy type checking
+- detect-secrets scanning
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# Specific test file
+pytest tests/test_cli.py
+
+# With coverage
+pytest --cov --cov-branch --cov-fail-under=80
+
+# Specific markers
+pytest tests/test_context_engine.py -k "enterprise"
+```
+
+### Test Organization
+
+- `tests/test_cli.py`: CLI command validation
+- `backend_test.py`: API endpoint comprehensive testing (100+ tests)
+- `real_components_test.py`: Integration testing (Vector Store, OPA, Evidence Lake)
+- `test_frontend.py`: UI accessibility and navigation
+- `test_overlay_*.py`: Configuration validation
+
+### Linting
+
+```bash
+# Syntax validation
+python -m compileall backend fixops simulations tests
+
+# Ruff check
+ruff check .
+
+# Type checking
+python -m mypy --config-file mypy.ini core apps scripts
+```
+
+### Adding New Modules
+
+1. Create module file in `core/` (e.g., `core/custom_module.py`)
+2. Add configuration to `config/fixops.overlay.yml`:
+   ```yaml
+   modules:
+     custom_module:
+       enabled: true
+       config_key: value
+   ```
+3. Implement module logic following existing patterns
+4. Register in `apps/api/pipeline.py` or extend via `modules.custom` spec
+5. Add tests in `tests/test_custom_module.py`
+
+### Debugging
+
+**Enable Debug Logging**:
+```bash
+export LOG_LEVEL=DEBUG
+python -m core.cli run ...
+```
+
+**Inspect Overlay**:
+```bash
+python -m core.cli show-overlay --pretty
+```
+
+**Health Check**:
+```bash
+python -m core.cli health --pretty
+```
+
+---
+
+## Testing Strategy
+
+### Test Coverage Goals
+
+- **Core Modules**: 80%+ coverage
+- **API Endpoints**: 100% route coverage
+- **Integration Tests**: All major workflows
+
+### Test Fixtures
+
+**Location**: `tests/fixtures/`, `simulations/demo_pack/`
+
+**Curated Fixtures**:
+- `design-input.csv`: Sample design context
+- `sbom.json`: CycloneDX SBOM
+- `scanner.sarif`: SARIF 2.1.0 findings
+- `cve.json`: CISA KEV feed sample
+
+### Running Simulations
+
+```bash
+# CVE scenario (Log4Shell)
+python simulations/cve_scenario/runner.py --mode demo
+python simulations/cve_scenario/runner.py --mode enterprise
+
+# SSDLC stages
+python simulations/ssdlc/run.py
+```
+
+### Continuous Integration
+
+**GitHub Actions**: `.github/workflows/qa.yml`
+
+**Checks**:
+- Pytest suite
+- Code coverage
+- Linting (Ruff)
+- Type checking (mypy)
+- Secret scanning (detect-secrets)
+
+---
+
+## Deployment Patterns
+
+### Deployment Options
+
+1. **Standalone CLI**: Local execution without external dependencies
+2. **FastAPI Service**: Containerized API for CI/CD integration
+3. **Enterprise Stack**: Full deployment with database, frontend, and integrations
+
+### Container Deployment
+
+**Dockerfile** (example):
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "backend.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Build & Run**:
+```bash
+docker build -t fixops:latest .
+docker run -p 8000:8000 \
+  -e FIXOPS_API_TOKEN="secure-token" \
+  -e FIXOPS_EVIDENCE_KEY="fernet-key" \
+  fixops:latest
+```
+
+### Kubernetes Deployment
+
+**Deployment Manifest** (example):
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fixops
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fixops
+  template:
+    metadata:
+      labels:
+        app: fixops
+    spec:
+      containers:
+      - name: fixops
+        image: fixops:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: FIXOPS_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: api-token
+        - name: FIXOPS_EVIDENCE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fixops-secrets
+              key: evidence-key
+```
+
+### CI/CD Integration
+
+**GitHub Actions Example**:
+```yaml
+name: FixOps Security Gate
+
+on: [push, pull_request]
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Generate SBOM
+        run: syft . -o cyclonedx-json > sbom.json
+      
+      - name: Run SARIF Scan
+        run: semgrep --config auto --sarif > scan.sarif
+      
+      - name: FixOps Decision
+        run: |
+          python -m core.cli make-decision \
+            --sbom sbom.json \
+            --sarif scan.sarif \
+            --output decision.json
+        env:
+          FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN }}
+      
+      - name: Check Decision
+        run: |
+          VERDICT=$(jq -r '.decision' decision.json)
+          if [ "$VERDICT" = "block" ]; then
+            echo "Security gate failed"
+            exit 1
+          fi
+```
+
+---
+
+## Integration Guides
+
+### Jira Integration
+
+**Configuration**:
+```yaml
+jira:
+  url: https://jira.example.com
+  project_key: SEC
+  default_issue_type: Task
+  user_email: bot@fixops.local
+  token_env: FIXOPS_JIRA_TOKEN
+```
+
+**Environment**:
+```bash
+export FIXOPS_JIRA_TOKEN="<jira-api-token>"
+```
+
+**Trigger**:
+```yaml
+policy_automation:
+  actions:
+    - id: jira-guardrail-fail
+      trigger: guardrail:fail
+      type: jira_issue
+      summary: Guardrail failure detected
+      priority: High
+```
+
+### Confluence Integration
+
+**Configuration**:
+```yaml
+confluence:
+  base_url: https://confluence.example.com
+  space_key: SECOPS
+  user: fixops-bot
+  token_env: FIXOPS_CONFLUENCE_TOKEN
+```
+
+**Environment**:
+```bash
+export FIXOPS_CONFLUENCE_TOKEN="<confluence-api-token>"
+```
+
+**Trigger**:
+```yaml
+policy_automation:
+  actions:
+    - id: confluence-guardrail-warn
+      trigger: guardrail:warn
+      type: confluence_page
+      title: FixOps guardrail warning summary
+```
+
+### Slack Integration
+
+**Configuration** (add to overlay):
+```yaml
+slack:
+  webhook_url_env: FIXOPS_SLACK_WEBHOOK
+  default_channel: "#security-alerts"
+```
+
+**Environment**:
+```bash
+export FIXOPS_SLACK_WEBHOOK="https://hooks.slack.com/services/..."
+```
+
+### OPA Integration
+
+**Configuration**:
+```bash
+export OPA_SERVER_URL="http://opa:8181"
+export OPA_AUTH_TOKEN="<opa-token>"
+export OPA_POLICY_PACKAGE="fixops.policies"
+```
+
+**Policy Example** (Rego):
+```rego
+package fixops.policies
+
+default allow = false
+
+allow {
+    input.severity == "low"
+}
+
+allow {
+    input.severity == "medium"
+    input.environment != "production"
+}
+
+deny {
+    input.severity == "critical"
+}
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Evidence Encryption Disabled
+
+**Symptom**: Warning "Evidence encryption disabled (Fernet unavailable)"
+
+**Solution**:
+```bash
+pip install cryptography
+export FIXOPS_EVIDENCE_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+```
+
+#### 2. Jira Token Missing
+
+**Symptom**: Warning "Jira token missing"
+
+**Solution**:
+```bash
+export FIXOPS_JIRA_TOKEN="<your-jira-api-token>"
+```
+
+#### 3. Exploit Feed Refresh Fails
+
+**Symptom**: Error fetching KEV/EPSS feeds
+
+**Solution**:
+```bash
+# Disable auto-refresh for offline mode
+python -m core.cli run --offline ...
+
+# Or configure proxy
+export HTTP_PROXY="http://proxy:8080"
+export HTTPS_PROXY="http://proxy:8080"
+```
+
+#### 4. Vector Store Initialization Fails
+
+**Symptom**: Error loading ChromaDB
+
+**Solution**:
+```bash
+# Use demo vector store
+# In config/fixops.overlay.yml:
+modules:
+  vector_store:
+    provider: demo  # Instead of chromadb
+```
+
+#### 5. OPA Connection Timeout
+
+**Symptom**: OPA health check fails
+
+**Solution**:
+```bash
+# Increase timeout
+export OPA_REQUEST_TIMEOUT=30
+
+# Or disable OPA
+# In config/fixops.overlay.yml:
+modules:
+  policy_engine:
+    enabled: false
+```
+
+### Debug Mode
+
+```bash
+# Enable verbose logging
+export LOG_LEVEL=DEBUG
+export PYTHONPATH=.
+
+# Run with debug output
+python -m core.cli run --pretty ...
+```
+
+### Health Check
+
+```bash
+python -m core.cli health --pretty
+```
+
+**Output**:
+```json
+{
+  "status": "ok",
+  "checks": {
+    "overlay_mode": "enterprise",
+    "pgmpy_available": true,
+    "pomegranate_available": false,
+    "mchmm_available": true,
+    "evidence_ready": true,
+    "evidence_retention_days": 2555,
+    "opa_configured": true
+  }
+}
+```
+
+---
+
+## Contributing
+
+### Getting Started
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make changes and add tests
+4. Run tests: `pytest`
+5. Run linting: `ruff check .`
+6. Commit changes: `git commit -m "Add my feature"`
+7. Push to branch: `git push origin feature/my-feature`
+8. Create Pull Request
+
+### Pull Request Checklist
+
+- [ ] Tests added/updated
+- [ ] Documentation updated
+- [ ] Changelog updated
+- [ ] Pre-commit hooks pass
+- [ ] CI checks pass
+- [ ] No secrets committed
+
+### Code Review Guidelines
+
+- Clear, descriptive commit messages
+- Small, focused changes
+- Comprehensive test coverage
+- Updated documentation
+- No breaking changes without discussion
+
+### Reporting Issues
+
+**Include**:
+- Reproduction steps
+- Sample artifacts (design CSV, SBOM snippet, SARIF finding)
+- Active overlay mode and toggles
+- Stack traces or response payloads
+- Environment details (Python version, OS)
+
+---
+
+## License
+
+See LICENSE file for details.
+
+---
+
+## Support
+
+- **Documentation**: `docs/` directory
+- **Issues**: GitHub Issues
+- **Discussions**: GitHub Discussions
+
+---
+
+## Acknowledgments
+
+FixOps integrates with and builds upon:
+
+- **CISA KEV**: Known Exploited Vulnerabilities catalog
+- **FIRST.org EPSS**: Exploit Prediction Scoring System
+- **SLSA**: Supply-chain Levels for Software Artifacts
+- **SARIF**: Static Analysis Results Interchange Format
+- **CycloneDX/SPDX**: SBOM standards
+- **OPA**: Open Policy Agent
+- **ChromaDB**: Vector database for embeddings
+
+---
+
+**Last Updated**: 2025-10-19
+
+**Version**: 1.0.0
+
+**Maintainer**: DevOpsMadDog
+
+**Repository**: https://github.com/DevOpsMadDog/Fixops
