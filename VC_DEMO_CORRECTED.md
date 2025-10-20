@@ -90,14 +90,19 @@
 
 ```bash
 cd ~/Fixops
-source .venv/bin/activate
 
-# Environment
+# 1. Python environment (only needs to be done once)
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+# 2. Demo environment variables
 export FIXOPS_MODE=demo
 export FIXOPS_API_TOKEN=demo-token
 export FIXOPS_DISABLE_TELEMETRY=1
 
-# Start API
+# 3. Start API
 cat > demo_api_server.py << 'PYTHON'
 import os
 os.environ.setdefault("FIXOPS_MODE", "demo")
