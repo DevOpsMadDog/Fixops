@@ -1,0 +1,71 @@
+# FixOps Enterprise Dockerfile with ChromaDB and Sentence Transformers
+FROM python:3.11-slim
+
+# Install system dependencies for ChromaDB and ML libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    jq \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+COPY apps/api/requirements.txt apps_api_requirements.txt
+COPY apps/api/requirements-optional.txt apps_api_requirements_optional.txt
+
+# Install all dependencies including ChromaDB and sentence-transformers
+RUN pip install --no-cache-dir \
+    -r requirements.txt \
+    -r apps_api_requirements.txt \
+    -r apps_api_requirements_optional.txt \
+    uvicorn
+
+# Copy application files
+COPY apps ./apps
+COPY new_apps ./new_apps
+COPY core ./core
+COPY config ./config
+COPY backend ./backend
+COPY services ./services
+COPY domain ./domain
+COPY fixops ./fixops
+COPY fixops-enterprise ./fixops-enterprise
+COPY simulations ./simulations
+COPY demo_ssdlc_stages ./demo_ssdlc_stages
+COPY demo ./demo
+COPY ssvc ./ssvc
+COPY data ./data
+COPY fixtures ./fixtures
+
+# Create directories
+RUN mkdir -p \
+    demo_decision_inputs \
+    demo_decision_outputs \
+    data/feeds \
+    data/evidence \
+    data/vector_store \
+    data/chroma_db
+
+# Environment variables for enterprise mode
+ENV FIXOPS_MODE=enterprise \
+    FIXOPS_API_TOKEN=enterprise-token \
+    FIXOPS_DISABLE_TELEMETRY=1 \
+    PYTHONUNBUFFERED=1 \
+    VECTOR_STORE_PROVIDER=chromadb \
+    VECTOR_STORE_PERSIST_DIR=/app/data/chroma_db
+
+EXPOSE 8000
+
+# Create demo server script with proper newlines
+RUN printf 'import os\n\
+os.environ.setdefault("FIXOPS_MODE", "enterprise")\n\
+from apps.api.app import create_app\n\
+app = create_app()\n\
+if __name__ == "__main__":\n\
+    import uvicorn\n\
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")\n' > demo_api_server.py
+
+CMD ["python", "-m", "core.cli", "demo", "--mode", "enterprise", "--output", "demo_decision_outputs/decision.json", "--pretty"]
