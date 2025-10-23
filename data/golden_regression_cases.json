@@ -1,0 +1,167 @@
+{
+  "cases": [
+    {
+      "case_id": "payment-2024-01",
+      "service_name": "payment-service",
+      "cve_id": "CVE-2024-1111",
+      "decision": "fail",
+      "confidence": 0.95,
+      "timestamp": "2024-01-15T10:00:00Z",
+      "context": {
+        "service_name": "payment-service",
+        "environment": "production",
+        "business_context": {
+          "criticality": "critical",
+          "data_classification": "pci",
+          "exposure": "internet-facing"
+        },
+        "security_findings": [
+          {
+            "cve": "CVE-2024-1111",
+            "severity": "critical",
+            "cvss": 9.8,
+            "epss": 0.92,
+            "kev": true
+          }
+        ]
+      },
+      "expected": {
+        "decision": "BLOCK",
+        "confidence": 0.95
+      },
+      "metadata": {
+        "description": "Critical CVE in payment service with high EPSS and KEV status",
+        "rationale": "Payment service handles PCI data, internet-facing, EPSS 92%, KEV exploited"
+      }
+    },
+    {
+      "case_id": "payment-2024-02",
+      "service_name": "payment-service",
+      "cve_id": null,
+      "decision": "pass",
+      "confidence": 0.85,
+      "timestamp": "2024-02-10T10:00:00Z",
+      "context": {
+        "service_name": "payment-service",
+        "environment": "production",
+        "business_context": {
+          "criticality": "critical",
+          "data_classification": "pci"
+        },
+        "security_findings": []
+      },
+      "expected": {
+        "decision": "ALLOW",
+        "confidence": 0.85
+      },
+      "metadata": {
+        "description": "Payment service with no security findings",
+        "rationale": "Clean scan, no vulnerabilities detected"
+      }
+    },
+    {
+      "case_id": "inventory-2023-05",
+      "service_name": "inventory-service",
+      "cve_id": "CVE-2024-3333",
+      "decision": "fail",
+      "confidence": 0.88,
+      "timestamp": "2023-05-20T10:00:00Z",
+      "context": {
+        "service_name": "inventory-service",
+        "environment": "production",
+        "business_context": {
+          "criticality": "high",
+          "data_classification": "internal"
+        },
+        "security_findings": [
+          {
+            "cve_id": "CVE-2024-3333",
+            "severity": "high",
+            "cvss": 8.5,
+            "epss": 0.75,
+            "kev": false
+          }
+        ]
+      },
+      "expected": {
+        "decision": "BLOCK",
+        "confidence": 0.88
+      },
+      "metadata": {
+        "description": "High severity CVE in inventory service",
+        "rationale": "High EPSS (75%), high criticality service"
+      }
+    },
+    {
+      "case_id": "log4shell-2021-12",
+      "service_name": "payment-gateway",
+      "cve_id": "CVE-2021-44228",
+      "decision": "fail",
+      "confidence": 0.98,
+      "timestamp": "2021-12-10T10:00:00Z",
+      "context": {
+        "service_name": "payment-gateway",
+        "environment": "production",
+        "business_context": {
+          "criticality": "critical",
+          "data_classification": "pci",
+          "exposure": "internet-facing",
+          "revenue_impact": 2000000
+        },
+        "security_findings": [
+          {
+            "cve": "CVE-2021-44228",
+            "severity": "critical",
+            "cvss": 10.0,
+            "epss": 0.975,
+            "kev": true,
+            "component": "log4j-core",
+            "version": "2.14.0"
+          }
+        ]
+      },
+      "expected": {
+        "decision": "BLOCK",
+        "confidence": 0.98
+      },
+      "metadata": {
+        "description": "Log4Shell vulnerability in payment gateway",
+        "rationale": "CVSS 10.0, EPSS 97.5%, KEV exploited, payment gateway, PCI data, internet-facing"
+      }
+    },
+    {
+      "case_id": "dev-tool-2024-03",
+      "service_name": "internal-admin-tool",
+      "cve_id": "CVE-2024-5555",
+      "decision": "pass",
+      "confidence": 0.70,
+      "timestamp": "2024-03-15T10:00:00Z",
+      "context": {
+        "service_name": "internal-admin-tool",
+        "environment": "development",
+        "business_context": {
+          "criticality": "low",
+          "data_classification": "internal",
+          "exposure": "internal-only"
+        },
+        "security_findings": [
+          {
+            "cve": "CVE-2024-5555",
+            "severity": "high",
+            "cvss": 9.3,
+            "epss": 0.001,
+            "kev": false
+          }
+        ]
+      },
+      "expected": {
+        "decision": "ALLOW",
+        "confidence": 0.70
+      },
+      "metadata": {
+        "description": "High CVSS but low EPSS in internal dev tool",
+        "rationale": "CVSS 9.3 but EPSS 0.1%, not in KEV, internal-only, dev environment"
+      }
+    }
+  ]
+}
