@@ -64,7 +64,7 @@ case $choice in
             --name fixops-vc-demo \
             -p 8000:8000 \
             -v $(pwd)/demo_decision_outputs:/app/demo_decision_outputs \
-            -v $(pwd)/demo_decision_inputs:/app/demo_decision_inputs \
+            -v "$(pwd)/demo_decision_inputs:/app/demo_decision_inputs" \
             fixops-demo:latest \
             bash -c "python demo_api_server.py & tail -f /dev/null"
         
