@@ -42,13 +42,13 @@ ENV FIXOPS_MODE=demo \
 
 EXPOSE 8000
 
-# Create demo server script
-RUN echo 'import os\n\
+# Create demo server script with proper newlines
+RUN printf 'import os\n\
 os.environ.setdefault("FIXOPS_MODE", "demo")\n\
 from apps.api.app import create_app\n\
 app = create_app()\n\
 if __name__ == "__main__":\n\
     import uvicorn\n\
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")' > demo_api_server.py
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")\n' > demo_api_server.py
 
 CMD ["python", "-m", "core.cli", "demo", "--mode", "demo", "--output", "demo_decision_outputs/decision.json", "--pretty"]
