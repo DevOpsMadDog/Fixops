@@ -89,16 +89,32 @@ Total: 1,607 individual alerts
 
 **Snyk, SonarQube, CNAPPs:**
 - Use CVSS scores only (0-10 scale)
+- Policy: "Block all CVSS >= 9.0"
 - No EPSS (exploitation probability)
 - No KEV (known exploited vulnerabilities)
 - No business context integration
 - No Bayesian risk modeling
-- Result: "CVSS 10.0 = Critical = Patch in 30 days"
 
-**Why This Fails:**
-- Log4Shell: CVSS 10.0, but EPSS 97.5% and KEV exploited
-- Other tools said "30 days" → Companies breached on day 3
-- No differentiation between theoretical risk and actual risk
+**Why This Fails - The False Positive Problem:**
+
+**Snyk blocks Log4Shell ✓ BUT also blocks 47 other CVEs ✗**
+
+Example (December 10, 2021):
+- Snyk blocks 48 CVEs (all CVSS >= 9.0)
+- 1 true positive: Log4Shell (EPSS 0.975, KEV exploited, internet-facing)
+- 47 false positives: EPSS < 0.01, KEV NO, internal/dev/test components
+- **False positive rate: 98%**
+
+**The Inevitable Outcome:**
+1. Week 1: 48 deployments blocked → Teams frustrated
+2. Week 2: Teams request policy exceptions
+3. Week 3: 40 exceptions approved (for "low-risk" components)
+4. Week 4: Log4Shell exception approved (payment gateway deemed "low-risk")
+5. Day 28: Breach occurs through payment gateway
+
+**The Root Cause:** CVSS doesn't tell you if a vulnerability is ACTUALLY being exploited. When you block 48 CVEs and 47 are false positives, teams stop trusting the policy.
+
+**This is the "boy who cried wolf" problem.** When everything is critical, nothing is critical.
 
 ---
 
