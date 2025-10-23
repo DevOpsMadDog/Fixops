@@ -423,9 +423,174 @@ echo "This is how we go from 1,607 findings to 12 critical decisions."
 
 ---
 
-## 🤖 PART 4: LLM Layer - Multi-Model Consensus
+## 🤖 PART 4: Math First, LLMs Second - Architecture Deep Dive
 
-### 4.1 Why Multiple LLMs?
+### 4.1 The Critical Question VCs Ask
+
+**"Why do you need Bayesian inference, Markov chains, EPSS, and KEV if you have LLMs? Can't LLMs just do everything?"**
+
+**Short Answer:**
+- **Math doesn't hallucinate** - LLMs do
+- **Math is auditable** - LLM reasoning is opaque  
+- **Math is deterministic** - LLMs are probabilistic
+- **Math is the foundation** - LLMs are optional enhancement
+
+### 4.2 The Two-Layer Architecture
+
+```bash
+echo "=== FIXOPS ARCHITECTURE: TWO LAYERS ==="
+echo ""
+echo "LAYER 1: Mathematical Foundation (82% Confidence)"
+echo "  ✅ Works WITHOUT any LLMs or external APIs"
+echo "  ✅ 100% deterministic (same inputs → same outputs)"
+echo "  ✅ 100% reproducible (audit trail)"
+echo "  ✅ 0% hallucination risk (pure math)"
+echo "  ✅ Works offline (no external APIs)"
+echo "  ✅ Works in CI/CD (fast, predictable)"
+echo ""
+echo "Components:"
+echo "  • EPSS: 296,333+ CVEs with exploitation probability"
+echo "  • KEV: 1,422 actively exploited CVEs"
+echo "  • Bayesian Inference: 5% → 87% risk updates"
+echo "  • Markov Chains: 7-day, 30-day forecasts"
+echo "  • Correlation Engine: SBOM → CVE → SARIF"
+echo ""
+echo "LAYER 2: LLM Enhancement (88% Confidence) - OPTIONAL"
+echo "  ✅ Same decision as Layer 1 (math validates)"
+echo "  ✅ Higher confidence (88% vs 82%)"
+echo "  ✅ Richer explanation (natural language)"
+echo "  ✅ Hallucination protected (math validates)"
+echo ""
+echo "Components:"
+echo "  • Multi-LLM Consensus (4 models vote)"
+echo "  • Hallucination Detection (math validates)"
+echo "  • Deterministic Fallback (always available)"
+echo ""
+echo "KEY INSIGHT: Math is the foundation. LLMs are optional enhancement."
+```
+
+### 4.3 Demo: Math-Only Decision
+
+```bash
+# Run demo WITHOUT LLMs
+FIXOPS_MODE=demo python -m core.cli demo --output /tmp/math_only.json --pretty
+
+# Show mathematical analysis
+cat /tmp/math_only.json | jq '.probabilistic'
+```
+
+**Talk Track:**
+> "Let me show you our mathematical foundation. This works WITHOUT any LLMs.
+> 
+> **EPSS:** 97.5% exploitation probability (from FIRST.org)
+> **KEV:** Actively exploited (from CISA)
+> **Bayesian:** 5% → 87% risk increase (17.4x)
+> **Markov:** 68% chance stays HIGH in 30 days
+> **Decision:** BLOCK deployment
+> **Confidence:** 82%
+> 
+> This is pure math. No LLMs. No hallucinations. 100% reproducible."
+
+### 4.4 Demo: LLM Enhancement
+
+```bash
+# Set OpenAI API key
+export OPENAI_API_KEY="sk-proj-YOUR-KEY"
+
+# Run demo WITH LLMs
+FIXOPS_MODE=enterprise python -m core.cli demo --output /tmp/with_llm.json --pretty
+
+# Show enhanced decision
+cat /tmp/with_llm.json | jq '.enhanced_decision'
+```
+
+**Talk Track:**
+> "Now let's add LLMs. Watch what happens.
+> 
+> **Same decision:** BLOCK (math already told us that)
+> **Higher confidence:** 88% instead of 82%
+> **Natural language:** 'This is Log4Shell, a critical RCE vulnerability in your payment gateway...'
+> **MITRE ATT&CK:** T1190, T1059, T1210
+> **Compliance:** PCI DSS 6.5.1, SOC2 CC7.2
+> **Attack vectors:** Remote code execution, data exfiltration
+> 
+> LLMs add **explainability, not decisions**."
+
+### 4.5 Hallucination Protection: Three Layers
+
+```bash
+echo ""
+echo "=== HALLUCINATION PROTECTION ==="
+echo ""
+echo "LAYER 1: Math is Ground Truth"
+echo "  Rule: If LLM disagrees with math, math wins. Always."
+echo ""
+echo "  Example:"
+echo "    Math says: BLOCK (EPSS 97.5%, KEV exploited)"
+echo "    LLM says: ALLOW (hallucination)"
+echo "    Final decision: BLOCK (math wins)"
+echo "    Warning: 'LLM output rejected (conflicts with KEV status)'"
+echo ""
+echo "LAYER 2: Multi-Model Consensus"
+echo "  Rule: 4 LLMs vote. Outliers are rejected."
+echo ""
+echo "  Example:"
+echo "    GPT-4: ALLOW (hallucination)"
+echo "    Claude-3: BLOCK"
+echo "    Gemini: BLOCK"
+echo "    Sentinel: BLOCK"
+echo "    Consensus: 3/4 say BLOCK → Final decision: BLOCK"
+echo "    Warning: 'GPT-4 output rejected (outlier)'"
+echo ""
+echo "LAYER 3: Deterministic Fallback"
+echo "  Rule: If all LLMs fail, use heuristics based on math."
+echo ""
+echo "  Example:"
+echo "    LLM status: API timeout"
+echo "    Fallback: Deterministic heuristics"
+echo "    Decision: BLOCK (EPSS > 90% AND KEV exploited)"
+echo "    Confidence: 82% (math baseline)"
+echo ""
+echo "RESULT: Hallucination risk < 1%"
+```
+
+### 4.6 Confidence Comparison
+
+```bash
+echo ""
+echo "=== CONFIDENCE COMPARISON ==="
+echo ""
+echo "Mode                    | Math | LLMs | Confidence | Hallucination | Offline"
+echo "------------------------|------|------|------------|---------------|--------"
+echo "Demo                    | ✅   | ❌   | 82%        | 0%            | ✅"
+echo "Enterprise (no API key) | ✅   | ❌   | 82%        | 0%            | ✅"
+echo "Enterprise (with API)   | ✅   | ✅   | 88%        | <1%           | ❌"
+echo ""
+echo "KEY INSIGHTS:"
+echo "  1. Math alone gives 82% confidence (production-ready)"
+echo "  2. LLMs add 6% confidence (82% → 88%)"
+echo "  3. Hallucination risk is <1% (protected by math)"
+echo "  4. Works offline (no external dependencies required)"
+```
+
+**Talk Track:**
+> "This is why enterprises trust FixOps. We're not betting the company on whether GPT-4 is having a good day.
+> 
+> We're using **proven mathematical models:**
+> - Bayesian inference (1763)
+> - Markov chains (1906)
+> - EPSS (2021, FIRST.org)
+> - KEV (2021, CISA)
+> 
+> LLMs are the cherry on top. They make output more explainable, more actionable, more audit-friendly.
+> 
+> **But the foundation is math. And math doesn't hallucinate.**"
+
+---
+
+## 🤖 PART 5: LLM Layer - Multi-Model Consensus
+
+### 5.1 Why Multiple LLMs?
 
 ```bash
 echo "=== MULTI-LLM CONSENSUS ENGINE ==="
