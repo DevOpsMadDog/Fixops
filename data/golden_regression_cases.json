@@ -62,7 +62,7 @@
     {
       "case_id": "inventory-2023-05",
       "service_name": "inventory-service",
-      "cve_id": "CVE-2024-3333",
+            "cve": "CVE-2024-3333",
       "decision": "fail",
       "confidence": 0.88,
       "timestamp": "2023-05-20T10:00:00Z",
