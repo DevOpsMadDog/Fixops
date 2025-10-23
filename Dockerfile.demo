@@ -34,6 +34,15 @@ ENV FIXOPS_MODE=demo \
 # Expose API port
 EXPOSE 8000
 
+# Create demo server script with proper newlines for docker-compose interactive mode
+RUN printf 'import os\n\
+os.environ.setdefault("FIXOPS_MODE", "demo")\n\
+from apps.api.app import create_app\n\
+app = create_app()\n\
+if __name__ == "__main__":\n\
+    import uvicorn\n\
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")\n' > demo_api_server.py
+
 # Default command runs the demo
 # Note: Health check removed as default command runs CLI pipeline and exits without starting a server
 CMD ["python", "-m", "core.cli", "demo", "--mode", "demo", "--output", "demo_decision_outputs/decision.json", "--pretty"]
