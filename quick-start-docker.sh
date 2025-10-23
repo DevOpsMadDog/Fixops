@@ -41,7 +41,7 @@ case $choice in
         echo "🚀 Running FixOps demo..."
         echo ""
         docker run --rm \
-            -v $(pwd)/demo_decision_outputs:/app/demo_decision_outputs \
+            -v "$(pwd)/demo_decision_outputs:/app/demo_decision_outputs" \
             fixops-demo:latest
         
         echo ""
