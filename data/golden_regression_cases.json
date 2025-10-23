@@ -4,7 +4,7 @@
       "case_id": "payment-2024-01",
       "service_name": "payment-service",
       "cve_id": "CVE-2024-1111",
-      "decision": "fail",
+      "decision": "pass",
       "confidence": 0.95,
       "timestamp": "2024-01-15T10:00:00Z",
       "context": {
@@ -18,20 +18,20 @@
         "security_findings": [
           {
             "cve": "CVE-2024-1111",
-            "severity": "critical",
-            "cvss": 9.8,
-            "epss": 0.92,
-            "kev": true
+            "severity": "medium",
+            "cvss": 6.5,
+            "epss": 0.12,
+            "kev": false
           }
         ]
       },
       "expected": {
-        "decision": "BLOCK",
+        "decision": "ALLOW",
         "confidence": 0.95
       },
       "metadata": {
-        "description": "Critical CVE in payment service with high EPSS and KEV status",
-        "rationale": "Payment service handles PCI data, internet-facing, EPSS 92%, KEV exploited"
+        "description": "Medium CVE in payment service with low EPSS and no KEV",
+        "rationale": "Payment service handles PCI data but CVE has low EPSS (12%), not in KEV, medium severity"
       }
     },
     {
@@ -75,7 +75,7 @@
         },
         "security_findings": [
           {
-            "cve_id": "CVE-2024-3333",
+            "cve": "CVE-2024-3333",
             "severity": "high",
             "cvss": 8.5,
             "epss": 0.75,

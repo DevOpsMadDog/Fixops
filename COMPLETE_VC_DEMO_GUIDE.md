@@ -1675,7 +1675,7 @@ pytest tests/test_marketplace_recos.py -v
 
 | Feature | Status | Tested | Demo Ready | Competitors |
 |---------|--------|--------|------------|-------------|
-| **Golden Regression Sets** | ✅ Built | ✅ Tested | ✅ YES | None |
+| **Golden Regression Sets** | ✅ Built (WIP folder) | ⚠️ Demo script works, integration tests in progress | ✅ YES (demo only) | None |
 | **Marketplace for Compliance Packs** | ✅ Built | ✅ Tested | ✅ YES | Partial |
 
 **Key Talking Points:**
