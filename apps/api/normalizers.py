@@ -626,11 +626,25 @@ class InputNormalizer:
             return data
         return decoded or data
 
-    @staticmethod
-    def _maybe_decompress(data: bytes) -> bytes:
+    def _maybe_decompress(self, data: bytes) -> bytes:
         if data.startswith(b"\x1f\x8b"):
             try:
-                return gzip.decompress(data)
+                if self.max_document_bytes:
+                    decompressed = bytearray()
+                    decompressor = gzip.GzipFile(fileobj=io.BytesIO(data))
+                    chunk_size = 1024 * 1024
+                    while True:
+                        chunk = decompressor.read(chunk_size)
+                        if not chunk:
+                            break
+                        decompressed.extend(chunk)
+                        if len(decompressed) > self.max_document_bytes:
+                            raise ValueError(
+                                f"Decompressed gzip content exceeds maximum allowed size of {self.max_document_bytes} bytes"
+                            )
+                    return bytes(decompressed)
+                else:
+                    return gzip.decompress(data)
             except OSError:
                 return data
         buffer = io.BytesIO(data)
@@ -655,7 +669,28 @@ class InputNormalizer:
                 if not chosen and names:
                     chosen = names[0]
                 if chosen:
-                    return archive.read(chosen)
+                    if self.max_document_bytes:
+                        info = archive.getinfo(chosen)
+                        if info.file_size > self.max_document_bytes:
+                            raise ValueError(
+                                f"Compressed file '{chosen}' would decompress to {info.file_size} bytes, exceeding maximum allowed size of {self.max_document_bytes} bytes"
+                            )
+                    decompressed = bytearray()
+                    chunk_size = 1024 * 1024
+                    with archive.open(chosen) as member:
+                        while True:
+                            chunk = member.read(chunk_size)
+                            if not chunk:
+                                break
+                            decompressed.extend(chunk)
+                            if (
+                                self.max_document_bytes
+                                and len(decompressed) > self.max_document_bytes
+                            ):
+                                raise ValueError(
+                                    f"Decompressed zip content exceeds maximum allowed size of {self.max_document_bytes} bytes"
+                                )
+                    return bytes(decompressed)
         return data
 
     def _prepare_text(self, raw: Any) -> str:

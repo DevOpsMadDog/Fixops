@@ -60,7 +60,12 @@ def ensure_secure_directory(path: Path, mode: int = 0o750) -> Path:
 
 
 def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
-    """Resolve *path* and ensure it resides inside a secure allowlisted root."""
+    """Resolve *path* and ensure it resides inside a secure allowlisted root.
+
+    The path itself does not need to exist, but all existing ancestors must pass
+    security validation. This allows first-run initialization to validate paths
+    before creating them.
+    """
 
     resolved_allowlist: Tuple[Path, ...] = tuple(root.resolve() for root in allowlist)
     if not resolved_allowlist:
@@ -83,13 +88,18 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
         )
 
     uid = _current_uid()
-    ancestor = matched_root
-    _validate_directory_security(ancestor, uid)
+    if not matched_root.exists():
+        raise PermissionError(
+            f"Allowlisted root '{matched_root}' does not exist; create it with secure permissions"
+        )
+    _validate_directory_security(matched_root, uid)
+
     for parent in resolved.parents:
         if matched_root in {parent, parent.resolve()}:
             break
         if parent.exists():
             _validate_directory_security(parent, uid)
+
     if resolved.exists():
         _validate_directory_security(resolved, uid)
 

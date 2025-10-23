@@ -150,8 +150,18 @@ class OpenAIChatProvider(BaseLLMProvider):
             if "choices" not in response_json or not response_json["choices"]:
                 raise ValueError("OpenAI response missing choices")
 
-            content = response_json["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+            message = response_json["choices"][0].get("message", {})
+            content = message.get("content")
+
+            if not content:
+                raise ValueError("OpenAI response missing message content")
+
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as json_exc:
+                raise ValueError(
+                    f"OpenAI returned non-JSON content: {content[:100]}"
+                ) from json_exc
         except requests.Timeout as exc:
             metadata = {
                 "mode": "fallback",
