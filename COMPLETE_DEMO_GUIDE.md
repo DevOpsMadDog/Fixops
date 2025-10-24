@@ -5,7 +5,7 @@
 
 ## 🎯 Executive Summary
 
-This guide demonstrates the complete FixOps platform - an intelligent decision layer that sits ON TOP of your existing security scanners (Snyk, Semgrep, Trivy, etc.) to reduce alert noise by 99.3% using mathematical models + algorithms + LLM explainability.
+This guide demonstrates the complete FixOps platform - an intelligent decision layer that sits ON TOP of your existing security scanners (Snyk, Semgrep, Trivy, etc.) to reduce alert noise by 87.5% (real backtesting: 8 critical CVEs → 1 true threat) using mathematical models + algorithms + LLM explainability.
 
 **What You'll See:**
 1. Complete SSDLC coverage (Requirements → Design → Code → Build → Test → Deploy → Operate)
@@ -17,7 +17,7 @@ This guide demonstrates the complete FixOps platform - an intelligent decision l
 7. Automated compliance mapping (SOC2, ISO27001, PCI DSS)
 
 **Value Demonstrated:**
-- 99.3% noise reduction (1,607 alerts → 12 decisions)
+- 87.5% false positive reduction (real backtesting) (45 CVE alerts (8 critical) → 12 decisions)
 - <2 second processing time
 - 85%+ decision accuracy
 - $3.46M annual ROI (28.8x)
@@ -694,7 +694,7 @@ Based on business context + mathematical models:
 ### Noise Reduction
 - **Input**: 5 scanner findings (before context)
 - **Output**: 3 critical decisions requiring immediate action
-- **Noise reduced**: 40% (in full enterprise deployment: 99.3%)
+- **Noise reduced**: 40% (in full enterprise deployment: 87.5% (real backtesting: 8 critical CVEs → 1 true threat))
 
 ### Time Savings
 - **Without FixOps**: 15 min/finding × 5 = 75 minutes manual triage
@@ -803,7 +803,7 @@ Before presenting to CISO/VC:
 
 ### Presentation Materials
 - [ ] Summary report generated
-- [ ] Key metrics ready (99.3% noise reduction, 28.8x ROI)
+- [ ] Key metrics ready (87.5% false positive reduction (real backtesting), 28.8x ROI)
 - [ ] Architecture diagram visible
 - [ ] Value proposition clear (intelligence layer, not scanner)
 
@@ -823,7 +823,7 @@ Before presenting to CISO/VC:
 - **Accuracy**: 85%+ (vs 60% single-model)
 
 ### Business Value
-- **Noise Reduction**: 99.3% (1,607 → 12 decisions in full deployment)
+- **Noise Reduction**: 87.5% (real backtesting: 8 critical CVEs → 1 true threat) (8 critical CVEs → 1 true threat decisions in full deployment)
 - **Time Savings**: 60% security team efficiency gain
 - **Compliance Savings**: $540K annually
 - **ROI**: 28.8x return on investment

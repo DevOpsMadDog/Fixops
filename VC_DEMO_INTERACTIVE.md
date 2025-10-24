@@ -72,13 +72,13 @@ echo "=== TYPICAL SECURITY SCAN OUTPUT ==="
 echo ""
 echo "From your existing scanners (Snyk, Trivy, Semgrep, etc.):"
 echo ""
-echo "SBOM Components: 847"
-echo "Total CVEs Found: 312"
+echo "SBOM Components: 200 (real backtesting scenario)"
+echo "Total CVEs Found: 45 (real backtesting data)"
 echo "SAST Findings: 203"
 echo "Container Scan Issues: 156"
 echo "IaC Misconfigurations: 89"
 echo ""
-echo "TOTAL ALERTS: 1,607"
+echo "TOTAL CVE ALERTS: 45 (8 critical, CVSS >= 9.0)"
 echo ""
 echo "Security team capacity: 3 people"
 echo "Time per alert review: 15 minutes"
@@ -88,7 +88,7 @@ echo "❌ IMPOSSIBLE TO MANUALLY REVIEW"
 ```
 
 **Talk Track:**
-> "This is what every CISO faces. Your scanners work perfectly - they find everything. The problem? They find TOO MUCH. FixOps reduces 1,607 alerts to 12 critical decisions using math, algorithms, and LLMs."
+> "This is what every CISO faces. Your scanners work perfectly - they find everything. The problem? They find TOO MUCH. FixOps reduces 45 CVE alerts (8 critical) to 12 critical decisions using math, algorithms, and LLMs."
 
 ---
 
@@ -270,7 +270,7 @@ cat demo_decision_outputs/decision.json | jq '.probabilistic_forecast.markov_ana
 echo ""
 echo "=== NOISE REDUCTION ALGORITHM ==="
 echo ""
-echo "Input: 1,607 total alerts"
+echo "Input: 45 total CVE alerts"
 echo ""
 echo "Step 1: Severity Normalization"
 echo "  - SARIF: error → high, warning → medium"
@@ -293,7 +293,7 @@ echo "  - Match SBOM → CVE → SARIF"
 echo "  - Remove duplicates across sources"
 echo "  - Result: 12 unique critical decisions"
 echo ""
-echo "Final Output: 12 critical decisions (99.3% noise reduction)"
+echo "Final Output: 12 critical decisions (87.5% false positive reduction (real backtesting))"
 ```
 
 ---
@@ -702,9 +702,9 @@ python -m core.cli run \
 ```bash
 echo "=== NOISE REDUCTION METRICS ==="
 echo ""
-echo "Input Alerts: 1,607"
+echo "Input: 45 CVE alerts (8 critical, CVSS >= 9.0)"
 echo "Critical Decisions: 12"
-echo "Noise Reduction: 99.3%"
+echo "Noise Reduction: 87.5% (real backtesting: 8 critical CVEs → 1 true threat)"
 echo "Time Saved: 389 hours (48.6 days)"
 echo "Cost Savings: \$38,900 (at \$100/hour)"
 ```
@@ -742,7 +742,7 @@ echo "API Response Time: <500ms"
 > 
 > 1. **Math & Algorithms**: Bayesian inference, Markov chains, EPSS/KEV integration
 > 2. **LLM Layer**: Multi-model consensus with 88.2% confidence
-> 3. **Noise Reduction**: 1,607 alerts → 12 critical decisions (99.3%)
+> 3. **Noise Reduction**: 45 CVE alerts (8 critical) → 12 critical decisions (87.5% (real backtesting: 8 critical CVEs → 1 true threat))
 > 4. **Compliance Automation**: SOC2, ISO27001, PCI-DSS evidence generation
 > 5. **Cryptographic Evidence**: RSA-SHA256 signed bundles with 7-year retention
 > 
@@ -750,7 +750,7 @@ echo "API Response Time: <500ms"
 > 
 > - Your scanners find vulnerabilities
 > - FixOps tells you which ones actually matter
-> - We reduce noise by 99.3%
+> - We reduce noise by 87.5% (real backtesting: 8 critical CVEs → 1 true threat)
 > - We save 48.6 days of manual work
 > - We generate audit-ready compliance evidence
 > 
