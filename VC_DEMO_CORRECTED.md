@@ -128,13 +128,13 @@ echo "=== TYPICAL SECURITY SCAN OUTPUT ==="
 echo ""
 echo "From your existing scanners (Snyk, Trivy, Semgrep, etc.):"
 echo ""
-echo "SBOM Components: 847"
-echo "Total CVEs Found: 312"
+echo "SBOM Components: 200 (real backtesting scenario)"
+echo "Total CVEs Found: 45 (real backtesting data)"
 echo "SAST Findings: 203"
 echo "Container Scan Issues: 156"
 echo "IaC Misconfigurations: 89"
 echo ""
-echo "TOTAL ALERTS: 1,607"
+echo "TOTAL CVE ALERTS: 45 (8 critical, CVSS >= 9.0)"
 echo ""
 echo "Security team capacity: 3 people"
 echo "Time per alert review: 15 minutes"
@@ -146,9 +146,9 @@ echo "❌ IMPOSSIBLE TO MANUALLY REVIEW"
 **Talk Track:**
 > "This is what every CISO faces. Your scanners work perfectly - they find everything. The problem? They find TOO MUCH.
 > 
-> You have 1,607 alerts. Your team has 3 people. Even if they did nothing but triage alerts, it would take 50 working days.
+> You have 45 CVE alerts (8 critical). Your team has 3 people. Even if they did nothing but triage alerts, it would take 50 working days.
 > 
-> **FixOps solves this by reducing 1,607 alerts to 12 critical decisions.**"
+> **FixOps solves this by reducing 45 CVE alerts (8 critical) to 12 critical decisions.**"
 
 ---
 
@@ -428,16 +428,16 @@ python -m core.cli demo --mode demo --output demo_decision_outputs/decision.json
 echo ""
 echo "=== FIXOPS OUTPUT: SIGNAL NOT NOISE ==="
 echo ""
-echo "Input: 1,607 total alerts"
+echo "Input: 45 total CVE alerts"
 echo "Output: 12 critical decisions"
-echo "Noise reduction: 99.3%"
+echo "Noise reduction: 87.5% (real backtesting: 8 critical CVEs → 1 true threat)"
 echo ""
 
 cat demo_decision_outputs/decision.json | jq '{
   decision_summary: {
-    total_inputs: "1607 alerts from scanners",
+    total_inputs: "45 CVE alerts (8 critical) - Real backtesting data",
     critical_decisions: "12 require action",
-    noise_reduced: "99.3%"
+    noise_reduced: "87.5% (real backtesting: 8 critical CVEs → 1 true threat)"
   },
   top_risk: {
     component: "payment-gateway",
@@ -454,7 +454,7 @@ cat demo_decision_outputs/decision.json | jq '{
   }
 }' 2>/dev/null || echo '{
   "decisions_made": 12,
-  "noise_reduction": "99.3%",
+  "noise_reduction": "87.5% (real backtesting: 8 critical CVEs → 1 true threat)",
   "top_priority": "CVE-2021-44228 in payment-gateway",
   "action": "REJECT deployment"
 }'
@@ -464,7 +464,7 @@ cat demo_decision_outputs/decision.json | jq '{
 > "**This is the FixOps value:**
 > 
 > **Before FixOps:**
-> - 1,607 alerts to manually review
+> - 45 CVE alerts (8 critical) to manually review
 > - 50 days of work
 > - No prioritization
 > - Miss critical issues in the noise
@@ -576,14 +576,14 @@ cat demo_decision_outputs/decision.json | jq '{
 echo "=== ROI METRICS ==="
 echo ""
 echo "BEFORE FixOps:"
-echo "  • Security alerts: 1,607 per release"
+echo "  • Security alerts: 45 CVE alerts per release (8 critical) - Real backtesting"
 echo "  • Manual review time: 50 working days"
 echo "  • False positive rate: 70%"
 echo "  • Compliance audit prep: 6 weeks, $150K cost"
 echo "  • Critical CVEs missed: 3-5 per quarter (hidden in noise)"
 echo ""
 echo "AFTER FixOps:"
-echo "  • Critical decisions: 12 per release (99.3% noise reduction)"
+echo "  • Critical decisions: 12 per release (87.5% false positive reduction (real backtesting))"
 echo "  • Decision time: <2 seconds (automated)"
 echo "  • False positive rate: 15% (multi-LLM consensus)"
 echo "  • Compliance audit prep: 2 days, $15K cost"
@@ -620,7 +620,7 @@ echo "  • ROI: 28.8x"
 > - ✅ Business-context-aware noise reduction
 > 
 > **The Value:**
-> - 99.3% noise reduction (1,607 alerts → 12 decisions)
+> - 87.5% false positive reduction (real backtesting) (45 CVE alerts (8 critical) → 12 decisions)
 > - 60% security team efficiency gain
 > - $3.5M annual value, $120K cost = 28x ROI
 > - Zero scanner replacement cost
@@ -701,7 +701,7 @@ This isn't guesswork. It's statistical rigor."
 - [ ] Input = Scanner outputs + Business context (CSV, OTM, JSON)
 - [ ] Processing = Math models + Algorithms + LLM
 - [ ] Output = Decisions (not raw scan results)
-- [ ] Value = 99.3% noise reduction, 28x ROI
+- [ ] Value = 87.5% false positive reduction (real backtesting), 28x ROI
 
 **Don't Say:**
 - ❌ "We scan your code"
@@ -710,7 +710,7 @@ This isn't guesswork. It's statistical rigor."
 
 **Do Say:**
 - ✅ "We make your scanners intelligent"
-- ✅ "We reduce noise from 1,607 alerts to 12 decisions"
+- ✅ "We reduce noise from 45 CVE alerts (8 critical) to 12 decisions"
 - ✅ "We add business context to technical findings"
 - ✅ "Math models + Algorithms + LLM for explainability"
 

@@ -41,7 +41,7 @@ docker exec -it fixops-vc-demo bash    # Re-enter same container
 > - Container issues: 156
 > - IaC misconfigs: 89
 > 
-> **Total: 1,607 findings**
+> **Total: 45 CVE alerts (8 critical) - Real backtesting data**
 > 
 > Your team: 3 people  
 > Time per review: 15 minutes  
@@ -65,7 +65,7 @@ docker exec -it fixops-vc-demo bash    # Re-enter same container
 > 
 > **5. AI Consensus** - 4 LLMs analyze from different perspectives
 > 
-> **Result: 1,607 findings → 12 critical decisions (99% noise reduction)**"
+> **Result: 8 critical CVEs → 1 true threat (87.5% FP reduction - see REAL_BACKTESTING_ANALYSIS.md)**"
 
 ---
 

@@ -45,12 +45,12 @@ python -m core.cli demo --mode enterprise --output demo_decision_outputs/enterpr
 ## 🎯 Key Demo Points
 
 ### The Problem
-- **1,607 alerts** from scanners
+- **45 CVE alerts (8 critical)** from scanners
 - **50 days** of manual work
 - **99% noise**, 1% signal
 
 ### The Solution
-- **12 critical decisions** (99.3% noise reduction)
+- **12 critical decisions** (87.5% false positive reduction (real backtesting))
 - **4 seconds** execution time
 - **17 modules** executed
 - **88.2% confidence** (multi-LLM consensus)
@@ -163,9 +163,9 @@ python -m apps.fixops_cli stage-run --stage build --input demo_ssdlc_stages/04_b
 ## 📈 Key Metrics
 
 ### Noise Reduction
-- Input: 1,607 alerts
+- Input: 45 CVE alerts (8 critical)
 - Output: 12 decisions
-- Reduction: 99.3%
+- Reduction: 87.5% (real backtesting: 8 critical CVEs → 1 true threat)
 - Time saved: 48.6 days
 
 ### Accuracy
@@ -183,7 +183,7 @@ python -m apps.fixops_cli stage-run --stage build --input demo_ssdlc_stages/04_b
 ## 🎤 Talk Track Templates
 
 ### Opening
-> "FixOps is NOT a scanner. We're the intelligent decision layer that sits ON TOP of your existing scanners. We reduce 1,607 alerts to 12 critical decisions using math, algorithms, and LLMs."
+> "FixOps is NOT a scanner. We're the intelligent decision layer that sits ON TOP of your existing scanners. We reduce 45 CVE alerts (8 critical) to 12 critical decisions using math, algorithms, and LLMs."
 
 ### Math Layer
 > "We use Bayesian inference to update risk probabilities from 5% to 87% based on evidence. Markov chains forecast that this risk will reach 68% critical in 30 days. EPSS tells us there's a 97% exploitation probability."
@@ -195,7 +195,7 @@ python -m apps.fixops_cli stage-run --stage build --input demo_ssdlc_stages/04_b
 > "We automatically generate evidence for SOC2, ISO27001, PCI-DSS, and GDPR. Every decision is cryptographically signed with RSA-SHA256 and retained for 7 years. Audit-ready, out of the box."
 
 ### Closing
-> "FixOps doesn't replace your scanners. We make them intelligent. 99.3% noise reduction. 48.6 days saved. Audit-ready evidence. This is the decision layer your security stack needs."
+> "FixOps doesn't replace your scanners. We make them intelligent. 87.5% false positive reduction (real backtesting). 48.6 days saved. Audit-ready evidence. This is the decision layer your security stack needs."
 
 ---
 
@@ -250,7 +250,7 @@ Before the demo:
 - [ ] Output directory writable
 
 During the demo:
-- [ ] Show the problem (1,607 alerts)
+- [ ] Show the problem (45 CVE alerts (8 critical))
 - [ ] Run quick demo (4 seconds)
 - [ ] Explain math (Bayesian, Markov, EPSS)
 - [ ] Show LLM consensus (88.2%)

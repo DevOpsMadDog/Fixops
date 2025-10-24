@@ -37,7 +37,7 @@ FixOps is an **intelligent decision layer** that sits ON TOP of your existing se
 - **Automated Compliance**: SOC2, ISO27001, PCI DSS, GDPR evidence generation
 
 ### Key Metrics
-- **99.3% Noise Reduction**: 1,607 alerts → 12 decisions
+- **87.5% (real backtesting: 8 critical CVEs → 1 true threat) Noise Reduction**: 45 CVE alerts (8 critical) → 12 decisions
 - **60% Time Savings**: Security team efficiency gain
 - **28.8x ROI**: $3.46M annual value vs $120K cost
 - **<4 Second Processing**: Real-time decision making
@@ -2043,7 +2043,7 @@ A: No. FixOps is an intelligent decision layer that sits ON TOP of your existing
 **Q: Do I need to replace my existing scanners?**  
 A: No. FixOps works with your existing scanners. Just feed their outputs (SARIF, SBOM, CVE) into FixOps.
 
-**Q: How does FixOps reduce noise by 99.3%?**  
+**Q: How does FixOps reduce noise by 87.5% (real backtesting: 8 critical CVEs → 1 true threat)?**  
 A: By applying mathematical models (EPSS, KEV), business context (criticality, exposure), and multi-LLM consensus to prioritize only critical issues.
 
 **Q: What's the difference between demo and enterprise mode?**  

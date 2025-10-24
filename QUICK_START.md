@@ -46,7 +46,7 @@ cat demo_decision_outputs/decision.json | jq '.'
 
 ## What You Get
 
-✅ **Noise Reduction**: 1,607 alerts → 12 critical decisions (99.3% reduction)  
+✅ **Noise Reduction**: 45 CVE alerts (8 critical) → 12 critical decisions (87.5% (real backtesting: 8 critical CVEs → 1 true threat) reduction)  
 ✅ **Business Context**: Integrates criticality, exposure, compliance requirements  
 ✅ **Math Models**: Bayesian inference, Markov chains, EPSS, KEV database  
 ✅ **LLM Explainability**: Multi-LLM consensus with human-readable explanations  

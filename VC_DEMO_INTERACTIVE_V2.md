@@ -141,7 +141,7 @@ echo "IaC Misconfigurations: 89"
 echo "  (Terraform, K8s issues)"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "TOTAL INDIVIDUAL FINDINGS: 1,607"
+echo "TOTAL CVE ALERTS: 45 (8 critical, CVSS >= 9.0) - Real backtesting data"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "Your security team: 3 people"
@@ -155,7 +155,7 @@ echo "❌ NO PRIORITIZATION"
 ```
 
 **Talk Track:**
-> "This is the reality for every CISO. Your scanners work perfectly - they find EVERYTHING. But which of these 1,607 findings actually matter?
+> "This is the reality for every CISO. Your scanners work perfectly - they find EVERYTHING. But which of these 45 CVE alerts (8 critical) actually matter?
 > 
 > Is a low-severity CVE in a dev-only analytics service as critical as a high-severity CVE in your internet-facing payment gateway? Of course not.
 > 
@@ -418,7 +418,7 @@ echo "  • Verdict: BLOCK deployment"
 echo "  • Confidence: 88.2%"
 echo "  • Action: Patch immediately"
 echo ""
-echo "This is how we go from 1,607 findings to 12 critical decisions."
+echo "This is how we go from 8 critical CVEs to 1 true threat (87.5% FP reduction - see REAL_BACKTESTING_ANALYSIS.md)."
 ```
 
 ---
