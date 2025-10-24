@@ -435,7 +435,7 @@ echo ""
 
 cat demo_decision_outputs/decision.json | jq '{
   decision_summary: {
-    total_inputs: "1607 alerts from scanners",
+    total_inputs: "45 CVE alerts (8 critical) - Real backtesting data",
     critical_decisions: "12 require action",
     noise_reduced: "87.5% (real backtesting: 8 critical CVEs → 1 true threat)"
   },
@@ -576,7 +576,7 @@ cat demo_decision_outputs/decision.json | jq '{
 echo "=== ROI METRICS ==="
 echo ""
 echo "BEFORE FixOps:"
-echo "  • Security alerts: 1,607 per release"
+echo "  • Security alerts: 45 CVE alerts per release (8 critical) - Real backtesting"
 echo "  • Manual review time: 50 working days"
 echo "  • False positive rate: 70%"
 echo "  • Compliance audit prep: 6 weeks, $150K cost"

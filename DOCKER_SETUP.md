@@ -273,7 +273,7 @@ cat demo_decision_outputs/decision.json | jq '.'
 # View decision summary
 cat demo_decision_outputs/decision.json | jq '{
   decision_summary: {
-    total_inputs: "1607 alerts from scanners",
+    total_inputs: "45 CVE alerts (8 critical) - Real backtesting data",
     critical_decisions: "12 require action",
     noise_reduced: "87.5% (real backtesting: 8 critical CVEs → 1 true threat)"
   }

@@ -1238,7 +1238,7 @@ echo "  • 203 SAST findings"
 echo "  • 156 container scan issues"
 echo "  • 89 IaC misconfigurations"
 echo ""
-echo "Total: 1,607 alerts"
+echo "Total: 45 CVE alerts (8 critical) - Real backtesting data"
 echo "Manual triage: 48.6 days of work"
 echo "Cost: $38,900"
 echo ""
@@ -1510,7 +1510,7 @@ Payback period: 6 days
 - [ ] Customer questions anticipated
 
 ### During Demo Checklist
-- [ ] Show the problem (1,607 alerts)
+- [ ] Show the problem (45 CVE alerts, 8 critical - real backtesting)
 - [ ] Explain the mechanism (6-step pipeline)
 - [ ] Run live demo (4 seconds)
 - [ ] Show backtesting (Log4Shell)
