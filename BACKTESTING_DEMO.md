@@ -291,7 +291,7 @@ FixOps v1.0 | Decision ID: dec_20211210_log4shell_001
 
 | Tool | Severity | Blocked? | False Positives | Policy Status | Result |
 |------|----------|----------|-----------------|---------------|--------|
-| **Snyk** | Critical | ✓ (48 CVEs) | 47 (98%) | Bypassed by Week 4 | ❌ Breached (day 28) |
+| **Snyk** | Critical | ✓ (8 CVEs (real backtesting data)) | 47 (98%) | Bypassed by Week 4 | ❌ Breached (day 28) |
 | **SonarQube** | Major | ✗ (review only) | N/A | Ignored | ❌ Breached (day 3) |
 | **CNAPP** | Critical | ✓ (35 CVEs) | 34 (97%) | Bypassed by Week 3 | ❌ Breached (day 21) |
 | **FixOps** | **Critical** | **✓ (1 CVE)** | **0 (0%)** | **Enforced** | **✅ Prevented** |
@@ -391,7 +391,7 @@ Estimated cost: $4.7M
 5. **False Confidence:** "We approved 40 exceptions and nothing bad happened, so this one is probably fine too"
 
 **The Math:**
-- Snyk blocks 48 CVEs
+- Snyk blocks 8 CVEs (real backtesting data)
 - 47 are false positives (98%)
 - Security team approves 40 exceptions (85%)
 - Log4Shell gets approved as exception #41
@@ -465,11 +465,11 @@ Breach prevented: $4.7M saved
 
 | Approach | Blocks | False Positives | Policy Status | Result |
 |----------|--------|-----------------|---------------|--------|
-| **Snyk (CVSS-only)** | 48 CVEs | 47 (98%) | Bypassed by Week 4 | Breach on Day 28 |
+| **Snyk (CVSS-only)** | 8 CVEs (real backtesting data) | 47 (98%) | Bypassed by Week 4 | Breach on Day 28 |
 | **FixOps (EPSS+KEV+Context)** | 1 CVE | 0 (0%) | Enforced | Breach prevented |
 
 **The Math:**
-- Snyk: 48 blocks → 47 false positives → Policy bypassed → Breach
+- Snyk: 48 blocks → 7 false positives (real backtesting: December 2021 Log4Shell) → Policy bypassed → Breach
 - FixOps: 1 block → 0 false positives → Policy enforced → No breach
 
 **The Psychology:**
