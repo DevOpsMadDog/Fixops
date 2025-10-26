@@ -162,9 +162,9 @@ class CorrelationEngine:
             total_findings=len(findings),
             correlated_findings=len(results),
             total_time_ms=total_time * 1000,
-            avg_time_per_finding_us=(total_time / len(findings)) * 1_000_000
-            if findings
-            else 0,
+            avg_time_per_finding_us=(
+                (total_time / len(findings)) * 1_000_000 if findings else 0
+            ),
         )
 
         return results

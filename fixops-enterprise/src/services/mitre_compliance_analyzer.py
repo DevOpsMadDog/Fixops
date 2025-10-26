@@ -267,9 +267,9 @@ class MITREComplianceAnalyzer:
                     [t for t in unique_techniques if t in ["T1055", "T1003"]]
                 ),
                 "persistence_mechanisms": 0,  # Would be enhanced with more techniques
-                "data_exfiltration_risk": "high"
-                if "T1190" in unique_techniques
-                else "medium",
+                "data_exfiltration_risk": (
+                    "high" if "T1190" in unique_techniques else "medium"
+                ),
             },
             "business_risk_amplification": risk_amplification,
         }
@@ -315,9 +315,9 @@ class MITREComplianceAnalyzer:
                     "status": "non_compliant" if violations else "compliant",
                     "violations": violations,
                     "critical_areas_affected": framework.critical_areas,
-                    "potential_penalties": framework.penalty_range
-                    if violations
-                    else "None",
+                    "potential_penalties": (
+                        framework.penalty_range if violations else "None"
+                    ),
                 }
 
         overall_compliant = all(
@@ -329,12 +329,18 @@ class MITREComplianceAnalyzer:
             "frameworks_analyzed": compliance_requirements,
             "compliance_status": compliance_status,
             "overall_compliance": "compliant" if overall_compliant else "non_compliant",
-            "compliance_score": len(
-                [s for s in compliance_status.values() if s["status"] == "compliant"]
-            )
-            / len(compliance_status)
-            if compliance_status
-            else 1.0,
+            "compliance_score": (
+                len(
+                    [
+                        s
+                        for s in compliance_status.values()
+                        if s["status"] == "compliant"
+                    ]
+                )
+                / len(compliance_status)
+                if compliance_status
+                else 1.0
+            ),
         }
 
     def _calculate_risk_amplification(self, techniques: List[str]) -> Dict[str, Any]:
