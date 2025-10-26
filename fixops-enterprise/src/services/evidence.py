@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Dict, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping
 
 
 def _canonicalize(payload: Mapping[str, Any]) -> Mapping[str, Any]:

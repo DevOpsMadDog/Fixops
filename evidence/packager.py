@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Iterable, Mapping
 from zipfile import ZipFile
 
 import yaml

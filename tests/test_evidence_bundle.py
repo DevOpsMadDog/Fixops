@@ -106,7 +106,7 @@ def test_fixops_ci_evidence_bundle(tmp_path: Path) -> None:
     provenance_dir.mkdir(parents=True, exist_ok=True)
     (provenance_dir / "build.json").write_text("{}", encoding="utf-8")
     repro_dir = tmp_path / "artifacts/repro/attestations"
-    repro_attestation = _write_json(repro_dir / f"{tag}.json", {"match": True})
+    _write_json(repro_dir / f"{tag}.json", {"match": True})
     policy_path = tmp_path / "config/policy.yml"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     policy_path.write_text(

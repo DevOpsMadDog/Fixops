@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from fastapi.testclient import TestClient
 from src.config.settings import get_settings
 from src.core.middleware import RateLimitMiddleware
 from src.main import create_app

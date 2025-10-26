@@ -17,12 +17,9 @@ pytestmark = pytest.mark.skipif(
     os.getenv("RUN_FIXOPS_INTEGRATION_TESTS") != "1",
     reason="FixOps real component integration tests require running services",
 )
-import asyncio
-import json
 import os
 import subprocess
 import sys
-from datetime import datetime
 
 # Set LLM key for testing
 os.environ["EMERGENT_LLM_KEY"] = "sk-emergent-aD7C0E299C8FbB4B8A"
@@ -70,23 +67,23 @@ async def test_vector_store():
     try:
         settings = get_settings()
         print(f'Demo mode: {settings.DEMO_MODE}')
-        
+
         # Test factory creation
         vector_store = VectorStoreFactory.create(settings)
         print(f'Vector store type: {type(vector_store).__name__}')
-        
+
         # Test initialization
         await vector_store.initialize()
         print('Vector store initialized successfully')
-        
+
         # Test search functionality
         results = await vector_store.search_security_patterns("SQL injection vulnerability", top_k=3)
         print(f'Search results: {len(results)} patterns found')
-        
+
         if results:
             for i, result in enumerate(results):
                 print(f'  Pattern {i+1}: {result.metadata.get("category", "unknown")} - {result.similarity_score:.3f}')
-        
+
         return True
     except Exception as e:
         print(f'Vector store test error: {str(e)}')
@@ -152,15 +149,15 @@ async def test_opa_engine():
     try:
         settings = get_settings()
         print(f'Demo mode: {settings.DEMO_MODE}')
-        
+
         # Test OPA engine creation
         opa_engine = await get_opa_engine()
         print(f'OPA engine type: {type(opa_engine).__name__}')
-        
+
         # Test health check
         health = await opa_engine.health_check()
         print(f'OPA engine healthy: {health}')
-        
+
         # Test vulnerability policy evaluation
         test_vulnerabilities = [
             {
@@ -170,17 +167,17 @@ async def test_opa_engine():
                 "title": "Test Critical Vulnerability"
             },
             {
-                "cve_id": "CVE-2023-5678", 
+                "cve_id": "CVE-2023-5678",
                 "severity": "HIGH",
                 "fix_available": True,
                 "title": "Test High Vulnerability"
             }
         ]
-        
+
         vuln_result = await evaluate_vulnerability_policy(test_vulnerabilities)
         print(f'Vulnerability policy result: {vuln_result.get("decision", "unknown")}')
         print(f'Vulnerability policy rationale: {vuln_result.get("rationale", "none")}')
-        
+
         # Test SBOM policy evaluation
         sbom_result = await evaluate_sbom_policy(
             sbom_present=True,
@@ -194,7 +191,7 @@ async def test_opa_engine():
         )
         print(f'SBOM policy result: {sbom_result.get("decision", "unknown")}')
         print(f'SBOM policy rationale: {sbom_result.get("rationale", "none")}')
-        
+
         return True
     except Exception as e:
         print(f'OPA engine test error: {str(e)}')
@@ -279,11 +276,11 @@ async def test_evidence_lake():
     try:
         settings = get_settings()
         print(f'Demo mode: {settings.DEMO_MODE}')
-        
+
         # Initialize decision engine
         await decision_engine.initialize()
         print('Decision engine initialized')
-        
+
         # Create test context for evidence generation
         context = DecisionContext(
             service_name="test-evidence-service",
@@ -298,13 +295,13 @@ async def test_evidence_lake():
                 }
             ]
         )
-        
+
         # Make a decision to generate evidence
         result = await decision_engine.make_decision(context)
         print(f'Decision made: {result.decision.value}')
         print(f'Evidence ID: {result.evidence_id}')
         print(f'Confidence: {result.confidence_score}')
-        
+
         # Test evidence retrieval
         if result.evidence_id:
             print(f'Evidence generated successfully: {result.evidence_id}')
@@ -312,7 +309,7 @@ async def test_evidence_lake():
         else:
             print('No evidence ID generated')
             return False
-            
+
     except Exception as e:
         print(f'Evidence lake test error: {str(e)}')
         return False
@@ -662,7 +659,7 @@ print(f'OPA Server URL: {getattr(settings, "OPA_SERVER_URL", "default")}')
 
         # Print results
         print(f"\n{'='*80}")
-        print(f"📊 REAL COMPONENTS TEST RESULTS:")
+        print("📊 REAL COMPONENTS TEST RESULTS:")
         print(f"Tests passed: {self.tests_passed}/{self.tests_run}")
         print(f"Success rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
 

@@ -6,25 +6,12 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import os
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-)
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Sequence, Set, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ENTERPRISE_SRC = REPO_ROOT / "fixops-enterprise"
