@@ -44,7 +44,17 @@ function DeveloperOps() {
       })
 
     } catch (error) {
-      setPipelineState(prev => ({ ...prev, loading: false }))
+      console.error('Failed to fetch pipeline data:', error)
+      const demoSystemInfo = { mode: 'demo' }
+      setPipelineState({
+        loading: false,
+        systemMode: 'demo',
+        currentService: 'payment-service',
+        lastDecision: generateSampleDecision(demoSystemInfo),
+        ssdlcStages: generateSampleStages(demoSystemInfo),
+        integrationStatus: generateIntegrationStatus(demoSystemInfo),
+        cliCommands: generateCLICommands(demoSystemInfo)
+      })
     }
   }
 
