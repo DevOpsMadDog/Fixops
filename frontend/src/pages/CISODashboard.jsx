@@ -47,9 +47,15 @@ function CISODashboard() {
       const recentDecisions = recentData.data || []
 
       // Calculate derived metrics from real data
-      const allowDecisions = recentDecisions.filter(d => d.decision === 'ALLOW').length
-      const blockDecisions = recentDecisions.filter(d => d.decision === 'BLOCK').length  
-      const deferDecisions = recentDecisions.filter(d => d.decision === 'DEFER').length
+      const allowDecisions = recentDecisions.length > 0 
+        ? recentDecisions.filter(d => d.decision === 'ALLOW').length
+        : realMetrics.allow_decisions || 0
+      const blockDecisions = recentDecisions.length > 0
+        ? recentDecisions.filter(d => d.decision === 'BLOCK').length
+        : realMetrics.block_decisions || 0
+      const deferDecisions = recentDecisions.length > 0
+        ? recentDecisions.filter(d => d.decision === 'DEFER').length
+        : realMetrics.defer_decisions || 0
       const totalDecisions = recentDecisions.length || realMetrics.total_decisions || 0
 
       const avgConfidence = recentDecisions.length > 0 
