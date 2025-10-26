@@ -84,7 +84,7 @@ def _load_or_generate_jwt_secret() -> str:
         if _JWT_SECRET_FILE.exists():
             secret = _JWT_SECRET_FILE.read_text().strip()
             if secret:
-                logger.info(f"Loaded persisted JWT secret from {_JWT_SECRET_FILE}")
+                logger.info("Loaded persisted JWT secret from file")
                 return secret
     except Exception as e:
         logger.warning(f"Failed to read JWT secret file: {e}")
@@ -146,10 +146,21 @@ def create_app() -> FastAPI:
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()
+
+    try:
+        overlay = load_overlay(allow_demo_token_fallback=True)
+    except TypeError:
+        overlay = load_overlay()
+
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
     origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
     if not origins:
-        origins = ["https://core.ai"]
+        if overlay.mode != "demo":
+            raise ValueError(
+                "FIXOPS_ALLOWED_ORIGINS must be set in non-demo mode. "
+                "Set it to a comma-separated list of allowed origins."
+            )
+        origins = ["http://localhost:3000"]  # Demo mode only
 
     app.add_middleware(
         CORSMiddleware,
@@ -161,10 +172,6 @@ def create_app() -> FastAPI:
 
     normalizer = InputNormalizer()
     orchestrator = PipelineOrchestrator()
-    try:
-        overlay = load_overlay(allow_demo_token_fallback=True)
-    except TypeError:
-        overlay = load_overlay()
 
     # API authentication setup
     auth_strategy = overlay.auth.get("strategy", "").lower()
