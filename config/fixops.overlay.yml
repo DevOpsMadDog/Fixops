@@ -62,6 +62,20 @@ modules:
       - root_cause
       - vulnerability
     noise_reduction_target: 0.35
+  mitre_mapping:
+    enabled: false
+    techniques:
+      - T1190
+      - T1078
+      - T1003
+      - T1055
+  compliance_analysis:
+    enabled: false
+    frameworks:
+      - pci_dss
+      - sox
+      - hipaa
+      - nist_ssdf
 policy_automation:
   actions:
     - id: jira-guardrail-fail
