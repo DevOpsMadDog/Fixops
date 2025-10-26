@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 function DeveloperDashboard() {
   const [selectedService, setSelectedService] = useState('payment-service v2.1.3')
@@ -10,12 +10,15 @@ function DeveloperDashboard() {
     systemInfo: null,
     error: null
   })
+  const latestServiceRef = useRef(selectedService)
   
   useEffect(() => {
+    latestServiceRef.current = selectedService
     fetchRealData()
   }, [selectedService])
   
   const fetchRealData = async () => {
+    const requestedService = selectedService
     try {
       setDashboardData(prev => ({ ...prev, loading: true }))
 
@@ -31,6 +34,10 @@ function DeveloperDashboard() {
         componentsRes.json(), 
         stagesRes.json()
       ])
+      
+      if (requestedService !== latestServiceRef.current) {
+        return
+      }
       
       // Process real backend data
       const realDecisions = recentData.data || []
