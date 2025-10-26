@@ -113,7 +113,7 @@ async function uploadChunk({ upload_id, chunk_index, total_chunks, chunk_blob })
   formData.append('total_chunks', String(total_chunks))
   formData.append('chunk', chunk_blob)
 
-  const res = await api.post('/scans/upload/chunk', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  const res = await api.post('/scans/upload/chunk', formData)
   return res.data
 }
 
@@ -150,7 +150,7 @@ const apiMethods = {
 
   // Scans
   scans: {
-    upload: (formData) => api.post('/scans/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    upload: (formData) => api.post('/scans/upload', formData),
     chunkedUpload: chunkedFileUpload,
   },
 }
