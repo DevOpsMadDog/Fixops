@@ -9,7 +9,7 @@ function LoadingSpinner({ size = 'md', className = '' }) {
 
   return (
     <div 
-      className={`${sizeClasses[size]} ${className}`}
+      className={`${sizeClasses[size] || sizeClasses.md} ${className}`}
       style={{
         border: '3px solid #f3f4f6',
         borderTop: '3px solid #2563eb',
