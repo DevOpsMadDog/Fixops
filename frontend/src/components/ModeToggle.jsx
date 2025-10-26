@@ -38,7 +38,18 @@ function ModeToggle() {
         return
       }
       
-      // For demo purposes, just simulate the toggle
+      const updateResponse = await fetch('/api/v1/system-mode/set', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ mode: newMode })
+      })
+      
+      if (!updateResponse.ok) {
+        throw new Error(`Failed to update mode: ${updateResponse.statusText}`)
+      }
+      
       setCurrentMode(newMode)
       
       // Show restart instruction
