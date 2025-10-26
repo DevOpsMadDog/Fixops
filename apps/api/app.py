@@ -161,12 +161,18 @@ def create_app() -> FastAPI:
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
     origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
     if not origins:
+        origins = [
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+        ]
         if overlay.mode != "demo":
-            raise ValueError(
-                "FIXOPS_ALLOWED_ORIGINS must be set in non-demo mode. "
-                "Set it to a comma-separated list of allowed origins."
+            logger.warning(
+                "FIXOPS_ALLOWED_ORIGINS not set in non-demo mode. "
+                "Using default localhost origins. "
+                "Set FIXOPS_ALLOWED_ORIGINS for production deployments."
             )
-        origins = ["http://localhost:3000"]  # Demo mode only
 
     app.add_middleware(
         CORSMiddleware,

@@ -75,9 +75,11 @@ def redact_sensitive_data(
         """Recursively redact sensitive keys from dictionaries."""
         if isinstance(data, dict):
             return {
-                key: "***REDACTED***"
-                if key.lower() in sensitive_keys
-                else redact_dict(value)
+                key: (
+                    "***REDACTED***"
+                    if key.lower() in sensitive_keys
+                    else redact_dict(value)
+                )
                 for key, value in data.items()
             }
         elif isinstance(data, (list, tuple)):
