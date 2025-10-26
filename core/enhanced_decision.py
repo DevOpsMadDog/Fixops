@@ -536,9 +536,7 @@ class MultiLLMConsensusEngine:
             "status": (
                 "fail"
                 if _SEVERITY_ORDER.index(highest) >= _SEVERITY_ORDER.index("high")
-                else "warn"
-                if highest == "medium"
-                else "pass"
+                else "warn" if highest == "medium" else "pass"
             )
         }
         context_summary = {
