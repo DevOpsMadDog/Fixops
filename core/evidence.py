@@ -67,9 +67,20 @@ class EvidenceHub:
                 )
             key = os.getenv(str(encryption_env))
             if not key:
-                raise RuntimeError(
-                    f"Evidence encryption requested but environment variable '{encryption_env}' is not set"
-                )
+                if overlay.mode in ("demo", "test", "ci"):
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Evidence encryption requested but {encryption_env} not set. "
+                        f"Running in {overlay.mode} mode - disabling encryption. "
+                        "Set encryption key for production deployments."
+                    )
+                    self.encrypt_bundles = False
+                else:
+                    raise RuntimeError(
+                        f"Evidence encryption requested but environment variable '{encryption_env}' is not set"
+                    )
             try:
                 self._fernet = Fernet(key.encode("utf-8"))
             except Exception as exc:  # pragma: no cover - invalid key handling

@@ -95,3 +95,4 @@ frontend/node_modules/.cache/default-development/0.pack
 coverage.xml
 !reports/coverage/coverage.xml
 data/data/
+real_cve_*.json
