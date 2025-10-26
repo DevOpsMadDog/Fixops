@@ -87,10 +87,11 @@ function EnhancedDashboard() {
     return '#dc2626'
   }
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (inputOverride = null) => {
     try {
       setStatusMsg('processing')
-      const parsed = JSON.parse(jsonInput || '{}')
+      const inputToUse = inputOverride ?? jsonInput
+      const parsed = JSON.parse(inputToUse || '{}')
       const payload = {
         service_name: selectedService,
         security_findings: parsed.security_findings || [],
@@ -101,7 +102,7 @@ function EnhancedDashboard() {
       setLlmComparison(res.data?.data || {})
       setStatusMsg('done')
       try {
-        localStorage.setItem(LS_INPUT_KEY, jsonInput)
+        localStorage.setItem(LS_INPUT_KEY, inputToUse)
         localStorage.setItem(LS_RESULT_KEY, JSON.stringify(res.data))
         localStorage.setItem(LS_SERVICE_KEY, selectedService)
       } catch (_) {}
@@ -113,7 +114,7 @@ function EnhancedDashboard() {
 
   const handleTrySample = async () => {
     setJsonInput(defaultJson)
-    await handleAnalyze()
+    await handleAnalyze(defaultJson)
   }
 
   const handleLoadLast = async () => {
