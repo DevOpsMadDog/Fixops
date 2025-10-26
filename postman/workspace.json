@@ -59,7 +59,7 @@
 	"automation": [
 		{
 			"name": "Newman Test Runner",
-			"path": "../test-bank-api.sh",
+			"path": "../WIP/code/enterprise_legacy/test-bank-api.sh",
 			"description": "Automated test execution with HTML reporting"
 		}
 	],

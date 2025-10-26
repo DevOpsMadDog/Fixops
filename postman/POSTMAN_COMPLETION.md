@@ -60,7 +60,7 @@ postman/
 
 ```bash
 # 1. Quick validation
-./test-bank-api.sh
+./WIP/code/enterprise_legacy/test-bank-api.sh
 
 # 2. Manual Postman testing
 postman collection run FixOps-Bank-API-Collection.json
