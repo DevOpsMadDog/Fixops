@@ -29,7 +29,7 @@ Migrated from: `WIP/code/enterprise_legacy/frontend/`
 - ✅ `ExecutiveBriefing.jsx` - Executive summary
 - ✅ `InstallPage.jsx` - Installation guide
 
-#### Components (6 reusable components)
+#### Components (5 reusable components)
 - ✅ `Layout.jsx` - Main layout wrapper
 - ✅ `SecurityLayout.jsx` - Security-focused layout
 - ✅ `ModeToggle.jsx` - Demo/Production mode toggle
@@ -94,7 +94,7 @@ The frontend expects these API endpoints (all under `/api/v1`):
 
 ## Dependencies
 
-### Production Dependencies (14 packages)
+### Production Dependencies (17 packages)
 - `react` ^18.2.0 - Core React
 - `react-dom` ^18.2.0 - React DOM
 - `react-router-dom` ^6.20.1 - Routing
@@ -110,7 +110,7 @@ The frontend expects these API endpoints (all under `/api/v1`):
 - `lucide-react` ^0.294.0 - Icons
 - `zustand` ^4.4.7 - State management
 
-### Dev Dependencies (10 packages)
+### Dev Dependencies (11 packages)
 - `vite` ^5.0.2 - Build tool
 - `@vitejs/plugin-react` ^4.1.1 - React plugin
 - `tailwindcss` ^3.3.6 - CSS framework
