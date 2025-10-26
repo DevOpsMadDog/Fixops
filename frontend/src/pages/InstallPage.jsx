@@ -14,6 +14,9 @@ function InstallPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/v1/docs/install')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
       const data = await response.text()
       setContent(data)
     } catch (error) {
