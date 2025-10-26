@@ -24,8 +24,8 @@ FROM nginx:alpine
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY <<EOF /etc/nginx/conf.d/default.conf
+# Copy nginx configuration template
+COPY <<EOF /etc/nginx/conf.d/default.conf.template
 server {
     listen 3000;
     server_name localhost;
@@ -71,6 +71,9 @@ server {
 }
 EOF
 
+# Set default backend URL if not provided
+ENV BACKEND_URL=http://localhost:8000
+
 # Health check for Kubernetes
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
@@ -78,5 +81,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Expose port
 EXPOSE 3000
 
-# Run nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Run nginx with envsubst to replace environment variables
+CMD ["/bin/sh", "-c", "envsubst '$$BACKEND_URL' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

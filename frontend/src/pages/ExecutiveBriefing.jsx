@@ -29,13 +29,13 @@ function ExecutiveBriefing() {
         recentRes.json()
       ])
 
-      const systemInfo = components.data?.system_info || {}
-      const metricsData = metrics.data || {}
-      const recentDecisions = recent.data || []
+      const systemInfo = components.data?.system_info ?? {}
+      const metricsData = metrics.data ?? {}
+      const recentDecisions = recent.data ?? []
 
       setBriefingData({
         loading: false,
-        systemMode: systemInfo.mode || 'demo',
+        systemMode: systemInfo.mode ?? 'demo',
         securityPosture: generateSecurityPosture(metricsData, recentDecisions, systemInfo),
         businessImpact: generateBusinessImpact(recentDecisions, systemInfo),
         complianceStatus: generateComplianceStatus(systemInfo),
@@ -55,7 +55,7 @@ function ExecutiveBriefing() {
       overallRisk: decisions.some(d => d.decision === 'BLOCK') ? 'ELEVATED' : 'NORMAL',
       deploymentSuccess: isDemo ? 82 : Math.round((decisions.filter(d => d.decision === 'ALLOW').length / Math.max(decisions.length, 1)) * 100),
       securityBlocks: isDemo ? 15 : decisions.filter(d => d.decision === 'BLOCK').length,
-      confidenceLevel: isDemo ? 91 : Math.round((metrics.high_confidence_rate || 0.87) * 100),
+      confidenceLevel: isDemo ? 91 : Math.round((metrics.high_confidence_rate ?? 0.87) * 100),
       mttr: isDemo ? '2.3h' : '0h', // Mean time to remediation
       coverage: isDemo ? 'Full Stack' : systemInfo.processing_layer_available ? 'Full Stack' : 'Basic'
     }

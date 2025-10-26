@@ -30,14 +30,14 @@ function Layout({ children }) {
         componentsRes.json()
       ])
 
-      const systemInfo = components.data?.system_info || {}
-      const metricsData = metrics.data || {}
+      const systemInfo = components.data?.system_info ?? {}
+      const metricsData = metrics.data ?? {}
 
       setSystemMetrics({
-        mode: systemInfo.mode || 'demo',
-        decisions_today: metricsData.total_decisions || (systemInfo.mode === 'demo' ? 47 : 0),
-        avg_latency_ms: Math.round((metricsData.avg_decision_latency_us || 285) / 1000),
-        confidence_rate: Math.round((metricsData.high_confidence_rate || 0.89) * 100),
+        mode: systemInfo.mode ?? 'demo',
+        decisions_today: metricsData.total_decisions ?? (systemInfo.mode === 'demo' ? 47 : 0),
+        avg_latency_ms: Math.round((metricsData.avg_decision_latency_us ?? 285) / 1000),
+        confidence_rate: Math.round((metricsData.high_confidence_rate ?? 0.89) * 100),
         loading: false
       })
     } catch (error) {
