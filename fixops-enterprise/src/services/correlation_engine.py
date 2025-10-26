@@ -439,11 +439,13 @@ class CorrelationEngine:
 
 # Global correlation engine instance (disabled by default)
 _correlation_engine = None
+_correlation_engine_enabled = None
 
 
 def get_correlation_engine(enabled: bool = False) -> CorrelationEngine:
     """
     Get or create global correlation engine instance
+    Recreates the instance if the enabled flag changes to allow feature flag toggling
 
     Args:
         enabled: Feature flag to enable/disable correlation engine
@@ -451,9 +453,10 @@ def get_correlation_engine(enabled: bool = False) -> CorrelationEngine:
     Returns:
         CorrelationEngine instance
     """
-    global _correlation_engine
-    if _correlation_engine is None:
+    global _correlation_engine, _correlation_engine_enabled
+    if _correlation_engine is None or _correlation_engine_enabled != enabled:
         _correlation_engine = CorrelationEngine(enabled=enabled)
+        _correlation_engine_enabled = enabled
     return _correlation_engine
 
 

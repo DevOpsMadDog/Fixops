@@ -732,6 +732,8 @@ class MITREComplianceAnalyzer:
 
 
 _analyzer = None
+_analyzer_mitre_enabled = None
+_analyzer_compliance_enabled = None
 
 
 def get_mitre_compliance_analyzer(
@@ -739,6 +741,7 @@ def get_mitre_compliance_analyzer(
 ) -> MITREComplianceAnalyzer:
     """
     Get or create global MITRE compliance analyzer instance
+    Recreates the instance if feature flags change to allow feature flag toggling
 
     Args:
         mitre_enabled: Enable MITRE ATT&CK mapping
@@ -747,9 +750,15 @@ def get_mitre_compliance_analyzer(
     Returns:
         MITREComplianceAnalyzer instance
     """
-    global _analyzer
-    if _analyzer is None:
+    global _analyzer, _analyzer_mitre_enabled, _analyzer_compliance_enabled
+    if (
+        _analyzer is None
+        or _analyzer_mitre_enabled != mitre_enabled
+        or _analyzer_compliance_enabled != compliance_enabled
+    ):
         _analyzer = MITREComplianceAnalyzer(
             mitre_enabled=mitre_enabled, compliance_enabled=compliance_enabled
         )
+        _analyzer_mitre_enabled = mitre_enabled
+        _analyzer_compliance_enabled = compliance_enabled
     return _analyzer
