@@ -53,6 +53,15 @@ modules:
     patterns_path: fixtures/security_patterns.json
     top_k: 3
   enhanced_decision: { enabled: true }
+  correlation_engine:
+    enabled: false
+    strategies:
+      - fingerprint
+      - location
+      - pattern
+      - root_cause
+      - vulnerability
+    noise_reduction_target: 0.35
 policy_automation:
   actions:
     - id: jira-guardrail-fail
