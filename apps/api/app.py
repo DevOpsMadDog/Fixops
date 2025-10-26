@@ -37,6 +37,8 @@ if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor
 
+from .health import router as health_router
+from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware
 from .normalizers import (
     InputNormalizer,
     NormalizedBusinessContext,
@@ -146,6 +148,10 @@ def create_app() -> FastAPI:
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()
+
+    app.add_middleware(CorrelationIdMiddleware)
+
+    app.add_middleware(RequestLoggingMiddleware)
 
     try:
         overlay = load_overlay(allow_demo_token_fallback=True)
@@ -295,6 +301,8 @@ def create_app() -> FastAPI:
     uploads_dir = verify_allowlisted_path(uploads_dir, allowlist)
     upload_manager = ChunkUploadManager(uploads_dir)
     app.state.upload_manager = upload_manager
+
+    app.include_router(health_router)
 
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
