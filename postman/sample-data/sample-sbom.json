@@ -27,20 +27,7 @@
 			"name": "jackson-core",
 			"version": "2.13.0",
 			"scope": "required",
-			"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.0",
-			"vulnerabilities": [
-				{
-					"id": "CVE-2022-42003",
-					"description": "Deserialization vulnerability in Jackson",
-					"ratings": [
-						{
-							"severity": "high",
-							"method": "CVSSv3",
-							"score": 7.5
-						}
-					]
-				}
-			]
+			"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.0"
 		},
 		{
 			"type": "library",
@@ -48,20 +35,7 @@
 			"name": "spring-security", 
 			"version": "5.6.0",
 			"scope": "required",
-			"purl": "pkg:maven/org.springframework.security/spring-security-core@5.6.0",
-			"vulnerabilities": [
-				{
-					"id": "CVE-2023-34035",
-					"description": "Authentication bypass vulnerability",
-					"ratings": [
-						{
-							"severity": "critical",
-							"method": "CVSSv3",
-							"score": 9.1
-						}
-					]
-				}
-			]
+			"purl": "pkg:maven/org.springframework.security/spring-security-core@5.6.0"
 		},
 		{
 			"type": "library",
@@ -70,6 +44,40 @@
 			"version": "2.17.0", 
 			"scope": "required",
 			"purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.17.0"
+		}
+	],
+	"vulnerabilities": [
+		{
+			"id": "CVE-2022-42003",
+			"description": "Deserialization vulnerability in Jackson",
+			"affects": [
+				{
+					"ref": "jackson-core@2.13.0"
+				}
+			],
+			"ratings": [
+				{
+					"severity": "high",
+					"method": "CVSSv3",
+					"score": 7.5
+				}
+			]
+		},
+		{
+			"id": "CVE-2023-34035",
+			"description": "Authentication bypass vulnerability",
+			"affects": [
+				{
+					"ref": "spring-security@5.6.0"
+				}
+			],
+			"ratings": [
+				{
+					"severity": "critical",
+					"method": "CVSSv3",
+					"score": 9.1
+				}
+			]
 		}
 	]
 }
