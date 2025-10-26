@@ -6,7 +6,7 @@
 - `CHANGES.md` — rationale for code-level optimisations and their impact.
 
 **Data In/Out:**
-- Inputs: Synthetic payloads defined in the benchmark scripts within the docs/tests.
+- Inputs: Synthetic payloads defined in the benchmark scripts within the tests/ directory.
 - Outputs: Markdown and CSV summaries under this directory.
 
 **Gotchas:**
