@@ -89,10 +89,13 @@ class EvidenceHub:
                         f"Evidence encryption requested but environment variable '{encryption_env}' is not set. "
                         f"Mode: {mode}, CI: {is_ci_env}"
                     )
-            try:
-                self._fernet = Fernet(key.encode("utf-8"))
-            except Exception as exc:  # pragma: no cover - invalid key handling
-                raise RuntimeError("Invalid evidence encryption key supplied") from exc
+            if self.encrypt_bundles and key:
+                try:
+                    self._fernet = Fernet(key.encode("utf-8"))
+                except Exception as exc:  # pragma: no cover - invalid key handling
+                    raise RuntimeError(
+                        "Invalid evidence encryption key supplied"
+                    ) from exc
         retention_value = self.settings.get("retention_days", 2555)
         try:
             self.retention_days = int(retention_value)
