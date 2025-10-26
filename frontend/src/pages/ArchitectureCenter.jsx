@@ -45,7 +45,7 @@ function ArchitectureCenter() {
   }
 
   const generateDataFlow = (systemInfo) => {
-    const isDemo = systemInfo.mode === 'demo'
+    const isDemo = (systemInfo?.mode ?? 'demo') === 'demo'
     
     return [
       {
@@ -108,7 +108,7 @@ function ArchitectureCenter() {
   }
 
   const generatePerformanceMetrics = (data, systemInfo) => {
-    const isDemo = systemInfo.mode === 'demo'
+    const isDemo = (systemInfo?.mode ?? 'demo') === 'demo'
     
     return {
       hotPathLatency: isDemo ? '278μs' : `${data.avg_decision_latency_us || 285}μs`,
@@ -121,7 +121,7 @@ function ArchitectureCenter() {
   }
 
   const generateIntegrationMap = (components, systemInfo) => {
-    const isDemo = systemInfo.mode === 'demo'
+    const isDemo = (systemInfo?.mode ?? 'demo') === 'demo'
     
     return {
       vectorStore: {
