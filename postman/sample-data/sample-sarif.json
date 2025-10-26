@@ -1,8 +1,5 @@
 {
-	"$schema": "http://json-schema.org/draft-07/schema#",
-	"title": "SARIF Sample for Bank Testing",
-	"description": "Sample SARIF file representing SonarQube scan results for payment service",
-	"$id": "https://bank.internal/schemas/sample-sarif.json",
+	"$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
 	"version": "2.1.0",
 	"runs": [
 		{
