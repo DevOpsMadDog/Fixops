@@ -67,13 +67,13 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
+      // Set authorization header before validating token
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
       // Validate token by fetching user info
       const response = await api.get('/auth/me')
       setUser(response.data)
       setIsAuthenticated(true)
-      
-      // Set default authorization header
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
     } catch (error) {
       // Token is invalid, remove it
       localStorage.removeItem('access_token')
