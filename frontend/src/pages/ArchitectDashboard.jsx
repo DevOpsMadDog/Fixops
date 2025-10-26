@@ -53,9 +53,9 @@ function ArchitectDashboard() {
   const getComponentStatus = (component) => {
     if (!component) return { status: 'unknown', color: '#6b7280' }
     
-    const status = component.status || 'unknown'
+    const status = (component.status || 'unknown').toLowerCase()
     
-    if (status.includes('active') || status === 'validated') {
+    if (status === 'active' || status === 'validated') {
       return { status: 'Active', color: '#16a34a' }
     } else if (status === 'error' || status === 'not_configured') {
       return { status: 'Error', color: '#dc2626' }
