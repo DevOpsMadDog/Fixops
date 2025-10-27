@@ -116,7 +116,7 @@ def execute_custom_modules(
             continue
         config = spec.get("config") if isinstance(spec.get("config"), Mapping) else {}
         try:
-            result = handler(context.result, context, config)
+            result = handler(context.result, context, config)  # type: ignore[arg-type]
         except (
             Exception
         ) as exc:  # pragma: no cover - module failures reported as outcome

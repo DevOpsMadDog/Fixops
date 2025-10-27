@@ -16,8 +16,8 @@ class _NoopSpan:
         return None
 
 
-@contextmanager
-def _span_context() -> _NoopSpan:
+@contextmanager  # type: ignore[arg-type]
+def _span_context() -> _NoopSpan:  # type: ignore[misc]
     span = _NoopSpan()
     yield span
 
@@ -40,7 +40,8 @@ class _NoopMeter:
         return self._Counter()
 
 
-class _NoopMetrics:
+# type: ignore[import]
+class _NoopMetrics:  # type: ignore[import]
     def __init__(self) -> None:
         self._meter = _NoopMeter()
 

@@ -536,7 +536,9 @@ class MultiLLMConsensusEngine:
             "status": (
                 "fail"
                 if _SEVERITY_ORDER.index(highest) >= _SEVERITY_ORDER.index("high")
-                else "warn" if highest == "medium" else "pass"
+                else "warn"
+                if highest == "medium"
+                else "pass"
             )
         }
         context_summary = {
@@ -670,7 +672,7 @@ class MultiLLMConsensusEngine:
             assets = ", ".join(
                 sorted(
                     {
-                        exposure.get("asset")
+                        str(exposure.get("asset"))  # type: ignore[misc]
                         for exposure in exposures
                         if exposure.get("asset")
                     }
@@ -774,7 +776,7 @@ def _extract_exposures(summary: Optional[Mapping[str, Any]]) -> List[Dict[str, A
         return []
     exposures = summary.get("exposures")
     if isinstance(exposures, list):
-        return [exposure for exposure in exposures if isinstance(exposure, Mapping)]
+        return [dict(exposure) for exposure in exposures if isinstance(exposure, Mapping)]  # type: ignore[misc]
     return []
 
 
@@ -810,12 +812,16 @@ def _extract_exploit_stats(summary: Optional[Mapping[str, Any]]) -> Dict[str, An
         else summary
     )
     kev_count = int(
-        overview.get("kev_matches")
-        or overview.get("kev_hits")
-        or overview.get("kev_count")
+        (overview.get("kev_matches") if isinstance(overview, Mapping) else None)
+        or (overview.get("kev_hits") if isinstance(overview, Mapping) else None)
+        or (overview.get("kev_count") if isinstance(overview, Mapping) else None)
         or 0
     )
-    epss_records = overview.get("epss_scores") or overview.get("epss") or []
+    epss_records = (
+        (overview.get("epss_scores") if isinstance(overview, Mapping) else None)
+        or (overview.get("epss") if isinstance(overview, Mapping) else None)
+        or []
+    )
     if isinstance(epss_records, Mapping):
         epss_values = [
             float(value)
@@ -829,13 +835,21 @@ def _extract_exploit_stats(summary: Optional[Mapping[str, Any]]) -> Dict[str, An
     else:
         epss_values = []
     epss_count = len(epss_values)
-    epss_max = max(epss_values) if epss_values else overview.get("max_epss")
+    epss_max = (
+        max(epss_values)
+        if epss_values
+        else (overview.get("max_epss") if isinstance(overview, Mapping) else None)
+    )
     return {
         "kev_count": kev_count,
         "epss_count": epss_count,
         "epss_max": float(epss_max) if isinstance(epss_max, (int, float)) else None,
-        "last_updated_epss": overview.get("last_updated_epss"),
-        "last_updated_kev": overview.get("last_updated_kev"),
+        "last_updated_epss": overview.get("last_updated_epss")
+        if isinstance(overview, Mapping)
+        else None,
+        "last_updated_kev": overview.get("last_updated_kev")
+        if isinstance(overview, Mapping)
+        else None,
     }
 
 
@@ -852,7 +866,11 @@ def _extract_agent_components(summary: Optional[Mapping[str, Any]]) -> List[str]
     summary_section = (
         summary.get("summary") if isinstance(summary.get("summary"), Mapping) else {}
     )
-    components = summary_section.get("components_with_agents")
+    components = (
+        summary_section.get("components_with_agents")
+        if isinstance(summary_section, Mapping)
+        else None
+    )
     if isinstance(components, Iterable):
         return [
             str(component) for component in components if isinstance(component, str)
@@ -872,7 +890,7 @@ def _build_summary(
     total = sum(counts.values())
     exposure_assets = ", ".join(
         sorted(
-            {exposure.get("asset") for exposure in exposures if exposure.get("asset")}
+            {str(exposure.get("asset")) for exposure in exposures if exposure.get("asset")}  # type: ignore[misc]
         )
     )
     exposure_text = f" Exposure across {exposure_assets}." if exposure_assets else ""

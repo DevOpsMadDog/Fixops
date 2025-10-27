@@ -1189,7 +1189,7 @@ class OverlayConfig:
             elif plan.get("mode") == self.mode:
                 active = plan
                 break
-        summary = {"plans": plans}
+        summary: Dict[str, Any] = {"plans": plans}
         if active:
             summary["active_plan"] = active
         return summary
@@ -1255,10 +1255,12 @@ def load_overlay(
         data_directories = raw.get("data_directories")
         if isinstance(data_directories, Mapping):
             merged_directories = dict(data_directories)
+            existing_data_raw = raw.get("data")
             existing_data = (
-                raw.get("data") if isinstance(raw.get("data"), Mapping) else {}
+                existing_data_raw if isinstance(existing_data_raw, Mapping) else {}
             )
-            merged_directories.update(dict(existing_data))
+            if isinstance(existing_data, Mapping):
+                merged_directories.update(dict(existing_data))
             raw["data"] = merged_directories
         raw.pop("data_directories", None)
 
@@ -1329,25 +1331,25 @@ def load_overlay(
         _deep_merge(base, dict(profile_overrides))
 
     try:
-        base["compliance"] = _validate_compliance_config(base.get("compliance"))
-        base["policy_automation"] = _validate_policy_config(
-            base.get("policy_automation")
-        )
-        base["policy_engine"] = _validate_policy_engine_config(
-            base.get("policy_engine")
-        )
+        compliance_raw = base.get("compliance")
+        base["compliance"] = _validate_compliance_config(compliance_raw)  # type: ignore[arg-type]
+        policy_automation_raw = base.get("policy_automation")
+        base["policy_automation"] = _validate_policy_config(policy_automation_raw)  # type: ignore[arg-type]
+        policy_engine_raw = base.get("policy_engine")
+        base["policy_engine"] = _validate_policy_engine_config(policy_engine_raw)  # type: ignore[arg-type]
     except ValueError as exc:
         raise ValueError(f"Overlay validation failed: {exc}") from exc
 
     base["signing"] = _validate_signing_config(base.get("signing"))
 
-    toggles = base.setdefault("toggles", {})
+    toggles: Dict[str, Any] = base.setdefault("toggles", {})  # type: ignore[assignment]
     toggles.setdefault("require_design_input", True)
     toggles.setdefault("auto_attach_overlay_metadata", True)
     toggles.setdefault("include_overlay_metadata_in_bundles", True)
     toggles.setdefault("enable_rl_experiments", False)
     toggles.setdefault("enable_shap_experiments", False)
-    toggles.setdefault("signing_provider", base["signing"].get("provider", "env"))
+    signing_dict: Dict[str, Any] = base["signing"]  # type: ignore[assignment]
+    toggles.setdefault("signing_provider", signing_dict.get("provider", "env"))
     policy_engine_cfg = base.get("policy_engine", {})
     if isinstance(policy_engine_cfg, Mapping):
         opa_cfg = policy_engine_cfg.get("opa")
@@ -1359,7 +1361,7 @@ def load_overlay(
         default_opa_url = None
     toggles.setdefault("opa_server_url", default_opa_url or "")
 
-    modules = base.setdefault("modules", {})
+    modules: Dict[str, Any] = base.setdefault("modules", {})  # type: ignore[assignment]
     default_module_flags = {
         "guardrails": True,
         "context_engine": True,
@@ -1389,7 +1391,7 @@ def load_overlay(
         elif value is None:
             modules[key] = {"enabled": enabled}
 
-    metadata = base.setdefault("metadata", {})
+    metadata: Dict[str, Any] = base.setdefault("metadata", {})  # type: ignore[assignment]
     metadata.setdefault("profile_applied", selected_mode)
     metadata.setdefault(
         "available_profiles",
@@ -1398,33 +1400,33 @@ def load_overlay(
 
     config = OverlayConfig(
         mode=selected_mode,
-        jira=dict(base.get("jira", {})),
-        confluence=dict(base.get("confluence", {})),
-        git=dict(base.get("git", {})),
-        ci=dict(base.get("ci", {})),
-        auth=dict(base.get("auth", {})),
-        data=dict(base.get("data", {})),
+        jira=dict(base.get("jira", {}) or {}),  # type: ignore[arg-type]
+        confluence=dict(base.get("confluence", {}) or {}),  # type: ignore[arg-type]
+        git=dict(base.get("git", {}) or {}),  # type: ignore[arg-type]
+        ci=dict(base.get("ci", {}) or {}),  # type: ignore[arg-type]
+        auth=dict(base.get("auth", {}) or {}),  # type: ignore[arg-type]
+        data=dict(base.get("data", {}) or {}),  # type: ignore[arg-type]
         toggles=dict(toggles),
-        signing=dict(base.get("signing", {})),
+        signing=dict(base.get("signing", {}) or {}),  # type: ignore[arg-type]
         metadata=dict(metadata),
-        guardrails=dict(base.get("guardrails", {})),
-        context_engine=dict(base.get("context_engine", {})),
-        evidence_hub=dict(base.get("evidence_hub", {})),
-        onboarding=dict(base.get("onboarding", {})),
-        compliance=dict(base.get("compliance", {})),
-        policy_automation=dict(base.get("policy_automation", {})),
-        policy_engine=dict(base.get("policy_engine", {})),
-        pricing=dict(base.get("pricing", {})),
-        limits=dict(base.get("limits", {})),
-        ai_agents=dict(base.get("ai_agents", {})),
-        ssdlc=dict(base.get("ssdlc", {})),
-        exploit_signals=dict(base.get("exploit_signals", {})),
-        modules=dict(base.get("modules", {})),
-        iac=dict(base.get("iac", {})),
-        probabilistic=dict(base.get("probabilistic", {})),
-        analytics=dict(base.get("analytics", {})),
-        tenancy=dict(base.get("tenancy", {})),
-        performance=dict(base.get("performance", {})),
+        guardrails=dict(base.get("guardrails", {}) or {}),  # type: ignore[arg-type]
+        context_engine=dict(base.get("context_engine", {}) or {}),  # type: ignore[arg-type]
+        evidence_hub=dict(base.get("evidence_hub", {}) or {}),  # type: ignore[arg-type]
+        onboarding=dict(base.get("onboarding", {}) or {}),  # type: ignore[arg-type]
+        compliance=dict(base.get("compliance", {}) or {}),  # type: ignore[arg-type]
+        policy_automation=dict(base.get("policy_automation", {}) or {}),  # type: ignore[arg-type]
+        policy_engine=dict(base.get("policy_engine", {}) or {}),  # type: ignore[arg-type]
+        pricing=dict(base.get("pricing", {}) or {}),  # type: ignore[arg-type]
+        limits=dict(base.get("limits", {}) or {}),  # type: ignore[arg-type]
+        ai_agents=dict(base.get("ai_agents", {}) or {}),  # type: ignore[arg-type]
+        ssdlc=dict(base.get("ssdlc", {}) or {}),  # type: ignore[arg-type]
+        exploit_signals=dict(base.get("exploit_signals", {}) or {}),  # type: ignore[arg-type]
+        modules=dict(base.get("modules", {}) or {}),  # type: ignore[arg-type]
+        iac=dict(base.get("iac", {}) or {}),  # type: ignore[arg-type]
+        probabilistic=dict(base.get("probabilistic", {}) or {}),  # type: ignore[arg-type]
+        analytics=dict(base.get("analytics", {}) or {}),  # type: ignore[arg-type]
+        tenancy=dict(base.get("tenancy", {}) or {}),  # type: ignore[arg-type]
+        performance=dict(base.get("performance", {}) or {}),  # type: ignore[arg-type]
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

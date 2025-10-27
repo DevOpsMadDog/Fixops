@@ -176,12 +176,24 @@ class AnalyticsStore:
         summary = {
             "expected_high_or_critical": float(
                 metrics.get("expected_high_or_critical", 0.0)
+                if isinstance(metrics, Mapping)
+                else 0.0
             ),
             "expected_critical_next_cycle": float(
                 metrics.get("expected_critical_next_cycle", 0.0)
+                if isinstance(metrics, Mapping)
+                else 0.0
             ),
-            "entropy_bits": float(metrics.get("entropy_bits", 0.0)),
-            "exploited_records": int(metrics.get("exploited_records", 0)),
+            "entropy_bits": float(
+                metrics.get("entropy_bits", 0.0)
+                if isinstance(metrics, Mapping)
+                else 0.0
+            ),
+            "exploited_records": int(
+                metrics.get("exploited_records", 0)
+                if isinstance(metrics, Mapping)
+                else 0
+            ),
             "component_count": component_count,
             "hotspot_count": len(hotspots),
         }
@@ -220,10 +232,18 @@ class AnalyticsStore:
             else []
         )
         summary = {
-            "signals_configured": int(overview.get("signals_configured", len(signals))),
-            "matched_records": int(overview.get("matched_records", 0)),
-            "status": overview.get("status", "unknown"),
-            "escalation_count": len(escalations),
+            "signals_configured": int(overview.get("signals_configured", len(signals)) if isinstance(overview, Mapping) else 0),  # type: ignore[arg-type]
+            "matched_records": int(
+                overview.get("matched_records", 0)
+                if isinstance(overview, Mapping)
+                else 0
+            ),
+            "status": overview.get("status", "unknown")
+            if isinstance(overview, Mapping)
+            else "unknown",
+            "escalation_count": len(escalations)
+            if isinstance(escalations, Sequence)
+            else 0,
         }
         payload = {
             "run_id": safe_run_id,
@@ -244,7 +264,11 @@ class AnalyticsStore:
             if isinstance(policy_summary.get("execution"), Mapping)
             else {}
         )
-        delivered = execution.get("delivery_results")
+        delivered = (
+            execution.get("delivery_results")
+            if isinstance(execution, Mapping)
+            else None
+        )
         delivery_results = delivered if isinstance(delivered, Sequence) else []
         status_counts: Counter[str] = Counter()
         connectors: Counter[str] = Counter()
@@ -256,10 +280,24 @@ class AnalyticsStore:
             provider = str(entry.get("provider") or entry.get("type") or "unknown")
             connectors[provider] += 1
         summary = {
-            "planned_actions": len(policy_summary.get("actions", [])),
-            "dispatched_count": int(execution.get("dispatched_count", 0)),
-            "failed_count": int(execution.get("failed_count", 0)),
-            "execution_status": execution.get("status", "unknown"),
+            "planned_actions": len(
+                policy_summary.get("actions", [])
+                if isinstance(policy_summary.get("actions"), Sequence)
+                else []
+            ),
+            "dispatched_count": int(
+                execution.get("dispatched_count", 0)
+                if isinstance(execution, Mapping)
+                else 0
+            ),
+            "failed_count": int(
+                execution.get("failed_count", 0)
+                if isinstance(execution, Mapping)
+                else 0
+            ),
+            "execution_status": execution.get("status", "unknown")
+            if isinstance(execution, Mapping)
+            else "unknown",
             "delivery_status": dict(status_counts),
             "connector_usage": dict(connectors),
         }
@@ -278,7 +316,7 @@ class AnalyticsStore:
         summary = {
             "decision": entry.get("decision"),
             "submitted_by": entry.get("submitted_by"),
-            "tag_count": len(tags),
+            "tag_count": len(tags) if isinstance(tags, Sequence) else 0,
         }
         payload = {
             "run_id": safe_run_id,

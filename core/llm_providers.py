@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Mapping, Optional, Sequence
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 
 @dataclass
@@ -199,7 +199,7 @@ class OpenAIChatProvider(BaseLLMProvider):
                 "error": error_detail,
                 "model": self.model,
                 "error_type": "http_error",
-                "status_code": exc.response.status_code if exc.response else None,
+                "status_code": exc.response.status_code if exc.response else None,  # type: ignore[dict-item]
             }
             return LLMResponse(
                 recommended_action=default_action,

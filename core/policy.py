@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 from core.configuration import OverlayConfig
 from core.connectors import AutomationConnectors

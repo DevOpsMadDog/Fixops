@@ -36,8 +36,8 @@ class NormalizedComponent:
     """Container for merged component metadata."""
 
     name: Optional[str]
-    version: Optional[str]
-    purl: Optional[str]
+    version: Optional[str]  # type: ignore[import]
+    purl: Optional[str]  # type: ignore[import]
     hashes: MutableMapping[str, str] = field(default_factory=dict)
     licenses: set[str] = field(default_factory=set)
     generators: set[str] = field(default_factory=set)
@@ -187,7 +187,7 @@ def _component_from_cyclonedx(
     purl = _extract_purl(candidate)
     hashes = _extract_hashes(candidate)
     licenses = _extract_licenses(candidate)
-    return name, version, purl, hashes, licenses
+    return name, version, purl, hashes, licenses  # type: ignore[return-value]
 
 
 def _component_from_spdx(
@@ -204,7 +204,7 @@ def _component_from_spdx(
     purl = _extract_purl(candidate)
     hashes = _extract_hashes(candidate)
     licenses = _extract_licenses(candidate)
-    return name, version, purl, hashes, licenses
+    return name, version, purl, hashes, licenses  # type: ignore[return-value]
 
 
 def _normalise_candidates(

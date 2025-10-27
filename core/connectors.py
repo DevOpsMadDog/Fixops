@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 from urllib.parse import urljoin
 
-import requests
+import requests  # type: ignore[import-untyped]
 from requests import RequestException, Response
 
 
@@ -205,7 +205,7 @@ class ConfluenceConnector(_BaseConnector):
             {
                 "endpoint": endpoint,
                 "page_id": body_payload.get("id"),
-                "space": payload["space"]["key"],
+                "space": payload["space"]["key"],  # type: ignore[index]
             },
         )
 

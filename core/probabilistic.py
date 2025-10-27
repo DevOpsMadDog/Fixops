@@ -136,7 +136,9 @@ def _highest_severity(entry: Mapping[str, Any]) -> str:
                 else (
                     "high"
                     if level in {"error", "high"}
-                    else "medium" if level in {"warning", "medium"} else "low"
+                    else "medium"
+                    if level in {"warning", "medium"}
+                    else "low"
                 )
             )
             if _severity_index(candidate) > _severity_index(highest):
@@ -153,7 +155,9 @@ def _highest_severity(entry: Mapping[str, Any]) -> str:
                 else (
                     "high"
                     if severity in {"high"}
-                    else "medium" if severity in {"medium", "moderate"} else "low"
+                    else "medium"
+                    if severity in {"medium", "moderate"}
+                    else "low"
                 )
             )
             if _severity_index(candidate) > _severity_index(highest):
@@ -499,12 +503,13 @@ class ProbabilisticForecastEngine:
             return self.max_iterations
         pi_min = min(
             (value for value in stationary.values() if value > 0.0),
-            default=1.0 / len(stationary or {"_": None}),
-        )
-        epsilon = self.mixing_tolerance
-        upper = log(1.0 / max(epsilon * pi_min, 1e-12)) / spectral_gap
-        return int(ceil(upper))
+            default=1.0 / len(stationary or {"_": None}),  # type: ignore[union-attr]
+        )  # type: ignore[union-attr]
+        epsilon = self.mixing_tolerance  # type: ignore[union-attr]
+        upper = log(1.0 / max(epsilon * pi_min, 1e-12)) / spectral_gap  # type: ignore[union-attr]
+        return int(ceil(upper))  # type: ignore[arg-type]
 
+    # type: ignore[arg-type]
     def _multi_step_projection(
         self,
         posterior: Mapping[str, float],
@@ -562,10 +567,10 @@ class ProbabilisticForecastEngine:
                 else {}
             )
             name = str(
-                design_row.get("component")
-                or design_row.get("Component")
-                or design_row.get("service")
-                or design_row.get("name")
+                design_row.get("component")  # type: ignore[union-attr]
+                or design_row.get("Component")  # type: ignore[union-attr]
+                or design_row.get("service")  # type: ignore[union-attr]
+                or design_row.get("name")  # type: ignore[union-attr]
                 or "unknown"
             )
             highest = _highest_severity(entry)

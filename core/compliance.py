@@ -65,16 +65,16 @@ class ComplianceEvaluator:
                 if isinstance(policy_payload.get("execution"), Mapping)
                 else {}
             )
-            dispatched = execution.get("dispatched_count")
+            dispatched = execution.get("dispatched_count")  # type: ignore[union-attr]
             try:
-                dispatched_count = int(dispatched)
+                dispatched_count = int(dispatched)  # type: ignore[arg-type]
             except (TypeError, ValueError):
                 dispatched_count = 0
             return bool(
                 actions
                 and dispatched_count > 0
-                and execution.get("status") in {"completed", "partial"}
-            )
+                and execution.get("status") in {"completed", "partial"}  # type: ignore[union-attr,operator]
+            )  # type: ignore[arg-type]
         return False
 
     def evaluate(

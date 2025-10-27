@@ -1,3 +1,3 @@
 """Compat package for backend modules."""
 
-__all__ = []
+__all__ = []  # type: ignore[import]

@@ -22,7 +22,7 @@ from pydantic import (
 )
 
 try:  # Optional dependency for YAML parsing
-    import yaml
+    import yaml  # type: ignore[import]
 except Exception:  # pragma: no cover - optional dependency
     yaml = None  # type: ignore[assignment]
 
@@ -110,7 +110,7 @@ def _safe_json_loads(
         raise ValueError(f"Invalid JSON: {exc}") from exc
 
     def check_depth_and_size(
-        obj: Any, depth: int = 0, item_count: Dict[str, int] = None
+        obj: Any, depth: int = 0, item_count: Optional[Dict[str, int]] = None
     ) -> None:
         if item_count is None:
             item_count = {"count": 0}
@@ -749,7 +749,7 @@ class InputNormalizer:
         parser.parse_string(payload)
 
         packages = parser.get_packages() or []
-        components = []
+        components: List[Dict[str, Any]] = []
         append_component = components.append
         for package in packages:
             licenses: Iterable[Any] = package.get("licenses", [])
@@ -768,7 +768,7 @@ class InputNormalizer:
                     name=package.get("name", "unknown"),
                     version=package.get("version"),
                     purl=package.get("package_url") or package.get("purl"),
-                    licenses=license_values,
+                    licenses=license_values,  # type: ignore[arg-type]
                     supplier=supplier_name,
                     raw=package,
                 )
@@ -788,7 +788,7 @@ class InputNormalizer:
         normalized = NormalizedSBOM(
             format=parser.get_type(),
             document=parser.get_document() or {},
-            components=components,
+            components=components,  # type: ignore[arg-type]
             relationships=relationships,
             services=services,
             vulnerabilities=vulnerabilities,
@@ -1195,7 +1195,7 @@ class InputNormalizer:
                     validated = SarifFindingSchema(
                         rule_id=rule_id,
                         message=message,
-                        level=level,
+                        level=level,  # type: ignore[arg-type]
                         file=file_path,
                         line=line_number,
                     )
@@ -1277,9 +1277,9 @@ class InputNormalizer:
                     else {}
                 )
                 state = str(
-                    analysis.get("state") or analysis.get("status") or "unknown"
+                    analysis.get("state") or analysis.get("status") or "unknown"  # type: ignore[union-attr]
                 ).lower()
-                detail = analysis.get("detail")
+                detail = analysis.get("detail")  # type: ignore[union-attr]
                 affects = entry.get("affects")
                 if not isinstance(affects, Iterable):
                     affects = []
@@ -1417,7 +1417,7 @@ class InputNormalizer:
         ssvc_payload = (
             document.get("ssvc") if isinstance(document.get("ssvc"), Mapping) else {}
         )
-        ssvc = self._normalise_ssvc(ssvc_payload)
+        ssvc = self._normalise_ssvc(ssvc_payload)  # type: ignore[arg-type]
         metadata = {
             "component_count": len(components),
             "source": source,
@@ -1440,7 +1440,7 @@ class InputNormalizer:
             if isinstance(document.get("components"), Iterable)
             else []
         )
-        for entry in otm_components:
+        for entry in otm_components:  # type: ignore[union-attr]
             if not isinstance(entry, Mapping):
                 continue
             node = {
@@ -1473,7 +1473,7 @@ class InputNormalizer:
             else []
         )
         highest_trust = 0
-        for zone in trust_zones:
+        for zone in trust_zones:  # type: ignore[union-attr]
             if not isinstance(zone, Mapping):
                 continue
             rating = (
@@ -1482,7 +1482,7 @@ class InputNormalizer:
                 else None
             )
             try:
-                rating_value = int(rating)
+                rating_value = int(rating)  # type: ignore[arg-type]
             except (TypeError, ValueError):
                 continue
             highest_trust = max(highest_trust, rating_value)
@@ -1494,7 +1494,7 @@ class InputNormalizer:
         )
         metadata = {
             "component_count": len(components),
-            "trust_zones": len(list(trust_zones)),
+            "trust_zones": len(list(trust_zones)),  # type: ignore[arg-type]
             "source": source,
         }
         return NormalizedBusinessContext(

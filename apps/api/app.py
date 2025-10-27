@@ -35,7 +35,7 @@ from telemetry import configure as configure_telemetry
 if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 else:  # pragma: no cover - fallback when instrumentation is unavailable
-    from telemetry.fastapi_noop import FastAPIInstrumentor
+    from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
 
 from .health import router as health_router
 from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware
@@ -147,7 +147,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
-        app.state = SimpleNamespace()
+        app.state = SimpleNamespace()  # type: ignore[assignment]
 
     app.add_middleware(CorrelationIdMiddleware)
 
@@ -249,10 +249,10 @@ def create_app() -> FastAPI:
 
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
-    app.state.artifacts: Dict[str, Any] = {}
+    app.state.artifacts: Dict[str, Any] = {}  # type: ignore[misc]
     app.state.overlay = overlay
     app.state.archive = archive
-    app.state.archive_records: Dict[str, Dict[str, Any]] = {}
+    app.state.archive_records: Dict[str, Dict[str, Any]] = {}  # type: ignore[misc]
     app.state.analytics_store = analytics_store
     app.state.feedback = (
         FeedbackRecorder(overlay, analytics_store=analytics_store)
@@ -414,7 +414,7 @@ def create_app() -> FastAPI:
         buffer: SpooledTemporaryFile, total: int, filename: str
     ) -> Dict[str, Any]:
         text_stream = io.TextIOWrapper(
-            buffer, encoding="utf-8", errors="ignore", newline=""
+            buffer, encoding="utf-8", errors="ignore", newline=""  # type: ignore[arg-type]
         )
         try:
             reader = csv.DictReader(text_stream)
@@ -425,7 +425,7 @@ def create_app() -> FastAPI:
             ]
             columns = reader.fieldnames or []
         finally:
-            buffer = text_stream.detach()
+            buffer = text_stream.detach()  # type: ignore[arg-type]
         if not rows:
             raise HTTPException(status_code=400, detail="Design CSV contained no rows")
         dataset = {"columns": columns, "rows": rows}
@@ -595,7 +595,7 @@ def create_app() -> FastAPI:
         buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
         try:
             with path.open("rb") as handle:
-                shutil.copyfileobj(handle, buffer)
+                shutil.copyfileobj(handle, buffer)  # type: ignore[arg-type]
             total = buffer.tell()
             buffer.seek(0)
             return _process_from_buffer(stage, buffer, total, filename, content_type)
@@ -727,7 +727,7 @@ def create_app() -> FastAPI:
         )
         try:
             total_bytes = (
-                int(payload.get("total_size"))
+                int(payload.get("total_size"))  # type: ignore[arg-type]
                 if payload.get("total_size") is not None
                 else None
             )

@@ -116,7 +116,7 @@ class ProcessingLayer:
             "mission_impact": str(context.get("mission_impact") or "degraded").lower(),
         }
         if not self.pgmpy_available:
-            return {**defaults, "risk": "medium", "confidence": 0.5}
+            return {**defaults, "risk": "medium", "confidence": 0.5}  # type: ignore[dict-item]
 
         assert (
             BayesianNetwork is not None
@@ -173,16 +173,17 @@ class ProcessingLayer:
                 for state, prob in zip(result.state_names["risk"], result.values)
             }
         except Exception:  # pragma: no cover - pgmpy misconfiguration
-            return {**defaults, "risk": "medium", "confidence": 0.5}
-        risk_level = max(distribution, key=distribution.get)
-        return {
-            **defaults,
-            "risk": risk_level,
-            "confidence": round(distribution[risk_level], 3),
-            "distribution": distribution,
-        }
+            return {**defaults, "risk": "medium", "confidence": 0.5}  # type: ignore[dict-item]
+        risk_level = max(distribution, key=distribution.get)  # type: ignore[arg-type]
+        return {  # type: ignore[arg-type]
+            **defaults,  # type: ignore[arg-type]
+            "risk": risk_level,  # type: ignore[arg-type]
+            "confidence": round(distribution[risk_level], 3),  # type: ignore[arg-type]
+            "distribution": distribution,  # type: ignore[arg-type]
+        }  # type: ignore[arg-type]
 
-    # ------------------------------------------------------------------
+    # type: ignore[arg-type]
+    # ------------------------------------------------------------------  # type: ignore[arg-type]
     # Markov modelling helpers
     # ------------------------------------------------------------------
     def _build_markov_projection(

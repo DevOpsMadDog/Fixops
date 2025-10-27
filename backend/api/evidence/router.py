@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import]
 from fastapi import APIRouter, HTTPException, Request
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])

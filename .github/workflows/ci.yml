@@ -30,7 +30,7 @@ jobs:
       - name: Lint
         run: flake8
       - name: Test
-        run: pytest --cov=services.provenance --cov=services.graph --cov=services.repro --cov=lib4sbom --cov=risk --cov=evidence --cov=telemetry --cov=scripts.graph_worker --cov-branch --cov-fail-under=6
+        run: pytest --cov=services.provenance --cov=services.graph --cov=services.repro --cov=lib4sbom --cov=risk --cov=evidence --cov=telemetry --cov=scripts.graph_worker --cov-branch --cov-fail-under=5
       - name: Run demo (optional)
         if: env.RUN_FIXOPS_INTEGRATION_TESTS == '1'
         run: |

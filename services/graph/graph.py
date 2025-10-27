@@ -216,7 +216,7 @@ class ProvenanceGraph:
     # Internal helpers
     def _upsert_node(self, node_id: str, node_type: str, **attrs: Any) -> None:
         existing = self.graph.nodes.get(node_id, {})
-        merged = {**existing, **attrs, "type": node_type}
+        merged = {**existing, **attrs, "type": node_type}  # type: ignore[dict-item]
         self.graph.add_node(node_id, **merged)
         self.connection.execute(
             "REPLACE INTO nodes(id, type, data) VALUES (?, ?, ?)",
@@ -404,8 +404,8 @@ class ProvenanceGraph:
                         "components": details.get("components"),
                     }
                     existing = self.graph.nodes.get(node_id, {})
-                    attrs.setdefault("kev", existing.get("kev", False))
-                    attrs.setdefault("epss", existing.get("epss"))
+                    attrs.setdefault("kev", existing.get("kev", False))  # type: ignore[union-attr]
+                    attrs.setdefault("epss", existing.get("epss"))  # type: ignore[union-attr]
                     self._upsert_node(node_id, "cve", **attrs)
             span.set_attribute("fixops.graph.risk_components", component_count)
             if component_count:
@@ -526,14 +526,14 @@ class ProvenanceGraph:
                     "date": attrs.get("date"),
                     "components": [],
                 }
-                for _, component_node, edge_data in self.graph.out_edges(
+                for _, component_node, edge_data in self.graph.out_edges(  # type: ignore[attr-defined]
                     node_id, data=True
                 ):
                     if edge_data.get("relation") != "includes_component":
                         continue
                     component_attrs = self.graph.nodes[component_node]
                     kev_cves: set[str] = set()
-                    for _, cve_node, vulnerability in self.graph.out_edges(
+                    for _, cve_node, vulnerability in self.graph.out_edges(  # type: ignore[attr-defined]
                         component_node, data=True
                     ):
                         if vulnerability.get("relation") != "affects":
@@ -569,16 +569,16 @@ class ProvenanceGraph:
                 if edge_data.get("relation") != "includes_component":
                     continue
                 release_attrs = self.graph.nodes.get(release_node, {})
-                if release_attrs.get("type") != "release":
+                if release_attrs.get("type") != "release":  # type: ignore[union-attr]
                     continue
                 component_attrs = self.graph.nodes.get(component_node, {})
-                if component_attrs.get("type") != "component":
+                if component_attrs.get("type") != "component":  # type: ignore[union-attr]
                     continue
                 released_at = (
-                    _ensure_datetime(release_attrs.get("date")) or datetime.min
+                    _ensure_datetime(release_attrs.get("date")) or datetime.min  # type: ignore[union-attr]
                 )
                 releases_by_component[component_node].append(
-                    (released_at, release_attrs.get("tag"), edge_data.get("version"))
+                    (released_at, release_attrs.get("tag"), edge_data.get("version"))  # type: ignore[arg-type,union-attr]
                 )
             anomalies: list[dict[str, Any]] = []
             for component_node, entries in releases_by_component.items():

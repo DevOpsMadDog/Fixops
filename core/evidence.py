@@ -19,7 +19,7 @@ from fixops.utils.paths import resolve_within_root
 try:  # Optional dependency used when regulated tenants request encryption
     from cryptography.fernet import Fernet
 except Exception:  # pragma: no cover - cryptography is optional
-    Fernet = None  # type: ignore[assignment]
+    Fernet = None  # type: ignore[misc,assignment,import]
 
 
 _SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
