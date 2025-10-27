@@ -176,10 +176,10 @@ class ProcessingLayer:
             return {**defaults, "risk": "medium", "confidence": 0.5}  # type: ignore[dict-item]
         risk_level = max(distribution, key=distribution.get)  # type: ignore[arg-type]
         return {  # type: ignore[arg-type]
-            **defaults,  # type: ignore[arg-type]
+            **defaults,  # type: ignore[dict-item]
             "risk": risk_level,  # type: ignore[arg-type]
             "confidence": round(distribution[risk_level], 3),  # type: ignore[arg-type]
-            "distribution": distribution,  # type: ignore[arg-type]
+            "distribution": distribution,  # type: ignore[dict-item]
         }  # type: ignore[arg-type]
 
     # type: ignore[arg-type]
@@ -386,7 +386,7 @@ class ProcessingLayer:
             affected = record.get("components") or []
             for component in affected:
                 if component and component in nodes:
-                    _add_edge(component, node_id, "referenced_by")
+                    _add_edge(component, node_id, "referenced_by")  # type: ignore[arg-type]
         for exposure in cnapp_exposures:
             if not isinstance(exposure, Mapping):
                 continue

@@ -425,7 +425,7 @@ def create_app() -> FastAPI:
             ]
             columns = reader.fieldnames or []
         finally:
-            buffer = text_stream.detach()  # type: ignore[arg-type]
+            buffer = text_stream.detach()  # type: ignore[assignment]
         if not rows:
             raise HTTPException(status_code=400, detail="Design CSV contained no rows")
         dataset = {"columns": columns, "rows": rows}
@@ -595,7 +595,7 @@ def create_app() -> FastAPI:
         buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
         try:
             with path.open("rb") as handle:
-                shutil.copyfileobj(handle, buffer)  # type: ignore[arg-type]
+                shutil.copyfileobj(handle, buffer)  # type: ignore[misc]
             total = buffer.tell()
             buffer.seek(0)
             return _process_from_buffer(stage, buffer, total, filename, content_type)

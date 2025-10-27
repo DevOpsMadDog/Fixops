@@ -503,7 +503,7 @@ class ProbabilisticForecastEngine:
             return self.max_iterations
         pi_min = min(
             (value for value in stationary.values() if value > 0.0),
-            default=1.0 / len(stationary or {"_": None}),  # type: ignore[union-attr]
+            default=1.0 / len(stationary or {"_": None}),  # type: ignore[operator,dict-item]
         )  # type: ignore[union-attr]
         epsilon = self.mixing_tolerance  # type: ignore[union-attr]
         upper = log(1.0 / max(epsilon * pi_min, 1e-12)) / spectral_gap  # type: ignore[union-attr]
