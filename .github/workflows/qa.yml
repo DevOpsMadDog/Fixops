@@ -32,7 +32,7 @@ jobs:
       - name: Lint
         run: flake8
       - name: Type check
-        run: mypy .
+        run: mypy core apps prototypes scripts
       - name: Tests with coverage
         env:
           PYTHONPATH: .
