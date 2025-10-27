@@ -33,9 +33,9 @@ class TestAPIEndpointsE2E:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
         os.environ["FIXOPS_MODE"] = "demo"
-        os.environ["FIXOPS_JWT_SECRET"] = (
-            "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
-        )
+        os.environ[
+            "FIXOPS_JWT_SECRET"
+        ] = "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
 
         app = create_app()
         client = TestClient(app)
@@ -461,9 +461,9 @@ class TestSecurityFixes:
         os.environ["FIXOPS_API_TOKEN"] = "test-secret-api-key-12345"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
         os.environ["FIXOPS_MODE"] = "demo"
-        os.environ["FIXOPS_JWT_SECRET"] = (
-            "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
-        )
+        os.environ[
+            "FIXOPS_JWT_SECRET"
+        ] = "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
 
         app = create_app()
         client = TestClient(app)

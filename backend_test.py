@@ -1100,9 +1100,7 @@ except Exception as e:
         if success and response:
             # Check standardized schema
             if "models" in response and isinstance(response["models"], list):
-                print(
-                    f"   ✅ models array present with {len(response['models'])} items"
-                )
+                print(f"   ✅ models array present with {len(response['models'])} items")
 
                 # Check model structure
                 if response["models"]:
