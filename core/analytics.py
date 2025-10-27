@@ -238,12 +238,14 @@ class AnalyticsStore:
                 if isinstance(overview, Mapping)
                 else 0
             ),
-            "status": overview.get("status", "unknown")
-            if isinstance(overview, Mapping)
-            else "unknown",
-            "escalation_count": len(escalations)
-            if isinstance(escalations, Sequence)
-            else 0,
+            "status": (
+                overview.get("status", "unknown")
+                if isinstance(overview, Mapping)
+                else "unknown"
+            ),
+            "escalation_count": (
+                len(escalations) if isinstance(escalations, Sequence) else 0
+            ),
         }
         payload = {
             "run_id": safe_run_id,
@@ -295,9 +297,11 @@ class AnalyticsStore:
                 if isinstance(execution, Mapping)
                 else 0
             ),
-            "execution_status": execution.get("status", "unknown")
-            if isinstance(execution, Mapping)
-            else "unknown",
+            "execution_status": (
+                execution.get("status", "unknown")
+                if isinstance(execution, Mapping)
+                else "unknown"
+            ),
             "delivery_status": dict(status_counts),
             "connector_usage": dict(connectors),
         }

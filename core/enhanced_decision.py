@@ -844,12 +844,12 @@ def _extract_exploit_stats(summary: Optional[Mapping[str, Any]]) -> Dict[str, An
         "kev_count": kev_count,
         "epss_count": epss_count,
         "epss_max": float(epss_max) if isinstance(epss_max, (int, float)) else None,
-        "last_updated_epss": overview.get("last_updated_epss")
-        if isinstance(overview, Mapping)
-        else None,
-        "last_updated_kev": overview.get("last_updated_kev")
-        if isinstance(overview, Mapping)
-        else None,
+        "last_updated_epss": (
+            overview.get("last_updated_epss") if isinstance(overview, Mapping) else None
+        ),
+        "last_updated_kev": (
+            overview.get("last_updated_kev") if isinstance(overview, Mapping) else None
+        ),
     }
 
 
