@@ -470,12 +470,18 @@ class ProvenanceGraph:
             span.set_attribute("fixops.graph.artifact", artifact_name)
             target_node = None
             for node_id, attrs in self.graph.nodes(data=True):
-                if attrs.get("type") == "artifact" and (
-                    attrs.get("name") == artifact_name
-                    or node_id == f"artifact:{artifact_name}"
-                ):
-                    target_node = node_id
-                    break
+                if attrs.get("type") == "artifact":
+                    stored_name = attrs.get("name", "")
+                    if (
+                        stored_name == artifact_name
+                        or node_id == f"artifact:{artifact_name}"
+                        or (
+                            isinstance(stored_name, str)
+                            and stored_name.endswith(f"/{artifact_name}")
+                        )
+                    ):
+                        target_node = node_id
+                        break
             if target_node is None:
                 return {"artifact": artifact_name, "nodes": [], "edges": []}
             ancestors = _ancestors(self.graph, target_node)

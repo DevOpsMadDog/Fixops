@@ -292,16 +292,17 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
             )
             generators = [path.stem]
         for name, version, purl, hashes, licenses in components:
-            normalized_name = name.lower().strip() if isinstance(name, str) else None
+            display_name = name.strip() if isinstance(name, str) else None
             normalized_version = version.strip() if isinstance(version, str) else None
-            normalized_purl = purl.lower().strip() if isinstance(purl, str) else None
+            display_purl = purl.strip() if isinstance(purl, str) else None
+            identity_purl = purl.lower().strip() if isinstance(purl, str) else None
 
             missing_fields = [
                 field
                 for field, value in (
-                    ("name", normalized_name),
+                    ("name", display_name),
                     ("version", normalized_version),
-                    ("purl", normalized_purl),
+                    ("purl", display_purl),
                 )
                 if not value
             ]
@@ -317,18 +318,18 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
                     "Component missing required fields %s in %s", missing_fields, path
                 )
 
-            identity = _identity_for(normalized_purl, normalized_version, hashes)
+            identity = _identity_for(identity_purl, normalized_version, hashes)
             component = aggregated.get(identity)
             if component is None:
                 component = NormalizedComponent(
-                    name=normalized_name,
+                    name=display_name,
                     version=normalized_version,
-                    purl=normalized_purl,
+                    purl=display_purl,
                 )
                 aggregated[identity] = component
-            component.name = _prefer_value(component.name, normalized_name)
+            component.name = _prefer_value(component.name, display_name)
             component.version = _prefer_value(component.version, normalized_version)
-            component.purl = _prefer_value(component.purl, normalized_purl)
+            component.purl = _prefer_value(component.purl, display_purl)
             component.hashes.update({k.upper(): v for k, v in hashes.items()})
             component.licenses.update(licenses)
             component.generators.update(generators)
