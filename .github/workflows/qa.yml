@@ -25,6 +25,7 @@ jobs:
           pip install -r requirements.txt
           if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
           if [ -f apps/api/requirements-optional.txt ]; then pip install -r apps/api/requirements-optional.txt || echo "Optional dependencies skipped"; fi
+          pip install black==23.7.0 isort==5.12.0 flake8 mypy
       - name: Formatting checks
         run: |
           black --check .
