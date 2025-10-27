@@ -749,7 +749,7 @@ class InputNormalizer:
         parser.parse_string(payload)
 
         packages = parser.get_packages() or []
-        components: List[Dict[str, Any]] = []
+        components: List[SBOMComponent] = []
         append_component = components.append
         for package in packages:
             licenses: Iterable[Any] = package.get("licenses", [])
@@ -763,11 +763,23 @@ class InputNormalizer:
             else:
                 supplier_name = supplier
 
+            purl = package.get("package_url") or package.get("purl")
+            if not purl:
+                name = package.get("name")
+                version = package.get("version")
+                pkg_type = package.get("type", "").lower()
+                if (
+                    name
+                    and version
+                    and pkg_type in ("pypi", "npm", "maven", "nuget", "gem", "cargo")
+                ):
+                    purl = f"pkg:{pkg_type}/{name}@{version}"
+
             append_component(
                 SBOMComponent(
                     name=package.get("name", "unknown"),
                     version=package.get("version"),
-                    purl=package.get("package_url") or package.get("purl"),
+                    purl=purl,
                     licenses=license_values,  # type: ignore[arg-type]
                     supplier=supplier_name,
                     raw=package,

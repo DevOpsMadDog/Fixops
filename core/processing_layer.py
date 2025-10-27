@@ -385,8 +385,12 @@ class ProcessingLayer:
             _ensure_node(node_id, type="cve", severity=record.get("severity"))
             affected = record.get("components") or []
             for component in affected:
-                if component and component in nodes:
-                    _add_edge(component, node_id, "referenced_by")  # type: ignore[arg-type]
+                if isinstance(component, Mapping):
+                    component_id = component.get("name") or component.get("component")
+                else:
+                    component_id = component
+                if component_id and str(component_id) in nodes:
+                    _add_edge(str(component_id), node_id, "referenced_by")
         for exposure in cnapp_exposures:
             if not isinstance(exposure, Mapping):
                 continue
