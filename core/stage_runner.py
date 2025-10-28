@@ -130,22 +130,31 @@ class StageRunner:
             input_bytes = source_path.read_bytes()
 
         sign_requested = sign and self._signing_available()
-        design_payload: Mapping[str, Any] | None = None
+        design_payload: Dict[str, Any] | None = None
 
         app_id, app_name = self._resolve_identity(app_id, app_name)
 
         if stage_key == "design":
-            design_payload = self._load_design_payload(input_bytes, source_path)
-            if app_name:
+            design_payload = self._load_design_payload(input_bytes, source_path)  # type: ignore[assignment]
+            if app_name and design_payload is not None:
                 design_payload.setdefault("app_name", app_name)
-            design_payload = self.allocator.ensure_ids(design_payload)
-            if app_id:
+            if design_payload is not None:
+                design_payload = self.allocator.ensure_ids(design_payload)
+            if app_id and design_payload is not None:
                 # Preserve explicit identifiers passed on the command line but allow
                 # the design document to override implicit values minted from the
                 # application name.
                 design_payload["app_id"] = app_id
-            app_id = str(design_payload.get("app_id") or app_id or "APP-0001")
-            app_name = str(design_payload.get("app_name") or app_name or app_id)
+            app_id = str(
+                (design_payload.get("app_id") if design_payload else None)
+                or app_id
+                or "APP-0001"
+            )
+            app_name = str(
+                (design_payload.get("app_name") if design_payload else None)
+                or app_name
+                or app_id
+            )
             input_bytes = json.dumps(design_payload, indent=2).encode("utf-8")
         else:
             if app_id and not app_id.startswith("APP-"):
@@ -234,8 +243,8 @@ class StageRunner:
         records: list[dict[str, Any]] = []
         if input_bytes:
             raw_records = self._parse_requirements(io.BytesIO(input_bytes))
-            records = self._assign_requirement_ids(raw_records, context.app_id)
-        anchor = self._derive_ssvc_anchor(records)
+            records = self._assign_requirement_ids(raw_records, context.app_id)  # type: ignore[arg-type]
+        anchor = self._derive_ssvc_anchor(records)  # type: ignore[arg-type]
         return {
             "app_id": context.app_id,
             "run_id": context.run_id,
@@ -769,27 +778,29 @@ class StageRunner:
                 or resource.get("metadata", {}).get("name")
                 or "resource"
             )
-            changes = (
-                resource.get("changes")
-                if isinstance(resource.get("changes"), Mapping)
-                else {}
-            )
-            after = (
-                changes.get("after")
-                if isinstance(changes.get("after"), Mapping)
-                else {}
-            )
+            changes_raw = resource.get("changes")
+            changes = changes_raw if isinstance(changes_raw, Mapping) else {}
+            after_raw = changes.get("after") if isinstance(changes, Mapping) else None
+            after = after_raw if isinstance(after_raw, Mapping) else {}
 
             if rtype == "aws_s3_bucket":
-                acl = after.get("acl") or resource.get("acl")
+                acl = (
+                    after.get("acl") if isinstance(after, Mapping) else None
+                ) or resource.get("acl")
                 if acl == "public-read":
                     public_buckets.add(name)
-                encryption = after.get("server_side_encryption_configuration")
+                encryption = (
+                    after.get("server_side_encryption_configuration")
+                    if isinstance(after, Mapping)
+                    else None
+                )
                 if not encryption:
                     encryption_gaps.add(name)
 
             if rtype in {"aws_lb_listener", "Ingress", "Service"}:
-                candidate_tls = after.get("ssl_policy")
+                candidate_tls = (
+                    after.get("ssl_policy") if isinstance(after, Mapping) else None
+                )
                 if not candidate_tls:
                     spec = resource.get("spec")
                     if isinstance(spec, Mapping):
@@ -802,7 +813,11 @@ class StageRunner:
                     tls_policy = candidate_tls
 
             if rtype == "aws_security_group":
-                ingress_rules = after.get("ingress") or resource.get("ingress") or []
+                ingress_rules = (
+                    (after.get("ingress") if isinstance(after, Mapping) else None)
+                    or resource.get("ingress")
+                    or []
+                )
                 if isinstance(ingress_rules, Mapping):
                     ingress_rules = [ingress_rules]
                 for rule in ingress_rules:
@@ -818,7 +833,7 @@ class StageRunner:
             if rtype == "aws_security_group_rule":
                 cidr_fields = []
                 for key in ("cidr_blocks", "ipv6_cidr_blocks"):
-                    if key in after:
+                    if isinstance(after, Mapping) and key in after:
                         cidr_fields.extend(_normalise_cidr_values(after.get(key)))
                     elif key in resource:
                         cidr_fields.extend(_normalise_cidr_values(resource.get(key)))
@@ -826,7 +841,11 @@ class StageRunner:
                     open_security_groups.add(name)
 
             if rtype in {"aws_db_instance", "aws_rds_cluster"}:
-                encrypted = after.get("storage_encrypted")
+                encrypted = (
+                    after.get("storage_encrypted")
+                    if isinstance(after, Mapping)
+                    else None
+                )
                 if encrypted is False or encrypted is None:
                     encryption_gaps.add(name)
 
@@ -979,7 +998,7 @@ class StageRunner:
                     "name": f"{highest.title()} severity detected",
                     "weight": 0.4 if highest == "critical" else 0.32,
                     "rationale": (
-                        f"Testing summary reported {summary.get(highest)} {highest} findings"
+                        f"Testing summary reported {summary.get(highest) if isinstance(summary, Mapping) else 0} {highest} findings"
                     ),
                 }
             )

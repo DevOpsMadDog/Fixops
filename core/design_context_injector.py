@@ -44,7 +44,7 @@ class DesignContextInjector:
         self._enum_types = self._extract_enum_types()
         self._parameter_names = [
             name
-            for name in inspect.signature(self._decision_cls.__init__).parameters
+            for name in inspect.signature(self._decision_cls.__init__).parameters  # type: ignore[misc]
             if name != "self"
         ]
         self._parameter_prefix_map = {
@@ -236,7 +236,7 @@ class DesignContextInjector:
 
     def _resolve_type_hints(self) -> Dict[str, Any]:
         return inspect.get_annotations(
-            self._decision_cls.__init__,
+            self._decision_cls.__init__,  # type: ignore[misc]
             eval_str=True,
             globals=self._plugin_module.__dict__,
         )

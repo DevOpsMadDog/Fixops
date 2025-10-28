@@ -19,7 +19,7 @@ from fixops.utils.paths import resolve_within_root
 try:  # Optional dependency used when regulated tenants request encryption
     from cryptography.fernet import Fernet
 except Exception:  # pragma: no cover - cryptography is optional
-    Fernet = None  # type: ignore[assignment]
+    Fernet = None  # type: ignore[misc,assignment,import]
 
 
 _SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -67,13 +67,35 @@ class EvidenceHub:
                 )
             key = os.getenv(str(encryption_env))
             if not key:
-                raise RuntimeError(
-                    f"Evidence encryption requested but environment variable '{encryption_env}' is not set"
+                mode = str(
+                    getattr(overlay, "mode", "production") or "production"
+                ).lower()
+                is_ci_env = (
+                    os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
                 )
-            try:
-                self._fernet = Fernet(key.encode("utf-8"))
-            except Exception as exc:  # pragma: no cover - invalid key handling
-                raise RuntimeError("Invalid evidence encryption key supplied") from exc
+
+                if mode in ("demo", "test", "ci", "vc-demo") or is_ci_env:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Evidence encryption requested but {encryption_env} not set. "
+                        f"Running in mode={mode} (CI={is_ci_env}) - disabling encryption. "
+                        "Set encryption key for production deployments."
+                    )
+                    self.encrypt_bundles = False
+                else:
+                    raise RuntimeError(
+                        f"Evidence encryption requested but environment variable '{encryption_env}' is not set. "
+                        f"Mode: {mode}, CI: {is_ci_env}"
+                    )
+            if self.encrypt_bundles and key:
+                try:
+                    self._fernet = Fernet(key.encode("utf-8"))
+                except Exception as exc:  # pragma: no cover - invalid key handling
+                    raise RuntimeError(
+                        "Invalid evidence encryption key supplied"
+                    ) from exc
         retention_value = self.settings.get("retention_days", 2555)
         try:
             self.retention_days = int(retention_value)

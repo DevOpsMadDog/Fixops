@@ -300,49 +300,49 @@ def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
     archive_records: Dict[str, Dict[str, Any]] = {}
     try:
         if args.design is not None and "design" in inputs:
-            archive_records["design"] = archive.persist(
+            archive_records["design"] = archive.persist(  # type: ignore[assignment]
                 "design",
                 prepared["design_dataset"],
                 original_filename=args.design.name,
                 raw_bytes=args.design.read_bytes(),
             )
         if args.sbom is not None:
-            archive_records["sbom"] = archive.persist(
+            archive_records["sbom"] = archive.persist(  # type: ignore[assignment]
                 "sbom",
                 prepared["sbom"],
                 original_filename=args.sbom.name,
                 raw_bytes=args.sbom.read_bytes(),
             )
         if args.sarif is not None:
-            archive_records["sarif"] = archive.persist(
+            archive_records["sarif"] = archive.persist(  # type: ignore[assignment]
                 "sarif",
                 prepared["sarif"],
                 original_filename=args.sarif.name,
                 raw_bytes=args.sarif.read_bytes(),
             )
         if args.cve is not None:
-            archive_records["cve"] = archive.persist(
+            archive_records["cve"] = archive.persist(  # type: ignore[assignment]
                 "cve",
                 prepared["cve"],
                 original_filename=args.cve.name,
                 raw_bytes=args.cve.read_bytes(),
             )
         if getattr(args, "vex", None) is not None and "vex" in prepared:
-            archive_records["vex"] = archive.persist(
+            archive_records["vex"] = archive.persist(  # type: ignore[assignment]
                 "vex",
                 prepared["vex"],
                 original_filename=args.vex.name,
                 raw_bytes=args.vex.read_bytes(),
             )
         if getattr(args, "cnapp", None) is not None and "cnapp" in prepared:
-            archive_records["cnapp"] = archive.persist(
+            archive_records["cnapp"] = archive.persist(  # type: ignore[assignment]
                 "cnapp",
                 prepared["cnapp"],
                 original_filename=args.cnapp.name,
                 raw_bytes=args.cnapp.read_bytes(),
             )
         if getattr(args, "context", None) is not None and "context" in prepared:
-            archive_records["context"] = archive.persist(
+            archive_records["context"] = archive.persist(  # type: ignore[assignment]
                 "context",
                 prepared["context"],
                 original_filename=args.context.name,

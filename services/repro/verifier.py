@@ -131,15 +131,12 @@ def _run_steps(
         base_env.update({key: str(value) for key, value in env.items()})
     for step in steps:
         command = None
-        shell = False
         if isinstance(step, Mapping):
             command = step.get("run")
-            shell = bool(step.get("shell"))
         elif isinstance(step, (list, tuple)):
             command = [str(part) for part in step]
         elif isinstance(step, str):
             command = step
-            shell = True
         if command is None:
             continue
         if isinstance(command, str):

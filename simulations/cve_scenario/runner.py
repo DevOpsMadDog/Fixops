@@ -27,9 +27,11 @@ from core.configuration import load_overlay
 # so we add it to ``sys.path`` on demand.
 
 
-def _resolve_risk_scorer() -> "ContextualRiskScorer":
+def _resolve_risk_scorer():
     try:
         from src.services.risk_scorer import ContextualRiskScorer  # type: ignore
+
+        return ContextualRiskScorer
     except ModuleNotFoundError:  # pragma: no cover - defensive path
         repo_root = Path(__file__).resolve().parents[2]
         candidate = repo_root / "enterprise"

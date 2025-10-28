@@ -42,9 +42,21 @@ def run_enhanced_analysis(
     engine: EnhancedDecisionEngine = Depends(_get_engine),
 ) -> Mapping[str, Any]:
     """Return multi-LLM consensus analysis for the supplied findings payload."""
+    import logging
 
-    result = engine.analyse_payload(payload.model_dump())
-    return result
+    logger = logging.getLogger(__name__)
+
+    try:
+        result = engine.analyse_payload(payload.model_dump())
+        return result
+    except ValueError as exc:
+        logger.warning(
+            "Invalid payload for enhanced analysis", extra={"error": str(exc)}
+        )
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:
+        logger.exception("Enhanced analysis failed")
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
 class CompareLLMsRequest(BaseModel):

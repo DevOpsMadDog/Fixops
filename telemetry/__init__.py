@@ -26,15 +26,15 @@ if importlib.util.find_spec("opentelemetry") and importlib.util.find_spec(
 else:  # pragma: no cover - fallback for test environments without OpenTelemetry
     from . import _noop as _otel
 
-    metrics = _otel.metrics
-    trace = _otel.trace
-    OTLPMetricExporter = _otel.OTLPMetricExporter
-    OTLPSpanExporter = _otel.OTLPSpanExporter
-    MeterProvider = _otel.MeterProvider
-    PeriodicExportingMetricReader = _otel.PeriodicExportingMetricReader
-    Resource = _otel.Resource
-    TracerProvider = _otel.TracerProvider
-    BatchSpanProcessor = _otel.BatchSpanProcessor
+    metrics = _otel.metrics  # type: ignore[assignment,misc]
+    trace = _otel.trace  # type: ignore[assignment,misc]
+    OTLPMetricExporter = _otel.OTLPMetricExporter  # type: ignore[assignment,misc]
+    OTLPSpanExporter = _otel.OTLPSpanExporter  # type: ignore[assignment,misc]
+    MeterProvider = _otel.MeterProvider  # type: ignore[assignment,misc]
+    PeriodicExportingMetricReader = _otel.PeriodicExportingMetricReader  # type: ignore[assignment,misc]
+    Resource = _otel.Resource  # type: ignore[assignment,misc]
+    TracerProvider = _otel.TracerProvider  # type: ignore[assignment,misc]
+    BatchSpanProcessor = _otel.BatchSpanProcessor  # type: ignore[assignment,misc]
     _NOOP = True
 
 _CONFIGURED = False

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 try:  # networkx is optional but preferred for rich graph metrics
     import networkx as nx  # type: ignore[import]
@@ -116,7 +116,7 @@ class ProcessingLayer:
             "mission_impact": str(context.get("mission_impact") or "degraded").lower(),
         }
         if not self.pgmpy_available:
-            return {**defaults, "risk": "medium", "confidence": 0.5}
+            return {**defaults, "risk": "medium", "confidence": 0.5}  # type: ignore[dict-item]
 
         assert (
             BayesianNetwork is not None
@@ -173,16 +173,17 @@ class ProcessingLayer:
                 for state, prob in zip(result.state_names["risk"], result.values)
             }
         except Exception:  # pragma: no cover - pgmpy misconfiguration
-            return {**defaults, "risk": "medium", "confidence": 0.5}
-        risk_level = max(distribution, key=distribution.get)
-        return {
-            **defaults,
-            "risk": risk_level,
-            "confidence": round(distribution[risk_level], 3),
-            "distribution": distribution,
-        }
+            return {**defaults, "risk": "medium", "confidence": 0.5}  # type: ignore[dict-item]
+        risk_level = max(distribution, key=distribution.get)  # type: ignore[arg-type]
+        return {  # type: ignore[arg-type]
+            **defaults,  # type: ignore[dict-item]
+            "risk": risk_level,  # type: ignore[arg-type]
+            "confidence": round(distribution[risk_level], 3),  # type: ignore[arg-type]
+            "distribution": distribution,  # type: ignore[dict-item]
+        }  # type: ignore[arg-type]
 
-    # ------------------------------------------------------------------
+    # type: ignore[arg-type]
+    # ------------------------------------------------------------------  # type: ignore[arg-type]
     # Markov modelling helpers
     # ------------------------------------------------------------------
     def _build_markov_projection(
@@ -384,8 +385,12 @@ class ProcessingLayer:
             _ensure_node(node_id, type="cve", severity=record.get("severity"))
             affected = record.get("components") or []
             for component in affected:
-                if component and component in nodes:
-                    _add_edge(component, node_id, "referenced_by")
+                if isinstance(component, Mapping):
+                    component_id = component.get("name") or component.get("component")
+                else:
+                    component_id = component
+                if component_id and str(component_id) in nodes:
+                    _add_edge(str(component_id), node_id, "referenced_by")
         for exposure in cnapp_exposures:
             if not isinstance(exposure, Mapping):
                 continue

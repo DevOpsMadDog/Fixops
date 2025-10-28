@@ -102,10 +102,12 @@ class ChunkUploadManager:
         content_type: Optional[str] = None,
         checksum: Optional[str] = None,
     ) -> UploadSession:
+        import secrets
+
         sanitized_filename = _sanitize_filename(filename)
-        session_id = sha256(
-            f"{stage}:{sanitized_filename}:{time.time()}".encode("utf-8")
-        ).hexdigest()[:32]
+        session_id = secrets.token_hex(
+            16
+        )  # 32 hex characters, cryptographically secure
         with self._lock:
             session_dir = self._session_dir(session_id)
             session_dir.mkdir(parents=True, exist_ok=True)

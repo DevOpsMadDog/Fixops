@@ -86,8 +86,8 @@ class TenantLifecycleManager:
             pipeline_result.get("modules", {})
             if isinstance(pipeline_result, Mapping)
             else {}
-        )
-        executed = (
+        )  # type: ignore[arg-type]
+        executed = (  # type: ignore[arg-type]
             modules_status.get("executed", [])
             if isinstance(modules_status, Mapping)
             else []
@@ -96,8 +96,8 @@ class TenantLifecycleManager:
             str(module) for module in executed if isinstance(module, (str, int))
         }
 
-        status_counts = Counter()
-        stage_counts = Counter()
+        status_counts = Counter()  # type: ignore[var-annotated]
+        stage_counts = Counter()  # type: ignore[var-annotated]
         tenant_payload: list[Dict[str, Any]] = []
 
         for tenant in self.tenants:

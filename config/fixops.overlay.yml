@@ -53,6 +53,60 @@ modules:
     patterns_path: fixtures/security_patterns.json
     top_k: 3
   enhanced_decision: { enabled: true }
+  correlation_engine:
+    enabled: false
+    strategies:
+      - fingerprint
+      - location
+      - pattern
+      - root_cause
+      - vulnerability
+    noise_reduction_target: 0.35
+  mitre_mapping:
+    enabled: false
+    techniques:
+      - T1190  # Exploit Public-Facing Application
+      - T1133  # External Remote Services
+      - T1566  # Phishing
+      - T1189  # Drive-by Compromise
+      - T1059  # Command and Scripting Interpreter
+      - T1203  # Exploitation for Client Execution
+      - T1204  # User Execution
+      - T1053  # Scheduled Task/Job
+      - T1078  # Valid Accounts
+      - T1098  # Account Manipulation
+      - T1505  # Server Software Component
+      - T1068  # Exploitation for Privilege Escalation
+      - T1055  # Process Injection
+      - T1548  # Abuse Elevation Control Mechanism
+      - T1027  # Obfuscated Files or Information
+      - T1070  # Indicator Removal
+      - T1562  # Impair Defenses
+      - T1003  # OS Credential Dumping
+      - T1110  # Brute Force
+      - T1555  # Credentials from Password Stores
+      - T1056  # Input Capture
+      - T1083  # File and Directory Discovery
+      - T1087  # Account Discovery
+      - T1046  # Network Service Discovery
+      - T1021  # Remote Services
+      - T1210  # Exploitation of Remote Services
+      - T1005  # Data from Local System
+      - T1213  # Data from Information Repositories
+      - T1071  # Application Layer Protocol
+      - T1573  # Encrypted Channel
+      - T1041  # Exfiltration Over C2 Channel
+      - T1567  # Exfiltration Over Web Service
+      - T1486  # Data Encrypted for Impact
+      - T1498  # Network Denial of Service
+      - T1565  # Data Manipulation
+  compliance_analysis:
+    enabled: false
+    frameworks:
+      - pci_dss
+      - sox
+      - hipaa
+      - nist_ssdf
 policy_automation:
   actions:
     - id: jira-guardrail-fail

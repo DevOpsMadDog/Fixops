@@ -35,8 +35,10 @@ from telemetry import configure as configure_telemetry
 if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 else:  # pragma: no cover - fallback when instrumentation is unavailable
-    from telemetry.fastapi_noop import FastAPIInstrumentor
+    from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
 
+from .health import router as health_router
+from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware
 from .normalizers import (
     InputNormalizer,
     NormalizedBusinessContext,
@@ -84,7 +86,7 @@ def _load_or_generate_jwt_secret() -> str:
         if _JWT_SECRET_FILE.exists():
             secret = _JWT_SECRET_FILE.read_text().strip()
             if secret:
-                logger.info(f"Loaded persisted JWT secret from {_JWT_SECRET_FILE}")
+                logger.info("Loaded persisted JWT secret from file")
                 return secret
     except Exception as e:
         logger.warning(f"Failed to read JWT secret file: {e}")
@@ -145,11 +147,32 @@ def create_app() -> FastAPI:
     app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
-        app.state = SimpleNamespace()
+        app.state = SimpleNamespace()  # type: ignore[assignment]
+
+    app.add_middleware(CorrelationIdMiddleware)
+
+    app.add_middleware(RequestLoggingMiddleware)
+
+    try:
+        overlay = load_overlay(allow_demo_token_fallback=True)
+    except TypeError:
+        overlay = load_overlay()
+
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
     origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
     if not origins:
-        origins = ["https://core.ai"]
+        origins = [
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+        ]
+        if overlay.mode != "demo":
+            logger.warning(
+                "FIXOPS_ALLOWED_ORIGINS not set in non-demo mode. "
+                "Using default localhost origins. "
+                "Set FIXOPS_ALLOWED_ORIGINS for production deployments."
+            )
 
     app.add_middleware(
         CORSMiddleware,
@@ -161,10 +184,6 @@ def create_app() -> FastAPI:
 
     normalizer = InputNormalizer()
     orchestrator = PipelineOrchestrator()
-    try:
-        overlay = load_overlay(allow_demo_token_fallback=True)
-    except TypeError:
-        overlay = load_overlay()
 
     # API authentication setup
     auth_strategy = overlay.auth.get("strategy", "").lower()
@@ -230,10 +249,10 @@ def create_app() -> FastAPI:
 
     app.state.normalizer = normalizer
     app.state.orchestrator = orchestrator
-    app.state.artifacts: Dict[str, Any] = {}
+    app.state.artifacts: Dict[str, Any] = {}  # type: ignore[misc]
     app.state.overlay = overlay
     app.state.archive = archive
-    app.state.archive_records: Dict[str, Dict[str, Any]] = {}
+    app.state.archive_records: Dict[str, Dict[str, Any]] = {}  # type: ignore[misc]
     app.state.analytics_store = analytics_store
     app.state.feedback = (
         FeedbackRecorder(overlay, analytics_store=analytics_store)
@@ -288,6 +307,8 @@ def create_app() -> FastAPI:
     uploads_dir = verify_allowlisted_path(uploads_dir, allowlist)
     upload_manager = ChunkUploadManager(uploads_dir)
     app.state.upload_manager = upload_manager
+
+    app.include_router(health_router)
 
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
@@ -393,7 +414,7 @@ def create_app() -> FastAPI:
         buffer: SpooledTemporaryFile, total: int, filename: str
     ) -> Dict[str, Any]:
         text_stream = io.TextIOWrapper(
-            buffer, encoding="utf-8", errors="ignore", newline=""
+            buffer, encoding="utf-8", errors="ignore", newline=""  # type: ignore[arg-type]
         )
         try:
             reader = csv.DictReader(text_stream)
@@ -404,7 +425,7 @@ def create_app() -> FastAPI:
             ]
             columns = reader.fieldnames or []
         finally:
-            buffer = text_stream.detach()
+            buffer = text_stream.detach()  # type: ignore[assignment]
         if not rows:
             raise HTTPException(status_code=400, detail="Design CSV contained no rows")
         dataset = {"columns": columns, "rows": rows}
@@ -574,7 +595,7 @@ def create_app() -> FastAPI:
         buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
         try:
             with path.open("rb") as handle:
-                shutil.copyfileobj(handle, buffer)
+                shutil.copyfileobj(handle, buffer)  # type: ignore[misc]
             total = buffer.tell()
             buffer.seek(0)
             return _process_from_buffer(stage, buffer, total, filename, content_type)
@@ -706,7 +727,7 @@ def create_app() -> FastAPI:
         )
         try:
             total_bytes = (
-                int(payload.get("total_size"))
+                int(payload.get("total_size"))  # type: ignore[arg-type]
                 if payload.get("total_size") is not None
                 else None
             )
