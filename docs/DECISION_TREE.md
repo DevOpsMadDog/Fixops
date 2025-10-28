@@ -284,6 +284,9 @@ enhanced_decision:
     confidence_penalty: 0.15        # Penalty per failed guard
 ```
 
+**Note on Configuration Locations:**
+The `required_frameworks` setting can be placed either under `decision_tree` (preferred) or at the overlay root level (for backward compatibility). The code checks `decision_tree.required_frameworks` first, then falls back to the root-level setting if not found.
+
 ## Usage Examples
 
 ### Basic Usage

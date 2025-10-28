@@ -89,6 +89,10 @@ class DecisionTreeOrchestrator:
         self.require_attack_path = self.thresholds.get("require_attack_path", True)
         self.min_confidence = self.thresholds.get("min_confidence", 0.60)
 
+        self.required_frameworks = dt_config.get(
+            "required_frameworks"
+        ) or self.overlay.get("required_frameworks", [])
+
         self.control_mappings = load_control_mappings(self.overlay)
 
         logger.info(
@@ -152,11 +156,10 @@ class DecisionTreeOrchestrator:
         threat_map = compute_threat_model(enrichment_map, graph, cnapp_exposures)
 
         logger.info("Step 4: Mapping to compliance controls...")
-        required_frameworks = self.overlay.get("required_frameworks", [])
         compliance_map = map_cve_to_controls(
             enrichment_map,
             self.control_mappings,
-            required_frameworks,
+            self.required_frameworks,
         )
 
         logger.info("Steps 5 & 6: Computing final verdicts...")
