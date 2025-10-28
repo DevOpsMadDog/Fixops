@@ -205,6 +205,22 @@ def compute_enrichment(
                             ):
                                 epss_scores[cve_id.upper()] = float(score)
 
+        kev_data = exploit_signals.get("kev", {})
+        if isinstance(kev_data, Mapping):
+            vulnerabilities = kev_data.get("vulnerabilities", [])
+            if isinstance(vulnerabilities, list):
+                for vuln in vulnerabilities:
+                    if isinstance(vuln, Mapping):
+                        cve_id = vuln.get("cveID")
+                        if isinstance(cve_id, str):
+                            kev_cves.add(cve_id.upper())
+
+        epss_data = exploit_signals.get("epss", {})
+        if isinstance(epss_data, Mapping):
+            for cve_id, score in epss_data.items():
+                if isinstance(cve_id, str) and isinstance(score, (int, float)):
+                    epss_scores[cve_id.upper()] = float(score)
+
     for record in cve_feed.records:
         cve_id = record.cve_id.upper()
 
