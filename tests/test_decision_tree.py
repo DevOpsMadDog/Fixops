@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps.api.normalizers import CVERecordSummary, NormalizedCVEFeed
 from compliance.mapping import ComplianceMappingResult
 from core.decision_tree import DecisionTreeOrchestrator, DecisionTreeResult
 from risk.enrichment import EnrichmentEvidence
@@ -78,24 +79,35 @@ class TestDecisionTreeOrchestrator:
     def test_analyze_basic(self):
         """Test basic analysis with minimal data."""
         orchestrator = DecisionTreeOrchestrator()
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 9.8,
-                            }
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-1234",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 9.8,
                         }
-                    ]
-                },
-            }
-        ]
+                    }
+                ]
+            },
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE",
+                    severity="CRITICAL",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         results = orchestrator.analyze(cve_feed)
 
@@ -113,14 +125,24 @@ class TestDecisionTreeOrchestrator:
     def test_analyze_with_kev(self):
         """Test analysis with KEV-listed vulnerability."""
         orchestrator = DecisionTreeOrchestrator()
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-            }
-        ]
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE",
+                    severity="HIGH",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-1234",
+                            "published": "2023-01-01T00:00:00.000Z",
+                        }
+                    },
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
         exploit_signals = {"kev": {"vulnerabilities": [{"cveID": "CVE-2023-1234"}]}}
 
         results = orchestrator.analyze(cve_feed, exploit_signals=exploit_signals)
@@ -132,14 +154,24 @@ class TestDecisionTreeOrchestrator:
     def test_analyze_with_graph(self):
         """Test analysis with knowledge graph."""
         orchestrator = DecisionTreeOrchestrator()
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-            }
-        ]
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE",
+                    severity="HIGH",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-1234",
+                            "published": "2023-01-01T00:00:00.000Z",
+                        }
+                    },
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
         graph = {
             "nodes": [
                 {"id": "vuln:CVE-2023-1234", "type": "vulnerability"},
@@ -158,14 +190,24 @@ class TestDecisionTreeOrchestrator:
     def test_analyze_with_llm_results(self):
         """Test analysis with LLM results."""
         orchestrator = DecisionTreeOrchestrator()
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-            }
-        ]
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE",
+                    severity="HIGH",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-1234",
+                            "published": "2023-01-01T00:00:00.000Z",
+                        }
+                    },
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
         llm_results = {
             "CVE-2023-1234": {
                 "explanation": "High risk vulnerability",
@@ -312,20 +354,36 @@ class TestDecisionTreeOrchestrator:
     def test_analyze_multiple_cves(self):
         """Test analyzing multiple CVEs."""
         orchestrator = DecisionTreeOrchestrator()
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-            },
-            {
-                "cve": {
-                    "id": "CVE-2023-5678",
-                    "published": "2023-02-01T00:00:00.000Z",
-                },
-            },
-        ]
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE 1",
+                    severity="HIGH",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-1234",
+                            "published": "2023-01-01T00:00:00.000Z",
+                        }
+                    },
+                ),
+                CVERecordSummary(
+                    cve_id="CVE-2023-5678",
+                    title="Test CVE 2",
+                    severity="MEDIUM",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-5678",
+                            "published": "2023-02-01T00:00:00.000Z",
+                        }
+                    },
+                ),
+            ],
+            errors=[],
+            metadata={},
+        )
 
         results = orchestrator.analyze(cve_feed)
 
@@ -336,8 +394,9 @@ class TestDecisionTreeOrchestrator:
     def test_analyze_empty_feed(self):
         """Test analyzing empty CVE feed."""
         orchestrator = DecisionTreeOrchestrator()
+        cve_feed = NormalizedCVEFeed(records=[], errors=[], metadata={})
 
-        results = orchestrator.analyze([])
+        results = orchestrator.analyze(cve_feed)
 
         assert len(results) == 0
 

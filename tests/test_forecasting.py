@@ -62,8 +62,10 @@ class TestNaiveBayesUpdate:
         posterior, breakdown = _naive_bayes_update(prior, evidence, config)
 
         assert posterior > prior
-        assert "kev_listed" in breakdown
-        assert breakdown["kev_listed"] == 5.0
+        assert "signals_applied" in breakdown
+        assert len(breakdown["signals_applied"]) > 0
+        assert breakdown["signals_applied"][0]["signal"] == "kev_listed"
+        assert breakdown["signals_applied"][0]["likelihood_ratio"] == 5.0
 
     def test_bayes_update_exploitdb(self):
         """Test Bayes update with ExploitDB references."""
@@ -77,7 +79,9 @@ class TestNaiveBayesUpdate:
         posterior, breakdown = _naive_bayes_update(prior, evidence, config)
 
         assert posterior > prior
-        assert "exploitdb_refs" in breakdown
+        assert "signals_applied" in breakdown
+        assert len(breakdown["signals_applied"]) > 0
+        assert breakdown["signals_applied"][0]["signal"] == "exploitdb_refs"
 
     def test_bayes_update_high_cvss(self):
         """Test Bayes update with high CVSS score."""
@@ -91,7 +95,9 @@ class TestNaiveBayesUpdate:
         posterior, breakdown = _naive_bayes_update(prior, evidence, config)
 
         assert posterior > prior
-        assert "high_cvss" in breakdown
+        assert "signals_applied" in breakdown
+        assert len(breakdown["signals_applied"]) > 0
+        assert breakdown["signals_applied"][0]["signal"] == "high_cvss"
 
     def test_bayes_update_vendor_advisory(self):
         """Test Bayes update with vendor advisory (reduces probability)."""
@@ -105,7 +111,9 @@ class TestNaiveBayesUpdate:
         posterior, breakdown = _naive_bayes_update(prior, evidence, config)
 
         assert posterior < prior
-        assert "vendor_advisory" in breakdown
+        assert "signals_applied" in breakdown
+        assert len(breakdown["signals_applied"]) > 0
+        assert breakdown["signals_applied"][0]["signal"] == "vendor_advisory"
 
     def test_bayes_update_old_vulnerability(self):
         """Test Bayes update with old vulnerability."""
@@ -119,7 +127,9 @@ class TestNaiveBayesUpdate:
         posterior, breakdown = _naive_bayes_update(prior, evidence, config)
 
         assert posterior > prior
-        assert "old_vulnerability" in breakdown
+        assert "signals_applied" in breakdown
+        assert len(breakdown["signals_applied"]) > 0
+        assert breakdown["signals_applied"][0]["signal"] == "old_vulnerability"
 
     def test_bayes_update_clamping(self):
         """Test that probability is clamped to valid range."""

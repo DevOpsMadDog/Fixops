@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
+from apps.api.normalizers import CVERecordSummary, NormalizedCVEFeed
 from risk.enrichment import (
     EnrichmentEvidence,
     _calculate_age_days,
@@ -61,7 +62,7 @@ class TestExtractCVSS:
 
     def test_extract_cvss_v3(self):
         """Test extracting CVSS v3.x vector and score."""
-        record = {
+        raw_data = {
             "metrics": {
                 "cvssMetricV31": [
                     {
@@ -73,6 +74,13 @@ class TestExtractCVSS:
                 ]
             }
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         vector, score = _extract_cvss_from_record(record)
 
@@ -81,7 +89,7 @@ class TestExtractCVSS:
 
     def test_extract_cvss_v2_fallback(self):
         """Test extracting CVSS v2 when v3 not available."""
-        record = {
+        raw_data = {
             "metrics": {
                 "cvssMetricV2": [
                     {
@@ -93,6 +101,13 @@ class TestExtractCVSS:
                 ]
             }
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         vector, score = _extract_cvss_from_record(record)
 
@@ -101,7 +116,13 @@ class TestExtractCVSS:
 
     def test_extract_cvss_missing(self):
         """Test extracting CVSS when not available."""
-        record = {}
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw={},
+        )
 
         vector, score = _extract_cvss_from_record(record)
 
@@ -114,12 +135,19 @@ class TestExtractCWE:
 
     def test_extract_cwe_from_weaknesses(self):
         """Test extracting CWE from weaknesses field."""
-        record = {
+        raw_data = {
             "weaknesses": [
                 {"description": [{"value": "CWE-89"}]},
                 {"description": [{"value": "CWE-79"}]},
             ]
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         cwe_ids = _extract_cwe_from_record(record)
 
@@ -129,13 +157,20 @@ class TestExtractCWE:
 
     def test_extract_cwe_from_problemtype(self):
         """Test extracting CWE from problemtype field."""
-        record = {
+        raw_data = {
             "cve": {
                 "problemtype": {
                     "problemtype_data": [{"description": [{"value": "CWE-502"}]}]
                 }
             }
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         cwe_ids = _extract_cwe_from_record(record)
 
@@ -144,7 +179,13 @@ class TestExtractCWE:
 
     def test_extract_cwe_missing(self):
         """Test extracting CWE when not available."""
-        record = {}
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw={},
+        )
 
         cwe_ids = _extract_cwe_from_record(record)
 
@@ -156,7 +197,7 @@ class TestCalculateAge:
 
     def test_calculate_age_recent(self):
         """Test calculating age for recent vulnerability."""
-        published_date = (datetime.now() - timedelta(days=30)).isoformat()
+        published_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
 
         age_days = _calculate_age_days(published_date)
 
@@ -186,7 +227,7 @@ class TestCheckVendorAdvisory:
 
     def test_check_vendor_advisory_present(self):
         """Test detecting vendor advisory."""
-        record = {
+        raw_data = {
             "references": [
                 {
                     "url": "https://vendor.com/security/advisory",
@@ -194,6 +235,13 @@ class TestCheckVendorAdvisory:
                 }
             ]
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         has_advisory = _check_vendor_advisory(record)
 
@@ -201,9 +249,16 @@ class TestCheckVendorAdvisory:
 
     def test_check_vendor_advisory_patch(self):
         """Test detecting patch reference."""
-        record = {
+        raw_data = {
             "references": [{"url": "https://vendor.com/patch", "tags": ["Patch"]}]
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         has_advisory = _check_vendor_advisory(record)
 
@@ -211,11 +266,18 @@ class TestCheckVendorAdvisory:
 
     def test_check_vendor_advisory_missing(self):
         """Test when no vendor advisory."""
-        record = {
+        raw_data = {
             "references": [
                 {"url": "https://example.com/article", "tags": ["Third Party Advisory"]}
             ]
         }
+        record = CVERecordSummary(
+            cve_id="CVE-2023-1234",
+            title="Test CVE",
+            severity="HIGH",
+            exploited=False,
+            raw=raw_data,
+        )
 
         has_advisory = _check_vendor_advisory(record)
 
@@ -227,25 +289,36 @@ class TestComputeEnrichment:
 
     def test_compute_enrichment_basic(self):
         """Test basic enrichment computation."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 9.8,
-                            }
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-1234",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 9.8,
                         }
-                    ]
-                },
-                "weaknesses": [{"description": [{"value": "CWE-89"}]}],
-            }
-        ]
+                    }
+                ]
+            },
+            "weaknesses": [{"description": [{"value": "CWE-89"}]}],
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE",
+                    severity="CRITICAL",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         exploit_signals = {
             "kev": {"vulnerabilities": [{"cveID": "CVE-2023-1234"}]},
@@ -266,20 +339,36 @@ class TestComputeEnrichment:
 
     def test_compute_enrichment_multiple_cves(self):
         """Test enrichment with multiple CVEs."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-            },
-            {
-                "cve": {
-                    "id": "CVE-2023-5678",
-                    "published": "2023-02-01T00:00:00.000Z",
-                },
-            },
-        ]
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE 1",
+                    severity="HIGH",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-1234",
+                            "published": "2023-01-01T00:00:00.000Z",
+                        }
+                    },
+                ),
+                CVERecordSummary(
+                    cve_id="CVE-2023-5678",
+                    title="Test CVE 2",
+                    severity="MEDIUM",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-5678",
+                            "published": "2023-02-01T00:00:00.000Z",
+                        }
+                    },
+                ),
+            ],
+            errors=[],
+            metadata={},
+        )
 
         result = compute_enrichment(cve_feed, None)
 
@@ -289,14 +378,24 @@ class TestComputeEnrichment:
 
     def test_compute_enrichment_no_exploit_signals(self):
         """Test enrichment without exploit signals."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-1234",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-            }
-        ]
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-1234",
+                    title="Test CVE",
+                    severity="HIGH",
+                    exploited=False,
+                    raw={
+                        "cve": {
+                            "id": "CVE-2023-1234",
+                            "published": "2023-01-01T00:00:00.000Z",
+                        }
+                    },
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         result = compute_enrichment(cve_feed, None)
 
@@ -307,6 +406,7 @@ class TestComputeEnrichment:
 
     def test_compute_enrichment_empty_feed(self):
         """Test enrichment with empty CVE feed."""
-        result = compute_enrichment([], None)
+        cve_feed = NormalizedCVEFeed(records=[], errors=[], metadata={})
+        result = compute_enrichment(cve_feed, None)
 
         assert len(result) == 0

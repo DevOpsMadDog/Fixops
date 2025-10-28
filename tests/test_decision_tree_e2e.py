@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from apps.api.normalizers import CVERecordSummary, NormalizedCVEFeed
 from core.decision_tree import DecisionTreeOrchestrator
 
 
@@ -10,34 +11,43 @@ class TestDecisionTreeE2E:
 
     def test_e2e_cve_2017_0144_eternalblue(self):
         """Test decision tree with CVE-2017-0144 (EternalBlue)."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2017-0144",
-                    "published": "2017-03-14T00:00:00.000Z",
-                    "lastModified": "2020-09-28T12:58:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 8.1,
-                            }
-                        }
-                    ]
-                },
-                "weaknesses": [
-                    {"description": [{"value": "CWE-119"}]}  # Buffer Overflow
-                ],
-                "references": [
+        raw_data = {
+            "cve": {
+                "id": "CVE-2017-0144",
+                "published": "2017-03-14T00:00:00.000Z",
+                "lastModified": "2020-09-28T12:58:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
                     {
-                        "url": "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2017-0144",
-                        "tags": ["Vendor Advisory", "Patch"],
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 8.1,
+                        }
                     }
-                ],
-            }
-        ]
+                ]
+            },
+            "weaknesses": [{"description": [{"value": "CWE-119"}]}],  # Buffer Overflow
+            "references": [
+                {
+                    "url": "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2017-0144",
+                    "tags": ["Vendor Advisory", "Patch"],
+                }
+            ],
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2017-0144",
+                    title="EternalBlue",
+                    severity="HIGH",
+                    exploited=True,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         exploit_signals = {
             "kev": {"vulnerabilities": [{"cveID": "CVE-2017-0144"}]},
@@ -80,34 +90,43 @@ class TestDecisionTreeE2E:
 
     def test_e2e_cve_2022_22965_spring4shell(self):
         """Test decision tree with CVE-2022-22965 (Spring4Shell)."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2022-22965",
-                    "published": "2022-04-01T00:00:00.000Z",
-                    "lastModified": "2023-11-07T03:44:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 9.8,
-                            }
-                        }
-                    ]
-                },
-                "weaknesses": [
-                    {"description": [{"value": "CWE-94"}]}  # Code Injection
-                ],
-                "references": [
+        raw_data = {
+            "cve": {
+                "id": "CVE-2022-22965",
+                "published": "2022-04-01T00:00:00.000Z",
+                "lastModified": "2023-11-07T03:44:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
                     {
-                        "url": "https://spring.io/blog/2022/03/31/spring-framework-rce-early-announcement",
-                        "tags": ["Vendor Advisory", "Patch"],
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 9.8,
+                        }
                     }
-                ],
-            }
-        ]
+                ]
+            },
+            "weaknesses": [{"description": [{"value": "CWE-94"}]}],  # Code Injection
+            "references": [
+                {
+                    "url": "https://spring.io/blog/2022/03/31/spring-framework-rce-early-announcement",
+                    "tags": ["Vendor Advisory", "Patch"],
+                }
+            ],
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2022-22965",
+                    title="Spring4Shell",
+                    severity="CRITICAL",
+                    exploited=True,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         exploit_signals = {
             "kev": {"vulnerabilities": [{"cveID": "CVE-2022-22965"}]},
@@ -168,38 +187,45 @@ class TestDecisionTreeE2E:
 
     def test_e2e_cve_2023_4911_looney_tunables(self):
         """Test decision tree with CVE-2023-4911 (Looney Tunables)."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-4911",
-                    "published": "2023-10-03T00:00:00.000Z",
-                    "lastModified": "2024-01-21T01:46:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 7.8,
-                            }
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-4911",
+                "published": "2023-10-03T00:00:00.000Z",
+                "lastModified": "2024-01-21T01:46:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 7.8,
                         }
-                    ]
-                },
-                "weaknesses": [
-                    {
-                        "description": [
-                            {"value": "CWE-122"}  # Heap-based Buffer Overflow
-                        ]
                     }
-                ],
-                "references": [
-                    {
-                        "url": "https://www.qualys.com/2023/10/03/cve-2023-4911/looney-tunables-local-privilege-escalation-glibc-ld-so.txt",
-                        "tags": ["Third Party Advisory"],
-                    }
-                ],
-            }
-        ]
+                ]
+            },
+            "weaknesses": [
+                {"description": [{"value": "CWE-122"}]}  # Heap-based Buffer Overflow
+            ],
+            "references": [
+                {
+                    "url": "https://www.qualys.com/2023/10/03/cve-2023-4911/looney-tunables-local-privilege-escalation-glibc-ld-so.txt",
+                    "tags": ["Third Party Advisory"],
+                }
+            ],
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-4911",
+                    title="Looney Tunables",
+                    severity="HIGH",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         exploit_signals = {
             "kev": {"vulnerabilities": []},
@@ -234,47 +260,65 @@ class TestDecisionTreeE2E:
 
     def test_e2e_multiple_cves_comparison(self):
         """Test decision tree with multiple CVEs to compare verdicts."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-HIGH",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 9.8,
-                            }
-                        }
-                    ]
-                },
-                "weaknesses": [{"description": [{"value": "CWE-89"}]}],
+        raw_data_1 = {
+            "cve": {
+                "id": "CVE-2023-HIGH",
+                "published": "2023-01-01T00:00:00.000Z",
             },
-            {
-                "cve": {
-                    "id": "CVE-2023-LOW",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N",
-                                "baseScore": 2.5,
-                            }
-                        }
-                    ]
-                },
-                "references": [
+            "metrics": {
+                "cvssMetricV31": [
                     {
-                        "url": "https://vendor.com/patch",
-                        "tags": ["Vendor Advisory", "Patch"],
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 9.8,
+                        }
                     }
-                ],
+                ]
             },
-        ]
+            "weaknesses": [{"description": [{"value": "CWE-89"}]}],
+        }
+        raw_data_2 = {
+            "cve": {
+                "id": "CVE-2023-LOW",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N",
+                            "baseScore": 2.5,
+                        }
+                    }
+                ]
+            },
+            "references": [
+                {
+                    "url": "https://vendor.com/patch",
+                    "tags": ["Vendor Advisory", "Patch"],
+                }
+            ],
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-HIGH",
+                    title="High Risk CVE",
+                    severity="CRITICAL",
+                    exploited=True,
+                    raw=raw_data_1,
+                ),
+                CVERecordSummary(
+                    cve_id="CVE-2023-LOW",
+                    title="Low Risk CVE",
+                    severity="LOW",
+                    exploited=False,
+                    raw=raw_data_2,
+                ),
+            ],
+            errors=[],
+            metadata={},
+        )
 
         exploit_signals = {
             "kev": {"vulnerabilities": [{"cveID": "CVE-2023-HIGH"}]},
@@ -300,24 +344,35 @@ class TestDecisionTreeE2E:
 
     def test_e2e_with_llm_results(self):
         """Test decision tree integration with LLM results."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-TEST",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 9.8,
-                            }
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-TEST",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 9.8,
                         }
-                    ]
-                },
-            }
-        ]
+                    }
+                ]
+            },
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-TEST",
+                    title="Test CVE",
+                    severity="CRITICAL",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         llm_results = {
             "CVE-2023-TEST": {
@@ -343,15 +398,26 @@ class TestDecisionTreeE2E:
 
     def test_e2e_compliance_framework_integration(self):
         """Test decision tree with compliance framework requirements."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-SQL",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "weaknesses": [{"description": [{"value": "CWE-89"}]}],  # SQL Injection
-            }
-        ]
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-SQL",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "weaknesses": [{"description": [{"value": "CWE-89"}]}],  # SQL Injection
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-SQL",
+                    title="SQL Injection CVE",
+                    severity="HIGH",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         overlay = {
             "decision_tree": {
@@ -372,25 +438,36 @@ class TestDecisionTreeE2E:
 
     def test_e2e_verdict_reasoning_quality(self):
         """Test that verdict reasoning is comprehensive and actionable."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-REASON",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-                                "baseScore": 9.8,
-                            }
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-REASON",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                            "baseScore": 9.8,
                         }
-                    ]
-                },
-                "weaknesses": [{"description": [{"value": "CWE-89"}]}],
-            }
-        ]
+                    }
+                ]
+            },
+            "weaknesses": [{"description": [{"value": "CWE-89"}]}],
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-REASON",
+                    title="Test CVE",
+                    severity="CRITICAL",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         exploit_signals = {
             "kev": {"vulnerabilities": [{"cveID": "CVE-2023-REASON"}]},
@@ -421,30 +498,42 @@ class TestDecisionTreeE2E:
     def test_e2e_empty_cve_feed(self):
         """Test decision tree with empty CVE feed."""
         orchestrator = DecisionTreeOrchestrator()
-        results = orchestrator.analyze([])
+        cve_feed = NormalizedCVEFeed(records=[], errors=[], metadata={})
+        results = orchestrator.analyze(cve_feed)
 
         assert len(results) == 0
 
     def test_e2e_custom_thresholds(self):
         """Test decision tree with custom verdict thresholds."""
-        cve_feed = [
-            {
-                "cve": {
-                    "id": "CVE-2023-THRESHOLD",
-                    "published": "2023-01-01T00:00:00.000Z",
-                },
-                "metrics": {
-                    "cvssMetricV31": [
-                        {
-                            "cvssData": {
-                                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
-                                "baseScore": 6.5,
-                            }
+        raw_data = {
+            "cve": {
+                "id": "CVE-2023-THRESHOLD",
+                "published": "2023-01-01T00:00:00.000Z",
+            },
+            "metrics": {
+                "cvssMetricV31": [
+                    {
+                        "cvssData": {
+                            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+                            "baseScore": 6.5,
                         }
-                    ]
-                },
-            }
-        ]
+                    }
+                ]
+            },
+        }
+        cve_feed = NormalizedCVEFeed(
+            records=[
+                CVERecordSummary(
+                    cve_id="CVE-2023-THRESHOLD",
+                    title="Test CVE",
+                    severity="MEDIUM",
+                    exploited=False,
+                    raw=raw_data,
+                )
+            ],
+            errors=[],
+            metadata={},
+        )
 
         overlay_strict = {
             "decision_tree": {
