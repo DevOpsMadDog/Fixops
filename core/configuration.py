@@ -608,6 +608,7 @@ class _OverlayDocument(BaseModel):
     tenancy: Optional[Dict[str, Any]] = None
     performance: Optional[Dict[str, Any]] = None
     enhanced_decision: Optional[Dict[str, Any]] = None
+    decision_tree: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     model_config = ConfigDict(extra="forbid")
