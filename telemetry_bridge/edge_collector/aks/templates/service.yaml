@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fixops-telemetry-collector.fullname" . }}-collector-api
+  labels:
+    {{- include "fixops-telemetry-collector.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector-api
+spec:
+  type: {{ .Values.collectorApi.service.type }}
+  ports:
+  - port: {{ .Values.collectorApi.service.port }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "fixops-telemetry-collector.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: collector-api

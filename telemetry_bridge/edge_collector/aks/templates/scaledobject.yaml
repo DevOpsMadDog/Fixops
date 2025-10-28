@@ -1,0 +1,25 @@
+{{- if and .Values.keda.enabled .Values.keda.eventHub.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "fixops-telemetry-collector.fullname" . }}-scaledobject
+  labels:
+    {{- include "fixops-telemetry-collector.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "fixops-telemetry-collector.fullname" . }}-collector-api
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: {{ .Values.collectorApi.replicaCount }}
+  maxReplicaCount: 10
+  triggers:
+  - type: azure-eventhub
+    metadata:
+      connectionFromEnv: EVENTHUB_CONNECTION_STRING
+      eventHubName: {{ .Values.keda.eventHub.eventHubName }}
+      consumerGroup: {{ .Values.keda.eventHub.consumerGroup }}
+      unprocessedEventThreshold: {{ .Values.keda.eventHub.unprocessedEventThreshold | quote }}
+      activationUnprocessedEventThreshold: {{ .Values.keda.eventHub.activationUnprocessedEventThreshold | quote }}
+    authenticationRef:
+      name: {{ include "fixops-telemetry-collector.fullname" . }}-trigger-auth
+{{- end }}

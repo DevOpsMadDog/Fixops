@@ -1,0 +1,58 @@
+{
+  "records": [
+    {
+      "time": "2024-01-15T12:00:00.000Z",
+      "resourceId": "/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/prod-rg/providers/Microsoft.Network/applicationGateways/prod-waf",
+      "operationName": "ApplicationGatewayFirewall",
+      "category": "ApplicationGatewayFirewallLog",
+      "properties": {
+        "instanceId": "appgw_0",
+        "clientIp": "203.0.113.1",
+        "clientPort": "54321",
+        "requestUri": "/api/v1/users",
+        "ruleSetType": "OWASP",
+        "ruleSetVersion": "3.2",
+        "ruleId": "942100",
+        "message": "SQL Injection Attack Detected",
+        "action": "Blocked",
+        "site": "prod-site",
+        "details": {
+          "message": "Warning. Pattern match \"(?i:(?:\\\\b(?:(?:s(?:elect\\\\b(?:.{1,100}?\\\\b(?:(?:length|count|top)\\\\b.{1,100}?\\\\bfrom|from\\\\b.{1,100}?\\\\bwhere)|.*?\\\\b(?:d(?:ump\\\\b.*\\\\bfrom|ata_type)|(?:to_(?:numbe|cha)|inst)r))|p_(?:(?:addextendedpro|sqlexe)c|(?:oacreat|prepar)e|execute(?:sql)?|makewebtask)|ql_(?:longvarchar|variant))|xp_(?:reg(?:re(?:movemultistring|ad)|delete(?:value|key)|enum(?:value|key)s|addmultistring|write)|terminate|terminate|servicecontrol|availablemedia|loginconfig|cmdshell|filelist|dirtree|makecab|ntsec)|u(?:nion\\\\b.{1,100}?\\\\bselect|tl_(?:file|http))|group\\\\b.*\\\\bby\\\\b.{1,100}?\\\\bhaving|d(?:elete\\\\b\\\\W*?\\\\bfrom|bms_java)|load\\\\b\\\\W*?\\\\bdata\\\\b.*\\\\binfile|(?:n?varcha|tbcreato)r|autonomous_transaction|open(?:rowset|query)|into\\\\b\\\\W*?\\\\b(?:dump|out)file)\\\\b|i(?:n(?:to\\\\b\\\\W*?\\\\b(?:dump|out)file\\\\b|sert\\\\b\\\\W*?\\\\binto\\\\b\\\\W*?\\\\bvalues)|f\\\\b\\\\W*?\\\\()|print\\\\b\\\\W*?\\\\@\\\\@|cast\\\\b\\\\W*?\\\\()|'(?:s(?:qloledb|a)|msdasql|dbo)') at ARGS:q. [file \\\"/etc/modsecurity.d/owasp-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf\\\"] [line \\\"45\\\"] [id \\\"942100\\\"] [msg \\\"SQL Injection Attack Detected via libinjection\\\"] [data \\\"Matched Data: 1=1 found within ARGS:q: test' OR '1'='1\\\"] [severity \\\"CRITICAL\\\"] [ver \\\"OWASP_CRS/3.2.0\\\"] [tag \\\"application-multi\\\"] [tag \\\"language-multi\\\"] [tag \\\"platform-multi\\\"] [tag \\\"attack-sqli\\\"] [tag \\\"OWASP_CRS\\\"] [tag \\\"OWASP_CRS/WEB_ATTACK/SQL_INJECTION\\\"] [tag \\\"WASCTC/WASC-19\\\"] [tag \\\"OWASP_TOP_10/A1\\\"] [tag \\\"OWASP_AppSensor/CIE1\\\"] [tag \\\"PCI/6.5.2\\\"]",
+          "data": "Matched Data: 1=1 found within ARGS:q",
+          "file": "/etc/modsecurity.d/owasp-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+          "line": "45"
+        },
+        "hostname": "prod-waf.example.com",
+        "transactionId": "AYIcXbG0VqfS7IZ5jGdRgAAAABY",
+        "latency_ms": 142
+      }
+    },
+    {
+      "time": "2024-01-15T12:00:01.000Z",
+      "resourceId": "/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/prod-rg/providers/Microsoft.Network/applicationGateways/prod-waf",
+      "operationName": "ApplicationGatewayFirewall",
+      "category": "ApplicationGatewayFirewallLog",
+      "properties": {
+        "instanceId": "appgw_0",
+        "clientIp": "198.51.100.42",
+        "clientPort": "12345",
+        "requestUri": "/admin",
+        "ruleSetType": "OWASP",
+        "ruleSetVersion": "3.2",
+        "ruleId": "920100",
+        "message": "Invalid HTTP Request Line",
+        "action": "Blocked",
+        "site": "prod-site",
+        "details": {
+          "message": "Invalid HTTP Request Line",
+          "data": "",
+          "file": "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+          "line": "123"
+        },
+        "hostname": "prod-waf.example.com",
+        "transactionId": "AYIcXbG0VqfS7IZ5jGdRgAAAABZ",
+        "latency_ms": 98
+      }
+    }
+  ]
+}

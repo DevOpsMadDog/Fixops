@@ -1,0 +1,11 @@
+{
+  "message": {
+    "data": "eyJpbnNlcnRJZCI6IjEyMzQ1Njc4OTAiLCJqc29uUGF5bG9hZCI6eyJlbmZvcmNlZFNlY3VyaXR5UG9saWN5Ijp7Im5hbWUiOiJwcm9kLXdhZi1wb2xpY3kiLCJvdXRjb21lIjoiREVOWSJ9LCJodHRwUmVxdWVzdCI6eyJyZW1vdGVJcCI6IjIwMy4wLjExMy4xIiwicmVxdWVzdE1ldGhvZCI6IkdFVCIsInJlcXVlc3RVcmwiOiJodHRwczovL2V4YW1wbGUuY29tL2FwaS92MS91c2VycyIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIn0sInJlc291cmNlIjp7InR5cGUiOiJodHRwX2xvYWRfYmFsYW5jZXIiLCJsYWJlbHMiOnsicHJvamVjdF9pZCI6Im15LWZpeG9wcy1wcm9qZWN0IiwibG9hZF9iYWxhbmNlcl9uYW1lIjoicHJvZC1sYiJ9fSwic2V2ZXJpdHkiOiJXQVJOSU5HIiwidGltZXN0YW1wIjoiMjAyNC0wMS0xNVQxMjowMDowMC4wMDBaIiwibGF0ZW5jeV9tcyI6MTU2fSwibG9nTmFtZSI6InByb2plY3RzL215LWZpeG9wcy1wcm9qZWN0L2xvZ3MvY2xvdWRhcm1vci5nb29nbGVhcGlzLmNvbSUyRnJlcXVlc3RzIiwicmVjZWl2ZVRpbWVzdGFtcCI6IjIwMjQtMDEtMTVUMTI6MDA6MDEuMDAwWiIsInJlc291cmNlIjp7InR5cGUiOiJodHRwX2xvYWRfYmFsYW5jZXIiLCJsYWJlbHMiOnsicHJvamVjdF9pZCI6Im15LWZpeG9wcy1wcm9qZWN0IiwibG9hZF9iYWxhbmNlcl9uYW1lIjoicHJvZC1sYiJ9fSwic2V2ZXJpdHkiOiJXQVJOSU5HIiwidGltZXN0YW1wIjoiMjAyNC0wMS0xNVQxMjowMDowMC4wMDBaIn0=",
+    "attributes": {
+      "logging.googleapis.com/timestamp": "2024-01-15T12:00:00.000Z"
+    },
+    "messageId": "1234567890",
+    "publishTime": "2024-01-15T12:00:01.000Z"
+  },
+  "subscription": "projects/my-fixops-project/subscriptions/fixops-telemetry-sub"
+}

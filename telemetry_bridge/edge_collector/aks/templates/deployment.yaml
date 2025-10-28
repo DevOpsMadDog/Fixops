@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fixops-telemetry-collector.fullname" . }}-collector-api
+  labels:
+    {{- include "fixops-telemetry-collector.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector-api
+spec:
+  replicas: {{ .Values.collectorApi.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "fixops-telemetry-collector.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: collector-api
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "fixops-telemetry-collector.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: collector-api
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fixops-telemetry-collector.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: collector-api
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.collectorApi.repository }}:{{ .Values.image.collectorApi.tag }}"
+        imagePullPolicy: {{ .Values.image.collectorApi.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: FIXOPS_OVERLAY_PATH
+          value: {{ .Values.overlayPath }}
+        - name: CLOUD_PROVIDER
+          value: {{ .Values.collectorApi.env.cloudProvider }}
+        - name: FIXOPS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.fixopsApiKey.name }}
+              key: {{ .Values.secrets.fixopsApiKey.key }}
+        - name: AZURE_STORAGE_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.storageConnectionString.name }}
+              key: {{ .Values.secrets.storageConnectionString.key }}
+        - name: RING_BUFFER_MAX_LINES
+          value: {{ .Values.collectorApi.env.ringBufferMaxLines | quote }}
+        - name: RING_BUFFER_MAX_SECONDS
+          value: {{ .Values.collectorApi.env.ringBufferMaxSeconds | quote }}
+        {{- if .Values.dcr.enabled }}
+        - name: DCR_ENDPOINT
+          value: {{ .Values.dcr.dcrEndpoint }}
+        - name: DCR_IMMUTABLE_ID
+          value: {{ .Values.dcr.dcrImmutableId }}
+        {{- end }}
+        volumeMounts:
+        - name: overlay-config
+          mountPath: /app/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        {{- if .Values.dcr.enabled }}
+        - name: ama-logs
+          mountPath: {{ .Values.dcr.amaPath }}
+          readOnly: true
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.collectorApi.resources | nindent 12 }}
+      {{- if .Values.fluentBit.enabled }}
+      - name: fluent-bit
+        image: "{{ .Values.image.fluentBit.repository }}:{{ .Values.image.fluentBit.tag }}"
+        imagePullPolicy: {{ .Values.image.fluentBit.pullPolicy }}
+        env:
+        - name: INPUT_PATH
+          value: {{ .Values.fluentBit.env.inputPath }}
+        - name: AGGREGATION_INTERVAL
+          value: {{ .Values.fluentBit.env.aggregationInterval | quote }}
+        - name: RETRY_LIMIT
+          value: {{ .Values.fluentBit.env.retryLimit | quote }}
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        resources:
+          {{- toYaml .Values.fluentBit.resources | nindent 12 }}
+      {{- end }}
+      volumes:
+      - name: overlay-config
+        configMap:
+          name: {{ include "fixops-telemetry-collector.fullname" . }}-overlay
+      - name: tmp
+        emptyDir: {}
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- if .Values.dcr.enabled }}
+      - name: ama-logs
+        hostPath:
+          path: {{ .Values.dcr.amaPath }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

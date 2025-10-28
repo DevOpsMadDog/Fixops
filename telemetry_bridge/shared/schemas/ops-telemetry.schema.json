@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FixOps Telemetry Schema",
+  "description": "Standardized telemetry format for FixOps Operate stage",
+  "type": "object",
+  "required": ["alerts", "latency_ms_p95"],
+  "properties": {
+    "alerts": {
+      "type": "array",
+      "description": "Array of alert aggregations",
+      "items": {
+        "type": "object",
+        "required": ["rule", "count"],
+        "properties": {
+          "rule": {
+            "type": "string",
+            "description": "Alert rule identifier (e.g., 'waf-blocks')"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of times this alert fired"
+          }
+        }
+      }
+    },
+    "latency_ms_p95": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "95th percentile latency in milliseconds, or null if not available"
+    }
+  }
+}
