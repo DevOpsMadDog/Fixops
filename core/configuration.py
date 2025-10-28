@@ -125,6 +125,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "tenancy",
     "performance",
     "enhanced_decision",
+    "decision_tree",
     "profiles",
 }
 
@@ -1322,6 +1323,7 @@ def load_overlay(
         "tenancy": document.tenancy or {},
         "performance": document.performance or {},
         "enhanced_decision": document.enhanced_decision or {},
+        "decision_tree": document.decision_tree or {},
     }
 
     selected_mode = str(base["mode"]).lower()
