@@ -133,7 +133,7 @@ def send_to_fixops(telemetry: Dict[str, Any], config: Dict[str, Any]) -> Dict[st
         )
         response.raise_for_status()
 
-        logger.info(f"Sent telemetry to {fixops_url}: {response.status_code}")
+        logger.info(f"Successfully sent telemetry: {response.status_code}")
         return {"ok": True, "status_code": response.status_code}
 
     elif mode == "file":
@@ -141,7 +141,7 @@ def send_to_fixops(telemetry: Dict[str, Any], config: Dict[str, Any]) -> Dict[st
         with open(output_path, "w") as f:
             json.dump(telemetry, f, indent=2)
 
-        logger.info(f"Wrote telemetry to {output_path}")
+        logger.info("Successfully wrote telemetry to file")
         return {"ok": True, "file": output_path}
 
     else:
