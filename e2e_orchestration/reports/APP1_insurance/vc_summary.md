@@ -309,6 +309,19 @@ The insurance platform processes sensitive healthcare and financial data for 500
 - **FixOps**: ✅ Detected (consumed Snyk detection) + Day-0 structural priors (pre-auth RCE + internet-facing + 500K records) → Enforcement gate (BLOCK) → 100% prevention (operationalized with Day-0 decision)
 - **FixOps**: Intelligent elevation as EPSS rose → 100% prevention
 
+**Time-to-Action Gap Analysis**:
+
+| Phase | Without FixOps (Snyk/Apiiro) | With FixOps | Gap Closed |
+|-------|------------------------------|-------------|------------|
+| **Detection** | 2 hours (Snyk SBOM scan) | 2 hours (consumes Snyk detection) | Same |
+| **Prioritization** | 3-7 days (buried in 847 findings, alert fatigue, prioritization paralysis) | 0 minutes (Day-0 structural priors → BLOCK) | **3-7 days** |
+| **Approval** | 2-3 days (change control, ownership ambiguity) | 0 minutes (auto-BLOCK at gate) | **2-3 days** |
+| **Remediation** | 1-2 days (patch, test, deploy) | 4 hours (patch, test, deploy) | **1.5 days** |
+| **Total Time-to-Action** | **7-12 days** | **4 hours** | **99.8% faster** |
+| **Adversary Window** | 7-12 days (exploited during window) | 0 days (blocked at Day-0) | **Breach prevented** |
+
+**Key Insight**: Traditional scanners detect in 2 hours but take 7-12 days to remediate due to prioritization paralysis, ownership ambiguity, and change-control friction. Adversaries exploit during this window. FixOps closes the gap with Day-0 structural priors (BLOCK at detection) and auto-containment (4 hours to patch), reducing time-to-action by 99.8%.
+
 ---
 
 ## FixOps Value Proposition

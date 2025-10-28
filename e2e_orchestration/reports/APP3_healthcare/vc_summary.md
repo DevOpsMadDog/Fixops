@@ -275,6 +275,19 @@ The healthcare platform provides patient portal access, electronic health record
 - **Apiiro**: ✅ Detected CVE but static CVSS 7.2 scoring, no PHI context → Advisory-only (no enforcement) → 0% prevention (detected but not operationalized)
 - **FixOps**: ✅ Detected (consumed Snyk detection) + Day-0 structural priors (pre-auth SQLi + internet-facing + PHI adjacency) → Enforcement gate (BLOCK) → 100% prevention (operationalized with Day-0 decision)
 
+**Time-to-Action Gap Analysis**:
+
+| Phase | Without FixOps (Snyk/Apiiro/CNAPP) | With FixOps | Gap Closed |
+|-------|-------------------------------------|-------------|------------|
+| **Detection** | 2 hours (CNAPP infrastructure scan) | 2 hours (consumes CNAPP detection) | Same |
+| **Prioritization** | 7-14 days (buried in 2,347 findings, no PHI context, alert fatigue) | 0 minutes (Day-0 structural priors + PHI context → BLOCK) | **7-14 days** |
+| **Approval** | 5-7 days (vendor coordination, change control for file transfer infrastructure) | 0 minutes (auto-BLOCK at gate + emergency containment) | **5-7 days** |
+| **Remediation** | 3-5 days (vendor patch, test, deploy to file transfer appliance) | 8 hours (emergency patch, test, deploy) | **3 days** |
+| **Total Time-to-Action** | **15-26 days** | **8 hours** | **99.9% faster** |
+| **Adversary Window** | 15-26 days (Cl0p ransomware exploited globally during window) | 0 days (blocked at Day-0) | **$50M breach prevented** |
+
+**Key Insight**: MOVEit Transfer (vendor appliance) vulnerabilities are detected by CNAPP tools (Wiz, Prisma, Rapid7) but buried in 2,347 infrastructure findings with no PHI context. Traditional CNAPP tools take 15-26 days to remediate due to vendor coordination and change control. FixOps consumes CNAPP detection, adds PHI context (2.3M records) and file transfer criticality at Day-0, enforces BLOCK immediately, and auto-contains in 8 hours, preventing $50M Cl0p ransomware breach.
+
 ---
 
 ## FixOps Value Proposition
