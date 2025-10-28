@@ -291,3 +291,26 @@ enhanced_decision:
       - { source: service, target: finding, type: impacted_by }
       - { source: finding, target: control, type: mitigated_by }
       - { source: finding, target: mitigation, type: remediated_by }
+  hallucination_guards:
+    enabled: true
+    disagreement_threshold: 0.3
+    numeric_tolerance: 0.05
+    confidence_penalty: 0.15
+decision_tree:
+  enabled: true
+  thresholds:
+    not_exploitable_max: 0.15
+    exploitable_min: 0.70
+    require_attack_path: true
+    min_confidence: 0.60
+  probabilistic:
+    prior_exploit: 0.05
+    markov:
+      lambda_ux_to_ex: 0.01
+      lambda_ux_to_mit: 0.03
+      lambda_ex_to_mit: 0.05
+      kev_boost_factor: 5.0
+      patch_boost_factor: 3.33
+  required_frameworks:
+    - NIST 800-53
+    - PCI DSS
