@@ -177,6 +177,67 @@ FixOps demonstrates **100% breach prevention success rate** across 8 real-world 
 
 ---
 
+## Operate-Stage Reality: Why Breaches Happen Despite Having Tools
+
+### The Crowded Detection Market
+
+**Critical Reality**: Companies that suffered 2022-2024 breaches (MOVEit, Jenkins, Adobe Commerce, ActiveMQ, XZ Utils, Citrix Bleed, Confluence) HAD comprehensive security stacks:
+- **Software Scanners**: Snyk, Checkmarx, Veracode, SonarQube
+- **Runtime/CNAPP Tools**: Wiz, Prisma Cloud, Rapid7, Tenable, Microsoft Defender for Cloud, Aqua Security, Sysdig
+- **SOC Teams**: 24/7 monitoring with SIEM/SOAR platforms
+
+**The Real Question**: If they had 10+ security tools and STILL got breached, what's the actual gap?
+
+### FixOps is NOT Another Detector - It's the Control-Plane
+
+**What FixOps Actually Does**: Turns detections from existing tools into mandatory decisions and automated actions at enforcement chokepoints.
+
+**The Five Gaps That Cause Breaches** (despite having 10+ tools):
+
+1. **Alert Fatigue Across ALL Tools**: 10+ security tools × 5,000 alerts each = 50,000+ monthly alerts. Real attack paths lost in noise. Example: MOVEit CVE buried in 47,000 total alerts across Snyk + Wiz + Rapid7.
+
+2. **No Cross-Tool Correlation to Attack Paths**: Snyk finds CVE-2023-34362, Wiz finds exposed PostgreSQL, but no tool connects "CVE + public DB + 2.3M PHI records + no WAF = critical attack path". FixOps correlates: SBOM + SARIF + CNAPP + data classification + compensating controls → single decision.
+
+3. **No Mandatory Gates (Advisory-Only)**: All tools generate alerts/tickets. None can BLOCK at enforcement chokepoints: PR merge, artifact publish, image promotion, K8s admission, Terraform apply. FixOps adds mandatory gates with BLOCK/REVIEW/ALLOW verdicts.
+
+4. **Time-to-Action Gap**: Detection 2 hours (tools work) → Remediation 3-7 days (prioritization paralysis, ownership ambiguity, change-control friction). Adversaries exploit during that window. FixOps: Auto-contain in <30 minutes (quarantine image, isolate service, rotate creds, add WAF rule).
+
+5. **Day-0 Blind Spot**: At disclosure, KEV=false and EPSS=low (0.18-0.42). ALL tools (including CNAPP) deprioritize. Structural risk is high (pre-auth RCE + public + PHI) even before intel spikes. FixOps uses Day-0 structural priors independent of KEV/EPSS.
+
+### Signal → Decision → Action (FixOps Control-Plane)
+
+**Signal** (from existing tools):
+- Snyk/Checkmarx/Veracode: Software CVEs
+- Wiz/Prisma/Rapid7/Tenable/Defender: Runtime misconfigurations, exposed resources
+- SIEM/EDR: Runtime exploitation signals
+
+**Decision** (FixOps correlation engine):
+```
+risk_day0 = correlate(
+    snyk_cve,              # CVE-2023-34362
+    wiz_finding,           # Public PostgreSQL
+    data_classification,   # 2.3M PHI records
+    compensating_controls, # WAF=false, segmentation=false
+    structural_priors      # Pre-auth SQLi + internet-facing
+) → BLOCK (risk 0.85)
+```
+
+**Action** (FixOps enforcement at chokepoints):
+- **CI/CD Gates**: Block PR merge, quarantine artifact, prevent image promotion
+- **Runtime Containment**: Isolate service (NetworkPolicy), add temporary WAF rule, rotate credentials
+- **Governance**: Open P1 with 12-hour SLA, assign owner, require waiver with expiry for override
+- **Evidence**: Cryptographically signed bundle proving decision + action + outcome
+
+**Cross-Tool Architecture**:
+
+| Layer | Tools | What They Do | What They Don't Do |
+|-------|-------|--------------|-------------------|
+| **Detection** | Snyk, Wiz, Prisma, Rapid7, Tenable, Defender | Find CVEs, misconfigurations, exposed resources | Correlate across tools, enforce gates, auto-contain |
+| **Decision** | **FixOps** | Correlate signals, Day-0 structural priors, Day-N threat intel, BLOCK/REVIEW/ALLOW | Replace detectors (consumes their signals) |
+| **Action** | **FixOps** | Mandatory gates at chokepoints, auto-containment, P1 with SLA, signed evidence | - |
+
+---
+
 ## Why Traditional Scanners Fail
 
 ### Problem 1: Alert Fatigue from False Positives
