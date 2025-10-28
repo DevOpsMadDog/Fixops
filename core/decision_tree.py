@@ -127,7 +127,9 @@ class DecisionTreeOrchestrator:
         Dict[str, DecisionTreeResult]
             Mapping of CVE ID to complete decision tree result.
         """
-        logger.info("Starting decision tree analysis for %d CVEs", len(cve_feed))
+        logger.info(
+            "Starting decision tree analysis for %d CVEs", len(cve_feed.records)
+        )
 
         logger.info("Step 1: Computing enrichment evidence...")
         enrichment_map = compute_enrichment(cve_feed, exploit_signals)
