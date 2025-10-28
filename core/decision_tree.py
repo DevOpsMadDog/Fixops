@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional
 
+from apps.api.normalizers import NormalizedCVEFeed
 from compliance.mapping import (
     ComplianceMappingResult,
     load_control_mappings,
@@ -100,7 +101,7 @@ class DecisionTreeOrchestrator:
 
     def analyze(
         self,
-        cve_feed: List[Mapping[str, Any]],
+        cve_feed: NormalizedCVEFeed,
         exploit_signals: Optional[Mapping[str, Any]] = None,
         graph: Optional[Mapping[str, Any]] = None,
         cnapp_exposures: Optional[List[Mapping[str, Any]]] = None,
@@ -111,7 +112,7 @@ class DecisionTreeOrchestrator:
         Parameters
         ----------
         cve_feed:
-            List of CVE records from NVD or other sources.
+            Normalized CVE feed from NVD or other sources.
         exploit_signals:
             Optional exploit signals (KEV, EPSS, ExploitDB).
         graph:
@@ -186,7 +187,7 @@ class DecisionTreeOrchestrator:
 
             results[cve_id] = result
 
-        verdict_counts = {}
+        verdict_counts: Dict[str, int] = {}
         for result in results.values():
             verdict_counts[result.verdict] = verdict_counts.get(result.verdict, 0) + 1
 
