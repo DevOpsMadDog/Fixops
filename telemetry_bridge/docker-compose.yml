@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Collector API service
+  collector-api:
+    build:
+      context: ./edge_collector/collector_api
+      dockerfile: Dockerfile
+    container_name: fixops-collector-api
+    ports:
+      - "8080:8080"
+    environment:
+      - FIXOPS_OVERLAY_PATH=/app/config/fixops.overlay.yml
+      - TELEMETRY_MODE=file
+      - TELEMETRY_OUTPUT_PATH=/app/demo_decision_inputs/ops-telemetry.json
+      - CLOUD_PROVIDER=local
+      - RING_BUFFER_MAX_LINES=200000
+      - RING_BUFFER_MAX_SECONDS=21600
+      - FIXOPS_DISABLE_TELEMETRY=1
+    volumes:
+      - ../config/fixops.overlay.yml:/app/config/fixops.overlay.yml:ro
+      - ./demo_decision_inputs:/app/demo_decision_inputs
+      - ./evidence:/app/evidence
+    networks:
+      - fixops-telemetry
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Fluent Bit sidecar
+  fluent-bit:
+    build:
+      context: ./edge_collector/fluent-bit
+      dockerfile: Dockerfile
+    container_name: fixops-fluent-bit
+    environment:
+      - INPUT_PATH=/var/log/waf/*.log
+      - AGGREGATION_INTERVAL=60
+      - RETRY_LIMIT=5
+    volumes:
+      - ./sample_logs:/var/log/waf:ro
+    networks:
+      - fixops-telemetry
+    depends_on:
+      - collector-api
+
+  # Vector sidecar (alternative to Fluent Bit)
+  vector:
+    build:
+      context: ./edge_collector/vector
+      dockerfile: Dockerfile
+    container_name: fixops-vector
+    environment:
+      - INPUT_PATH=/logs/app.log
+      - FLUSH_INTERVAL=30
+    volumes:
+      - ./sample_logs:/logs:ro
+    networks:
+      - fixops-telemetry
+    depends_on:
+      - collector-api
+    profiles:
+      - vector
+
+  # Sample log generator for testing
+  log-generator:
+    image: python:3.11-slim
+    container_name: fixops-log-generator
+    command: >
+      sh -c "
+      pip install faker &&
+      python -c '
+      import json
+      import time
+      import random
+      from faker import Faker
+      fake = Faker()
+      
+      while True:
+          log_entry = {
+              \"timestamp\": time.strftime(\"%Y-%m-%dT%H:%M:%S.000Z\"),
+              \"action\": random.choice([\"BLOCK\", \"ALLOW\", \"BLOCK\", \"ALLOW\", \"ALLOW\"]),
+              \"rule_id\": f\"WAF-{random.randint(1000, 9999)}\",
+              \"client_ip\": fake.ipv4(),
+              \"latency_ms\": random.randint(10, 500)
+          }
+          with open(\"/var/log/waf/access.log\", \"a\") as f:
+              f.write(json.dumps(log_entry) + \"\\n\")
+          time.sleep(random.uniform(0.1, 2.0))
+      '
+      "
+    volumes:
+      - ./sample_logs:/var/log/waf
+    networks:
+      - fixops-telemetry
+    profiles:
+      - generator
+
+networks:
+  fixops-telemetry:
+    driver: bridge
+
+volumes:
+  demo_decision_inputs:
+  evidence:
+  sample_logs:

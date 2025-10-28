@@ -1,0 +1,186 @@
+"""GCP Cloud Function for Pub/Sub telemetry ingestion."""
+
+import base64
+import json
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+import requests
+
+logger = logging.getLogger(__name__)
+
+
+def load_overlay_config() -> Dict[str, Any]:
+    """
+    Load telemetry_bridge configuration from the overlay system.
+
+    Reads from FIXOPS_OVERLAY_PATH env var or default config/fixops.overlay.yml.
+    This ensures all configuration comes from the same source as the FixOps CLI/API.
+    """
+    overlay_path = os.environ.get(
+        "FIXOPS_OVERLAY_PATH", "/workspace/config/fixops.overlay.yml"
+    )
+
+    try:
+        import yaml
+
+        with open(overlay_path, "r") as f:
+            overlay = yaml.safe_load(f)
+        return overlay.get("telemetry_bridge", {})
+    except Exception as e:
+        logger.warning(f"Failed to load overlay from {overlay_path}: {e}")
+        return {
+            "mode": os.environ.get("TELEMETRY_MODE", "http"),
+            "fixops_url": os.environ.get("FIXOPS_URL", ""),
+            "api_key_secret_ref": os.environ.get("API_KEY_SECRET_REF", ""),
+        }
+
+
+def parse_pubsub_message(event: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Parse Pub/Sub message from GCP Log Router.
+
+    Args:
+        event: Pub/Sub event with base64-encoded data
+
+    Returns:
+        List of parsed log entries
+    """
+    try:
+        if "data" in event:
+            data_str = base64.b64decode(event["data"]).decode("utf-8")
+        elif "message" in event and "data" in event["message"]:
+            data_str = base64.b64decode(event["message"]["data"]).decode("utf-8")
+        else:
+            logger.error("No data field found in event")
+            return []
+
+        log_entry = json.loads(data_str)
+
+        if isinstance(log_entry, list):
+            return log_entry
+        else:
+            return [log_entry]
+
+    except Exception as e:
+        logger.error(f"Failed to parse Pub/Sub message: {e}")
+        return []
+
+
+def aggregate_telemetry(log_entries: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Aggregate log entries into standardized telemetry format.
+
+    Counts DENY actions and extracts latency_ms_p95 if present.
+
+    Args:
+        log_entries: List of GCP log entries
+
+    Returns:
+        Standardized telemetry dict matching ops-telemetry.schema.json
+    """
+    block_count = 0
+    latencies: List[int] = []
+
+    for entry in log_entries:
+        try:
+            json_payload = entry.get("jsonPayload", {})
+
+            enforced_policy = json_payload.get("enforcedSecurityPolicy", {})
+            outcome = enforced_policy.get("outcome", "").upper()
+            if outcome == "DENY":
+                block_count += 1
+
+            latency = json_payload.get("latency_ms")
+            if latency is not None and isinstance(latency, (int, float)):
+                latencies.append(int(latency))
+
+        except (KeyError, ValueError) as e:
+            logger.warning(f"Failed to parse log entry: {e}")
+            continue
+
+    latency_p95: Optional[int] = None
+    if latencies:
+        latencies.sort()
+        p95_index = int(len(latencies) * 0.95)
+        latency_p95 = (
+            latencies[p95_index] if p95_index < len(latencies) else latencies[-1]
+        )
+
+    return {
+        "alerts": [{"rule": "waf-blocks", "count": block_count}],
+        "latency_ms_p95": latency_p95,
+    }
+
+
+def send_to_fixops(telemetry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Send telemetry to FixOps via HTTP or write to file.
+
+    Args:
+        telemetry: Aggregated telemetry data
+        config: Configuration from overlay
+
+    Returns:
+        Response dict with ok status
+    """
+    mode = config.get("mode", "http")
+
+    if mode == "http":
+        fixops_url = config.get("fixops_url", "")
+        if not fixops_url:
+            raise ValueError("fixops_url not configured in telemetry_bridge overlay")
+
+        api_key_ref = config.get("api_key_secret_ref", "FIXOPS_API_KEY")
+        api_key = os.environ.get(api_key_ref, "")
+
+        headers = {"Content-Type": "application/json", "X-API-Key": api_key}
+
+        response = requests.post(
+            fixops_url, json=telemetry, headers=headers, timeout=10
+        )
+        response.raise_for_status()
+
+        logger.info(f"Sent telemetry to {fixops_url}: {response.status_code}")
+        return {"ok": True, "status_code": response.status_code}
+
+    elif mode == "file":
+        output_path = os.environ.get("TELEMETRY_OUTPUT_PATH", "/tmp/ops-telemetry.json")
+        with open(output_path, "w") as f:
+            json.dump(telemetry, f, indent=2)
+
+        logger.info(f"Wrote telemetry to {output_path}")
+        return {"ok": True, "file": output_path}
+
+    else:
+        raise ValueError(f"Unknown telemetry mode: {mode}")
+
+
+def telemetry_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    GCP Cloud Function entry point for Pub/Sub trigger.
+
+    Args:
+        event: Pub/Sub event from Log Router
+        context: Cloud Function context
+
+    Returns:
+        Response dict with ok status
+    """
+    try:
+        config = load_overlay_config()
+
+        log_entries = parse_pubsub_message(event)
+        logger.info(f"Parsed {len(log_entries)} log entries")
+
+        telemetry = aggregate_telemetry(log_entries)
+        logger.info(f"Aggregated telemetry: {telemetry}")
+
+        result = send_to_fixops(telemetry, config)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error processing telemetry: {e}", exc_info=True)
+        return {"ok": False, "error": str(e)}

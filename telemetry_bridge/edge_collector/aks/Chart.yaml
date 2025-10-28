@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fixops-telemetry-collector
+description: FixOps Telemetry Bridge for AKS with KEDA and DCR integration
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fixops
+  - telemetry
+  - security
+  - observability
+maintainers:
+  - name: FixOps Team
+    email: support@fixops.example

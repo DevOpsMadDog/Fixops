@@ -1,0 +1,83 @@
+# Vector configuration for telemetry aggregation
+# Reads configuration from overlay via environment variables
+
+[sources.waf_logs]
+type = "file"
+include = ["${INPUT_PATH}"]
+read_from = "end"
+
+[transforms.parse_json]
+type = "remap"
+inputs = ["waf_logs"]
+source = '''
+. = parse_json!(.message)
+'''
+
+[transforms.aggregate]
+type = "aggregate"
+inputs = ["parse_json"]
+interval_ms = "${FLUSH_INTERVAL}000"  # Convert seconds to milliseconds
+
+[transforms.aggregate.metric]
+type = "counter"
+field = "action"
+name = "waf_blocks"
+tags.rule = "waf-blocks"
+
+[transforms.format_telemetry]
+type = "remap"
+inputs = ["aggregate"]
+source = '''
+# Count BLOCK actions
+block_count = 0
+latencies = []
+
+# Process each record
+if exists(.action) {
+    action = upcase!(.action)
+    if action == "BLOCK" || action == "BLOCKED" {
+        block_count = block_count + 1
+    }
+}
+
+# Collect latencies
+if exists(.latency_ms) {
+    latencies = push(latencies, .latency_ms)
+}
+
+# Calculate p95 latency
+latency_p95 = null
+if length(latencies) > 0 {
+    sorted = sort(latencies)
+    p95_index = floor(length(sorted) * 0.95)
+    if p95_index > 0 && p95_index <= length(sorted) {
+        latency_p95 = sorted[p95_index]
+    } else {
+        latency_p95 = sorted[-1]
+    }
+}
+
+# Create telemetry payload
+. = {
+    "alerts": [
+        {
+            "rule": "waf-blocks",
+            "count": block_count
+        }
+    ],
+    "latency_ms_p95": latency_p95
+}
+'''
+
+[sinks.fixops_collector]
+type = "http"
+inputs = ["format_telemetry"]
+uri = "http://collector-api:8080/telemetry"
+encoding.codec = "json"
+batch.max_events = 1
+batch.timeout_secs = "${FLUSH_INTERVAL}"
+
+[sinks.fixops_collector.request]
+retry_attempts = 5
+retry_initial_backoff_secs = 1
+retry_max_duration_secs = 10
