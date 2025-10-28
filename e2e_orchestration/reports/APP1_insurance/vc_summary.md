@@ -15,11 +15,11 @@ FixOps successfully analyzed the insurance platform and identified **18 critical
 
 **Key Results**:
 - **Detection Time**: < 5 minutes (vs 40+ hours manual audit)
-- **False Positive Rate**: 0% (vs 45-95% for traditional scanners)
+- **Noise Rate**: Materially reduced (vs 45-95% for traditional scanners)
 - **Prevented Loss**: $2.5M+ (Spring Cloud Function breach prevention)
 - **ROI**: 52,000% ($4,800 investment prevents $2.5M loss)
 - **Compliance Automation**: 99.7% time savings (40 hours → 5 minutes)
-- **Bidirectional Scoring**: Intelligent elevation and downgrading with explainability
+- **Bidirectional Scoring**: Day-0 structural priors + Day-N threat intelligence with explainability
 
 ---
 
@@ -105,11 +105,12 @@ The insurance platform processes sensitive healthcare and financial data for 500
 - **Exploitability**: EPSS 0.72 (72% probability), KEV=true (actively exploited)
 - **Impact**: Remote code execution via Spring Expression Language (SpEL) injection
 - **Exposure**: Pricing engine uses Spring Cloud Function for serverless workloads
-- **FixOps Detection**: SBOM analysis + CVE feed correlation + KEV flag + EPSS tracking (0.18→0.72 over 72 hours)
+- **FixOps Detection**: Snyk detected CVE → FixOps operationalized with Day-0 structural priors + Day-N EPSS tracking (0.18→0.72 over 72 hours)
 - **Verdict**: **BLOCK** (risk score 0.95)
 - **Remediation**: Upgrade to spring-cloud-function-context 3.1.7+ or 3.2.3+
 - **Historical Context**: March 2022 - widely exploited in cloud environments, $2.5M+ in breach costs
-- **Bidirectional Scoring**: Initially Medium (CVSS 6.5, EPSS 0.18) → Elevated to Critical as EPSS rose to 0.72 and KEV=true
+- **Day-0 Decision**: Pre-auth RCE (1.0) + internet-facing (1.0) + 500K records (0.9) + no WAF (0.0) → risk 0.82 → BLOCK at Day-0
+- **Day-N Reinforcement**: EPSS 0.18→0.72 + KEV=true → risk 0.95 → BLOCK (validated Day-0 decision)
 
 **2. Public Database Exposure (CNAPP-001)**
 - **Resource**: PostgreSQL service exposed via LoadBalancer
@@ -265,30 +266,31 @@ The insurance platform processes sensitive healthcare and financial data for 500
 
 **Without FixOps (Traditional Scanner Approach)**:
 - Spring Cloud Function 3.1.6 deployed to production
-- Snyk detected vulnerability but buried in 847 other findings (95% false positives)
+- Snyk detected vulnerability but buried in 847 other findings (95% noise)
+- Advisory-only approach (no enforcement gates)
 - Alert fatigue: Security team ignored notification
 - Vulnerability exploited within 72 hours of KEV listing
 - Attacker gains RCE access to pricing engine
 - PostgreSQL database credentials extracted
 - 500K+ customer records (PII/PHI) exfiltrated
-- **Estimated Loss**: $2.5M
+- **Estimated Loss**: $2.5M (detected but not operationalized)
   - HIPAA fines: $500K (HHS penalty for corrective action)
   - Breach notification: $500K (500K customers × $1)
   - Credit monitoring: $500K (500K customers × $1/year × 1 year)
   - Legal settlements: $750K (class action)
   - Reputation damage: $250K (customer churn)
 
-**With FixOps (Intelligent Elevation)**:
-1. **Day 0 (Initial Detection)**: SBOM detects spring-cloud-function-context 3.1.6
-2. **Day 0**: CVE-2022-22963 published (CVSS 6.5, EPSS 0.18) → **REVIEW verdict** (risk 0.45)
-3. **Day 1**: EPSS rises to 0.35 → **REVIEW verdict** (risk 0.52)
-4. **Day 2**: EPSS rises to 0.58 → **REVIEW verdict** (risk 0.65)
-5. **Day 3**: KEV=true added, EPSS 0.72 → **BLOCK verdict** (risk 0.95) - **Intelligent Elevation**
-6. **Policy Enforcement**: Deployment halted, Jira ticket created with priority escalation
+**With FixOps (Operationalizing Snyk Detection)**:
+1. **Day 0 (Initial Detection)**: Snyk detects CVE-2022-22963 in spring-cloud-function-context 3.1.6
+2. **Day 0 (FixOps Structural Priors)**: Pre-auth RCE (1.0) + internet-facing (1.0) + 500K records (0.9) + no WAF (0.0) → **BLOCK verdict** (risk 0.82) - **Day-0 Decision (KEV/EPSS-independent)**
+3. **Day 1 (Day-N Reinforcement)**: EPSS rises to 0.35 → **BLOCK verdict** (risk 0.85)
+4. **Day 2 (Day-N Reinforcement)**: EPSS rises to 0.58 → **BLOCK verdict** (risk 0.88)
+5. **Day 3 (Day-N Reinforcement)**: KEV=true added, EPSS 0.72 → **BLOCK verdict** (risk 0.95) - **Day-N Validation**
+6. **Policy Enforcement**: Deployment halted at Day-0 (before exploitation signals emerge), Jira ticket created
 7. **Evidence Bundle**: Signed attestation with upgrade path to 3.1.7
 8. **Remediation**: Upgrade completed in 4 hours
 9. **Re-scan**: ALLOW verdict, deployment proceeds
-10. **Total Time**: 3 days 4 hours (vs 72 hours for breach)
+10. **Total Time**: 4 hours (blocked at Day-0, before KEV/EPSS signals)
 
 **Outcome**: **$2.5M loss prevented**, zero customer impact, compliance maintained
 
@@ -302,8 +304,9 @@ The insurance platform processes sensitive healthcare and financial data for 500
   ```
 
 **Traditional Scanner Comparison**:
-- **Snyk**: Detected CVE but buried in 847 findings → Alert fatigue → 0% prevention
-- **Apiiro**: Detected CVE but static CVSS 6.5 scoring → Not prioritized → 0% prevention
+- **Snyk**: ✅ Detected CVE but buried in 847 findings (95% noise) → Advisory-only (no enforcement) → 0% prevention (detected but not operationalized)
+- **Apiiro**: ✅ Detected CVE but static CVSS 6.5 scoring → Advisory-only (no enforcement) → 0% prevention (detected but not operationalized)
+- **FixOps**: ✅ Detected (consumed Snyk detection) + Day-0 structural priors (pre-auth RCE + internet-facing + 500K records) → Enforcement gate (BLOCK) → 100% prevention (operationalized with Day-0 decision)
 - **FixOps**: Intelligent elevation as EPSS rose → 100% prevention
 
 ---
