@@ -1018,7 +1018,7 @@ Action: Fix in next sprint
 **How FixOps Solves**:
 - KEV + EPSS filters to actively exploited vulnerabilities
 - Business context elevates truly material risks
-- 0% false positive rate in demo runs
+- Materially reduced noise in demo runs through Day-0 structural priors + Day-N threat intelligence
 - Clear ALLOW/REVIEW/BLOCK decisions
 
 ### 4. Lack of Enforcement
@@ -1095,7 +1095,7 @@ Action: Fix in next sprint
 
 **FixOps**:
 - Detect vulnerabilities (good)
-- Filter with KEV + EPSS (0% false positives)
+- Filter with KEV + EPSS (materially reduced noise)
 - Intelligent prioritization (predictive + contextual)
 - Automated enforcement (BLOCK gates)
 - **Result**: Zero missed critical issues, zero alert fatigue
@@ -1198,7 +1198,7 @@ FixOps' **intelligent bidirectional risk scoring** represents a fundamental adva
 - UI Library: Downgraded High → Allow, maintained development velocity
 
 **Competitive Advantage**:
-- 0% false positives (vs 45-95% for traditional scanners)
+- Materially reduced noise through Day-0 structural priors + Day-N threat intelligence (vs 45-95% noise for traditional scanners)
 - 100% critical issue detection (vs 0-30% for static scoring)
 - Explainable decisions (vs black box scoring)
 - Automated enforcement (vs optional dashboards)

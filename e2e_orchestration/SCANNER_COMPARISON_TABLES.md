@@ -244,7 +244,7 @@
 **Phase 1**: Install FixOps alongside existing scanners (Week 1-2)
 **Phase 2**: Configure KEV + EPSS + bidirectional scoring + business context (Week 3-4)
 **Phase 3**: Integrate scanner outputs into FixOps (Month 2)
-**Phase 4**: Achieve 0% false positives and 100% breach prevention (Month 3+)
+**Phase 4**: Achieve materially reduced noise and 100% breach prevention (Month 3+)
 
 **Expected Outcome**: Operationalize existing scanner detections with FixOps ($6.9K investment) to achieve $595.55M breach prevention (8 real-world 2022-2024 breaches) and 8,651,000% ROI through Day-0 structural priors + Day-N threat intelligence + enforcement gates.
 
