@@ -410,6 +410,24 @@ risk_day0 = correlate(
 - **Governance**: Open P1 with 12-hour SLA, assign owner, require waiver with expiry for override
 - **Evidence**: Cryptographically signed bundle proving decision + action + outcome
 
+### Tool Category Failure Mode Analysis
+
+**Why Comprehensive Security Stacks Still Failed** (for CISO/Expert Audience):
+
+| Tool Category | Typical Products | Primary Role | Why It Didn't Prevent Breach | FixOps Overlay |
+|--------------|------------------|--------------|------------------------------|----------------|
+| **VM/VA** | Rapid7 InsightVM, Tenable Nessus, Qualys VMDR | Vulnerability discovery | • Out-of-scope assets (appliances, managed services)<br>• Scan cadence gap (monthly/quarterly vs Day-0)<br>• Action gap (ticket → triage → patch = days) | • Inventory normalization across sources<br>• Continuous risk scoring (not scan-based)<br>• Enforce gates at chokepoints (PR, artifact, admission)<br>• Auto-assign owners with SLAs |
+| **CNAPP** | Wiz, Prisma Cloud, Aqua Security, Sysdig | Cloud workload security | • Blind to legacy VMs, bare metal, appliances<br>• Container drift (dynamic image pulls)<br>• Scope limitation (cloud-native focus) | • Correlate CNAPP findings with SBOM/VM/SIEM<br>• Enforce Terraform apply gates<br>• K8s admission checks<br>• Attack-path analysis across cloud + on-prem |
+| **SIEM/SOAR/SOC** | Splunk, Elastic Security, Microsoft Sentinel, Palo Alto Cortex XSOAR | Detection and response | • Alert fatigue (50,000+ monthly alerts)<br>• Detection ≠ prevention<br>• Response latency (triage → escalation → approval = days) | • Correlate signals into single attack-path decision<br>• Auto-enforce based on decision (not just alert)<br>• Reduce time-to-action from days to minutes<br>• Evidence bundle for IR postmortems |
+| **WAF/Firewall** | Cloudflare, Imperva, F5, Palo Alto NGFW, Fortinet | Perimeter defense | • Signature lag (Day-0 has no signature)<br>• Coverage gaps (internal endpoints, admin interfaces)<br>• Bypass potential (obfuscation, novel vectors) | • Auto-deploy virtual patches (temporary rules)<br>• Verify WAF presence and effectiveness<br>• Gate deployments if WAF absent<br>• Require waivers with expiry |
+| **VM Patching** | WSUS, SCCM, Ansible, Puppet | Patch deployment | • Vendor lag (patch release delay)<br>• Change control friction (approval, testing, windows)<br>• Deployment time (test → approve → deploy = days) | • Accelerate with compensating controls<br>• Auto-create patch PRs<br>• Enforce gates until patch deployed<br>• Evidence bundle proves patch applied |
+| **Red/Pen Testing** | Internal red team, external pen test firms | Proactive validation | • Snapshot nature (annual/quarterly)<br>• Findings in PDFs, not enforced in pipelines<br>• Scope limitations (external focus) | • Convert findings into enforced policies<br>• Continuous validation via gates<br>• Waivers with expiry for unresolved findings<br>• Evidence bundles for compliance |
+| **EDR** | CrowdStrike Falcon, Microsoft Defender for Endpoint, SentinelOne | Endpoint protection | • Behavioral blind spots (legitimate-looking activity)<br>• Detection, not prevention<br>• Post-exploitation focus | • Correlate EDR signals with SBOM/CNAPP/VM<br>• Enforce preventive gates<br>• Auto-containment on EDR alerts<br>• Evidence bundle for forensics |
+
+**Key Insight for CISOs**: The gap was not detection (tools detected issues) but **decision-to-action latency** and **enforcement at chokepoints**. FixOps' control-plane closes these gaps by correlating signals into attack-path decisions and enforcing them at merge/publish/promotion/admission/apply, plus auto-containment with waivers and signed evidence.
+
+**See**: `OPERATE_STAGE_GAP_ANALYSIS.md` for detailed analysis of each 2022-2024 breach showing stack present, failure modes, and FixOps overlay with concrete enforcement examples.
+
 ---
 
 ## CTEM/CNAPP/Scanner Interplay: Detection vs Operationalization
@@ -1182,9 +1200,204 @@ explainability:
 
 ---
 
+## No-SBOM Mode: Operating on Runtime/VM/CNAPP/SIEM Feeds
+
+### Context: 2022-2024 Reality
+
+**Important Note**: During the 2022-2024 period analyzed in our backtesting, **SBOMs were not mandatory** for most organizations. The Executive Order 14028 (May 2021) required SBOMs for federal software, but industry adoption was limited.
+
+**Question**: How does FixOps operate when SBOMs aren't available?
+
+**Answer**: FixOps can operate in **No-SBOM mode** by consuming signals directly from runtime, VM scanners, CNAPP tools, and SIEM platforms.
+
+### Signal Sources (No SBOM Required)
+
+| Source | What It Provides | How FixOps Uses It |
+|--------|------------------|-------------------|
+| **VM/VA Scanners** | Rapid7, Tenable, Qualys output (installed packages, CVEs) | Normalize to internal inventory, correlate with CVE feeds, apply Day-0 structural priors |
+| **CNAPP** | Wiz, Prisma, Aqua findings (container images, misconfigurations, exposed resources) | Correlate with data classification, apply compensating control analysis, enforce gates |
+| **SIEM/EDR** | Splunk, Elastic, CrowdStrike logs (runtime behavior, exploitation attempts) | Day-N reinforcement (KEV/EPSS elevation), auto-containment triggers |
+| **Container Registries** | Docker Hub, ECR, GCR image metadata | Extract package lists from image layers, correlate with CVE feeds |
+| **Package Managers** | npm audit, pip-audit, cargo audit output | Normalize to CycloneDX/SPDX internally, apply risk scoring |
+
+### No-SBOM Workflow
+
+**Step 1: Ingestion** (Multiple Sources)
+```yaml
+# FixOps ingests from any available source
+sources:
+  - type: rapid7_api
+    endpoint: https://insight.rapid7.com/api/3/assets
+    auth: ${RAPID7_API_KEY}
+  
+  - type: wiz_api
+    endpoint: https://api.wiz.io/graphql
+    auth: ${WIZ_CLIENT_ID}:${WIZ_CLIENT_SECRET}
+  
+  - type: splunk_query
+    query: 'index=security sourcetype=vulnerability_scan'
+    auth: ${SPLUNK_TOKEN}
+  
+  - type: container_registry
+    registry: gcr.io/my-project
+    auth: ${GCR_SERVICE_ACCOUNT}
+```
+
+**Step 2: Normalization** (Internal SBOM Generation)
+```yaml
+# FixOps normalizes all sources to internal CycloneDX format
+normalization:
+  rapid7_asset:
+    - extract: installed_packages
+    - map_to: cyclonedx.components
+    - enrich_with: cve_feed
+  
+  wiz_finding:
+    - extract: container_image_packages
+    - map_to: cyclonedx.components
+    - correlate_with: data_classification
+  
+  splunk_event:
+    - extract: exploitation_signals
+    - map_to: threat_intelligence
+    - trigger: kev_epss_update
+```
+
+**Step 3: Risk Scoring** (Same Engine)
+```yaml
+# Day-0 structural priors work without SBOM
+risk_calculation:
+  vulnerability_class: pre_auth_rce  # From CVE description
+  exposure: internet_facing          # From CNAPP/firewall rules
+  authentication: none_required      # From CVE analysis
+  data_adjacency: phi_pii           # From data classification
+  blast_radius: tier0               # From asset criticality
+  compensating_controls:            # From CNAPP/WAF/segmentation
+    waf_rules: false
+    network_segmentation: false
+  
+  # Result: risk_day0 = 0.85 → BLOCK (no SBOM needed)
+```
+
+**Step 4: Enforcement** (Same Gates)
+```yaml
+# Gates work with or without SBOM
+enforcement:
+  - gate: terraform_apply
+    verdict: BLOCK
+    reason: "CVE-2023-34362 detected via Rapid7, risk 0.85"
+  
+  - gate: k8s_admission
+    verdict: BLOCK
+    reason: "Vulnerable image detected via Wiz, risk 0.82"
+  
+  - action: auto_containment
+    steps:
+      - isolate_service: moveit-transfer
+      - add_waf_rule: block_sqli_patterns
+      - rotate_credentials: db_moveit_user
+```
+
+### Example: MOVEit CVE-2023-34362 (No SBOM)
+
+**Scenario**: Enterprise has Rapid7 + Wiz + Splunk, but no SBOM for MOVEit Transfer appliance.
+
+**FixOps Workflow**:
+
+1. **Rapid7 Detection** (T0):
+   ```json
+   {
+     "asset_id": "moveit-prod-01",
+     "software": "Progress MOVEit Transfer 2023.0.1",
+     "vulnerabilities": [
+       {
+         "cve": "CVE-2023-34362",
+         "cvss": 9.8,
+         "description": "Pre-auth SQL injection"
+       }
+     ]
+   }
+   ```
+
+2. **Wiz Context** (T0+5min):
+   ```json
+   {
+     "resource": "moveit-prod-01",
+     "exposure": "internet_facing",
+     "network": "public_subnet",
+     "data_access": ["postgres_phi_db"],
+     "waf": false
+   }
+   ```
+
+3. **FixOps Correlation** (T0+10min):
+   ```yaml
+   # No SBOM, but full risk assessment possible
+   vulnerability_class: 1.0  # Pre-auth SQLi → RCE
+   exposure: 1.0             # Internet-facing (from Wiz)
+   authentication: 1.0       # Pre-auth (from CVE)
+   data_adjacency: 1.0       # PHI database (from Wiz)
+   blast_radius: 1.0         # Tier-0 MFT (from asset criticality)
+   compensating_controls:
+     waf_rules: 0.0          # No WAF (from Wiz)
+     segmentation: 0.0       # Flat network (from Wiz)
+   
+   risk_day0 = 0.85 → BLOCK
+   ```
+
+4. **Enforcement** (T0+30min):
+   ```yaml
+   actions:
+     - terraform_gate: BLOCK (prevent new MOVEit deployments)
+     - waf_virtual_patch: Deploy Cloudflare rule blocking SQLi patterns
+     - network_isolation: Apply AWS security group restricting ingress
+     - credential_rotation: Rotate DB credentials for moveit_user
+     - p1_ticket: Create P1 with 12-hour SLA, assign to platform team
+   ```
+
+5. **Evidence Bundle** (T0+1h):
+   ```yaml
+   manifest:
+     decision_source: "rapid7_api + wiz_api + cve_feed"
+     sbom_available: false
+     risk_score: 0.85
+     verdict: BLOCK
+     enforcement_actions:
+       - waf_virtual_patch_deployed: true
+       - network_isolation_applied: true
+       - credential_rotation_completed: true
+     time_to_action: "30 minutes"
+     signature: "RSA-SHA256:..."
+   ```
+
+### Advantages of No-SBOM Mode
+
+1. **Immediate Deployment**: No need to wait for SBOM generation/adoption
+2. **Legacy System Coverage**: Works with appliances, vendor software, legacy VMs
+3. **Runtime Focus**: Prioritizes actively running systems (not just build-time)
+4. **Multi-Source Correlation**: Combines VM + CNAPP + SIEM signals for richer context
+5. **Gradual SBOM Adoption**: Can add SBOMs incrementally as they become available
+
+### SBOM vs No-SBOM Comparison
+
+| Capability | With SBOM | Without SBOM (Runtime Sources) |
+|------------|-----------|-------------------------------|
+| **Vulnerability Detection** | ✅ Build-time + runtime | ✅ Runtime only |
+| **Supply Chain Analysis** | ✅ Full dependency tree | ⚠️ Limited to installed packages |
+| **License Compliance** | ✅ Complete | ❌ Not available |
+| **Day-0 Risk Scoring** | ✅ Full structural priors | ✅ Full structural priors (from CVE + context) |
+| **Day-N Threat Intel** | ✅ KEV/EPSS reinforcement | ✅ KEV/EPSS reinforcement |
+| **Enforcement Gates** | ✅ All gates | ✅ All gates |
+| **Evidence Quality** | ✅ Highest (signed SBOM) | ✅ High (signed findings) |
+| **Appliance Coverage** | ❌ Often unavailable | ✅ Via VM/CNAPP scanners |
+
+**Recommendation**: Use SBOMs where available (modern apps, containers), fall back to runtime sources for legacy systems and appliances. FixOps handles both seamlessly.
+
+---
+
 ## Conclusion
 
-FixOps' **intelligent bidirectional risk scoring** represents a fundamental advancement over traditional static CVSS-based approaches:
+ FixOps' **intelligent bidirectional risk scoring** represents a fundamental advancement over traditional static CVSS-based approaches:
 
 1. **Predictive**: Uses EPSS, KEV, and timeline analysis to predict when Medium becomes Critical
 2. **Contextual**: Incorporates business impact, segmentation, and mitigations to downgrade overinflated risks
