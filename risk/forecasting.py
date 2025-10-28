@@ -34,6 +34,31 @@ class ForecastResult:
         }
 
 
+def _apply_likelihood_ratio(probability: float, likelihood_ratio: float) -> float:
+    """Apply likelihood ratio using correct Bayesian odds update.
+
+    Parameters
+    ----------
+    probability:
+        Current probability (must be in range (0, 1)).
+    likelihood_ratio:
+        Likelihood ratio to apply.
+
+    Returns
+    -------
+    float
+        Updated probability after applying likelihood ratio.
+    """
+    epsilon = 1e-6
+    p = max(epsilon, min(1.0 - epsilon, probability))
+
+    odds = p / (1.0 - p)
+    new_odds = odds * likelihood_ratio
+    new_probability = new_odds / (1.0 + new_odds)
+
+    return max(epsilon, min(1.0 - epsilon, new_probability))
+
+
 def _naive_bayes_update(
     prior: float,
     evidence: EnrichmentEvidence,
@@ -72,7 +97,7 @@ def _naive_bayes_update(
     }
 
     if evidence.kev_listed:
-        posterior = min(0.99, posterior * likelihood_ratios["kev_listed"])
+        posterior = _apply_likelihood_ratio(posterior, likelihood_ratios["kev_listed"])
         breakdown["signals_applied"].append(
             {
                 "signal": "kev_listed",
@@ -85,7 +110,7 @@ def _naive_bayes_update(
         ratio = (
             likelihood_ratios["exploitdb_refs"] * min(evidence.exploitdb_refs, 3) / 3
         )
-        posterior = min(0.99, posterior * ratio)
+        posterior = _apply_likelihood_ratio(posterior, ratio)
         breakdown["signals_applied"].append(
             {
                 "signal": "exploitdb_refs",
@@ -96,7 +121,7 @@ def _naive_bayes_update(
         )
 
     if evidence.cvss_score is not None and evidence.cvss_score >= 7.0:
-        posterior = min(0.99, posterior * likelihood_ratios["high_cvss"])
+        posterior = _apply_likelihood_ratio(posterior, likelihood_ratios["high_cvss"])
         breakdown["signals_applied"].append(
             {
                 "signal": "high_cvss",
@@ -107,7 +132,9 @@ def _naive_bayes_update(
         )
 
     if evidence.has_vendor_advisory:
-        posterior = max(0.01, posterior * likelihood_ratios["vendor_advisory"])
+        posterior = _apply_likelihood_ratio(
+            posterior, likelihood_ratios["vendor_advisory"]
+        )
         breakdown["signals_applied"].append(
             {
                 "signal": "vendor_advisory",
@@ -117,7 +144,9 @@ def _naive_bayes_update(
         )
 
     if evidence.age_days is not None and evidence.age_days > 365:
-        posterior = min(0.99, posterior * likelihood_ratios["old_vulnerability"])
+        posterior = _apply_likelihood_ratio(
+            posterior, likelihood_ratios["old_vulnerability"]
+        )
         breakdown["signals_applied"].append(
             {
                 "signal": "old_vulnerability",
@@ -127,7 +156,8 @@ def _naive_bayes_update(
             }
         )
 
-    posterior = max(0.01, min(0.99, posterior))
+    epsilon = 1e-6
+    posterior = max(epsilon, min(1.0 - epsilon, posterior))
     breakdown["final_posterior"] = round(posterior, 4)
 
     return posterior, breakdown

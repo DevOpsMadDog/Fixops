@@ -144,7 +144,9 @@ class TestNaiveBayesUpdate:
 
         posterior, breakdown = _naive_bayes_update(prior, evidence, config)
 
-        assert 0.01 <= posterior <= 0.99
+        epsilon = 1e-6
+        assert epsilon <= posterior <= 1.0 - epsilon
+        assert posterior > prior
 
 
 class TestMarkovForecast:
