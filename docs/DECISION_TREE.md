@@ -289,13 +289,15 @@ enhanced_decision:
 ### Basic Usage
 
 ```python
+from apps.api.normalizers import InputNormalizer
 from core.decision_tree import DecisionTreeOrchestrator
 
-# Initialize orchestrator
+# Initialize normalizer and orchestrator
+normalizer = InputNormalizer()
 orchestrator = DecisionTreeOrchestrator()
 
-# Prepare CVE feed (from NVD or other source)
-cve_feed = [
+# Prepare raw CVE data (from NVD or other source)
+raw_cve_data = [
     {
         "cve": {"id": "CVE-2023-1234", "published": "2023-01-01T00:00:00.000Z"},
         "metrics": {
@@ -310,6 +312,9 @@ cve_feed = [
     }
 ]
 
+# Normalize CVE feed (REQUIRED - analyze() expects NormalizedCVEFeed)
+cve_feed = normalizer.load_cve_feed(raw_cve_data)
+
 # Run analysis
 results = orchestrator.analyze(cve_feed)
 
@@ -322,17 +327,20 @@ print(f"Confidence: {result.verdict_confidence:.2%}")
 ### Advanced Usage with All Features
 
 ```python
+from apps.api.normalizers import InputNormalizer
 from core.decision_tree import DecisionTreeOrchestrator
 
 # Load configuration
 overlay = load_overlay("config/fixops.overlay.yml")
 config = load_config()
 
-# Initialize orchestrator
+# Initialize normalizer and orchestrator
+normalizer = InputNormalizer()
 orchestrator = DecisionTreeOrchestrator(config, overlay)
 
 # Prepare inputs
-cve_feed = load_cve_feed()
+raw_cve_data = load_raw_cve_data()  # Raw NVD JSON
+cve_feed = normalizer.load_cve_feed(raw_cve_data)  # Normalize to NormalizedCVEFeed
 exploit_signals = load_exploit_signals()  # KEV + EPSS
 graph = load_knowledge_graph()
 cnapp_exposures = load_cnapp_exposures()

@@ -127,6 +127,17 @@ class DecisionTreeOrchestrator:
         Dict[str, DecisionTreeResult]
             Mapping of CVE ID to complete decision tree result.
         """
+        if not isinstance(cve_feed, NormalizedCVEFeed):
+            raise TypeError(
+                f"cve_feed must be a NormalizedCVEFeed object, got {type(cve_feed).__name__}. "
+                "Use InputNormalizer.load_cve_feed() to normalize raw CVE data first. "
+                "Example:\n"
+                "  from apps.api.normalizers import InputNormalizer\n"
+                "  normalizer = InputNormalizer()\n"
+                "  cve_feed = normalizer.load_cve_feed(raw_cve_data)\n"
+                "  results = orchestrator.analyze(cve_feed, ...)"
+            )
+
         logger.info(
             "Starting decision tree analysis for %d CVEs", len(cve_feed.records)
         )
