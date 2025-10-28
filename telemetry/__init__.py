@@ -40,6 +40,38 @@ else:  # pragma: no cover - fallback for test environments without OpenTelemetry
 _CONFIGURED = False
 
 
+class _SilentSpanExporter:
+    """Wrapper around OTLPSpanExporter that suppresses connection errors."""
+
+    def __init__(self, exporter):
+        self._exporter = exporter
+
+    def export(self, spans):
+        """Export spans, suppressing connection errors."""
+        try:
+            return self._exporter.export(spans)
+        except Exception as exc:
+            logger.debug(f"Failed to export spans: {exc}")
+            from opentelemetry.sdk.trace.export import SpanExportResult
+
+            return SpanExportResult.SUCCESS
+
+    def shutdown(self):
+        """Shutdown the exporter, suppressing errors."""
+        try:
+            return self._exporter.shutdown()
+        except Exception as exc:
+            logger.debug(f"Failed to shutdown span exporter: {exc}")
+
+    def force_flush(self, timeout_millis=None):
+        """Force flush, suppressing errors."""
+        try:
+            return self._exporter.force_flush(timeout_millis)
+        except Exception as exc:
+            logger.debug(f"Failed to force flush spans: {exc}")
+            return True
+
+
 def configure(service_name: str = "fixops-platform") -> None:
     """Configure global tracer and meter providers if not already set."""
 
@@ -60,7 +92,8 @@ def configure(service_name: str = "fixops-platform") -> None:
 
         tracer_provider = TracerProvider(resource=resource)
         span_exporter = OTLPSpanExporter(endpoint=traces_endpoint, timeout=5)
-        tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
+        silent_exporter = _SilentSpanExporter(span_exporter)
+        tracer_provider.add_span_processor(BatchSpanProcessor(silent_exporter))
         trace.set_tracer_provider(tracer_provider)
 
         metric_exporter = OTLPMetricExporter(endpoint=metrics_endpoint, timeout=5)
