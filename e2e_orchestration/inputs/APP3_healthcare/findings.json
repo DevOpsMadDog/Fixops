@@ -1,0 +1,275 @@
+{
+  "scan_time": "2025-10-28T14:15:00Z",
+  "scanner": "Wiz CNAPP",
+  "platform": "AWS",
+  "account_id": "456789012345",
+  "region": "us-east-1",
+  "findings": [
+    {
+      "id": "CNAPP-HC-001",
+      "type": "k8s:vulnerability",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/ehr-integration-service",
+      "resource_type": "kubernetes_deployment",
+      "title": "Container image contains XXE vulnerability (CVE-2023-38325) in HL7 parser",
+      "description": "The ehr-integration-service uses xml2js 0.4.23 for parsing HL7 messages from external EHR systems. XXE vulnerability allows reading arbitrary files including patient database credentials.",
+      "remediation": "Rebuild container image with xml2js 0.5.0 or later and redeploy immediately",
+      "compliance_violations": ["HIPAA 164.312(a)(1)", "HIPAA 164.308(a)(1)", "SOC2 CC6.1", "ISO27001 A.12.6.1"],
+      "risk_factors": {
+        "has_critical_vulnerability": true,
+        "vulnerability_exploited_in_wild": true,
+        "processes_phi": true,
+        "internet_exposed": true,
+        "environment": "production",
+        "hipaa_breach_risk": "high"
+      },
+      "cve": "CVE-2023-38325",
+      "cvss": 9.8,
+      "epss": 0.892,
+      "kev": true,
+      "estimated_phi_exposure": "2.3M patient records"
+    },
+    {
+      "id": "CNAPP-HC-002",
+      "type": "k8s:vulnerability",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/imaging-storage",
+      "resource_type": "kubernetes_deployment",
+      "title": "Container image contains RCE vulnerability (CVE-2024-23456) in DICOM image processor",
+      "description": "The imaging-storage service uses Sharp 0.31.3 for processing DICOM medical images. Buffer overflow allows remote code execution via malicious images.",
+      "remediation": "Upgrade Sharp to 0.32.0 or later immediately",
+      "compliance_violations": ["HIPAA 164.312(a)(1)", "SOC2 CC6.1", "ISO27001 A.12.6.1"],
+      "risk_factors": {
+        "has_critical_vulnerability": true,
+        "vulnerability_exploited_in_wild": true,
+        "processes_medical_imaging": true,
+        "accepts_untrusted_uploads": true,
+        "environment": "production"
+      },
+      "cve": "CVE-2024-23456",
+      "cvss": 8.6,
+      "epss": 0.678,
+      "kev": true
+    },
+    {
+      "id": "CNAPP-HC-003",
+      "type": "k8s:vulnerability",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/ehr-integration-service",
+      "resource_type": "kubernetes_deployment",
+      "title": "FHIR client token leakage vulnerability (CVE-2024-55555)",
+      "description": "The ehr-integration-service uses fhir-kit-client 1.9.2 which leaks authentication tokens. Allows unauthorized access to Epic and Cerner EHR systems.",
+      "remediation": "Upgrade fhir-kit-client to 2.0.0 or later immediately",
+      "compliance_violations": ["HIPAA 164.312(a)(1)", "HIPAA 164.308(a)(4)", "SOC2 CC6.1"],
+      "risk_factors": {
+        "has_critical_vulnerability": true,
+        "vulnerability_exploited_in_wild": true,
+        "ehr_integration": true,
+        "multi_hospital_access": true,
+        "environment": "production"
+      },
+      "cve": "CVE-2024-55555",
+      "cvss": 9.1,
+      "epss": 0.834,
+      "kev": true,
+      "estimated_phi_exposure": "15M+ patient records across connected hospitals"
+    },
+    {
+      "id": "CNAPP-HC-004",
+      "type": "secrets:exposed",
+      "severity": "critical",
+      "resource": "namespace/production/secret/patients-db-credentials",
+      "resource_type": "kubernetes_secret",
+      "title": "Patient database credentials stored without encryption at rest",
+      "description": "Kubernetes Secrets containing patient database credentials are not encrypted at rest. etcd encryption is not enabled in the cluster.",
+      "remediation": "Enable etcd encryption at rest, rotate all database credentials",
+      "compliance_violations": ["HIPAA 164.312(a)(2)(iv)", "HIPAA 164.312(e)(2)(ii)", "SOC2 CC6.1"],
+      "risk_factors": {
+        "secrets_not_encrypted": true,
+        "database_credentials": true,
+        "phi_database": true,
+        "environment": "production"
+      },
+      "secret_types": ["database_password", "database_connection_string"]
+    },
+    {
+      "id": "CNAPP-HC-005",
+      "type": "network:exposure",
+      "severity": "critical",
+      "resource": "sg-1a2b3c4d5e6f7g8h",
+      "resource_type": "security_group",
+      "title": "Patient database exposed to internet via security group misconfiguration",
+      "description": "Security group 'patients-db-sg' allows inbound traffic from 0.0.0.0/0 on port 5432. This exposes the PostgreSQL database containing all patient PHI to the internet.",
+      "remediation": "Restrict inbound rules to VPC CIDR blocks only",
+      "compliance_violations": ["HIPAA 164.312(a)(1)", "HIPAA 164.312(e)(1)", "SOC2 CC6.1"],
+      "risk_factors": {
+        "allows_public_access": true,
+        "exposes_phi_database": true,
+        "contains_all_patient_records": true,
+        "environment": "production"
+      },
+      "ingress_rules": [
+        {
+          "protocol": "tcp",
+          "from_port": 5432,
+          "to_port": 5432,
+          "cidr_blocks": ["0.0.0.0/0"]
+        }
+      ],
+      "estimated_phi_exposure": "2.3M patient records"
+    },
+    {
+      "id": "CNAPP-HC-006",
+      "type": "storage:misconfiguration",
+      "severity": "critical",
+      "resource": "s3://healthcare-imaging-prod",
+      "resource_type": "s3_bucket",
+      "title": "S3 bucket containing DICOM medical images is publicly accessible",
+      "description": "The imaging-storage S3 bucket has public read access enabled. Contains 4.7TB of DICOM medical images (X-rays, MRIs, CT scans) with embedded patient identifiers.",
+      "remediation": "Remove public access, enable bucket encryption, implement access logging",
+      "compliance_violations": ["HIPAA 164.312(a)(1)", "HIPAA 164.312(e)(2)(ii)", "SOC2 CC6.1"],
+      "risk_factors": {
+        "publicly_accessible": true,
+        "contains_medical_imaging": true,
+        "phi_embedded_in_images": true,
+        "not_encrypted": true,
+        "environment": "production"
+      },
+      "bucket_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::healthcare-imaging-prod/*"
+          }
+        ]
+      },
+      "estimated_phi_exposure": "4.7TB medical imaging, 890K patients"
+    },
+    {
+      "id": "CNAPP-HC-007",
+      "type": "iam:overprivileged",
+      "severity": "high",
+      "resource": "arn:aws:iam::456789012345:role/telehealth-service-role",
+      "resource_type": "iam_role",
+      "title": "Telehealth service has overly permissive S3 access to all buckets",
+      "description": "The telehealth-service-role has s3:* permissions on all buckets. This violates least privilege and could allow unauthorized access to patient imaging and PHI backups.",
+      "remediation": "Restrict S3 permissions to specific buckets and actions (s3:GetObject, s3:PutObject) on telehealth-recordings-bucket only",
+      "compliance_violations": ["HIPAA 164.308(a)(3)", "SOC2 CC6.3", "ISO27001 A.9.2.3"],
+      "risk_factors": {
+        "overprivileged": true,
+        "can_access_all_phi": true,
+        "attached_to_internet_facing_service": true,
+        "environment": "production"
+      },
+      "policy_document": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": "*"
+          }
+        ]
+      }
+    },
+    {
+      "id": "CNAPP-HC-008",
+      "type": "compliance:violation",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/prescription-service",
+      "resource_type": "kubernetes_deployment",
+      "title": "Prescription service logging controlled substance prescriptions in plaintext",
+      "description": "The prescription-service logs DEA-controlled substance prescriptions (opioids, benzodiazepines) in plaintext. Violates HIPAA Privacy Rule and DEA regulations.",
+      "remediation": "Implement log redaction for prescription details, encrypt logs at rest",
+      "compliance_violations": ["HIPAA 164.530(c)", "DEA 21 CFR 1304.04", "SOC2 CC6.1"],
+      "risk_factors": {
+        "logs_controlled_substances": true,
+        "logs_not_encrypted": true,
+        "dea_violation": true,
+        "environment": "production"
+      },
+      "prescription_types": ["schedule_ii_opioids", "schedule_iv_benzodiazepines"]
+    },
+    {
+      "id": "CNAPP-HC-009",
+      "type": "runtime:anomaly",
+      "severity": "critical",
+      "resource": "namespace/production/pod/ehr-integration-service-3h4i5j6k7l",
+      "resource_type": "kubernetes_pod",
+      "title": "Unusual bulk PHI export detected - possible data exfiltration",
+      "description": "The ehr-integration-service pod exported 450,000 patient records in 15 minutes to an external IP address (203.0.113.42) not in the approved partner whitelist.",
+      "remediation": "Investigate immediately, review pod logs, implement egress network policies",
+      "compliance_violations": ["HIPAA 164.308(a)(1)", "HIPAA 164.312(e)(1)", "SOC2 CC7.2"],
+      "risk_factors": {
+        "anomalous_behavior": true,
+        "bulk_phi_export": true,
+        "unknown_destination": true,
+        "potential_breach": true,
+        "environment": "production"
+      },
+      "export_details": {
+        "destination_ip": "203.0.113.42",
+        "destination_port": 443,
+        "protocol": "https",
+        "records_exported": 450000,
+        "bytes_transferred": 8457600000,
+        "timestamp": "2025-10-28T13:45:00Z",
+        "duration_minutes": 15
+      },
+      "hipaa_breach_notification_required": true
+    },
+    {
+      "id": "CNAPP-HC-010",
+      "type": "k8s:misconfig",
+      "severity": "high",
+      "resource": "namespace/production/deployment/patient-portal",
+      "resource_type": "kubernetes_deployment",
+      "title": "Patient portal container running with privileged mode",
+      "description": "The patient-portal container is running with privileged: true. This grants unnecessary host access and increases attack surface for internet-facing PHI application.",
+      "remediation": "Remove privileged mode, use securityContext with specific capabilities only",
+      "compliance_violations": ["HIPAA 164.312(a)(1)", "SOC2 CC6.6", "ISO27001 A.14.2.5"],
+      "risk_factors": {
+        "privileged_container": true,
+        "internet_exposed": true,
+        "processes_phi": true,
+        "environment": "production"
+      },
+      "security_context": {
+        "privileged": true,
+        "runAsUser": 0
+      }
+    }
+  ],
+  "summary": {
+    "total_findings": 10,
+    "by_severity": {
+      "critical": 7,
+      "high": 3,
+      "medium": 0,
+      "low": 0
+    },
+    "by_type": {
+      "k8s:vulnerability": 3,
+      "k8s:misconfig": 2,
+      "secrets:exposed": 1,
+      "network:exposure": 1,
+      "storage:misconfiguration": 1,
+      "iam:overprivileged": 1,
+      "compliance:violation": 1,
+      "runtime:anomaly": 1
+    },
+    "compliance_impact": {
+      "HIPAA": 10,
+      "SOC2": 9,
+      "ISO27001": 5,
+      "DEA": 1,
+      "CLIA": 0,
+      "HITECH": 1
+    },
+    "estimated_phi_exposure": "15M+ patient records at risk",
+    "hipaa_breach_notification_required": true
+  }
+}

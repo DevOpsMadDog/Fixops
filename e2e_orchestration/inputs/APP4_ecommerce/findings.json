@@ -1,0 +1,299 @@
+{
+  "scan_time": "2025-10-28T15:15:00Z",
+  "scanner": "Prisma Cloud CNAPP",
+  "platform": "AWS",
+  "account_id": "789012345678",
+  "region": "us-west-2",
+  "findings": [
+    {
+      "id": "CNAPP-EC-001",
+      "type": "k8s:vulnerability",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/product-catalog-service",
+      "resource_type": "kubernetes_deployment",
+      "title": "Container image contains RCE vulnerability (CVE-2024-77777) in Elasticsearch client",
+      "description": "The product-catalog-service uses elasticsearch 16.7.2 for product search. RCE vulnerability allows arbitrary code execution via malicious search queries.",
+      "remediation": "Upgrade to @elastic/elasticsearch 8.0.0 or later immediately",
+      "compliance_violations": ["PCI DSS 6.2", "SOC2 CC6.1", "ISO27001 A.12.6.1"],
+      "risk_factors": {
+        "has_critical_vulnerability": true,
+        "vulnerability_exploited_in_wild": true,
+        "internet_exposed": true,
+        "processes_customer_data": true,
+        "environment": "production"
+      },
+      "cve": "CVE-2024-77777",
+      "cvss": 9.8,
+      "epss": 0.923,
+      "kev": true,
+      "estimated_customer_exposure": "3.2M customer records"
+    },
+    {
+      "id": "CNAPP-EC-002",
+      "type": "k8s:vulnerability",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/admin-dashboard",
+      "resource_type": "kubernetes_deployment",
+      "title": "Container image contains arbitrary file upload vulnerability (CVE-2023-99999) in multer",
+      "description": "The admin-dashboard uses multer 1.4.5-lts.1 for product image uploads. Arbitrary file upload allows uploading web shells leading to RCE.",
+      "remediation": "Upgrade to multer 1.4.6 or later immediately",
+      "compliance_violations": ["PCI DSS 6.2", "SOC2 CC6.1"],
+      "risk_factors": {
+        "has_critical_vulnerability": true,
+        "vulnerability_exploited_in_wild": true,
+        "allows_file_uploads": true,
+        "admin_interface": true,
+        "environment": "production"
+      },
+      "cve": "CVE-2023-99999",
+      "cvss": 9.1,
+      "epss": 0.789,
+      "kev": true
+    },
+    {
+      "id": "CNAPP-EC-003",
+      "type": "secrets:exposed",
+      "severity": "critical",
+      "resource": "namespace/production/configmap/stripe-config",
+      "resource_type": "kubernetes_configmap",
+      "title": "Stripe secret API key stored in plaintext ConfigMap",
+      "description": "Stripe secret API key (sk_live_...) is stored in plaintext in a ConfigMap. Anyone with namespace access can view payment processing credentials.",
+      "remediation": "Move Stripe key to Kubernetes Secret with encryption at rest, rotate key immediately",
+      "compliance_violations": ["PCI DSS 3.4", "PCI DSS 8.2.1", "SOC2 CC6.1"],
+      "risk_factors": {
+        "secrets_in_plaintext": true,
+        "payment_credentials": true,
+        "pci_scope": true,
+        "environment": "production"
+      },
+      "secret_types": ["stripe_secret_key"],
+      "secret_value_preview": "sk_live_51H*********************"
+    },
+    {
+      "id": "CNAPP-EC-004",
+      "type": "network:exposure",
+      "severity": "critical",
+      "resource": "sg-9h8g7f6e5d4c3b2a",
+      "resource_type": "security_group",
+      "title": "Customer database exposed to internet via security group misconfiguration",
+      "description": "Security group 'users-db-sg' allows inbound traffic from 0.0.0.0/0 on port 5432. This exposes the PostgreSQL database containing all customer PII and payment data to the internet.",
+      "remediation": "Restrict inbound rules to VPC CIDR blocks only",
+      "compliance_violations": ["PCI DSS 1.3", "GDPR Article 32", "SOC2 CC6.1"],
+      "risk_factors": {
+        "allows_public_access": true,
+        "exposes_customer_database": true,
+        "contains_payment_data": true,
+        "pci_scope": true,
+        "environment": "production"
+      },
+      "ingress_rules": [
+        {
+          "protocol": "tcp",
+          "from_port": 5432,
+          "to_port": 5432,
+          "cidr_blocks": ["0.0.0.0/0"]
+        }
+      ],
+      "estimated_customer_exposure": "3.2M customer records with payment methods"
+    },
+    {
+      "id": "CNAPP-EC-005",
+      "type": "storage:misconfiguration",
+      "severity": "critical",
+      "resource": "s3://ecommerce-invoices-prod",
+      "resource_type": "s3_bucket",
+      "title": "S3 bucket containing customer invoices is publicly accessible",
+      "description": "The invoices S3 bucket has public read access enabled. Contains 2.8M customer invoices with full names, addresses, and order details.",
+      "remediation": "Remove public access, enable bucket encryption, implement access logging",
+      "compliance_violations": ["PCI DSS 3.4", "GDPR Article 32", "SOC2 CC6.1"],
+      "risk_factors": {
+        "publicly_accessible": true,
+        "contains_customer_pii": true,
+        "contains_payment_data": true,
+        "not_encrypted": true,
+        "pci_scope": true,
+        "environment": "production"
+      },
+      "bucket_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::ecommerce-invoices-prod/*"
+          }
+        ]
+      },
+      "estimated_customer_exposure": "2.8M customer invoices"
+    },
+    {
+      "id": "CNAPP-EC-006",
+      "type": "iam:overprivileged",
+      "severity": "high",
+      "resource": "arn:aws:iam::789012345678:role/checkout-service-role",
+      "resource_type": "iam_role",
+      "title": "Checkout service has overly permissive DynamoDB access to all tables",
+      "description": "The checkout-service-role has dynamodb:* permissions on all tables. This violates least privilege and could allow unauthorized access to customer data.",
+      "remediation": "Restrict DynamoDB permissions to specific tables and actions (GetItem, PutItem, UpdateItem) on checkout-related tables only",
+      "compliance_violations": ["PCI DSS 7.1", "SOC2 CC6.3", "ISO27001 A.9.2.3"],
+      "risk_factors": {
+        "overprivileged": true,
+        "can_access_all_customer_data": true,
+        "attached_to_payment_service": true,
+        "pci_scope": true,
+        "environment": "production"
+      },
+      "policy_document": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": "dynamodb:*",
+            "Resource": "*"
+          }
+        ]
+      }
+    },
+    {
+      "id": "CNAPP-EC-007",
+      "type": "compliance:violation",
+      "severity": "critical",
+      "resource": "namespace/production/deployment/checkout-service",
+      "resource_type": "kubernetes_deployment",
+      "title": "Checkout service logging credit card numbers in plaintext",
+      "description": "The checkout-service logs full credit card numbers (PAN) in plaintext. Violates PCI DSS requirement 3.4 (mask PAN when displayed).",
+      "remediation": "Implement log redaction for credit card numbers, encrypt logs at rest",
+      "compliance_violations": ["PCI DSS 3.4", "PCI DSS 3.5", "SOC2 CC6.1"],
+      "risk_factors": {
+        "logs_credit_cards": true,
+        "logs_not_encrypted": true,
+        "pci_violation": true,
+        "environment": "production"
+      },
+      "payment_types": ["visa", "mastercard", "amex", "discover"]
+    },
+    {
+      "id": "CNAPP-EC-008",
+      "type": "runtime:anomaly",
+      "severity": "critical",
+      "resource": "namespace/production/pod/order-management-service-7k8l9m0n1o",
+      "resource_type": "kubernetes_pod",
+      "title": "Unusual bulk order export detected - possible data exfiltration",
+      "description": "The order-management-service pod exported 280,000 customer orders in 8 minutes to an external IP address (198.51.100.89) not in the approved partner whitelist.",
+      "remediation": "Investigate immediately, review pod logs, implement egress network policies",
+      "compliance_violations": ["PCI DSS 10.6", "GDPR Article 33", "SOC2 CC7.2"],
+      "risk_factors": {
+        "anomalous_behavior": true,
+        "bulk_data_export": true,
+        "unknown_destination": true,
+        "potential_breach": true,
+        "pci_scope": true,
+        "environment": "production"
+      },
+      "export_details": {
+        "destination_ip": "198.51.100.89",
+        "destination_port": 443,
+        "protocol": "https",
+        "orders_exported": 280000,
+        "bytes_transferred": 5678900000,
+        "timestamp": "2025-10-28T14:30:00Z",
+        "duration_minutes": 8
+      },
+      "gdpr_breach_notification_required": true,
+      "pci_breach_notification_required": true
+    },
+    {
+      "id": "CNAPP-EC-009",
+      "type": "k8s:misconfig",
+      "severity": "high",
+      "resource": "namespace/production/deployment/storefront",
+      "resource_type": "kubernetes_deployment",
+      "title": "Storefront container running with privileged mode",
+      "description": "The storefront container is running with privileged: true. This grants unnecessary host access and increases attack surface for internet-facing application.",
+      "remediation": "Remove privileged mode, use securityContext with specific capabilities only",
+      "compliance_violations": ["PCI DSS 2.2", "SOC2 CC6.6", "ISO27001 A.14.2.5"],
+      "risk_factors": {
+        "privileged_container": true,
+        "internet_exposed": true,
+        "processes_customer_data": true,
+        "pci_scope": true,
+        "environment": "production"
+      },
+      "security_context": {
+        "privileged": true,
+        "runAsUser": 0
+      }
+    },
+    {
+      "id": "CNAPP-EC-010",
+      "type": "iam:credential_exposure",
+      "severity": "critical",
+      "resource": "arn:aws:iam::789012345678:user/ci-deploy",
+      "resource_type": "iam_user",
+      "title": "Long-lived IAM access key active for 523 days with admin privileges",
+      "description": "IAM user 'ci-deploy' has an access key that has been active for 523 days with AdministratorAccess policy. This violates key rotation policies and increases risk of credential compromise.",
+      "remediation": "Rotate access key immediately, implement OIDC-based authentication for CI/CD, remove AdministratorAccess policy",
+      "compliance_violations": ["PCI DSS 8.2.4", "SOC2 CC6.1", "ISO27001 A.9.3.1"],
+      "risk_factors": {
+        "long_lived_credentials": true,
+        "admin_privileges": true,
+        "ci_cd_access": true,
+        "key_age_days": 523,
+        "environment": "production"
+      },
+      "access_key_age_days": 523,
+      "attached_policies": ["AdministratorAccess"]
+    },
+    {
+      "id": "CNAPP-EC-011",
+      "type": "k8s:vulnerability",
+      "severity": "high",
+      "resource": "namespace/production/deployment/storefront",
+      "resource_type": "kubernetes_deployment",
+      "title": "Next.js SSRF vulnerability (CVE-2023-46809) in image optimization",
+      "description": "The storefront uses Next.js 13.4.19 with SSRF vulnerability in image optimization. Allows scanning internal network and accessing AWS metadata service.",
+      "remediation": "Upgrade to Next.js 14.0.0 or later",
+      "compliance_violations": ["PCI DSS 6.2", "SOC2 CC6.1"],
+      "risk_factors": {
+        "has_high_vulnerability": true,
+        "internet_exposed": true,
+        "can_access_aws_metadata": true,
+        "environment": "production"
+      },
+      "cve": "CVE-2023-46809",
+      "cvss": 8.8,
+      "epss": 0.456
+    }
+  ],
+  "summary": {
+    "total_findings": 11,
+    "by_severity": {
+      "critical": 7,
+      "high": 4,
+      "medium": 0,
+      "low": 0
+    },
+    "by_type": {
+      "k8s:vulnerability": 3,
+      "k8s:misconfig": 2,
+      "secrets:exposed": 1,
+      "network:exposure": 1,
+      "storage:misconfiguration": 1,
+      "iam:overprivileged": 1,
+      "iam:credential_exposure": 1,
+      "compliance:violation": 1,
+      "runtime:anomaly": 1
+    },
+    "compliance_impact": {
+      "PCI_DSS": 10,
+      "GDPR": 4,
+      "SOC2": 11,
+      "ISO27001": 5
+    },
+    "estimated_customer_exposure": "3.2M customer records at risk",
+    "estimated_financial_exposure": "$45M (PCI fines + breach costs)",
+    "gdpr_breach_notification_required": true,
+    "pci_breach_notification_required": true
+  }
+}

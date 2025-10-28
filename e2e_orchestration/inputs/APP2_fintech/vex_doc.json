@@ -1,0 +1,204 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  "metadata": {
+    "timestamp": "2025-10-28T13:10:00Z",
+    "tools": [
+      {
+        "vendor": "Fintech Platform Security Team",
+        "name": "vex-generator",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "id": "CVE-2023-26115",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-26115"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 9.1,
+          "severity": "critical",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [347, 295],
+      "description": "RSA PKCS#1 v1.5 signature verification vulnerability in node-forge",
+      "recommendation": "Upgrade to node-forge 1.3.1 or later immediately",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "Node-forge is used for cryptographic operations in payment processing and blockchain wallet signatures. Signature forgery could allow unauthorized transactions.",
+        "response": ["will_not_fix", "workaround_available"],
+        "detail": "CRITICAL: This vulnerability is actively exploited (KEV). Used in payment-processor and blockchain-gateway for transaction signing. Immediate patching required. Financial impact: potential unauthorized transactions worth millions."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/node-forge@1.3.0"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2024-34567",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-34567"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 8.6,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [287, 306],
+      "description": "Socket.io authentication bypass vulnerability",
+      "recommendation": "Upgrade to socket.io 4.6.0 or later",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "Socket.io is used for real-time market data streaming to trading dashboard. Authentication bypass allows unauthorized access to proprietary trading signals and market data.",
+        "response": ["can_not_fix"],
+        "detail": "CRITICAL: Active exploitation confirmed (KEV). Market data WebSocket is internet-facing. Unauthorized access could leak trading strategies and cause financial losses. Emergency patch scheduled for tonight."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/socket.io@4.5.4"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2024-11223",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-11223"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 9.8,
+          "severity": "critical",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [203, 327],
+      "description": "Ethers.js private key extraction via timing side-channel",
+      "recommendation": "Upgrade to ethers 6.0.0 or later immediately",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "Ethers.js is used in blockchain-gateway for cryptocurrency wallet management. Private key extraction could allow theft of customer crypto assets.",
+        "response": ["will_not_fix", "workaround_available"],
+        "detail": "CRITICAL: Active exploitation confirmed (KEV). Blockchain-gateway manages customer crypto wallets with millions in assets. Private key compromise = direct financial theft. IMMEDIATE ACTION REQUIRED."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/ethers@5.7.2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2023-35165",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-35165"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 8.2,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [1321],
+      "description": "Web3.js prototype pollution vulnerability",
+      "recommendation": "Upgrade to web3 1.10.0 or later",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "Web3.js is used for Ethereum blockchain interactions. Prototype pollution could manipulate transaction parameters (amounts, recipients).",
+        "response": ["can_not_fix"],
+        "detail": "HIGH PRIORITY: Functional exploit available. Used in blockchain-gateway for transaction construction. Could allow attackers to redirect crypto transfers. Upgrade scheduled for this week."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/web3@1.8.2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2022-24999",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-24999"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 7.5,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [601],
+      "description": "Express.js open redirect vulnerability",
+      "recommendation": "Upgrade to express 4.18.0 or later",
+      "analysis": {
+        "state": "not_affected",
+        "justification": "Express res.redirect() is only used with hardcoded internal URLs. No user-controlled redirect destinations.",
+        "response": ["update"],
+        "detail": "LOW PRIORITY: Code review confirms all redirect URLs are hardcoded constants. No user input in redirect logic. Upgrade planned for next maintenance window."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/express@4.17.1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2022-25878",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-25878"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 7.5,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [89],
+      "description": "Sequelize ORM SQL injection vulnerability",
+      "recommendation": "Upgrade to sequelize 6.29.0 or later",
+      "analysis": {
+        "state": "in_triage",
+        "justification": "Sequelize is used throughout the application. Investigating whether raw queries with user input are used anywhere.",
+        "response": ["update"],
+        "detail": "MEDIUM PRIORITY: Sequelize is used but preliminary code review shows only parameterized queries. Comprehensive audit in progress. Upgrade scheduled for next sprint."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/sequelize@6.25.0"
+        }
+      ]
+    }
+  ]
+}

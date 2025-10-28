@@ -1,0 +1,235 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+  "metadata": {
+    "timestamp": "2025-10-28T14:10:00Z",
+    "tools": [
+      {
+        "vendor": "Healthcare Platform Security Team",
+        "name": "vex-generator",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "id": "CVE-2023-38325",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-38325"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 9.8,
+          "severity": "critical",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [611, 918],
+      "description": "XXE injection in xml2js parser used for HL7 message processing",
+      "recommendation": "Upgrade to xml2js 0.5.0 or later immediately",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "xml2js is used to parse HL7 v2 messages from external EHR systems (Epic, Cerner). XXE allows reading patient database credentials and accessing arbitrary PHI.",
+        "response": ["will_not_fix", "workaround_available"],
+        "detail": "CRITICAL: Active exploitation confirmed (KEV). HL7 parser processes untrusted XML from external healthcare providers. XXE can expose entire patient database. HIPAA breach notification required if exploited. IMMEDIATE PATCHING REQUIRED."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/xml2js@0.4.23"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2024-23456",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-23456"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 8.6,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [120, 787],
+      "description": "Buffer overflow in Sharp image processing library",
+      "recommendation": "Upgrade to sharp 0.32.0 or later",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "Sharp is used to process DICOM medical images (X-rays, MRIs, CT scans). Buffer overflow allows RCE via malicious images uploaded by patients or providers.",
+        "response": ["can_not_fix"],
+        "detail": "CRITICAL: Active exploitation confirmed (KEV). Imaging service processes untrusted DICOM files. RCE could allow attacker to access all medical imaging and PHI. Emergency patch scheduled for tonight."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/sharp@0.31.3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2024-55555",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-55555"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 9.1,
+          "severity": "critical",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [522, 200],
+      "description": "FHIR client authentication token leakage vulnerability",
+      "recommendation": "Upgrade to fhir-kit-client 2.0.0 or later immediately",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "FHIR client is used to integrate with Epic and Cerner EHR systems. Token leakage allows unauthorized access to millions of patient records across connected hospitals.",
+        "response": ["will_not_fix", "workaround_available"],
+        "detail": "CRITICAL: Active exploitation confirmed (KEV). EHR integration is core functionality. Token compromise = access to all connected EHR systems. Potential HIPAA breach affecting millions of patients. IMMEDIATE ACTION REQUIRED."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/fhir-kit-client@1.9.2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2022-37599",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-37599"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 8.1,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [300, 319],
+      "description": "WebRTC signaling vulnerability in simple-peer",
+      "recommendation": "Upgrade to simple-peer 9.12.0 or later",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "simple-peer is used for telehealth video consultations. MITM attacks allow eavesdropping on confidential doctor-patient conversations.",
+        "response": ["can_not_fix"],
+        "detail": "HIGH PRIORITY: Functional exploit available. Telehealth is internet-facing. MITM could expose confidential medical discussions. HIPAA Privacy Rule violation. Upgrade scheduled for this week."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/simple-peer@9.11.0"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2024-67890",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-67890"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 8.8,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [347, 345],
+      "description": "JWT signature verification bypass in jsonwebtoken",
+      "recommendation": "Upgrade to jsonwebtoken 9.0.0 or later",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "JWT is used for patient portal authentication. Signature bypass allows attackers to forge tokens and access any patient's medical records.",
+        "response": ["can_not_fix"],
+        "detail": "HIGH PRIORITY: Functional exploit available. Patient portal is internet-facing. Token forgery = unauthorized PHI access. HIPAA Security Rule violation. Upgrade scheduled for this week."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/jsonwebtoken@8.5.1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2021-23337",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-23337"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 7.2,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [94, 78],
+      "description": "Command injection in lodash template function",
+      "recommendation": "Upgrade to lodash 4.17.21 or later",
+      "analysis": {
+        "state": "not_affected",
+        "justification": "Lodash is used only for utility functions (cloneDeep, merge, etc.). Template function is never called with user input.",
+        "response": ["update"],
+        "detail": "LOW PRIORITY: Code review confirms lodash.template is not used anywhere in codebase. Only safe utility functions are used. Upgrade planned for next maintenance window."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/lodash@4.17.19"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2023-45857",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-45857"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 6.5,
+          "severity": "medium",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [1321],
+      "description": "Prototype pollution in axios",
+      "recommendation": "Upgrade to axios 1.6.0 or later",
+      "analysis": {
+        "state": "not_affected",
+        "justification": "Axios is only used for outbound requests to trusted EHR APIs. All URLs are whitelisted and not user-controllable.",
+        "response": ["update"],
+        "detail": "LOW PRIORITY: Prototype pollution requires user-controlled request config. Our implementation only makes requests to pre-configured EHR endpoints. Scheduled for next maintenance window."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/axios@0.27.2"
+        }
+      ]
+    }
+  ]
+}

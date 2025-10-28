@@ -1,0 +1,216 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "urn:uuid:9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
+  "metadata": {
+    "timestamp": "2025-10-28T13:00:00Z",
+    "tools": [
+      {
+        "vendor": "FixOps",
+        "name": "sbom-generator",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "fintech-trading-platform",
+      "version": "3.7.2"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react@18.2.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "express",
+      "version": "4.17.1",
+      "purl": "pkg:npm/express@4.17.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Web framework - VULNERABLE VERSION"
+    },
+    {
+      "type": "library",
+      "name": "socket.io",
+      "version": "4.5.4",
+      "purl": "pkg:npm/socket.io@4.5.4",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Real-time WebSocket library for market data streaming"
+    },
+    {
+      "type": "library",
+      "name": "kafka-node",
+      "version": "5.0.0",
+      "purl": "pkg:npm/kafka-node@5.0.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Apache Kafka client for event streaming"
+    },
+    {
+      "type": "library",
+      "name": "redis",
+      "version": "4.5.1",
+      "purl": "pkg:npm/redis@4.5.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Redis client for caching and session management"
+    },
+    {
+      "type": "library",
+      "name": "pg",
+      "version": "8.8.0",
+      "purl": "pkg:npm/pg@8.8.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "PostgreSQL client"
+    },
+    {
+      "type": "library",
+      "name": "sequelize",
+      "version": "6.25.0",
+      "purl": "pkg:npm/sequelize@6.25.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "ORM for PostgreSQL - VULNERABLE VERSION"
+    },
+    {
+      "type": "library",
+      "name": "jsonwebtoken",
+      "version": "9.0.0",
+      "purl": "pkg:npm/jsonwebtoken@9.0.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "JWT authentication"
+    },
+    {
+      "type": "library",
+      "name": "axios",
+      "version": "1.4.0",
+      "purl": "pkg:npm/axios@1.4.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "HTTP client for API integrations"
+    },
+    {
+      "type": "library",
+      "name": "stripe",
+      "version": "13.5.0",
+      "purl": "pkg:npm/stripe@13.5.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Stripe payment processing SDK"
+    },
+    {
+      "type": "library",
+      "name": "plaid",
+      "version": "14.0.0",
+      "purl": "pkg:npm/plaid@14.0.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Plaid banking API client"
+    },
+    {
+      "type": "library",
+      "name": "web3",
+      "version": "1.8.2",
+      "purl": "pkg:npm/web3@1.8.2",
+      "licenses": [{"license": {"id": "LGPL-3.0"}}],
+      "description": "Ethereum blockchain interaction library - VULNERABLE"
+    },
+    {
+      "type": "library",
+      "name": "ethers",
+      "version": "5.7.2",
+      "purl": "pkg:npm/ethers@5.7.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Ethereum wallet and contract interaction"
+    },
+    {
+      "type": "library",
+      "name": "winston",
+      "version": "3.8.2",
+      "purl": "pkg:npm/winston@3.8.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Logging library"
+    },
+    {
+      "type": "library",
+      "name": "helmet",
+      "version": "7.0.0",
+      "purl": "pkg:npm/helmet@7.0.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Security headers middleware"
+    },
+    {
+      "type": "library",
+      "name": "bcrypt",
+      "version": "5.1.0",
+      "purl": "pkg:npm/bcrypt@5.1.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Password hashing"
+    },
+    {
+      "type": "library",
+      "name": "node-forge",
+      "version": "1.3.0",
+      "purl": "pkg:npm/node-forge@1.3.0",
+      "licenses": [{"license": {"id": "BSD-3-Clause"}}],
+      "description": "Cryptography library - VULNERABLE VERSION"
+    },
+    {
+      "type": "library",
+      "name": "moment",
+      "version": "2.29.4",
+      "purl": "pkg:npm/moment@2.29.4",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Date/time manipulation"
+    },
+    {
+      "type": "library",
+      "name": "lodash",
+      "version": "4.17.21",
+      "purl": "pkg:npm/lodash@4.17.21",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Utility library"
+    },
+    {
+      "type": "container",
+      "name": "trading-dashboard",
+      "version": "3.7.2",
+      "purl": "pkg:docker/trading-dashboard@3.7.2",
+      "description": "React trading interface"
+    },
+    {
+      "type": "container",
+      "name": "order-execution-engine",
+      "version": "3.7.2",
+      "purl": "pkg:docker/order-execution-engine@3.7.2",
+      "description": "High-frequency trading engine"
+    },
+    {
+      "type": "container",
+      "name": "market-data-service",
+      "version": "3.7.2",
+      "purl": "pkg:docker/market-data-service@3.7.2",
+      "description": "Market data aggregation service"
+    },
+    {
+      "type": "container",
+      "name": "kyc-verification-service",
+      "version": "3.7.2",
+      "purl": "pkg:docker/kyc-verification-service@3.7.2",
+      "description": "KYC/AML compliance service"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:npm/express@4.17.1",
+      "dependsOn": ["pkg:npm/helmet@7.0.0"]
+    },
+    {
+      "ref": "pkg:npm/sequelize@6.25.0",
+      "dependsOn": ["pkg:npm/pg@8.8.0"]
+    },
+    {
+      "ref": "pkg:npm/socket.io@4.5.4",
+      "dependsOn": ["pkg:npm/redis@4.5.1"]
+    }
+  ]
+}
