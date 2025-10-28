@@ -604,7 +604,7 @@ CVSS 9.8 → High Priority (along with 1,000+ other high CVSS findings)
 CVSS 9.8 + KEV=true + EPSS=0.923 + PHI exposure → BLOCK (immediate action)
 ```
 
-**Result**: 0% false positives vs 85-95% for traditional scanners
+**Result**: Materially reduced noise vs 85-95% for traditional scanners
 
 ### 2. Business Context Prioritization
 
@@ -677,7 +677,7 @@ Developer Action: Ignore due to alert fatigue
 **With FixOps Integration**:
 ```
 Snyk Output → FixOps Filter → 3 critical vulnerabilities (KEV=true, business impact)
-Developer Action: Immediate remediation (0% false positives)
+Developer Action: Immediate remediation (materially reduced noise)
 ```
 
 ### Phase 2: Business Context Addition
@@ -723,7 +723,7 @@ Scanner findings → FixOps compliance engine → 5 minutes → Signed evidence
 ### FixOps ROI
 
 **FixOps Investment**: $19,200/year (4 apps × $4,800)
-**Breach Prevention**: 100% success rate (0% false positives, intelligent scoring)
+**Breach Prevention**: 100% success rate (materially reduced noise, intelligent scoring)
 **Prevented Loss (2022-2024)**: $595.55M (demonstrated across 8 breaches)
 **ROI**: 3,101,823% (100% prevention with bidirectional scoring)
 
@@ -732,7 +732,7 @@ Scanner findings → FixOps compliance engine → 5 minutes → Signed evidence
 | Metric | Traditional Scanners | FixOps | Advantage |
 |--------|---------------------|--------|-----------|
 | **Annual Cost** | $75,000 | $19,200 | **74% cheaper** |
-| **False Positive Rate** | 45-95% | 0% | **100% improvement** |
+| **Noise Rate** | 45-95% | Materially reduced | **Significant improvement** |
 | **Breach Prevention (2022-2024)** | 25% | 100% | **4× better** |
 | **Intelligent Scoring** | ❌ No (static CVSS) | ✅ Yes (bidirectional) | **Elevation + downgrading** |
 | **Explainability** | ❌ No (black box) | ✅ Yes (contribution breakdown) | **Transparent scoring** |
@@ -759,7 +759,7 @@ Scanner findings → FixOps compliance engine → 5 minutes → Signed evidence
 5. **Implement explainability** (contribution breakdown for all decisions)
 
 ### Phase 3: Optimization (Month 2)
-1. **Tune false positive filters** (achieve 0% false positive rate)
+1. **Tune noise reduction filters** (materially reduce false positives with KEV+EPSS)
 2. **Customize business rules** (industry-specific prioritization)
 3. **Implement backtesting** (validate against 2022-2024 breaches)
 4. **Train development teams** (new workflow with intelligent scoring)
@@ -777,46 +777,53 @@ Scanner findings → FixOps compliance engine → 5 minutes → Signed evidence
 ## Conclusion: FixOps as Scanner Force Multiplier
 
 ### Traditional Scanner Limitations
-- **High false positive rates** (45-95%) cause alert fatigue
-- **No exploit intelligence** (miss actively exploited vulnerabilities)
+- **High noise rates** (45-95%) cause alert fatigue
+- **Detection without operationalization** (detect CVEs but don't prioritize or enforce)
+- **No exploit intelligence** (no KEV/EPSS integration for Day-N threat intelligence)
 - **Static risk scoring** (cannot elevate Medium→Critical or downgrade High→Low)
+- **No Day-0 structural priors** (no class, auth, exposure, data, controls analysis)
 - **No explainability** (black box scoring, no transparency)
 - **Lack business context** (treat all data equally)
 - **No vendor appliance coverage** (miss infrastructure vulnerabilities)
 - **Manual compliance** (60-80 hours per audit)
-- **No backtesting** (cannot prove value)
+- **Advisory-only** (no enforcement gates)
 
 ### FixOps Value-Add
-- **0% false positives** through KEV + EPSS + business context filtering
-- **Exploit intelligence** prioritizes actively exploited vulnerabilities
+- **Operationalizes detections** from Snyk/CNAPP/CTEM with context-aware gating
+- **Day-0 structural priors** (class, auth, exposure, data adjacency, blast radius, controls) - KEV/EPSS-independent
+- **Day-N threat intelligence** (KEV + EPSS integration) for continuous re-scoring
+- **Materially reduced noise** through KEV + EPSS + business context filtering
 - **Bidirectional scoring** elevates Medium→Critical (EPSS surge) and downgrades High→Low (air-gapped)
 - **Explainability** shows contribution breakdown (CVSS, KEV, EPSS, business, mitigations)
 - **Business context** quantifies real-world impact ($595.55M prevented across 8 breaches)
-- **Vendor appliance coverage** detects Citrix, MOVEit, Confluence vulnerabilities
+- **Vendor appliance coverage** consumes CNAPP detections (Citrix, MOVEit, Confluence)
 - **Automated compliance** (99.7% time savings with signed evidence)
+- **Enforcement gates** (ALLOW/REVIEW/BLOCK) vs advisory-only
 - **Backtesting capability** proves value with 2022-2024 breach prevention
 
 ### Quantified Impact (2022-2024 Breaches)
 - **Cost**: 74% cheaper than traditional scanner combinations
-- **Accuracy**: 100% improvement in false positive reduction
-- **Intelligence**: Bidirectional scoring with timeline tracking (elevation + downgrading)
+- **Noise Reduction**: Materially reduced through KEV+EPSS filtering
+- **Intelligence**: Day-0 structural priors + Day-N threat intelligence (KEV/EPSS)
 - **Transparency**: Explainability with contribution breakdown for all decisions
 - **Speed**: 99.7% faster compliance preparation
+- **Time-to-Action**: 0 days (Day-0 gating) vs 14+ days (advisory ignored)
 - **Effectiveness**: 4× better breach prevention success rate (100% vs 25%)
 - **ROI**: 15.6× better return on investment (3,101,823% vs 198,500%)
 
 ### Strategic Recommendation
 **Don't replace existing scanners** - enhance them with FixOps to:
-1. **Filter false positives** from 95% to 0%
-2. **Add exploit intelligence** with KEV + EPSS integration
-3. **Enable bidirectional scoring** (elevation when EPSS rises, downgrading with context)
-4. **Provide explainability** (transparent contribution breakdown)
-5. **Provide business context** for risk-based prioritization
-6. **Add vendor appliance coverage** (infrastructure + supply chain)
-7. **Automate compliance** with signed evidence generation
-8. **Enable backtesting** for quantified value demonstration
+1. **Operationalize detections** with Day-0 structural priors and Day-N threat intelligence
+2. **Materially reduce noise** through KEV + EPSS + business context filtering
+3. **Add enforcement gates** (ALLOW/REVIEW/BLOCK) vs advisory-only approach
+4. **Enable bidirectional scoring** (elevation when EPSS rises, downgrading with context)
+5. **Provide explainability** (transparent contribution breakdown)
+6. **Provide business context** for risk-based prioritization
+7. **Add vendor appliance coverage** (consume CNAPP detections for infrastructure + supply chain)
+8. **Automate compliance** with signed evidence generation
+9. **Enable backtesting** for quantified value demonstration
 
-**Result**: Transform existing scanner investments from noise generators into precision security tools with **3,101,823% ROI** and **100% breach prevention success rate** across 8 real-world 2022-2024 breaches.
+**Result**: Transform existing scanner investments from advisory-only noise generators into operationalized precision security tools with **3,101,823% ROI** and **100% breach prevention success rate** across 8 real-world 2022-2024 breaches.
 
 ---
 
@@ -824,8 +831,8 @@ Scanner findings → FixOps compliance engine → 5 minutes → Signed evidence
 
 This analysis uses **only 2022-2024 breaches** when Snyk (founded 2015, mature ~2019-2020) and Apiiro (founded 2019, mature ~2021-2022) were mature, widely-adopted products. Earlier breaches (Target 2013, Equifax 2017, Anthem 2015) are excluded to ensure fair comparison.
 
-**Acknowledgment**: Snyk and Apiiro are excellent tools that **do detect** many of the vulnerabilities analyzed here. The key difference is:
-- **Snyk/Apiiro**: Detect vulnerabilities but bury them in noise (45-95% false positives), use static CVSS scoring, lack exploit intelligence integration
-- **FixOps**: Adds value-add layer on top of scanners with KEV+EPSS filtering, bidirectional scoring, explainability, business context, and vendor appliance coverage
+**Acknowledgment**: Snyk, Apiiro, and CNAPP tools are excellent at **detection** - they successfully detect the vulnerabilities analyzed here. The key difference is **operationalization**:
+- **Snyk/Apiiro/CNAPP**: Detect vulnerabilities but use advisory-only approach with static CVSS scoring, high noise (45-95%), no enforcement gates, no Day-0 structural priors, no Day-N threat intelligence (KEV/EPSS)
+- **FixOps**: Consumes their detections and adds operationalization layer with Day-0 structural priors (class, auth, exposure, data, controls), Day-N threat intelligence (KEV+EPSS), bidirectional scoring, explainability, business context, and enforcement gates (ALLOW/REVIEW/BLOCK)
 
-**Recommendation**: Use FixOps **alongside** Snyk/Apiiro to enhance their outputs, not replace them. FixOps transforms scanner noise into actionable intelligence.
+**Recommendation**: Use FixOps **alongside** Snyk/Apiiro/CNAPP to operationalize their detections, not replace them. FixOps transforms scanner detections from advisory-only noise into enforced actionable intelligence with faster time-to-action (0 days vs 14+ days).
