@@ -60,7 +60,7 @@ def _extract_cvss_from_record(
             cvss_data = metrics[0].get("cvssData", {})
             vector = cvss_data.get("vectorString")
             score = cvss_data.get("baseScore")
-            if vector and score:
+            if vector and score is not None:
                 return str(vector), float(score)
 
     metrics_v2 = record.raw.get("metrics", {}).get("cvssMetricV2")
@@ -68,7 +68,7 @@ def _extract_cvss_from_record(
         cvss_data = metrics_v2[0].get("cvssData", {})
         vector = cvss_data.get("vectorString")
         score = cvss_data.get("baseScore")
-        if vector and score:
+        if vector and score is not None:
             return str(vector), float(score)
 
     return None, None
