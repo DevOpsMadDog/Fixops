@@ -41,6 +41,7 @@ _CONFIGURED = False
 
 
 if not _NOOP:
+    from opentelemetry.sdk.metrics.export import MetricExporter, MetricExportResult
     from opentelemetry.sdk.trace.export import SpanExporter
 
     class _SilentSpanExporter(SpanExporter):
@@ -74,6 +75,35 @@ if not _NOOP:
                 logger.debug(f"Failed to force flush spans: {exc}")
                 return True
 
+    class _SilentMetricExporter(MetricExporter):
+        """Wrapper around OTLPMetricExporter that suppresses connection errors."""
+
+        def __init__(self, exporter: MetricExporter):
+            self._exporter = exporter
+
+        def export(self, metrics):
+            """Export metrics, suppressing connection errors."""
+            try:
+                return self._exporter.export(metrics)
+            except Exception as exc:
+                logger.debug(f"Failed to export metrics: {exc}")
+                return MetricExportResult.SUCCESS
+
+        def shutdown(self, timeout_millis=30000):
+            """Shutdown the exporter, suppressing errors."""
+            try:
+                return self._exporter.shutdown(timeout_millis)
+            except Exception as exc:
+                logger.debug(f"Failed to shutdown metric exporter: {exc}")
+
+        def force_flush(self, timeout_millis=10000):
+            """Force flush, suppressing errors."""
+            try:
+                return self._exporter.force_flush(timeout_millis)
+            except Exception as exc:
+                logger.debug(f"Failed to force flush metrics: {exc}")
+                return True
+
 else:
 
     class _SilentSpanExporter:  # type: ignore[no-redef]
@@ -89,6 +119,21 @@ else:
             return self._exporter.shutdown()
 
         def force_flush(self, timeout_millis=None):
+            return self._exporter.force_flush(timeout_millis)
+
+    class _SilentMetricExporter:  # type: ignore[no-redef]
+        """No-op wrapper for when OpenTelemetry is not available."""
+
+        def __init__(self, exporter):
+            self._exporter = exporter
+
+        def export(self, metrics):
+            return self._exporter.export(metrics)
+
+        def shutdown(self, timeout_millis=30000):
+            return self._exporter.shutdown(timeout_millis)
+
+        def force_flush(self, timeout_millis=10000):
             return self._exporter.force_flush(timeout_millis)
 
 
@@ -117,8 +162,9 @@ def configure(service_name: str = "fixops-platform") -> None:
         trace.set_tracer_provider(tracer_provider)
 
         metric_exporter = OTLPMetricExporter(endpoint=metrics_endpoint, timeout=5)
+        silent_metric_exporter = _SilentMetricExporter(metric_exporter)
         reader = PeriodicExportingMetricReader(
-            metric_exporter, export_interval_millis=60000
+            silent_metric_exporter, export_interval_millis=60000
         )
         meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
         metrics.set_meter_provider(meter_provider)
