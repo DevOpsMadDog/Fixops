@@ -249,7 +249,15 @@ def apply_hallucination_guards(
     if not agreement_valid:
         result["issues_found"].extend(agreement_issues)
         result["validation_passed"] = False
-        penalty = confidence_penalty * (disagreement_score / disagreement_threshold)
+
+        if disagreement_threshold == 0.0:
+            if disagreement_score > 0:
+                penalty = confidence_penalty
+            else:
+                penalty = 0.0
+        else:
+            penalty = confidence_penalty * (disagreement_score / disagreement_threshold)
+
         result["adjusted_confidence"] *= 1.0 - penalty
         logger.warning(
             "Cross-model agreement validation failed: disagreement=%.2f",
