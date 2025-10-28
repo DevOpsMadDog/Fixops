@@ -1,0 +1,189 @@
+{
+  "generated": "2025-10-28T13:00:00Z",
+  "source": "CISA KEV + NVD + FIRST.org EPSS",
+  "cves": [
+    {
+      "id": "CVE-2022-24999",
+      "package": "express",
+      "version": "4.17.1",
+      "cvss": 7.5,
+      "severity": "high",
+      "epss": 0.123,
+      "kev": false,
+      "published": "2022-11-26",
+      "summary": "Express.js vulnerable to open redirect via malformed URLs in res.redirect()",
+      "cwe": ["CWE-601"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-24999"
+      ],
+      "exploitability": "proof_of_concept",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "required"
+    },
+    {
+      "id": "CVE-2023-26115",
+      "package": "node-forge",
+      "version": "1.3.0",
+      "cvss": 9.1,
+      "severity": "critical",
+      "epss": 0.678,
+      "kev": true,
+      "published": "2023-02-09",
+      "summary": "RSA PKCS#1 v1.5 signature verification vulnerability allows signature forgery. Critical for financial transactions.",
+      "cwe": ["CWE-347", "CWE-295"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-26115",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+      ],
+      "exploitability": "active_exploitation",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2023-35165",
+      "package": "web3",
+      "version": "1.8.2",
+      "cvss": 8.2,
+      "severity": "high",
+      "epss": 0.456,
+      "kev": false,
+      "published": "2023-06-16",
+      "summary": "Web3.js vulnerable to prototype pollution allowing attackers to manipulate blockchain transaction parameters.",
+      "cwe": ["CWE-1321"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-35165"
+      ],
+      "exploitability": "functional",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2022-25878",
+      "package": "sequelize",
+      "version": "6.25.0",
+      "cvss": 7.5,
+      "severity": "high",
+      "epss": 0.045,
+      "kev": false,
+      "published": "2022-08-03",
+      "summary": "SQL injection vulnerability in Sequelize ORM query builder. Improper escaping of user input in raw queries.",
+      "cwe": ["CWE-89"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-25878"
+      ],
+      "exploitability": "functional",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "low",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2024-34567",
+      "package": "socket.io",
+      "version": "4.5.4",
+      "cvss": 8.6,
+      "severity": "high",
+      "epss": 0.789,
+      "kev": true,
+      "published": "2024-08-15",
+      "summary": "Socket.io authentication bypass allows unauthorized WebSocket connections to real-time market data streams.",
+      "cwe": ["CWE-287", "CWE-306"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-34567",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+      ],
+      "exploitability": "active_exploitation",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2023-45857",
+      "package": "axios",
+      "version": "1.4.0",
+      "cvss": 6.5,
+      "severity": "medium",
+      "epss": 0.008,
+      "kev": false,
+      "published": "2023-11-08",
+      "summary": "Prototype pollution vulnerability in axios request configuration. Can lead to denial of service.",
+      "cwe": ["CWE-1321"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-45857"
+      ],
+      "exploitability": "proof_of_concept",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2024-78901",
+      "package": "kafka-node",
+      "version": "5.0.0",
+      "cvss": 7.8,
+      "severity": "high",
+      "epss": 0.234,
+      "kev": false,
+      "published": "2024-05-22",
+      "summary": "Kafka client vulnerable to message injection allowing attackers to publish malicious events to trading streams.",
+      "cwe": ["CWE-74"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-78901"
+      ],
+      "exploitability": "functional",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "low",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2023-22222",
+      "package": "redis",
+      "version": "4.5.1",
+      "cvss": 5.3,
+      "severity": "medium",
+      "epss": 0.012,
+      "kev": false,
+      "published": "2023-09-10",
+      "summary": "Redis client vulnerable to command injection via unsanitized cache keys.",
+      "cwe": ["CWE-77"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-22222"
+      ],
+      "exploitability": "proof_of_concept",
+      "attack_vector": "network",
+      "attack_complexity": "high",
+      "privileges_required": "low",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2024-11223",
+      "package": "ethers",
+      "version": "5.7.2",
+      "cvss": 9.8,
+      "severity": "critical",
+      "epss": 0.923,
+      "kev": true,
+      "published": "2024-09-30",
+      "summary": "Ethers.js vulnerable to private key extraction via timing side-channel in signature generation. CRITICAL for crypto wallets.",
+      "cwe": ["CWE-203", "CWE-327"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-11223",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+      ],
+      "exploitability": "active_exploitation",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    }
+  ]
+}

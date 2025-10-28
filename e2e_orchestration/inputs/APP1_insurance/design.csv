@@ -1,0 +1,11 @@
+component,subcomponent,owner,customer_impact,data_classification,exposure,description,control_scope
+web,quote-frontend,frontend-team,mission_critical,pii,internet,"Quote form collects name email SSN DOB address for insurance quotes","SOC2,ISO27001,HIPAA"
+api,pricing-engine,pricing-team,mission_critical,pii,internet,"Quote calculation engine stores customer profiles and risk scores","SOC2,ISO27001,HIPAA"
+api,underwriting-service,underwriting-team,mission_critical,pii,partner,"Automated underwriting decisions based on credit and health data","SOC2,ISO27001,HIPAA,GDPR"
+db,customers-db,platform-team,mission_critical,pii,internal,"PostgreSQL storing customer records with PII and PHI","SOC2,ISO27001,HIPAA,PCI"
+db,policies-db,platform-team,external,financial,internal,"Policy documents and premium payment records","SOC2,ISO27001,PCI"
+esb,billing-gateway,billing-team,external,financial,partner,"Payment processing and premium collection via Stripe","PCI,SOC2"
+esb,claims-processor,claims-team,external,pii,partner,"Claims submission and adjudication workflow","SOC2,ISO27001,HIPAA"
+integration,credit-bureau-api,integration-team,external,pii,partner,"Experian credit check integration for underwriting","SOC2,GDPR"
+integration,medical-records-api,integration-team,mission_critical,health,partner,"HL7 FHIR integration for medical history retrieval","HIPAA,SOC2"
+analytics,fraud-detection,analytics-team,external,pii,internal,"ML model for fraud detection on claims","SOC2,ISO27001"

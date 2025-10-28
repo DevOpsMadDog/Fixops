@@ -1,0 +1,312 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Semgrep",
+          "informationUri": "https://semgrep.dev",
+          "version": "1.45.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "javascript/race-condition",
+          "level": "error",
+          "message": {
+            "text": "Race condition in order execution engine. Multiple concurrent orders can be processed without proper locking, leading to double-spending or incorrect portfolio balances."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-execution-engine/src/execution/order-processor.js"
+                },
+                "region": {
+                  "startLine": 234,
+                  "endLine": 256
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.5"
+          }
+        },
+        {
+          "ruleId": "javascript/timing-attack",
+          "level": "error",
+          "message": {
+            "text": "Timing attack vulnerability in authentication. String comparison for API keys is not constant-time, allowing attackers to brute force keys character by character."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-execution-engine/src/auth/api-key-validator.js"
+                },
+                "region": {
+                  "startLine": 67,
+                  "endLine": 72
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.7"
+          }
+        },
+        {
+          "ruleId": "javascript/integer-overflow",
+          "level": "error",
+          "message": {
+            "text": "Integer overflow in portfolio valuation calculation. Large position sizes can cause arithmetic overflow leading to incorrect P&L calculations."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/portfolio-service/src/valuation/calculator.js"
+                },
+                "region": {
+                  "startLine": 145,
+                  "endLine": 152
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.2"
+          }
+        },
+        {
+          "ruleId": "javascript/websocket-origin-bypass",
+          "level": "error",
+          "message": {
+            "text": "WebSocket origin validation can be bypassed. Market data WebSocket accepts connections from any origin, allowing unauthorized access to real-time trading data."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/market-data-service/src/websocket/server.js"
+                },
+                "region": {
+                  "startLine": 89,
+                  "endLine": 95
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.9"
+          }
+        },
+        {
+          "ruleId": "javascript/crypto-weak-key",
+          "level": "error",
+          "message": {
+            "text": "Weak cryptographic key generation for blockchain wallet private keys. Uses Math.random() instead of cryptographically secure random number generator."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "esb/blockchain-gateway/src/wallet/key-generator.js"
+                },
+                "region": {
+                  "startLine": 123
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "10.0"
+          }
+        },
+        {
+          "ruleId": "javascript/sql-injection",
+          "level": "error",
+          "message": {
+            "text": "SQL injection in transaction history query. User-supplied account ID is concatenated directly into SQL query without parameterization."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "db/transactions-db/src/queries/history.js"
+                },
+                "region": {
+                  "startLine": 78,
+                  "endLine": 82
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.8"
+          }
+        },
+        {
+          "ruleId": "javascript/idor",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) in portfolio API. Users can access other users' portfolios by manipulating account_id parameter."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/portfolio-service/src/routes/portfolio.js"
+                },
+                "region": {
+                  "startLine": 234,
+                  "endLine": 240
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.6"
+          }
+        },
+        {
+          "ruleId": "javascript/xxe-injection",
+          "level": "error",
+          "message": {
+            "text": "XML External Entity (XXE) injection in SEC filing parser. XML parser processes external entities without validation."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "integration/sec-filing-api/src/parsers/xml-parser.js"
+                },
+                "region": {
+                  "startLine": 156,
+                  "endLine": 162
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.5"
+          }
+        },
+        {
+          "ruleId": "javascript/hardcoded-secret",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded Plaid API secret in KYC verification service. Secret should be stored in environment variables or secrets manager."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/kyc-verification-service/src/config/plaid.js"
+                },
+                "region": {
+                  "startLine": 23
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.0"
+          }
+        },
+        {
+          "ruleId": "javascript/prototype-pollution",
+          "level": "warning",
+          "message": {
+            "text": "Prototype pollution vulnerability in order validation. Unsafe object merge allows attackers to inject properties into Object.prototype."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-execution-engine/src/validation/order-validator.js"
+                },
+                "region": {
+                  "startLine": 189,
+                  "endLine": 195
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "7.5"
+          }
+        },
+        {
+          "ruleId": "javascript/regex-dos",
+          "level": "warning",
+          "message": {
+            "text": "Regular expression Denial of Service (ReDoS) in account number validation. Complex regex with nested quantifiers can cause exponential backtracking."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/kyc-verification-service/src/validation/account-validator.js"
+                },
+                "region": {
+                  "startLine": 45
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "6.8"
+          }
+        },
+        {
+          "ruleId": "javascript/missing-rate-limiting",
+          "level": "warning",
+          "message": {
+            "text": "No rate limiting on order submission endpoint. Allows attackers to flood the system with orders causing denial of service."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-execution-engine/src/routes/orders.js"
+                },
+                "region": {
+                  "startLine": 67,
+                  "endLine": 89
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "7.2"
+          }
+        },
+        {
+          "ruleId": "javascript/sensitive-data-exposure",
+          "level": "warning",
+          "message": {
+            "text": "Sensitive financial data (account balances, SSN) logged in plaintext. Violates PCI-DSS and SOC2 requirements."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/portfolio-service/src/services/portfolio-manager.js"
+                },
+                "region": {
+                  "startLine": 234
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.0"
+          }
+        }
+      ]
+    }
+  ]
+}

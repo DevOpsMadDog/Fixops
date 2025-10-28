@@ -1,0 +1,223 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "serialNumber": "urn:uuid:7f8e9d0c-1b2a-3c4d-5e6f-7a8b9c0d1e2f",
+  "metadata": {
+    "timestamp": "2025-10-28T14:00:00Z",
+    "tools": [
+      {
+        "vendor": "FixOps",
+        "name": "sbom-generator",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "healthcare-platform",
+      "version": "4.2.8"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react@18.2.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "express",
+      "version": "4.18.2",
+      "purl": "pkg:npm/express@4.18.2",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "pg",
+      "version": "8.10.0",
+      "purl": "pkg:npm/pg@8.10.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "PostgreSQL client for patient database"
+    },
+    {
+      "type": "library",
+      "name": "mongodb",
+      "version": "5.1.0",
+      "purl": "pkg:npm/mongodb@5.1.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "MongoDB driver for clinical data"
+    },
+    {
+      "type": "library",
+      "name": "jsonwebtoken",
+      "version": "8.5.1",
+      "purl": "pkg:npm/jsonwebtoken@8.5.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "JWT authentication - VULNERABLE VERSION"
+    },
+    {
+      "type": "library",
+      "name": "axios",
+      "version": "0.27.2",
+      "purl": "pkg:npm/axios@0.27.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "HTTP client for EHR integrations"
+    },
+    {
+      "type": "library",
+      "name": "twilio",
+      "version": "4.10.0",
+      "purl": "pkg:npm/twilio@4.10.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Twilio SDK for SMS notifications"
+    },
+    {
+      "type": "library",
+      "name": "simple-peer",
+      "version": "9.11.0",
+      "purl": "pkg:npm/simple-peer@9.11.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "WebRTC library for telehealth video - VULNERABLE"
+    },
+    {
+      "type": "library",
+      "name": "xml2js",
+      "version": "0.4.23",
+      "purl": "pkg:npm/xml2js@0.4.23",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "XML parser for HL7 messages - VULNERABLE"
+    },
+    {
+      "type": "library",
+      "name": "dicom-parser",
+      "version": "1.8.9",
+      "purl": "pkg:npm/dicom-parser@1.8.9",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "DICOM medical imaging parser"
+    },
+    {
+      "type": "library",
+      "name": "fhir-kit-client",
+      "version": "1.9.2",
+      "purl": "pkg:npm/fhir-kit-client@1.9.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "FHIR client for EHR integration"
+    },
+    {
+      "type": "library",
+      "name": "bcrypt",
+      "version": "5.0.1",
+      "purl": "pkg:npm/bcrypt@5.0.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Password hashing - VULNERABLE VERSION"
+    },
+    {
+      "type": "library",
+      "name": "helmet",
+      "version": "6.0.1",
+      "purl": "pkg:npm/helmet@6.0.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Security headers middleware"
+    },
+    {
+      "type": "library",
+      "name": "winston",
+      "version": "3.8.2",
+      "purl": "pkg:npm/winston@3.8.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Logging library"
+    },
+    {
+      "type": "library",
+      "name": "aws-sdk",
+      "version": "2.1340.0",
+      "purl": "pkg:npm/aws-sdk@2.1340.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "AWS SDK for S3 imaging storage"
+    },
+    {
+      "type": "library",
+      "name": "sequelize",
+      "version": "6.28.0",
+      "purl": "pkg:npm/sequelize@6.28.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "ORM for PostgreSQL"
+    },
+    {
+      "type": "library",
+      "name": "lodash",
+      "version": "4.17.19",
+      "purl": "pkg:npm/lodash@4.17.19",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Utility library - VULNERABLE VERSION"
+    },
+    {
+      "type": "library",
+      "name": "moment",
+      "version": "2.29.4",
+      "purl": "pkg:npm/moment@2.29.4",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Date/time manipulation"
+    },
+    {
+      "type": "library",
+      "name": "socket.io",
+      "version": "4.5.1",
+      "purl": "pkg:npm/socket.io@4.5.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "WebSocket for real-time updates"
+    },
+    {
+      "type": "library",
+      "name": "sharp",
+      "version": "0.31.3",
+      "purl": "pkg:npm/sharp@0.31.3",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Image processing for medical imaging - VULNERABLE"
+    },
+    {
+      "type": "container",
+      "name": "patient-portal",
+      "version": "4.2.8",
+      "purl": "pkg:docker/patient-portal@4.2.8",
+      "description": "React patient portal frontend"
+    },
+    {
+      "type": "container",
+      "name": "ehr-integration-service",
+      "version": "4.2.8",
+      "purl": "pkg:docker/ehr-integration-service@4.2.8",
+      "description": "HL7 FHIR integration service"
+    },
+    {
+      "type": "container",
+      "name": "telehealth-service",
+      "version": "4.2.8",
+      "purl": "pkg:docker/telehealth-service@4.2.8",
+      "description": "WebRTC telehealth video service"
+    },
+    {
+      "type": "container",
+      "name": "prescription-service",
+      "version": "4.2.8",
+      "purl": "pkg:docker/prescription-service@4.2.8",
+      "description": "E-prescribing service"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:npm/express@4.18.2",
+      "dependsOn": ["pkg:npm/helmet@6.0.1"]
+    },
+    {
+      "ref": "pkg:npm/sequelize@6.28.0",
+      "dependsOn": ["pkg:npm/pg@8.10.0"]
+    },
+    {
+      "ref": "pkg:npm/simple-peer@9.11.0",
+      "dependsOn": ["pkg:npm/socket.io@4.5.1"]
+    }
+  ]
+}
