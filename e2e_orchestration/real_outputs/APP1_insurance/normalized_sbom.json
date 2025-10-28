@@ -1,0 +1,188 @@
+{
+  "components": [
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "insurance-pricing-api",
+      "purl": "pkg:docker/insurance-pricing-api@2.4.1",
+      "version": "2.4.1"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "insurance-quote-frontend",
+      "purl": "pkg:docker/insurance-quote-frontend@2.4.1",
+      "version": "2.4.1"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "insurance-underwriting-service",
+      "purl": "pkg:docker/insurance-underwriting-service@2.4.1",
+      "version": "2.4.1"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "log4j-core",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.0",
+      "version": "2.14.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "axios",
+      "purl": "pkg:npm/axios@0.21.1",
+      "version": "0.21.1"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "bcrypt",
+      "purl": "pkg:npm/bcrypt@5.1.0",
+      "version": "5.1.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "express",
+      "purl": "pkg:npm/express@4.18.2",
+      "version": "4.18.2"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "helmet",
+      "purl": "pkg:npm/helmet@7.0.0",
+      "version": "7.0.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "jsonwebtoken",
+      "purl": "pkg:npm/jsonwebtoken@8.5.1",
+      "version": "8.5.1"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "lodash",
+      "purl": "pkg:npm/lodash@4.17.20",
+      "version": "4.17.20"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "pg",
+      "purl": "pkg:npm/pg@8.9.0",
+      "version": "8.9.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "react",
+      "purl": "pkg:npm/react@18.2.0",
+      "version": "18.2.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "sequelize",
+      "purl": "pkg:npm/sequelize@6.28.0",
+      "version": "6.28.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "stripe",
+      "purl": "pkg:npm/stripe@12.3.0",
+      "version": "12.3.0"
+    },
+    {
+      "generators": [
+        "sbom-generator 1.0.0"
+      ],
+      "hashes": {},
+      "licenses": [],
+      "name": "winston",
+      "purl": "pkg:npm/winston@3.8.2",
+      "version": "3.8.2"
+    }
+  ],
+  "metadata": {
+    "component_keys_by_generator": {
+      "sbom-generator 1.0.0": [
+        "pkg:docker/insurance-pricing-api@2.4.1|2.4.1|",
+        "pkg:docker/insurance-quote-frontend@2.4.1|2.4.1|",
+        "pkg:docker/insurance-underwriting-service@2.4.1|2.4.1|",
+        "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.0|2.14.0|",
+        "pkg:npm/axios@0.21.1|0.21.1|",
+        "pkg:npm/bcrypt@5.1.0|5.1.0|",
+        "pkg:npm/express@4.18.2|4.18.2|",
+        "pkg:npm/helmet@7.0.0|7.0.0|",
+        "pkg:npm/jsonwebtoken@8.5.1|8.5.1|",
+        "pkg:npm/lodash@4.17.20|4.17.20|",
+        "pkg:npm/pg@8.9.0|8.9.0|",
+        "pkg:npm/react@18.2.0|18.2.0|",
+        "pkg:npm/sequelize@6.28.0|6.28.0|",
+        "pkg:npm/stripe@12.3.0|12.3.0|",
+        "pkg:npm/winston@3.8.2|3.8.2|"
+      ]
+    },
+    "generated_at": "2025-10-28T11:48:14.947072+00:00",
+    "generator_count": 1,
+    "total_components": 15,
+    "unique_components": 15,
+    "validation_errors": []
+  },
+  "sources": [
+    {
+      "component_count": 15,
+      "format": "cyclonedx",
+      "generator": "sbom-generator 1.0.0",
+      "path": "e2e_orchestration/inputs/APP1_insurance/sbom.json"
+    }
+  ]
+}
