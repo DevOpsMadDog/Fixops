@@ -40,36 +40,56 @@ else:  # pragma: no cover - fallback for test environments without OpenTelemetry
 _CONFIGURED = False
 
 
-class _SilentSpanExporter:
-    """Wrapper around OTLPSpanExporter that suppresses connection errors."""
+if not _NOOP:
+    from opentelemetry.sdk.trace.export import SpanExporter
 
-    def __init__(self, exporter):
-        self._exporter = exporter
+    class _SilentSpanExporter(SpanExporter):
+        """Wrapper around OTLPSpanExporter that suppresses connection errors."""
 
-    def export(self, spans):
-        """Export spans, suppressing connection errors."""
-        try:
+        def __init__(self, exporter: SpanExporter):
+            self._exporter = exporter
+
+        def export(self, spans):
+            """Export spans, suppressing connection errors."""
+            try:
+                return self._exporter.export(spans)
+            except Exception as exc:
+                logger.debug(f"Failed to export spans: {exc}")
+                from opentelemetry.sdk.trace.export import SpanExportResult
+
+                return SpanExportResult.SUCCESS
+
+        def shutdown(self):
+            """Shutdown the exporter, suppressing errors."""
+            try:
+                return self._exporter.shutdown()
+            except Exception as exc:
+                logger.debug(f"Failed to shutdown span exporter: {exc}")
+
+        def force_flush(self, timeout_millis=None):
+            """Force flush, suppressing errors."""
+            try:
+                return self._exporter.force_flush(timeout_millis)
+            except Exception as exc:
+                logger.debug(f"Failed to force flush spans: {exc}")
+                return True
+
+else:
+
+    class _SilentSpanExporter:  # type: ignore[no-redef]
+        """No-op wrapper for when OpenTelemetry is not available."""
+
+        def __init__(self, exporter):
+            self._exporter = exporter
+
+        def export(self, spans):
             return self._exporter.export(spans)
-        except Exception as exc:
-            logger.debug(f"Failed to export spans: {exc}")
-            from opentelemetry.sdk.trace.export import SpanExportResult
 
-            return SpanExportResult.SUCCESS
-
-    def shutdown(self):
-        """Shutdown the exporter, suppressing errors."""
-        try:
+        def shutdown(self):
             return self._exporter.shutdown()
-        except Exception as exc:
-            logger.debug(f"Failed to shutdown span exporter: {exc}")
 
-    def force_flush(self, timeout_millis=None):
-        """Force flush, suppressing errors."""
-        try:
+        def force_flush(self, timeout_millis=None):
             return self._exporter.force_flush(timeout_millis)
-        except Exception as exc:
-            logger.debug(f"Failed to force flush spans: {exc}")
-            return True
 
 
 def configure(service_name: str = "fixops-platform") -> None:
