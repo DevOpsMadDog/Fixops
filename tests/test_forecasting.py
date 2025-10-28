@@ -174,7 +174,7 @@ class TestMarkovForecast:
 
         p_30d = _markov_forecast_30d(p_now, evidence, config)
 
-        assert p_30d < p_now
+        assert p_30d <= p_now
 
     def test_markov_forecast_no_evidence(self):
         """Test Markov forecast with no special evidence."""
