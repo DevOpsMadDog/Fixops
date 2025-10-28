@@ -152,6 +152,19 @@ def _check_vendor_advisory(record: CVERecordSummary) -> bool:
                     ):
                         return True
 
+    references = record.raw.get("references", [])
+    if isinstance(references, list):
+        for ref in references:
+            if not isinstance(ref, Mapping):
+                continue
+            tags = ref.get("tags", [])
+            if isinstance(tags, list) and any(
+                tag in ("Vendor Advisory", "Patch", "Mitigation")
+                for tag in tags
+                if isinstance(tag, str)
+            ):
+                return True
+
     return False
 
 
