@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FixOps Marketplace Contribution Manifest",
+  "description": "Schema for marketplace content contribution requests",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "content_type",
+    "compliance_frameworks",
+    "ssdlc_stages",
+    "pricing_model",
+    "version"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200,
+      "description": "Human-readable title for the content"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "Detailed explanation of what the content provides"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "policy_template",
+        "compliance_testset",
+        "mitigation_playbook",
+        "attack_scenario",
+        "pipeline_gate"
+      ],
+      "description": "Type of marketplace content"
+    },
+    "compliance_frameworks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "pci_dss",
+          "sox",
+          "hipaa",
+          "iso27001",
+          "nist_ssdf",
+          "mitre_attack",
+          "gdpr",
+          "ccpa",
+          "fedramp"
+        ]
+      },
+      "minItems": 1,
+      "description": "Compliance frameworks this content addresses"
+    },
+    "ssdlc_stages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "requirements",
+          "design",
+          "code",
+          "build",
+          "test",
+          "deploy",
+          "operate"
+        ]
+      },
+      "minItems": 1,
+      "description": "SSDLC stages where this content applies"
+    },
+    "pricing_model": {
+      "type": "string",
+      "enum": ["free", "one_time", "subscription"],
+      "description": "Pricing model (note: paid flows are stubbed/OSS mode only)"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price in USD (required if pricing_model != free)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (e.g., 1.0.0)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 50
+      },
+      "maxItems": 10,
+      "description": "Optional tags for discovery"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional context (author, organization, content payload, etc.)"
+    }
+  },
+  "if": {
+    "properties": {
+      "pricing_model": {
+        "enum": ["one_time", "subscription"]
+      }
+    }
+  },
+  "then": {
+    "required": ["price"]
+  }
+}

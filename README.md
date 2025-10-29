@@ -46,7 +46,7 @@ FixOps is a contextual risk and evidence platform that:
 2. **Vulnerability Management**: Context-aware prioritization using KEV, EPSS, and business criticality
 3. **Compliance Automation**: SOC2, ISO27001, PCI-DSS, GDPR evidence generation
 4. **Risk Forecasting**: Probabilistic Bayesian and Markov chain projections
-5. **Supply Chain Security**: SLSA provenance, SBOM analysis, and cryptographic attestations
+5. **Supply Chain Security**: RSA-signed evidence bundles, SBOM analysis, and cryptographic signatures (SLSA attestations roadmap)
 
 ### Target Users
 
@@ -99,7 +99,7 @@ FixOps is a contextual risk and evidence platform that:
 │  ├──────────────────────────────────────────────────────────────┤     │
 │  │ • Evidence Lake (RSA-SHA256 signed bundles)                  │     │
 │  │ • Automation Connectors (Jira/Confluence/Slack)              │     │
-│  │ • Provenance Graph (SLSA v1 attestations)                    │     │
+│  │ • Provenance Graph (RSA-SHA256 signatures; SLSA roadmap)     │     │
 │  │ • Artifact Archive (compressed, encrypted storage)           │     │
 │  └──────────────────────────────────────────────────────────────┘     │
 │                                                                          │
@@ -171,7 +171,7 @@ fixops/
 │   ├── evidence/              # Evidence packaging
 │   ├── graph/                 # Provenance graph (NetworkX)
 │   ├── match/                 # Crosswalk matching algorithms
-│   ├── provenance/            # SLSA attestation generation
+│   ├── provenance/            # RSA-SHA256 signing (SLSA attestations roadmap)
 │   └── repro/                 # Reproducible build verification
 │
 ├── domain/                    # Domain models
@@ -589,7 +589,7 @@ policy_automation:
    ├─ Evidence Lake: Store signed decision records
    ├─ Artifact Archive: Compress and encrypt bundles
    ├─ Policy Automation: Dispatch Jira/Confluence/Slack
-   ├─ Provenance Graph: Generate SLSA attestations
+   ├─ Provenance Graph: Generate RSA-signed evidence bundles (SLSA attestations roadmap)
    └─ Transparency Index: Record audit trail
 
 8. RESPONSE
@@ -1465,11 +1465,13 @@ export FIXOPS_EVIDENCE_KEY="<base64_fernet_key>"
 
 **Auto-Disable**: If `cryptography` library unavailable or key not set
 
-### SLSA Provenance
+### Evidence Signing & Provenance
 
 **Location**: `services/provenance/attestation.py`
 
-Generates SLSA v1 build provenance:
+**Current Implementation**: RSA-SHA256 signed evidence bundles with public key fingerprints
+
+**Roadmap**: SLSA v1 build provenance attestations (planned)
 
 **Structure**:
 ```json
@@ -2108,7 +2110,7 @@ FixOps integrates with and builds upon:
 
 - **CISA KEV**: Known Exploited Vulnerabilities catalog
 - **FIRST.org EPSS**: Exploit Prediction Scoring System
-- **SLSA**: Supply-chain Levels for Software Artifacts
+- **SLSA**: Supply-chain Levels for Software Artifacts (roadmap; current implementation uses RSA-SHA256 signatures)
 - **SARIF**: Static Analysis Results Interchange Format
 - **CycloneDX/SPDX**: SBOM standards
 - **OPA**: Open Policy Agent

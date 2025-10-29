@@ -35,7 +35,7 @@ Plans live in `build/plan.yaml` (or alternative paths passed to the CLI) and sup
 | `artifact` | Yes | Relative path to the artefact produced inside the hermetic workspace. `"{tag}"` tokens are replaced automatically. |
 | `sources` | No | List of paths (strings or `{path, destination}` mappings) copied from the repository into the workspace before execution. |
 | `steps` | Yes | Ordered commands to run. Each step accepts `run` as a string (shell) or list (exec form). |
-| `reference_attestation` | Optional | Existing SLSA attestation used to derive the expected digest for comparison. |
+| `reference_attestation` | Optional | Existing RSA-SHA256 signature (SLSA attestations roadmap) used to derive the expected digest for comparison. |
 | `reference_artifact` | Optional | Canonical artefact on disk that supplies the expected digest if no attestation is available. |
 | `expected_digest` | Optional | Literal digest string (`sha256:...`) to compare against when no reference file exists. |
 | `environment` | No | Environment variables injected into each step (LC_ALL, LANG, TZ recommended).
