@@ -1,0 +1,45 @@
+
+application:
+  name: "Enterprise Platform"
+  tier: "production"
+  criticality: "critical"
+  business_impact: "high"
+  
+data_classification:
+  pii_present: true
+  phi_present: true
+  pci_present: true
+  financial_data: true
+  
+exposure:
+  internet_facing: true
+  public_endpoints:
+    - "/api/payment"
+    - "/api/user/login"
+    - "/api/checkout"
+  
+compensating_controls:
+  waf_enabled: true
+  waf_provider: "AWS WAF"
+  mtls_enabled: false
+  network_segmentation: true
+  encryption_at_rest: true
+  encryption_in_transit: true
+  
+compliance_requirements:
+  - "PCI DSS 4.0"
+  - "SOC 2 Type II"
+  - "HIPAA"
+  - "ISO 27001"
+  - "GDPR"
+  
+slos:
+  availability: "99.95%"
+  max_downtime_minutes: 30
+  rto_hours: 4
+  rpo_hours: 1
+  
+team:
+  security_contact: "security@example.com"
+  oncall_rotation: "platform-oncall"
+  escalation_policy: "critical-incidents"

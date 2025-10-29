@@ -1,8 +1,12 @@
 # FixOps 30-Minute Live Demo Script
 
-**Objective**: Prove FixOps converts 44,000+ scanner findings into prioritized, compliance-anchored action plans.
+**Objective**: Prove FixOps converts 44,000+ scanner findings into prioritized, compliance-anchored action plans using the **full 6-step FixOps engine**.
 
 **Supported Scanners**: Snyk, Tenable, Wiz, Rapid7, SonarQube, AWS Security Hub, Prisma Cloud, Veracode, Invicti (9 total)
+
+**Demo Options**:
+- **Option 1**: Quick consolidation demo (`multiscanner_consolidate.py`) - Shows ingestion, deduplication, KEV/EPSS enrichment
+- **Option 2**: Full 6-step engine demo (`demo_orchestrator.py`) - Shows Bayesian/Markov scoring, MITRE mapping, LLM explanations, SLSA attestation
 
 ## Pre-Demo Setup (5 minutes before meeting)
 
@@ -17,7 +21,7 @@ python scripts/fetch_feeds.py
 # 3. Create demo directories
 mkdir -p client_data demo_outputs
 
-# 4. Test with sample data (practice run - all 9 scanners)
+# 4A. Test with quick consolidation (practice run - all 9 scanners)
 python scripts/multiscanner_consolidate.py \
   --snyk samples/snyk_sample.json \
   --tenable samples/tenable_sample.csv \
@@ -28,6 +32,21 @@ python scripts/multiscanner_consolidate.py \
   --prisma samples/prisma_sample.csv \
   --veracode samples/veracode_sample.json \
   --invicti samples/invicti_sample.json
+
+# 4B. OR test with full 6-step orchestrator (recommended for Apiiro/Cycode comparison)
+python scripts/demo_orchestrator.py \
+  --snyk samples/snyk_sample.json \
+  --tenable samples/tenable_sample.csv \
+  --wiz samples/wiz_sample.json \
+  --rapid7 samples/rapid7_sample.csv \
+  --sonarqube samples/sonarqube_sample.json \
+  --aws-securityhub samples/aws_securityhub_sample.json \
+  --prisma samples/prisma_sample.csv \
+  --veracode samples/veracode_sample.json \
+  --invicti samples/invicti_sample.json \
+  --design inputs/demo/design.csv \
+  --overlay configs/overlays/client.yaml \
+  --out artifacts/demo_run_manifest.json
 ```
 
 ## Demo Timeline (30 minutes)
@@ -142,14 +161,21 @@ grep "dependency_upgrade" artifacts/fix_plan.csv
 **Script**:
 > "Fix lodash CVE-2020-8203, express CVE-2019-5413, axios CVE-2021-3749 - that's 3 critical findings, 2 scanners each, affecting authentication and data handling. One npm update cycle closes 12 compliance controls."
 
-### Positioning vs Apiiro (23:00-26:00) - 3 minutes
+### Positioning vs Apiiro/Cycode (23:00-26:00) - 3 minutes
 
 **Script**:
-> "We don't replace your scanners. We operationalize them. Apiiro gives you design-time risk detection and IDE hints. Excellent tools. But you still have 44,000 findings and need compliance in months.
+> "We don't replace your scanners. We operationalize them. Apiiro gives you design-time risk detection and IDE hints. Cycode gives you secrets detection and SAST. Excellent tools. But you still have 44,000 findings and need compliance in months.
 >
-> FixOps takes your existing scanner outputs and produces this: prioritized fix batches, compliance gap analysis, and audit-ready evidence. We're not claiming to be smarter than Snyk at detection. We're claiming to be smarter at operationalization.
+> FixOps takes your existing scanner outputs and runs them through our **6-step engine**:
 >
-> **Day-0 structural priors**: Pre-auth RCE, internet-facing, data adjacency, blast radius. **Day-N reinforcement**: KEV and EPSS as exploit data emerges. This is how we elevated CVE-2023-34362 from Medium to Critical before it hit the news."
+> **Step 1**: Ingestion & Normalization - 9 scanners → unified schema  
+> **Step 2**: Business Context Overlay - design.csv + app criticality + data classes (PII/PHI/PCI)  
+> **Step 3**: Bayesian/Markov Risk Scoring - Day-0 structural priors + Day-N KEV/EPSS reinforcement  
+> **Step 4**: MITRE ATT&CK Correlation - CWE → tactics/techniques mapping  
+> **Step 5**: LLM Explainability - Natural language rationales with contribution vectors  
+> **Step 6**: Evidence & Attestation - SLSA + in-toto + Sigstore provenance  
+>
+> We're not claiming to be smarter than Snyk at detection. We're claiming to be smarter at operationalization. **Day-0 structural priors** (pre-auth RCE, internet-facing, data adjacency, blast radius) let us elevate dangerous 'Mediums' to Critical at disclosure time - no waiting for KEV. **Day-N reinforcement** with KEV and EPSS as exploit data emerges. This is how we would have elevated CVE-2023-34362 from Medium to Critical before it hit the news."
 
 ### Q&A and Close (26:00-30:00) - 4 minutes
 
@@ -212,11 +238,17 @@ grep "dependency_upgrade" artifacts/fix_plan.csv
 
 ### Technical Differentiators
 
-1. **Bidirectional Scoring**: Day-0 structural priors + Day-N KEV/EPSS
-2. **Multi-Scanner Deduplication**: Same CVE from multiple scanners = 1 finding
-3. **Compliance Mapping**: Heuristic rules map findings to control frameworks
-4. **Evidence Signing**: RSA-SHA256 signatures for audit trails
-5. **Open Architecture**: No vendor lock-in, extensible normalizers
+1. **6-Step Engine**: Full pipeline from ingestion to attestation (not just deduplication)
+2. **Bayesian/Markov Risk Scoring**: Posterior probability with contribution breakdown for explainability
+3. **Day-0 Structural Priors**: Elevate dangerous vulnerabilities at disclosure time (pre-auth RCE, internet exposure, data adjacency, blast radius, compensating controls)
+4. **MITRE ATT&CK Correlation**: CWE → Technique → Tactic → Business Impact mapping
+5. **LLM Explainability**: Natural language rationales showing why each finding is prioritized
+6. **SLSA Attestation**: in-toto provenance with Sigstore signing for audit trails
+7. **Multi-Scanner Deduplication**: Same CVE from multiple scanners = 1 finding
+8. **Compliance Mapping**: Heuristic rules map findings to control frameworks (SOC2, ISO27001, HIPAA, PCI, NIST)
+9. **Open Architecture**: No vendor lock-in, extensible normalizers
+
+**For full 6-step engine demo**, see `COMPREHENSIVE_DEMO_GUIDE.md`
 
 ## Emergency Commands
 
