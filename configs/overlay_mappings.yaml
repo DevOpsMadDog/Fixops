@@ -1,0 +1,45 @@
+
+apps:
+  - app_id: "payment-api"
+    match:
+      file_path: ".*/payment/.*"
+  - app_id: "user-api"
+    match:
+      file_path: ".*/user/.*"
+  - app_id: "frontend-web"
+    match:
+      file_path: ".*/frontend/.*"
+  - app_id: "backend-core"
+    match:
+      file_path: ".*/backend/.*"
+
+components:
+  - component_id: "payment-service"
+    match:
+      file_path: ".*/payment.*"
+  - component_id: "auth-service"
+    match:
+      file_path: ".*/auth.*"
+  - component_id: "user-service"
+    match:
+      file_path: ".*/user.*"
+  - component_id: "order-service"
+    match:
+      file_path: ".*/order.*"
+  - component_id: "inventory-service"
+    match:
+      file_path: ".*/inventory.*"
+  - component_id: "frontend-ui"
+    match:
+      file_path: ".*/frontend/.*"
+  - component_id: "api-gateway"
+    match:
+      file_path: ".*/gateway/.*"
+  - component_id: "database-postgres"
+    match:
+      resource_type: "database"
+      resource_id: ".*postgres.*"
+  - component_id: "database-redis"
+    match:
+      resource_type: "database"
+      resource_id: ".*redis.*"

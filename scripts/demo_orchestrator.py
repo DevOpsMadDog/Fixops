@@ -47,6 +47,10 @@ WizNormalizer = multiscanner.WizNormalizer
 load_epss_data = multiscanner.load_epss_data
 load_kev_data = multiscanner.load_kev_data
 
+from core.services.history import RunHistoryStore
+from core.services.identity import IdentityResolver
+from core.services.vector_store import VectorStore
+
 print("=" * 80)
 print("FixOps Comprehensive Demo Orchestrator")
 print("=" * 80)
@@ -640,7 +644,40 @@ def main():
         help="Output path for run manifest",
     )
 
+    parser.add_argument(
+        "--org-id",
+        type=str,
+        default="default",
+        help="Organization ID for multi-tenant isolation",
+    )
+
+    parser.add_argument(
+        "--app-id",
+        type=str,
+        default="demo-app",
+        help="Application ID",
+    )
+
+    parser.add_argument(
+        "--mappings",
+        type=Path,
+        default=REPO_ROOT / "configs" / "overlay_mappings.yaml",
+        help="Path to component mappings file",
+    )
+
     args = parser.parse_args()
+
+    identity_resolver = IdentityResolver(
+        args.mappings if args.mappings and args.mappings.exists() else None
+    )
+    vector_store = VectorStore(
+        REPO_ROOT / "data" / "vector" / args.org_id / args.app_id
+    )
+    history_store = RunHistoryStore(
+        REPO_ROOT / "data" / "history" / args.org_id / f"{args.app_id}.db"
+    )
+
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
 
     print("\n" + "=" * 80)
     print("STEP 1: Ingestion & Normalization (9 Scanners)")
@@ -729,6 +766,27 @@ def main():
             finding["epss"] = epss_data.get(cve_id, 0.0)
 
     print("\n" + "=" * 80)
+    print("STEP 1.5: Identity Resolution & Correlation Keys")
+    print("=" * 80)
+
+    for finding in all_findings:
+        finding["org_id"] = args.org_id
+        finding["run_id"] = run_id
+        finding["app_id"] = identity_resolver.resolve_app_id(finding)
+        finding["component_id"] = identity_resolver.resolve_component_id(finding)
+        finding["asset_id"] = identity_resolver.resolve_asset_id(finding)
+        finding["correlation_key"] = identity_resolver.compute_correlation_key(finding)
+        finding["fingerprint"] = identity_resolver.compute_fingerprint(finding)
+
+    app_ids = set(f["app_id"] for f in all_findings)
+    component_ids = set(f["component_id"] for f in all_findings)
+    print(f"✓ Resolved identities for {len(all_findings):,} findings")
+    print(f"  Applications: {len(app_ids)} ({', '.join(sorted(app_ids)[:5])}...)")
+    print(
+        f"  Components: {len(component_ids)} ({', '.join(sorted(component_ids)[:5])}...)"
+    )
+
+    print("\n" + "=" * 80)
     print("STEP 2: Business Context Overlay")
     print("=" * 80)
 
@@ -778,6 +836,62 @@ def main():
     print(f"  Techniques: {', '.join(sorted(all_techniques))}")
 
     print("\n" + "=" * 80)
+    print("STEP 4.5: Historical Correlation & Learning")
+    print("=" * 80)
+
+    historical_findings = history_store.get_historical_findings(
+        args.org_id, args.app_id, limit=1000
+    )
+    print(f"✓ Loaded {len(historical_findings)} historical findings")
+
+    correlations = []
+    for finding in all_findings:
+        content = f"{finding.get('title', '')} {finding.get('description', '')}"
+        similar = vector_store.query(
+            content,
+            k=3,
+            filter_metadata={"org_id": args.org_id, "app_id": finding["app_id"]},
+        )
+
+        if similar:
+            correlation_entry = {
+                "finding_id": finding["id"],
+                "correlation_key": finding["correlation_key"],
+                "similar_findings": [
+                    {
+                        "doc_id": doc_id,
+                        "similarity": similarity,
+                        "metadata": metadata,
+                    }
+                    for doc_id, similarity, metadata in similar
+                ],
+            }
+            correlations.append(correlation_entry)
+            finding["historical_correlation"] = correlation_entry
+
+    print(f"✓ Found {len(correlations)} findings with historical correlations")
+
+    for finding in all_findings:
+        content = f"{finding.get('title', '')} {finding.get('description', '')}"
+        metadata = {
+            "org_id": finding["org_id"],
+            "app_id": finding["app_id"],
+            "component_id": finding["component_id"],
+            "correlation_key": finding["correlation_key"],
+            "risk_tier": finding.get("risk_tier", "LOW"),
+            "cve_id": finding.get("cve_id"),
+        }
+        vector_store.upsert(
+            doc_id=f"{args.org_id}/{args.app_id}/{finding['correlation_key']}",
+            content=content,
+            metadata=metadata,
+        )
+
+    print(
+        f"✓ Stored {len(all_findings)} findings in vector store for future correlation"
+    )
+
+    print("\n" + "=" * 80)
     print("STEP 5: LLM Explainability (Template Mode)")
     print("=" * 80)
 
@@ -811,9 +925,10 @@ def main():
     print("STEP 6: Evidence & Attestation (SLSA + in-toto)")
     print("=" * 80)
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     run_trace = {
         "run_id": run_id,
+        "org_id": args.org_id,
+        "app_id": args.app_id,
         "start_time": datetime.now(timezone.utc).isoformat(),
         "end_time": datetime.now(timezone.utc).isoformat(),
         "steps": [
@@ -821,6 +936,13 @@ def main():
                 "step": 1,
                 "name": "Ingestion & Normalization",
                 "findings_loaded": len(all_findings),
+            },
+            {
+                "step": 1.5,
+                "name": "Identity Resolution & Correlation Keys",
+                "identities_resolved": len(all_findings),
+                "applications": len(app_ids),
+                "components": len(component_ids),
             },
             {
                 "step": 2,
@@ -836,6 +958,12 @@ def main():
                 "step": 4,
                 "name": "MITRE ATT&CK Correlation",
                 "techniques_mapped": len(all_techniques),
+            },
+            {
+                "step": 4.5,
+                "name": "Historical Correlation & Learning",
+                "historical_findings": len(historical_findings),
+                "correlations_found": len(correlations),
             },
             {
                 "step": 5,
@@ -864,6 +992,33 @@ def main():
 
     run_trace["steps"][-1]["status"] = "completed"
     run_trace["attestation"] = attestation
+
+    history_store.record_run(
+        run_id=run_id,
+        org_id=args.org_id,
+        app_id=args.app_id,
+        findings=all_findings,
+        metadata={
+            "scanner_count": len(
+                [
+                    a
+                    for a in [
+                        args.snyk,
+                        args.tenable,
+                        args.wiz,
+                        args.rapid7,
+                        args.sonarqube,
+                        args.aws_securityhub,
+                        args.prisma,
+                        args.veracode,
+                        args.invicti,
+                    ]
+                    if a
+                ]
+            )
+        },
+    )
+    print("✓ Recorded run history for learning")
 
     print("\n" + "=" * 80)
     print("Writing Outputs")
@@ -926,6 +1081,31 @@ def main():
     with compliance_path.open("w") as f:
         json.dump(compliance_report, f, indent=2)
     print(f"✓ Compliance report: {compliance_path}")
+
+    correlations_path = args.out.parent / "correlations.json"
+    with correlations_path.open("w") as f:
+        json.dump(correlations, f, indent=2, default=str)
+    print(f"✓ Correlations: {correlations_path}")
+
+    learning_report = {
+        "run_id": run_id,
+        "org_id": args.org_id,
+        "app_id": args.app_id,
+        "historical_runs": len(history_store.get_runs(args.org_id, args.app_id)),
+        "historical_findings": len(historical_findings),
+        "correlations_found": len(correlations),
+        "vector_store_size": len(vector_store.index.get("documents", {})),
+        "learning_status": "active" if len(historical_findings) > 0 else "cold_start",
+        "recommendations": [
+            "Continue running scans to build historical baseline",
+            "Review correlations to identify recurring patterns",
+            "Update outcomes in history store to enable weight recalibration",
+        ],
+    }
+    learning_path = args.out.parent / "learning_report.json"
+    with learning_path.open("w") as f:
+        json.dump(learning_report, f, indent=2)
+    print(f"✓ Learning report: {learning_path}")
 
     print("\n" + "=" * 80)
     print("✅ DEMO COMPLETE - Full 6-Step FixOps Engine Executed")

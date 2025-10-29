@@ -53,6 +53,15 @@ class NormalizedFinding:
     category: str  # "vulnerability", "code_issue", "misconfig", "secret"
     scanners: List[str]  # Which scanners reported this (for dedup tracking)
 
+    org_id: str = "default"  # Organization/tenant ID
+    app_id: str = "unknown"  # Application ID
+    component_id: str = "unknown"  # Component/service ID
+    asset_id: str = ""  # Unique asset identifier
+    environment: str = "production"  # production, staging, dev
+    run_id: str = ""  # Run identifier for this scan
+    correlation_key: str = ""  # Deterministic key for cross-run correlation
+    fingerprint: str = ""  # Content-based fingerprint for similarity
+
     cve_id: Optional[str] = None
     package: Optional[str] = None
     version: Optional[str] = None
@@ -504,14 +513,13 @@ class PrismaCloudNormalizer:
     """Normalize Prisma Cloud CSV output."""
 
     @staticmethod
-    def normalize(data: Dict[str, Any]) -> List[NormalizedFinding]:
+    def normalize(csv_path: Path) -> List[NormalizedFinding]:
         """Convert Prisma Cloud CSV to normalized findings."""
         findings = []
 
-        if isinstance(data, list):
-            rows = data
-        else:
-            rows = data.get("rows", [])
+        with csv_path.open("r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
 
         for row in rows:
             alert_id = row.get("Alert ID", "")
