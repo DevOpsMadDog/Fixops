@@ -1,3 +1,0 @@
-test_name,input_description,before_time_ms,after_time_ms,before_mem_kb,after_mem_kb,delta_time_pct,delta_mem_pct
-pipeline_crosswalk,"40 design rows, 100 SARIF findings, 60 CVE records",3.4057,3.4595,155.01,155.01,+1.6%,0%
-probabilistic_forecast,"Bayesian+Markov evaluation on 40 design rows crosswalk",n/a,0.0686,n/a,n/a,n/a,n/a

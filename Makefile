@@ -85,3 +85,64 @@ clean:
 	rm -rf $(VENV)
 	rm -rf .mypy_cache .pytest_cache .ruff_cache artifacts coverage.xml htmlcov
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +
+
+# ===================================================================
+# Demo System Targets
+# ===================================================================
+
+.PHONY: demo-setup demo-feeds demo-cves demo-quick demo-full demo-test demo-all demo-clean
+
+demo-setup:
+	@echo "Setting up FixOps demo environment..."
+	@mkdir -p data/feeds data/inputs/{container,cloud,appsec} artifacts reports
+	@echo "✓ Demo directories created"
+
+demo-feeds: demo-setup
+	@echo "Downloading real security feeds (KEV + EPSS)..."
+	@python scripts/fetch_feeds.py
+	@echo "✓ Security feeds downloaded"
+
+demo-cves: demo-feeds
+	@echo "Generating 50k realistic CVE dataset..."
+	@python scripts/generate_realistic_cves.py
+	@echo "✓ CVE dataset generated"
+
+demo-quick: demo-cves
+	@echo "Running FixOps quick demo (5k CVEs)..."
+	@python scripts/demo_run.py --mode quick --top-n 50
+	@echo ""
+	@echo "✅ Quick demo complete!"
+	@echo "  Report: reports/demo_summary_quick.md"
+	@echo "  Evidence: artifacts/evidence_bundle_quick.zip"
+
+demo-full: demo-cves
+	@echo "Running FixOps full demo (50k CVEs)..."
+	@python scripts/demo_run.py --mode full --top-n 100
+	@echo ""
+	@echo "✅ Full demo complete!"
+	@echo "  Report: reports/demo_summary_full.md"
+	@echo "  Evidence: artifacts/evidence_bundle_full.zip"
+	@echo "  Comparison: reports/vs_apiiro_comparison.md"
+
+demo-test:
+	@echo "Running demo tests..."
+	@python -m pytest tests/test_demo_run.py -v --tb=short
+	@echo "✓ All demo tests passed"
+
+demo-all: demo-setup demo-feeds demo-cves demo-full demo-test
+	@echo ""
+	@echo "✅ Complete FixOps demo pipeline finished!"
+	@echo ""
+	@echo "Results:"
+	@echo "  - Summary: reports/demo_summary_full.md"
+	@echo "  - Evidence: artifacts/evidence_bundle_full.zip"
+	@echo "  - vs Apiiro: reports/vs_apiiro_comparison.md"
+	@echo "  - Tests: All passing"
+	@echo ""
+	@echo "🚀 Ready for competitive demo!"
+
+demo-clean:
+	@echo "Cleaning demo artifacts..."
+	@rm -rf artifacts/* reports/demo_summary_*.md
+	@rm -f data/inputs/findings.ndjson data/inputs/findings_stats.json
+	@echo "✓ Demo artifacts cleaned (feeds preserved)"
