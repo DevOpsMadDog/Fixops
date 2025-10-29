@@ -1,0 +1,79 @@
+{
+  "issues": [
+    {
+      "id": "wiz-issue-001",
+      "type": "vulnerability",
+      "severity": "critical",
+      "title": "Kubernetes API Server Exposed to Internet",
+      "description": "Kubernetes API server is accessible from the internet without proper authentication",
+      "resourceId": "k8s-cluster-prod-01",
+      "resourceType": "kubernetes_cluster",
+      "region": "us-east-1",
+      "cloudProvider": "AWS",
+      "projects": ["production"],
+      "status": "open",
+      "createdAt": "2024-10-15T10:30:00Z",
+      "updatedAt": "2024-10-15T10:30:00Z"
+    },
+    {
+      "id": "wiz-issue-002",
+      "type": "misconfig",
+      "severity": "high",
+      "title": "S3 Bucket Publicly Readable",
+      "description": "S3 bucket contains sensitive data and is publicly readable",
+      "resourceId": "s3://customer-data-prod",
+      "resourceType": "s3_bucket",
+      "region": "us-west-2",
+      "cloudProvider": "AWS",
+      "projects": ["production"],
+      "status": "open",
+      "createdAt": "2024-10-14T15:45:00Z",
+      "updatedAt": "2024-10-14T15:45:00Z"
+    },
+    {
+      "id": "wiz-issue-003",
+      "type": "vulnerability",
+      "severity": "high",
+      "title": "Container Image with Critical Vulnerabilities",
+      "description": "Container image contains multiple critical vulnerabilities including CVE-2023-34362",
+      "resourceId": "nginx:1.20.1",
+      "resourceType": "container_image",
+      "region": "global",
+      "cloudProvider": "AWS",
+      "projects": ["production"],
+      "status": "open",
+      "createdAt": "2024-10-13T09:15:00Z",
+      "updatedAt": "2024-10-13T09:15:00Z"
+    },
+    {
+      "id": "wiz-issue-004",
+      "type": "misconfig",
+      "severity": "medium",
+      "title": "RDS Instance Not Encrypted",
+      "description": "RDS database instance is not encrypted at rest",
+      "resourceId": "rds-prod-mysql-01",
+      "resourceType": "rds_instance",
+      "region": "us-east-1",
+      "cloudProvider": "AWS",
+      "projects": ["production"],
+      "status": "open",
+      "createdAt": "2024-10-12T14:20:00Z",
+      "updatedAt": "2024-10-12T14:20:00Z"
+    },
+    {
+      "id": "wiz-issue-005",
+      "type": "secret",
+      "severity": "critical",
+      "title": "AWS Access Key Exposed in Code",
+      "description": "AWS access key found hardcoded in application source code",
+      "resourceId": "github.com/company/webapp",
+      "resourceType": "source_code",
+      "region": "global",
+      "cloudProvider": "AWS",
+      "projects": ["production"],
+      "status": "open",
+      "createdAt": "2024-10-11T11:30:00Z",
+      "updatedAt": "2024-10-11T11:30:00Z"
+    }
+  ]
+}

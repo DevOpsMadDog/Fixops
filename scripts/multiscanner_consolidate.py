@@ -32,7 +32,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -424,6 +424,275 @@ class SonarQubeNormalizer:
         return findings
 
 
+class AWSSecurityHubNormalizer:
+    """Normalize AWS Security Hub (ASFF) JSON output."""
+
+    @staticmethod
+    def normalize(data: Dict[str, Any]) -> List[NormalizedFinding]:
+        """Convert AWS Security Hub ASFF to normalized findings."""
+        findings = []
+
+        asff_findings = data.get("Findings", [])
+
+        for asff in asff_findings:
+            finding_id = asff.get("Id", "")
+            title = asff.get("Title", "")
+            description = asff.get("Description", "")
+
+            severity_label = asff.get("Severity", {}).get("Label", "MEDIUM").lower()
+            severity_normalized = asff.get("Severity", {}).get("Normalized", 50)
+
+            resources = asff.get("Resources", [])
+            resource_id = (
+                resources[0].get("Id", "unknown-resource")
+                if resources
+                else "unknown-resource"
+            )
+            resource_type = (
+                resources[0].get("Type", "unknown") if resources else "unknown"
+            )
+
+            asset_key = resource_id
+            asset_type = "cloud"
+
+            compliance = asff.get("Compliance", {})
+            related_requirements = compliance.get("RelatedRequirements", [])
+
+            control_tags = []
+            for req in related_requirements:
+                if "PCI" in req:
+                    control_tags.append(f"PCI:{req}")
+                elif "NIST" in req:
+                    control_tags.append(f"NIST:{req}")
+                elif "ISO" in req:
+                    control_tags.append(f"ISO27001:{req}")
+
+            product_fields = asff.get("ProductFields", {})
+            control_id = product_fields.get("ControlId", "")
+            if control_id:
+                if "CIS" in str(asff.get("GeneratorId", "")):
+                    control_tags.append(f"CIS:{control_id}")
+
+            remediation = asff.get("Remediation", {}).get("Recommendation", {})
+            remediation_text = remediation.get("Text", "")
+            remediation_url = remediation.get("Url", "")
+
+            finding = NormalizedFinding(
+                id=f"aws-securityhub-{finding_id.split('/')[-1]}",
+                category="misconfig",
+                scanners=["aws_securityhub"],
+                resource_id=resource_id,
+                resource_type=resource_type,
+                asset_key=asset_key,
+                asset_type=asset_type,
+                severity_raw=severity_label,
+                cvss=float(severity_normalized) / 10.0 if severity_normalized else None,
+                title=title,
+                description=description,
+                remediation=f"{remediation_text} {remediation_url}".strip(),
+                control_tags=control_tags,
+                first_seen=asff.get("FirstObservedAt", datetime.now().isoformat()),
+                scanner_metadata={"aws_securityhub": asff},
+            )
+
+            findings.append(finding)
+
+        return findings
+
+
+class PrismaCloudNormalizer:
+    """Normalize Prisma Cloud CSV output."""
+
+    @staticmethod
+    def normalize(data: Dict[str, Any]) -> List[NormalizedFinding]:
+        """Convert Prisma Cloud CSV to normalized findings."""
+        findings = []
+
+        if isinstance(data, list):
+            rows = data
+        else:
+            rows = data.get("rows", [])
+
+        for row in rows:
+            alert_id = row.get("Alert ID", "")
+            resource_id = row.get("Resource ID", "unknown-resource")
+            resource_type = row.get("Resource Type", "")
+            severity = row.get("Severity", "medium").lower()
+            policy = row.get("Policy", "")
+            policy_type = row.get("Policy Type", "Config")
+            compliance_standard = row.get("Compliance Standard", "")
+            compliance_requirement = row.get("Compliance Requirement", "")
+
+            asset_key = resource_id
+            asset_type = "cloud"
+            if "Image" in resource_type or "Container" in resource_type:
+                asset_type = "container"
+
+            control_tags = []
+            if compliance_standard and compliance_requirement:
+                if "PCI" in compliance_standard:
+                    control_tags.append(f"PCI:{compliance_requirement}")
+                elif "SOC" in compliance_standard:
+                    control_tags.append(f"SOC2:{compliance_requirement}")
+                elif "ISO" in compliance_standard:
+                    control_tags.append(f"ISO27001:{compliance_requirement}")
+                elif "NIST" in compliance_standard:
+                    control_tags.append(f"NIST:{compliance_requirement}")
+                elif "CIS" in compliance_standard:
+                    control_tags.append(f"CIS:{compliance_requirement}")
+
+            category = "misconfig"
+            if policy_type == "Vulnerability":
+                category = "vulnerability"
+
+            finding = NormalizedFinding(
+                id=f"prisma-{alert_id}",
+                category=category,
+                scanners=["prisma"],
+                resource_id=resource_id,
+                resource_type=resource_type,
+                asset_key=asset_key,
+                asset_type=asset_type,
+                severity_raw=severity,
+                title=policy,
+                description=f"Prisma Cloud: {policy}",
+                control_tags=control_tags,
+                first_seen=row.get("First Seen", datetime.now().isoformat()),
+                scanner_metadata={"prisma": row},
+            )
+
+            findings.append(finding)
+
+        return findings
+
+
+class VeracodeNormalizer:
+    """Normalize Veracode JSON output."""
+
+    @staticmethod
+    def normalize(data: Dict[str, Any]) -> List[NormalizedFinding]:
+        """Convert Veracode JSON to normalized findings."""
+        findings = []
+
+        veracode_findings = data.get("findings", [])
+
+        for vf in veracode_findings:
+            issue_id = vf.get("issue_id", "")
+
+            description_obj = vf.get("description", {})
+            description_text = description_obj.get("text", "")
+            severity = description_obj.get("severity", 3)
+
+            finding_details = vf.get("finding_details", {})
+            cwe = finding_details.get("cwe", {})
+            cwe_id = cwe.get("id", 0)
+            cwe_name = cwe.get("name", "")
+
+            file_path = finding_details.get("file_path", "")
+            line_number = finding_details.get("file_line_number", 0)
+
+            repo = "unknown-repo"
+            asset_key = f"{repo}:{file_path}"
+            asset_type = "code"
+
+            severity_map = {5: "critical", 4: "high", 3: "medium", 2: "low", 1: "info"}
+            severity_str = severity_map.get(severity, "medium")
+
+            control_tags = []
+            if cwe_id:
+                control_tags.append(f"CWE:{cwe_id}")
+            if "SQL" in cwe_name or "Injection" in cwe_name:
+                control_tags.append("OWASP:A03")
+            if "XSS" in cwe_name or "Cross-Site" in cwe_name:
+                control_tags.append("OWASP:A03")
+            if "Crypto" in cwe_name or "Encryption" in cwe_name:
+                control_tags.append("OWASP:A02")
+
+            finding = NormalizedFinding(
+                id=f"veracode-{issue_id}",
+                category="code_issue",
+                scanners=["veracode"],
+                rule_id=f"CWE-{cwe_id}",
+                file_path=file_path,
+                line_range=f"{line_number}-{line_number}" if line_number else "",
+                asset_key=asset_key,
+                asset_type=asset_type,
+                severity_raw=severity_str,
+                title=cwe_name,
+                description=description_text,
+                control_tags=control_tags,
+                first_seen=vf.get("finding_status", {}).get(
+                    "first_found_date", datetime.now().isoformat()
+                ),
+                scanner_metadata={"veracode": vf},
+            )
+
+            findings.append(finding)
+
+        return findings
+
+
+class InvictiNormalizer:
+    """Normalize Invicti (formerly Netsparker) JSON output."""
+
+    @staticmethod
+    def normalize(data: Dict[str, Any]) -> List[NormalizedFinding]:
+        """Convert Invicti JSON to normalized findings."""
+        findings = []
+
+        invicti_vulns = data.get("List", [])
+
+        for vuln in invicti_vulns:
+            vuln_id = vuln.get("Id", "")
+            vuln_type = vuln.get("Type", "")
+            url = vuln.get("Url", "")
+            severity = vuln.get("Severity", 2)
+            cwe_id = vuln.get("CweId", 0)
+            cvss_obj = vuln.get("Cvss", {})
+            cvss_score = cvss_obj.get("Score", 0.0)
+
+            title = vuln_type
+            description = vuln.get("LongDescription", "")
+            remediation = vuln.get("Remediation", "")
+
+            asset_key = url
+            asset_type = "api"
+
+            severity_map = {4: "critical", 3: "high", 2: "medium", 1: "low", 0: "info"}
+            severity_str = severity_map.get(severity, "medium")
+
+            control_tags = []
+            if cwe_id:
+                control_tags.append(f"CWE:{cwe_id}")
+            if "Sql" in vuln_type or "SQL" in vuln_type:
+                control_tags.append("OWASP:A03")
+            if "Xss" in vuln_type or "XSS" in vuln_type or "CrossSite" in vuln_type:
+                control_tags.append("OWASP:A03")
+            if "Path" in vuln_type or "Traversal" in vuln_type:
+                control_tags.append("OWASP:A01")
+
+            finding = NormalizedFinding(
+                id=f"invicti-{vuln_id}",
+                category="vulnerability",
+                scanners=["invicti"],
+                rule_id=f"CWE-{cwe_id}" if cwe_id else vuln_type,
+                asset_key=asset_key,
+                asset_type=asset_type,
+                severity_raw=severity_str,
+                cvss=float(cvss_score) if cvss_score else None,
+                title=title,
+                description=description,
+                remediation=remediation,
+                control_tags=control_tags,
+                first_seen=vuln.get("FirstSeenDate", datetime.now().isoformat()),
+                scanner_metadata={"invicti": vuln},
+            )
+
+            findings.append(finding)
+
+        return findings
+
+
 def load_kev_data() -> Set[str]:
     """Load KEV CVE IDs from CISA feed."""
     kev_path = FEEDS_DIR / "kev.json"
@@ -433,7 +702,11 @@ def load_kev_data() -> Set[str]:
         try:
             with kev_path.open("r") as f:
                 data = json.load(f)
-                for vuln in data.get("vulnerabilities", []):
+                vulns = data.get("data", {}).get("vulnerabilities", [])
+                if not vulns:
+                    vulns = data.get("vulnerabilities", [])
+
+                for vuln in vulns:
                     cve_id = vuln.get("cveID")
                     if cve_id:
                         kev_cves.add(cve_id)
@@ -451,13 +724,16 @@ def load_epss_data() -> Dict[str, float]:
     if epss_path.exists():
         try:
             with gzip.open(epss_path, "rt") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    cve_id = row.get("cve")
-                    epss = row.get("epss")
-                    if cve_id and epss:
+                for line in f:
+                    if line.startswith("#"):
+                        continue
+                    if line.startswith("cve,"):
+                        continue
+                    parts = line.strip().split(",")
+                    if len(parts) >= 2:
+                        cve_id = parts[0]
                         try:
-                            epss_scores[cve_id] = float(epss)
+                            epss_scores[cve_id] = float(parts[1])
                         except ValueError:
                             pass
         except Exception as e:
@@ -639,14 +915,9 @@ def generate_compliance_gap(findings: List[NormalizedFinding]) -> Dict[str, Any]
                 if framework in frameworks:
                     frameworks[framework].add(control)
 
-    gap_report = {
-        "generated": datetime.now().isoformat(),
-        "total_findings": len(findings),
-        "frameworks": {},
-    }
-
+    frameworks_details: Dict[str, Dict[str, Any]] = {}
     for framework, controls in frameworks.items():
-        gap_report["frameworks"][framework] = {
+        frameworks_details[framework] = {
             "failing_controls": sorted(list(controls)),
             "control_count": len(controls),
             "findings_blocking": sum(
@@ -655,6 +926,12 @@ def generate_compliance_gap(findings: List[NormalizedFinding]) -> Dict[str, Any]
                 if any(tag.startswith(f"{framework}:") for tag in f.control_tags)
             ),
         }
+
+    gap_report: Dict[str, Any] = {
+        "generated": datetime.now().isoformat(),
+        "total_findings": len(findings),
+        "frameworks": frameworks_details,
+    }
 
     return gap_report
 
@@ -725,7 +1002,9 @@ def generate_fix_plan(findings: List[NormalizedFinding]) -> List[Dict[str, Any]]
             }
         )
 
-    fix_plan.sort(key=lambda x: x["avg_score"], reverse=True)
+    fix_plan.sort(
+        key=lambda item: float(cast(float, item.get("avg_score", 0.0))), reverse=True
+    )
 
     return fix_plan
 
@@ -891,10 +1170,30 @@ def main():
     parser.add_argument("--wiz", type=Path, help="Path to Wiz JSON output")
     parser.add_argument("--rapid7", type=Path, help="Path to Rapid7 CSV output")
     parser.add_argument("--sonarqube", type=Path, help="Path to SonarQube JSON output")
+    parser.add_argument(
+        "--aws-securityhub",
+        type=Path,
+        help="Path to AWS Security Hub (ASFF) JSON output",
+    )
+    parser.add_argument("--prisma", type=Path, help="Path to Prisma Cloud CSV output")
+    parser.add_argument("--veracode", type=Path, help="Path to Veracode JSON output")
+    parser.add_argument("--invicti", type=Path, help="Path to Invicti JSON output")
 
     args = parser.parse_args()
 
-    if not any([args.snyk, args.tenable, args.wiz, args.rapid7, args.sonarqube]):
+    if not any(
+        [
+            args.snyk,
+            args.tenable,
+            args.wiz,
+            args.rapid7,
+            args.sonarqube,
+            args.aws_securityhub,
+            args.prisma,
+            args.veracode,
+            args.invicti,
+        ]
+    ):
         print("Error: At least one scanner input must be provided")
         parser.print_help()
         return 1
@@ -941,6 +1240,39 @@ def main():
         sonar_findings = SonarQubeNormalizer.normalize(sonar_data)
         all_findings.extend(sonar_findings)
         print(f"  ✓ Loaded {len(sonar_findings):,} SonarQube findings")
+
+    if args.aws_securityhub and args.aws_securityhub.exists():
+        print(f"Loading AWS Security Hub findings from {args.aws_securityhub}...")
+        with args.aws_securityhub.open("r") as f:
+            asff_data = json.load(f)
+        asff_findings = AWSSecurityHubNormalizer.normalize(asff_data)
+        all_findings.extend(asff_findings)
+        print(f"  ✓ Loaded {len(asff_findings):,} AWS Security Hub findings")
+
+    if args.prisma and args.prisma.exists():
+        print(f"Loading Prisma Cloud findings from {args.prisma}...")
+        with args.prisma.open("r") as f:
+            reader = csv.DictReader(f)
+            prisma_data = list(reader)
+        prisma_findings = PrismaCloudNormalizer.normalize(prisma_data)
+        all_findings.extend(prisma_findings)
+        print(f"  ✓ Loaded {len(prisma_findings):,} Prisma Cloud findings")
+
+    if args.veracode and args.veracode.exists():
+        print(f"Loading Veracode findings from {args.veracode}...")
+        with args.veracode.open("r") as f:
+            veracode_data = json.load(f)
+        veracode_findings = VeracodeNormalizer.normalize(veracode_data)
+        all_findings.extend(veracode_findings)
+        print(f"  ✓ Loaded {len(veracode_findings):,} Veracode findings")
+
+    if args.invicti and args.invicti.exists():
+        print(f"Loading Invicti findings from {args.invicti}...")
+        with args.invicti.open("r") as f:
+            invicti_data = json.load(f)
+        invicti_findings = InvictiNormalizer.normalize(invicti_data)
+        all_findings.extend(invicti_findings)
+        print(f"  ✓ Loaded {len(invicti_findings):,} Invicti findings")
 
     print(f"\nTotal findings loaded: {len(all_findings):,}")
 
