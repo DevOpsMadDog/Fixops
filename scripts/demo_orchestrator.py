@@ -29,6 +29,8 @@ import importlib.util
 spec = importlib.util.spec_from_file_location(
     "multiscanner_consolidate", REPO_ROOT / "scripts" / "multiscanner_consolidate.py"
 )
+if spec is None or spec.loader is None:
+    raise ImportError("Failed to load multiscanner_consolidate module")
 multiscanner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(multiscanner)
 
@@ -56,8 +58,8 @@ class BusinessContextOverlay:
     def __init__(
         self, design_csv: Optional[Path] = None, overlay_yaml: Optional[Path] = None
     ):
-        self.design_data = []
-        self.overlay_config = {}
+        self.design_data: List[Dict[str, Any]] = []
+        self.overlay_config: Dict[str, Any] = {}
 
         if design_csv and design_csv.exists():
             with design_csv.open("r") as f:
@@ -65,7 +67,7 @@ class BusinessContextOverlay:
                 self.design_data = list(reader)
 
         if overlay_yaml and overlay_yaml.exists():
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             with overlay_yaml.open("r") as f:
                 self.overlay_config = yaml.safe_load(f) or {}
