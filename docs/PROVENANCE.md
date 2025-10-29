@@ -1,6 +1,6 @@
 # FixOps Provenance
 
-This guide explains how FixOps emits [SLSA provenance](https://slsa.dev/spec/v1.0/provenance)
+This guide explains how FixOps emits [RSA-signed evidence bundles (RSA-SHA256 signature (SLSA attestations roadmap)s roadmap)](https://slsa.dev/spec/v1.0/provenance)
 metadata for release artefacts, how to generate and verify attestations locally, and how to
 retrieve attestations via the API or CI pipeline outputs.
 

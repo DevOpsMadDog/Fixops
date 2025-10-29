@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from fixops_enterprise.src.services.mitre_compliance_analyzer import (
-    MITREComplianceAnalyzer,
-)
+from src.services.mitre_compliance_analyzer import MITREComplianceAnalyzer
 
 
 def test_mitre_analyzer_initialization():

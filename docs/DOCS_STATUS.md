@@ -33,7 +33,7 @@ workflows introduced across Phases 1–10.
 | `PLAYBOOK-DEV.md` | Developer practices referencing CLI commands and QA workflow. | Retain |
 | `PLAYBOOK-SEC.md` | Security operations referencing risk scoring and provenance services. | Retain |
 | `PROVENANCE-GRAPH.md` | Phase 6 provenance graph design corresponding to `services/graph` and API routes. | Retain |
-| `PROVENANCE.md` | SLSA attestation schema used by `services/provenance` and CLI wrappers. | Retain |
+| `PROVENANCE.md` | RSA-SHA256 signature (SLSA attestations roadmap) schema used by `services/provenance` and CLI wrappers. | Retain |
 | `PR_CHECKLIST.md` | Review checklist aligned with QA automation and evidence requirements. | Retain |
 | `PR_SUMMARY.md` | Template for summarising PRs including evidence and testing references. | Retain |
 | `README_GAP_AND_TEST_PLAN.md` | Audit of README commitments matched to modules in `core/` and tests. | Retain |
@@ -57,4 +57,3 @@ workflows introduced across Phases 1–10.
 No files required archival during this pass; `docs/doc-archive/` remains empty so
 future reviews can relocate superseded content when features are removed from the
 codebase.
-

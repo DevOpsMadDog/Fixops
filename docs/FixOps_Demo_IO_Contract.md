@@ -123,7 +123,7 @@ sections highlight the exact request payloads, the relevant API calls, and the p
 
 ### Build → `outputs/build.report.json`
 
-* **Inputs:** CycloneDX-style SBOM, SARIF scanner results, optional SLSA provenance.
+* **Inputs:** CycloneDX-style SBOM, SARIF scanner results, optional RSA-signed evidence bundles (RSA-SHA256 signature (SLSA attestations roadmap)s roadmap).
 
   ```json
   {"components": [

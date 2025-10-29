@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fixops_enterprise.src.services.correlation_engine import CorrelationEngine
+from src.services.correlation_engine import CorrelationEngine
 
 
 def test_correlation_engine_initialization():

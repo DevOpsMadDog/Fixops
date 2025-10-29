@@ -1,6 +1,6 @@
 # Provenance Graph MVP
 
-The provenance graph stitches together FixOps artefacts (git history, SLSA attestations, normalized SBOMs, risk reports, and release metadata) into a queryable knowledge graph. The Phase 6 MVP ships with a lightweight SQLite store plus an in-memory [NetworkX](https://networkx.org/) view that powers API queries and future visualisations.
+The provenance graph stitches together FixOps artefacts (git history, RSA-SHA256 signature (SLSA attestations roadmap)s, normalized SBOMs, risk reports, and release metadata) into a queryable knowledge graph. The Phase 6 MVP ships with a lightweight SQLite store plus an in-memory [NetworkX](https://networkx.org/) view that powers API queries and future visualisations.
 
 ## Data ingestion
 
@@ -9,7 +9,7 @@ The graph builder gathers data from the following locations (override via `confi
 | Source | Default location | Notes |
 | --- | --- | --- |
 | Git metadata | repository working tree | Latest 100 commits with parents, authors, timestamps |
-| SLSA attestations | `artifacts/attestations/` | Parsed via `services.provenance.attestation` |
+| RSA-SHA256 signature (SLSA attestations roadmap)s | `artifacts/attestations/` | Parsed via `services.provenance.attestation` |
 | Normalized SBOM | `artifacts/sbom/normalized.json` | Component metadata, hashes, licences |
 | Risk report | `artifacts/risk.json` | FixOpsRisk, KEV/EPSS annotations per CVE |
 | Release manifest | `analysis/releases.json` | Optional mapping of releases → artefacts → component versions |
