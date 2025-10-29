@@ -12,7 +12,7 @@ import json
 import random
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Any, Dict, List, Set
 
 FEEDS_DIR = Path(__file__).parent.parent / "data" / "feeds"
 OUTPUT_DIR = Path(__file__).parent.parent / "data" / "inputs"
@@ -261,22 +261,25 @@ def save_findings(findings: List[Dict]):
     size_mb = output_path.stat().st_size / (1024 * 1024)
     print(f"✓ Saved {len(findings):,} findings ({size_mb:.1f} MB)")
 
-    stats = {
+    by_surface: Dict[str, int] = {}
+    by_severity: Dict[str, int] = {}
+
+    for finding in findings:
+        surface = finding["asset_type"]
+        severity = finding["severity"]
+        by_surface[surface] = by_surface.get(surface, 0) + 1
+        by_severity[severity] = by_severity.get(severity, 0) + 1
+
+    stats: Dict[str, Any] = {
         "total": len(findings),
-        "by_surface": {},
-        "by_severity": {},
+        "by_surface": by_surface,
+        "by_severity": by_severity,
         "kev_count": sum(1 for f in findings if f["kev"]),
         "high_epss": sum(1 for f in findings if f["epss_score"] > 0.5),
         "internet_facing": sum(1 for f in findings if f["internet_facing"]),
         "pre_auth": sum(1 for f in findings if f["pre_auth"]),
         "with_data": sum(1 for f in findings if f["data_classes"]),
     }
-
-    for finding in findings:
-        surface = finding["asset_type"]
-        severity = finding["severity"]
-        stats["by_surface"][surface] = stats["by_surface"].get(surface, 0) + 1
-        stats["by_severity"][severity] = stats["by_severity"].get(severity, 0) + 1
 
     stats_path = OUTPUT_DIR / "findings_stats.json"
     stats_path.write_text(json.dumps(stats, indent=2))
@@ -290,10 +293,10 @@ def save_findings(findings: List[Dict]):
     print(f"  Pre-auth: {stats['pre_auth']:,}")
     print(f"  With sensitive data: {stats['with_data']:,}")
     print("\n  By Surface:")
-    for surface, count in sorted(stats["by_surface"].items()):
+    for surface, count in sorted(by_surface.items()):
         print(f"    {surface}: {count:,}")
     print("\n  By Severity:")
-    for severity, count in sorted(stats["by_severity"].items()):
+    for severity, count in sorted(by_severity.items()):
         print(f"    {severity}: {count:,}")
 
 

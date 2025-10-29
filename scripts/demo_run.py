@@ -18,7 +18,7 @@ import zipfile
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TypedDict
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -28,6 +28,22 @@ REPORTS_DIR = REPO_ROOT / "reports"
 
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+class Statistics(TypedDict):
+    """Type definition for statistics dictionary."""
+
+    total: int
+    by_severity: Dict[str, int]
+    by_surface: Dict[str, int]
+    kev_count: int
+    high_epss: int
+    internet_facing: int
+    pre_auth: int
+    with_data: int
+    avg_day0_score: float
+    avg_dayn_score: float
+    avg_final_score: float
 
 
 @dataclass
@@ -293,49 +309,57 @@ def prioritize_findings(scores: List[RiskScore], top_n: int = 100) -> List[RiskS
     return top_scores
 
 
-def generate_statistics(scores: List[RiskScore]) -> Dict:
+def generate_statistics(scores: List[RiskScore]) -> Statistics:
     """Generate statistics from scored findings."""
 
-    stats = {
-        "total": len(scores),
-        "by_severity": defaultdict(int),
-        "by_surface": defaultdict(int),
-        "kev_count": 0,
-        "high_epss": 0,
-        "internet_facing": 0,
-        "pre_auth": 0,
-        "with_data": 0,
-        "avg_day0_score": 0.0,
-        "avg_dayn_score": 0.0,
-        "avg_final_score": 0.0,
-    }
+    by_severity: Dict[str, int] = defaultdict(int)
+    by_surface: Dict[str, int] = defaultdict(int)
+    kev_count = 0
+    high_epss = 0
+    internet_facing = 0
+    pre_auth = 0
+    with_data = 0
+    avg_day0_score = 0.0
+    avg_dayn_score = 0.0
+    avg_final_score = 0.0
 
     for score in scores:
-        stats["by_severity"][score.final_severity] += 1
-        stats["by_surface"][score.surface] += 1
+        by_severity[score.final_severity] += 1
+        by_surface[score.surface] += 1
 
         if score.kev:
-            stats["kev_count"] += 1
+            kev_count += 1
         if score.epss_score > 0.5:
-            stats["high_epss"] += 1
+            high_epss += 1
         if score.internet_facing:
-            stats["internet_facing"] += 1
+            internet_facing += 1
         if score.pre_auth:
-            stats["pre_auth"] += 1
+            pre_auth += 1
         if score.data_classes:
-            stats["with_data"] += 1
+            with_data += 1
 
-        stats["avg_day0_score"] += score.day0_score
-        stats["avg_dayn_score"] += score.dayn_score
-        stats["avg_final_score"] += score.final_score
+        avg_day0_score += score.day0_score
+        avg_dayn_score += score.dayn_score
+        avg_final_score += score.final_score
 
     if len(scores) > 0:
-        stats["avg_day0_score"] /= len(scores)
-        stats["avg_dayn_score"] /= len(scores)
-        stats["avg_final_score"] /= len(scores)
+        avg_day0_score /= len(scores)
+        avg_dayn_score /= len(scores)
+        avg_final_score /= len(scores)
 
-    stats["by_severity"] = dict(stats["by_severity"])
-    stats["by_surface"] = dict(stats["by_surface"])
+    stats: Statistics = {
+        "total": len(scores),
+        "by_severity": dict(by_severity),
+        "by_surface": dict(by_surface),
+        "kev_count": kev_count,
+        "high_epss": high_epss,
+        "internet_facing": internet_facing,
+        "pre_auth": pre_auth,
+        "with_data": with_data,
+        "avg_day0_score": avg_day0_score,
+        "avg_dayn_score": avg_dayn_score,
+        "avg_final_score": avg_final_score,
+    }
 
     return stats
 
@@ -343,7 +367,7 @@ def generate_statistics(scores: List[RiskScore]) -> Dict:
 def save_results(
     all_scores: List[RiskScore],
     top_scores: List[RiskScore],
-    stats: Dict,
+    stats: Statistics,
     mode: str,
 ) -> Dict[str, Path]:
     """Save results to disk."""
@@ -397,7 +421,7 @@ def save_results(
 
 def generate_report(
     top_scores: List[RiskScore],
-    stats: Dict,
+    stats: Statistics,
     output_files: Dict[str, Path],
     mode: str,
 ) -> Path:

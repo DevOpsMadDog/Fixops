@@ -13,11 +13,21 @@ import gzip
 import json
 import sys
 from pathlib import Path
+from typing import Dict, TypedDict
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 FEEDS_DIR = Path(__file__).parent.parent / "data" / "feeds"
 FEEDS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+class FeedStatus(TypedDict, total=False):
+    """Type definition for feed status dictionary."""
+
+    count: int
+    error: str
+    valid: bool
+
 
 FEEDS = {
     "kev": {
@@ -91,9 +101,9 @@ def fetch_feed(name: str, config: dict) -> bool:
         return False
 
 
-def validate_feeds() -> dict:
+def validate_feeds() -> Dict[str, FeedStatus]:
     """Validate downloaded feeds and return statistics."""
-    stats = {}
+    stats: Dict[str, FeedStatus] = {}
 
     kev_path = FEEDS_DIR / "kev.json"
     if kev_path.exists():
