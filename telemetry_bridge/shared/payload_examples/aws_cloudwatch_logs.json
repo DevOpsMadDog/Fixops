@@ -1,0 +1,24 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "123456789012",
+  "logGroup": "/aws/waf/prod",
+  "logStream": "2024-01-15",
+  "subscriptionFilters": ["fixops-telemetry"],
+  "logEvents": [
+    {
+      "id": "37123456789012345678901234567890123456789012345678901234",
+      "timestamp": 1705334400000,
+      "message": "{\"action\":\"BLOCK\",\"terminatingRuleId\":\"rate-limit\",\"httpRequest\":{\"clientIp\":\"203.0.113.1\",\"uri\":\"/api/v1/users\"},\"ruleGroupList\":[],\"rateBasedRuleList\":[],\"nonTerminatingMatchingRules\":[],\"requestHeadersInserted\":null,\"responseCodeSent\":403,\"httpSourceName\":\"ALB\",\"httpSourceId\":\"app/my-alb/1234567890abcdef\",\"latency_ms\":125}"
+    },
+    {
+      "id": "37123456789012345678901234567890123456789012345678901235",
+      "timestamp": 1705334401000,
+      "message": "{\"action\":\"BLOCK\",\"terminatingRuleId\":\"sql-injection\",\"httpRequest\":{\"clientIp\":\"198.51.100.42\",\"uri\":\"/search?q=test\"},\"ruleGroupList\":[],\"rateBasedRuleList\":[],\"nonTerminatingMatchingRules\":[],\"requestHeadersInserted\":null,\"responseCodeSent\":403,\"httpSourceName\":\"ALB\",\"httpSourceId\":\"app/my-alb/1234567890abcdef\",\"latency_ms\":89}"
+    },
+    {
+      "id": "37123456789012345678901234567890123456789012345678901236",
+      "timestamp": 1705334402000,
+      "message": "{\"action\":\"ALLOW\",\"terminatingRuleId\":\"default\",\"httpRequest\":{\"clientIp\":\"192.0.2.100\",\"uri\":\"/health\"},\"ruleGroupList\":[],\"rateBasedRuleList\":[],\"nonTerminatingMatchingRules\":[],\"requestHeadersInserted\":null,\"responseCodeSent\":200,\"httpSourceName\":\"ALB\",\"httpSourceId\":\"app/my-alb/1234567890abcdef\",\"latency_ms\":15}"
+    }
+  ]
+}

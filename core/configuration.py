@@ -126,6 +126,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "performance",
     "enhanced_decision",
     "decision_tree",
+    "telemetry_bridge",
     "profiles",
 }
 
@@ -610,6 +611,7 @@ class _OverlayDocument(BaseModel):
     performance: Optional[Dict[str, Any]] = None
     enhanced_decision: Optional[Dict[str, Any]] = None
     decision_tree: Optional[Dict[str, Any]] = None
+    telemetry_bridge: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
 
     model_config = ConfigDict(extra="forbid")
@@ -675,6 +677,7 @@ class OverlayConfig:
     tenancy: Dict[str, Any] = field(default_factory=dict)
     performance: Dict[str, Any] = field(default_factory=dict)
     enhanced_decision: Dict[str, Any] = field(default_factory=dict)
+    telemetry_bridge: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(
         default_factory=lambda: (_DEFAULT_DATA_ROOT,)
     )
@@ -1324,6 +1327,7 @@ def load_overlay(
         "performance": document.performance or {},
         "enhanced_decision": document.enhanced_decision or {},
         "decision_tree": document.decision_tree or {},
+        "telemetry_bridge": document.telemetry_bridge or {},
     }
 
     selected_mode = str(base["mode"]).lower()
@@ -1430,6 +1434,7 @@ def load_overlay(
         analytics=dict(base.get("analytics", {}) or {}),  # type: ignore[arg-type]
         tenancy=dict(base.get("tenancy", {}) or {}),  # type: ignore[arg-type]
         performance=dict(base.get("performance", {}) or {}),  # type: ignore[arg-type]
+        telemetry_bridge=dict(base.get("telemetry_bridge", {}) or {}),  # type: ignore[arg-type]
         allowed_data_roots=_resolve_allowlisted_roots(),
     )
 

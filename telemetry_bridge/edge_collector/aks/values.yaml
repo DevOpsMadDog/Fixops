@@ -1,0 +1,146 @@
+
+overlayPath: /app/config/fixops.overlay.yml
+
+image:
+  collectorApi:
+    repository: fixopsacr.azurecr.io/collector-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  fluentBit:
+    repository: fixopsacr.azurecr.io/fluent-bit
+    tag: latest
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "collector-sa"
+
+collectorApi:
+  replicaCount: 2
+  
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  service:
+    type: ClusterIP
+    port: 8080
+  
+  env:
+    cloudProvider: azure
+    ringBufferMaxLines: 200000
+    ringBufferMaxSeconds: 21600
+
+fluentBit:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  
+  env:
+    inputPath: /var/log/waf/*.log
+    aggregationInterval: 60
+    retryLimit: 5
+
+keda:
+  enabled: true
+  
+  eventHub:
+    enabled: true
+    connectionStringSecret: eventhub-connection-string
+    eventHubName: platform-logs
+    consumerGroup: collector-consumer-group
+    unprocessedEventThreshold: 10
+    activationUnprocessedEventThreshold: 5
+  
+  scaledJob:
+    enabled: false
+    pollingInterval: 30
+    maxReplicaCount: 10
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+
+dcr:
+  enabled: false
+  
+  amaPath: /var/log/azure-monitor
+  
+  dcrEndpoint: ""
+  
+  dcrImmutableId: ""
+
+azure:
+  keyVault:
+    name: fixops-kv
+    tenantId: ""
+  
+  storageAccount:
+    name: fixopsevidence
+    containerName: evidence
+  
+  eventHub:
+    namespace: fixops-eventhub-ns
+    name: platform-logs
+
+secrets:
+  fixopsApiKey:
+    name: fixops-api-key
+    key: api-key
+  
+  storageConnectionString:
+    name: storage-connection-string
+    key: connection-string
+  
+  eventHubConnectionString:
+    name: eventhub-connection-string
+    key: connection-string
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: collector.fixops.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
