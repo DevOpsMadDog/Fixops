@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import time
 from collections import deque
 from datetime import datetime
@@ -152,7 +153,7 @@ async def ingest_telemetry(payload: TelemetryPayload):
             )
             response.raise_for_status()
 
-            logger.info(f"Forwarded telemetry to {fixops_url}: {response.status_code}")
+            logger.info(f"Successfully forwarded telemetry: {response.status_code}")
             return {"ok": True, "status_code": response.status_code}
 
         elif mode == "file":
@@ -165,7 +166,7 @@ async def ingest_telemetry(payload: TelemetryPayload):
             with open(output_path, "w") as f:
                 json.dump(payload.dict(), f, indent=2)
 
-            logger.info(f"Wrote telemetry to {output_path}")
+            logger.info("Successfully wrote telemetry to file")
             return {"ok": True, "file": output_path}
 
         else:
@@ -227,6 +228,17 @@ async def generate_evidence(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to prevent path traversal attacks.
+
+    Removes any path separators and keeps only alphanumeric, dash, dot, and underscore.
+    """
+    safe_filename = re.sub(r"[^a-zA-Z0-9._-]", "_", filename)
+    safe_filename = safe_filename.replace("..", "_")
+    return safe_filename
+
+
 def upload_evidence_bundle(
     compressed_data: bytes, metadata: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -238,7 +250,8 @@ def upload_evidence_bundle(
     cloud_provider = os.environ.get("CLOUD_PROVIDER", "").lower()
 
     timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
-    filename = f"evidence-{timestamp}-{metadata['sha256'][:8]}.jsonl.gz"
+    sha256_prefix = sanitize_filename(metadata["sha256"][:8])
+    filename = f"evidence-{timestamp}-{sha256_prefix}.jsonl.gz"
 
     if cloud_provider == "aws":
         return upload_to_s3(compressed_data, filename, metadata)
@@ -254,7 +267,7 @@ def upload_evidence_bundle(
         metadata_path = local_path.with_suffix(".json")
         metadata_path.write_text(json.dumps(metadata, indent=2))
 
-        logger.info(f"Saved evidence bundle locally: {local_path}")
+        logger.info("Successfully saved evidence bundle locally")
         return {
             "provider": "local",
             "path": str(local_path),
@@ -287,7 +300,7 @@ def upload_to_s3(
             ContentType="application/gzip",
         )
 
-        logger.info(f"Uploaded evidence to S3: s3://{s3_bucket}/evidence/{filename}")
+        logger.info("Successfully uploaded evidence to S3")
         return {
             "provider": "aws",
             "bucket": s3_bucket,
@@ -333,9 +346,7 @@ def upload_to_azure_blob(
             overwrite=True,
         )
 
-        logger.info(
-            f"Uploaded evidence to Azure Blob: {storage_account}/evidence/{filename}"
-        )
+        logger.info("Successfully uploaded evidence to Azure Blob")
         return {
             "provider": "azure",
             "storage_account": storage_account,
@@ -371,7 +382,7 @@ def upload_to_gcs(
 
         blob.upload_from_string(data, content_type="application/gzip")
 
-        logger.info(f"Uploaded evidence to GCS: gs://{gcs_bucket}/evidence/{filename}")
+        logger.info("Successfully uploaded evidence to GCS")
         return {
             "provider": "gcp",
             "bucket": gcs_bucket,
