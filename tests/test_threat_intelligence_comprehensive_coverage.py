@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from risk.feeds.base import VulnerabilityRecord
+from risk.feeds.base import FeedMetadata, VulnerabilityRecord
 from risk.feeds.ecosystems import (
     AlpineSecDBFeed,
     DebianSecurityFeed,
@@ -1276,6 +1276,401 @@ class TestExploitFeedsMoreComprehensive:
         assert records[0].id == "CVE-2024-1234"
         assert records[0].exploit_available is True
         assert records[0].exploit_maturity == "assessed"
+
+
+class TestOrchestratorComplete:
+    """Complete coverage tests for orchestrator to reach 100%."""
+
+    def test_orchestrator_update_all_feeds_kev_failure(self, temp_cache_dir: Path):
+        """Test update_all_feeds when KEV update fails."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        with patch("risk.feeds.orchestrator.update_kev_feed") as mock_kev:
+            mock_kev.side_effect = Exception("KEV update failed")
+            results = orchestrator.update_all_feeds()
+
+            assert "KEV" in results
+
+    def test_orchestrator_load_all_feeds_with_kev(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test load_all_feeds with KEV catalog present."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        kev_catalog = {
+            "CVE-2024-1234": {
+                "vulnerabilityName": "Test Vulnerability",
+                "dateAdded": "2024-01-01",
+                "vendorProject": "TestVendor",
+                "requiredAction": "Apply patch",
+                "dueDate": "2024-02-01",
+            }
+        }
+
+        def mock_load_kev(cache_dir):
+            return kev_catalog
+
+        monkeypatch.setattr("risk.feeds.orchestrator.load_kev_catalog", mock_load_kev)
+
+        results = orchestrator.load_all_feeds()
+
+        assert "KEV" in results
+        assert len(results["KEV"]) == 1
+        assert results["KEV"][0].id == "CVE-2024-1234"
+        assert results["KEV"][0].exploit_available is True
+        assert results["KEV"][0].kev_listed is True
+
+    def test_orchestrator_enrich_vulnerability_no_preloaded_feeds(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test enrich_vulnerability without pre-loaded feeds."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        def mock_load_all():
+            return {
+                "TestFeed": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="TestFeed",
+                        severity="HIGH",
+                        cvss_score=7.5,
+                        cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        description="Test vulnerability",
+                        exploit_available=True,
+                        exploit_maturity="poc",
+                        kev_listed=True,
+                        affected_packages=["test-package"],
+                        references=["https://example.com"],
+                        cwe_ids=["CWE-79"],
+                    )
+                ]
+            }
+
+        monkeypatch.setattr(orchestrator, "load_all_feeds", mock_load_all)
+
+        enrichment = orchestrator.enrich_vulnerability("CVE-2024-1234")
+
+        assert enrichment["cve_id"] == "CVE-2024-1234"
+        assert enrichment["severity"] == "HIGH"
+        assert enrichment["cvss_score"] == 7.5
+        assert (
+            enrichment["cvss_vector"] == "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        )
+        assert enrichment["exploit_available"] is True
+        assert enrichment["exploit_maturity"] == "poc"
+        assert enrichment["kev_listed"] is True
+        assert "test-package" in enrichment["affected_packages"]
+        assert "https://example.com" in enrichment["references"]
+        assert "CWE-79" in enrichment["cwe_ids"]
+
+    def test_orchestrator_enrich_vulnerability_multiple_sources(
+        self, temp_cache_dir: Path
+    ):
+        """Test enrich_vulnerability with multiple sources providing data."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        all_feeds = {
+            "Feed1": [
+                VulnerabilityRecord(
+                    id="CVE-2024-1234",
+                    source="Feed1",
+                    severity="HIGH",
+                    description="Description from Feed1",
+                )
+            ],
+            "Feed2": [
+                VulnerabilityRecord(
+                    id="CVE-2024-1234",
+                    source="Feed2",
+                    cvss_score=8.5,
+                    description="Description from Feed2",
+                    exploit_available=True,
+                )
+            ],
+        }
+
+        enrichment = orchestrator.enrich_vulnerability("CVE-2024-1234", all_feeds)
+
+        assert len(enrichment["sources"]) == 2
+        assert "Feed1" in enrichment["sources"]
+        assert "Feed2" in enrichment["sources"]
+        assert len(enrichment["descriptions"]) == 2
+        assert enrichment["severity"] == "HIGH"
+        assert enrichment["cvss_score"] == 8.5
+        assert enrichment["exploit_available"] is True
+
+    def test_orchestrator_export_unified_feed_with_duplicates(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test export_unified_feed with duplicate records from multiple sources."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        def mock_load_all():
+            return {
+                "Feed1": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="Feed1",
+                        severity="HIGH",
+                        affected_packages=["pkg1"],
+                        references=["https://ref1.com"],
+                    )
+                ],
+                "Feed2": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="Feed2",
+                        cvss_score=7.5,
+                        exploit_available=True,
+                        affected_packages=["pkg2"],
+                        references=["https://ref2.com"],
+                    )
+                ],
+            }
+
+        monkeypatch.setattr(orchestrator, "load_all_feeds", mock_load_all)
+
+        output_path = temp_cache_dir / "unified.json"
+        orchestrator.export_unified_feed(output_path)
+
+        assert output_path.exists()
+        data = json.loads(output_path.read_text())
+
+        assert data["metadata"]["total_vulnerabilities"] == 1
+        assert len(data["vulnerabilities"]) == 1
+
+        vuln = data["vulnerabilities"][0]
+        assert vuln["id"] == "CVE-2024-1234"
+        assert len(vuln["sources"]) == 2
+        assert "Feed1" in vuln["sources"]
+        assert "Feed2" in vuln["sources"]
+        assert vuln["severity"] == "HIGH"
+        assert vuln["cvss_score"] == 7.5
+        assert vuln["exploit_available"] is True
+        assert set(vuln["affected_packages"]) == {"pkg1", "pkg2"}
+        assert set(vuln["references"]) == {"https://ref1.com", "https://ref2.com"}
+
+    def test_orchestrator_get_statistics_with_exploits_and_kev(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test get_statistics with exploit and KEV data."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        def mock_load_all():
+            return {
+                "Feed1": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="Feed1",
+                        exploit_available=True,
+                        kev_listed=True,
+                    ),
+                    VulnerabilityRecord(
+                        id="CVE-2024-5678", source="Feed1", exploit_available=True
+                    ),
+                ],
+                "Feed2": [
+                    VulnerabilityRecord(id="CVE-2024-9999", source="Feed2"),
+                ],
+            }
+
+        def mock_get_metadata():
+            return [
+                FeedMetadata(
+                    name="Feed1",
+                    source="Source1",
+                    url="https://feed1.com",
+                    record_count=2,
+                ),
+                FeedMetadata(
+                    name="Feed2",
+                    source="Source2",
+                    url="https://feed2.com",
+                    record_count=1,
+                ),
+            ]
+
+        monkeypatch.setattr(orchestrator, "load_all_feeds", mock_load_all)
+        monkeypatch.setattr(orchestrator, "get_all_metadata", mock_get_metadata)
+
+        stats = orchestrator.get_statistics()
+
+        assert stats["total_feeds"] == 2
+        assert stats["total_vulnerabilities"] == 3
+        assert stats["vulnerabilities_with_exploits"] == 2
+        assert stats["kev_listed_vulnerabilities"] == 1
+        assert len(stats["feeds"]) == 2
+
+
+class TestEcosystemsComplete:
+    """Complete coverage tests for ecosystem feeds to reach 100%."""
+
+    def test_npm_security_feed_json_decode_error(self, temp_cache_dir: Path):
+        """Test NPM Security feed with invalid JSON."""
+        feed = NPMSecurityFeed(cache_dir=temp_cache_dir)
+        invalid_json = b"invalid json {{"
+        records = feed.parse_feed(invalid_json)
+        assert len(records) == 0
+
+    def test_npm_security_feed_with_all_fields(self, temp_cache_dir: Path):
+        """Test NPM Security feed with all fields present."""
+        feed = NPMSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "advisories": {
+                    "1234": {
+                        "id": "GHSA-xxxx-yyyy-zzzz",
+                        "severity": "high",
+                        "overview": "Test vulnerability description",
+                        "created": "2024-01-01",
+                        "updated": "2024-01-02",
+                        "module_name": "test-package",
+                        "vulnerable_versions": ">=1.0.0 <2.0.0",
+                        "patched_versions": ">=2.0.0",
+                        "url": "https://example.com/advisory",
+                        "cwe": "CWE-79",
+                        "recommendation": "Update to version 2.0.0",
+                    }
+                }
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "GHSA-xxxx-yyyy-zzzz"
+        assert records[0].severity == "high"
+        assert records[0].description == "Test vulnerability description"
+        assert records[0].affected_packages == ["test-package"]
+        assert "https://example.com/advisory" in records[0].references
+        assert "CWE-79" in records[0].cwe_ids
+
+    def test_rubysec_feed_json_decode_error(self, temp_cache_dir: Path):
+        """Test RubySec feed with invalid JSON."""
+        feed = RubySecFeed(cache_dir=temp_cache_dir)
+        invalid_json = b"invalid json {{"
+        records = feed.parse_feed(invalid_json)
+        assert len(records) == 0
+
+    def test_rubysec_feed_missing_id(self, temp_cache_dir: Path):
+        """Test RubySec feed with missing advisory ID."""
+        feed = RubySecFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            [
+                {
+                    "criticality": "high",
+                    "description": "Test vulnerability",
+                    "date": "2024-01-01",
+                }
+            ]
+        ).encode()
+
+        records = feed.parse_feed(data)
+        assert len(records) == 0
+
+    def test_rubysec_feed_with_all_fields(self, temp_cache_dir: Path):
+        """Test RubySec feed with all fields present."""
+        feed = RubySecFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            [
+                {
+                    "id": "GHSA-xxxx-yyyy-zzzz",
+                    "criticality": "high",
+                    "description": "Test vulnerability description",
+                    "date": "2024-01-01",
+                    "gem": "test-gem",
+                    "unaffected_versions": ["< 1.0.0"],
+                    "patched_versions": [">= 2.0.0"],
+                    "url": "https://example.com/advisory",
+                    "cve": "2024-1234",
+                    "title": "Test Advisory",
+                }
+            ]
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "GHSA-xxxx-yyyy-zzzz"
+        assert records[0].severity == "high"
+        assert records[0].affected_packages == ["test-gem"]
+        assert "https://example.com/advisory" in records[0].references
+
+    def test_debian_security_feed_json_decode_error(self, temp_cache_dir: Path):
+        """Test Debian Security feed with invalid JSON."""
+        feed = DebianSecurityFeed(cache_dir=temp_cache_dir)
+        invalid_json = b"invalid json {{"
+        records = feed.parse_feed(invalid_json)
+        assert len(records) == 0
+
+    def test_debian_security_feed_non_cve_entries(self, temp_cache_dir: Path):
+        """Test Debian Security feed with non-CVE entries."""
+        feed = DebianSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "TEMP-1234": {"description": "Temporary entry"},
+                "CVE-2024-1234": {
+                    "description": "Test vulnerability",
+                    "releases": {
+                        "bullseye": {"package1": {"status": "vulnerable"}},
+                        "bookworm": {"package2": {"status": "fixed"}},
+                    },
+                },
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "CVE-2024-1234"
+        assert "debian:package1" in records[0].affected_packages
+        assert "debian:package2" in records[0].affected_packages
+
+    def test_ubuntu_security_feed_json_decode_error(self, temp_cache_dir: Path):
+        """Test Ubuntu Security feed with invalid JSON."""
+        feed = UbuntuSecurityFeed(cache_dir=temp_cache_dir)
+        invalid_json = b"invalid json {{"
+        records = feed.parse_feed(invalid_json)
+        assert len(records) == 0
+
+    def test_ubuntu_security_feed_missing_id(self, temp_cache_dir: Path):
+        """Test Ubuntu Security feed with missing notice ID."""
+        feed = UbuntuSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "notices": [
+                    {"summary": "Test notice", "cves": ["CVE-2024-1234"]},
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+        assert len(records) == 0
+
+    def test_ubuntu_security_feed_with_all_fields(self, temp_cache_dir: Path):
+        """Test Ubuntu Security feed with all fields present."""
+        feed = UbuntuSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "notices": [
+                    {
+                        "id": "USN-1234-1",
+                        "summary": "Test security notice",
+                        "published": "2024-01-01",
+                        "cves": ["CVE-2024-1234", "CVE-2024-5678"],
+                        "title": "Test Notice Title",
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "USN-1234-1"
+        assert records[0].description == "Test security notice"
+        assert "CVE-2024-1234" in records[0].cwe_ids
+        assert "CVE-2024-5678" in records[0].cwe_ids
 
 
 if __name__ == "__main__":
