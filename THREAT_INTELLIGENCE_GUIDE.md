@@ -2,7 +2,15 @@
 
 ## Overview
 
-FixOps now integrates **166+ comprehensive threat intelligence sources**, expanding from the original 2 sources (KEV, EPSS) to match or exceed platforms like inatestate.io. This guide covers the new threat intelligence capabilities, hybrid storage architecture, and portfolio search features.
+FixOps now provides an **extensible framework for 166+ threat intelligence sources** with **30+ sources currently implemented**, expanding from the original 2 sources (KEV, EPSS). The framework is designed to match or exceed platforms like inatestate.io. This guide covers the new threat intelligence capabilities, hybrid storage architecture, and portfolio search features.
+
+**Current Status:**
+- ✅ **30+ sources implemented**: OSV, NVD, GitHub Security Advisories, 9 vendor feeds, 10 ecosystem feeds, 7 exploit intelligence feeds
+- 🚧 **136+ sources scaffolded**: Framework ready, parsers need implementation (see THREAT_INTELLIGENCE_RESEARCH.md)
+- ✅ **Hybrid storage**: File storage + VectorDB + Portfolio search
+- ✅ **Python API**: Full programmatic access via orchestrator
+- 🚧 **REST API**: Planned (see "Future Enhancements" section)
+- 🚧 **CLI commands**: Planned (see "Future Enhancements" section)
 
 ## Architecture
 
@@ -304,9 +312,45 @@ portfolio_search:
   auto_rebuild_index: true
 ```
 
-## API Endpoints
+## Python API (Current)
 
-### Threat Intelligence Endpoints
+The threat intelligence and portfolio search features are currently available via Python API:
+
+```python
+from risk.feeds.orchestrator import ThreatIntelligenceOrchestrator
+from core.evidence_indexer import EvidenceBundleIndexer
+from core.portfolio_search import PortfolioSearchEngine
+
+# Initialize orchestrator
+orchestrator = ThreatIntelligenceOrchestrator(cache_dir="data/feeds")
+
+# Update all feeds
+orchestrator.update_all_feeds()
+
+# Get statistics
+stats = orchestrator.get_statistics()
+
+# Enrich a CVE
+enriched = orchestrator.enrich_vulnerability("CVE-2024-1234")
+
+# Export unified feed
+orchestrator.export_unified_feed("data/unified_threat_intel.json")
+
+# Index evidence bundles
+indexer = EvidenceBundleIndexer(vector_store_type="chroma")
+indexer.index_all_bundles("data/evidence")
+
+# Search portfolio
+engine = PortfolioSearchEngine(evidence_dir="data/evidence")
+results = engine.search_by_component("lodash")
+results = engine.search_by_cve("CVE-2024-1234")
+results = engine.search_by_app("payment-service")
+summary = engine.get_inventory_summary()
+```
+
+## REST API Endpoints (Planned)
+
+### Threat Intelligence Endpoints (Planned)
 
 ```bash
 # Get all threat intelligence sources
@@ -325,7 +369,7 @@ GET /api/v1/threat-intelligence/enrich/{cve_id}
 GET /api/v1/threat-intelligence/export
 ```
 
-### Portfolio Search Endpoints
+### Portfolio Search Endpoints (Planned)
 
 ```bash
 # Search by component
@@ -353,7 +397,9 @@ POST /api/v1/portfolio/search/multi
 GET /api/v1/portfolio/inventory/summary
 ```
 
-## CLI Commands
+## CLI Commands (Planned)
+
+The following CLI commands are planned for future implementation. Currently, use the Python API shown above.
 
 ```bash
 # Update all threat intelligence feeds
@@ -487,9 +533,19 @@ engine._build_index()
 
 ## Future Enhancements
 
+### High Priority
+- **REST API endpoints**: FastAPI endpoints for threat intelligence and portfolio search (see "REST API Endpoints (Planned)" section)
+- **CLI commands**: Command-line interface for all operations (see "CLI Commands (Planned)" section)
+- **Additional feed parsers**: Implement remaining 136+ scaffolded sources (see THREAT_INTELLIGENCE_RESEARCH.md)
+
+### Medium Priority
 - **Additional sources**: MITRE ATT&CK, CAPEC, CWE, OWASP Top 10
 - **Machine learning**: Exploit prediction models
 - **Threat actor attribution**: APT group tracking
+- **Rate limiting**: Throttling and batching for API calls
+- **Async processing**: Parallel feed updates for better performance
+
+### Low Priority
 - **Dark web intelligence**: Threat intelligence from dark web sources
 - **Automated feed discovery**: Automatically discover new threat intelligence sources
 - **Real-time streaming**: WebSocket-based real-time threat intelligence updates
