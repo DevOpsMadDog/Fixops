@@ -562,6 +562,160 @@ class TestOSVFeedComprehensive:
 
         assert isinstance(records, list)
 
+    def test_osv_feed_parse_osv_record_full(self, temp_cache_dir: Path):
+        """Test parsing full OSV vulnerability record."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        osv_data = {
+            "id": "OSV-2024-1234",
+            "summary": "Test vulnerability",
+            "details": "Detailed description of the vulnerability",
+            "published": "2024-01-01T00:00:00Z",
+            "modified": "2024-01-02T00:00:00Z",
+            "aliases": ["CVE-2024-1234", "GHSA-xxxx-yyyy-zzzz"],
+            "severity": [{"type": "CVSS_V3", "score": "9.8/CVSS:3.1/AV:N/AC:L"}],
+            "affected": [
+                {
+                    "package": {"name": "test-package", "ecosystem": "PyPI"},
+                    "ranges": [
+                        {
+                            "type": "ECOSYSTEM",
+                            "events": [{"introduced": "0"}, {"fixed": "1.0.0"}],
+                        }
+                    ],
+                }
+            ],
+            "references": [{"type": "ADVISORY", "url": "https://example.com/advisory"}],
+            "database_specific": {"severity": "HIGH"},
+        }
+
+        record = feed._parse_osv_record(osv_data, "PyPI")
+
+        assert record is not None
+        assert record.id == "OSV-2024-1234"
+        assert record.source == "OSV"
+        assert record.cvss_score == 9.8
+        assert record.severity == "CRITICAL"
+        assert "test-package" in record.affected_packages
+        assert "CVE-2024-1234" in record.cwe_ids
+        assert len(record.references) > 0
+
+    def test_osv_feed_parse_osv_record_minimal(self, temp_cache_dir: Path):
+        """Test parsing minimal OSV vulnerability record."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        osv_data = {"id": "OSV-2024-5678", "summary": "Minimal vulnerability"}
+
+        record = feed._parse_osv_record(osv_data, "npm")
+
+        assert record is not None
+        assert record.id == "OSV-2024-5678"
+        assert record.source == "OSV"
+        assert record.severity is None
+
+    def test_osv_feed_parse_osv_record_no_id(self, temp_cache_dir: Path):
+        """Test parsing OSV record without ID."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        osv_data = {"summary": "No ID vulnerability"}
+
+        record = feed._parse_osv_record(osv_data, "PyPI")
+
+        assert record is None
+
+    def test_osv_feed_parse_osv_record_severity_levels(self, temp_cache_dir: Path):
+        """Test OSV record severity level mapping."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        test_cases = [
+            (9.5, "CRITICAL"),
+            (8.0, "HIGH"),
+            (5.0, "MEDIUM"),
+            (2.0, "LOW"),
+        ]
+
+        for score, expected_severity in test_cases:
+            osv_data = {
+                "id": f"OSV-TEST-{score}",
+                "severity": [{"type": "CVSS_V3", "score": f"{score}/CVSS:3.1/AV:N"}],
+            }
+
+            record = feed._parse_osv_record(osv_data, "PyPI")
+
+            assert record is not None
+            assert record.severity == expected_severity
+            assert record.cvss_score == score
+
+    def test_osv_feed_fetch_ecosystem_vulnerabilities_error(self, temp_cache_dir: Path):
+        """Test fetching ecosystem vulnerabilities with error."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        def mock_fetcher(url: str) -> bytes:
+            raise Exception("Network error")
+
+        feed.fetcher = mock_fetcher
+
+        records = feed.fetch_ecosystem_vulnerabilities("PyPI")
+
+        assert records == []
+
+
+class TestExploitFeedsComprehensive:
+    """Comprehensive tests for exploit feeds."""
+
+    def test_exploitdb_feed_parse_with_headers(self, temp_cache_dir: Path):
+        """Test Exploit-DB feed parsing with CSV headers."""
+        feed = ExploitDBFeed(cache_dir=temp_cache_dir)
+
+        csv_data = b"""id,description,date,author,type,platform,port
+12345,SQL Injection in WordPress,2024-01-01,John Doe,webapps,php,80
+12346,Buffer Overflow in Apache,2024-01-02,Jane Smith,remote,linux,443"""
+
+        records = feed.parse_feed(csv_data)
+
+        assert len(records) == 2
+        assert records[0].id == "EDB-12345"
+        assert records[0].exploit_available is True
+        assert records[1].id == "EDB-12346"
+
+
+class TestKEVFeedComprehensive:
+    """Comprehensive tests for KEV feed."""
+
+    def test_kev_feed_update_with_error(self, temp_cache_dir: Path):
+        """Test KEV feed update with network error."""
+
+        def mock_fetcher(url: str) -> bytes:
+            raise TimeoutError("Network timeout")
+
+        with pytest.raises(TimeoutError):
+            update_kev_feed(cache_dir=temp_cache_dir, fetcher=mock_fetcher)
+
+    def test_kev_feed_load_catalog_with_multiple_vulns(self, temp_cache_dir: Path):
+        """Test loading KEV catalog with multiple vulnerabilities."""
+        kev_data = {
+            "vulnerabilities": [
+                {
+                    "cveID": "CVE-2024-1234",
+                    "vulnerabilityName": "Test Vuln 1",
+                    "dateAdded": "2024-01-01",
+                },
+                {
+                    "cveID": "CVE-2024-5678",
+                    "vulnerabilityName": "Test Vuln 2",
+                    "dateAdded": "2024-01-02",
+                },
+            ]
+        }
+        kev_path = temp_cache_dir / "kev.json"
+        kev_path.write_text(json.dumps(kev_data))
+
+        catalog = load_kev_catalog(cache_dir=temp_cache_dir)
+
+        assert len(catalog) == 2
+        assert "CVE-2024-1234" in catalog
+        assert "CVE-2024-5678" in catalog
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
