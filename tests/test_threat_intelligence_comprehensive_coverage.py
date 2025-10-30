@@ -2081,5 +2081,158 @@ class TestAbsoluteCompleteCoverage:
         assert result is None
 
 
+class TestFinalPushTo100Percent:
+    """Final comprehensive tests to achieve 100% coverage."""
+
+    def test_vendors_microsoft_json_decode_error(self, temp_cache_dir: Path):
+        """Test Microsoft feed with JSON decode error."""
+        feed = MicrosoftSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"invalid json {{"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_microsoft_no_update_id(self, temp_cache_dir: Path):
+        """Test Microsoft feed with missing update ID."""
+        feed = MicrosoftSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps({"value": [{"Title": "No ID"}]}).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_microsoft_full_record(self, temp_cache_dir: Path):
+        """Test Microsoft feed with full record."""
+        feed = MicrosoftSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "value": [
+                    {
+                        "ID": "CVE-2024-1234",
+                        "Title": "Test Advisory",
+                        "InitialReleaseDate": "2024-01-01",
+                        "CurrentReleaseDate": "2024-01-02",
+                        "Severity": "Critical",
+                        "Alias": "MS24-001",
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "CVE-2024-1234"
+        assert records[0].severity == "Critical"
+
+    def test_vendors_kubernetes_json_decode_error(self, temp_cache_dir: Path):
+        """Test Kubernetes feed with JSON decode error."""
+        feed = KubernetesSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"invalid json {{"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_kubernetes_no_cve_id(self, temp_cache_dir: Path):
+        """Test Kubernetes feed with missing CVE ID."""
+        feed = KubernetesSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps({"items": [{"description": "No ID"}]}).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_kubernetes_full_record(self, temp_cache_dir: Path):
+        """Test Kubernetes feed with full record."""
+        feed = KubernetesSecurityFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "items": [
+                    {
+                        "id": "CVE-2024-1234",
+                        "description": "Test vulnerability",
+                        "datePublished": "2024-01-01",
+                        "dateUpdated": "2024-01-02",
+                        "severity": "HIGH",
+                        "cvss": {"score": 8.5, "vectorString": "CVSS:3.1/AV:N"},
+                        "url": "https://example.com",
+                        "affectedVersions": ["1.0.0", "1.0.1"],
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "CVE-2024-1234"
+        assert records[0].cvss_score == 8.5
+
+    def test_vendors_apple_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test Apple feed parse (not implemented)."""
+        feed = AppleSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>Apple Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_aws_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test AWS feed parse (not implemented)."""
+        feed = AWSSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>AWS Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_azure_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test Azure feed parse (not implemented)."""
+        feed = AzureSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>Azure Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_oracle_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test Oracle feed parse (not implemented)."""
+        feed = OracleSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>Oracle Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_cisco_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test Cisco feed parse (not implemented)."""
+        feed = CiscoSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>Cisco Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_vmware_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test VMware feed parse (not implemented)."""
+        feed = VMwareSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>VMware Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vendors_docker_parse_not_implemented(self, temp_cache_dir: Path):
+        """Test Docker feed parse (not implemented)."""
+        feed = DockerSecurityFeed(cache_dir=temp_cache_dir)
+        data = b"<html>Docker Security</html>"
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
