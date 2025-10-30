@@ -215,7 +215,9 @@ class KubernetesSecurityFeed(ThreatIntelligenceFeed):
 
     @property
     def feed_url(self) -> str:
-        return "https://storage.googleapis.com/kubernetes-security-cve-feed/security.json"
+        return (
+            "https://storage.googleapis.com/kubernetes-security-cve-feed/security.json"
+        )
 
     @property
     def cache_filename(self) -> str:
