@@ -587,6 +587,8 @@ class InputNormalizer:
             return bytes(content)
         if isinstance(content, memoryview):
             return content.tobytes()
+        if isinstance(content, (dict, list)):
+            return json.dumps(content).encode("utf-8")
         if hasattr(content, "read"):
             handle = content  # type: ignore[assignment]
             chunk_size = 1024 * 1024
@@ -790,6 +792,36 @@ class InputNormalizer:
         services = parser.get_services() or []
         vulnerabilities = parser.get_vulnerabilities() or []
 
+        try:
+            document = parser.get_document() or {}
+            if isinstance(document, dict):
+                doc_vulns = document.get("vulnerabilities", [])
+                if isinstance(doc_vulns, list):
+                    vulnerabilities.extend(doc_vulns)
+
+                components_list = document.get("components", [])
+                if isinstance(components_list, list):
+                    for component in components_list:
+                        if isinstance(component, dict):
+                            component_vulns = component.get("vulnerabilities", [])
+                            if isinstance(component_vulns, list):
+                                for vuln in component_vulns:
+                                    if isinstance(vuln, dict):
+                                        vuln_copy = vuln.copy()
+                                        purl = component.get("purl")
+                                        name = component.get("name")
+                                        version = component.get("version")
+                                        vuln_copy["affects"] = [
+                                            {
+                                                "ref": purl
+                                                if purl
+                                                else f"{name}@{version}"
+                                            }
+                                        ]
+                                        vulnerabilities.append(vuln_copy)
+        except Exception as e:
+            logger.warning(f"Failed to extract component-level vulnerabilities: {e}")
+
         metadata = {
             "component_count": len(components),
             "relationship_count": len(relationships),
@@ -815,11 +847,118 @@ class InputNormalizer:
         except (json.JSONDecodeError, ValueError):
             return None
 
-        for parser in (self._parse_github_dependency_snapshot, self._parse_syft_json):
+        for parser in (
+            self._parse_cyclonedx_json,
+            self._parse_github_dependency_snapshot,
+            self._parse_syft_json,
+        ):
             result = parser(document)
             if result is not None:
                 return result
         return None
+
+    def _parse_cyclonedx_json(self, document: dict[str, Any]) -> NormalizedSBOM | None:
+        bom_format = document.get("bomFormat")
+        components_list = document.get("components")
+
+        if bom_format != "CycloneDX" and not components_list:
+            return None
+
+        if not isinstance(components_list, list):
+            return None
+
+        components: list[SBOMComponent] = []
+        all_vulnerabilities: list[dict[str, Any]] = []
+
+        for component in components_list:
+            if not isinstance(component, dict):
+                continue
+
+            name = component.get("name")
+            if not name:
+                continue
+
+            version = component.get("version")
+            purl = component.get("purl")
+
+            licenses_raw = component.get("licenses")
+            licenses: list[str] = []
+            if isinstance(licenses_raw, list):
+                for item in licenses_raw:
+                    if isinstance(item, dict):
+                        license_info = item.get("license", {})
+                        if isinstance(license_info, dict):
+                            license_id = license_info.get("id") or license_info.get(
+                                "name"
+                            )
+                            if license_id:
+                                licenses.append(str(license_id))
+                        elif license_info:
+                            licenses.append(str(license_info))
+                    elif item:
+                        licenses.append(str(item))
+
+            supplier = component.get("supplier")
+            if isinstance(supplier, dict):
+                supplier = supplier.get("name")
+
+            component_vulns = component.get("vulnerabilities", [])
+            if isinstance(component_vulns, list):
+                for vuln in component_vulns:
+                    if isinstance(vuln, dict):
+                        vuln_copy = vuln.copy()
+                        vuln_copy["affects"] = [
+                            {"ref": purl if purl else f"{name}@{version}"}
+                        ]
+                        all_vulnerabilities.append(vuln_copy)
+
+            components.append(
+                SBOMComponent(
+                    name=str(name),
+                    version=str(version) if version is not None else None,
+                    purl=str(purl) if purl else None,
+                    licenses=licenses,
+                    supplier=str(supplier) if supplier else None,
+                    raw=component,
+                )
+            )
+
+        if not components:
+            return None
+
+        relationships = document.get("dependencies", [])
+        if not isinstance(relationships, list):
+            relationships = []
+
+        services = document.get("services", [])
+        if not isinstance(services, list):
+            services = []
+
+        doc_vulnerabilities = document.get("vulnerabilities", [])
+        if isinstance(doc_vulnerabilities, list):
+            all_vulnerabilities.extend(doc_vulnerabilities)
+
+        metadata = {
+            "component_count": len(components),
+            "relationship_count": len(relationships),
+            "service_count": len(services),
+            "vulnerability_count": len(all_vulnerabilities),
+            "parser": "cyclonedx-json",
+        }
+
+        spec_version = document.get("specVersion")
+        if spec_version:
+            metadata["spec_version"] = spec_version
+
+        return NormalizedSBOM(
+            format="cyclonedx",
+            document=document,
+            components=components,
+            relationships=relationships,
+            services=services,
+            vulnerabilities=all_vulnerabilities,
+            metadata=metadata,
+        )
 
     def _parse_github_dependency_snapshot(
         self, document: dict[str, Any]
