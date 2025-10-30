@@ -59,6 +59,29 @@ def ensure_secure_directory(path: Path, mode: int = 0o750) -> Path:
     return resolved
 
 
+def ensure_output_directory(path: Path, mode: int = 0o750) -> Path:
+    """Create *path* if needed for user-specified output files.
+
+    This is a relaxed version of ``ensure_secure_directory`` for non-regulated
+    storage like user-specified output paths (--output flag). Unlike the strict
+    version, this function allows world-writable directories (e.g., /tmp) but
+    still attempts to set restrictive permissions where possible.
+
+    Use this for user-facing output paths. Use ``ensure_secure_directory`` for
+    regulated storage (evidence, uploads, archives).
+    """
+
+    resolved = path.resolve()
+    resolved.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(resolved, mode)
+    except PermissionError:
+        # Windows systems may not support chmod in the same way; continue after best effort.
+        pass
+
+    return resolved
+
+
 def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
     """Resolve *path* and ensure it resides inside a secure allowlisted root.
 
@@ -106,4 +129,8 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
     return resolved
 
 
-__all__ = ["ensure_secure_directory", "verify_allowlisted_path"]
+__all__ = [
+    "ensure_secure_directory",
+    "ensure_output_directory",
+    "verify_allowlisted_path",
+]

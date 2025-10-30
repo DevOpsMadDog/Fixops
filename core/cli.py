@@ -35,7 +35,11 @@ if TYPE_CHECKING:
     from core.storage import ArtefactArchive  # noqa: F401
 
 from core.overlay_runtime import prepare_overlay
-from core.paths import ensure_secure_directory, verify_allowlisted_path
+from core.paths import (
+    ensure_output_directory,
+    ensure_secure_directory,
+    verify_allowlisted_path,
+)
 
 
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
@@ -372,7 +376,7 @@ def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def _write_output(path: Path, payload: Mapping[str, Any], *, pretty: bool) -> None:
-    ensure_secure_directory(path.parent)
+    ensure_output_directory(path.parent)
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2 if pretty else None)
         if pretty:
@@ -843,7 +847,7 @@ def _handle_train_forecast(args: argparse.Namespace) -> int:
     payload = result.to_dict()
 
     if args.output:
-        ensure_secure_directory(args.output.parent)
+        ensure_output_directory(args.output.parent)
         with args.output.open("w", encoding="utf-8") as handle:
             json.dump(payload, handle, indent=2 if args.pretty else None)
             if args.pretty:
