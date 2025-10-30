@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Dict
+from urllib.parse import urlparse
 
 import pytest
 
@@ -117,7 +118,11 @@ class TestOSVFeed:
         feed = OSVFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "OSV"
-        assert "osv-vulnerabilities" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert (
+            "osv-vulnerabilities" in parsed_url.netloc
+            or "osv-vulnerabilities" in parsed_url.path
+        )
         assert feed.cache_filename == "osv-ecosystems.txt"
 
     def test_osv_feed_parse_ecosystems(self, temp_cache_dir: Path):
@@ -138,7 +143,8 @@ class TestNVDFeed:
         feed = NVDFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "NVD"
-        assert "nvd.nist.gov" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert "nvd.nist.gov" in parsed_url.netloc
         assert feed.cache_filename == "nvd-cves.json"
 
     def test_nvd_feed_parse(self, temp_cache_dir: Path):
@@ -188,7 +194,8 @@ class TestGitHubSecurityAdvisoriesFeed:
         feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "GitHub Security Advisories"
-        assert "api.github.com" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert parsed_url.netloc == "api.github.com"
         assert feed.cache_filename == "github-advisories.json"
 
     def test_github_feed_parse(self, temp_cache_dir: Path):
@@ -248,7 +255,8 @@ class TestVendorFeeds:
         feed = MicrosoftSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Microsoft Security"
-        assert "msrc.microsoft.com" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert "msrc.microsoft.com" in parsed_url.netloc
         assert feed.cache_filename == "microsoft-security.json"
 
     def test_kubernetes_feed_properties(self, temp_cache_dir: Path):
@@ -256,7 +264,8 @@ class TestVendorFeeds:
         feed = KubernetesSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Kubernetes Security"
-        assert "kubernetes.io" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert "kubernetes.io" in parsed_url.netloc
         assert feed.cache_filename == "kubernetes-security.json"
 
 
@@ -268,7 +277,8 @@ class TestEcosystemFeeds:
         feed = NPMSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "npm Security"
-        assert "registry.npmjs.org" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert parsed_url.netloc == "registry.npmjs.org"
         assert feed.cache_filename == "npm-security.json"
 
     def test_rubysec_feed_properties(self, temp_cache_dir: Path):
@@ -276,7 +286,8 @@ class TestEcosystemFeeds:
         feed = RubySecFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "RubySec"
-        assert "rubysec.com" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert "rubysec.com" in parsed_url.netloc
         assert feed.cache_filename == "rubysec.json"
 
     def test_debian_feed_properties(self, temp_cache_dir: Path):
@@ -284,7 +295,8 @@ class TestEcosystemFeeds:
         feed = DebianSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Debian Security"
-        assert "security-tracker.debian.org" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert parsed_url.netloc == "security-tracker.debian.org"
         assert feed.cache_filename == "debian-security.json"
 
 
@@ -296,7 +308,11 @@ class TestExploitFeeds:
         feed = ExploitDBFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Exploit-DB"
-        assert "exploit-database" in feed.feed_url
+        parsed_url = urlparse(feed.feed_url)
+        assert (
+            "exploit-database" in parsed_url.netloc
+            or "exploit-database" in parsed_url.path
+        )
         assert feed.cache_filename == "exploitdb.csv"
 
     def test_exploitdb_feed_parse(self, temp_cache_dir: Path):
@@ -382,6 +398,256 @@ class TestThreatIntelligenceOrchestrator:
         assert "vulnerabilities_with_exploits" in stats
         assert "kev_listed_vulnerabilities" in stats
         assert "feeds" in stats
+
+    def test_orchestrator_update_all_feeds(self, temp_cache_dir: Path):
+        """Test updating all feeds with orchestrator."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        results = orchestrator.update_all_feeds()
+
+        assert isinstance(results, dict)
+        assert len(results) > 0
+
+    def test_orchestrator_load_all_feeds(self, temp_cache_dir: Path):
+        """Test loading all feeds with orchestrator."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        feeds = orchestrator.load_all_feeds()
+
+        assert isinstance(feeds, dict)
+
+    def test_orchestrator_export_unified_feed(self, temp_cache_dir: Path):
+        """Test exporting unified feed."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        output_path = temp_cache_dir / "unified_feed.json"
+        orchestrator.export_unified_feed(output_path)
+
+        assert output_path.exists()
+        data = json.loads(output_path.read_text())
+        assert "metadata" in data
+        assert "vulnerabilities" in data
+
+
+class TestBaseFeedMethods:
+    """Test base feed class methods."""
+
+    def test_osv_feed_update_and_load(self, temp_cache_dir: Path):
+        """Test OSV feed update and load methods."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        cache_path = temp_cache_dir / feed.cache_filename
+        cache_path.write_text("PyPI\nnpm\nGo")
+
+        records = feed.load_feed()
+        assert isinstance(records, list)
+
+        metadata = feed.get_metadata()
+        assert isinstance(metadata, FeedMetadata)
+        assert metadata.name == "OSV"
+
+    def test_nvd_feed_parse_error_handling(self, temp_cache_dir: Path):
+        """Test NVD feed error handling."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"not valid json"
+        records = feed.parse_feed(invalid_json)
+        assert records == []
+
+        empty_data = b"{}"
+        records = feed.parse_feed(empty_data)
+        assert records == []
+
+    def test_github_feed_parse_error_handling(self, temp_cache_dir: Path):
+        """Test GitHub feed error handling."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"not valid json"
+        records = feed.parse_feed(invalid_json)
+        assert records == []
+
+        empty_data = b"{}"
+        records = feed.parse_feed(empty_data)
+        assert records == []
+
+    def test_exploitdb_feed_parse_error_handling(self, temp_cache_dir: Path):
+        """Test Exploit-DB feed error handling."""
+        feed = ExploitDBFeed(cache_dir=temp_cache_dir)
+
+        invalid_csv = b"not,valid,csv,data"
+        records = feed.parse_feed(invalid_csv)
+        assert isinstance(records, list)
+
+    def test_feed_registry_update_all(self, temp_cache_dir: Path):
+        """Test updating all feeds in registry."""
+        registry = FeedRegistry(cache_dir=temp_cache_dir)
+
+        osv_feed = OSVFeed(cache_dir=temp_cache_dir)
+        registry.register(osv_feed)
+
+        results = registry.update_all()
+        assert isinstance(results, dict)
+
+    def test_feed_registry_load_all(self, temp_cache_dir: Path):
+        """Test loading all feeds in registry."""
+        registry = FeedRegistry(cache_dir=temp_cache_dir)
+
+        osv_feed = OSVFeed(cache_dir=temp_cache_dir)
+        registry.register(osv_feed)
+
+        cache_path = temp_cache_dir / osv_feed.cache_filename
+        cache_path.write_text("PyPI\nnpm")
+
+        results = registry.load_all()
+        assert isinstance(results, dict)
+
+
+class TestVendorFeedsParsing:
+    """Test vendor feed parsing methods."""
+
+    def test_microsoft_feed_parse(self, temp_cache_dir: Path):
+        """Test Microsoft feed parsing."""
+        feed = MicrosoftSecurityFeed(cache_dir=temp_cache_dir)
+
+        records = feed.parse_feed(b"{}")
+        assert records == []
+
+    def test_kubernetes_feed_parse(self, temp_cache_dir: Path):
+        """Test Kubernetes feed parsing."""
+        feed = KubernetesSecurityFeed(cache_dir=temp_cache_dir)
+
+        records = feed.parse_feed(b"{}")
+        assert records == []
+
+
+class TestEcosystemFeedsParsing:
+    """Test ecosystem feed parsing methods."""
+
+    def test_npm_feed_parse(self, temp_cache_dir: Path):
+        """Test npm feed parsing."""
+        feed = NPMSecurityFeed(cache_dir=temp_cache_dir)
+
+        records = feed.parse_feed(b"{}")
+        assert records == []
+
+    def test_rubysec_feed_parse(self, temp_cache_dir: Path):
+        """Test RubySec feed parsing."""
+        feed = RubySecFeed(cache_dir=temp_cache_dir)
+
+        records = feed.parse_feed(b"{}")
+        assert records == []
+
+    def test_debian_feed_parse(self, temp_cache_dir: Path):
+        """Test Debian feed parsing."""
+        feed = DebianSecurityFeed(cache_dir=temp_cache_dir)
+
+        records = feed.parse_feed(b"{}")
+        assert records == []
+
+
+class TestExploitFeedsParsing:
+    """Test exploit feed parsing methods."""
+
+    def test_exploitdb_feed_parse_with_valid_data(self, temp_cache_dir: Path):
+        """Test Exploit-DB feed with valid CSV data."""
+        feed = ExploitDBFeed(cache_dir=temp_cache_dir)
+
+        csv_data = b"""id,description,date,author,type,platform,port
+12345,SQL Injection,2024-01-01,Test Author,remote,linux,80
+12346,XSS Vulnerability,2024-01-02,Another Author,webapps,windows,443"""
+
+        records = feed.parse_feed(csv_data)
+
+        assert len(records) == 2
+        assert records[0].id == "EDB-12345"
+        assert records[1].id == "EDB-12346"
+
+
+class TestOrchestratorEnrichment:
+    """Test orchestrator enrichment capabilities."""
+
+    def test_enrich_vulnerability_with_multiple_sources(self, temp_cache_dir: Path):
+        """Test enriching vulnerability from multiple sources."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        mock_feeds: Dict[str, Any] = {
+            "NVD": [
+                VulnerabilityRecord(
+                    id="CVE-2024-1234",
+                    source="NVD",
+                    severity="HIGH",
+                    cvss_score=7.5,
+                    cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                    description="Test vulnerability from NVD",
+                    references=["https://nvd.nist.gov/vuln/detail/CVE-2024-1234"],
+                    cwe_ids=["CWE-79"],
+                )
+            ],
+            "GitHub Security Advisories": [
+                VulnerabilityRecord(
+                    id="CVE-2024-1234",
+                    source="GitHub Security Advisories",
+                    exploit_available=True,
+                    exploit_maturity="public",
+                    description="Test vulnerability from GitHub",
+                    affected_packages=["test-package"],
+                    references=["https://github.com/advisories/GHSA-xxxx"],
+                )
+            ],
+            "KEV": [
+                VulnerabilityRecord(
+                    id="CVE-2024-1234",
+                    source="KEV",
+                    kev_listed=True,
+                    description="Known exploited vulnerability",
+                )
+            ],
+        }
+
+        enrichment = orchestrator.enrich_vulnerability(
+            "CVE-2024-1234", all_feeds=mock_feeds
+        )
+
+        assert enrichment["cve_id"] == "CVE-2024-1234"
+        assert len(enrichment["sources"]) == 3
+        assert "NVD" in enrichment["sources"]
+        assert "GitHub Security Advisories" in enrichment["sources"]
+        assert "KEV" in enrichment["sources"]
+        assert enrichment["severity"] == "HIGH"
+        assert enrichment["cvss_score"] == 7.5
+        assert (
+            enrichment["cvss_vector"] == "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        )
+        assert enrichment["exploit_available"] is True
+        assert enrichment["exploit_maturity"] == "public"
+        assert enrichment["kev_listed"] is True
+        assert len(enrichment["descriptions"]) == 3
+        assert "test-package" in enrichment["affected_packages"]
+        assert "CWE-79" in enrichment["cwe_ids"]
+        assert len(enrichment["references"]) == 2
+
+    def test_enrich_vulnerability_not_found(self, temp_cache_dir: Path):
+        """Test enriching vulnerability that doesn't exist."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        mock_feeds: Dict[str, Any] = {
+            "NVD": [
+                VulnerabilityRecord(
+                    id="CVE-2024-9999",
+                    source="NVD",
+                    severity="LOW",
+                )
+            ],
+        }
+
+        enrichment = orchestrator.enrich_vulnerability(
+            "CVE-2024-1234", all_feeds=mock_feeds
+        )
+
+        assert enrichment["cve_id"] == "CVE-2024-1234"
+        assert len(enrichment["sources"]) == 0
+        assert enrichment["severity"] is None
+        assert enrichment["exploit_available"] is False
 
 
 if __name__ == "__main__":
