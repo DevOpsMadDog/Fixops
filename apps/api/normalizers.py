@@ -512,6 +512,7 @@ class SarifFinding:
     file: Optional[str]
     line: Optional[int]
     raw: dict[str, Any]
+    tool_name: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -588,7 +589,14 @@ class InputNormalizer:
         if isinstance(content, memoryview):
             return content.tobytes()
         if isinstance(content, (dict, list)):
-            return json.dumps(content).encode("utf-8")
+            try:
+                return json.dumps(content, allow_nan=False, ensure_ascii=False).encode(
+                    "utf-8"
+                )
+            except ValueError as e:
+                raise ValueError(
+                    f"Cannot serialize dict/list to JSON: {e}. NaN/Infinity values are not allowed."
+                ) from e
         if hasattr(content, "read"):
             handle = content  # type: ignore[assignment]
             chunk_size = 1024 * 1024
@@ -703,7 +711,24 @@ class InputNormalizer:
             raise ValueError(
                 f"Input document exceeds maximum allowed size of {self.max_document_bytes} bytes"
             )
-        return data.decode("utf-8", errors="ignore")
+
+        encoding = "utf-8"
+        if data.startswith(b"\xef\xbb\xbf"):
+            encoding = "utf-8-sig"
+        elif data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
+            encoding = "utf-16"
+        elif data.startswith(b"\xff\xfe\x00\x00") or data.startswith(
+            b"\x00\x00\xfe\xff"
+        ):
+            encoding = "utf-32"
+
+        try:
+            return data.decode(encoding, errors="strict")
+        except UnicodeDecodeError as e:
+            raise ValueError(
+                f"Input document contains invalid {encoding} sequences at position {e.start}. "
+                f"Please ensure the input is valid UTF-8 encoded text."
+            ) from e
 
     def load_sbom(self, raw: Any) -> NormalizedSBOM:
         """Normalise an SBOM using lib4sbom or provider fallbacks."""
@@ -822,11 +847,41 @@ class InputNormalizer:
         except Exception as e:
             logger.warning(f"Failed to extract component-level vulnerabilities: {e}")
 
+        vuln_map: dict[str, dict[str, Any]] = {}
+        for vuln in vulnerabilities:
+            if not isinstance(vuln, dict):
+                continue
+            vuln_id = vuln.get("id")
+            if not vuln_id:
+                continue
+
+            vuln_id_str = str(vuln_id)
+            if vuln_id_str not in vuln_map:
+                vuln_copy = vuln.copy()
+                if "affects" not in vuln_copy:
+                    vuln_copy["affects"] = []
+                vuln_map[vuln_id_str] = vuln_copy
+            else:
+                existing = vuln_map[vuln_id_str]
+                existing_affects = existing.get("affects", [])
+                if not isinstance(existing_affects, list):
+                    existing_affects = []
+
+                new_affects = vuln.get("affects", [])
+                if isinstance(new_affects, list):
+                    for affect in new_affects:
+                        if affect not in existing_affects:
+                            existing_affects.append(affect)
+
+                existing["affects"] = existing_affects
+
+        deduped_vulnerabilities = list(vuln_map.values())
+
         metadata = {
             "component_count": len(components),
             "relationship_count": len(relationships),
             "service_count": len(services),
-            "vulnerability_count": len(vulnerabilities),
+            "vulnerability_count": len(deduped_vulnerabilities),
         }
 
         normalized = NormalizedSBOM(
@@ -835,7 +890,7 @@ class InputNormalizer:
             components=components,  # type: ignore[arg-type]
             relationships=relationships,
             services=services,
-            vulnerabilities=vulnerabilities,
+            vulnerabilities=deduped_vulnerabilities,
             metadata=metadata,
         )
         logger.debug("Normalised SBOM", extra={"metadata": metadata})
@@ -938,11 +993,41 @@ class InputNormalizer:
         if isinstance(doc_vulnerabilities, list):
             all_vulnerabilities.extend(doc_vulnerabilities)
 
+        vuln_map: dict[str, dict[str, Any]] = {}
+        for vuln in all_vulnerabilities:
+            if not isinstance(vuln, dict):
+                continue
+            vuln_id = vuln.get("id")
+            if not vuln_id:
+                continue
+
+            vuln_id_str = str(vuln_id)
+            if vuln_id_str not in vuln_map:
+                vuln_copy = vuln.copy()
+                if "affects" not in vuln_copy:
+                    vuln_copy["affects"] = []
+                vuln_map[vuln_id_str] = vuln_copy
+            else:
+                existing = vuln_map[vuln_id_str]
+                existing_affects = existing.get("affects", [])
+                if not isinstance(existing_affects, list):
+                    existing_affects = []
+
+                new_affects = vuln.get("affects", [])
+                if isinstance(new_affects, list):
+                    for affect in new_affects:
+                        if affect not in existing_affects:
+                            existing_affects.append(affect)
+
+                existing["affects"] = existing_affects
+
+        deduped_vulnerabilities = list(vuln_map.values())
+
         metadata = {
             "component_count": len(components),
             "relationship_count": len(relationships),
             "service_count": len(services),
-            "vulnerability_count": len(all_vulnerabilities),
+            "vulnerability_count": len(deduped_vulnerabilities),
             "parser": "cyclonedx-json",
         }
 
@@ -956,7 +1041,7 @@ class InputNormalizer:
             components=components,
             relationships=relationships,
             services=services,
-            vulnerabilities=all_vulnerabilities,
+            vulnerabilities=deduped_vulnerabilities,
             metadata=metadata,
         )
 
@@ -1362,6 +1447,7 @@ class InputNormalizer:
                         file=validated.file,
                         line=validated.line,
                         raw=result,
+                        tool_name=tool_name,
                     )
                 )
 
