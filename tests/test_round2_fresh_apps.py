@@ -584,4 +584,4 @@ class TestRound2RecentChanges:
             files={"file": ("sbom.json", b"{}", "application/json")},
             headers={"X-API-Key": "invalid-token"},
         )
-        assert response.status_code in [401, 403, 200]  # Depends on auth mode
+        assert response.status_code in [401, 403]
