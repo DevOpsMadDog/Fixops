@@ -979,5 +979,304 @@ class TestOrchestratorMoreComprehensive:
         assert output_path.exists()
 
 
+class TestExploitFeedsMoreComprehensive:
+    """More comprehensive tests for exploit feeds to reach 100% coverage."""
+
+    def test_exploitdb_feed_parse_no_exploit_id(self, temp_cache_dir: Path):
+        """Test ExploitDB parsing with missing exploit ID."""
+        feed = ExploitDBFeed(cache_dir=temp_cache_dir)
+
+        csv_data = b"id,description,platform,type,date,author\n,Test exploit,Linux,local,2024-01-01,TestAuthor"
+
+        records = feed.parse_feed(csv_data)
+
+        assert len(records) == 0
+
+    def test_exploitdb_feed_parse_error(self, temp_cache_dir: Path):
+        """Test ExploitDB parsing with invalid CSV."""
+        feed = ExploitDBFeed(cache_dir=temp_cache_dir)
+
+        invalid_csv = b"invalid\xffcsv\xffdata"
+
+        records = feed.parse_feed(invalid_csv)
+
+        assert len(records) == 0
+
+    def test_vulners_feed_json_decode_error(self, temp_cache_dir: Path):
+        """Test Vulners feed with invalid JSON."""
+        feed = VulnersFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"invalid json {{"
+
+        records = feed.parse_feed(invalid_json)
+
+        assert len(records) == 0
+
+    def test_vulners_feed_parse_no_vuln_id(self, temp_cache_dir: Path):
+        """Test Vulners feed parsing with missing vuln ID."""
+        feed = VulnersFeed(cache_dir=temp_cache_dir)
+
+        data = json.dumps({"data": {"search": [{"description": "Test vuln"}]}}).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_vulners_feed_parse_full(self, temp_cache_dir: Path):
+        """Test Vulners feed parsing with full data."""
+        feed = VulnersFeed(api_key="test-key", cache_dir=temp_cache_dir)
+
+        data = json.dumps(
+            {
+                "data": {
+                    "search": [
+                        {
+                            "id": "VULNERS:TEST-001",
+                            "cvss": {"severity": "HIGH", "score": 7.5},
+                            "description": "Test vulnerability",
+                            "published": "2024-01-01",
+                            "modified": "2024-01-02",
+                            "exploit": True,
+                            "href": "https://vulners.com/test",
+                            "type": "cve",
+                        }
+                    ]
+                }
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "VULNERS:TEST-001"
+        assert records[0].severity == "HIGH"
+        assert records[0].exploit_available is True
+
+    def test_alienvault_otx_json_decode_error(self, temp_cache_dir: Path):
+        """Test AlienVault OTX feed with invalid JSON."""
+        feed = AlienVaultOTXFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"invalid json {{"
+
+        records = feed.parse_feed(invalid_json)
+
+        assert len(records) == 0
+
+    def test_alienvault_otx_parse_no_pulse_id(self, temp_cache_dir: Path):
+        """Test AlienVault OTX parsing with missing pulse ID."""
+        feed = AlienVaultOTXFeed(api_key="test-key", cache_dir=temp_cache_dir)
+
+        data = json.dumps({"results": [{"name": "Test pulse"}]}).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_alienvault_otx_parse_no_cve_indicators(self, temp_cache_dir: Path):
+        """Test AlienVault OTX parsing with no CVE indicators."""
+        feed = AlienVaultOTXFeed(cache_dir=temp_cache_dir)
+
+        data = json.dumps(
+            {
+                "results": [
+                    {
+                        "id": "pulse-123",
+                        "indicators": [{"type": "IP", "indicator": "1.2.3.4"}],
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_alienvault_otx_parse_full(self, temp_cache_dir: Path):
+        """Test AlienVault OTX parsing with full data."""
+        feed = AlienVaultOTXFeed(cache_dir=temp_cache_dir)
+
+        data = json.dumps(
+            {
+                "results": [
+                    {
+                        "id": "pulse-123",
+                        "name": "Test Pulse",
+                        "description": "Test description",
+                        "created": "2024-01-01",
+                        "modified": "2024-01-02",
+                        "TLP": "white",
+                        "tags": ["malware", "apt"],
+                        "indicators": [
+                            {"type": "CVE", "indicator": "CVE-2024-1234"},
+                            {"type": "CVE", "indicator": "CVE-2024-5678"},
+                        ],
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "pulse-123"
+        assert len(records[0].cwe_ids) == 2
+
+    def test_urlhaus_feed_parse_with_comments(self, temp_cache_dir: Path):
+        """Test URLhaus feed parsing with comments and empty lines."""
+        feed = AbuseCHURLHausFeed(cache_dir=temp_cache_dir)
+
+        data = b'# Comment line\n\n{"id": "123", "url": "http://malware.com", "dateadded": "2024-01-01", "threat": "malware", "tags": ["emotet"], "url_status": "online"}'
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "URLhaus-123"
+
+    def test_urlhaus_feed_parse_no_url_id(self, temp_cache_dir: Path):
+        """Test URLhaus feed parsing with missing URL ID."""
+        feed = AbuseCHURLHausFeed(cache_dir=temp_cache_dir)
+
+        data = b'{"url": "http://malware.com"}'
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_urlhaus_feed_parse_error(self, temp_cache_dir: Path):
+        """Test URLhaus feed parsing with error."""
+        feed = AbuseCHURLHausFeed(cache_dir=temp_cache_dir)
+
+        invalid_data = b"invalid\xffjson"
+
+        records = feed.parse_feed(invalid_data)
+
+        assert len(records) == 0
+
+    def test_malwarebazaar_json_decode_error(self, temp_cache_dir: Path):
+        """Test MalwareBazaar feed with invalid JSON."""
+        feed = AbuseCHMalwareBazaarFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"invalid json {{"
+
+        records = feed.parse_feed(invalid_json)
+
+        assert len(records) == 0
+
+    def test_malwarebazaar_parse_no_sha256(self, temp_cache_dir: Path):
+        """Test MalwareBazaar parsing with missing SHA256."""
+        feed = AbuseCHMalwareBazaarFeed(cache_dir=temp_cache_dir)
+
+        data = json.dumps({"data": [{"file_name": "malware.exe"}]}).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_malwarebazaar_parse_full(self, temp_cache_dir: Path):
+        """Test MalwareBazaar parsing with full data."""
+        feed = AbuseCHMalwareBazaarFeed(cache_dir=temp_cache_dir)
+
+        data = json.dumps(
+            {
+                "data": [
+                    {
+                        "sha256_hash": "abcd1234" * 8,
+                        "file_name": "malware.exe",
+                        "first_seen": "2024-01-01",
+                        "file_type": "exe",
+                        "signature": "Emotet",
+                        "tags": ["emotet", "trojan"],
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id.startswith("MalwareBazaar-")
+        assert records[0].severity == "HIGH"
+
+    def test_threatfox_feed_parse_with_comments(self, temp_cache_dir: Path):
+        """Test ThreatFox feed parsing with comments and empty lines."""
+        feed = AbuseCHThreatFoxFeed(cache_dir=temp_cache_dir)
+
+        data = b'# Comment line\n\n{"id": "456", "ioc": "1.2.3.4", "ioc_type": "ip", "first_seen": "2024-01-01", "malware": "emotet", "confidence_level": 100, "tags": ["emotet"]}'
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "ThreatFox-456"
+
+    def test_threatfox_feed_parse_no_ioc_id(self, temp_cache_dir: Path):
+        """Test ThreatFox feed parsing with missing IOC ID."""
+        feed = AbuseCHThreatFoxFeed(cache_dir=temp_cache_dir)
+
+        data = b'{"ioc": "1.2.3.4"}'
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_threatfox_feed_parse_error(self, temp_cache_dir: Path):
+        """Test ThreatFox feed parsing with error."""
+        feed = AbuseCHThreatFoxFeed(cache_dir=temp_cache_dir)
+
+        invalid_data = b"invalid\xffjson"
+
+        records = feed.parse_feed(invalid_data)
+
+        assert len(records) == 0
+
+    def test_attackerkb_json_decode_error(self, temp_cache_dir: Path):
+        """Test AttackerKB feed with invalid JSON."""
+        feed = Rapid7AttackerKBFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"invalid json {{"
+
+        records = feed.parse_feed(invalid_json)
+
+        assert len(records) == 0
+
+    def test_attackerkb_parse_no_topic_id(self, temp_cache_dir: Path):
+        """Test AttackerKB parsing with missing topic ID."""
+        feed = Rapid7AttackerKBFeed(api_key="test-key", cache_dir=temp_cache_dir)
+
+        data = json.dumps({"data": [{"name": "Test topic"}]}).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 0
+
+    def test_attackerkb_parse_full(self, temp_cache_dir: Path):
+        """Test AttackerKB parsing with full data."""
+        feed = Rapid7AttackerKBFeed(cache_dir=temp_cache_dir)
+
+        data = json.dumps(
+            {
+                "data": [
+                    {
+                        "id": "topic-123",
+                        "name": "CVE-2024-1234 Analysis",
+                        "created": "2024-01-01",
+                        "revised": "2024-01-02",
+                        "metadata": {
+                            "cve-id": "CVE-2024-1234",
+                            "attacker-value": 4,
+                            "exploitability": 3,
+                        },
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].id == "CVE-2024-1234"
+        assert records[0].exploit_available is True
+        assert records[0].exploit_maturity == "assessed"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
