@@ -42,4 +42,3 @@ complements `docs/PLAYBOOK-SEC.md` and `docs/PLAYBOOK-AUDIT.md` with policy-leve
 - `CHANGELOG.md` summarises the security-impacting changes across Phases 1–10 and must be updated before each release cut.
 - Playbooks (`docs/PLAYBOOK-DEV.md`, `docs/PLAYBOOK-SEC.md`, `docs/PLAYBOOK-AUDIT.md`) describe operational procedures for
   engineering, security, and auditors respectively.
-

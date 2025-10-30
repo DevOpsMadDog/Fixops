@@ -58,4 +58,3 @@ All outputs are written beneath the directory supplied to `--out`. When `--stage
 ```
 
 These artefacts feed the CI adapters and evidence lake, enabling deterministic regression baselines for the FixOps blended platform.
-

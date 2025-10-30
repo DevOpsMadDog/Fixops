@@ -51,4 +51,3 @@ provenance, signing, SBOM normalisation, risk scoring, evidence, observability, 
 - Produced the authoritative architecture inventory (`docs/ARCH-INVENTORY.md`) and the detailed phase plan
   (`docs/TASK-PLAN.md`).
 - Updated project documentation to link the new references for reviewer onboarding.
-

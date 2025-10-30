@@ -79,4 +79,3 @@ threshold deltas.
 - Work from short-lived branches that carry the phase prefix (e.g. `feature/phase10-hardening`).
 - Document every new surface in the README documentation map and backfill playbook/security posture updates.
 - Attach coverage diffs and demo screenshots to PR descriptions so stakeholders can validate the investor-ready experience.
-
