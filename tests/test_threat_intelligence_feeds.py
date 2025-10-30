@@ -256,7 +256,7 @@ class TestVendorFeeds:
 
         assert feed.feed_name == "Microsoft Security"
         parsed_url = urlparse(feed.feed_url)
-        assert "msrc.microsoft.com" in parsed_url.netloc
+        assert parsed_url.hostname == "msrc.microsoft.com"
         assert feed.cache_filename == "microsoft-security.json"
 
     def test_kubernetes_feed_properties(self, temp_cache_dir: Path):
