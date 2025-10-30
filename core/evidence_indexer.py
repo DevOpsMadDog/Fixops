@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
 from core.vector_store import (
+    BaseVectorStore,
     ChromaVectorStore,
     InMemoryVectorStore,
     VectorMatch,
@@ -27,7 +28,7 @@ class EvidenceBundleIndexer:
         self,
         vector_store_type: str = "chroma",
         collection_name: str = "evidence_bundles",
-        settings: Optional[Mapping[str, Any]] = None,
+        persist_directory: Optional[Path] = None,
     ):
         """Initialize evidence bundle indexer.
 
@@ -37,17 +38,18 @@ class EvidenceBundleIndexer:
             Type of vector store ("chroma" or "in_memory").
         collection_name:
             Name of the vector store collection.
-        settings:
-            Optional settings for vector store.
+        persist_directory:
+            Optional persist directory for ChromaDB.
         """
         self.vector_store_type = vector_store_type
         self.collection_name = collection_name
-        self.settings = dict(settings or {})
+        self.persist_directory = persist_directory
         self.logger = logging.getLogger(__name__)
 
+        self.store: BaseVectorStore
         if vector_store_type == "chroma":
             self.store = ChromaVectorStore(
-                collection_name=collection_name, settings=self.settings
+                collection_name=collection_name, persist_directory=persist_directory
             )
         else:
             self.store = InMemoryVectorStore()
