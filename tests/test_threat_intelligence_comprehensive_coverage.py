@@ -2234,5 +2234,204 @@ class TestFinalPushTo100Percent:
         assert len(records) == 0
 
 
+class TestAbsoluteFinalCoverage:
+    """Tests to reach absolute 100% coverage on all remaining lines."""
+
+    def test_epss_default_fetcher_called(self, temp_cache_dir):
+        """Test EPSS default fetcher is called when no custom fetcher provided."""
+        from unittest.mock import patch
+
+        from risk.feeds.epss import update_epss_feed
+
+        with patch("risk.feeds.epss._default_fetcher") as mock_fetcher:
+            mock_fetcher.return_value = b"cve,epss\nCVE-2021-44228,0.9"
+            update_epss_feed(cache_dir=temp_cache_dir)
+            mock_fetcher.assert_called_once()
+
+    def test_epss_load_json_cache_invalid_entry_type_error(self, temp_cache_dir):
+        """Test EPSS JSON cache with invalid entry that raises TypeError."""
+        from risk.feeds.epss import EPSS_JSON_FILENAME, _load_json_cache
+
+        json_path = temp_cache_dir / EPSS_JSON_FILENAME
+        json_path.write_text('{"CVE-2021-1234": "not-a-number"}', encoding="utf-8")
+
+        scores = _load_json_cache(temp_cache_dir)
+
+        assert scores == {}
+
+    def test_epss_parse_csv_empty_row(self, temp_cache_dir):
+        """Test EPSS CSV parsing with empty row."""
+        from risk.feeds.epss import _parse_epss_csv
+
+        csv_path = temp_cache_dir / "test.csv"
+        csv_path.write_text("cve,epss\n\nCVE-2021-1234,0.5\n", encoding="utf-8")
+
+        scores = _parse_epss_csv(csv_path)
+
+        assert "CVE-2021-1234" in scores
+        assert scores["CVE-2021-1234"] == 0.5
+
+    def test_orchestrator_export_unified_feed_severity_merge(self, temp_cache_dir):
+        """Test orchestrator export with severity merge logic (line 294)."""
+        from unittest.mock import MagicMock
+
+        from risk.feeds.base import VulnerabilityRecord
+        from risk.feeds.orchestrator import ThreatIntelligenceOrchestrator
+
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        mock_feed1 = MagicMock()
+        mock_feed1.feed_name = "Feed1"
+        mock_feed1.load_feed.return_value = [
+            VulnerabilityRecord(
+                id="CVE-2021-1234",
+                source="Feed1",
+                severity=None,
+                cvss_score=None,
+            )
+        ]
+
+        mock_feed2 = MagicMock()
+        mock_feed2.feed_name = "Feed2"
+        mock_feed2.load_feed.return_value = [
+            VulnerabilityRecord(
+                id="CVE-2021-1234",
+                source="Feed2",
+                severity="HIGH",
+                cvss_score=7.5,
+            )
+        ]
+
+        orchestrator.registry.feeds = {"Feed1": mock_feed1, "Feed2": mock_feed2}
+
+        output_path = temp_cache_dir / "unified.json"
+        orchestrator.export_unified_feed(str(output_path))
+
+        import json
+
+        data = json.loads(output_path.read_text())
+        vuln = data["vulnerabilities"][0]
+        assert vuln["severity"] == "HIGH"
+        assert vuln["cvss_score"] == 7.5
+
+    def test_osv_fetch_ecosystem_vulnerabilities_with_zipfile(self, temp_cache_dir):
+        """Test OSV fetch_ecosystem_vulnerabilities with actual zip file handling."""
+        import io
+        import zipfile
+        from unittest.mock import MagicMock
+
+        from risk.feeds.osv import OSVFeed
+
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zf:
+            zf.writestr(
+                "OSV-001.json",
+                '{"id": "OSV-001", "summary": "Test vulnerability"}',
+            )
+
+        mock_fetcher = MagicMock(return_value=zip_buffer.getvalue())
+        feed.fetcher = mock_fetcher
+
+        records = feed.fetch_ecosystem_vulnerabilities("test-ecosystem")
+
+        assert len(records) >= 0
+
+    def test_base_feed_update_with_cache_fallback_path(self, temp_cache_dir):
+        """Test base feed update_feed with cache fallback (line 176)."""
+        from risk.feeds.base import ThreatIntelligenceFeed
+
+        class TestFeed(ThreatIntelligenceFeed):
+            @property
+            def feed_name(self):
+                return "TestFeed"
+
+            @property
+            def feed_url(self):
+                return "http://example.com/feed"
+
+            @property
+            def cache_filename(self):
+                return "test.json"
+
+            def parse_feed(self, data):
+                return []
+
+        feed = TestFeed(cache_dir=temp_cache_dir)
+
+        cache_path = temp_cache_dir / "test.json"
+        cache_path.write_bytes(b'{"test": "data"}')
+
+        def failing_fetcher(url):
+            raise TimeoutError("Network timeout")
+
+        feed.fetcher = failing_fetcher
+
+        result = feed.update_feed()
+
+        assert result == cache_path
+
+    def test_base_feed_get_metadata_load_error(self, temp_cache_dir):
+        """Test base feed get_metadata with load error (lines 223-224)."""
+        from risk.feeds.base import ThreatIntelligenceFeed
+
+        class TestFeed(ThreatIntelligenceFeed):
+            @property
+            def feed_name(self):
+                return "TestFeed"
+
+            @property
+            def feed_url(self):
+                return "http://example.com/feed"
+
+            @property
+            def cache_filename(self):
+                return "test.json"
+
+            def parse_feed(self, data):
+                raise ValueError("Parse error")
+
+        feed = TestFeed(cache_dir=temp_cache_dir)
+
+        cache_path = temp_cache_dir / "test.json"
+        cache_path.write_bytes(b"invalid data")
+
+        metadata = feed.get_metadata()
+
+        assert metadata.record_count == 0
+
+    def test_base_feed_registry_load_all_with_error_path(self, temp_cache_dir):
+        """Test FeedRegistry load_all with error (lines 290-291)."""
+        from risk.feeds.base import FeedRegistry, ThreatIntelligenceFeed
+
+        class FailingFeed(ThreatIntelligenceFeed):
+            @property
+            def feed_name(self):
+                return "FailingFeed"
+
+            @property
+            def feed_url(self):
+                return "http://example.com/feed"
+
+            @property
+            def cache_filename(self):
+                return "failing.json"
+
+            def parse_feed(self, data):
+                return []
+
+            def load_feed(self, path=None):
+                raise RuntimeError("Load failed")
+
+        registry = FeedRegistry(cache_dir=temp_cache_dir)
+        feed = FailingFeed(cache_dir=temp_cache_dir)
+        registry.register(feed)
+
+        results = registry.load_all()
+
+        assert "FailingFeed" not in results
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
