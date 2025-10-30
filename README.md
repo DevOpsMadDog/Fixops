@@ -27,6 +27,50 @@ FixOps is an intelligent DevSecOps decision and verification platform that trans
 
 ---
 
+## Quickstart
+
+Get FixOps running in 5 minutes:
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# 2. Start the API server
+export FIXOPS_API_TOKEN="demo-token"
+uvicorn apps.api.app:create_app --factory --reload
+
+# 3. In another terminal, upload artifacts
+export FIXOPS_API_TOKEN="demo-token"
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -F "file=@simulations/demo_pack/design.csv" \
+  http://localhost:8000/inputs/design
+
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -F "file=@simulations/demo_pack/sbom.json" \
+  http://localhost:8000/inputs/sbom
+
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -F "file=@simulations/demo_pack/scan.sarif" \
+  http://localhost:8000/inputs/sarif
+
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -F "file=@simulations/demo_pack/cve.json" \
+  http://localhost:8000/inputs/cve
+
+# 4. Run the pipeline
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  http://localhost:8000/pipeline/run | jq
+
+# 5. Or use the CLI
+python -m core.cli demo --mode demo --output out/pipeline-demo.json --pretty
+```
+
+---
+
 ## System Overview
 
 ### What is FixOps?
@@ -329,10 +373,20 @@ The `InputNormalizer` class handles multi-format parsing:
 
 **Supported Formats**:
 - **SBOM**: CycloneDX, SPDX, GitHub Dependency Snapshot, Syft JSON
-- **SARIF**: SARIF 2.1.0 with normalized severity levels
+- **SARIF**: SARIF 2.1.0 with normalized severity levels from:
+  - **SAST**: SonarQube, Veracode
+  - **SCA**: SNYK, Veracode
+  - **DAST**: Invicti, Veracode
+  - **API Security**: SALT
+  - **ADR**: Contrast Security (Application Detection and Response)
 - **CVE**: CISA KEV format, custom CVE feeds
 - **VEX**: Vulnerability Exploitability eXchange documents
-- **CNAPP**: Cloud-Native Application Protection Platform findings
+- **CNAPP**: Cloud-Native Application Protection Platform findings from:
+  - **CNAPP**: WIZ, Palo Alto Prisma Cloud, CrowdStrike, SentinelOne
+  - **CWPP**: Orca Security (Cloud Workload Protection Platform)
+  - **CSPM**: Tenable, Rapid7 (Cloud Security Posture Management)
+  - **DSPM**: Sentra (Data Security Posture Management)
+  - **EDR**: Microsoft Defender (Endpoint Detection and Response)
 - **Business Context**: SSVC YAML, OTM JSON, core.yaml
 
 **Key Methods**:
@@ -1570,14 +1624,14 @@ python -m core.cli demo --mode demo --output out/demo.json --pretty
 ```bash
 # Demo mode
 export FIXOPS_API_TOKEN="demo-token"
-uvicorn backend.app:create_app --factory --reload
+uvicorn apps.api.app:create_app --factory --reload
 
 # Enterprise mode
 export FIXOPS_API_TOKEN="<secure-token>"
 export FIXOPS_JIRA_TOKEN="<jira-token>"
 export FIXOPS_CONFLUENCE_TOKEN="<confluence-token>"
 export FIXOPS_EVIDENCE_KEY="<fernet-key>"
-uvicorn backend.app:create_app --factory --reload --port 8000
+uvicorn apps.api.app:create_app --factory --reload --port 8000
 ```
 
 ### Telemetry Configuration
@@ -1759,7 +1813,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["uvicorn", "backend.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "apps.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 **Build & Run**:
