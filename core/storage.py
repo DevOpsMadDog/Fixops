@@ -6,7 +6,7 @@ import json
 import os
 import re
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
@@ -83,7 +83,7 @@ class ArtefactArchive:
         raw_bytes: Optional[bytes] = None,
     ) -> Mapping[str, Any]:
         identifier = uuid.uuid4().hex
-        timestamp = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         stage_dir = self._stage_directory(stage)
 
         record: MutableMapping[str, Any] = {

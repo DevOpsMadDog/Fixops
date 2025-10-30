@@ -72,12 +72,15 @@ def ensure_output_directory(path: Path, mode: int = 0o750) -> Path:
     """
 
     resolved = path.resolve()
+    directory_existed = resolved.exists()
     resolved.mkdir(parents=True, exist_ok=True)
-    try:
-        os.chmod(resolved, mode)
-    except PermissionError:
-        # Windows systems may not support chmod in the same way; continue after best effort.
-        pass
+
+    if not directory_existed:
+        try:
+            os.chmod(resolved, mode)
+        except PermissionError:
+            # Windows systems may not support chmod in the same way; continue after best effort.
+            pass
 
     return resolved
 
