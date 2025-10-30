@@ -717,5 +717,267 @@ class TestKEVFeedComprehensive:
         assert "CVE-2024-5678" in catalog
 
 
+class TestGitHubFeedMoreComprehensive:
+    """More comprehensive tests for GitHub feed."""
+
+    def test_github_feed_parse_json_decode_error(self, temp_cache_dir: Path):
+        """Test GitHub feed parsing with invalid JSON."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"not valid json {"
+
+        records = feed.parse_feed(invalid_json)
+
+        assert records == []
+
+    def test_github_feed_parse_advisory_no_ghsa_id(self, temp_cache_dir: Path):
+        """Test parsing GitHub advisory without GHSA ID."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {"summary": "Test advisory", "description": "Test description"}
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is None
+
+    def test_github_feed_parse_advisory_with_summary_in_description(
+        self, temp_cache_dir: Path
+    ):
+        """Test parsing GitHub advisory where summary is already in description."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {
+            "ghsaId": "GHSA-test-1234",
+            "summary": "SQL Injection",
+            "description": "SQL Injection vulnerability in package",
+        }
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is not None
+        assert record.id == "GHSA-test-1234"
+        assert "SQL Injection" in record.description
+
+    def test_github_feed_parse_advisory_with_cvss(self, temp_cache_dir: Path):
+        """Test parsing GitHub advisory with CVSS data."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {
+            "ghsaId": "GHSA-test-5678",
+            "summary": "Test vulnerability",
+            "cvss": {"score": 8.5, "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N"},
+        }
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is not None
+        assert record.cvss_score == 8.5
+        assert record.cvss_vector == "CVSS:3.1/AV:N/AC:L/PR:N/UI:N"
+
+    def test_github_feed_parse_advisory_with_cve_identifiers(
+        self, temp_cache_dir: Path
+    ):
+        """Test parsing GitHub advisory with CVE identifiers."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {
+            "ghsaId": "GHSA-test-9999",
+            "summary": "Test vulnerability",
+            "identifiers": [
+                {"type": "CVE", "value": "CVE-2024-1234"},
+                {"type": "GHSA", "value": "GHSA-test-9999"},
+            ],
+        }
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is not None
+        assert "CVE-2024-1234" in record.cwe_ids
+
+    def test_github_feed_parse_advisory_with_vulnerabilities(
+        self, temp_cache_dir: Path
+    ):
+        """Test parsing GitHub advisory with vulnerability details."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {
+            "ghsaId": "GHSA-test-0000",
+            "summary": "Test vulnerability",
+            "vulnerabilities": {
+                "nodes": [
+                    {
+                        "package": {"name": "test-package", "ecosystem": "npm"},
+                        "vulnerableVersionRange": "< 1.0.0",
+                        "firstPatchedVersion": {"identifier": "1.0.0"},
+                    }
+                ]
+            },
+        }
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is not None
+        assert "npm:test-package" in record.affected_packages
+        assert "< 1.0.0" in record.affected_versions
+        assert "1.0.0" in record.fixed_versions
+
+    def test_github_feed_parse_advisory_with_references(self, temp_cache_dir: Path):
+        """Test parsing GitHub advisory with references."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {
+            "ghsaId": "GHSA-test-1111",
+            "summary": "Test vulnerability",
+            "references": [
+                {"url": "https://example.com/advisory1"},
+                {"url": "https://example.com/advisory2"},
+            ],
+        }
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is not None
+        assert len(record.references) == 2
+        assert "https://example.com/advisory1" in record.references
+
+    def test_github_feed_parse_advisory_with_cwes(self, temp_cache_dir: Path):
+        """Test parsing GitHub advisory with CWE data."""
+        feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
+
+        advisory = {
+            "ghsaId": "GHSA-test-2222",
+            "summary": "Test vulnerability",
+            "cwes": {
+                "nodes": [
+                    {"cweId": "CWE-79", "name": "Cross-site Scripting"},
+                    {"cweId": "CWE-89", "name": "SQL Injection"},
+                ]
+            },
+        }
+
+        record = feed._parse_github_advisory(advisory)
+
+        assert record is not None
+        assert "CWE-79" in record.cwe_ids
+        assert "CWE-89" in record.cwe_ids
+
+
+class TestNVDFeedMoreComprehensive:
+    """More comprehensive tests for NVD feed."""
+
+    def test_nvd_feed_parse_json_decode_error(self, temp_cache_dir: Path):
+        """Test NVD feed parsing with invalid JSON."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        invalid_json = b"not valid json ["
+
+        records = feed.parse_feed(invalid_json)
+
+        assert records == []
+
+    def test_nvd_feed_parse_cve_no_id(self, temp_cache_dir: Path):
+        """Test parsing NVD CVE without ID."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        cve_data = {"descriptions": [{"lang": "en", "value": "Test"}]}
+
+        record = feed._parse_nvd_cve(cve_data)
+
+        assert record is None
+
+    def test_nvd_feed_parse_cve_with_references(self, temp_cache_dir: Path):
+        """Test parsing NVD CVE with references."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        cve_data = {
+            "id": "CVE-2024-1234",
+            "descriptions": [{"lang": "en", "value": "Test vulnerability"}],
+            "references": [
+                {"url": "https://example.com/ref1"},
+                {"url": "https://example.com/ref2"},
+            ],
+        }
+
+        record = feed._parse_nvd_cve(cve_data)
+
+        assert record is not None
+        assert len(record.references) == 2
+
+    def test_nvd_feed_parse_cve_with_cwes(self, temp_cache_dir: Path):
+        """Test parsing NVD CVE with CWE data."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        cve_data = {
+            "id": "CVE-2024-5678",
+            "descriptions": [{"lang": "en", "value": "Test vulnerability"}],
+            "weaknesses": [
+                {
+                    "description": [
+                        {"lang": "en", "value": "CWE-79"},
+                        {"lang": "en", "value": "CWE-89"},
+                    ]
+                }
+            ],
+        }
+
+        record = feed._parse_nvd_cve(cve_data)
+
+        assert record is not None
+        assert "CWE-79" in record.cwe_ids
+        assert "CWE-89" in record.cwe_ids
+
+    def test_nvd_feed_parse_cve_with_configurations(self, temp_cache_dir: Path):
+        """Test parsing NVD CVE with configuration data."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        cve_data = {
+            "id": "CVE-2024-9999",
+            "descriptions": [{"lang": "en", "value": "Test vulnerability"}],
+            "configurations": [
+                {
+                    "nodes": [
+                        {
+                            "cpeMatch": [
+                                {
+                                    "criteria": "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+                                    "vulnerable": True,
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+        }
+
+        record = feed._parse_nvd_cve(cve_data)
+
+        assert record is not None
+        assert "vendor/product" in record.affected_packages
+
+
+class TestOrchestratorMoreComprehensive:
+    """More comprehensive tests for orchestrator."""
+
+    def test_orchestrator_get_statistics(self, temp_cache_dir: Path):
+        """Test getting orchestrator statistics."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        stats = orchestrator.get_statistics()
+
+        assert isinstance(stats, dict)
+        assert "total_feeds" in stats
+        assert "total_vulnerabilities" in stats
+        assert "feeds" in stats
+
+    def test_orchestrator_export_unified_feed(self, temp_cache_dir: Path):
+        """Test exporting unified feed."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        output_path = temp_cache_dir / "unified_feed.json"
+        orchestrator.export_unified_feed(str(output_path))
+
+        assert output_path.exists()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
