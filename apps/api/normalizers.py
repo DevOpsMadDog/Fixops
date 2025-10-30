@@ -796,7 +796,7 @@ class InputNormalizer:
             document = parser.get_document() or {}
             if isinstance(document, dict):
                 doc_vulns = document.get("vulnerabilities", [])
-                if isinstance(doc_vulns, list):
+                if isinstance(doc_vulns, list) and doc_vulns is not vulnerabilities:
                     vulnerabilities.extend(doc_vulns)
 
                 components_list = document.get("components", [])
