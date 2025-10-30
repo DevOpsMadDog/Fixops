@@ -169,6 +169,7 @@ class EvidenceHub:
         _include(
             "exploitability_insights", pipeline_result.get("exploitability_insights")
         )
+        _include("severity_promotions", pipeline_result.get("severity_promotions"))
         _include("ssdlc_assessment", pipeline_result.get("ssdlc_assessment"))
         _include("iac_posture", pipeline_result.get("iac_posture"))
         _include("module_execution", pipeline_result.get("modules"))
