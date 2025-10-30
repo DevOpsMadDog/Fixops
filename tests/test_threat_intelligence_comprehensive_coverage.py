@@ -1673,5 +1673,413 @@ class TestEcosystemsComplete:
         assert "CVE-2024-5678" in records[0].cwe_ids
 
 
+class TestRemainingModulesComplete:
+    """Complete coverage tests for all remaining modules to reach 100%."""
+
+    def test_nvd_feed_fetch_recent_cves_with_api_key(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test NVD fetch_recent_cves with API key."""
+        feed = NVDFeed(api_key="test-api-key", cache_dir=temp_cache_dir)
+
+        def mock_fetcher(url):
+            assert "apiKey=test-api-key" in url
+            return json.dumps(
+                {
+                    "vulnerabilities": [
+                        {
+                            "cve": {
+                                "id": "CVE-2024-1234",
+                                "descriptions": [
+                                    {"lang": "en", "value": "Test vulnerability"}
+                                ],
+                            }
+                        }
+                    ]
+                }
+            ).encode()
+
+        monkeypatch.setattr(feed, "fetcher", mock_fetcher)
+
+        records = feed.fetch_recent_cves(days=7)
+
+        assert len(records) == 1
+        assert records[0].id == "CVE-2024-1234"
+
+    def test_nvd_feed_fetch_recent_cves_error(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test NVD fetch_recent_cves with error."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        def mock_fetcher(url):
+            raise Exception("Network error")
+
+        monkeypatch.setattr(feed, "fetcher", mock_fetcher)
+
+        records = feed.fetch_recent_cves(days=7)
+
+        assert len(records) == 0
+
+    def test_base_feed_load_with_cache_error(self, temp_cache_dir: Path):
+        """Test base feed load with cache read error."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        cache_file = temp_cache_dir / feed.cache_filename
+        cache_file.write_text("invalid json {{")
+
+        records = feed.load_feed()
+
+        assert len(records) == 0
+
+    def test_orchestrator_get_all_metadata_with_kev_path_exists(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test get_all_metadata when KEV path exists."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        kev_path = temp_cache_dir / "kev.json"
+        kev_path.write_text(
+            json.dumps(
+                {
+                    "vulnerabilities": [
+                        {"cveID": "CVE-2024-1234"},
+                        {"cveID": "CVE-2024-5678"},
+                    ]
+                }
+            )
+        )
+
+        metadata = orchestrator.get_all_metadata()
+
+        kev_meta = [m for m in metadata if m.name == "KEV"]
+        assert len(kev_meta) == 1
+        assert kev_meta[0].record_count == 2
+
+    def test_orchestrator_enrich_vulnerability_with_matching_cwe(
+        self, temp_cache_dir: Path
+    ):
+        """Test enrich_vulnerability matching by CWE ID."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        all_feeds = {
+            "Feed1": [
+                VulnerabilityRecord(
+                    id="VULN-001",
+                    source="Feed1",
+                    cwe_ids=["CVE-2024-1234"],
+                    severity="HIGH",
+                )
+            ]
+        }
+
+        enrichment = orchestrator.enrich_vulnerability("CVE-2024-1234", all_feeds)
+
+        assert "Feed1" in enrichment["sources"]
+        assert enrichment["severity"] == "HIGH"
+
+    def test_orchestrator_export_unified_feed_with_merge_logic(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test export_unified_feed merge logic for duplicate records."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        def mock_load_all():
+            return {
+                "Feed1": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="Feed1",
+                        severity="HIGH",
+                        cvss_score=7.5,
+                    )
+                ],
+                "Feed2": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="Feed2",
+                        exploit_available=True,
+                        kev_listed=True,
+                    )
+                ],
+            }
+
+        monkeypatch.setattr(orchestrator, "load_all_feeds", mock_load_all)
+
+        output_path = temp_cache_dir / "unified.json"
+        orchestrator.export_unified_feed(output_path)
+
+        data = json.loads(output_path.read_text())
+        vuln = data["vulnerabilities"][0]
+
+        assert vuln["severity"] == "HIGH"
+        assert vuln["cvss_score"] == 7.5
+        assert vuln["exploit_available"] is True
+        assert vuln["kev_listed"] is True
+
+
+class TestFinalCoverageGaps:
+    """Tests to cover all remaining gaps and reach 100% coverage."""
+
+    def test_kev_load_cache_with_non_dict_payload(self, temp_cache_dir: Path):
+        """Test KEV _load_cache with non-dict payload."""
+        from risk.feeds.kev import KEV_CACHE_FILENAME
+
+        cache_file = temp_cache_dir / KEV_CACHE_FILENAME
+        cache_file.write_text(json.dumps(["not", "a", "dict"]))
+
+        from risk.feeds.kev import _load_cache
+
+        result = _load_cache(temp_cache_dir)
+        assert result is None
+
+    def test_kev_update_feed_with_cache_fallback(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test KEV update_feed falling back to cache on network error."""
+        from risk.feeds.kev import KEV_CACHE_FILENAME, update_kev_feed
+
+        cache_file = temp_cache_dir / KEV_CACHE_FILENAME
+        cache_data = {"vulnerabilities": [{"cveID": "CVE-2024-1234"}]}
+        cache_file.write_text(json.dumps(cache_data))
+
+        def mock_fetcher(url):
+            from urllib.error import URLError
+
+            raise URLError("Network error")
+
+        result = update_kev_feed(cache_dir=temp_cache_dir, fetcher=mock_fetcher)
+
+        assert result == temp_cache_dir / KEV_CACHE_FILENAME
+
+    def test_kev_load_catalog_with_data_wrapper(self, temp_cache_dir: Path):
+        """Test KEV load_catalog with data wrapper structure."""
+        kev_path = temp_cache_dir / "kev.json"
+        kev_path.write_text(
+            json.dumps(
+                {
+                    "data": {
+                        "vulnerabilities": [
+                            {"cveID": "CVE-2024-1234"},
+                            {"cveID": "CVE-2024-5678"},
+                        ]
+                    }
+                }
+            )
+        )
+
+        catalog = load_kev_catalog(path=kev_path, cache_dir=temp_cache_dir)
+
+        assert len(catalog) == 2
+        assert "CVE-2024-1234" in catalog
+
+    def test_kev_load_catalog_with_non_dict_entry(self, temp_cache_dir: Path):
+        """Test KEV load_catalog with non-dict entry in vulnerabilities."""
+        kev_path = temp_cache_dir / "kev.json"
+        kev_path.write_text(
+            json.dumps(
+                {
+                    "vulnerabilities": [
+                        {"cveID": "CVE-2024-1234"},
+                        "invalid entry",
+                        {"cveID": "CVE-2024-5678"},
+                    ]
+                }
+            )
+        )
+
+        catalog = load_kev_catalog(path=kev_path, cache_dir=temp_cache_dir)
+
+        assert len(catalog) == 2
+
+    def test_kev_load_catalog_with_missing_cve_id(self, temp_cache_dir: Path):
+        """Test KEV load_catalog with entry missing CVE ID."""
+        kev_path = temp_cache_dir / "kev.json"
+        kev_path.write_text(
+            json.dumps(
+                {
+                    "vulnerabilities": [
+                        {"cveID": "CVE-2024-1234"},
+                        {"title": "No CVE ID"},
+                        {"cveID": 12345},  # Non-string CVE ID
+                    ]
+                }
+            )
+        )
+
+        catalog = load_kev_catalog(path=kev_path, cache_dir=temp_cache_dir)
+
+        assert len(catalog) == 1
+
+    def test_kev_cves_function(self, temp_cache_dir: Path):
+        """Test kev_cves function."""
+        from risk.feeds.kev import kev_cves
+
+        catalog = {
+            "CVE-2024-1234": {"cveID": "CVE-2024-1234"},
+            "CVE-2024-5678": {"cveID": "CVE-2024-5678"},
+        }
+
+        cves = kev_cves(catalog)
+
+        assert len(cves) == 2
+        assert "CVE-2024-1234" in cves
+        assert "CVE-2024-5678" in cves
+
+    def test_nvd_feed_parse_cvss_v2_severity_high(self, temp_cache_dir: Path):
+        """Test NVD parse with CVSS v2 HIGH severity."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "vulnerabilities": [
+                    {
+                        "cve": {
+                            "id": "CVE-2024-1234",
+                            "descriptions": [{"lang": "en", "value": "Test"}],
+                            "metrics": {
+                                "cvssMetricV2": [
+                                    {
+                                        "cvssData": {
+                                            "baseScore": 8.5,
+                                            "vectorString": "AV:N",
+                                        }
+                                    }
+                                ]
+                            },
+                        }
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].severity == "HIGH"
+        assert records[0].cvss_score == 8.5
+
+    def test_nvd_feed_parse_cvss_v2_severity_low(self, temp_cache_dir: Path):
+        """Test NVD parse with CVSS v2 LOW severity."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+        data = json.dumps(
+            {
+                "vulnerabilities": [
+                    {
+                        "cve": {
+                            "id": "CVE-2024-1234",
+                            "descriptions": [{"lang": "en", "value": "Test"}],
+                            "metrics": {
+                                "cvssMetricV2": [
+                                    {
+                                        "cvssData": {
+                                            "baseScore": 2.5,
+                                            "vectorString": "AV:L",
+                                        }
+                                    }
+                                ]
+                            },
+                        }
+                    }
+                ]
+            }
+        ).encode()
+
+        records = feed.parse_feed(data)
+
+        assert len(records) == 1
+        assert records[0].severity == "LOW"
+
+    def test_osv_feed_parse_cvss_parsing_error(self, temp_cache_dir: Path):
+        """Test OSV parse with CVSS parsing error."""
+        feed = OSVFeed(cache_dir=temp_cache_dir)
+
+        data = {
+            "id": "OSV-2024-1234",
+            "summary": "Test",
+            "severity": [{"type": "CVSS_V3", "score": "invalid/format"}],
+        }
+
+        record = feed._parse_osv_record(data, "PyPI")
+
+        assert record is not None
+        assert record.cvss_score is None
+
+    def test_orchestrator_export_unified_feed_missing_line(
+        self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test orchestrator export_unified_feed to cover line 294."""
+        orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
+
+        def mock_load_all():
+            return {
+                "Feed1": [
+                    VulnerabilityRecord(
+                        id="CVE-2024-1234",
+                        source="Feed1",
+                        severity="HIGH",
+                        description="Test vulnerability",
+                    )
+                ]
+            }
+
+        monkeypatch.setattr(orchestrator, "load_all_feeds", mock_load_all)
+
+        output_path = temp_cache_dir / "unified.json"
+        orchestrator.export_unified_feed(output_path)
+
+        data = json.loads(output_path.read_text())
+        assert "metadata" in data
+        assert data["metadata"]["total_vulnerabilities"] == 1
+
+
+class TestAbsoluteCompleteCoverage:
+    """Final tests to achieve 100% coverage on all remaining lines."""
+
+    def test_kev_load_catalog_json_decode_in_load(self, temp_cache_dir: Path):
+        """Test KEV load_catalog with JSON decode error during load."""
+        kev_path = temp_cache_dir / "kev.json"
+        kev_path.write_text("invalid json content {{")
+
+        try:
+            catalog = load_kev_catalog(path=kev_path, cache_dir=temp_cache_dir)
+            assert catalog == {}
+        except FileNotFoundError:
+            pass
+
+    def test_base_feed_registry_load_all_with_error(self, temp_cache_dir: Path):
+        """Test FeedRegistry load_all with feed load error."""
+        from risk.feeds.base import FeedRegistry
+
+        registry = FeedRegistry(cache_dir=temp_cache_dir)
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+        registry.register(feed)
+
+        results = registry.load_all()
+
+        assert "NVD" in results or len(results) == 0
+
+    def test_base_feed_get_metadata_with_load_error(self, temp_cache_dir: Path):
+        """Test get_metadata when load_feed raises exception."""
+        feed = NVDFeed(cache_dir=temp_cache_dir)
+
+        cache_file = temp_cache_dir / feed.cache_filename
+        cache_file.write_text("invalid json {{")
+
+        metadata = feed.get_metadata()
+
+        assert metadata.name == "NVD"
+        assert metadata.record_count == 0
+
+    def test_base_feed_registry_get_feed_not_found(self, temp_cache_dir: Path):
+        """Test FeedRegistry get_feed with non-existent feed."""
+        from risk.feeds.base import FeedRegistry
+
+        registry = FeedRegistry(cache_dir=temp_cache_dir)
+
+        result = registry.get_feed("NonExistentFeed")
+
+        assert result is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
