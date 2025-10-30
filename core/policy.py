@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
@@ -70,7 +70,7 @@ class _AutomationDispatcher:
 
     def dispatch(self, action: Mapping[str, Any]) -> Dict[str, Any]:
         identifier = action.get("id") or uuid.uuid4().hex
-        filename = f"{datetime.utcnow().strftime('%Y%m%dT%H%M%S')}-{identifier}.json"
+        filename = f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%S')}-{identifier}.json"
         payload = {
             "id": identifier,
             "type": action.get("type"),
@@ -78,7 +78,7 @@ class _AutomationDispatcher:
             or action.get("space")
             or action.get("endpoint"),
             "payload": dict(action),
-            "dispatched_at": datetime.utcnow().isoformat() + "Z",
+            "dispatched_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         }
         path = self.base_dir / filename
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

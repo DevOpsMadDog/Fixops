@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 try:  # networkx is optional but preferred for rich graph metrics
@@ -325,7 +325,7 @@ class ProcessingLayer:
         return {
             "metrics": metrics,
             "top_centrality": top_nodes,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         }
 
     def _build_knowledge_graph_fallback(
@@ -422,7 +422,7 @@ class ProcessingLayer:
         return {
             "metrics": {"nodes": node_count, "edges": edge_count, "density": density},
             "top_centrality": top_nodes,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         }
 
 
