@@ -92,14 +92,16 @@ def test_policy_automation_executes_connectors(
 
     summary = automation.execute(plan["actions"])
 
+    from urllib.parse import urlparse
+
     assert summary["dispatched_count"] == 3
     assert len(summary["delivery_results"]) == 3
     assert all("status" in entry for entry in summary["delivery_results"])
     assert any(result["delivery"]["status"] == "sent" for result in summary["results"])
     assert len(calls) == 3
-    assert any("issue" in url for _, url, _ in calls)
-    assert any("content" in url for _, url, _ in calls)
-    assert any(url.startswith("https://hooks.slack.test") for _, url, _ in calls)
+    assert any("issue" in urlparse(url).path for _, url, _ in calls)
+    assert any("content" in urlparse(url).path for _, url, _ in calls)
+    assert any(urlparse(url).netloc == "hooks.slack.test" for _, url, _ in calls)
 
     automation_dir = overlay.data_directories["automation_dir"]
     entries = list(Path(automation_dir).glob("*.json"))
