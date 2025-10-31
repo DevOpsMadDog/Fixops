@@ -71,10 +71,13 @@ def test_policy_automation_executes_connectors(
     calls: List[Tuple[str, str, Dict[str, Any]]] = []
 
     def fake_request(self: Any, method: str, url: str, **kwargs: Any) -> DummyResponse:
+        from urllib.parse import urlparse
+
         calls.append((method, url, kwargs))
-        if "issue" in url:
+        parsed = urlparse(url)
+        if "issue" in parsed.path:
             return DummyResponse(url, {"key": "FIX-101"})
-        if "content" in url:
+        if "content" in parsed.path:
             return DummyResponse(url, {"id": "12345"})
         return DummyResponse(url, {})
 
