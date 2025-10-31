@@ -1683,7 +1683,11 @@ class TestRemainingModulesComplete:
         feed = NVDFeed(api_key="test-api-key", cache_dir=temp_cache_dir)
 
         def mock_fetcher(url):
-            assert "apiKey=test-api-key" in url
+            from urllib.parse import parse_qs, urlparse
+
+            parsed = urlparse(url)
+            query_params = parse_qs(parsed.query)
+            assert query_params.get("apiKey") == ["test-api-key"]
             return json.dumps(
                 {
                     "vulnerabilities": [
