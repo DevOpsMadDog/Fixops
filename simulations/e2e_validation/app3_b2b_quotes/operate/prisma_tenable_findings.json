@@ -1,0 +1,201 @@
+{
+  "scan_timestamp": "2025-10-30T00:00:00Z",
+  "prisma_findings": [
+    {
+      "id": "PRISMA-001",
+      "source": "Prisma Cloud",
+      "severity": "CRITICAL",
+      "title": "Container Running as Root User",
+      "description": "Container 'b2b-quotes-app' is configured to run as root user (UID 0). This violates PCI-DSS requirements and increases blast radius if container is compromised.",
+      "resource": "deployment/quote-engine",
+      "namespace": "production",
+      "cluster": "b2b-prod-cluster",
+      "remediation": "Set securityContext.runAsNonRoot: true and securityContext.runAsUser to non-zero UID in deployment manifest",
+      "compliance_frameworks": ["PCI-DSS 2.2.4", "SOC2 CC6.6", "ISO27001 A.12.6.1"],
+      "cwe": "CWE-250",
+      "cvss_score": 9.3,
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3"
+      }
+    },
+    {
+      "id": "PRISMA-002",
+      "source": "Prisma Cloud",
+      "severity": "CRITICAL",
+      "title": "Excessive Kubernetes RBAC Permissions",
+      "description": "ServiceAccount 'quote-engine-sa' has cluster-admin ClusterRoleBinding, granting full cluster access. This violates principle of least privilege.",
+      "resource": "serviceaccount/quote-engine-sa",
+      "namespace": "production",
+      "cluster": "b2b-prod-cluster",
+      "remediation": "Create custom Role with minimal required permissions and bind to ServiceAccount",
+      "compliance_frameworks": ["PCI-DSS 7.1.2", "SOC2 CC6.1", "ISO27001 A.9.2.3"],
+      "cwe": "CWE-269",
+      "cvss_score": 9.1,
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3"
+      }
+    },
+    {
+      "id": "PRISMA-003",
+      "source": "Prisma Cloud",
+      "severity": "CRITICAL",
+      "title": "Database Node Exposed to Internet",
+      "description": "PostgreSQL database node is accessible from internet via public IP address. Database contains customer PII and payment card data.",
+      "resource": "rds/b2b-quotes-db",
+      "remediation": "Remove public IP address and configure access through private subnet only",
+      "compliance_frameworks": ["PCI-DSS 1.3.1", "SOC2 CC6.6", "GDPR Article 32"],
+      "cwe": "CWE-668",
+      "cvss_score": 9.8,
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3",
+        "DataClassification": "PCI"
+      }
+    },
+    {
+      "id": "PRISMA-004",
+      "source": "Prisma Cloud",
+      "severity": "HIGH",
+      "title": "Pod Security Policy Not Enforced",
+      "description": "Kubernetes cluster does not have PodSecurityPolicy enabled, allowing privileged containers and host access.",
+      "resource": "cluster/b2b-prod-cluster",
+      "remediation": "Enable PodSecurityPolicy admission controller and create restrictive policies",
+      "compliance_frameworks": ["PCI-DSS 2.2", "SOC2 CC6.6"],
+      "cwe": "CWE-250",
+      "cvss_score": 7.5,
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3"
+      }
+    },
+    {
+      "id": "PRISMA-005",
+      "source": "Prisma Cloud",
+      "severity": "MEDIUM",
+      "title": "Secrets Stored in ConfigMaps",
+      "description": "Database credentials and API keys stored in ConfigMaps instead of Secrets. ConfigMaps are not encrypted at rest.",
+      "resource": "configmap/app-config",
+      "namespace": "production",
+      "remediation": "Move sensitive data to Kubernetes Secrets and enable encryption at rest",
+      "compliance_frameworks": ["PCI-DSS 3.4", "SOC2 CC6.1"],
+      "cwe": "CWE-312",
+      "cvss_score": 6.5,
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3"
+      }
+    }
+  ],
+  "tenable_findings": [
+    {
+      "id": "TENABLE-001",
+      "source": "Tenable",
+      "plugin_id": "171234",
+      "severity": "CRITICAL",
+      "title": "Linux Kernel Netfilter Use-After-Free (CVE-2023-32233)",
+      "description": "The remote host is running a version of Linux kernel affected by a use-after-free vulnerability in Netfilter nf_tables. An attacker can exploit this to gain root privileges.",
+      "cve": "CVE-2023-32233",
+      "cvss_score": 9.8,
+      "host": "10.0.1.45",
+      "port": 0,
+      "protocol": "tcp",
+      "remediation": "Upgrade Linux kernel to version 5.15.0-73 or later",
+      "compliance_frameworks": ["PCI-DSS 6.2", "SOC2 CC7.2"],
+      "exploit_available": true,
+      "patch_publication_date": "2023-05-08",
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3",
+        "Hostname": "quote-engine-pod-1"
+      }
+    },
+    {
+      "id": "TENABLE-002",
+      "source": "Tenable",
+      "plugin_id": "168901",
+      "severity": "HIGH",
+      "title": "glibc Buffer Overflow (Looney Tunables - CVE-2023-4911)",
+      "description": "The remote host has a version of glibc affected by a buffer overflow vulnerability that can be exploited for privilege escalation.",
+      "cve": "CVE-2023-4911",
+      "cvss_score": 7.8,
+      "host": "10.0.1.45",
+      "port": 0,
+      "protocol": "tcp",
+      "remediation": "Upgrade glibc to version 2.31-0ubuntu9.12 or later",
+      "compliance_frameworks": ["PCI-DSS 6.2", "SOC2 CC7.2"],
+      "exploit_available": true,
+      "patch_publication_date": "2023-10-03",
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3"
+      }
+    },
+    {
+      "id": "TENABLE-003",
+      "source": "Tenable",
+      "plugin_id": "165432",
+      "severity": "HIGH",
+      "title": "OpenSSL X.509 Email Address Buffer Overflow (CVE-2022-3602)",
+      "description": "The remote host has a version of OpenSSL affected by a buffer overflow vulnerability in X.509 certificate verification.",
+      "cve": "CVE-2022-3602",
+      "cvss_score": 7.5,
+      "host": "10.0.1.45",
+      "port": 443,
+      "protocol": "tcp",
+      "remediation": "Upgrade OpenSSL to version 1.1.1s or later",
+      "compliance_frameworks": ["PCI-DSS 6.2"],
+      "exploit_available": false,
+      "patch_publication_date": "2022-11-01",
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3"
+      }
+    }
+  ],
+  "contrast_rasp_findings": [
+    {
+      "id": "CONTRAST-001",
+      "source": "Contrast Security RASP",
+      "severity": "CRITICAL",
+      "title": "Runtime SQL Injection Attack Detected",
+      "description": "Contrast RASP detected and blocked a SQL injection attack attempt at runtime. Attacker attempted to inject malicious SQL through quote description parameter.",
+      "attack_vector": "HTTP POST /api/quotes",
+      "payload": "'; DROP TABLE quotes; --",
+      "parameter": "description",
+      "timestamp": "2025-10-29T14:32:15Z",
+      "source_ip": "203.0.113.42",
+      "blocked": true,
+      "cwe": "CWE-89",
+      "cvss_score": 9.8,
+      "compliance_frameworks": ["PCI-DSS 6.5.1", "SOC2 CC7.2"],
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3",
+        "AttackType": "SQLi"
+      }
+    },
+    {
+      "id": "CONTRAST-002",
+      "source": "Contrast Security RASP",
+      "severity": "HIGH",
+      "title": "Runtime Command Injection Attempt",
+      "description": "Contrast RASP detected command injection attempt through file upload functionality.",
+      "attack_vector": "HTTP POST /api/quotes/upload",
+      "payload": "document.pdf; cat /etc/passwd",
+      "parameter": "filename",
+      "timestamp": "2025-10-29T16:45:22Z",
+      "source_ip": "198.51.100.23",
+      "blocked": true,
+      "cwe": "CWE-78",
+      "cvss_score": 8.1,
+      "compliance_frameworks": ["PCI-DSS 6.5.1"],
+      "tags": {
+        "Environment": "production",
+        "Application": "APP3",
+        "AttackType": "CommandInjection"
+      }
+    }
+  ]
+}

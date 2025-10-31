@@ -1,0 +1,11 @@
+req_id,app_id,description,owner,criticality,data_classification,threat_ref
+REQ-011,APP2,Image proxy service for partner content,alex.chen@company.com,4,internal,STRIDE-T-011
+REQ-012,APP2,ESB for partner API integrations,maria.lopez@company.com,4,confidential,STRIDE-T-012
+REQ-013,APP2,Micro-frontend shell application,kevin.patel@company.com,3,internal,STRIDE-T-013
+REQ-014,APP2,Partner authentication gateway,susan.kim@company.com,5,confidential,STRIDE-T-014
+REQ-015,APP2,API rate limiting and throttling,james.taylor@company.com,3,internal,STRIDE-T-015
+REQ-016,APP2,Partner data transformation service,rachel.white@company.com,4,confidential,STRIDE-T-016
+REQ-017,APP2,Frontend module federation,chris.anderson@company.com,3,internal,STRIDE-T-017
+REQ-018,APP2,Kong API gateway configuration,nicole.thomas@company.com,4,confidential,STRIDE-T-018
+REQ-019,APP2,Partner webhook receiver,daniel.jackson@company.com,3,internal,STRIDE-T-019
+REQ-020,APP2,Shared component library,emily.harris@company.com,2,public,STRIDE-T-020
