@@ -1,0 +1,2783 @@
+{
+  "status": "ok",
+  "design_summary": {
+    "row_count": 10,
+    "unique_components": []
+  },
+  "sbom_summary": {
+    "component_count": 10,
+    "relationship_count": 0,
+    "service_count": 0,
+    "vulnerability_count": 2,
+    "format": "CycloneDX",
+    "document_name": null
+  },
+  "sarif_summary": {
+    "run_count": 1,
+    "finding_count": 6,
+    "supported_schema": false,
+    "tool_count": 1,
+    "severity_breakdown": {
+      "error": 4,
+      "warning": 2
+    },
+    "tools": [
+      "SonarQube"
+    ]
+  },
+  "cve_summary": {
+    "record_count": 0,
+    "validation_errors": 5,
+    "exploited_count": 0
+  },
+  "severity_overview": {
+    "highest": "high",
+    "counts": {
+      "high": 4,
+      "medium": 2
+    },
+    "sources": {
+      "sarif": {
+        "high": 4,
+        "medium": 2
+      },
+      "cve": {}
+    },
+    "trigger": {
+      "source": "sarif",
+      "rule_id": "java:S3649",
+      "level": "error",
+      "file": "src/main/java/com/insureco/api/PolicySearchController.java"
+    }
+  },
+  "crosswalk": [
+    {
+      "design_index": 0,
+      "design_row": {
+        "service_name": "policy-search-api",
+        "environment": "prod",
+        "customer_impact": "mission_critical",
+        "data_classification": "pii",
+        "exposure": "internet",
+        "threat_id": "STRIDE-T-001",
+        "threat_description": "SQL injection in policy search endpoint /policy/search",
+        "severity": "critical",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 1,
+      "design_row": {
+        "service_name": "payment-gateway",
+        "environment": "prod",
+        "customer_impact": "mission_critical",
+        "data_classification": "financial",
+        "exposure": "internet",
+        "threat_id": "STRIDE-T-002",
+        "threat_description": "Weak TLS configuration with outdated OpenSSL 1.0.2",
+        "severity": "high",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 2,
+      "design_row": {
+        "service_name": "document-storage",
+        "environment": "prod",
+        "customer_impact": "external",
+        "data_classification": "pii",
+        "exposure": "internet",
+        "threat_id": "STRIDE-T-004",
+        "threat_description": "S3 bucket with public read ACL exposing customer documents",
+        "severity": "critical",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 3,
+      "design_row": {
+        "service_name": "web-frontend",
+        "environment": "prod",
+        "customer_impact": "mission_critical",
+        "data_classification": "pii",
+        "exposure": "internet",
+        "threat_id": "STRIDE-T-005",
+        "threat_description": "Transitive dependency on log4j 2.14.1 with RCE vulnerability",
+        "severity": "critical",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 4,
+      "design_row": {
+        "service_name": "iam-service",
+        "environment": "prod",
+        "customer_impact": "mission_critical",
+        "data_classification": "pii",
+        "exposure": "internet",
+        "threat_id": "STRIDE-T-005",
+        "threat_description": "Overly permissive IAM role allowing s3:* actions",
+        "severity": "high",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 5,
+      "design_row": {
+        "service_name": "claims-api",
+        "environment": "prod",
+        "customer_impact": "external",
+        "data_classification": "pii",
+        "exposure": "partner",
+        "threat_id": "STRIDE-T-003",
+        "threat_description": "Missing input validation on claims submission",
+        "severity": "medium",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 6,
+      "design_row": {
+        "service_name": "quote-calculator",
+        "environment": "prod",
+        "customer_impact": "internal",
+        "data_classification": "internal",
+        "exposure": "internal",
+        "threat_id": "STRIDE-T-006",
+        "threat_description": "Hardcoded API keys in configuration files",
+        "severity": "medium",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 7,
+      "design_row": {
+        "service_name": "user-profile-api",
+        "environment": "prod",
+        "customer_impact": "external",
+        "data_classification": "pii",
+        "exposure": "partner",
+        "threat_id": "STRIDE-T-007",
+        "threat_description": "Weak password policy allowing 6-character passwords",
+        "severity": "medium",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 8,
+      "design_row": {
+        "service_name": "analytics-service",
+        "environment": "stage",
+        "customer_impact": "internal",
+        "data_classification": "internal",
+        "exposure": "internal",
+        "threat_id": "STRIDE-T-008",
+        "threat_description": "Unencrypted data at rest in analytics database",
+        "severity": "low",
+        "mitigation_status": "complete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    },
+    {
+      "design_index": 9,
+      "design_row": {
+        "service_name": "notification-service",
+        "environment": "prod",
+        "customer_impact": "internal",
+        "data_classification": "internal",
+        "exposure": "internal",
+        "threat_id": "STRIDE-T-009",
+        "threat_description": "SMTP credentials stored in plaintext",
+        "severity": "medium",
+        "mitigation_status": "incomplete"
+      },
+      "sbom_component": null,
+      "findings": [],
+      "cves": []
+    }
+  ],
+  "processing_layer": {
+    "bayesian_priors": {
+      "exploitation": "none",
+      "exposure": "controlled",
+      "utility": "efficient",
+      "safety_impact": "negligible",
+      "mission_impact": "degraded",
+      "risk": "medium",
+      "confidence": 0.5
+    },
+    "markov_projection": {
+      "transitions": [],
+      "library": "fallback"
+    },
+    "non_cve_findings": [
+      {
+        "rule_id": "java:S3649",
+        "message": "SQL injection vulnerability detected in policy search endpoint. User input is directly concatenated into SQL query without parameterization.",
+        "severity": "error",
+        "file": "src/main/java/com/insureco/api/PolicySearchController.java"
+      },
+      {
+        "rule_id": "java:S2068",
+        "message": "Hardcoded credentials detected. API key is stored directly in source code.",
+        "severity": "error",
+        "file": "src/main/java/com/insureco/config/AppConfig.java"
+      },
+      {
+        "rule_id": "java:S4502",
+        "message": "Weak password validation allows passwords shorter than 8 characters.",
+        "severity": "warning",
+        "file": "src/main/java/com/insureco/auth/PasswordValidator.java"
+      },
+      {
+        "rule_id": "java:S5131",
+        "message": "Cross-Site Scripting (XSS) vulnerability. User input is rendered without sanitization.",
+        "severity": "error",
+        "file": "src/main/java/com/insureco/web/ClaimsController.java"
+      },
+      {
+        "rule_id": "java:S4830",
+        "message": "Server certificate validation is disabled, allowing man-in-the-middle attacks.",
+        "severity": "error",
+        "file": "src/main/java/com/insureco/client/PaymentGatewayClient.java"
+      },
+      {
+        "rule_id": "java:S2076",
+        "message": "OS command injection vulnerability. User input is passed to Runtime.exec() without validation.",
+        "severity": "warning",
+        "file": "src/main/java/com/insureco/reports/ReportGenerator.java"
+      }
+    ],
+    "knowledge_graph": {
+      "metrics": {
+        "nodes": 22,
+        "edges": 6,
+        "density": 0.013
+      },
+      "top_centrality": [
+        [
+          "finding:java:S3649",
+          0.047619047619047616
+        ],
+        [
+          "src/main/java/com/insureco/api/PolicySearchController.java",
+          0.047619047619047616
+        ],
+        [
+          "finding:java:S2068",
+          0.047619047619047616
+        ],
+        [
+          "src/main/java/com/insureco/config/AppConfig.java",
+          0.047619047619047616
+        ],
+        [
+          "finding:java:S4502",
+          0.047619047619047616
+        ]
+      ],
+      "generated_at": "2025-10-30T13:47:57.700187Z"
+    },
+    "library_status": {
+      "pgmpy": true,
+      "pomegranate": false,
+      "mchmm": false,
+      "networkx": true
+    }
+  },
+  "runtime_warnings": [
+    "Evidence encryption disabled: FIXOPS_EVIDENCE_KEY environment variable not set. Evidence bundles will be stored in plaintext.",
+    "Jira automation token 'FIXOPS_JIRA_TOKEN' is not set; automation runs will be skipped.",
+    "Confluence automation token 'FIXOPS_CONFLUENCE_TOKEN' is not set; automation runs will be skipped."
+  ],
+  "automation_requirements": [
+    {
+      "label": "Confluence",
+      "token_env": "FIXOPS_CONFLUENCE_TOKEN"
+    },
+    {
+      "label": "Jira",
+      "token_env": "FIXOPS_JIRA_TOKEN"
+    }
+  ],
+  "guardrail_evaluation": {
+    "maturity": "scaling",
+    "policy": {
+      "fail_on": "high",
+      "warn_on": "medium"
+    },
+    "highest_detected": "high",
+    "status": "fail",
+    "severity_counts": {
+      "high": 4,
+      "medium": 2
+    },
+    "rationale": [
+      "highest severity 'high' meets fail threshold 'high'"
+    ],
+    "trigger": {
+      "source": "sarif",
+      "rule_id": "java:S3649",
+      "level": "error",
+      "file": "src/main/java/com/insureco/api/PolicySearchController.java"
+    }
+  },
+  "context_summary": {
+    "summary": {
+      "components_evaluated": 10,
+      "highest_score": 11,
+      "average_score": 8.4,
+      "highest_component": {
+        "name": "unknown",
+        "score": 11,
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      "signals": {
+        "criticality_distribution": {
+          "mission_critical": 4,
+          "external": 3,
+          "internal": 3
+        },
+        "exposure_distribution": {
+          "internet": 5,
+          "partner": 2,
+          "internal": 3
+        },
+        "playbook_usage": {
+          "Stabilise Customer Impact": 7,
+          "Monitor": 3
+        }
+      }
+    },
+    "components": [
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 11,
+        "criticality": "mission_critical",
+        "data_classification": [
+          "pii"
+        ],
+        "exposure": "internet",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 11,
+        "criticality": "mission_critical",
+        "data_classification": [
+          "financial"
+        ],
+        "exposure": "internet",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 10,
+        "criticality": "external",
+        "data_classification": [
+          "pii"
+        ],
+        "exposure": "internet",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 11,
+        "criticality": "mission_critical",
+        "data_classification": [
+          "pii"
+        ],
+        "exposure": "internet",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 11,
+        "criticality": "mission_critical",
+        "data_classification": [
+          "pii"
+        ],
+        "exposure": "internet",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 9,
+        "criticality": "external",
+        "data_classification": [
+          "pii"
+        ],
+        "exposure": "partner",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 4,
+        "criticality": "internal",
+        "data_classification": [
+          "internal"
+        ],
+        "exposure": "internal",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Monitor",
+          "min_score": 0,
+          "channel": "platform-notifications"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 9,
+        "criticality": "external",
+        "data_classification": [
+          "pii"
+        ],
+        "exposure": "partner",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Stabilise Customer Impact",
+          "min_score": 9,
+          "channel": "sre-pager"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 4,
+        "criticality": "internal",
+        "data_classification": [
+          "internal"
+        ],
+        "exposure": "internal",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Monitor",
+          "min_score": 0,
+          "channel": "platform-notifications"
+        }
+      },
+      {
+        "name": "unknown",
+        "severity": "low",
+        "context_score": 4,
+        "criticality": "internal",
+        "data_classification": [
+          "internal"
+        ],
+        "exposure": "internal",
+        "signals": {
+          "exploited": false,
+          "finding_count": 0,
+          "cve_count": 0
+        },
+        "playbook": {
+          "name": "Monitor",
+          "min_score": 0,
+          "channel": "platform-notifications"
+        }
+      }
+    ]
+  },
+  "onboarding": {
+    "mode": "enterprise",
+    "time_to_value_minutes": 20,
+    "steps": [
+      {
+        "label": "Connect Jira project",
+        "modes": [
+          "enterprise"
+        ]
+      },
+      {
+        "label": "Sync Confluence evidence space",
+        "modes": [
+          "enterprise"
+        ]
+      },
+      {
+        "label": "Approve policy automation routes",
+        "modes": [
+          "enterprise"
+        ]
+      },
+      {
+        "label": "Provide DESIGN artefact",
+        "modes": [
+          "enterprise"
+        ]
+      },
+      {
+        "label": "Provide SBOM artefact",
+        "modes": [
+          "enterprise"
+        ]
+      },
+      {
+        "label": "Provide SARIF artefact",
+        "modes": [
+          "enterprise"
+        ]
+      },
+      {
+        "label": "Provide CVE artefact",
+        "modes": [
+          "enterprise"
+        ]
+      }
+    ],
+    "integrations": {
+      "jira": {
+        "url": "https://jira.example.com",
+        "project_key": "SEC",
+        "default_issue_type": "Task",
+        "user_email": "bot@fixops.local",
+        "token_env": "FIXOPS_JIRA_TOKEN"
+      },
+      "confluence": {
+        "base_url": "https://confluence.example.com",
+        "space_key": "SECOPS",
+        "user": "fixops-bot",
+        "token_env": "FIXOPS_CONFLUENCE_TOKEN"
+      },
+      "git": {},
+      "ci": {}
+    }
+  },
+  "evidence_bundle": {
+    "bundle_id": "e3b8a1da6ac94cfca027a53b86273374",
+    "directory": "/home/ubuntu/repos/Fixops/data/data/evidence/e3b8a1da6ac94cfca027a53b86273374",
+    "files": {
+      "bundle": "/home/ubuntu/repos/Fixops/data/data/evidence/e3b8a1da6ac94cfca027a53b86273374/fixops-enterprise-run-bundle.json.gz",
+      "manifest": "/home/ubuntu/repos/Fixops/data/data/evidence/e3b8a1da6ac94cfca027a53b86273374/manifest.json"
+    },
+    "sections": [
+      "design_summary",
+      "sbom_summary",
+      "sarif_summary",
+      "cve_summary",
+      "severity_overview",
+      "context_summary",
+      "guardrail_evaluation",
+      "compliance_status",
+      "policy_automation",
+      "analytics",
+      "tenant_lifecycle",
+      "performance_profile",
+      "ai_agent_analysis",
+      "probabilistic_forecast",
+      "exploitability_insights",
+      "ssdlc_assessment",
+      "iac_posture",
+      "module_execution"
+    ],
+    "compressed": true,
+    "encrypted": false,
+    "sha256": "f0aeda74d191a22895fe6cd1f953125d06c63695609cddcbd197ab1045447295",
+    "retention_days": 2555
+  },
+  "compliance_status": {
+    "frameworks": [
+      {
+        "name": "SOC2",
+        "status": "in_progress",
+        "controls": [
+          {
+            "id": "CC8.1",
+            "title": "Change Management Evidence",
+            "status": "satisfied",
+            "satisfied": [
+              "design",
+              "guardrails",
+              "evidence"
+            ],
+            "missing": []
+          },
+          {
+            "id": "CC7.2",
+            "title": "Continuous Vulnerability Management",
+            "status": "gap",
+            "satisfied": [
+              "sarif",
+              "context"
+            ],
+            "missing": [
+              "cve"
+            ]
+          },
+          {
+            "id": "CC6.1",
+            "title": "Logical and Physical Access Controls",
+            "status": "satisfied",
+            "satisfied": [
+              "design",
+              "context"
+            ],
+            "missing": []
+          },
+          {
+            "id": "CC6.6",
+            "title": "Vulnerabilities Are Identified and Addressed",
+            "status": "gap",
+            "satisfied": [
+              "sarif",
+              "guardrails"
+            ],
+            "missing": [
+              "cve"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "ISO27001",
+        "status": "in_progress",
+        "controls": [
+          {
+            "id": "A.12.6.1",
+            "title": "Application vulnerability management",
+            "status": "gap",
+            "satisfied": [
+              "sbom"
+            ],
+            "missing": [
+              "cve"
+            ]
+          },
+          {
+            "id": "A.14.2.8",
+            "title": "System security testing",
+            "status": "satisfied",
+            "satisfied": [
+              "sarif",
+              "guardrails"
+            ],
+            "missing": []
+          }
+        ]
+      },
+      {
+        "name": "PCI_DSS",
+        "status": "in_progress",
+        "controls": [
+          {
+            "id": "6.2",
+            "title": "Ensure all system components are protected from known vulnerabilities",
+            "status": "gap",
+            "satisfied": [
+              "sbom",
+              "guardrails"
+            ],
+            "missing": [
+              "cve"
+            ]
+          },
+          {
+            "id": "6.5.1",
+            "title": "Injection flaws, particularly SQL injection",
+            "status": "satisfied",
+            "satisfied": [
+              "sarif",
+              "guardrails"
+            ],
+            "missing": []
+          },
+          {
+            "id": "6.5.3",
+            "title": "Insecure cryptographic storage",
+            "status": "satisfied",
+            "satisfied": [
+              "sarif",
+              "design"
+            ],
+            "missing": []
+          },
+          {
+            "id": "6.5.8",
+            "title": "Improper access control",
+            "status": "satisfied",
+            "satisfied": [
+              "sarif",
+              "design",
+              "context"
+            ],
+            "missing": []
+          },
+          {
+            "id": "11.2",
+            "title": "Run internal and external network vulnerability scans quarterly",
+            "status": "gap",
+            "satisfied": [
+              "sarif"
+            ],
+            "missing": [
+              "cve"
+            ]
+          },
+          {
+            "id": "11.3",
+            "title": "Implement penetration testing methodology",
+            "status": "satisfied",
+            "satisfied": [
+              "sarif",
+              "guardrails",
+              "evidence"
+            ],
+            "missing": []
+          }
+        ]
+      },
+      {
+        "name": "GDPR",
+        "status": "satisfied",
+        "controls": [
+          {
+            "id": "Article_32",
+            "title": "Security of Processing",
+            "status": "satisfied",
+            "satisfied": [
+              "design",
+              "evidence",
+              "guardrails"
+            ],
+            "missing": []
+          },
+          {
+            "id": "Article_25",
+            "title": "Data Protection by Design and Default",
+            "status": "satisfied",
+            "satisfied": [
+              "design",
+              "context"
+            ],
+            "missing": []
+          }
+        ]
+      },
+      {
+        "name": "ISO27001",
+        "status": "in_progress",
+        "controls": [
+          {
+            "id": "A.12.6.1",
+            "title": "Application vulnerability management",
+            "status": "gap",
+            "satisfied": [
+              "sbom"
+            ],
+            "missing": [
+              "cve"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "PCI_DSS",
+        "status": "in_progress",
+        "controls": [
+          {
+            "id": "6.2",
+            "title": "Ensure all system components are protected from known vulnerabilities",
+            "status": "gap",
+            "satisfied": [
+              "sbom",
+              "guardrails"
+            ],
+            "missing": [
+              "cve"
+            ]
+          },
+          {
+            "id": "11.2",
+            "title": "Run vulnerability scans quarterly",
+            "status": "gap",
+            "satisfied": [
+              "sarif"
+            ],
+            "missing": [
+              "cve"
+            ]
+          }
+        ]
+      }
+    ],
+    "gaps": [
+      "SOC2: CC7.2 missing cve",
+      "SOC2: CC6.6 missing cve",
+      "ISO27001: A.12.6.1 missing cve",
+      "PCI_DSS: 6.2 missing cve",
+      "PCI_DSS: 11.2 missing cve",
+      "ISO27001: A.12.6.1 missing cve",
+      "PCI_DSS: 6.2 missing cve",
+      "PCI_DSS: 11.2 missing cve"
+    ]
+  },
+  "policy_automation": {
+    "status": "unavailable",
+    "actions": [],
+    "skipped": [],
+    "warnings": [
+      "Evidence encryption disabled: FIXOPS_EVIDENCE_KEY environment variable not set. Evidence bundles will be stored in plaintext.",
+      "Jira automation token 'FIXOPS_JIRA_TOKEN' is not set; automation runs will be skipped.",
+      "Confluence automation token 'FIXOPS_CONFLUENCE_TOKEN' is not set; automation runs will be skipped."
+    ],
+    "execution": {
+      "status": "skipped",
+      "reason": "automation prerequisites missing",
+      "warnings": [
+        "Evidence encryption disabled: FIXOPS_EVIDENCE_KEY environment variable not set. Evidence bundles will be stored in plaintext.",
+        "Jira automation token 'FIXOPS_JIRA_TOKEN' is not set; automation runs will be skipped.",
+        "Confluence automation token 'FIXOPS_CONFLUENCE_TOKEN' is not set; automation runs will be skipped."
+      ]
+    }
+  },
+  "marketplace_recommendations": [
+    {
+      "id": "guardrail-remediation",
+      "title": "Enable auto-remediation playbooks",
+      "match": [
+        "ISO27001: A.12.6.1 missing cve",
+        "ISO27001:A.12.6.1",
+        "PCI_DSS: 11.2 missing cve",
+        "PCI_DSS: 6.2 missing cve",
+        "PCI_DSS:11.2",
+        "PCI_DSS:6.2",
+        "SOC2: CC6.6 missing cve",
+        "SOC2: CC7.2 missing cve",
+        "SOC2:CC6.6",
+        "SOC2:CC7.2",
+        "guardrail:fail",
+        "guardrail:high"
+      ]
+    }
+  ],
+  "vector_similarity": {
+    "provider": {
+      "fallback_reason": "ChromaDB dependencies are not installed",
+      "provider": "in_memory",
+      "collection": "fixops-security-patterns",
+      "patterns_indexed": 5
+    },
+    "matches": [
+      {
+        "component": null,
+        "query": "mission_critical pii internet",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9545
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9518
+          },
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9517
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "mission_critical financial internet",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9738
+          },
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9721
+          },
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9681
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "external pii internet",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9337
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9289
+          },
+          {
+            "pattern_id": "pattern-credential-hygiene",
+            "title": "Credential hygiene enforcement",
+            "category": "Identity",
+            "controls": [
+              "ISO27001 A.9.2",
+              "CIS IG1 4.3"
+            ],
+            "similarity": 0.9268
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "mission_critical pii internet",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9545
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9518
+          },
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9517
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "mission_critical pii internet",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9545
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9518
+          },
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9517
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "external pii partner",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9594
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9454
+          },
+          {
+            "pattern_id": "pattern-credential-hygiene",
+            "title": "Credential hygiene enforcement",
+            "category": "Identity",
+            "controls": [
+              "ISO27001 A.9.2",
+              "CIS IG1 4.3"
+            ],
+            "similarity": 0.944
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "internal internal internal",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9459
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9416
+          },
+          {
+            "pattern_id": "pattern-credential-hygiene",
+            "title": "Credential hygiene enforcement",
+            "category": "Identity",
+            "controls": [
+              "ISO27001 A.9.2",
+              "CIS IG1 4.3"
+            ],
+            "similarity": 0.9372
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "external pii partner",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-supply-chain",
+            "title": "Supply-chain integrity",
+            "category": "Supply Chain",
+            "controls": [
+              "SLSA L2",
+              "NIST SSDF PO.3"
+            ],
+            "similarity": 0.9594
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9454
+          },
+          {
+            "pattern_id": "pattern-credential-hygiene",
+            "title": "Credential hygiene enforcement",
+            "category": "Identity",
+            "controls": [
+              "ISO27001 A.9.2",
+              "CIS IG1 4.3"
+            ],
+            "similarity": 0.944
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "internal internal internal",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9459
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9416
+          },
+          {
+            "pattern_id": "pattern-credential-hygiene",
+            "title": "Credential hygiene enforcement",
+            "category": "Identity",
+            "controls": [
+              "ISO27001 A.9.2",
+              "CIS IG1 4.3"
+            ],
+            "similarity": 0.9372
+          }
+        ]
+      },
+      {
+        "component": null,
+        "query": "internal internal internal",
+        "finding_rules": [],
+        "patterns": [
+          {
+            "pattern_id": "pattern-runtime-hardening",
+            "title": "Runtime hardening",
+            "category": "Cloud Native Security",
+            "controls": [
+              "NIST SP 800-190 RA-5",
+              "CIS Kubernetes 5.1"
+            ],
+            "similarity": 0.9459
+          },
+          {
+            "pattern_id": "pattern-sql-injection",
+            "title": "SQL injection guardrails",
+            "category": "Application Security",
+            "controls": [
+              "OWASP ASVS 5.3.2",
+              "NIST SP 800-53 SI-10"
+            ],
+            "similarity": 0.9416
+          },
+          {
+            "pattern_id": "pattern-credential-hygiene",
+            "title": "Credential hygiene enforcement",
+            "category": "Identity",
+            "controls": [
+              "ISO27001 A.9.2",
+              "CIS IG1 4.3"
+            ],
+            "similarity": 0.9372
+          }
+        ]
+      }
+    ]
+  },
+  "knowledge_graph": {
+    "nodes": [
+      {
+        "id": "SOC2:CC8.1",
+        "type": "control",
+        "properties": {
+          "title": "Change Management Evidence",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "SOC2:CC7.2",
+        "type": "control",
+        "properties": {
+          "title": "Continuous Vulnerability Management",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "SOC2:CC6.1",
+        "type": "control",
+        "properties": {
+          "title": "Logical and Physical Access Controls",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "SOC2:CC6.6",
+        "type": "control",
+        "properties": {
+          "title": "Vulnerabilities Are Identified and Addressed",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "ISO27001:A.12.6.1",
+        "type": "control",
+        "properties": {
+          "title": "Application vulnerability management",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "ISO27001"
+        }
+      },
+      {
+        "id": "ISO27001:A.14.2.8",
+        "type": "control",
+        "properties": {
+          "title": "System security testing",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "ISO27001"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.2",
+        "type": "control",
+        "properties": {
+          "title": "Ensure all system components are protected from known vulnerabilities",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.5.1",
+        "type": "control",
+        "properties": {
+          "title": "Injection flaws, particularly SQL injection",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.5.3",
+        "type": "control",
+        "properties": {
+          "title": "Insecure cryptographic storage",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.5.8",
+        "type": "control",
+        "properties": {
+          "title": "Improper access control",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:11.2",
+        "type": "control",
+        "properties": {
+          "title": "Run internal and external network vulnerability scans quarterly",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:11.3",
+        "type": "control",
+        "properties": {
+          "title": "Implement penetration testing methodology",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "GDPR:Article_32",
+        "type": "control",
+        "properties": {
+          "title": "Security of Processing",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "GDPR"
+        }
+      },
+      {
+        "id": "GDPR:Article_25",
+        "type": "control",
+        "properties": {
+          "title": "Data Protection by Design and Default",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "GDPR"
+        }
+      },
+      {
+        "id": "guardrail-remediation",
+        "type": "mitigation",
+        "properties": {
+          "title": "Enable auto-remediation playbooks",
+          "match": [
+            "ISO27001: A.12.6.1 missing cve",
+            "ISO27001:A.12.6.1",
+            "PCI_DSS: 11.2 missing cve",
+            "PCI_DSS: 6.2 missing cve",
+            "PCI_DSS:11.2",
+            "PCI_DSS:6.2",
+            "SOC2: CC6.6 missing cve",
+            "SOC2: CC7.2 missing cve",
+            "SOC2:CC6.6",
+            "SOC2:CC7.2",
+            "guardrail:fail",
+            "guardrail:high"
+          ]
+        }
+      },
+      {
+        "id": "guardrail",
+        "type": "policy",
+        "properties": {
+          "status": "fail",
+          "highest_detected": "high",
+          "maturity": "scaling"
+        }
+      },
+      {
+        "id": "severity-overview",
+        "type": "telemetry",
+        "properties": {
+          "highest": "high",
+          "counts": {
+            "high": 4,
+            "medium": 2
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "mitigation:guardrail-remediation:guardrail:fail",
+        "source": "guardrail-remediation",
+        "target": "guardrail",
+        "type": "remediated_by",
+        "metadata": {
+          "match": "guardrail:fail"
+        }
+      },
+      {
+        "id": "mitigation:guardrail-remediation:guardrail:high",
+        "source": "guardrail-remediation",
+        "target": "guardrail",
+        "type": "remediated_by",
+        "metadata": {
+          "match": "guardrail:high"
+        }
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "SOC2:CC8.1",
+          "type": "control",
+          "properties": {
+            "title": "Change Management Evidence",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "SOC2"
+          }
+        },
+        {
+          "id": "SOC2:CC7.2",
+          "type": "control",
+          "properties": {
+            "title": "Continuous Vulnerability Management",
+            "status": "gap",
+            "missing": [
+              "cve"
+            ],
+            "framework": "SOC2"
+          }
+        },
+        {
+          "id": "SOC2:CC6.1",
+          "type": "control",
+          "properties": {
+            "title": "Logical and Physical Access Controls",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "SOC2"
+          }
+        },
+        {
+          "id": "SOC2:CC6.6",
+          "type": "control",
+          "properties": {
+            "title": "Vulnerabilities Are Identified and Addressed",
+            "status": "gap",
+            "missing": [
+              "cve"
+            ],
+            "framework": "SOC2"
+          }
+        },
+        {
+          "id": "ISO27001:A.12.6.1",
+          "type": "control",
+          "properties": {
+            "title": "Application vulnerability management",
+            "status": "gap",
+            "missing": [
+              "cve"
+            ],
+            "framework": "ISO27001"
+          }
+        },
+        {
+          "id": "ISO27001:A.14.2.8",
+          "type": "control",
+          "properties": {
+            "title": "System security testing",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "ISO27001"
+          }
+        },
+        {
+          "id": "PCI_DSS:6.2",
+          "type": "control",
+          "properties": {
+            "title": "Ensure all system components are protected from known vulnerabilities",
+            "status": "gap",
+            "missing": [
+              "cve"
+            ],
+            "framework": "PCI_DSS"
+          }
+        },
+        {
+          "id": "PCI_DSS:6.5.1",
+          "type": "control",
+          "properties": {
+            "title": "Injection flaws, particularly SQL injection",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "PCI_DSS"
+          }
+        },
+        {
+          "id": "PCI_DSS:6.5.3",
+          "type": "control",
+          "properties": {
+            "title": "Insecure cryptographic storage",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "PCI_DSS"
+          }
+        },
+        {
+          "id": "PCI_DSS:6.5.8",
+          "type": "control",
+          "properties": {
+            "title": "Improper access control",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "PCI_DSS"
+          }
+        },
+        {
+          "id": "PCI_DSS:11.2",
+          "type": "control",
+          "properties": {
+            "title": "Run internal and external network vulnerability scans quarterly",
+            "status": "gap",
+            "missing": [
+              "cve"
+            ],
+            "framework": "PCI_DSS"
+          }
+        },
+        {
+          "id": "PCI_DSS:11.3",
+          "type": "control",
+          "properties": {
+            "title": "Implement penetration testing methodology",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "PCI_DSS"
+          }
+        },
+        {
+          "id": "GDPR:Article_32",
+          "type": "control",
+          "properties": {
+            "title": "Security of Processing",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "GDPR"
+          }
+        },
+        {
+          "id": "GDPR:Article_25",
+          "type": "control",
+          "properties": {
+            "title": "Data Protection by Design and Default",
+            "status": "satisfied",
+            "missing": [],
+            "framework": "GDPR"
+          }
+        },
+        {
+          "id": "guardrail-remediation",
+          "type": "mitigation",
+          "properties": {
+            "title": "Enable auto-remediation playbooks",
+            "match": [
+              "ISO27001: A.12.6.1 missing cve",
+              "ISO27001:A.12.6.1",
+              "PCI_DSS: 11.2 missing cve",
+              "PCI_DSS: 6.2 missing cve",
+              "PCI_DSS:11.2",
+              "PCI_DSS:6.2",
+              "SOC2: CC6.6 missing cve",
+              "SOC2: CC7.2 missing cve",
+              "SOC2:CC6.6",
+              "SOC2:CC7.2",
+              "guardrail:fail",
+              "guardrail:high"
+            ]
+          }
+        },
+        {
+          "id": "guardrail",
+          "type": "policy",
+          "properties": {
+            "status": "fail",
+            "highest_detected": "high",
+            "maturity": "scaling"
+          }
+        },
+        {
+          "id": "severity-overview",
+          "type": "telemetry",
+          "properties": {
+            "highest": "high",
+            "counts": {
+              "high": 4,
+              "medium": 2
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "mitigation:guardrail-remediation:guardrail:fail",
+          "source": "guardrail-remediation",
+          "target": "guardrail",
+          "type": "remediated_by",
+          "metadata": {
+            "match": "guardrail:fail"
+          }
+        },
+        {
+          "id": "mitigation:guardrail-remediation:guardrail:high",
+          "source": "guardrail-remediation",
+          "target": "guardrail",
+          "type": "remediated_by",
+          "metadata": {
+            "match": "guardrail:high"
+          }
+        }
+      ]
+    },
+    "entities": [
+      {
+        "id": "SOC2:CC8.1",
+        "type": "control",
+        "properties": {
+          "title": "Change Management Evidence",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "SOC2:CC7.2",
+        "type": "control",
+        "properties": {
+          "title": "Continuous Vulnerability Management",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "SOC2:CC6.1",
+        "type": "control",
+        "properties": {
+          "title": "Logical and Physical Access Controls",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "SOC2:CC6.6",
+        "type": "control",
+        "properties": {
+          "title": "Vulnerabilities Are Identified and Addressed",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "SOC2"
+        }
+      },
+      {
+        "id": "ISO27001:A.12.6.1",
+        "type": "control",
+        "properties": {
+          "title": "Application vulnerability management",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "ISO27001"
+        }
+      },
+      {
+        "id": "ISO27001:A.14.2.8",
+        "type": "control",
+        "properties": {
+          "title": "System security testing",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "ISO27001"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.2",
+        "type": "control",
+        "properties": {
+          "title": "Ensure all system components are protected from known vulnerabilities",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.5.1",
+        "type": "control",
+        "properties": {
+          "title": "Injection flaws, particularly SQL injection",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.5.3",
+        "type": "control",
+        "properties": {
+          "title": "Insecure cryptographic storage",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:6.5.8",
+        "type": "control",
+        "properties": {
+          "title": "Improper access control",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:11.2",
+        "type": "control",
+        "properties": {
+          "title": "Run internal and external network vulnerability scans quarterly",
+          "status": "gap",
+          "missing": [
+            "cve"
+          ],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "PCI_DSS:11.3",
+        "type": "control",
+        "properties": {
+          "title": "Implement penetration testing methodology",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "PCI_DSS"
+        }
+      },
+      {
+        "id": "GDPR:Article_32",
+        "type": "control",
+        "properties": {
+          "title": "Security of Processing",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "GDPR"
+        }
+      },
+      {
+        "id": "GDPR:Article_25",
+        "type": "control",
+        "properties": {
+          "title": "Data Protection by Design and Default",
+          "status": "satisfied",
+          "missing": [],
+          "framework": "GDPR"
+        }
+      },
+      {
+        "id": "guardrail-remediation",
+        "type": "mitigation",
+        "properties": {
+          "title": "Enable auto-remediation playbooks",
+          "match": [
+            "ISO27001: A.12.6.1 missing cve",
+            "ISO27001:A.12.6.1",
+            "PCI_DSS: 11.2 missing cve",
+            "PCI_DSS: 6.2 missing cve",
+            "PCI_DSS:11.2",
+            "PCI_DSS:6.2",
+            "SOC2: CC6.6 missing cve",
+            "SOC2: CC7.2 missing cve",
+            "SOC2:CC6.6",
+            "SOC2:CC7.2",
+            "guardrail:fail",
+            "guardrail:high"
+          ]
+        }
+      },
+      {
+        "id": "guardrail",
+        "type": "policy",
+        "properties": {
+          "status": "fail",
+          "highest_detected": "high",
+          "maturity": "scaling"
+        }
+      },
+      {
+        "id": "severity-overview",
+        "type": "telemetry",
+        "properties": {
+          "highest": "high",
+          "counts": {
+            "high": 4,
+            "medium": 2
+          }
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "id": "mitigation:guardrail-remediation:guardrail:fail",
+        "source": "guardrail-remediation",
+        "target": "guardrail",
+        "type": "remediated_by",
+        "metadata": {
+          "match": "guardrail:fail"
+        }
+      },
+      {
+        "id": "mitigation:guardrail-remediation:guardrail:high",
+        "source": "guardrail-remediation",
+        "target": "guardrail",
+        "type": "remediated_by",
+        "metadata": {
+          "match": "guardrail:high"
+        }
+      }
+    ],
+    "analytics": {
+      "entity_count": 17,
+      "relationship_count": 2,
+      "density": 0.125
+    }
+  },
+  "ssdlc_assessment": {
+    "summary": {
+      "total_stages": 0,
+      "satisfied": 0,
+      "in_progress": 0,
+      "gaps": 0,
+      "informational": 0
+    },
+    "stages": []
+  },
+  "probabilistic_forecast": {
+    "posterior": {
+      "low": 0.0357,
+      "medium": 0.3214,
+      "high": 0.6071,
+      "critical": 0.0357
+    },
+    "next_state": {
+      "low": 0.0607,
+      "medium": 0.2911,
+      "high": 0.4714,
+      "critical": 0.1768
+    },
+    "metrics": {
+      "expected_high_or_critical": 0.6429,
+      "expected_critical_next_cycle": 0.1768,
+      "entropy_bits": 1.3068,
+      "exploited_records": 0,
+      "spectral_gap": 0.1524,
+      "mixing_time_estimate": 61,
+      "critical_horizon_risk": 0.2749,
+      "stationary_critical_mass": 0.3226,
+      "perplexity": 2.4739
+    },
+    "components": [
+      {
+        "name": "unknown",
+        "current_severity": "low",
+        "escalation_probability": 0.2,
+        "next_state_distribution": {
+          "low": 0.8,
+          "medium": 0.2
+        }
+      },
+      {
+        "name": "unknown",
+        "current_severity": "low",
+        "escalation_probability": 0.2,
+        "next_state_distribution": {
+          "low": 0.8,
+          "medium": 0.2
+        }
+      },
+      {
+        "name": "unknown",
+        "current_severity": "low",
+        "escalation_probability": 0.2,
+        "next_state_distribution": {
+          "low": 0.8,
+          "medium": 0.2
+        }
+      },
+      {
+        "name": "unknown",
+        "current_severity": "low",
+        "escalation_probability": 0.2,
+        "next_state_distribution": {
+          "low": 0.8,
+          "medium": 0.2
+        }
+      },
+      {
+        "name": "unknown",
+        "current_severity": "low",
+        "escalation_probability": 0.2,
+        "next_state_distribution": {
+          "low": 0.8,
+          "medium": 0.2
+        }
+      }
+    ],
+    "notes": [
+      "27% chance of reaching critical severity within 3 cycles",
+      "Stationary distribution retains high critical mass; long-term steady-state risk remains elevated",
+      "Estimated mixing time 61 steps exceeds remediation horizon; accelerate mitigations"
+    ]
+  },
+  "analytics": {
+    "overview": {
+      "currency": "USD",
+      "estimated_value": 4800.0,
+      "total_hours_saved": 32.0,
+      "noise_reduction_percent": 0.0,
+      "mttr_improvement_hours": 24.0,
+      "audit_hours_saved": 24.0,
+      "time_to_value_minutes": 30.0
+    },
+    "roi": {
+      "hourly_rate": 150.0,
+      "noise_hours_saved": 0.0,
+      "automation_hours_saved": 8.0,
+      "audit_hours_saved": 24.0,
+      "estimated_value": 4800.0
+    },
+    "value_by_module": [],
+    "assumptions": {
+      "baseline": {},
+      "targets": {},
+      "metrics": {}
+    },
+    "insights": [
+      "Projected MTTR improvement exceeds one day",
+      "Audit preparation hours reduced by 24.0",
+      "Context engine evaluated 10 components for business impact",
+      "Compliance coverage confirmed for: framework"
+    ],
+    "overlay": {
+      "mode": "enterprise",
+      "profile": "enterprise"
+    }
+  },
+  "tenant_lifecycle": {
+    "summary": {
+      "total_tenants": 0,
+      "status_counts": {},
+      "stage_counts": {}
+    },
+    "tenants": [],
+    "lifecycle": {
+      "stages": [],
+      "transitions": {}
+    },
+    "operations": {
+      "default_modules": [],
+      "support_contacts": {},
+      "billing": {}
+    },
+    "overlay": {
+      "mode": "enterprise",
+      "profile": "enterprise"
+    }
+  },
+  "performance_profile": {
+    "summary": {
+      "total_estimated_latency_ms": 20000,
+      "module_execution_ms": 0,
+      "artefact_processing_ms": 20000,
+      "threshold_ms": 5000,
+      "status": "capacity-plan"
+    },
+    "timeline": [],
+    "capacity": {
+      "concurrent_runs": 3,
+      "burst_runs": 6,
+      "ingestion_throughput_per_minute": 30.0,
+      "artefact_backlog": 0
+    },
+    "recommendations": [
+      "Increase concurrency or disable heavy modules for near real-time execution",
+      "Prioritise high/critical findings queue to preserve response SLAs"
+    ],
+    "overlay": {
+      "mode": "enterprise",
+      "profile": "enterprise"
+    }
+  },
+  "enhanced_decision": {
+    "final_decision": "review",
+    "consensus_confidence": 0.723,
+    "method": "multi-llm-weighted-consensus",
+    "summary": "Consensus REVIEW at 72.3% confidence across 6 findings.",
+    "individual_analyses": [
+      {
+        "provider": "gpt-5",
+        "recommended_action": "review",
+        "confidence": 0.769,
+        "reasoning": "Detected 6 findings with peak severity HIGH. Guardrail status 'fail' requires escalation. Recommended action: REVIEW based on multi-signal weighting",
+        "mitre_techniques": [
+          "T1059",
+          "T1078",
+          "T1046"
+        ],
+        "attack_vectors": [],
+        "compliance_concerns": [],
+        "evidence": [
+          {
+            "type": "severity",
+            "value": {
+              "high": 4,
+              "medium": 2
+            }
+          },
+          {
+            "type": "guardrail",
+            "value": "fail"
+          },
+          {
+            "type": "llm_metadata",
+            "value": {
+              "mode": "deterministic",
+              "reason": "provider_disabled",
+              "style": "strategist"
+            }
+          }
+        ],
+        "processing_time_ms": 321,
+        "cost_usd": 0.18,
+        "risk_assessment": "elevated"
+      },
+      {
+        "provider": "claude-3",
+        "recommended_action": "block",
+        "confidence": 0.74,
+        "reasoning": "Detected 6 findings with peak severity HIGH. Guardrail status 'fail' requires escalation. Recommended action: BLOCK based on multi-signal weighting",
+        "mitre_techniques": [
+          "T1059",
+          "T1078",
+          "T1046"
+        ],
+        "attack_vectors": [],
+        "compliance_concerns": [],
+        "evidence": [
+          {
+            "type": "severity",
+            "value": {
+              "high": 4,
+              "medium": 2
+            }
+          },
+          {
+            "type": "guardrail",
+            "value": "fail"
+          },
+          {
+            "type": "llm_metadata",
+            "value": {
+              "mode": "deterministic",
+              "reason": "provider_disabled",
+              "style": "analyst"
+            }
+          }
+        ],
+        "processing_time_ms": 362,
+        "cost_usd": 0.2,
+        "risk_assessment": "elevated"
+      },
+      {
+        "provider": "gemini-2",
+        "recommended_action": "review",
+        "confidence": 0.695,
+        "reasoning": "Detected 6 findings with peak severity HIGH. Guardrail status 'fail' requires escalation. Recommended action: REVIEW based on multi-signal weighting",
+        "mitre_techniques": [
+          "T1059",
+          "T1078",
+          "T1190",
+          "T1046"
+        ],
+        "attack_vectors": [],
+        "compliance_concerns": [],
+        "evidence": [
+          {
+            "type": "severity",
+            "value": {
+              "high": 4,
+              "medium": 2
+            }
+          },
+          {
+            "type": "guardrail",
+            "value": "fail"
+          },
+          {
+            "type": "llm_metadata",
+            "value": {
+              "mode": "deterministic",
+              "reason": "provider_disabled",
+              "style": "signals"
+            }
+          }
+        ],
+        "processing_time_ms": 400,
+        "cost_usd": 0.22,
+        "risk_assessment": "moderate"
+      },
+      {
+        "provider": "sentinel-cyber",
+        "recommended_action": "review",
+        "confidence": 0.688,
+        "reasoning": "Sentinel cyber heuristics applied to unknown-service with 0 findings. Default action: REVIEW.",
+        "mitre_techniques": [
+          "T1059",
+          "T1078",
+          "T1046"
+        ],
+        "attack_vectors": [],
+        "compliance_concerns": [],
+        "evidence": [
+          {
+            "type": "severity",
+            "value": {
+              "high": 4,
+              "medium": 2
+            }
+          },
+          {
+            "type": "guardrail",
+            "value": "fail"
+          },
+          {
+            "type": "llm_metadata",
+            "value": {
+              "mode": "deterministic",
+              "provider": "sentinel-cyber",
+              "reason": "specialised_rules"
+            }
+          }
+        ],
+        "processing_time_ms": 443,
+        "cost_usd": 0.24,
+        "risk_assessment": "moderate"
+      }
+    ],
+    "disagreement_areas": [
+      "model_action_split"
+    ],
+    "expert_validation_required": true,
+    "telemetry": {
+      "models_consulted": 4,
+      "providers": [
+        "gpt-5",
+        "claude-3",
+        "gemini-2",
+        "sentinel-cyber"
+      ],
+      "provider_modes": [
+        {
+          "provider": "gpt-5",
+          "mode": "deterministic",
+          "reason": "provider_disabled",
+          "style": "strategist"
+        },
+        {
+          "provider": "claude-3",
+          "mode": "deterministic",
+          "reason": "provider_disabled",
+          "style": "analyst"
+        },
+        {
+          "provider": "gemini-2",
+          "mode": "deterministic",
+          "reason": "provider_disabled",
+          "style": "signals"
+        },
+        {
+          "provider": "sentinel-cyber",
+          "mode": "deterministic",
+          "reason": "specialised_rules"
+        }
+      ],
+      "mean_confidence": 0.723,
+      "max_processing_time_ms": 443,
+      "knowledge_graph": {
+        "nodes": 17,
+        "edges": 2,
+        "description": "Context-to-control knowledge graph for consensus telemetry"
+      },
+      "marketplace_references": [
+        "guardrail-remediation"
+      ]
+    },
+    "signals": {
+      "kev_count": 0,
+      "epss_count": 0,
+      "epss_max": null,
+      "last_updated_epss": null,
+      "last_updated_kev": null,
+      "ssvc_label": "Attend"
+    }
+  },
+  "pricing_summary": {
+    "plans": [
+      {
+        "id": "enterprise",
+        "name": "Enterprise",
+        "evidence_encryption": true,
+        "modes": [
+          "enterprise"
+        ]
+      }
+    ],
+    "active_plan": {
+      "id": "enterprise",
+      "name": "Enterprise",
+      "evidence_encryption": true,
+      "modes": [
+        "enterprise"
+      ]
+    }
+  },
+  "modules": {
+    "configured": {
+      "guardrails": {
+        "enabled": true
+      },
+      "context_engine": {
+        "enabled": true
+      },
+      "onboarding": {
+        "enabled": true
+      },
+      "compliance": {
+        "enabled": true
+      },
+      "policy_automation": {
+        "enabled": true
+      },
+      "evidence": {
+        "enabled": true
+      },
+      "ai_agents": {
+        "enabled": true
+      },
+      "ssdlc": {
+        "enabled": true
+      },
+      "exploit_signals": {
+        "enabled": true
+      },
+      "probabilistic": {
+        "enabled": true
+      },
+      "pricing": {
+        "enabled": true
+      },
+      "iac_posture": {
+        "enabled": true
+      },
+      "analytics": {
+        "enabled": true
+      },
+      "tenancy": {
+        "enabled": true
+      },
+      "performance": {
+        "enabled": true
+      },
+      "vector_store": {
+        "enabled": true,
+        "provider": "auto",
+        "patterns_path": "fixtures/security_patterns.json",
+        "top_k": 3
+      },
+      "enhanced_decision": {
+        "enabled": true
+      },
+      "correlation_engine": {
+        "enabled": false,
+        "strategies": [
+          "fingerprint",
+          "location",
+          "pattern",
+          "root_cause",
+          "vulnerability"
+        ],
+        "noise_reduction_target": 0.35
+      },
+      "mitre_mapping": {
+        "enabled": false,
+        "techniques": [
+          "T1190",
+          "T1133",
+          "T1566",
+          "T1189",
+          "T1059",
+          "T1203",
+          "T1204",
+          "T1053",
+          "T1078",
+          "T1098",
+          "T1505",
+          "T1068",
+          "T1055",
+          "T1548",
+          "T1027",
+          "T1070",
+          "T1562",
+          "T1003",
+          "T1110",
+          "T1555",
+          "T1056",
+          "T1083",
+          "T1087",
+          "T1046",
+          "T1021",
+          "T1210",
+          "T1005",
+          "T1213",
+          "T1071",
+          "T1573",
+          "T1041",
+          "T1567",
+          "T1486",
+          "T1498",
+          "T1565"
+        ]
+      },
+      "compliance_analysis": {
+        "enabled": false,
+        "frameworks": [
+          "pci_dss",
+          "sox",
+          "hipaa",
+          "nist_ssdf"
+        ]
+      }
+    },
+    "enabled": [
+      "guardrails",
+      "context_engine",
+      "onboarding",
+      "compliance",
+      "policy_automation",
+      "evidence",
+      "ai_agents",
+      "ssdlc",
+      "exploit_signals",
+      "probabilistic",
+      "pricing",
+      "iac_posture",
+      "analytics",
+      "tenancy",
+      "performance",
+      "vector_store",
+      "enhanced_decision"
+    ],
+    "status": {
+      "guardrails": "executed",
+      "context_engine": "executed",
+      "onboarding": "executed",
+      "compliance": "executed",
+      "policy_automation": "warning",
+      "vector_store": "executed",
+      "ssdlc": "executed",
+      "ai_agents": "executed",
+      "exploit_signals": "executed",
+      "probabilistic": "executed",
+      "analytics": "executed",
+      "tenancy": "executed",
+      "performance": "executed",
+      "enhanced_decision": "executed",
+      "iac_posture": "executed",
+      "evidence": "executed",
+      "pricing": "executed"
+    },
+    "executed": [
+      "guardrails",
+      "context_engine",
+      "onboarding",
+      "compliance",
+      "vector_store",
+      "ssdlc",
+      "ai_agents",
+      "exploit_signals",
+      "probabilistic",
+      "analytics",
+      "tenancy",
+      "performance",
+      "enhanced_decision",
+      "iac_posture",
+      "evidence",
+      "pricing"
+    ],
+    "custom": []
+  },
+  "feature_matrix": {
+    "summary": {
+      "features_tracked": 17,
+      "features_available": 16,
+      "features_missing": [
+        "policy_automation"
+      ],
+      "executed_modules": [
+        "ai_agents",
+        "analytics",
+        "compliance",
+        "context_engine",
+        "enhanced_decision",
+        "evidence",
+        "exploit_signals",
+        "guardrails",
+        "iac_posture",
+        "onboarding",
+        "performance",
+        "pricing",
+        "probabilistic",
+        "ssdlc",
+        "tenancy",
+        "vector_store"
+      ],
+      "execution_order": [
+        "guardrails",
+        "context_engine",
+        "onboarding",
+        "compliance",
+        "vector_store",
+        "ssdlc",
+        "ai_agents",
+        "exploit_signals",
+        "probabilistic",
+        "analytics",
+        "tenancy",
+        "performance",
+        "enhanced_decision",
+        "iac_posture",
+        "evidence",
+        "pricing"
+      ]
+    },
+    "features": {
+      "guardrails": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "maturity": "scaling",
+          "highest_detected": "high",
+          "severity_counts": {
+            "high": 4,
+            "medium": 2
+          }
+        }
+      },
+      "context_engine": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "components_evaluated": 10,
+          "average_score": 8.4,
+          "top_component": "unknown",
+          "top_playbook": "Stabilise Customer Impact"
+        }
+      },
+      "onboarding": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "mode": "enterprise",
+          "step_count": 7,
+          "time_to_value_minutes": 20.0,
+          "integrations_configured": 4
+        }
+      },
+      "compliance": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "framework_count": 6,
+          "satisfied_frameworks": 1,
+          "gap_count": 8
+        }
+      },
+      "policy_automation": {
+        "status": "warning",
+        "available": false,
+        "metrics": {}
+      },
+      "vector_store": {
+        "status": "executed",
+        "available": true,
+        "metrics": {}
+      },
+      "ssdlc": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "total_stages": 0,
+          "gaps": 0,
+          "recommendation_count": 0
+        }
+      },
+      "ai_agents": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "components_with_agents": 0,
+          "total_matches": 0,
+          "frameworks_detected": []
+        }
+      },
+      "exploit_signals": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "matched_records": 0,
+          "signals_configured": 0,
+          "escalation_count": 0
+        }
+      },
+      "probabilistic": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "expected_high_or_critical": 0.6429,
+          "entropy_bits": 1.3068,
+          "hotspot_count": 5
+        }
+      },
+      "analytics": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "estimated_value": 4800.0,
+          "noise_reduction_percent": 0.0,
+          "insight_count": 4
+        }
+      },
+      "tenancy": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "total_tenants": 0,
+          "status_counts": {},
+          "stage_counts": {}
+        }
+      },
+      "performance": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "total_estimated_latency_ms": 20000.0,
+          "module_execution_ms": 0.0,
+          "timeline_events": 0,
+          "status": "capacity-plan"
+        }
+      },
+      "enhanced_decision": {
+        "status": "executed",
+        "available": true,
+        "metrics": {}
+      },
+      "iac_posture": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "target_count": 0,
+          "unmatched_components": [],
+          "artifact_gaps": 0
+        }
+      },
+      "evidence": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "bundle_id": "e3b8a1da6ac94cfca027a53b86273374",
+          "file_count": 2,
+          "section_count": 18,
+          "compressed": true,
+          "encrypted": false
+        }
+      },
+      "pricing": {
+        "status": "executed",
+        "available": true,
+        "metrics": {
+          "plan_count": 1
+        }
+      }
+    }
+  },
+  "artifact_archive": {
+    "design": {
+      "id": "ad9f2f3e721a4122b8075a9455e6894f",
+      "stored_at": "2025-10-30T13:47:57.691061Z",
+      "original_filename": "design_context.csv",
+      "raw_path": "/home/ubuntu/repos/Fixops/data/data/archive/design/2025-10-30T134757.691061Z-ad9f2f3e721a4122b8075a9455e6894f.raw",
+      "normalized_path": "/home/ubuntu/repos/Fixops/data/data/archive/design/2025-10-30T134757.691061Z-ad9f2f3e721a4122b8075a9455e6894f.json"
+    },
+    "sbom": {
+      "id": "6934612d25424aa39c053408d3a6c852",
+      "stored_at": "2025-10-30T13:47:57.692429Z",
+      "original_filename": "sbom.json",
+      "raw_path": "/home/ubuntu/repos/Fixops/data/data/archive/sbom/2025-10-30T134757.692429Z-6934612d25424aa39c053408d3a6c852.raw",
+      "normalized_path": "/home/ubuntu/repos/Fixops/data/data/archive/sbom/2025-10-30T134757.692429Z-6934612d25424aa39c053408d3a6c852.json"
+    },
+    "sarif": {
+      "id": "d5d3ce1b3bbb43d1b3a6a7d191dd0936",
+      "stored_at": "2025-10-30T13:47:57.693994Z",
+      "original_filename": "scan.sarif",
+      "raw_path": "/home/ubuntu/repos/Fixops/data/data/archive/sarif/2025-10-30T134757.693994Z-d5d3ce1b3bbb43d1b3a6a7d191dd0936.raw",
+      "normalized_path": "/home/ubuntu/repos/Fixops/data/data/archive/sarif/2025-10-30T134757.693994Z-d5d3ce1b3bbb43d1b3a6a7d191dd0936.json"
+    },
+    "cve": {
+      "id": "2de6caf6aae14cde989f5c02a33452ba",
+      "stored_at": "2025-10-30T13:47:57.695424Z",
+      "original_filename": "kev.json",
+      "raw_path": "/home/ubuntu/repos/Fixops/data/data/archive/cve/2025-10-30T134757.695424Z-2de6caf6aae14cde989f5c02a33452ba.raw",
+      "normalized_path": "/home/ubuntu/repos/Fixops/data/data/archive/cve/2025-10-30T134757.695424Z-2de6caf6aae14cde989f5c02a33452ba.json"
+    }
+  }
+}
