@@ -119,10 +119,7 @@ class TestOSVFeed:
 
         assert feed.feed_name == "OSV"
         parsed_url = urlparse(feed.feed_url)
-        assert (
-            "osv-vulnerabilities" in parsed_url.netloc
-            or "osv-vulnerabilities" in parsed_url.path
-        )
+        assert parsed_url.netloc == "osv-vulnerabilities.storage.googleapis.com"
         assert feed.cache_filename == "osv-ecosystems.txt"
 
     def test_osv_feed_parse_ecosystems(self, temp_cache_dir: Path):
@@ -144,7 +141,7 @@ class TestNVDFeed:
 
         assert feed.feed_name == "NVD"
         parsed_url = urlparse(feed.feed_url)
-        assert "nvd.nist.gov" in parsed_url.netloc
+        assert parsed_url.netloc == "services.nvd.nist.gov"
         assert feed.cache_filename == "nvd-cves.json"
 
     def test_nvd_feed_parse(self, temp_cache_dir: Path):
@@ -256,7 +253,7 @@ class TestVendorFeeds:
 
         assert feed.feed_name == "Microsoft Security"
         parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.hostname == "msrc.microsoft.com"
+        assert parsed_url.netloc == "api.msrc.microsoft.com"
         assert feed.cache_filename == "microsoft-security.json"
 
     def test_kubernetes_feed_properties(self, temp_cache_dir: Path):
@@ -265,7 +262,7 @@ class TestVendorFeeds:
 
         assert feed.feed_name == "Kubernetes Security"
         parsed_url = urlparse(feed.feed_url)
-        assert "kubernetes.io" in parsed_url.netloc
+        assert parsed_url.netloc == "storage.googleapis.com"
         assert feed.cache_filename == "kubernetes-security.json"
 
 
@@ -287,7 +284,7 @@ class TestEcosystemFeeds:
 
         assert feed.feed_name == "RubySec"
         parsed_url = urlparse(feed.feed_url)
-        assert "rubysec.com" in parsed_url.netloc
+        assert parsed_url.netloc == "rubysec.com"
         assert feed.cache_filename == "rubysec.json"
 
     def test_debian_feed_properties(self, temp_cache_dir: Path):
@@ -309,10 +306,7 @@ class TestExploitFeeds:
 
         assert feed.feed_name == "Exploit-DB"
         parsed_url = urlparse(feed.feed_url)
-        assert (
-            "exploit-database" in parsed_url.netloc
-            or "exploit-database" in parsed_url.path
-        )
+        assert parsed_url.netloc == "gitlab.com"
         assert feed.cache_filename == "exploitdb.csv"
 
     def test_exploitdb_feed_parse(self, temp_cache_dir: Path):
