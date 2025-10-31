@@ -1,0 +1,11 @@
+service_name,environment,customer_impact,data_classification,exposure,threat_id,threat_description,severity,mitigation_status
+image-proxy,prod,external,internal,internet,STRIDE-T-011,SSRF vulnerability in image proxy allowing internal network scanning,critical,incomplete
+esb-gateway,prod,external,pii,partner,STRIDE-T-012,Misconfigured Kong route exposing internal APIs to partners,high,incomplete
+microfrontend-shell,prod,external,internal,internet,STRIDE-T-013,Typosquatted npm package 'reqeusts' instead of 'requests' in dependencies,critical,incomplete
+partner-auth,prod,external,pii,partner,STRIDE-T-014,Secrets and API keys committed to Git history,critical,incomplete
+rate-limiter,prod,external,internal,partner,STRIDE-T-015,Rate limiting bypass via header manipulation,medium,incomplete
+data-transformer,prod,external,pii,partner,STRIDE-T-016,XML External Entity (XXE) injection in partner data parser,high,incomplete
+module-federation,prod,external,internal,internet,STRIDE-T-017,Outdated webpack module federation with prototype pollution,medium,incomplete
+kong-gateway,prod,external,pii,partner,STRIDE-T-018,Kong admin API exposed without authentication,critical,incomplete
+webhook-receiver,prod,external,internal,partner,STRIDE-T-019,Missing HMAC signature verification on webhooks,medium,incomplete
+component-library,prod,internal,public,internal,STRIDE-T-020,Vulnerable lodash version with command injection,low,complete

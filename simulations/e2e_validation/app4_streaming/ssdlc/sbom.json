@@ -1,0 +1,122 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-10-30T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "streaming-platform",
+      "version": "4.1.0",
+      "purl": "pkg:maven/com.streaming/streaming-platform@4.1.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "kafka-clients",
+      "version": "3.3.1",
+      "purl": "pkg:maven/org.apache.kafka/kafka-clients@3.3.1",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "flink-streaming-java",
+      "version": "1.16.0",
+      "purl": "pkg:maven/org.apache.flink/flink-streaming-java@1.16.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "flink-connector-kafka",
+      "version": "1.16.0",
+      "purl": "pkg:maven/org.apache.flink/flink-connector-kafka@1.16.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "commons-text",
+      "version": "1.9",
+      "purl": "pkg:maven/org.apache.commons/commons-text@1.9",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-42889",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-42889"},
+          "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+          "description": "Apache Commons Text performs variable interpolation, allowing an attacker to execute arbitrary code via crafted input (Text4Shell).",
+          "recommendation": "Upgrade to commons-text 1.10.0 or later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "avro",
+      "version": "1.11.0",
+      "purl": "pkg:maven/org.apache.avro/avro@1.11.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "jackson-databind",
+      "version": "2.13.3",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-42003",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-42003"},
+          "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+          "description": "Jackson-databind allows a Java StackOverflow exception and denial of service via a large depth of nested objects.",
+          "recommendation": "Upgrade to jackson-databind 2.13.4.1 or later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "netty-all",
+      "version": "4.1.77.Final",
+      "purl": "pkg:maven/io.netty/netty-all@4.1.77.Final",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-41881",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-41881"},
+          "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+          "description": "Netty project suffers from a potential HTTP request smuggling vulnerability.",
+          "recommendation": "Upgrade to netty 4.1.86.Final or later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "azure-storage-blob",
+      "version": "12.14.0",
+      "purl": "pkg:maven/com.azure/azure-storage-blob@12.14.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "prometheus-client",
+      "version": "0.15.0",
+      "purl": "pkg:maven/io.prometheus/simpleclient@0.15.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:maven/org.apache.flink/flink-streaming-java@1.16.0",
+      "dependsOn": [
+        "pkg:maven/org.apache.commons/commons-text@1.9",
+        "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3"
+      ]
+    },
+    {
+      "ref": "pkg:maven/org.apache.flink/flink-connector-kafka@1.16.0",
+      "dependsOn": [
+        "pkg:maven/org.apache.kafka/kafka-clients@3.3.1",
+        "pkg:maven/io.netty/netty-all@4.1.77.Final"
+      ]
+    }
+  ]
+}

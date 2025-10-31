@@ -1,0 +1,105 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-10-30T00:00:00Z",
+    "component": {
+      "type": "container",
+      "name": "b2b-quotes-app",
+      "version": "3.2.1",
+      "purl": "pkg:docker/b2b-quotes-app@3.2.1"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "ubuntu",
+      "version": "20.04",
+      "purl": "pkg:deb/ubuntu/ubuntu@20.04",
+      "description": "Base OS image with outdated packages"
+    },
+    {
+      "type": "library",
+      "name": "linux-kernel",
+      "version": "5.15.0-56",
+      "purl": "pkg:generic/linux-kernel@5.15.0-56",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2023-32233",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-32233"},
+          "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+          "description": "Use-after-free vulnerability in Netfilter nf_tables when processing batch requests can be abused to perform arbitrary read and write operations on kernel memory.",
+          "recommendation": "Upgrade kernel to 5.15.0-73 or later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "spring-boot",
+      "version": "2.7.8",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot@2.7.8",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "postgresql-jdbc",
+      "version": "42.3.1",
+      "purl": "pkg:maven/org.postgresql/postgresql@42.3.1",
+      "licenses": [{"license": {"id": "BSD-2-Clause"}}],
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-31197",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-31197"},
+          "ratings": [{"severity": "high", "score": 8.0, "method": "CVSSv3"}],
+          "description": "PostgreSQL JDBC Driver allows attacker to inject SQL if using PreferQueryMode=SIMPLE.",
+          "recommendation": "Upgrade to postgresql-jdbc 42.3.3 or later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "stripe-java",
+      "version": "20.136.0",
+      "purl": "pkg:maven/com.stripe/stripe-java@20.136.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "kubernetes-client",
+      "version": "5.12.2",
+      "purl": "pkg:maven/io.fabric8/kubernetes-client@5.12.2",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "openssl",
+      "version": "1.1.1f",
+      "purl": "pkg:deb/ubuntu/openssl@1.1.1f",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2022-3602",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-3602"},
+          "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+          "description": "X.509 Email Address Buffer Overflow in OpenSSL.",
+          "recommendation": "Upgrade to OpenSSL 1.1.1s or later"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "glibc",
+      "version": "2.31-0ubuntu9.2",
+      "purl": "pkg:deb/ubuntu/glibc@2.31-0ubuntu9.2",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2023-4911",
+          "source": {"name": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-4911"},
+          "ratings": [{"severity": "high", "score": 7.8, "method": "CVSSv3"}],
+          "description": "Buffer overflow in the dynamic loader's processing of the GLIBC_TUNABLES environment variable (Looney Tunables).",
+          "recommendation": "Upgrade to glibc 2.31-0ubuntu9.12 or later"
+        }
+      ]
+    }
+  ]
+}
