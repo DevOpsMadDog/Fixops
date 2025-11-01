@@ -52,4 +52,3 @@ surfaces introduced across Phases 1–10.
 - Page the security engineering on-call before rotating secrets or introducing new CI workflows touching signing.
 - Capture incident post-mortems in `audit/SECURITY.md` and link them from the next `CHANGELOG.md` section.
 - Share weekly summaries of EPSS/KEV deltas with stakeholders using `cli/fixops-risk score` outputs to inform patch cadence.
-

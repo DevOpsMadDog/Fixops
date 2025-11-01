@@ -71,10 +71,21 @@ def test_policy_automation_executes_connectors(
     calls: List[Tuple[str, str, Dict[str, Any]]] = []
 
     def fake_request(self: Any, method: str, url: str, **kwargs: Any) -> DummyResponse:
+        from urllib.parse import urlparse
+
         calls.append((method, url, kwargs))
-        if "issue" in url:
+        parsed = urlparse(url)
+        normalized_path = parsed.path.rstrip("/")
+
+        if (
+            parsed.netloc == "jira.example.com"
+            and normalized_path == "/rest/api/3/issue"
+        ):
             return DummyResponse(url, {"key": "FIX-101"})
-        if "content" in url:
+        if (
+            parsed.netloc == "confluence.example.com"
+            and normalized_path == "/rest/api/content"
+        ):
             return DummyResponse(url, {"id": "12345"})
         return DummyResponse(url, {})
 
@@ -92,14 +103,29 @@ def test_policy_automation_executes_connectors(
 
     summary = automation.execute(plan["actions"])
 
+    from urllib.parse import urlparse
+
     assert summary["dispatched_count"] == 3
     assert len(summary["delivery_results"]) == 3
     assert all("status" in entry for entry in summary["delivery_results"])
     assert any(result["delivery"]["status"] == "sent" for result in summary["results"])
     assert len(calls) == 3
-    assert any("issue" in url for _, url, _ in calls)
-    assert any("content" in url for _, url, _ in calls)
-    assert any(url.startswith("https://hooks.slack.test") for _, url, _ in calls)
+
+    jira_call = any(
+        urlparse(url).netloc == "jira.example.com"
+        and urlparse(url).path.rstrip("/") == "/rest/api/3/issue"
+        for _, url, _ in calls
+    )
+    confluence_call = any(
+        urlparse(url).netloc == "confluence.example.com"
+        and urlparse(url).path.rstrip("/") == "/rest/api/content"
+        for _, url, _ in calls
+    )
+    slack_call = any(urlparse(url).netloc == "hooks.slack.test" for _, url, _ in calls)
+
+    assert jira_call, "Expected Jira API call to /rest/api/3/issue"
+    assert confluence_call, "Expected Confluence API call to /rest/api/content"
+    assert slack_call, "Expected Slack webhook call"
 
     automation_dir = overlay.data_directories["automation_dir"]
     entries = list(Path(automation_dir).glob("*.json"))

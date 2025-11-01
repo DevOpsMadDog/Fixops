@@ -41,4 +41,3 @@ supporting evidence surfaces.
 - Store collected bundles and attestations in the secured audit bucket with immutable retention (minimum 12 months).
 - Record verification commands and hashes in the audit ticket so the review is reproducible by third parties.
 - Delete local copies after transfer to avoid stale artefacts drifting from the canonical release.
-

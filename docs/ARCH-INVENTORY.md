@@ -80,4 +80,3 @@ configuration.
 - The enterprise React frontend is not present locally (symlink target missing), so front-end changes must be coordinated with the downstream repository.
 - Scripts in `WIP/` and legacy enterprise code exist but are not wired into the active pipelines; treat them as references when planning modernization.
 - Secrets are expected to be provided via environment variables or GitHub Actions secrets; no secrets are stored in the repo.
-

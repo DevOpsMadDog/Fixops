@@ -19,4 +19,3 @@ cvelib>=1.8.0
 # or directly::
 #
 #     pip install git+https://github.com/snyk/snyk-to-sarif.git
-

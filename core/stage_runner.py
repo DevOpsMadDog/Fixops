@@ -530,7 +530,7 @@ class StageRunner:
         documents["decision"] = decision_document
         bundle = self._write_evidence_bundle(context, documents)
         manifest_payload = self._bundle_manifest(documents)
-        manifest_bytes = json.dumps(manifest_payload, indent=2).encode("utf-8")
+        manifest_bytes = (json.dumps(manifest_payload, indent=2) + "\n").encode("utf-8")
         self.registry.write_binary_output(context, "manifest.json", manifest_bytes)
         with zipfile.ZipFile(bundle, "a") as archive:
             info = zipfile.ZipInfo("manifest.json")
@@ -1092,7 +1092,7 @@ class StageRunner:
                     info = zipfile.ZipInfo(filename)
                     info.date_time = _zip_date_time_tuple()
                     archive.writestr(
-                        info, json.dumps(document, indent=2, sort_keys=True)
+                        info, json.dumps(document, indent=2, sort_keys=True) + "\n"
                     )
         return bundle_path
 
