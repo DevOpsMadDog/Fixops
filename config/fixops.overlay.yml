@@ -254,6 +254,45 @@ onboarding:
           modes: [enterprise]
 probabilistic:
   enabled: true
+  # Switchable risk models configuration
+  risk_models:
+    enabled: true
+    default_model: bn_lr_hybrid_v1  # Primary model to use
+    fallback_chain:  # Try models in order if primary fails
+      - bn_lr_hybrid_v1
+      - bayesian_network_v1
+      - weighted_scoring_v1
+    models:
+      weighted_scoring_v1:
+        enabled: true
+        priority: 10
+        config:
+          severity_weights:
+            critical: 1.0
+            high: 0.75
+            medium: 0.5
+            low: 0.25
+          allow_threshold: 0.6
+          block_threshold: 0.85
+      bayesian_network_v1:
+        enabled: true
+        priority: 50
+        config:
+          allow_threshold: 0.6
+          block_threshold: 0.85
+      bn_lr_hybrid_v1:
+        enabled: true
+        priority: 100
+        config:
+          allow_threshold: 0.6
+          block_threshold: 0.85
+    # A/B testing configuration (optional)
+    ab_test:
+      enabled: false
+      control_model: bayesian_network_v1
+      treatment_model: bn_lr_hybrid_v1
+      traffic_split: 0.5  # 50% to treatment
+      hash_key: cve_id  # Use CVE ID for consistent assignment
 exploit_signals:
   enabled: true
 ssdlc:
