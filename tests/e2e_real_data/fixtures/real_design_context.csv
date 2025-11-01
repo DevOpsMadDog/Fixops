@@ -1,0 +1,5 @@
+service,environment,criticality,data_classification,exposure,owner
+user-service,production,mission_critical,pii,internet,security-team
+payment-service,production,mission_critical,financial,internet,payments-team
+admin-dashboard,production,external,internal,partner,ops-team
+internal-api,staging,internal,internal,internal,dev-team
