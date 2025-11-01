@@ -17,7 +17,10 @@ terraform {
   }
   
   backend "s3" {
-    # terraform init -backend-config="bucket=BUCKET" -backend-config="key=fixops/ENV/terraform.tfstate" \
+    # terraform init -backend-config="backend.hcl"
+    # 
+    # region         = "us-east-1"
+    # encrypt        = true
     encrypt = true
   }
 }
@@ -93,10 +96,46 @@ variable "enable_monitoring" {
   default     = true
 }
 
+variable "backend_image_tag" {
+  description = "Docker image tag for backend (use semantic versioning, not 'latest')"
+  type        = string
+  default     = "v1.0.0"
+}
+
 variable "enable_autoscaling" {
   description = "Enable horizontal pod autoscaling"
   type        = bool
   default     = true
+}
+
+variable "enable_backup" {
+  description = "Enable automated backups for Evidence Lake PVC using AWS Backup"
+  type        = bool
+  default     = true
+}
+
+variable "backup_retention_days" {
+  description = "Number of days to retain Evidence Lake backups"
+  type        = number
+  default     = 30
+}
+
+variable "enable_network_policies" {
+  description = "Enable Kubernetes network policies for pod-to-pod traffic control"
+  type        = bool
+  default     = true
+}
+
+variable "cost_center" {
+  description = "Cost center tag for resource cost tracking and allocation"
+  type        = string
+  default     = ""
+}
+
+variable "budget_alert_threshold" {
+  description = "Monthly budget threshold in USD for cost alerts (0 to disable)"
+  type        = number
+  default     = 0
 }
 
 variable "tags" {
@@ -196,6 +235,66 @@ resource "kubernetes_namespace" "fixops" {
   }
 }
 
+resource "kubernetes_network_policy" "fixops_backend" {
+  count = var.enable_network_policies ? 1 : 0
+  
+  metadata {
+    name      = "fixops-backend-netpol"
+    namespace = kubernetes_namespace.fixops.metadata[0].name
+  }
+  
+  spec {
+    pod_selector {
+      match_labels = {
+        "app.kubernetes.io/name"      = "fixops"
+        "app.kubernetes.io/component" = "backend"
+      }
+    }
+    
+    policy_types = ["Ingress", "Egress"]
+    
+    ingress {
+      from {
+        pod_selector {
+          match_labels = {
+            "app.kubernetes.io/name" = "fixops"
+          }
+        }
+      }
+      
+      ports {
+        protocol = "TCP"
+        port     = "8001"
+      }
+    }
+    
+    egress {
+      to {
+        pod_selector {}
+      }
+      
+      to {
+        namespace_selector {}
+      }
+      
+      ports {
+        protocol = "TCP"
+        port     = "443"
+      }
+      
+      ports {
+        protocol = "TCP"
+        port     = "27017"
+      }
+      
+      ports {
+        protocol = "TCP"
+        port     = "6379"
+      }
+    }
+  }
+}
+
 resource "kubernetes_storage_class" "ebs_gp3" {
   metadata {
     name = "fixops-ebs-gp3"
@@ -216,7 +315,9 @@ resource "kubernetes_persistent_volume_claim" "evidence_lake" {
   metadata {
     name      = "fixops-evidence-lake"
     namespace = kubernetes_namespace.fixops.metadata[0].name
-    labels    = local.labels
+    labels    = merge(local.labels, {
+      "backup.kubernetes.io/enabled" = var.enable_backup ? "true" : "false"
+    })
   }
   
   spec {
@@ -229,6 +330,34 @@ resource "kubernetes_persistent_volume_claim" "evidence_lake" {
       }
     }
   }
+}
+
+resource "aws_backup_vault" "fixops" {
+  count = var.enable_backup ? 1 : 0
+  name  = "fixops-${var.environment}-backup-vault"
+  
+  tags = merge(local.tags, {
+    Name = "fixops-${var.environment}-backup-vault"
+  })
+}
+
+resource "aws_backup_plan" "fixops" {
+  count = var.enable_backup ? 1 : 0
+  name  = "fixops-${var.environment}-backup-plan"
+  
+  rule {
+    rule_name         = "daily_backup"
+    target_vault_name = aws_backup_vault.fixops[0].name
+    schedule          = "cron(0 2 * * ? *)"
+    
+    lifecycle {
+      delete_after = var.backup_retention_days
+    }
+  }
+  
+  tags = merge(local.tags, {
+    Name = "fixops-${var.environment}-backup-plan"
+  })
 }
 
 resource "kubernetes_config_map" "fixops" {
@@ -288,7 +417,7 @@ resource "kubernetes_deployment" "backend" {
       spec {
         container {
           name  = "fixops-backend"
-          image = "fixops/backend:latest"
+          image = "fixops/backend:${var.backend_image_tag}"
           
           port {
             container_port = 8001
@@ -486,4 +615,39 @@ output "namespace" {
 output "backend_service" {
   description = "Backend service name"
   value       = kubernetes_service.backend.metadata[0].name
+}
+
+resource "aws_budgets_budget" "fixops" {
+  count = var.budget_alert_threshold > 0 ? 1 : 0
+  
+  name              = "fixops-${var.environment}-monthly-budget"
+  budget_type       = "COST"
+  limit_amount      = tostring(var.budget_alert_threshold)
+  limit_unit        = "USD"
+  time_period_start = "2025-01-01_00:00"
+  time_unit         = "MONTHLY"
+  
+  cost_filter {
+    name = "TagKeyValue"
+    values = [
+      "Environment$${var.environment}",
+      "Application$fixops"
+    ]
+  }
+  
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = []
+  }
+  
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = []
+  }
 }
