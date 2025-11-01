@@ -54,8 +54,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.primary:
             try:
                 result = self.primary.bool(key, default, context)
-                logger.debug("Flag %s evaluated by primary provider: %s", key, result)
-                return result
+                if result != default:
+                    logger.debug(
+                        "Flag %s evaluated by primary provider: %s", key, result
+                    )
+                    return result
+                logger.debug(
+                    "Flag %s returned default from primary, trying fallback", key
+                )
             except Exception as exc:
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
@@ -84,8 +90,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.primary:
             try:
                 result = self.primary.string(key, default, context)
-                logger.debug("Flag %s evaluated by primary provider: %s", key, result)
-                return result
+                if result != default:
+                    logger.debug(
+                        "Flag %s evaluated by primary provider: %s", key, result
+                    )
+                    return result
+                logger.debug(
+                    "Flag %s returned default from primary, trying fallback", key
+                )
             except Exception as exc:
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
@@ -114,8 +126,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.primary:
             try:
                 result = self.primary.number(key, default, context)
-                logger.debug("Flag %s evaluated by primary provider: %s", key, result)
-                return result
+                if result != default:
+                    logger.debug(
+                        "Flag %s evaluated by primary provider: %s", key, result
+                    )
+                    return result
+                logger.debug(
+                    "Flag %s returned default from primary, trying fallback", key
+                )
             except Exception as exc:
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
@@ -144,8 +162,12 @@ class CombinedProvider(FeatureFlagProvider):
         if self.primary:
             try:
                 result = self.primary.json(key, default, context)
-                logger.debug("Flag %s evaluated by primary provider", key)
-                return result
+                if result != default:
+                    logger.debug("Flag %s evaluated by primary provider", key)
+                    return result
+                logger.debug(
+                    "Flag %s returned default from primary, trying fallback", key
+                )
             except Exception as exc:
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
@@ -174,8 +196,14 @@ class CombinedProvider(FeatureFlagProvider):
         if self.primary:
             try:
                 result = self.primary.variant(key, default, context)
-                logger.debug("Flag %s evaluated by primary provider: %s", key, result)
-                return result
+                if result != default:
+                    logger.debug(
+                        "Flag %s evaluated by primary provider: %s", key, result
+                    )
+                    return result
+                logger.debug(
+                    "Flag %s returned default from primary, trying fallback", key
+                )
             except Exception as exc:
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
