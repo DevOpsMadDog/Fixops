@@ -570,6 +570,341 @@ def test_pipeline_with_kill_switch():
 
 ---
 
+## Branding & Customization
+
+### Dynamic Product Branding
+
+Wire branding flags into high-impact UX touchpoints to enable dynamic rebranding (e.g., "FixOps" → "Aldeci").
+
+#### FastAPI App Branding
+
+Update `apps/api/app.py` to use branding flags:
+
+```python
+# apps/api/app.py
+
+from core.flags.provider_factory import create_flag_provider
+
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application with dynamic branding."""
+    
+    # Load overlay configuration
+    overlay = load_overlay()
+    
+    # Initialize feature flag provider
+    flag_provider = create_flag_provider(overlay.raw_config)
+    
+    # Resolve branding once at startup (cached)
+    branding = flag_provider.json("fixops.branding", default={
+        "product_name": "FixOps",
+        "short_name": "FixOps",
+        "org_name": "FixOps",
+        "support_url": "",
+        "privacy_url": "",
+        "legal_name": "FixOps",
+        "telemetry_namespace": "fixops",
+    })
+    
+    # Create app with branded title/description
+    app = FastAPI(
+        title=f"{branding['product_name']} API",
+        description=f"Security decision engine by {branding['org_name']}",
+        version="1.0.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+    )
+    
+    # Store branding in app state for request handlers
+    app.state.branding = branding
+    app.state.flag_provider = flag_provider
+    app.state.overlay = overlay
+    
+    # Add middleware to inject X-Product-Name header
+    @app.middleware("http")
+    async def add_product_header(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Product-Name"] = branding["product_name"]
+        response.headers["X-Product-Version"] = "1.0.0"
+        return response
+    
+    # ... rest of app initialization
+    
+    return app
+
+# Use branding in endpoints
+@app.get("/")
+async def root(request: Request):
+    """Root endpoint with branded response."""
+    branding = request.app.state.branding
+    return {
+        "product": branding["product_name"],
+        "organization": branding["org_name"],
+        "support_url": branding["support_url"],
+        "privacy_url": branding["privacy_url"],
+    }
+```
+
+#### CLI Branding
+
+Update `core/cli.py` to use branding flags:
+
+```python
+# core/cli.py
+
+from core.flags.provider_factory import create_flag_provider
+
+def print_banner(overlay: OverlayConfig):
+    """Print branded CLI banner."""
+    
+    # Get branding config
+    branding = overlay.flag_provider.json("fixops.branding", default={
+        "product_name": "FixOps",
+        "short_name": "FixOps",
+    })
+    
+    product_name = branding["product_name"]
+    short_name = branding["short_name"]
+    
+    print(f"""
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   {product_name:^53}   ║
+║   Security Decision & Verification Engine                ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+""")
+
+def _handle_run(args):
+    """Handle run command with branded output."""
+    
+    # Load overlay
+    overlay = load_overlay(args.overlay)
+    
+    # Print branded banner
+    print_banner(overlay)
+    
+    # Get branding for output
+    branding = overlay.flag_provider.json("fixops.branding", default={
+        "product_name": "FixOps",
+    })
+    
+    # Run pipeline
+    result = run_pipeline(...)
+    
+    # Print branded summary
+    print(f"\n{branding['product_name']} Pipeline Summary:")
+    print(f"  Verdict: {result['verdict']}")
+    print(f"  Confidence: {result['confidence']:.2%}")
+    print(f"  Findings: {len(result['findings'])}")
+    
+    return result
+
+def _handle_demo(args):
+    """Handle demo command with branded output."""
+    
+    overlay = load_overlay_for_mode(args.mode)
+    
+    # Print branded banner
+    print_banner(overlay)
+    
+    branding = overlay.flag_provider.json("fixops.branding", default={
+        "product_name": "FixOps",
+    })
+    
+    print(f"\n{branding['product_name']} Demo Mode: {args.mode}")
+    print("=" * 60)
+    
+    # ... rest of demo logic
+```
+
+#### Evidence Bundle Branding
+
+Update `core/evidence.py` to use branding in producer metadata:
+
+```python
+# core/evidence.py
+
+from core.flags import EvaluationContext
+
+class EvidenceHub:
+    """Evidence hub with branded producer metadata."""
+    
+    def __init__(self, overlay: OverlayConfig):
+        self.overlay = overlay
+        self.flag_provider = overlay.flag_provider
+        
+        # Resolve branding once at initialization
+        self.branding = self.flag_provider.json("fixops.branding", default={
+            "product_name": "FixOps",
+            "legal_name": "FixOps",
+        })
+    
+    async def persist(
+        self,
+        verdict: str,
+        findings: List[Dict],
+        metadata: Dict,
+        context: Optional[EvaluationContext] = None,
+    ) -> str:
+        """Persist evidence with branded producer metadata."""
+        
+        # Build evidence bundle with branded producer
+        evidence = {
+            "verdict": verdict,
+            "findings": findings,
+            "metadata": metadata,
+            "producer": {
+                "name": self.branding["product_name"],
+                "legal_name": self.branding["legal_name"],
+                "version": "1.0.0",
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+            "context": context.to_dict() if context else {},
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        
+        # Sign and persist
+        bundle_path = await self._persist_signed(evidence)
+        
+        return bundle_path
+```
+
+#### Telemetry Namespace Branding
+
+Update telemetry configuration to use branded namespace:
+
+```python
+# fixops-blended-enterprise/src/services/metrics.py
+
+from core.flags.provider_factory import create_flag_provider
+
+class FixOpsMetrics:
+    """Metrics with branded telemetry namespace."""
+    
+    _branding = None
+    
+    @classmethod
+    def initialize(cls, overlay: OverlayConfig):
+        """Initialize metrics with branded namespace."""
+        cls._branding = overlay.flag_provider.json("fixops.branding", default={
+            "telemetry_namespace": "fixops",
+        })
+    
+    @classmethod
+    def get_namespace(cls) -> str:
+        """Get branded telemetry namespace."""
+        if cls._branding:
+            return cls._branding["telemetry_namespace"]
+        return "fixops"
+    
+    @classmethod
+    def record_latency(cls, operation: str, latency_ms: float):
+        """Record latency with branded namespace."""
+        namespace = cls.get_namespace()
+        metric_name = f"{namespace}.{operation}.latency_ms"
+        # ... record metric
+
+# In app initialization
+def create_app() -> FastAPI:
+    overlay = load_overlay()
+    FixOpsMetrics.initialize(overlay)
+    # ... rest of initialization
+```
+
+#### Frontend Branding (React)
+
+Update React frontend to use branding from API:
+
+```javascript
+// fixops-blended-enterprise/frontend/src/App.jsx
+
+import { useEffect, useState } from 'react';
+
+function App() {
+  const [branding, setBranding] = useState({
+    product_name: 'FixOps',
+    logo_url: '',
+    primary_color: '#0f62fe',
+  });
+  
+  useEffect(() => {
+    // Fetch branding from API
+    fetch('/api/v1/branding')
+      .then(res => res.json())
+      .then(data => setBranding(data))
+      .catch(err => console.error('Failed to load branding:', err));
+  }, []);
+  
+  return (
+    <div className="app" style={{ '--primary-color': branding.primary_color }}>
+      <header>
+        {branding.logo_url && (
+          <img src={branding.logo_url} alt={branding.product_name} />
+        )}
+        <h1>{branding.product_name}</h1>
+      </header>
+      {/* ... rest of app */}
+    </div>
+  );
+}
+
+// Add API endpoint to serve branding
+// apps/api/app.py
+
+@app.get("/api/v1/branding")
+async def get_branding(request: Request):
+    """Get branding configuration for frontend."""
+    branding = request.app.state.branding
+    return {
+        "product_name": branding["product_name"],
+        "short_name": branding["short_name"],
+        "logo_url": branding["logo_url"],
+        "favicon_url": branding["favicon_url"],
+        "primary_color": branding["primary_color"],
+        "secondary_color": branding["secondary_color"],
+        "org_name": branding["org_name"],
+        "support_url": branding["support_url"],
+        "privacy_url": branding["privacy_url"],
+    }
+```
+
+### Branding Best Practices
+
+1. **Cache at Startup**: Resolve branding once during app initialization, not on every request
+2. **UX Strings Only**: Don't try to rename package names, module paths, or binary names
+3. **Consistent Naming**: Use `product_name` consistently across API, CLI, evidence, and telemetry
+4. **Fallback Defaults**: Always provide sensible defaults in case flags are unavailable
+5. **Testing**: Use FakeFlagProvider to test different branding configurations
+
+### Example: Rebrand to "Aldeci"
+
+To rebrand the entire product to "Aldeci", add to `config/fixops.overlay.yml`:
+
+```yaml
+feature_flags:
+  fixops.branding:
+    product_name: "Aldeci"
+    short_name: "Aldeci"
+    logo_url: "https://cdn.example.com/aldeci/logo.svg"
+    favicon_url: "https://cdn.example.com/aldeci/favicon.ico"
+    primary_color: "#6B5AED"
+    secondary_color: "#0F172A"
+    org_name: "Aldeci Inc."
+    support_url: "https://support.aldeci.com"
+    privacy_url: "https://aldeci.com/privacy"
+    legal_name: "Aldeci Inc."
+    telemetry_namespace: "aldeci"
+```
+
+This will update:
+- API title/description: "Aldeci API"
+- CLI banner: "Aldeci Security Decision & Verification Engine"
+- Evidence producer: `{"name": "Aldeci", "legal_name": "Aldeci Inc."}`
+- Telemetry namespace: `aldeci.pipeline.latency_ms`
+- Response headers: `X-Product-Name: Aldeci`
+
+---
+
 ## Summary
 
 This wiring guide demonstrates how to integrate the feature flag system into:
@@ -580,6 +915,7 @@ This wiring guide demonstrates how to integrate the feature flag system into:
 4. **External Connectors**: Circuit breakers and connector toggles
 5. **CLI Commands**: Offline mode and dry-run flags
 6. **Evidence Generation**: Encryption and retention flags
+7. **Branding & Customization**: Dynamic product rebranding (FixOps → Aldeci)
 
 For complete examples, see:
 - `docs/FEATURE_FLAGS.md` - Usage guide

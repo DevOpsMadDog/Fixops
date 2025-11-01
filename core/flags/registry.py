@@ -501,6 +501,40 @@ class FlagRegistry:
             )
         )
 
+        self.register(
+            FlagMetadata(
+                key="fixops.branding.product_name",
+                flag_type=FlagType.STRING,
+                default="FixOps",
+                description="Product name for branding (e.g., 'Aldeci')",
+                owner="product-team",
+                tags=["branding", "customization"],
+            )
+        )
+
+        self.register(
+            FlagMetadata(
+                key="fixops.branding",
+                flag_type=FlagType.JSON,
+                default={
+                    "product_name": "FixOps",
+                    "short_name": "FixOps",
+                    "logo_url": "",
+                    "favicon_url": "",
+                    "primary_color": "#0f62fe",
+                    "secondary_color": "#161616",
+                    "org_name": "FixOps",
+                    "support_url": "",
+                    "privacy_url": "",
+                    "legal_name": "FixOps",
+                    "telemetry_namespace": "fixops",
+                },
+                description="Full branding configuration (name, logo, colors, URLs)",
+                owner="product-team",
+                tags=["branding", "customization"],
+            )
+        )
+
     def register(self, flag: FlagMetadata) -> None:
         """Register a feature flag."""
         if flag.key in self._flags:

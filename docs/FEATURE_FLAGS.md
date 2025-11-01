@@ -473,6 +473,106 @@ retention_days = provider.number(
 )
 ```
 
+## Branding & Customization
+
+### Dynamic Product Branding
+
+FixOps supports dynamic branding via feature flags, allowing you to rebrand the product (e.g., from "FixOps" to "Aldeci") without code changes.
+
+**Available branding flags:**
+
+1. **Simple name override**: `fixops.branding.product_name` (string)
+2. **Full branding config**: `fixops.branding` (json)
+
+### Branding Configuration
+
+```yaml
+feature_flags:
+  # Simple product name override
+  fixops.branding.product_name: "Aldeci"
+  
+  # Full branding configuration
+  fixops.branding:
+    product_name: "Aldeci"
+    short_name: "Aldeci"
+    logo_url: "https://cdn.example.com/aldeci/logo.svg"
+    favicon_url: "https://cdn.example.com/aldeci/favicon.ico"
+    primary_color: "#6B5AED"
+    secondary_color: "#0F172A"
+    org_name: "Aldeci Inc."
+    support_url: "https://support.aldeci.com"
+    privacy_url: "https://aldeci.com/privacy"
+    legal_name: "Aldeci Inc."
+    telemetry_namespace: "aldeci"
+```
+
+### What Gets Branded
+
+Branding flags update:
+
+- **API**: FastAPI title/description, `X-Product-Name` response header
+- **CLI**: Banner text, summary output
+- **Evidence bundles**: Producer name field
+- **Telemetry**: Namespace for metrics/traces
+
+### What Doesn't Change
+
+**Important**: Branding flags change UX strings only, not:
+- Package names (`pip install fixops` remains the same)
+- Module paths (`from core.flags import ...` remains the same)
+- Repository name or folder structure
+- Binary/executable names
+
+### Usage Example
+
+```python
+from core.flags import create_flag_provider
+
+# Initialize provider
+provider = create_flag_provider(overlay_config)
+
+# Get branding config
+branding = provider.json("fixops.branding", default={
+    "product_name": "FixOps",
+    "telemetry_namespace": "fixops",
+})
+
+# Use in API
+app = FastAPI(
+    title=f"{branding['product_name']} API",
+    description=f"Security decision engine by {branding['org_name']}",
+)
+
+# Use in CLI
+print(f"=== {branding['product_name']} Pipeline ===")
+
+# Use in evidence
+evidence = {
+    "producer": {
+        "name": branding['product_name'],
+        "version": "1.0.0",
+    }
+}
+
+# Use in telemetry
+tracer = trace.get_tracer(branding['telemetry_namespace'])
+```
+
+### Caching Branding
+
+**Best practice**: Resolve branding once at startup, not on every request:
+
+```python
+# At app startup
+app.state.branding = provider.json("fixops.branding", default={...})
+
+# In request handlers
+@app.get("/")
+async def root(request: Request):
+    branding = request.app.state.branding
+    return {"product": branding["product_name"]}
+```
+
 ## Examples
 
 See `config/feature_flags.example.yml` for comprehensive examples of:
@@ -481,6 +581,7 @@ See `config/feature_flags.example.yml` for comprehensive examples of:
 - Percentage-based rollouts
 - Multi-variant experiments
 - Per-tenant targeting
+- Branding/rebranding (FixOps → Aldeci)
 
 ## Support
 

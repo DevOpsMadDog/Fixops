@@ -97,6 +97,25 @@ feature_flags:
   # Preview/experimental features
   fixops.preview.vector_store: false
   fixops.preview.ai_agents: false
+  
+  # ===== Branding & Customization =====
+  
+  # Simple product name override
+  fixops.branding.product_name: "FixOps"
+  
+  # Full branding configuration
+  fixops.branding:
+    product_name: "FixOps"
+    short_name: "FixOps"
+    logo_url: ""
+    favicon_url: ""
+    primary_color: "#0f62fe"
+    secondary_color: "#161616"
+    org_name: "FixOps"
+    support_url: ""
+    privacy_url: ""
+    legal_name: "FixOps"
+    telemetry_namespace: "fixops"
 
 # Example: Percentage-based rollout for a new feature
 # Gradually roll out Sentinel LLM to 25% of tenants
@@ -119,3 +138,28 @@ feature_flags:
 # - If tenant_id = "acme-corp", serve variant "treatment"
 # - If plan = "enterprise", enable multi_llm_consensus
 # - If region = "eu-west-1", enable specific compliance frameworks
+
+# Example: Rebrand to "Aldeci"
+# To rebrand the entire product to "Aldeci", use:
+# feature_flags:
+#   fixops.branding.product_name: "Aldeci"
+#   fixops.branding:
+#     product_name: "Aldeci"
+#     short_name: "Aldeci"
+#     logo_url: "https://cdn.example.com/aldeci/logo.svg"
+#     favicon_url: "https://cdn.example.com/aldeci/favicon.ico"
+#     primary_color: "#6B5AED"
+#     secondary_color: "#0F172A"
+#     org_name: "Aldeci Inc."
+#     support_url: "https://support.aldeci.com"
+#     privacy_url: "https://aldeci.com/privacy"
+#     legal_name: "Aldeci Inc."
+#     telemetry_namespace: "aldeci"
+#
+# This will update:
+# - API title/description and X-Product-Name response header
+# - CLI banner and summary output
+# - Evidence bundle producer name
+# - Telemetry namespace for metrics
+#
+# Note: This changes UX strings only, not package names or repo paths
