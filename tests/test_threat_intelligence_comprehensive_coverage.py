@@ -1360,7 +1360,7 @@ class TestOrchestratorComplete:
         assert enrichment["exploit_maturity"] == "poc"
         assert enrichment["kev_listed"] is True
         assert "test-package" in enrichment["affected_packages"]
-        assert "https://example.com" in enrichment["references"]
+        assert enrichment["references"] == ["https://example.com"]
         assert "CWE-79" in enrichment["cwe_ids"]
 
     def test_orchestrator_enrich_vulnerability_multiple_sources(
