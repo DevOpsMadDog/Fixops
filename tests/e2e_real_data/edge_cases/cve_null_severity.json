@@ -1,0 +1,15 @@
+{
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2024-NULL-TEST",
+      "vendorProject": "Test Vendor",
+      "product": "Test Product",
+      "vulnerabilityName": "Test Vulnerability",
+      "dateAdded": "2024-01-01",
+      "shortDescription": "Test description",
+      "requiredAction": "Apply updates",
+      "dueDate": "2024-02-01",
+      "severity": null
+    }
+  ]
+}

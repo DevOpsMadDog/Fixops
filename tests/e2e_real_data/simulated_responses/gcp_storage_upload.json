@@ -1,0 +1,16 @@
+{
+  "kind": "storage#object",
+  "id": "fixops-evidence/evidence-bundle-123.tar.gz/1635789600000000",
+  "selfLink": "https://www.googleapis.com/storage/v1/b/fixops-evidence/o/evidence-bundle-123.tar.gz",
+  "name": "evidence-bundle-123.tar.gz",
+  "bucket": "fixops-evidence",
+  "generation": "1635789600000000",
+  "metageneration": "1",
+  "contentType": "application/gzip",
+  "timeCreated": "2025-11-01T14:00:00.000Z",
+  "updated": "2025-11-01T14:00:00.000Z",
+  "storageClass": "STANDARD",
+  "size": "1048576",
+  "md5Hash": "rL0Y20zC+Fzt72VPzMSk2A==",
+  "crc32c": "AAAAAA=="
+}

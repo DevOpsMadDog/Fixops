@@ -1,0 +1,29 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "test-app",
+  "documentNamespace": "https://example.com/test-app",
+  "creationInfo": {
+    "created": "2025-11-01T00:00:00Z",
+    "creators": [
+      "Tool: FixOps-Test"
+    ]
+  },
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-express",
+      "name": "express",
+      "versionInfo": "4.17.1",
+      "downloadLocation": "https://registry.npmjs.org/express/-/express-4.17.1.tgz",
+      "licenseConcluded": "MIT"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-lodash",
+      "name": "lodash",
+      "versionInfo": "4.17.20",
+      "downloadLocation": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz",
+      "licenseConcluded": "MIT"
+    }
+  ]
+}

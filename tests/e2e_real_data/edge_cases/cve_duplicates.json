@@ -1,0 +1,26 @@
+{
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2024-DUPLICATE",
+      "vendorProject": "Test Vendor",
+      "product": "Test Product",
+      "vulnerabilityName": "Duplicate Test 1",
+      "dateAdded": "2024-01-01",
+      "shortDescription": "First entry",
+      "requiredAction": "Apply updates",
+      "dueDate": "2024-02-01",
+      "severity": "high"
+    },
+    {
+      "cveID": "CVE-2024-DUPLICATE",
+      "vendorProject": "Test Vendor",
+      "product": "Test Product",
+      "vulnerabilityName": "Duplicate Test 2",
+      "dateAdded": "2024-01-02",
+      "shortDescription": "Second entry",
+      "requiredAction": "Apply updates",
+      "dueDate": "2024-02-02",
+      "severity": "critical"
+    }
+  ]
+}

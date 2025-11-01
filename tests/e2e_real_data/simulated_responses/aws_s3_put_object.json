@@ -1,0 +1,16 @@
+{
+  "ETag": "\"d41d8cd98f00b204e9800998ecf8427e\"",
+  "ServerSideEncryption": "AES256",
+  "VersionId": "3/L4kqtJlcpXroDTDmJ+rmSpXd3dIbrHY+MTRCxf3vjVBH40Nr8X8gdRQBpUMLUo",
+  "ResponseMetadata": {
+    "RequestId": "1234567890ABCDEF",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "x-amz-id-2": "abcdef123456",
+      "x-amz-request-id": "1234567890ABCDEF",
+      "date": "Fri, 01 Nov 2025 14:00:00 GMT",
+      "etag": "\"d41d8cd98f00b204e9800998ecf8427e\"",
+      "server": "AmazonS3"
+    }
+  }
+}

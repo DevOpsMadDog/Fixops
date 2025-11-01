@@ -1,0 +1,17 @@
+{
+  "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"verdict\": \"block\", \"confidence\": 0.92, \"reasoning\": \"High severity SQL injection vulnerability in production payment service. CWE-89 maps to PCI-DSS 6.5.1 requirement. Exploit code publicly available.\", \"compliance_gaps\": [\"PCI-DSS 6.5.1\", \"ISO27001 A.14.2.8\"]}"
+    }
+  ],
+  "model": "claude-3-opus-20240229",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 120,
+    "output_tokens": 80
+  }
+}

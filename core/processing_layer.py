@@ -196,7 +196,8 @@ class ProcessingLayer:
             try:
                 chain = mchmm.MarkovChain()
                 states = [
-                    record.get("severity", "medium").lower() for record in cve_records
+                    (record.get("severity") or "medium").lower()
+                    for record in cve_records
                 ]
                 chain.fit([states])
                 forecast = chain.predict(states[-1], n_steps=3)
@@ -209,7 +210,7 @@ class ProcessingLayer:
                 pass
 
         severities = [
-            record.get("severity", "medium").lower() for record in cve_records
+            (record.get("severity") or "medium").lower() for record in cve_records
         ]
         severity_counts = {level: severities.count(level) for level in set(severities)}
         ordered = sorted(

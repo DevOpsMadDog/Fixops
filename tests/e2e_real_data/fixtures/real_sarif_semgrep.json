@@ -1,0 +1,77 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Semgrep",
+          "version": "1.0.0",
+          "informationUri": "https://semgrep.dev"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "javascript.express.security.audit.xss.mustache.var-in-href",
+          "level": "error",
+          "message": {
+            "text": "Detected a template variable used in an anchor tag with the 'href' attribute. This allows a malicious actor to input the 'javascript:' URI and is subject to cross-site scripting (XSS) attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/views/profile.html"
+                },
+                "region": {
+                  "startLine": 42,
+                  "startColumn": 15
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "javascript.lang.security.audit.sql-injection",
+          "level": "error",
+          "message": {
+            "text": "Detected SQL statement that is tainted by user-input. This could lead to SQL injection if variables in the SQL statement are not properly sanitized."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/db/users.js"
+                },
+                "region": {
+                  "startLine": 128,
+                  "startColumn": 20
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "javascript.express.security.audit.express-check-csurf-middleware-usage",
+          "level": "warning",
+          "message": {
+            "text": "Missing CSRF protection middleware. This could allow attackers to perform actions on behalf of authenticated users."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.js"
+                },
+                "region": {
+                  "startLine": 15,
+                  "startColumn": 1
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

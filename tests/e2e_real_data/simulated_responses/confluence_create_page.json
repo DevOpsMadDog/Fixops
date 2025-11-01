@@ -1,0 +1,18 @@
+{
+  "id": "123456",
+  "type": "page",
+  "status": "current",
+  "title": "FixOps Security Analysis Report",
+  "space": {
+    "key": "SECOPS",
+    "name": "Security Operations"
+  },
+  "version": {
+    "number": 1,
+    "when": "2025-11-01T14:00:00.000Z"
+  },
+  "_links": {
+    "webui": "/spaces/SECOPS/pages/123456/FixOps+Security+Analysis+Report",
+    "self": "https://confluence.example.com/rest/api/content/123456"
+  }
+}

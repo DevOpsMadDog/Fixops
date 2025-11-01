@@ -55,6 +55,13 @@ data "archive_file" "lambda_zip" {
   excludes    = ["terraform", "test_handler.py", "__pycache__", "*.pyc"]
 }
 
+resource "aws_sqs_queue" "lambda_dlq" {
+  name                      = "${var.prefix}-telemetry-dlq"
+  message_retention_seconds = 1209600
+  
+  tags = var.tags
+}
+
 resource "aws_lambda_function" "telemetry_connector" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = "${var.prefix}-telemetry-connector"
@@ -70,6 +77,45 @@ resource "aws_lambda_function" "telemetry_connector" {
       FIXOPS_OVERLAY_PATH = "/opt/config/fixops.overlay.yml"
       FIXOPS_API_KEY      = var.fixops_api_key
     }
+  }
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.lambda_dlq.arn
+  }
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "lambda_dlq" {
+  name = "${var.prefix}-lambda-dlq-policy"
+  role = aws_iam_role.telemetry_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "sqs:SendMessage"
+      ]
+      Resource = aws_sqs_queue.lambda_dlq.arn
+    }]
+  })
+}
+
+resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  alarm_name          = "${var.prefix}-telemetry-lambda-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = "300"
+  statistic           = "Sum"
+  threshold           = "5"
+  alarm_description   = "Alert when Lambda function has more than 5 errors in 5 minutes"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.telemetry_connector.function_name
   }
 
   tags = var.tags

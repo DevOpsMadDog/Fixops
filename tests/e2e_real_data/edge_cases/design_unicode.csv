@@ -1,0 +1,5 @@
+service,environment,criticality,data_classification,exposure,owner
+测试服务,production,mission_critical,pii,internet,security-team
+service-with-émojis-🔒,staging,external,financial,partner,ops-team
+service"with'quotes,development,internal,internal,internal,dev-team
+service;with;semicolons,production,mission_critical,pii,internet,security-team

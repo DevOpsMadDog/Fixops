@@ -1,0 +1,13 @@
+[
+  {
+    "id": "BUG-EDGE-003",
+    "severity": "HIGH",
+    "description": "Pipeline fails or times out with large CVE feed (10,000+ entries)",
+    "error": "Error: JSON item count exceeds maximum of 100000\nINFO:apscheduler.scheduler:Scheduler has been shut down\n"
+  },
+  {
+    "id": "BUG-EDGE-005",
+    "severity": "LOW",
+    "description": "Duplicate CVEs not deduplicated correctly (expected 1, got 2)"
+  }
+]

@@ -22,10 +22,25 @@ services:
       - FIXOPS_DISABLE_TELEMETRY=1
       - VECTOR_STORE_PROVIDER=chromadb
       - VECTOR_STORE_PERSIST_DIR=/app/data/chroma_db
-      # LLM API keys (optional - set these for real LLM responses)
+      # LLM API keys - Use Docker secrets or external secret management in production
+      # For local dev: export these in your shell before running docker-compose
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     command: >
       bash -c "
       echo '=== FixOps Enterprise Mode with ChromaDB ===' &&
