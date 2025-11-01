@@ -1117,6 +1117,18 @@ class OverlayConfig:
         return {}
 
     def is_module_enabled(self, name: str, default: bool = True) -> bool:
+        """Check if a module is enabled via overlay config or feature flags.
+
+        Feature flags take precedence over overlay config for dynamic control.
+        """
+        flag_key = f"fixops.module.{name}"
+        try:
+            flag_value = self.flag_provider.bool(flag_key, None)
+            if flag_value is not None:
+                return flag_value
+        except Exception:
+            pass
+
         raw = self.modules.get(name)
         if isinstance(raw, Mapping):
             if "enabled" in raw:
