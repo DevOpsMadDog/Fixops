@@ -107,6 +107,7 @@ class PolicyAutomation:
                 "policy_automation": self.settings,
             },
             overlay.toggles,
+            flag_provider=overlay.flag_provider,
         )
         self.opa_client = _OPAClient(self.settings.get("opa"))
 
