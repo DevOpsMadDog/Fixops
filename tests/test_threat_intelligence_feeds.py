@@ -19,6 +19,25 @@ from risk.feeds.osv import OSVFeed
 from risk.feeds.vendors import KubernetesSecurityFeed, MicrosoftSecurityFeed
 
 
+def assert_url_host(
+    url: str, expected_host: str, allowed_schemes: tuple = ("https", "http")
+) -> None:
+    """Assert URL has expected hostname and valid scheme.
+
+    This helper avoids CodeQL warnings about incomplete URL substring sanitization
+    by validating the hostname component specifically (not netloc which can include
+    userinfo and port).
+    """
+    parsed = urlparse(url)
+    assert (
+        parsed.scheme in allowed_schemes
+    ), f"URL scheme {parsed.scheme} not in {allowed_schemes}"
+    assert parsed.hostname, f"URL {url} has no hostname"
+    assert (
+        parsed.hostname.lower() == expected_host.lower()
+    ), f"Expected hostname {expected_host}, got {parsed.hostname}"
+
+
 @pytest.fixture
 def temp_cache_dir(tmp_path: Path) -> Path:
     """Create temporary cache directory."""
@@ -118,8 +137,7 @@ class TestOSVFeed:
         feed = OSVFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "OSV"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "osv-vulnerabilities.storage.googleapis.com"
+        assert_url_host(feed.feed_url, "osv-vulnerabilities.storage.googleapis.com")
         assert feed.cache_filename == "osv-ecosystems.txt"
 
     def test_osv_feed_parse_ecosystems(self, temp_cache_dir: Path):
@@ -140,8 +158,7 @@ class TestNVDFeed:
         feed = NVDFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "NVD"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "services.nvd.nist.gov"
+        assert_url_host(feed.feed_url, "services.nvd.nist.gov")
         assert feed.cache_filename == "nvd-cves.json"
 
     def test_nvd_feed_parse(self, temp_cache_dir: Path):
@@ -191,8 +208,7 @@ class TestGitHubSecurityAdvisoriesFeed:
         feed = GitHubSecurityAdvisoriesFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "GitHub Security Advisories"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "api.github.com"
+        assert_url_host(feed.feed_url, "api.github.com")
         assert feed.cache_filename == "github-advisories.json"
 
     def test_github_feed_parse(self, temp_cache_dir: Path):
@@ -252,8 +268,7 @@ class TestVendorFeeds:
         feed = MicrosoftSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Microsoft Security"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "api.msrc.microsoft.com"
+        assert_url_host(feed.feed_url, "api.msrc.microsoft.com")
         assert feed.cache_filename == "microsoft-security.json"
 
     def test_kubernetes_feed_properties(self, temp_cache_dir: Path):
@@ -261,8 +276,7 @@ class TestVendorFeeds:
         feed = KubernetesSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Kubernetes Security"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "storage.googleapis.com"
+        assert_url_host(feed.feed_url, "storage.googleapis.com")
         assert feed.cache_filename == "kubernetes-security.json"
 
 
@@ -274,8 +288,7 @@ class TestEcosystemFeeds:
         feed = NPMSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "npm Security"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "registry.npmjs.org"
+        assert_url_host(feed.feed_url, "registry.npmjs.org")
         assert feed.cache_filename == "npm-security.json"
 
     def test_rubysec_feed_properties(self, temp_cache_dir: Path):
@@ -283,8 +296,7 @@ class TestEcosystemFeeds:
         feed = RubySecFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "RubySec"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "rubysec.com"
+        assert_url_host(feed.feed_url, "rubysec.com")
         assert feed.cache_filename == "rubysec.json"
 
     def test_debian_feed_properties(self, temp_cache_dir: Path):
@@ -292,8 +304,7 @@ class TestEcosystemFeeds:
         feed = DebianSecurityFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Debian Security"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "security-tracker.debian.org"
+        assert_url_host(feed.feed_url, "security-tracker.debian.org")
         assert feed.cache_filename == "debian-security.json"
 
 
@@ -305,8 +316,7 @@ class TestExploitFeeds:
         feed = ExploitDBFeed(cache_dir=temp_cache_dir)
 
         assert feed.feed_name == "Exploit-DB"
-        parsed_url = urlparse(feed.feed_url)
-        assert parsed_url.netloc == "gitlab.com"
+        assert_url_host(feed.feed_url, "gitlab.com")
         assert feed.cache_filename == "exploitdb.csv"
 
     def test_exploitdb_feed_parse(self, temp_cache_dir: Path):
