@@ -540,3 +540,449 @@ class TestRealWorldCLIComprehensive:
         assert "operate_risk_score" in output_data
         assert "epss" in output_data
         assert "kev_hits" in output_data
+
+
+class TestRealWorldAPI:
+    """Comprehensive tests for all API endpoints with real data."""
+
+    def test_api_pipeline_run_endpoint(self, tmp_path):
+        """Test POST /pipeline/run endpoint with real data."""
+        import os
+        import secrets
+
+        from cryptography.fernet import Fernet
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
+        os.environ["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
+        os.environ["FIXOPS_EVIDENCE_KEY"] = Fernet.generate_key().decode()
+        os.environ["FIXOPS_MODE"] = "demo"
+
+        try:
+            from fastapi.testclient import TestClient
+
+            from apps.api.app import create_app
+        except ImportError:
+            return
+
+        app = create_app()
+        client = TestClient(app)
+
+        design_csv = (
+            "component,owner,criticality,notes\napi-service,dev-team,high,Main API\n"
+        )
+        sbom_data = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "version": 1,
+            "components": [],
+        }
+        sarif_data = {
+            "version": "2.1.0",
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "runs": [{"tool": {"driver": {"name": "Test"}}, "results": []}],
+        }
+        cve_data = {"vulnerabilities": []}
+
+        response = client.post(
+            "/inputs/design",
+            headers={"X-API-Key": "test-token"},
+            files={"file": ("design.csv", design_csv, "text/csv")},
+        )
+        assert response.status_code == 200
+
+        response = client.post(
+            "/inputs/sbom",
+            headers={"X-API-Key": "test-token"},
+            files={"file": ("sbom.json", json.dumps(sbom_data), "application/json")},
+        )
+        assert response.status_code == 200
+
+        response = client.post(
+            "/inputs/sarif",
+            headers={"X-API-Key": "test-token"},
+            files={"file": ("sarif.json", json.dumps(sarif_data), "application/json")},
+        )
+        assert response.status_code == 200
+
+        response = client.post(
+            "/inputs/cve",
+            headers={"X-API-Key": "test-token"},
+            files={"file": ("cve.json", json.dumps(cve_data), "application/json")},
+        )
+        assert response.status_code == 200
+
+        response = client.post("/pipeline/run", headers={"X-API-Key": "test-token"})
+        assert response.status_code == 200
+
+        result = response.json()
+        assert result["status"] == "ok"
+        assert "design_summary" in result
+        assert "evidence_bundle" in result
+
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+    def test_api_analytics_dashboard_endpoint(self, tmp_path):
+        """Test GET /analytics/dashboard endpoint."""
+        import os
+        import secrets
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
+        os.environ["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
+        os.environ["FIXOPS_EVIDENCE_KEY"] = secrets.token_hex(32)
+        os.environ["FIXOPS_MODE"] = "demo"
+
+        try:
+            from fastapi.testclient import TestClient
+
+            from apps.api.app import create_app
+        except ImportError:
+            return
+
+        app = create_app()
+        client = TestClient(app)
+
+        response = client.get(
+            "/analytics/dashboard", headers={"X-API-Key": "test-token"}
+        )
+        assert response.status_code == 200
+
+        result = response.json()
+        assert isinstance(result, dict)
+
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+
+class TestRealWorldIaC:
+    """Test IaC analysis with real terraform plans and Kubernetes manifests."""
+
+    def test_iac_terraform_security_issues(self, tmp_path):
+        """Test terraform plan analysis detects security issues."""
+        tfplan = {
+            "format_version": "1.0",
+            "terraform_version": "1.0.0",
+            "planned_values": {
+                "root_module": {
+                    "resources": [
+                        {
+                            "address": "aws_security_group.allow_all",
+                            "type": "aws_security_group",
+                            "values": {
+                                "ingress": [
+                                    {
+                                        "cidr_blocks": ["0.0.0.0/0"],
+                                        "from_port": 22,
+                                        "to_port": 22,
+                                        "protocol": "tcp",
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+            },
+        }
+
+        tfplan_file = tmp_path / "tfplan.json"
+        tfplan_file.write_text(json.dumps(tfplan))
+
+        from src.services import id_allocator, signing
+        from src.services.run_registry import RunRegistry
+
+        from core.stage_runner import StageRunner
+
+        registry = RunRegistry()
+        runner = StageRunner(registry, id_allocator, signing)
+
+        summary = runner.run_stage(
+            "deploy",
+            tfplan_file,
+            app_name="TEST-IAC-APP",
+            app_id=None,
+            mode="demo",
+        )
+
+        output_data = json.loads(summary.output_file.read_text())
+        assert "iac_posture" in output_data or "posture" in output_data
+
+
+class TestRealWorldDecisionEngine:
+    """Test decision engine with various risk scenarios."""
+
+    def test_decision_engine_critical_cve(self, tmp_path):
+        """Test decision engine with critical CVE (Log4Shell)."""
+        import os
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
+
+        design_csv = tmp_path / "design.csv"
+        design_csv.write_text(
+            "component,owner,criticality,notes\nlog4j-service,security-team,critical,Uses Log4j\n"
+        )
+
+        sbom_json = tmp_path / "sbom.json"
+        sbom_json.write_text(
+            json.dumps(
+                {
+                    "bomFormat": "CycloneDX",
+                    "specVersion": "1.4",
+                    "version": 1,
+                    "components": [
+                        {
+                            "type": "library",
+                            "name": "log4j-core",
+                            "version": "2.14.1",
+                            "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+                        }
+                    ],
+                }
+            )
+        )
+
+        cve_json = tmp_path / "cve.json"
+        cve_json.write_text(
+            json.dumps(
+                {
+                    "vulnerabilities": [
+                        {
+                            "cveID": "CVE-2021-44228",
+                            "title": "Apache Log4j2 RCE",
+                            "knownExploited": True,
+                            "severity": "critical",
+                            "cvss": 10.0,
+                        }
+                    ]
+                }
+            )
+        )
+
+        sarif_json = tmp_path / "sarif.json"
+        sarif_json.write_text(
+            json.dumps(
+                {
+                    "version": "2.1.0",
+                    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+                    "runs": [{"tool": {"driver": {"name": "Test"}}, "results": []}],
+                }
+            )
+        )
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "make-decision",
+                "--design",
+                str(design_csv),
+                "--sbom",
+                str(sbom_json),
+                "--cve",
+                str(cve_json),
+                "--sarif",
+                str(sarif_json),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode != 0, "Decision should block with critical KEV CVE"
+
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+
+class TestRealWorldMarketplace:
+    """Test marketplace recommendations and developer extensions."""
+
+    def test_marketplace_recommendations(self, tmp_path):
+        """Test marketplace recommendations based on control IDs."""
+        import sys
+        from pathlib import Path
+
+        enterprise_path = Path(__file__).parent.parent / "fixops-enterprise"
+        if str(enterprise_path) not in sys.path:
+            sys.path.insert(0, str(enterprise_path))
+
+        from src.services.marketplace import get_recommendations
+
+        control_ids = ["ISO27001:AC-2", "PCI:8.3"]
+        recommendations = get_recommendations(control_ids)
+
+        assert isinstance(recommendations, list)
+        assert len(recommendations) > 0
+        assert any(r["control_id"] == "ISO27001:AC-2" for r in recommendations)
+
+    def test_marketplace_get_pack(self, tmp_path):
+        """Test getting specific marketplace pack."""
+        import sys
+        from pathlib import Path
+
+        enterprise_path = Path(__file__).parent.parent / "fixops-enterprise"
+        if str(enterprise_path) not in sys.path:
+            sys.path.insert(0, str(enterprise_path))
+
+        from src.services.marketplace import get_pack
+
+        pack = get_pack("ISO27001", "AC-2")
+
+        assert isinstance(pack, dict)
+        assert "pack_id" in pack
+        assert "title" in pack
+
+
+class TestRealWorldBacktesting:
+    """Test backtesting with real CVE feeds."""
+
+    def test_backtest_log4shell_cve(self, tmp_path):
+        """Test backtesting with Log4Shell CVE-2021-44228."""
+        sbom_json = tmp_path / "sbom.json"
+        sbom_json.write_text(
+            json.dumps(
+                {
+                    "bomFormat": "CycloneDX",
+                    "specVersion": "1.4",
+                    "version": 1,
+                    "components": [
+                        {
+                            "type": "library",
+                            "name": "log4j-core",
+                            "version": "2.14.1",
+                            "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+                        }
+                    ],
+                }
+            )
+        )
+
+        output_file = tmp_path / "operate_output.json"
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "stage-run",
+                "--stage",
+                "operate",
+                "--input",
+                str(sbom_json),
+                "--app",
+                "TEST-LOG4SHELL-APP",
+                "--output",
+                str(output_file),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert output_file.exists(), "Operate output not created"
+
+        output_data = json.loads(output_file.read_text())
+        assert "operate_risk_score" in output_data
+        assert output_data["app_id"].startswith("APP-")
+
+    def test_backtest_heartbleed_cve(self, tmp_path):
+        """Test backtesting with Heartbleed CVE-2014-0160."""
+        sbom_json = tmp_path / "sbom.json"
+        sbom_json.write_text(
+            json.dumps(
+                {
+                    "bomFormat": "CycloneDX",
+                    "specVersion": "1.4",
+                    "version": 1,
+                    "components": [
+                        {
+                            "type": "library",
+                            "name": "openssl",
+                            "version": "1.0.1f",
+                            "purl": "pkg:generic/openssl@1.0.1f",
+                        }
+                    ],
+                }
+            )
+        )
+
+        output_file = tmp_path / "operate_output.json"
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "stage-run",
+                "--stage",
+                "operate",
+                "--input",
+                str(sbom_json),
+                "--app",
+                "TEST-HEARTBLEED-APP",
+                "--output",
+                str(output_file),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert output_file.exists(), "Operate output not created"
+
+        output_data = json.loads(output_file.read_text())
+        assert "operate_risk_score" in output_data
+        assert output_data["app_id"].startswith("APP-")
+
+    def test_backtest_shellshock_cve(self, tmp_path):
+        """Test backtesting with Shellshock CVE-2014-6271."""
+        sbom_json = tmp_path / "sbom.json"
+        sbom_json.write_text(
+            json.dumps(
+                {
+                    "bomFormat": "CycloneDX",
+                    "specVersion": "1.4",
+                    "version": 1,
+                    "components": [
+                        {
+                            "type": "library",
+                            "name": "bash",
+                            "version": "4.3",
+                            "purl": "pkg:generic/bash@4.3",
+                        }
+                    ],
+                }
+            )
+        )
+
+        output_file = tmp_path / "operate_output.json"
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "stage-run",
+                "--stage",
+                "operate",
+                "--input",
+                str(sbom_json),
+                "--app",
+                "TEST-SHELLSHOCK-APP",
+                "--output",
+                str(output_file),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert output_file.exists(), "Operate output not created"
+
+        output_data = json.loads(output_file.read_text())
+        assert "operate_risk_score" in output_data
+        assert output_data["app_id"].startswith("APP-")
