@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
 from core.overlay_runtime import prepare_overlay
-from core.paths import ensure_secure_directory
+from core.paths import ensure_output_directory
 
 _DEMO_ENV_DEFAULTS: Dict[str, str] = {
     "FIXOPS_API_TOKEN": "demo-api-token",
@@ -169,7 +169,7 @@ def run_demo_pipeline(
     )
 
     if output_path:
-        ensure_secure_directory(output_path.parent)
+        ensure_output_directory(output_path.parent)
         with output_path.open("w", encoding="utf-8") as handle:
             json.dump(result, handle, indent=2 if pretty else None)
             if pretty:

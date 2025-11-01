@@ -21,6 +21,7 @@ from core.performance import PerformanceSimulator
 from core.policy import PolicyAutomation
 from core.probabilistic import ProbabilisticForecastEngine
 from core.processing_layer import ProcessingLayer
+from core.severity_promotion import SeverityPromotionEngine
 from core.ssdlc import SSDLCEvaluator
 from core.tenancy import TenantLifecycleManager
 from core.vector_store import SecurityPatternMatcher
@@ -635,6 +636,89 @@ class PipelineOrchestrator:
             tenant_overview: Optional[Dict[str, Any]] = None
             performance_profile: Optional[Dict[str, Any]] = None
 
+            if overlay.is_module_enabled("exploit_signals"):
+                exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
+                refresher = ExploitFeedRefresher(overlay)
+                refresh_summary = refresher.refresh(
+                    cve, exploit_evaluator.last_refreshed
+                )
+                if refresh_summary:
+                    result["exploit_feed_refresh"] = refresh_summary
+                    if refresh_summary.get("status") == "refreshed":
+                        exploit_evaluator = ExploitSignalEvaluator(
+                            overlay.exploit_settings
+                        )
+                exploit_summary = exploit_evaluator.evaluate(cve)
+                if exploit_summary:
+                    result["exploitability_insights"] = exploit_summary
+
+                    promotion_engine = SeverityPromotionEngine(enabled=True)
+                    promotion_evidence_list: List[Dict[str, Any]] = []
+                    promoted_counts: Counter[str] = Counter()
+
+                    for record in cve.records:
+                        original_severity = self._normalise_cve_severity(record)
+                        promotion_evidence = promotion_engine.evaluate_promotion(
+                            cve_id=record.cve_id,
+                            current_severity=original_severity,
+                            exploit_signals=exploit_summary,
+                            first_seen_at=result.get("timestamp"),
+                        )
+
+                        if promotion_evidence and promotion_evidence.was_promoted:
+                            severity_counts[original_severity] = max(
+                                0, severity_counts.get(original_severity, 0) - 1
+                            )
+                            source_breakdown["cve"][original_severity] = max(
+                                0, source_breakdown["cve"].get(original_severity, 0) - 1
+                            )
+
+                            new_severity = promotion_evidence.new_severity
+                            severity_counts[new_severity] += 1
+                            source_breakdown["cve"][new_severity] += 1
+                            promoted_counts[new_severity] += 1
+
+                            if self._severity_index(
+                                new_severity
+                            ) > self._severity_index(highest_severity):
+                                highest_severity = new_severity
+                                highest_trigger = {
+                                    "source": "cve_promoted",
+                                    "cve_id": record.cve_id,
+                                    "original_severity": original_severity,
+                                    "promoted_severity": new_severity,
+                                    "promotion_reason": promotion_evidence.promotion_reason,
+                                }
+
+                        if promotion_evidence:
+                            promotion_evidence_list.append(promotion_evidence.to_dict())
+
+                    result["severity_overview"]["highest"] = highest_severity
+                    result["severity_overview"]["counts"] = dict(severity_counts)
+                    result["severity_overview"]["sources"] = {
+                        source: dict(counter)
+                        for source, counter in source_breakdown.items()
+                    }
+                    if highest_trigger:
+                        result["severity_overview"]["trigger"] = highest_trigger
+
+                    if promotion_evidence_list:
+                        result["severity_promotions"] = {
+                            "total_evaluated": len(promotion_evidence_list),
+                            "total_promoted": sum(
+                                1
+                                for e in promotion_evidence_list
+                                if e.get("was_promoted")
+                            ),
+                            "promoted_by_severity": dict(promoted_counts),
+                            "evidence": promotion_evidence_list,
+                        }
+
+                modules_status["exploit_signals"] = "executed"
+                executed_modules.append("exploit_signals")
+            else:
+                modules_status["exploit_signals"] = "disabled"
+
             if overlay.is_module_enabled("guardrails"):
                 result["guardrail_evaluation"] = self._evaluate_guardrails(
                     overlay, severity_counts, highest_severity, highest_trigger
@@ -788,26 +872,6 @@ class PipelineOrchestrator:
                 executed_modules.append("ai_agents")
             else:
                 modules_status["ai_agents"] = "disabled"
-
-            if overlay.is_module_enabled("exploit_signals"):
-                exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)
-                refresher = ExploitFeedRefresher(overlay)
-                refresh_summary = refresher.refresh(
-                    cve, exploit_evaluator.last_refreshed
-                )
-                if refresh_summary:
-                    result["exploit_feed_refresh"] = refresh_summary
-                    if refresh_summary.get("status") == "refreshed":
-                        exploit_evaluator = ExploitSignalEvaluator(
-                            overlay.exploit_settings
-                        )
-                exploit_summary = exploit_evaluator.evaluate(cve)
-                if exploit_summary:
-                    result["exploitability_insights"] = exploit_summary
-                modules_status["exploit_signals"] = "executed"
-                executed_modules.append("exploit_signals")
-            else:
-                modules_status["exploit_signals"] = "disabled"
 
             if overlay.is_module_enabled("probabilistic"):
                 probabilistic = ProbabilisticForecastEngine(

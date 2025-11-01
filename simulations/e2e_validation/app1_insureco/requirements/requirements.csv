@@ -1,0 +1,11 @@
+req_id,app_id,description,owner,criticality,data_classification,threat_ref
+REQ-001,APP1,Policy search and retrieval system,john.smith@insureco.com,5,restricted,STRIDE-T-001
+REQ-002,APP1,Customer payment processing,jane.doe@insureco.com,5,restricted,STRIDE-T-002
+REQ-003,APP1,Claims submission portal,bob.jones@insureco.com,4,confidential,STRIDE-T-003
+REQ-004,APP1,Document storage and retrieval,alice.brown@insureco.com,4,confidential,STRIDE-T-004
+REQ-005,APP1,User authentication and authorization,mike.wilson@insureco.com,5,restricted,STRIDE-T-005
+REQ-006,APP1,Policy quote calculator,sarah.davis@insureco.com,3,internal,STRIDE-T-006
+REQ-007,APP1,Customer profile management,tom.miller@insureco.com,4,confidential,STRIDE-T-007
+REQ-008,APP1,Reporting and analytics dashboard,lisa.garcia@insureco.com,2,internal,STRIDE-T-008
+REQ-009,APP1,Email notification service,david.martinez@insureco.com,3,internal,STRIDE-T-009
+REQ-010,APP1,API gateway for partner integrations,emma.rodriguez@insureco.com,4,confidential,STRIDE-T-010
