@@ -51,6 +51,14 @@ class EvidenceHub:
         compress_flag = limits.get("compress") if isinstance(limits, Mapping) else False
         self.compress_bundles = bool(compress_flag)
         encrypt_flag = limits.get("encrypt") if isinstance(limits, Mapping) else False
+
+        try:
+            encrypt_flag = overlay.flag_provider.bool(
+                "fixops.feature.evidence.encryption", encrypt_flag
+            )
+        except Exception:
+            pass
+
         self.encrypt_bundles = bool(encrypt_flag)
         encryption_env = (
             limits.get("encryption_env") if isinstance(limits, Mapping) else None
@@ -97,6 +105,16 @@ class EvidenceHub:
                         "Invalid evidence encryption key supplied"
                     ) from exc
         retention_value = self.settings.get("retention_days", 2555)
+
+        try:
+            flag_retention = overlay.flag_provider.string(
+                "fixops.feature.evidence.retention", None
+            )
+            if flag_retention:
+                retention_value = flag_retention
+        except Exception:
+            pass
+
         try:
             self.retention_days = int(retention_value)
         except (TypeError, ValueError):
@@ -114,12 +132,21 @@ class EvidenceHub:
         return ensure_secure_directory(directory)
 
     def _bundle_name(self) -> str:
+        product_name = "fixops"
+        try:
+            branding = self.overlay.flag_provider.json("fixops.branding", None)
+            if branding and isinstance(branding, dict):
+                product_name = branding.get("short_name", "fixops").lower()
+        except Exception:
+            pass
+
         raw_name = str(
-            self.settings.get("bundle_name") or f"fixops-{self.overlay.mode}-run"
+            self.settings.get("bundle_name")
+            or f"{product_name}-{self.overlay.mode}-run"
         )
         cleaned = _SAFE_BUNDLE_NAME.sub("-", raw_name)
         cleaned = cleaned.strip("-_.")
-        return cleaned or f"fixops-{self.overlay.mode}-run"
+        return cleaned or f"{product_name}-{self.overlay.mode}-run"
 
     def persist(
         self,
@@ -134,9 +161,19 @@ class EvidenceHub:
 
         sections = self.settings.get("include_sections", [])
         included_sections: list[str] = []
+
+        producer_name = "FixOps"
+        try:
+            branding = self.overlay.flag_provider.json("fixops.branding", None)
+            if branding and isinstance(branding, dict):
+                producer_name = branding.get("product_name", "FixOps")
+        except Exception:
+            pass
+
         bundle_payload: Dict[str, Any] = {
             "mode": self.overlay.mode,
             "run_id": run_id,
+            "producer": producer_name,
         }
 
         if self.overlay.toggles.get("include_overlay_metadata_in_bundles", True):
