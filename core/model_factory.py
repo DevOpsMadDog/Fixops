@@ -38,6 +38,12 @@ def create_model_registry_from_config(
     ...     enrichment_map=enrichment,
     ... )
     """
+    from core.configuration import OverlayConfig
+
+    flag_provider = None
+    if isinstance(config, OverlayConfig):
+        flag_provider = config.flag_provider
+
     probabilistic_config = config.get("probabilistic", {})
     if not isinstance(probabilistic_config, Mapping):
         logger.warning("probabilistic config not found or invalid")
@@ -48,7 +54,14 @@ def create_model_registry_from_config(
         logger.warning("risk_models config not found or invalid")
         return None
 
-    if not risk_models_config.get("enabled", False):
+    enabled = risk_models_config.get("enabled", False)
+    if flag_provider:
+        try:
+            enabled = flag_provider.bool("fixops.model.risk.enabled", enabled)
+        except Exception:
+            pass
+
+    if not enabled:
         logger.info("risk_models not enabled in config")
         return None
 
@@ -99,6 +112,14 @@ def create_model_registry_from_config(
             logger.error("Failed to register bn_lr_hybrid_v1: %s", exc)
 
     default_model_id = risk_models_config.get("default_model")
+    if flag_provider:
+        try:
+            flag_default = flag_provider.string("fixops.model.risk.default", None)
+            if flag_default:
+                default_model_id = flag_default
+        except Exception:
+            pass
+
     if default_model_id:
         try:
             registry.set_default_model(default_model_id)
