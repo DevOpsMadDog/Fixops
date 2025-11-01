@@ -16,6 +16,7 @@ from core.vector_store import (
     InMemoryVectorStore,
     VectorMatch,
     VectorRecord,
+    VectorStoreError,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -48,9 +49,17 @@ class EvidenceBundleIndexer:
 
         self.store: BaseVectorStore
         if vector_store_type == "chroma":
-            self.store = ChromaVectorStore(
-                collection_name=collection_name, persist_directory=persist_directory
-            )
+            try:
+                self.store = ChromaVectorStore(
+                    collection_name=collection_name, persist_directory=persist_directory
+                )
+                self.logger.info("Using ChromaDB vector store")
+            except VectorStoreError as e:
+                self.logger.warning(
+                    "ChromaDB not available (%s), falling back to in-memory store", e
+                )
+                self.store = InMemoryVectorStore()
+                self.vector_store_type = "in_memory"
         else:
             self.store = InMemoryVectorStore()
 

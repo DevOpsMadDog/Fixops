@@ -52,6 +52,23 @@ class OSVFeed(ThreatIntelligenceFeed):
         )
         return []
 
+    def fetch_ecosystems(self) -> List[str]:
+        """Fetch list of available OSV ecosystems.
+
+        Returns
+        -------
+        List[str]
+            List of ecosystem names (e.g., ["PyPI", "npm", "Go"]).
+        """
+        try:
+            data = self.fetcher(self.feed_url)
+            ecosystems = data.decode("utf-8").strip().split("\n")
+            self.logger.info("Fetched %d OSV ecosystems", len(ecosystems))
+            return ecosystems
+        except Exception as exc:
+            self.logger.error("Failed to fetch OSV ecosystems: %s", exc)
+            return []
+
     def fetch_ecosystem_vulnerabilities(
         self, ecosystem: str, limit: int = 1000
     ) -> List[VulnerabilityRecord]:

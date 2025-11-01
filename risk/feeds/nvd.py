@@ -71,6 +71,28 @@ class NVDFeed(ThreatIntelligenceFeed):
 
         return records
 
+    def _normalize_severity(self, severity: str | None) -> str | None:
+        """Normalize severity to standard values.
+
+        Parameters
+        ----------
+        severity:
+            Raw severity string from NVD.
+
+        Returns
+        -------
+        str | None
+            Normalized severity (CRITICAL, HIGH, MEDIUM, LOW, NONE) or None.
+        """
+        if not severity:
+            return None
+
+        severity_upper = severity.upper()
+        if severity_upper in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]:
+            return severity_upper
+
+        return "UNKNOWN"
+
     def _parse_nvd_cve(self, cve: dict) -> VulnerabilityRecord | None:
         """Parse a single NVD CVE record.
 
@@ -108,7 +130,8 @@ class NVDFeed(ThreatIntelligenceFeed):
             cvss_data = cvss_v3[0].get("cvssData", {})
             cvss_score = cvss_data.get("baseScore")
             cvss_vector = cvss_data.get("vectorString")
-            severity = cvss_data.get("baseSeverity")
+            raw_severity = cvss_data.get("baseSeverity")
+            severity = self._normalize_severity(raw_severity)
 
         if not cvss_score and not cvss_vector:
             cvss_v2 = metrics.get("cvssMetricV2", [])
@@ -182,9 +205,9 @@ class NVDFeed(ThreatIntelligenceFeed):
         List[VulnerabilityRecord]
             List of recent vulnerability records.
         """
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
 
         url = (
