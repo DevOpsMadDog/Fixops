@@ -75,7 +75,9 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
 MAX_JSON_DEPTH = 20
-MAX_JSON_ITEMS = 100000
+MAX_JSON_ITEMS = (
+    1000000  # Increased from 100k to 1M to support large CVE feeds (10k+ entries)
+)
 
 _SNYK_SEVERITY_TO_LEVEL = {
     "critical": "error",
@@ -1133,6 +1135,7 @@ class InputNormalizer:
 
         records: List[CVERecordSummary] = []
         errors: List[str] = []
+        seen_cve_ids: Dict[str, int] = {}  # Track CVE IDs for deduplication
 
         for entry in entries:
             if not isinstance(entry, dict):
@@ -1185,6 +1188,39 @@ class InputNormalizer:
                 or entry.get("exploited")
             )
 
+            if cve_id in seen_cve_ids:
+                existing_idx = seen_cve_ids[cve_id]
+                existing = records[existing_idx]
+
+                severity_order = {
+                    "critical": 4,
+                    "high": 3,
+                    "medium": 2,
+                    "low": 1,
+                    None: 0,
+                }
+                existing_severity_rank = severity_order.get(
+                    existing.severity.lower() if existing.severity else None, 0
+                )
+                new_severity_rank = severity_order.get(
+                    severity.lower() if severity else None, 0
+                )
+
+                should_replace = new_severity_rank > existing_severity_rank or (
+                    exploited and not existing.exploited
+                )
+
+                if should_replace:
+                    records[existing_idx] = CVERecordSummary(
+                        cve_id=cve_id,
+                        title=title,
+                        severity=severity,
+                        exploited=exploited,
+                        raw=entry,
+                    )
+                continue
+
+            seen_cve_ids[cve_id] = len(records)
             records.append(
                 CVERecordSummary(
                     cve_id=cve_id,
@@ -1195,7 +1231,10 @@ class InputNormalizer:
                 )
             )
 
-        metadata = {"record_count": len(records)}
+        metadata = {
+            "record_count": len(records),
+            "duplicates_removed": len(entries) - len(records),
+        }
         if errors:
             metadata["validation_errors"] = len(errors)
 
