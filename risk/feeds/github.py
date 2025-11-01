@@ -16,18 +16,22 @@ DEFAULT_GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 class GitHubSecurityAdvisoriesFeed(ThreatIntelligenceFeed):
     """GitHub Security Advisories feed."""
 
-    def __init__(self, token: Optional[str] = None, **kwargs):
+    def __init__(
+        self, token: Optional[str] = None, api_token: Optional[str] = None, **kwargs
+    ):
         """Initialize GitHub Security Advisories feed.
 
         Parameters
         ----------
         token:
             Optional GitHub personal access token for authentication.
+        api_token:
+            Alias for token parameter (for consistency with other feeds).
         **kwargs:
             Additional arguments passed to parent class.
         """
         super().__init__(**kwargs)
-        self.token = token
+        self.token = token or api_token
 
     @property
     def feed_name(self) -> str:
