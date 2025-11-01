@@ -249,3 +249,294 @@ class TestRealWorldCLI:
         assert "integrations" in health_data or "status" in health_data
 
         os.environ.pop("FIXOPS_API_TOKEN", None)
+
+
+class TestRealWorldCLIComprehensive:
+    """Comprehensive tests for all remaining CLI commands."""
+
+    def test_cli_ingest_command(self, tmp_path):
+        """Test 'fixops ingest' command with real data."""
+        import os
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
+
+        design_csv = tmp_path / "design.csv"
+        design_csv.write_text(
+            "component,owner,criticality,notes\n" "api-service,dev-team,high,Main API\n"
+        )
+
+        sbom_json = tmp_path / "sbom.json"
+        sbom_json.write_text(
+            json.dumps(
+                {
+                    "bomFormat": "CycloneDX",
+                    "specVersion": "1.4",
+                    "version": 1,
+                    "components": [],
+                }
+            )
+        )
+
+        sarif_json = tmp_path / "sarif.json"
+        sarif_json.write_text(
+            json.dumps(
+                {
+                    "version": "2.1.0",
+                    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+                    "runs": [{"tool": {"driver": {"name": "Test"}}, "results": []}],
+                }
+            )
+        )
+
+        cve_json = tmp_path / "cve.json"
+        cve_json.write_text(json.dumps({"vulnerabilities": []}))
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "ingest",
+                "--design",
+                str(design_csv),
+                "--sbom",
+                str(sbom_json),
+                "--sarif",
+                str(sarif_json),
+                "--cve",
+                str(cve_json),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"Ingest failed: {result.stderr}"
+
+        output_data = json.loads(result.stdout)
+        assert output_data["status"] == "ok"
+        assert "design_summary" in output_data
+
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+    def test_cli_make_decision_command(self, tmp_path):
+        """Test 'fixops make-decision' command returns proper exit code."""
+        import os
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
+
+        design_csv = tmp_path / "design.csv"
+        design_csv.write_text(
+            "component,owner,criticality,notes\n"
+            "safe-service,dev-team,low,Safe component\n"
+        )
+
+        sbom_json = tmp_path / "sbom.json"
+        sbom_json.write_text(
+            json.dumps(
+                {
+                    "bomFormat": "CycloneDX",
+                    "specVersion": "1.4",
+                    "version": 1,
+                    "components": [],
+                }
+            )
+        )
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "make-decision",
+                "--design",
+                str(design_csv),
+                "--sbom",
+                str(sbom_json),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode in [
+            0,
+            1,
+            2,
+        ], f"Unexpected exit code: {result.returncode}"
+
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+    def test_cli_show_overlay_command(self, tmp_path):
+        """Test 'fixops show-overlay' command."""
+        import os
+
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
+
+        result = subprocess.run(
+            ["python", "-m", "core.cli", "show-overlay", "--pretty"],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert result.returncode == 0, f"Show overlay failed: {result.stderr}"
+
+        overlay_data = json.loads(result.stdout)
+        assert isinstance(overlay_data, dict)
+
+        os.environ.pop("FIXOPS_API_TOKEN", None)
+
+    def test_cli_stage_run_design(self, tmp_path):
+        """Test 'fixops stage-run --stage design' with real CSV input."""
+        design_csv = tmp_path / "design.csv"
+        design_csv.write_text(
+            "component,owner,criticality,notes\n"
+            "web-app,frontend-team,high,Main web application\n"
+            "api-service,backend-team,critical,Core API service\n"
+        )
+
+        output_file = tmp_path / "design_output.json"
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "stage-run",
+                "--stage",
+                "design",
+                "--input",
+                str(design_csv),
+                "--app",
+                "TEST-DESIGN-APP",
+                "--output",
+                str(output_file),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert output_file.exists(), "Design output not created"
+
+        output_data = json.loads(output_file.read_text())
+        assert output_data["app_id"].startswith("APP-")
+        assert "rows" in output_data
+        assert len(output_data["rows"]) == 2
+        assert "design_risk_score" in output_data
+
+    def test_cli_stage_run_build(self, tmp_path):
+        """Test 'fixops stage-run --stage build' with real SARIF input."""
+        sarif_json = tmp_path / "sarif.json"
+        sarif_data = {
+            "version": "2.1.0",
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "SonarQube"}},
+                    "results": [
+                        {
+                            "ruleId": "squid:S1234",
+                            "level": "warning",
+                            "message": {"text": "Code smell detected"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/main.py"},
+                                        "region": {"startLine": 10},
+                                    }
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        sarif_json.write_text(json.dumps(sarif_data))
+
+        output_file = tmp_path / "build_output.json"
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "stage-run",
+                "--stage",
+                "build",
+                "--input",
+                str(sarif_json),
+                "--app",
+                "TEST-BUILD-APP",
+                "--output",
+                str(output_file),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert output_file.exists(), "Build output not created"
+
+        output_data = json.loads(output_file.read_text())
+        assert output_data["app_id"].startswith("APP-")
+        assert "build_risk_score" in output_data
+        assert "components_indexed" in output_data
+
+    def test_cli_stage_run_operate(self, tmp_path):
+        """Test 'fixops stage-run --stage operate' with real SBOM input."""
+        sbom_json = tmp_path / "sbom.json"
+        sbom_data = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "version": 1,
+            "components": [
+                {
+                    "type": "library",
+                    "name": "express",
+                    "version": "4.17.1",
+                    "purl": "pkg:npm/express@4.17.1",
+                }
+            ],
+        }
+        sbom_json.write_text(json.dumps(sbom_data))
+
+        output_file = tmp_path / "operate_output.json"
+
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "core.cli",
+                "stage-run",
+                "--stage",
+                "operate",
+                "--input",
+                str(sbom_json),
+                "--app",
+                "TEST-OPERATE-APP",
+                "--output",
+                str(output_file),
+            ],
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert output_file.exists(), "Operate output not created"
+
+        output_data = json.loads(output_file.read_text())
+        assert output_data["app_id"].startswith("APP-")
+        assert "operate_risk_score" in output_data
+        assert "epss" in output_data
+        assert "kev_hits" in output_data
