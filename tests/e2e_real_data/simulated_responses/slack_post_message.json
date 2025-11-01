@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "channel": "C1234567890",
+  "ts": "1635789600.123456",
+  "message": {
+    "type": "message",
+    "subtype": null,
+    "text": "FixOps Alert: High severity vulnerability detected",
+    "ts": "1635789600.123456",
+    "username": "FixOps Bot",
+    "bot_id": "B1234567890"
+  }
+}

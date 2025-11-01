@@ -1,0 +1,21 @@
+{
+  "id": "chatcmpl-123",
+  "object": "chat.completion",
+  "created": 1677652288,
+  "model": "gpt-4",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"verdict\": \"block\", \"confidence\": 0.95, \"reasoning\": \"This CVE is actively exploited (KEV listed) and affects a mission-critical service with PII data exposure. MITRE ATT&CK: T1190 (Exploit Public-Facing Application). Immediate remediation required.\", \"mitre_techniques\": [\"T1190\", \"T1133\"], \"compliance_impact\": [\"SOC2 CC7.2\", \"PCI-DSS 6.2\", \"GDPR Article 32\"]}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 150,
+    "completion_tokens": 100,
+    "total_tokens": 250
+  }
+}

@@ -36,6 +36,65 @@ Real CISA KEV feed with 1453 CVEs exposed this bug immediately.
 
 ---
 
+## Bug #2: Pipeline Fails with Large CVE Feed
+
+**Severity:** HIGH  
+**Location:** JSON parsing/processing layer  
+**Found By:** Edge case backtesting with 10,000+ CVE entries  
+
+**Description:**  
+When processing extremely large CVE feeds (10,000+ entries), the pipeline fails with a JSON item count limit error. This prevents processing of comprehensive vulnerability datasets.
+
+**Error:**
+```
+Error: JSON item count exceeds maximum of 100000
+```
+
+**Root Cause:**  
+The system has a hardcoded limit on JSON item counts that is exceeded when processing large CVE feeds. Real-world enterprise environments may need to process thousands of CVEs simultaneously.
+
+**Impact:**  
+- Cannot process large CVE feeds from comprehensive sources
+- Limits scalability for enterprise deployments
+- Prevents batch processing of historical vulnerability data
+
+**Test Case:**  
+Created synthetic CVE feed with 10,000 entries to simulate enterprise-scale data.
+
+**Status:** 🔴 NEEDS FIX
+
+---
+
+## Bug #3: Duplicate CVEs Not Deduplicated
+
+**Severity:** LOW  
+**Location:** CVE ingestion/processing  
+**Found By:** Edge case backtesting with duplicate CVE entries  
+
+**Description:**  
+When the same CVE ID appears multiple times in the feed (with different metadata), the system does not deduplicate them correctly. This can lead to inflated vulnerability counts and incorrect risk assessments.
+
+**Root Cause:**  
+CVE deduplication logic is missing or not working correctly. The system should use CVE ID as the unique key and merge/prioritize conflicting metadata.
+
+**Impact:**  
+- Inflated vulnerability counts in reports
+- Potential double-counting in risk scores
+- Confusion when same CVE has different severity ratings
+
+**Test Case:**  
+Created CVE feed with duplicate CVE-2024-DUPLICATE entry with different severity values (high vs critical).
+
+**Expected Behavior:**  
+System should deduplicate to 1 CVE entry, preferring the most recent or most severe metadata.
+
+**Actual Behavior:**  
+System reports 2 CVE entries instead of 1.
+
+**Status:** 🔴 NEEDS FIX
+
+---
+
 ## Testing Progress
 
 ### Phase 1: Real Data Preparation ✅

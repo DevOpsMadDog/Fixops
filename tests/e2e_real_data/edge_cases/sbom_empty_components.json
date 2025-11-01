@@ -1,0 +1,15 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.4.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-11-01T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "empty-app",
+      "version": "1.0.0"
+    }
+  },
+  "components": []
+}

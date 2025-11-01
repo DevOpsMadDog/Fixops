@@ -1,0 +1,21 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"verdict\": \"review\", \"confidence\": 0.78, \"reasoning\": \"CSRF vulnerability detected but service has partner-only exposure. Medium severity with compensating controls possible.\", \"recommended_actions\": [\"Implement CSRF tokens\", \"Add SameSite cookie attributes\", \"Review session management\"]}"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 100,
+    "candidatesTokenCount": 90,
+    "totalTokenCount": 190
+  }
+}
