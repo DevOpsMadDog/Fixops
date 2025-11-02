@@ -1020,4 +1020,11 @@ class PipelineOrchestrator:
 
         result["risk_score"] = risk_score
 
+        verdict = "allow"  # default
+        if "enhanced_decision" in result:
+            enhanced = result["enhanced_decision"]
+            if isinstance(enhanced, dict):
+                verdict = enhanced.get("final_decision", "allow")
+        result["verdict"] = verdict
+
         return result
