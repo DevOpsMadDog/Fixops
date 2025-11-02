@@ -480,9 +480,12 @@ def _handle_analyze(args: argparse.Namespace) -> int:
 
     if not hasattr(args, "design") or args.design is None:
         dummy_design = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
+            mode="w", suffix=".csv", delete=False
         )
-        dummy_design.write('{"architecture":{"components":[],"connections":[]}}')
+        dummy_design.write(
+            "component_name,component_type,criticality,internet_facing,authentication_required\n"
+        )
+        dummy_design.write("default-service,service,medium,false,false\n")
         dummy_design.close()
         args.design = Path(dummy_design.name)
         temp_files.append(dummy_design.name)
