@@ -8,11 +8,29 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
 from typing import Any, Dict, Optional
 
 from core.flags.base import EvaluationContext, FeatureFlagProvider
 
 logger = logging.getLogger(__name__)
+
+
+def _alt_default(method_name: str, default: Any) -> Any:
+    """Generate an alternate default value for two-pass probe.
+
+    Used to distinguish "key not set" from "key explicitly set to default value".
+    Returns a value that is guaranteed to differ from the original default.
+    """
+    if method_name == "bool":
+        return not default
+    if method_name in ("string", "variant"):
+        return f"{default}__ns_probe__" if default else "__ns_probe__"
+    if method_name == "number":
+        return 9.999999999e307 if default != 9.999999999e307 else -9.999999999e307
+    if method_name == "json":
+        return {"__ns_probe__": f"1f{uuid.uuid4().hex}"}
+    return default
 
 
 def _derive_brand_namespace(provider: FeatureFlagProvider) -> str:
@@ -102,6 +120,10 @@ class NamespaceAdapterProvider(FeatureFlagProvider):
     ) -> tuple[Any, bool]:
         """Try to evaluate flag with brand namespace first, then canonical.
 
+        Uses a two-pass probe to distinguish "key not set" from "key explicitly
+        set to default value". This ensures branded overrides are honored even
+        when they equal the default.
+
         Returns tuple of (value, found) where found indicates if a real
         value was found (not just the default).
         """
@@ -116,6 +138,7 @@ class NamespaceAdapterProvider(FeatureFlagProvider):
             brand_key = key.replace("fixops.", f"{brand_ns}.", 1)
             try:
                 method = getattr(self.wrapped, method_name)
+
                 result = method(brand_key, default, context)
                 if result != default:
                     logger.debug(
@@ -125,6 +148,19 @@ class NamespaceAdapterProvider(FeatureFlagProvider):
                         result,
                     )
                     return result, True
+
+                alt_default = _alt_default(method_name, default)
+                result2 = method(brand_key, alt_default, context)
+
+                if result2 != alt_default:
+                    logger.debug(
+                        "Flag %s explicitly set to default in brand namespace %s: %s",
+                        key,
+                        brand_ns,
+                        result,
+                    )
+                    return result, True
+
             except Exception as exc:
                 logger.debug(
                     "Brand namespace %s lookup failed for %s: %s",

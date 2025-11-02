@@ -498,3 +498,55 @@ class TestNamespaceAdapter:
 
         result = adapter.json("fixops.branding", {})
         assert result["product_name"] == "Aldeci"
+
+    def test_namespace_brand_value_equals_default_bool(self):
+        """Test that brand value is honored even when it equals the default."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.module.guardrails": False,
+                "fixops.module.guardrails": True,
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        result = adapter.bool("fixops.module.guardrails", False)
+        assert result is False
+
+    def test_namespace_brand_value_equals_default_string(self):
+        """Test that brand string value is honored even when it equals the default."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.model.risk.default": "weighted",
+                "fixops.model.risk.default": "bn_lr_hybrid_v1",
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        result = adapter.string("fixops.model.risk.default", "weighted")
+        assert result == "weighted"
+
+    def test_namespace_brand_value_equals_default_number(self):
+        """Test that brand number value is honored even when it equals the default."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.feature.evidence.retention_days": 90.0,
+                "fixops.feature.evidence.retention_days": 365.0,
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        result = adapter.number("fixops.feature.evidence.retention_days", 90.0)
+        assert result == 90.0
+
+    def test_namespace_brand_value_equals_default_json(self):
+        """Test that brand JSON value is honored even when it equals the default."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.branding": {},
+                "fixops.branding": {"product_name": "FixOps"},
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        result = adapter.json("fixops.branding", {})
+        assert result == {}
