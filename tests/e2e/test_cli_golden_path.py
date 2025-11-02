@@ -143,8 +143,11 @@ class TestCLIGoldenPath:
         assert "modules" in data
         modules = data["modules"]
 
-        assert "guardrails" in modules
-        assert "evidence" in modules
+        executed = modules.get("executed", [])
+        assert (
+            "guardrails" in executed
+        ), f"guardrails not in executed modules: {executed}"
+        assert "evidence" in executed, f"evidence not in executed modules: {executed}"
 
     def test_cli_module_disablement(self, cli_runner, demo_fixtures, fixture_manager):
         """Test CLI with selective module disablement."""
