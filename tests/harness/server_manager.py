@@ -9,6 +9,7 @@ import os
 import signal
 import subprocess
 import time
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -51,6 +52,12 @@ class ServerManager:
         env = os.environ.copy()
         env.update(self.env)
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
+
+        repo_root = Path(__file__).parent.parent.parent
+        if "PYTHONPATH" in env:
+            env["PYTHONPATH"] = f"{repo_root}:{env['PYTHONPATH']}"
+        else:
+            env["PYTHONPATH"] = str(repo_root)
 
         cmd = [
             "uvicorn",

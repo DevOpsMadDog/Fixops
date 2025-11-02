@@ -81,6 +81,12 @@ class CLIRunner:
         env.update(self.env)
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
 
+        repo_root = Path(__file__).parent.parent.parent
+        if "PYTHONPATH" in env:
+            env["PYTHONPATH"] = f"{repo_root}:{env['PYTHONPATH']}"
+        else:
+            env["PYTHONPATH"] = str(repo_root)
+
         cmd = [self.python_path, "-m", self.cli_module] + args
 
         result = subprocess.run(
