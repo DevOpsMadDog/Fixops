@@ -1,0 +1,215 @@
+{
+  "rows": [
+    {
+      "id": "cve-2024-001",
+      "severity": "critical",
+      "title": "CVE-2024-45678 - Remote Code Execution in Apache Struts",
+      "source": "CVE",
+      "repo": "payment-service",
+      "location": "org.apache.struts:struts2-core:2.5.30",
+      "exploitability": {
+        "kev": true,
+        "epss": 0.89
+      },
+      "age_days": 3,
+      "internet_facing": true,
+      "created_at": "2024-10-30T10:23:00Z",
+      "description": "A critical remote code execution vulnerability exists in Apache Struts 2.5.30 and earlier versions. Attackers can execute arbitrary code by sending specially crafted requests.",
+      "remediation": "Upgrade to Apache Struts 2.5.31 or later. Apply the security patch immediately for internet-facing services."
+    },
+    {
+      "id": "sast-2024-002",
+      "severity": "high",
+      "title": "SQL Injection in User Authentication",
+      "source": "SAST",
+      "repo": "auth-service",
+      "location": "src/auth/login.py:145",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.12
+      },
+      "age_days": 12,
+      "internet_facing": true,
+      "created_at": "2024-10-21T14:30:00Z",
+      "description": "User input is directly concatenated into SQL query without proper sanitization, allowing SQL injection attacks.",
+      "remediation": "Use parameterized queries or prepared statements. Replace string concatenation with ORM methods or bound parameters."
+    },
+    {
+      "id": "cve-2024-003",
+      "severity": "high",
+      "title": "CVE-2024-23456 - Authentication Bypass in Spring Security",
+      "source": "CVE",
+      "repo": "api-gateway",
+      "location": "org.springframework.security:spring-security-core:5.7.5",
+      "exploitability": {
+        "kev": true,
+        "epss": 0.76
+      },
+      "age_days": 5,
+      "internet_facing": true,
+      "created_at": "2024-10-28T09:15:00Z",
+      "description": "An authentication bypass vulnerability in Spring Security allows attackers to access protected resources without proper credentials.",
+      "remediation": "Upgrade to Spring Security 5.7.11 or 6.1.5. Review authentication configuration and test access controls."
+    },
+    {
+      "id": "sast-2024-004",
+      "severity": "medium",
+      "title": "Hardcoded Credentials in Configuration",
+      "source": "SAST",
+      "repo": "data-processor",
+      "location": "config/database.yml:23",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.05
+      },
+      "age_days": 45,
+      "internet_facing": false,
+      "created_at": "2024-09-18T11:20:00Z",
+      "description": "Database credentials are hardcoded in configuration file, posing a security risk if the repository is compromised.",
+      "remediation": "Move credentials to environment variables or a secure secrets management system like HashiCorp Vault or AWS Secrets Manager."
+    },
+    {
+      "id": "iac-2024-005",
+      "severity": "high",
+      "title": "S3 Bucket Publicly Accessible",
+      "source": "IaC",
+      "repo": "infrastructure",
+      "location": "terraform/s3.tf:45",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.0
+      },
+      "age_days": 2,
+      "internet_facing": true,
+      "created_at": "2024-10-31T16:45:00Z",
+      "description": "S3 bucket 'customer-data-prod' is configured with public read access, exposing sensitive customer data.",
+      "remediation": "Remove public access configuration. Set bucket policy to private and use IAM roles for access control."
+    },
+    {
+      "id": "cve-2024-006",
+      "severity": "critical",
+      "title": "CVE-2024-34567 - Deserialization Vulnerability in Jackson",
+      "source": "CVE",
+      "repo": "order-service",
+      "location": "com.fasterxml.jackson.core:jackson-databind:2.13.4",
+      "exploitability": {
+        "kev": true,
+        "epss": 0.92
+      },
+      "age_days": 1,
+      "internet_facing": true,
+      "created_at": "2024-11-01T08:30:00Z",
+      "description": "A critical deserialization vulnerability in Jackson allows remote code execution through malicious JSON payloads.",
+      "remediation": "Upgrade to Jackson 2.15.3 or later immediately. Review all JSON deserialization endpoints for proper input validation."
+    },
+    {
+      "id": "sast-2024-007",
+      "severity": "medium",
+      "title": "Cross-Site Scripting (XSS) in User Profile",
+      "source": "SAST",
+      "repo": "web-frontend",
+      "location": "src/components/UserProfile.jsx:78",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.08
+      },
+      "age_days": 18,
+      "internet_facing": true,
+      "created_at": "2024-10-15T13:10:00Z",
+      "description": "User-supplied data is rendered without proper sanitization, allowing XSS attacks through profile fields.",
+      "remediation": "Use React's built-in XSS protection. Avoid dangerouslySetInnerHTML. Sanitize user input with DOMPurify if HTML rendering is required."
+    },
+    {
+      "id": "cve-2024-008",
+      "severity": "high",
+      "title": "CVE-2024-12345 - Path Traversal in Express.js",
+      "source": "CVE",
+      "repo": "file-service",
+      "location": "express:4.17.1",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.45
+      },
+      "age_days": 8,
+      "internet_facing": true,
+      "created_at": "2024-10-25T10:00:00Z",
+      "description": "A path traversal vulnerability in Express.js allows attackers to access files outside the intended directory.",
+      "remediation": "Upgrade to Express.js 4.18.2 or later. Validate and sanitize all file path inputs. Use path.resolve() to prevent directory traversal."
+    },
+    {
+      "id": "sast-2024-009",
+      "severity": "low",
+      "title": "Weak Cryptographic Algorithm (MD5)",
+      "source": "SAST",
+      "repo": "auth-service",
+      "location": "src/utils/hash.py:34",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.02
+      },
+      "age_days": 67,
+      "internet_facing": false,
+      "created_at": "2024-08-27T09:45:00Z",
+      "description": "MD5 hashing algorithm is used for password hashing, which is cryptographically weak and vulnerable to collision attacks.",
+      "remediation": "Replace MD5 with bcrypt, scrypt, or Argon2 for password hashing. Migrate existing password hashes during user login."
+    },
+    {
+      "id": "iac-2024-010",
+      "severity": "medium",
+      "title": "Security Group Allows All Inbound Traffic",
+      "source": "IaC",
+      "repo": "infrastructure",
+      "location": "terraform/security_groups.tf:67",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.0
+      },
+      "age_days": 15,
+      "internet_facing": true,
+      "created_at": "2024-10-18T14:20:00Z",
+      "description": "Security group 'web-sg' allows inbound traffic from 0.0.0.0/0 on all ports, violating least privilege principle.",
+      "remediation": "Restrict inbound rules to specific ports (80, 443) and source IP ranges. Remove unrestricted access rules."
+    },
+    {
+      "id": "cve-2024-011",
+      "severity": "high",
+      "title": "CVE-2024-56789 - SSRF in Axios HTTP Client",
+      "source": "CVE",
+      "repo": "integration-service",
+      "location": "axios:0.21.1",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.38
+      },
+      "age_days": 22,
+      "internet_facing": false,
+      "created_at": "2024-10-11T11:30:00Z",
+      "description": "Server-Side Request Forgery vulnerability in Axios allows attackers to make requests to internal services.",
+      "remediation": "Upgrade to Axios 1.6.0 or later. Implement URL validation and allowlist for external requests."
+    },
+    {
+      "id": "sast-2024-012",
+      "severity": "critical",
+      "title": "Command Injection in File Processing",
+      "source": "SAST",
+      "repo": "document-processor",
+      "location": "src/processors/pdf.js:112",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.15
+      },
+      "age_days": 4,
+      "internet_facing": true,
+      "created_at": "2024-10-29T15:40:00Z",
+      "description": "User-supplied filename is passed directly to shell command without sanitization, allowing command injection.",
+      "remediation": "Use parameterized commands or safe APIs. Validate and sanitize all user inputs. Avoid shell execution when possible."
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "new_7d": 5,
+    "high_critical": 8,
+    "exploitable": 4,
+    "internet_facing": 9
+  }
+}
