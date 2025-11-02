@@ -230,10 +230,19 @@ class MultiLLMConsensusEngine:
             else:
                 risk_score = 0.0
 
+        adjusted_risk = None
+        exposure_multiplier = None
         if self.use_risk_engine and risk_score > 0.0:
-            base_action, base_confidence, mitre_candidates = self._risk_based_profile(
+            result = self._risk_based_profile(
                 risk_score, exploit_stats, exposures, highest
             )
+            base_action, base_confidence, mitre_candidates = (
+                result[0],
+                result[1],
+                result[2],
+            )
+            adjusted_risk = result[3]
+            exposure_multiplier = result[4]
         else:
             base_action, base_confidence, mitre_candidates = self._base_profile(
                 highest, total_findings
@@ -432,6 +441,14 @@ class MultiLLMConsensusEngine:
                 else "severity"
             ),
             "raw_risk": round(risk_score, 4) if risk_score > 0.0 else None,
+            "adjusted_risk": (
+                round(adjusted_risk, 4) if adjusted_risk is not None else None
+            ),
+            "exposure_multiplier": (
+                round(exposure_multiplier, 4)
+                if exposure_multiplier is not None
+                else None
+            ),
             "thresholds_used": (
                 {
                     "block": self.risk_block_threshold,
@@ -723,12 +740,15 @@ class MultiLLMConsensusEngine:
         exploit_stats: Mapping[str, Any],
         exposures: Sequence[Mapping[str, Any]],
         highest: str,
-    ) -> tuple[str, float, List[str]]:
+    ) -> tuple[str, float, List[str], float, float]:
         """Compute base verdict from risk score with exposure context.
 
         This method uses the computed risk score (0.0-1.0) from the risk engine
         which combines EPSS, KEV, version lag, and exposure context to determine
         the base verdict using configurable thresholds.
+
+        Returns:
+            tuple: (action, confidence, mitre_candidates, adjusted_risk, exposure_multiplier)
         """
         mitre_candidates = ["T1190", "T1059", "T1078"]
 
@@ -746,18 +766,24 @@ class MultiLLMConsensusEngine:
                 "block",
                 max(self.baseline_confidence, 0.88),
                 mitre_candidates,
+                adjusted_risk,
+                exposure_multiplier,
             )
         elif adjusted_risk >= self.risk_review_threshold:
             return (
                 "review",
                 max(self.baseline_confidence - 0.05, 0.75),
                 mitre_candidates,
+                adjusted_risk,
+                exposure_multiplier,
             )
         else:
             return (
                 "allow",
                 max(self.baseline_confidence - 0.15, 0.65),
                 ["T1046"],
+                adjusted_risk,
+                exposure_multiplier,
             )
 
     @staticmethod
