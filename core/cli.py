@@ -474,6 +474,24 @@ def _handle_make_decision(args: argparse.Namespace) -> int:
 
 def _handle_analyze(args: argparse.Namespace) -> int:
     """Handle analyze command with flexible input requirements."""
+    if not hasattr(args, "sbom") or args.sbom is None:
+        import tempfile
+
+        dummy_sbom = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        dummy_sbom.write(
+            '{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}'
+        )
+        dummy_sbom.flush()
+        args.sbom = Path(dummy_sbom.name)
+
+    if not hasattr(args, "cve") or args.cve is None:
+        import tempfile
+
+        dummy_cve = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        dummy_cve.write('{"vulnerabilities":[]}')
+        dummy_cve.flush()
+        args.cve = Path(dummy_cve.name)
+
     result = _build_pipeline_result(args)
     decision, exit_code = _derive_decision_exit(result)
 
