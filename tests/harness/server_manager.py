@@ -8,6 +8,7 @@ provides the base URL for HTTP requests, and handles clean shutdown.
 import os
 import signal
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional
@@ -43,6 +44,8 @@ class ServerManager:
         self.timeout = timeout
         self.process: Optional[subprocess.Popen] = None
         self.base_url = f"http://{host}:{port}"
+        self.stdout_file: Optional[tempfile.NamedTemporaryFile] = None
+        self.stderr_file: Optional[tempfile.NamedTemporaryFile] = None
 
     def start(self) -> None:
         """Start the uvicorn server in a subprocess."""
@@ -72,6 +75,13 @@ class ServerManager:
         else:
             env["PYTHONPATH"] = str(repo_root)
 
+        self.stdout_file = tempfile.NamedTemporaryFile(
+            mode="w+", delete=False, suffix=".stdout.log"
+        )
+        self.stderr_file = tempfile.NamedTemporaryFile(
+            mode="w+", delete=False, suffix=".stderr.log"
+        )
+
         cmd = [
             "uvicorn",
             self.app_module,
@@ -87,8 +97,8 @@ class ServerManager:
         self.process = subprocess.Popen(
             cmd,
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=self.stdout_file,
+            stderr=self.stderr_file,
             text=True,
         )
 
@@ -123,20 +133,36 @@ class ServerManager:
 
         self.process = None
 
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
+
     def get_logs(self) -> tuple[str, str]:
         """Get stdout and stderr logs from the server.
 
-        Note: This method should only be called after the server has been stopped,
-        as reading from pipes while the process is running will block indefinitely.
+        Reads logs from temporary files to avoid pipe backpressure issues.
+        Can be called while server is running or after it has stopped.
         """
-        if self.process is None:
-            return "", ""
+        stdout = ""
+        stderr = ""
 
-        if self.process.poll() is None:
-            return "", ""
+        if self.stdout_file:
+            try:
+                self.stdout_file.flush()
+                self.stdout_file.seek(0)
+                stdout = self.stdout_file.read()
+            except Exception:
+                pass
 
-        stdout = self.process.stdout.read() if self.process.stdout else ""
-        stderr = self.process.stderr.read() if self.process.stderr else ""
+        if self.stderr_file:
+            try:
+                self.stderr_file.flush()
+                self.stderr_file.seek(0)
+                stderr = self.stderr_file.read()
+            except Exception:
+                pass
+
         return stdout, stderr
 
     def __enter__(self):
