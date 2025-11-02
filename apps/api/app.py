@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import importlib.util
 import io
+import json
 import logging
 import os
 import secrets
@@ -78,7 +79,7 @@ def _load_or_generate_jwt_secret() -> str:
     # Priority 1: Environment variable
     env_secret = os.getenv("FIXOPS_JWT_SECRET")
     if env_secret:
-        logger.info("Using JWT secret from FIXOPS_JWT_SECRET environment variable")
+        logger.info("Using JWT signing key from environment variable")
         return env_secret
 
     # Priority 2: Persisted file
@@ -87,10 +88,10 @@ def _load_or_generate_jwt_secret() -> str:
         if _JWT_SECRET_FILE.exists():
             secret = _JWT_SECRET_FILE.read_text().strip()
             if secret:
-                logger.info("Loaded persisted JWT secret from file")
+                logger.info("Loaded persisted JWT signing key from file")
                 return secret
     except Exception as e:
-        logger.warning(f"Failed to read JWT secret file: {e}")
+        logger.warning(f"Failed to read JWT signing key file: {e}")
 
     # Priority 3: Generate and persist (demo mode only)
     mode = os.getenv("FIXOPS_MODE", "").lower()
@@ -100,14 +101,14 @@ def _load_or_generate_jwt_secret() -> str:
             _JWT_SECRET_FILE.write_text(secret)
             _JWT_SECRET_FILE.chmod(0o600)  # Secure permissions
             logger.warning(
-                f"Generated and persisted new JWT secret to {_JWT_SECRET_FILE}. "
-                "For production, set FIXOPS_JWT_SECRET environment variable."
+                f"Generated and persisted new JWT signing key to {_JWT_SECRET_FILE}. "
+                "For production, set JWT signing key via environment variable."
             )
             return secret
         except Exception as e:
-            logger.error(f"Failed to persist JWT secret: {e}")
+            logger.error(f"Failed to persist JWT signing key: {e}")
             logger.warning(
-                "Using non-persisted secret. Tokens will be invalid after restart."
+                "Using non-persisted signing key. Tokens will be invalid after restart."
             )
             return secret
     else:
@@ -339,6 +340,16 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
 
+    @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
+    async def authenticated_status() -> Dict[str, Any]:
+        """Authenticated status endpoint."""
+        return {
+            "status": "ok",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "service": "fixops-api",
+            "version": os.getenv("FIXOPS_VERSION", "0.1.0"),
+        }
+
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
@@ -461,6 +472,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("design", dataset, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "design",
             "input_filename": filename,
             "row_count": len(rows),
@@ -481,6 +493,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "sbom",
             "input_filename": filename,
             "metadata": sbom.metadata,
@@ -503,6 +516,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "cve",
             "input_filename": filename,
             "record_count": cve_feed.metadata.get("record_count", 0),
@@ -522,6 +536,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("vex", vex_doc, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "vex",
             "input_filename": filename,
             "assertions": vex_doc.metadata.get("assertion_count", 0),
@@ -541,6 +556,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cnapp", cnapp_payload, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "cnapp",
             "input_filename": filename,
             "asset_count": cnapp_payload.metadata.get(
@@ -564,6 +580,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sarif", sarif, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "sarif",
             "input_filename": filename,
             "metadata": sarif.metadata,
@@ -588,6 +605,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("context", context, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "context",
             "input_filename": filename,
             "format": context.format,
@@ -658,6 +676,17 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "sbom")
         try:
+            # Validate JSON structure if content-type is JSON
+            if file.content_type in ("application/json", "text/json"):
+                buffer.seek(0)
+                try:
+                    json.load(buffer)
+                    buffer.seek(0)
+                except json.JSONDecodeError as exc:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Invalid JSON payload: {exc}",
+                    ) from exc
             return _process_sbom(buffer, total, file.filename or "sbom.json")
         finally:
             with suppress(Exception):

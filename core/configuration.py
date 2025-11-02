@@ -128,6 +128,7 @@ _ALLOWED_OVERLAY_KEYS = {
     "decision_tree",
     "telemetry_bridge",
     "profiles",
+    "feature_flags",
 }
 
 
@@ -613,6 +614,7 @@ class _OverlayDocument(BaseModel):
     decision_tree: Optional[Dict[str, Any]] = None
     telemetry_bridge: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
+    feature_flags: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(extra="forbid")
 

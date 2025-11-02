@@ -204,20 +204,35 @@ def _copy_evidence(
 ) -> Optional[Path]:
     if destination is None:
         return None
-    files = (
-        result.get("evidence_bundle", {}).get("files")
-        if isinstance(result.get("evidence_bundle"), dict)
-        else {}
-    )
+    evidence_bundle = result.get("evidence_bundle")
+    if not isinstance(evidence_bundle, dict):
+        return None
+    files = evidence_bundle.get("files")
     if not isinstance(files, dict):
         return None
     bundle = files.get("bundle")
     if not bundle:
         return None
     bundle_path = Path(bundle)
-    ensure_secure_directory(destination)
-    target = destination / bundle_path.name
+
+    bundle_id = evidence_bundle.get("bundle_id")
+    if bundle_id:
+        target_dir = destination / str(bundle_id)
+    else:
+        target_dir = destination
+
+    ensure_secure_directory(target_dir)
+
+    target = target_dir / bundle_path.name
     target.write_bytes(bundle_path.read_bytes())
+
+    manifest = files.get("manifest")
+    if manifest:
+        manifest_path = Path(manifest)
+        if manifest_path.exists():
+            manifest_target = target_dir / "manifest.json"
+            manifest_target.write_bytes(manifest_path.read_bytes())
+
     return target
 
 
