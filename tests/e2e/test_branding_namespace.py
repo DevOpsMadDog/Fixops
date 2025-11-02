@@ -159,8 +159,12 @@ class TestBrandingNamespace:
 
         assert "modules" in data
         modules = data["modules"]
-        assert "guardrails" in modules, "Guardrails should be enabled via aldeci.* key"
-        assert "evidence" in modules, "Evidence should be enabled via aldeci.* key"
+        assert "guardrails" in modules.get(
+            "enabled", []
+        ), "Guardrails should be enabled via aldeci.* key"
+        assert "evidence" in modules.get(
+            "enabled", []
+        ), "Evidence should be enabled via aldeci.* key"
 
     def test_namespace_aliasing_fallback_to_fixops_keys(
         self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
@@ -202,11 +206,11 @@ class TestBrandingNamespace:
 
         assert "modules" in data
         modules = data["modules"]
-        assert (
-            "guardrails" in modules
+        assert "guardrails" in modules.get(
+            "enabled", []
         ), "Guardrails should be enabled via fallback to fixops.* key"
-        assert (
-            "evidence" in modules
+        assert "evidence" in modules.get(
+            "enabled", []
         ), "Evidence should be enabled via fallback to fixops.* key"
 
     def test_namespace_aliasing_branded_key_overrides_canonical(
@@ -251,8 +255,8 @@ class TestBrandingNamespace:
 
         assert "modules" in data
         modules = data["modules"]
-        assert (
-            "guardrails" in modules
+        assert "guardrails" in modules.get(
+            "enabled", []
         ), "Guardrails should be enabled (aldeci.* = True overrides fixops.* = False)"
 
     def test_namespace_aliasing_with_custom_namespace(
@@ -295,10 +299,12 @@ class TestBrandingNamespace:
 
         assert "modules" in data
         modules = data["modules"]
-        assert (
-            "guardrails" in modules
+        assert "guardrails" in modules.get(
+            "enabled", []
         ), "Guardrails should be enabled via customco.* key"
-        assert "evidence" in modules, "Evidence should be enabled via customco.* key"
+        assert "evidence" in modules.get(
+            "enabled", []
+        ), "Evidence should be enabled via customco.* key"
 
     def test_branding_config_from_flag(
         self,
@@ -423,6 +429,6 @@ class TestBrandingNamespace:
 
         assert "modules" in data
         modules = data["modules"]
-        assert (
-            "guardrails" in modules
+        assert "guardrails" in modules.get(
+            "enabled", []
         ), "Guardrails should be enabled via envnamespace.* key"

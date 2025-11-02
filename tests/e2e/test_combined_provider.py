@@ -51,11 +51,11 @@ class TestCombinedProviderFallback:
 
         assert "modules" in data
         modules = data["modules"]
-        assert (
-            "guardrails" in modules
+        assert "guardrails" in modules.get(
+            "enabled", []
         ), "Guardrails should be enabled via local overlay fallback"
-        assert (
-            "evidence" in modules
+        assert "evidence" in modules.get(
+            "enabled", []
         ), "Evidence should be enabled via local overlay fallback"
 
     def test_fallback_when_launchdarkly_returns_default(
@@ -100,8 +100,12 @@ class TestCombinedProviderFallback:
 
         assert "modules" in data
         modules = data["modules"]
-        assert "guardrails" in modules, "Guardrails should be enabled via local overlay"
-        assert "evidence" in modules, "Evidence should be enabled via local overlay"
+        assert "guardrails" in modules.get(
+            "enabled", []
+        ), "Guardrails should be enabled via local overlay"
+        assert "evidence" in modules.get(
+            "enabled", []
+        ), "Evidence should be enabled via local overlay"
 
     def test_no_fallback_when_launchdarkly_returns_explicit_value(
         self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
@@ -266,5 +270,9 @@ class TestCombinedProviderFallback:
 
             assert "modules" in data
             modules = data["modules"]
-            assert "guardrails" in modules, f"Guardrails missing in run {i}"
-            assert "evidence" in modules, f"Evidence missing in run {i}"
+            assert "guardrails" in modules.get(
+                "enabled", []
+            ), f"Guardrails missing in run {i}"
+            assert "evidence" in modules.get(
+                "enabled", []
+            ), f"Evidence missing in run {i}"

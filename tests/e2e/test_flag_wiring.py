@@ -54,8 +54,10 @@ class TestFlagWiring:
         assert "modules" in data
         modules = data["modules"]
 
-        assert "guardrails" in modules, "Guardrails should be enabled"
-        assert "evidence" in modules, "Evidence should be enabled"
+        assert "guardrails" in modules.get(
+            "enabled", []
+        ), "Guardrails should be enabled"
+        assert "evidence" in modules.get("enabled", []), "Evidence should be enabled"
 
     def test_risk_model_flag_controls_model_selection(
         self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
@@ -300,7 +302,7 @@ class TestFlagWiring:
 
         assert "modules" in data
         modules = data["modules"]
-        assert "guardrails" in modules
+        assert "guardrails" in modules.get("enabled", [])
 
     def test_api_flag_wiring(self, fixture_manager, flag_config_manager, demo_fixtures):
         """Test that flags are wired into API endpoints."""
@@ -380,5 +382,9 @@ class TestFlagWiring:
 
             assert "modules" in data
             modules = data["modules"]
-            assert "guardrails" in modules, f"Guardrails missing in run {i}"
-            assert "evidence" in modules, f"Evidence missing in run {i}"
+            assert "guardrails" in modules.get(
+                "enabled", []
+            ), f"Guardrails missing in run {i}"
+            assert "evidence" in modules.get(
+                "enabled", []
+            ), f"Evidence missing in run {i}"
