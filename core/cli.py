@@ -1145,6 +1145,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     decision_parser.set_defaults(func=_handle_make_decision)
 
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help="Analyze security findings and output verdict (alias for make-decision)",
+    )
+    _configure_pipeline_parser(
+        analyze_parser, include_quiet=False, include_overlay_flag=True
+    )
+    analyze_parser.add_argument(
+        "--format",
+        choices=["json", "text"],
+        default="json",
+        help="Output format (default: json)",
+    )
+    analyze_parser.set_defaults(func=_handle_make_decision)
+
     health_parser = subparsers.add_parser(
         "health", help="Check integration readiness for local runs"
     )
