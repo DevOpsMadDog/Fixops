@@ -124,8 +124,15 @@ class ServerManager:
         self.process = None
 
     def get_logs(self) -> tuple[str, str]:
-        """Get stdout and stderr logs from the server."""
+        """Get stdout and stderr logs from the server.
+
+        Note: This method should only be called after the server has been stopped,
+        as reading from pipes while the process is running will block indefinitely.
+        """
         if self.process is None:
+            return "", ""
+
+        if self.process.poll() is None:
             return "", ""
 
         stdout = self.process.stdout.read() if self.process.stdout else ""
