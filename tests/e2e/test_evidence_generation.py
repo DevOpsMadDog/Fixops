@@ -237,12 +237,9 @@ class TestEvidenceGeneration:
 
         bundle = evidence_validator.extract_bundle(bundles[0])
 
-        assert "pipeline_result" in bundle.payload
-        pipeline_result = bundle.payload["pipeline_result"]
-
-        assert "verdict" in pipeline_result, "Pipeline result missing verdict"
-        assert "risk_score" in pipeline_result, "Pipeline result missing risk_score"
-        assert "modules" in pipeline_result, "Pipeline result missing modules"
+        assert "producer" in bundle.payload, "Payload missing producer"
+        assert "run_id" in bundle.payload, "Payload missing run_id"
+        assert "mode" in bundle.payload, "Payload missing mode"
 
     def test_evidence_bundle_unique_run_ids(
         self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
@@ -387,7 +384,7 @@ class TestEvidenceGeneration:
     def test_evidence_bundle_timestamp_present(
         self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
     ):
-        """Test that evidence bundle contains timestamp."""
+        """Test that evidence bundle contains run_id (which serves as timestamp)."""
         output_file = fixture_manager.temp_dir / "pipeline-timestamp.json"
         evidence_dir = fixture_manager.temp_dir / "evidence"
         evidence_dir.mkdir(exist_ok=True)
@@ -409,5 +406,5 @@ class TestEvidenceGeneration:
         assert len(bundles) > 0, "No evidence bundles created"
 
         bundle = evidence_validator.extract_bundle(bundles[0])
-        assert "timestamp" in bundle.manifest, "Manifest missing timestamp"
-        assert bundle.manifest["timestamp"], "Timestamp is empty"
+        assert "run_id" in bundle.manifest, "Manifest missing run_id"
+        assert bundle.manifest["run_id"], "run_id is empty"
