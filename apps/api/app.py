@@ -471,6 +471,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("design", dataset, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "design",
             "input_filename": filename,
             "row_count": len(rows),
@@ -491,6 +492,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "sbom",
             "input_filename": filename,
             "metadata": sbom.metadata,
@@ -513,6 +515,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "cve",
             "input_filename": filename,
             "record_count": cve_feed.metadata.get("record_count", 0),
@@ -532,6 +535,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("vex", vex_doc, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "vex",
             "input_filename": filename,
             "assertions": vex_doc.metadata.get("assertion_count", 0),
@@ -551,6 +555,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cnapp", cnapp_payload, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "cnapp",
             "input_filename": filename,
             "asset_count": cnapp_payload.metadata.get(
@@ -574,6 +579,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sarif", sarif, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "sarif",
             "input_filename": filename,
             "metadata": sarif.metadata,
@@ -598,6 +604,7 @@ def create_app() -> FastAPI:
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("context", context, original_filename=filename, raw_bytes=raw_bytes)
         return {
+            "status": "ok",
             "stage": "context",
             "input_filename": filename,
             "format": context.format,
