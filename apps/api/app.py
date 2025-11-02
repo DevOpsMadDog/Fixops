@@ -78,7 +78,7 @@ def _load_or_generate_jwt_secret() -> str:
     # Priority 1: Environment variable
     env_secret = os.getenv("FIXOPS_JWT_SECRET")
     if env_secret:
-        logger.info("Using JWT secret from FIXOPS_JWT_SECRET environment variable")
+        logger.info("Using JWT signing key from FIXOPS_JWT_SECRET environment variable")
         return env_secret
 
     # Priority 2: Persisted file
@@ -87,10 +87,10 @@ def _load_or_generate_jwt_secret() -> str:
         if _JWT_SECRET_FILE.exists():
             secret = _JWT_SECRET_FILE.read_text().strip()
             if secret:
-                logger.info("Loaded persisted JWT secret from file")
+                logger.info("Loaded persisted JWT signing key from file")
                 return secret
     except Exception as e:
-        logger.warning(f"Failed to read JWT secret file: {e}")
+        logger.warning(f"Failed to read JWT signing key file: {e}")
 
     # Priority 3: Generate and persist (demo mode only)
     mode = os.getenv("FIXOPS_MODE", "").lower()
@@ -100,14 +100,14 @@ def _load_or_generate_jwt_secret() -> str:
             _JWT_SECRET_FILE.write_text(secret)
             _JWT_SECRET_FILE.chmod(0o600)  # Secure permissions
             logger.warning(
-                f"Generated and persisted new JWT secret to {_JWT_SECRET_FILE}. "
+                f"Generated and persisted new JWT signing key to {_JWT_SECRET_FILE}. "
                 "For production, set FIXOPS_JWT_SECRET environment variable."
             )
             return secret
         except Exception as e:
-            logger.error(f"Failed to persist JWT secret: {e}")
+            logger.error(f"Failed to persist JWT signing key: {e}")
             logger.warning(
-                "Using non-persisted secret. Tokens will be invalid after restart."
+                "Using non-persisted signing key. Tokens will be invalid after restart."
             )
             return secret
     else:
