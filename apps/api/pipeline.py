@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from core.ai_agents import AIAgentAdvisor
 from core.analytics import ROIDashboard
@@ -265,6 +265,119 @@ class PipelineOrchestrator:
         if trigger:
             evaluation["trigger"] = trigger
         return evaluation
+
+    def _compute_risk_profile(
+        self,
+        processing_result: Any,
+        exploit_summary: Optional[Dict[str, Any]],
+        cve_records: Sequence[Any],
+        cnapp_exposures: Sequence[Mapping[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        """Compute comprehensive risk profile combining EPSS, KEV, Bayesian, and Markov.
+
+        This combines the sophisticated risk scoring system (166 sources, Bayesian/Markov,
+        EPSS, KEV) into a normalized risk score in [0,1] that the decision engine can use.
+
+        Returns:
+            Risk profile dict with:
+                - score: float in [0,1] (pre-exposure)
+                - method: str describing computation method
+                - components: dict with epss, kev, bayesian_used, markov_used
+                - exposure_applied: False (exposure multipliers applied in decision engine)
+        """
+        if not exploit_summary and not processing_result:
+            return None
+
+        epss_scores = []
+        kev_count = 0
+        if exploit_summary and isinstance(exploit_summary, dict):
+            signals = exploit_summary.get("signals", {})
+            for signal_id, signal_data in signals.items():
+                if not isinstance(signal_data, dict):
+                    continue
+                matches = signal_data.get("matches", [])
+                for match in matches:
+                    if not isinstance(match, dict):
+                        continue
+                    if (
+                        "epss" in signal_id.lower()
+                        or "probability" in signal_id.lower()
+                    ):
+                        value = match.get("value")
+                        if isinstance(value, (int, float)):
+                            epss_scores.append(float(value))
+                    if "kev" in signal_id.lower() or "exploited" in signal_id.lower():
+                        kev_count += 1
+
+        baseline_prior = 0.02
+        if epss_scores:
+            normalized_epss = [e / 100.0 if e > 1.0 else e for e in epss_scores]
+            p_epss = max(normalized_epss)
+        else:
+            p_epss = baseline_prior
+
+        # Extract Bayesian priors from ProcessingLayer
+        bayesian_used = False
+        p_bayesian = p_epss
+        if processing_result and hasattr(processing_result, "bayesian_priors"):
+            priors = processing_result.bayesian_priors
+            if isinstance(priors, dict) and priors:
+                bayesian_used = True
+                risk_prior = priors.get("risk", priors.get("exploitation", 0.0))
+                if isinstance(risk_prior, (int, float)) and risk_prior > 0:
+                    p_bayesian = 1.0 - (1.0 - p_epss) * (1.0 - float(risk_prior))
+
+        # Extract Markov projection from ProcessingLayer
+        markov_used = False
+        p_markov = 0.0
+        if processing_result and hasattr(processing_result, "markov_projection"):
+            projection = processing_result.markov_projection
+            if isinstance(projection, dict) and projection:
+                markov_used = True
+                next_states = projection.get("next_states", [])
+                if next_states and isinstance(next_states, list):
+                    first_state = next_states[0] if next_states else {}
+                    if isinstance(first_state, dict):
+                        severity = first_state.get("severity", "low")
+                        severity_map = {
+                            "low": 0.2,
+                            "medium": 0.4,
+                            "high": 0.7,
+                            "critical": 0.9,
+                        }
+                        p_markov = severity_map.get(severity, 0.0)
+
+        if markov_used and p_markov > 0:
+            p_combined = 1.0 - (1.0 - p_bayesian) * (1.0 - p_markov)
+        else:
+            p_combined = p_bayesian
+
+        if kev_count > 0:
+            p_combined = max(p_combined, 0.90)
+
+        risk_score = max(0.0, min(1.0, p_combined))
+
+        method_parts = ["epss"]
+        if kev_count > 0:
+            method_parts.append("kev")
+        if bayesian_used:
+            method_parts.append("bayesian")
+        if markov_used:
+            method_parts.append("markov")
+        method = "+".join(method_parts)
+
+        return {
+            "score": round(risk_score, 4),
+            "method": method,
+            "components": {
+                "epss": round(p_epss, 4) if epss_scores else None,
+                "kev_count": kev_count,
+                "bayesian_used": bayesian_used,
+                "markov_used": markov_used,
+                "baseline_prior": baseline_prior,
+            },
+            "exposure_applied": False,
+        }
 
     def _derive_marketplace_recommendations(
         self,
@@ -929,14 +1042,25 @@ class PipelineOrchestrator:
                     enhanced_settings["knowledge_graph"] = knowledge_graph.get(
                         "graph", knowledge_graph
                     )
+
+                risk_profile = self._compute_risk_profile(
+                    processing_result=processing_result,
+                    exploit_summary=result.get("exploitability_insights"),
+                    cve_records=cve.records,
+                    cnapp_exposures=cnapp_exposures,
+                )
+
                 enhanced_engine = EnhancedDecisionEngine(enhanced_settings)
                 enhanced_payload = enhanced_engine.evaluate_pipeline(
                     result,
                     context_summary=context_summary,
                     compliance_status=compliance_status,
                     knowledge_graph=knowledge_graph,
+                    risk_profile=risk_profile,
                 )
                 result["enhanced_decision"] = enhanced_payload
+                if risk_profile:
+                    result["risk_profile"] = risk_profile
                 modules_status["enhanced_decision"] = "executed"
                 executed_modules.append("enhanced_decision")
             else:

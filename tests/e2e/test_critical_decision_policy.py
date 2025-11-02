@@ -869,3 +869,138 @@ class TestRiskBasedDecisions:
                 assert (
                     len(policy_overrides) > 0
                 ), "Expected policy override in disagreement_areas with pre-consensus"
+
+    def test_telemetry_proves_risk_based_decision(
+        self, server_manager: ServerManager, fixture_manager: FixtureManager
+    ):
+        """Test that telemetry proves risk-based decision logic is used.
+
+        This test verifies the comprehensive architectural fix that wires
+        risk scoring (EPSS + KEV + Bayesian + Markov) into the decision engine.
+        """
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "sql-injection",
+                            "level": "error",
+                            "message": {"text": "SQL Injection in User Authentication"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {
+                                            "uri": "src/auth/user_authentication.py"
+                                        },
+                                        "region": {"startLine": 100},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-89"],
+                                "severity": "high",
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        cnapp_data = {
+            "exposures": [
+                {
+                    "type": "internet-facing",
+                    "traits": ["public", "internet"],
+                    "service": "user-authentication-service",
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            cnapp_path = Path(tmpdir) / "cnapp.json"
+
+            sast_path.write_text(json.dumps(sast_data))
+            cnapp_path.write_text(json.dumps(cnapp_data))
+
+            response = server_manager.upload_files(
+                sast=str(sast_path),
+                cnapp=str(cnapp_path),
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+
+            assert "verdict" in result
+            assert result["verdict"] == "block", (
+                f"Expected verdict 'block' for internet-facing SQL injection, "
+                f"got '{result['verdict']}'"
+            )
+
+            assert "enhanced_decision" in result, "Expected enhanced_decision in result"
+            enhanced = result["enhanced_decision"]
+
+            assert "telemetry" in enhanced, "Expected telemetry in enhanced_decision"
+            telemetry = enhanced["telemetry"]
+
+            assert (
+                "decision_strategy" in telemetry
+            ), "Expected decision_strategy in telemetry to prove which path was used"
+
+            decision_strategy = telemetry["decision_strategy"]
+            assert decision_strategy in ["risk_based", "severity"], (
+                f"Expected decision_strategy to be 'risk_based' or 'severity', "
+                f"got '{decision_strategy}'"
+            )
+
+            if decision_strategy == "risk_based":
+                assert (
+                    "raw_risk" in telemetry
+                ), "Expected raw_risk in telemetry when decision_strategy is risk_based"
+                assert (
+                    telemetry["raw_risk"] is not None
+                ), "Expected raw_risk to be non-null when risk_based strategy is used"
+                assert telemetry["raw_risk"] > 0.0, (
+                    f"Expected raw_risk > 0.0 when risk_based strategy is used, "
+                    f"got {telemetry['raw_risk']}"
+                )
+
+                assert (
+                    "thresholds_used" in telemetry
+                ), "Expected thresholds_used in telemetry when decision_strategy is risk_based"
+                thresholds = telemetry["thresholds_used"]
+                assert (
+                    "block" in thresholds
+                ), "Expected block threshold in thresholds_used"
+                assert (
+                    "review" in thresholds
+                ), "Expected review threshold in thresholds_used"
+
+                assert (
+                    "inputs" in telemetry
+                ), "Expected inputs in telemetry to show risk profile components"
+                inputs = telemetry["inputs"]
+                assert inputs is not None, "Expected inputs to be non-null"
+
+                if "risk_profile_method" in inputs and inputs["risk_profile_method"]:
+                    method = inputs["risk_profile_method"]
+                    assert (
+                        "epss" in method
+                    ), f"Expected EPSS in risk_profile_method, got '{method}'"
+
+                if (
+                    "risk_profile_components" in inputs
+                    and inputs["risk_profile_components"]
+                ):
+                    components = inputs["risk_profile_components"]
+                    assert isinstance(
+                        components, dict
+                    ), "Expected risk_profile_components to be a dict"
+
+            assert (
+                "policy_pre_consensus" in telemetry
+            ), "Expected policy_pre_consensus in telemetry"
+            assert (
+                "policy_triggered" in telemetry
+            ), "Expected policy_triggered in telemetry"

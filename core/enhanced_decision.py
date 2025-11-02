@@ -208,6 +208,7 @@ class MultiLLMConsensusEngine:
         ai_agent_analysis: Optional[Mapping[str, Any]] = None,
         marketplace_recommendations: Optional[Iterable[Mapping[str, Any]]] = None,
         knowledge_graph: Optional[Mapping[str, Any]] = None,
+        risk_profile: Optional[Mapping[str, Any]] = None,
     ) -> MultiLLMResult:
         if knowledge_graph is not None:
             self.knowledge_graph = knowledge_graph
@@ -221,17 +222,13 @@ class MultiLLMConsensusEngine:
         exploit_stats = _extract_exploit_stats(exploitability)
         agent_components = _extract_agent_components(ai_agent_analysis)
 
-        risk_score = (
-            severity_overview.get("risk_score", 0.0)
-            if isinstance(severity_overview, Mapping)
-            else 0.0
-        )
-        if isinstance(risk_score, (int, float)):
-            risk_score = (
-                float(risk_score) / 100.0 if risk_score > 1.0 else float(risk_score)
-            )
-        else:
-            risk_score = 0.0
+        risk_score = 0.0
+        if risk_profile and isinstance(risk_profile, Mapping):
+            risk_score = risk_profile.get("score", 0.0)
+            if isinstance(risk_score, (int, float)):
+                risk_score = float(risk_score)
+            else:
+                risk_score = 0.0
 
         if self.use_risk_engine and risk_score > 0.0:
             base_action, base_confidence, mitre_candidates = self._risk_based_profile(
@@ -429,6 +426,36 @@ class MultiLLMConsensusEngine:
             "max_processing_time_ms": max_processing,
             "knowledge_graph": self.knowledge_graph_summary,
             "marketplace_references": marketplace_focus,
+            "decision_strategy": (
+                "risk_based"
+                if (self.use_risk_engine and risk_score > 0.0)
+                else "severity"
+            ),
+            "raw_risk": round(risk_score, 4) if risk_score > 0.0 else None,
+            "thresholds_used": (
+                {
+                    "block": self.risk_block_threshold,
+                    "review": self.risk_review_threshold,
+                }
+                if (self.use_risk_engine and risk_score > 0.0)
+                else None
+            ),
+            "policy_pre_consensus": self.policy_pre_consensus,
+            "policy_triggered": (
+                policy_override.triggered if self.policy_pre_consensus else False
+            ),
+            "inputs": (
+                {
+                    "risk_profile_method": (
+                        risk_profile.get("method") if risk_profile else None
+                    ),
+                    "risk_profile_components": (
+                        risk_profile.get("components") if risk_profile else None
+                    ),
+                }
+                if risk_profile
+                else None
+            ),
         }
 
         return MultiLLMResult(
@@ -1054,6 +1081,7 @@ class EnhancedDecisionEngine:
         context_summary: Optional[Mapping[str, Any]] = None,
         compliance_status: Optional[Mapping[str, Any]] = None,
         knowledge_graph: Optional[Mapping[str, Any]] = None,
+        risk_profile: Optional[Mapping[str, Any]] = None,
     ) -> Dict[str, Any]:
         result = self.consensus.evaluate(
             severity_overview=pipeline_result.get("severity_overview", {}),
@@ -1069,6 +1097,7 @@ class EnhancedDecisionEngine:
                 "marketplace_recommendations"
             ),
             knowledge_graph=knowledge_graph or pipeline_result.get("knowledge_graph"),
+            risk_profile=risk_profile,
         )
         return self._record(result)
 
