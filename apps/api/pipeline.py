@@ -810,8 +810,8 @@ class PipelineOrchestrator:
             highest_finding = None
             highest_idx = -1
             for finding in sarif.findings:
-                finding_severity = self._normalise_sarif_severity(finding)
-                idx = self._severity_index(finding_severity)
+                finding_severity = self._normalise_sarif_severity(finding.level)
+                idx = self._severity_index(finding_severity or "none")
                 if idx > highest_idx:
                     highest_idx = idx
                     highest_finding = finding
