@@ -81,6 +81,9 @@ class CLIRunner:
         env = os.environ.copy()
         env.update(self.env)
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
+        env["LAUNCHDARKLY_OFFLINE"] = "1"
+        env.pop("LD_SDK_KEY", None)
+        env.pop("LD_CLIENT_SIDE_SDK_KEY", None)
 
         if "FIXOPS_JWT_SECRET" not in env:
             env["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)

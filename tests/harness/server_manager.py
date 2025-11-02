@@ -55,6 +55,9 @@ class ServerManager:
         env = os.environ.copy()
         env.update(self.env)
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
+        env["LAUNCHDARKLY_OFFLINE"] = "1"
+        env.pop("LD_SDK_KEY", None)
+        env.pop("LD_CLIENT_SIDE_SDK_KEY", None)
 
         if "FIXOPS_JWT_SECRET" not in env:
             import secrets
@@ -108,6 +111,16 @@ class ServerManager:
         """Wait for server to be ready by polling health endpoint."""
         start_time = time.time()
         while time.time() - start_time < self.timeout:
+            if self.process and self.process.poll() is not None:
+                stdout, stderr = self.get_logs()
+                error_msg = (
+                    f"Server process exited early with code {self.process.returncode}"
+                )
+                if stderr:
+                    error_msg += f"\nStderr: {stderr[:500]}"
+                self.stop()
+                raise RuntimeError(error_msg)
+
             try:
                 response = requests.get(f"{self.base_url}/api/v1/health", timeout=1)
                 if response.status_code == 200:
@@ -116,8 +129,12 @@ class ServerManager:
                 pass
             time.sleep(0.5)
 
+        stdout, stderr = self.get_logs()
         self.stop()
-        raise RuntimeError(f"Server did not become ready within {self.timeout} seconds")
+        error_msg = f"Server did not become ready within {self.timeout} seconds"
+        if stderr:
+            error_msg += f"\nStderr: {stderr[:500]}"
+        raise RuntimeError(error_msg)
 
     def stop(self) -> None:
         """Stop the uvicorn server."""
