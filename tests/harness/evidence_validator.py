@@ -174,13 +174,20 @@ class EvidenceValidator:
 
             manifest_path = bundle_path.parent / "manifest.json"
             if manifest_path.exists():
-                with open(manifest_path, "r") as f:
-                    manifest = json.load(f)
-                    metadata = {
-                        "retention_days": manifest.get("retention_days"),
-                        "encrypted": manifest.get("encrypted", False),
-                        "compressed": manifest.get("compressed", False),
-                    }
+                try:
+                    with open(manifest_path, "r") as f:
+                        manifest = json.load(f)
+                        metadata = {
+                            "retention_days": manifest.get("retention_days"),
+                            "encrypted": manifest.get("encrypted", False),
+                            "compressed": manifest.get("compressed", False),
+                        }
+                except Exception as e:
+                    import logging
+
+                    logging.warning(
+                        f"Failed to read manifest from {manifest_path}: {e}"
+                    )
 
         return EvidenceBundle(bundle_path, manifest, payload, metadata)
 
