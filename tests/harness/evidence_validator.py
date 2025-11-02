@@ -196,7 +196,7 @@ class EvidenceValidator:
         """
         errors = []
 
-        required_fields = ["run_id", "timestamp", "version"]
+        required_fields = ["run_id", "mode", "bundle"]
         for field in required_fields:
             if field not in manifest:
                 errors.append(f"Missing required field in manifest: {field}")
@@ -218,7 +218,7 @@ class EvidenceValidator:
         """
         errors = []
 
-        required_fields = ["producer", "run_id"]
+        required_fields = ["producer", "run_id", "mode"]
         for field in required_fields:
             if field not in payload:
                 errors.append(f"Missing required field in payload: {field}")
