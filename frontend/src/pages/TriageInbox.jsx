@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket } from 'lucide-react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, FileKey, Info, Download, ChevronDown, ChevronUp } from 'lucide-react'
 
 const TriageInbox = () => {
   const [issues, setIssues] = useState([])
   const [filteredIssues, setFilteredIssues] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedIssue, setSelectedIssue] = useState(null)
+  const [showCapabilities, setShowCapabilities] = useState(false)
   const [filters, setFilters] = useState({
     new_7d: false,
     high_critical: false,
@@ -104,6 +105,22 @@ const TriageInbox = () => {
     alert(`Creating ticket for: ${issue.title}\n(Jira integration not configured)`)
   }
 
+  const copyEvidenceSummary = (issue) => {
+    if (!issue.evidence_bundle) return
+    const summary = `Evidence Bundle: ${issue.evidence_bundle.id}\nSignature: ${issue.evidence_bundle.signature_algorithm}\nSHA256: ${issue.evidence_bundle.sha256}\nRetained until: ${new Date(issue.evidence_bundle.retained_until).toLocaleDateString()}`
+    navigator.clipboard.writeText(summary)
+    alert('Evidence summary copied to clipboard!')
+  }
+
+  const getVerdictColor = (verdict) => {
+    const colors = {
+      block: '#dc2626',
+      review: '#f59e0b',
+      allow: '#10b981',
+    }
+    return colors[verdict] || '#94a3b8'
+  }
+
   if (loading) {
     return (
       <div style={{
@@ -167,21 +184,106 @@ const TriageInbox = () => {
             marginBottom: '24px',
           }}>
             <div>
-              <h1 style={{
-                fontSize: '24px',
-                fontWeight: '600',
-                margin: 0,
-                letterSpacing: '-0.02em',
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '8px',
               }}>
-                Security Triage
-              </h1>
+                <h1 style={{
+                  fontSize: '24px',
+                  fontWeight: '600',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                }}>
+                  Security Triage
+                </h1>
+                <button
+                  onClick={() => setShowCapabilities(!showCapabilities)}
+                  style={{
+                    padding: '4px 12px',
+                    background: 'rgba(107, 90, 237, 0.1)',
+                    border: '1px solid rgba(107, 90, 237, 0.3)',
+                    borderRadius: '4px',
+                    color: '#6B5AED',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="What powers this?"
+                >
+                  <Info size={14} />
+                  FixOps Capabilities
+                  {showCapabilities ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
               <p style={{
                 fontSize: '14px',
                 color: '#94a3b8',
                 margin: '4px 0 0 0',
               }}>
-                {filteredIssues.length} of {issues.length} issues
+                {filteredIssues.length} of {issues.length} issues • Powered by evidence-based decision engine
               </p>
+              
+              {/* Capabilities Panel */}
+              {showCapabilities && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '16px',
+                  background: 'rgba(107, 90, 237, 0.05)',
+                  border: '1px solid rgba(107, 90, 237, 0.2)',
+                  borderRadius: '6px',
+                }}>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#cbd5e1',
+                    marginBottom: '12px',
+                  }}>
+                    What powers FixOps?
+                  </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '12px',
+                    fontSize: '13px',
+                    color: '#94a3b8',
+                    lineHeight: 1.6,
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <FileKey size={14} color="#6B5AED" />
+                        <span style={{ fontWeight: '600', color: '#cbd5e1' }}>Signed Evidence</span>
+                      </div>
+                      <div style={{ fontSize: '12px' }}>RSA-SHA256 signatures with 90-day (demo) or 7-year (enterprise) retention for audit compliance</div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <Shield size={14} color="#6B5AED" />
+                        <span style={{ fontWeight: '600', color: '#cbd5e1' }}>SSVC Policy Gates</span>
+                      </div>
+                      <div style={{ fontSize: '12px' }}>Stakeholder-Specific Vulnerability Categorization for allow/review/block decisions</div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <AlertCircle size={14} color="#6B5AED" />
+                        <span style={{ fontWeight: '600', color: '#cbd5e1' }}>Exploit Intelligence</span>
+                      </div>
+                      <div style={{ fontSize: '12px' }}>CISA KEV catalog + EPSS probability scores for prioritization</div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <CheckCircle size={14} color="#6B5AED" />
+                        <span style={{ fontWeight: '600', color: '#cbd5e1' }}>Compliance Mapping</span>
+                      </div>
+                      <div style={{ fontSize: '12px' }}>Automatic mapping to SOC2, ISO27001, PCI-DSS, GDPR, OWASP controls</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Summary Stats */}
@@ -836,6 +938,339 @@ const TriageInbox = () => {
                   {selectedIssue.remediation}
                 </div>
               </div>
+
+              {/* SSVC Decision */}
+              {selectedIssue.decision && (
+                <div style={{
+                  marginBottom: '32px',
+                }}>
+                  <h3 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    margin: '0 0 16px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}>
+                    <Shield size={14} />
+                    SSVC Decision
+                  </h3>
+                  <div style={{
+                    padding: '16px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: `1px solid ${getVerdictColor(selectedIssue.decision.verdict)}`,
+                    borderRadius: '6px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px',
+                    }}>
+                      <div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#94a3b8',
+                          marginBottom: '4px',
+                        }}>
+                          Verdict
+                        </div>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: getVerdictColor(selectedIssue.decision.verdict),
+                          textTransform: 'uppercase',
+                        }}>
+                          {selectedIssue.decision.verdict}
+                        </div>
+                      </div>
+                      <div style={{
+                        textAlign: 'right',
+                      }}>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#94a3b8',
+                          marginBottom: '4px',
+                        }}>
+                          Confidence
+                        </div>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#cbd5e1',
+                        }}>
+                          {(selectedIssue.decision.confidence * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                      <div style={{
+                        textAlign: 'right',
+                      }}>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#94a3b8',
+                          marginBottom: '4px',
+                        }}>
+                          SSVC Outcome
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#cbd5e1',
+                          textTransform: 'capitalize',
+                        }}>
+                          {selectedIssue.decision.ssvc_outcome}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#cbd5e1',
+                      lineHeight: 1.6,
+                      marginBottom: '12px',
+                    }}>
+                      {selectedIssue.decision.rationale}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '6px',
+                    }}>
+                      {selectedIssue.decision.signals.map((signal, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            padding: '4px 8px',
+                            background: 'rgba(107, 90, 237, 0.1)',
+                            border: '1px solid rgba(107, 90, 237, 0.3)',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            color: '#a78bfa',
+                          }}
+                        >
+                          {signal}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Evidence Bundle */}
+              {selectedIssue.evidence_bundle && (
+                <div style={{
+                  marginBottom: '32px',
+                }}>
+                  <h3 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    margin: '0 0 16px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}>
+                    <FileKey size={14} />
+                    Evidence Bundle
+                  </h3>
+                  <div style={{
+                    padding: '16px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                  }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '12px',
+                      marginBottom: '12px',
+                    }}>
+                      <div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#64748b',
+                          marginBottom: '4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}>
+                          Bundle ID
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#cbd5e1',
+                          fontFamily: 'JetBrains Mono, monospace',
+                        }}>
+                          {selectedIssue.evidence_bundle.id}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#64748b',
+                          marginBottom: '4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}>
+                          Signature
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#cbd5e1',
+                          fontFamily: 'JetBrains Mono, monospace',
+                        }}>
+                          {selectedIssue.evidence_bundle.signature_algorithm}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#64748b',
+                          marginBottom: '4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}>
+                          Retention
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#cbd5e1',
+                        }}>
+                          {selectedIssue.evidence_bundle.retention_days} days (Demo)
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#64748b',
+                          marginBottom: '4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}>
+                          Retained Until
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#cbd5e1',
+                        }}>
+                          {new Date(selectedIssue.evidence_bundle.retained_until).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{
+                      marginBottom: '12px',
+                    }}>
+                      <div style={{
+                        fontSize: '11px',
+                        color: '#64748b',
+                        marginBottom: '4px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}>
+                        SHA256 Checksum
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: '#94a3b8',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        wordBreak: 'break-all',
+                        lineHeight: 1.6,
+                      }}>
+                        {selectedIssue.evidence_bundle.sha256}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => copyEvidenceSummary(selectedIssue)}
+                      style={{
+                        padding: '8px 12px',
+                        background: 'rgba(107, 90, 237, 0.1)',
+                        border: '1px solid rgba(107, 90, 237, 0.3)',
+                        borderRadius: '4px',
+                        color: '#6B5AED',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <Copy size={12} />
+                      Copy Evidence Summary
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Compliance Mappings */}
+              {selectedIssue.compliance_mappings && selectedIssue.compliance_mappings.length > 0 && (
+                <div style={{
+                  marginBottom: '32px',
+                }}>
+                  <h3 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    margin: '0 0 16px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}>
+                    <CheckCircle size={14} />
+                    Compliance Mappings
+                  </h3>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}>
+                    {selectedIssue.compliance_mappings.map((mapping, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '12px',
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '4px',
+                        }}>
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#6B5AED',
+                          }}>
+                            {mapping.framework}
+                          </span>
+                          <span style={{
+                            fontSize: '11px',
+                            fontFamily: 'JetBrains Mono, monospace',
+                            color: '#94a3b8',
+                          }}>
+                            {mapping.control}
+                          </span>
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#94a3b8',
+                        }}>
+                          {mapping.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Drawer Actions */}
