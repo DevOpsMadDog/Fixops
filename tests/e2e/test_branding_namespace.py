@@ -19,7 +19,7 @@ class TestBrandingNamespace:
         self, fixture_manager, flag_config_manager, demo_fixtures
     ):
         """Test that branded product name appears in X-Product-Name header."""
-        flag_config_manager.create_branded_config(
+        overlay_config = flag_config_manager.create_branded_config(
             product_name="Aldeci",
             namespace="aldeci",
         )
@@ -28,6 +28,7 @@ class TestBrandingNamespace:
             "FIXOPS_API_TOKEN": "test-token-branding",
             "FIXOPS_DISABLE_TELEMETRY": "1",
             "PRODUCT_NAMESPACE": "aldeci",
+            "FIXOPS_OVERLAY_PATH": str(overlay_config),
         }
 
         with ServerManager(host="127.0.0.1", port=8767, env=env, timeout=30) as server:
@@ -360,7 +361,7 @@ class TestBrandingNamespace:
         self, fixture_manager, flag_config_manager, demo_fixtures
     ):
         """Test that branding persists correctly across multiple API requests."""
-        flag_config_manager.create_branded_config(
+        overlay_config = flag_config_manager.create_branded_config(
             product_name="Aldeci",
             namespace="aldeci",
         )
@@ -369,6 +370,7 @@ class TestBrandingNamespace:
             "FIXOPS_API_TOKEN": "test-token-persist",
             "FIXOPS_DISABLE_TELEMETRY": "1",
             "PRODUCT_NAMESPACE": "aldeci",
+            "FIXOPS_OVERLAY_PATH": str(overlay_config),
         }
 
         with ServerManager(host="127.0.0.1", port=8768, env=env, timeout=30) as server:
