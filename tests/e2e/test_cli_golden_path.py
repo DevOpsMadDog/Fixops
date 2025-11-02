@@ -296,13 +296,15 @@ class TestCLIGoldenPath:
 
         assert all(results), "Some concurrent CLI executions failed"
 
-    def test_cli_large_sbom_handling(self, cli_runner, fixture_manager):
+    def test_cli_large_sbom_handling(self, cli_runner, demo_fixtures, fixture_manager):
         """Test that CLI handles large SBOM files."""
         large_sbom = fixture_manager.generate_large_sbom(num_components=1000)
         output_file = fixture_manager.temp_dir / "pipeline-large.json"
 
         result = cli_runner.run_pipeline(
             sbom=large_sbom,
+            cve=demo_fixtures["cve"],
+            sarif=demo_fixtures["sarif"],
             output=output_file,
             timeout=180,
         )
