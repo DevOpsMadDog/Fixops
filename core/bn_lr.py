@@ -66,15 +66,20 @@ def extract_bn_posteriors(context: Dict[str, Any]) -> List[float]:
         Fixed-order feature vector: [p_low, p_medium, p_high, p_critical]
     """
     processing_layer = ProcessingLayer()
-    priors = processing_layer._compute_bayesian_priors(context)
+    priors: Dict[str, Any] = processing_layer._compute_bayesian_priors(context)
 
-    distribution = priors.get("distribution", {})
+    raw_distribution = priors.get("distribution", {})
+    distribution: Dict[str, float]
+    if isinstance(raw_distribution, dict):
+        distribution = {str(k): float(v) for k, v in raw_distribution.items()}
+    else:
+        distribution = {}
 
-    features = [
-        distribution.get("low", 0.25),
-        distribution.get("medium", 0.25),
-        distribution.get("high", 0.25),
-        distribution.get("critical", 0.25),
+    features: List[float] = [
+        float(distribution.get("low", 0.25)),
+        float(distribution.get("medium", 0.25)),
+        float(distribution.get("high", 0.25)),
+        float(distribution.get("critical", 0.25)),
     ]
 
     return features
@@ -238,14 +243,7 @@ def backtest(
     y_proba = model.predict_proba(X_test)[:, 1]
     y_pred = model.predict(X_test)
 
-    metrics = {
-        "accuracy": float(accuracy_score(y_test, y_pred)),
-        "roc_auc": float(roc_auc_score(y_test, y_proba)),
-        "n_samples": len(y_test),
-        "n_positive": int(np.sum(y_test)),
-        "n_negative": int(len(y_test) - np.sum(y_test)),
-        "thresholds": {},
-    }
+    thresholds_dict: Dict[str, Dict[str, float]] = {}
 
     for threshold in thresholds:
         y_pred_threshold = (y_proba >= threshold).astype(int)
@@ -253,10 +251,19 @@ def backtest(
         precision = precision_score(y_test, y_pred_threshold, zero_division=0)
         recall = recall_score(y_test, y_pred_threshold, zero_division=0)
 
-        metrics["thresholds"][str(threshold)] = {
+        thresholds_dict[str(threshold)] = {
             "precision": float(precision),
             "recall": float(recall),
         }
+
+    metrics: Dict[str, Any] = {
+        "accuracy": float(accuracy_score(y_test, y_pred)),
+        "roc_auc": float(roc_auc_score(y_test, y_proba)),
+        "n_samples": int(len(y_test)),
+        "n_positive": int(np.sum(y_test)),
+        "n_negative": int(len(y_test) - np.sum(y_test)),
+        "thresholds": thresholds_dict,
+    }
 
     return metrics
 
