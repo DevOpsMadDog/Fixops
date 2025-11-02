@@ -216,8 +216,17 @@ def _copy_evidence(
         return None
     bundle_path = Path(bundle)
     ensure_secure_directory(destination)
+
     target = destination / bundle_path.name
     target.write_bytes(bundle_path.read_bytes())
+
+    manifest = files.get("manifest")
+    if manifest:
+        manifest_path = Path(manifest)
+        if manifest_path.exists():
+            manifest_target = destination / "manifest.json"
+            manifest_target.write_bytes(manifest_path.read_bytes())
+
     return target
 
 
