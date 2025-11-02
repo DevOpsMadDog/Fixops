@@ -30,7 +30,6 @@ class FlagConfigManager:
         self,
         feature_flags: dict[str, Any],
         modules: Optional[dict[str, bool]] = None,
-        branding: Optional[dict[str, Any]] = None,
         product_namespace: Optional[str] = None,
         dest: Optional[Path] = None,
     ) -> Path:
@@ -40,7 +39,6 @@ class FlagConfigManager:
         Args:
             feature_flags: Feature flag values
             modules: Module enablement settings
-            branding: Branding configuration
             product_namespace: Product namespace (e.g., "aldeci")
             dest: Destination path (defaults to temp_dir/overlay.yml)
 
@@ -59,9 +57,6 @@ class FlagConfigManager:
 
         if modules:
             config["modules"] = modules
-
-        if branding:
-            config["branding"] = branding
 
         with open(dest, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
@@ -219,14 +214,8 @@ class FlagConfigManager:
             },
         }
 
-        branding = {
-            "product_name": product_name,
-            "short_name": namespace,
-        }
-
         return self.create_overlay_config(
             feature_flags=feature_flags,
-            branding=branding,
             product_namespace=namespace,
             dest=dest,
         )
