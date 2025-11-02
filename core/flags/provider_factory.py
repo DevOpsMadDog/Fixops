@@ -14,6 +14,7 @@ from core.flags.base import FeatureFlagProvider
 from core.flags.combined import CombinedProvider
 from core.flags.ld_provider import LaunchDarklyProvider
 from core.flags.local_provider import LocalOverlayProvider
+from core.flags.namespace_adapter import NamespaceAdapterProvider
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +63,16 @@ def create_flag_provider(
                 logger.warning("Failed to initialize LaunchDarkly provider: %s", exc)
 
     if ld_provider:
-        provider = CombinedProvider(primary=ld_provider, fallback=local_provider)
+        combined = CombinedProvider(primary=ld_provider, fallback=local_provider)
         logger.info("Using CombinedProvider: LaunchDarkly → Local Overlay → Defaults")
     else:
-        provider = CombinedProvider(primary=None, fallback=local_provider)
+        combined = CombinedProvider(primary=None, fallback=local_provider)
         logger.info("Using CombinedProvider: Local Overlay → Defaults")
+
+    provider = NamespaceAdapterProvider(combined)
+    brand_ns = provider.brand_namespace
+    if brand_ns != "fixops":
+        logger.info("Namespace aliasing enabled: %s.* → fixops.*", brand_ns)
 
     return provider
 

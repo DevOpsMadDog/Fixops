@@ -12,6 +12,7 @@ from core.flags.base import EvaluationContext, FeatureFlagProvider
 from core.flags.combined import CombinedProvider
 from core.flags.ld_provider import LaunchDarklyProvider
 from core.flags.local_provider import LocalOverlayProvider
+from core.flags.namespace_adapter import NamespaceAdapterProvider
 
 __all__ = [
     "EvaluationContext",
@@ -19,4 +20,5 @@ __all__ = [
     "LocalOverlayProvider",
     "LaunchDarklyProvider",
     "CombinedProvider",
+    "NamespaceAdapterProvider",
 ]
