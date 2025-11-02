@@ -740,7 +740,12 @@ def _print_summary(
     frameworks = compliance.get("frameworks") or []
     executed = modules.get("executed") or []
 
-    print("FixOps pipeline summary:")
+    product_name = "FixOps"
+    branding = result.get("branding")
+    if isinstance(branding, dict):
+        product_name = branding.get("product_name", "FixOps")
+
+    print(f"{product_name} pipeline summary:")
     print(f"  Highest severity: {highest}")
     print(f"  Guardrail status: {guardrail_status}")
     if frameworks:

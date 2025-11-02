@@ -682,6 +682,17 @@ class OverlayConfig:
         default_factory=lambda: (_DEFAULT_DATA_ROOT,)
     )
     auth_tokens: tuple[str, ...] = field(default_factory=tuple, repr=False)
+    raw_config: Dict[str, Any] = field(default_factory=dict, repr=False)
+    _flag_provider: Any = field(default=None, init=False, repr=False)
+
+    @property
+    def flag_provider(self):
+        """Lazy-initialize feature flag provider."""
+        if self._flag_provider is None:
+            from core.flags.provider_factory import create_flag_provider
+
+            self._flag_provider = create_flag_provider(self.raw_config)
+        return self._flag_provider
 
     @property
     def required_inputs(self) -> tuple[str, ...]:
@@ -1106,6 +1117,18 @@ class OverlayConfig:
         return {}
 
     def is_module_enabled(self, name: str, default: bool = True) -> bool:
+        """Check if a module is enabled via overlay config or feature flags.
+
+        Feature flags take precedence over overlay config for dynamic control.
+        """
+        flag_key = f"fixops.module.{name}"
+        try:
+            flag_value = self.flag_provider.bool(flag_key, None)
+            if flag_value is not None:
+                return flag_value
+        except Exception:
+            pass
+
         raw = self.modules.get(name)
         if isinstance(raw, Mapping):
             if "enabled" in raw:
@@ -1436,6 +1459,7 @@ def load_overlay(
         performance=dict(base.get("performance", {}) or {}),  # type: ignore[arg-type]
         telemetry_bridge=dict(base.get("telemetry_bridge", {}) or {}),  # type: ignore[arg-type]
         allowed_data_roots=_resolve_allowlisted_roots(),
+        raw_config=dict(raw or {}),
     )
 
     policy = config.guardrail_policy

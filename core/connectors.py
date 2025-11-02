@@ -251,8 +251,14 @@ class SlackConnector(_BaseConnector):
 class AutomationConnectors:
     """Registry that routes actions to configured delivery connectors."""
 
-    def __init__(self, overlay_settings: Mapping[str, Any], toggles: Mapping[str, Any]):
+    def __init__(
+        self,
+        overlay_settings: Mapping[str, Any],
+        toggles: Mapping[str, Any],
+        flag_provider: Any = None,
+    ):
         self.enforce_sync = bool(toggles.get("enforce_ticket_sync"))
+        self.flag_provider = flag_provider
         self.jira = JiraConnector(overlay_settings.get("jira", {}))
         self.confluence = ConfluenceConnector(overlay_settings.get("confluence", {}))
         slack_settings = overlay_settings.get("policy_automation", {})
@@ -262,11 +268,35 @@ class AutomationConnectors:
         action_type = str(action.get("type") or "").lower()
 
         if action_type == "jira_issue":
+            jira_enabled = True
+            if self.flag_provider:
+                try:
+                    jira_enabled = self.flag_provider.bool(
+                        "fixops.feature.connector.jira", True
+                    )
+                except Exception:
+                    pass
+            if not jira_enabled:
+                return ConnectorOutcome(
+                    "skipped", {"reason": "jira connector disabled"}
+                )
             if not self.enforce_sync and not action.get("force_delivery"):
                 return ConnectorOutcome("skipped", {"reason": "ticket sync disabled"})
             return self.jira.create_issue(action)
 
         if action_type == "confluence_page":
+            confluence_enabled = True
+            if self.flag_provider:
+                try:
+                    confluence_enabled = self.flag_provider.bool(
+                        "fixops.feature.connector.confluence", True
+                    )
+                except Exception:
+                    pass
+            if not confluence_enabled:
+                return ConnectorOutcome(
+                    "skipped", {"reason": "confluence connector disabled"}
+                )
             if not self.enforce_sync and not action.get("force_delivery"):
                 return ConnectorOutcome(
                     "skipped", {"reason": "knowledge sync disabled"}
@@ -274,6 +304,18 @@ class AutomationConnectors:
             return self.confluence.create_page(action)
 
         if action_type == "slack":
+            slack_enabled = True
+            if self.flag_provider:
+                try:
+                    slack_enabled = self.flag_provider.bool(
+                        "fixops.feature.connector.slack", True
+                    )
+                except Exception:
+                    pass
+            if not slack_enabled:
+                return ConnectorOutcome(
+                    "skipped", {"reason": "slack connector disabled"}
+                )
             return self.slack.post_message(action)
 
         return ConnectorOutcome(

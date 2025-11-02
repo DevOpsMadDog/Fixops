@@ -28,6 +28,7 @@ from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
 from core.feedback import FeedbackRecorder
+from core.flags.provider_factory import create_flag_provider
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from telemetry import configure as configure_telemetry
@@ -143,20 +144,48 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 def create_app() -> FastAPI:
     """Create the FastAPI application with file-upload ingestion endpoints."""
 
-    configure_telemetry(service_name="fixops-api")
-    app = FastAPI(title="FixOps Ingestion Demo API", version="0.1.0")
+    try:
+        overlay = load_overlay(allow_demo_token_fallback=True)
+    except TypeError:
+        overlay = load_overlay()
+
+    flag_provider = create_flag_provider(overlay.raw_config)
+
+    branding = flag_provider.json(
+        "fixops.branding",
+        default={
+            "product_name": "FixOps",
+            "short_name": "FixOps",
+            "org_name": "FixOps",
+            "telemetry_namespace": "fixops",
+        },
+    )
+
+    configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
+
+    app = FastAPI(
+        title=f"{branding['product_name']} Ingestion Demo API",
+        description=f"Security decision engine by {branding['org_name']}",
+        version="0.1.0",
+    )
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
         app.state = SimpleNamespace()  # type: ignore[assignment]
+
+    app.state.branding = branding
+    app.state.flag_provider = flag_provider
 
     app.add_middleware(CorrelationIdMiddleware)
 
     app.add_middleware(RequestLoggingMiddleware)
 
-    try:
-        overlay = load_overlay(allow_demo_token_fallback=True)
-    except TypeError:
-        overlay = load_overlay()
+    @app.middleware("http")
+    async def add_product_header(request, call_next):
+        """Add X-Product-Name header to all responses."""
+        response = await call_next(request)
+        response.headers["X-Product-Name"] = branding["product_name"]
+        response.headers["X-Product-Version"] = "0.1.0"
+        return response
 
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
     origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
