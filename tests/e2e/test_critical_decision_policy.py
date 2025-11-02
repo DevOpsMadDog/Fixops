@@ -152,7 +152,9 @@ class TestCriticalDecisionPolicy:
                 ["analyze", "--sast", str(sast_path), "--format", "json"]
             )
 
-            assert result.exit_code == 0
+            assert (
+                result.exit_code == 1
+            ), f"Expected exit_code 1 for 'block' verdict, got {result.exit_code}"
             output = json.loads(result.stdout)
 
             assert "verdict" in output
