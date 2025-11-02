@@ -904,6 +904,163 @@ def _handle_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_train_bn_lr(args: argparse.Namespace) -> int:
+    import numpy as np
+    import pandas as pd
+
+    from core.bn_lr import save_model, train
+
+    data_path = args.data
+    if not data_path.exists():
+        raise FileNotFoundError(f"Training data not found: {data_path}")
+
+    df = pd.read_csv(data_path)
+
+    required_columns = [
+        "bn_p_low",
+        "bn_p_medium",
+        "bn_p_high",
+        "bn_p_critical",
+        "label",
+    ]
+    missing = set(required_columns) - set(df.columns)
+    if missing:
+        raise ValueError(f"Training data missing required columns: {missing}")
+
+    X = df[["bn_p_low", "bn_p_medium", "bn_p_high", "bn_p_critical"]].values
+    y = df["label"].values
+
+    if not args.quiet:
+        print(f"Training BN-LR model on {len(X)} samples...")
+        print(f"  Positive samples: {np.sum(y)}")
+        print(f"  Negative samples: {len(y) - np.sum(y)}")
+
+    model, metadata = train(X, y)
+
+    output_path = args.output
+    save_model(model, metadata, output_path)
+
+    if not args.quiet:
+        print(f"Model saved to {output_path}")
+        print(f"  BN CPD hash: {metadata['bn_cpd_hash'][:16]}...")
+        print(f"  Calibration: {metadata['calibration_method']}")
+        print(f"  Trained at: {metadata['trained_at']}")
+
+    return 0
+
+
+def _handle_predict_bn_lr(args: argparse.Namespace) -> int:
+    from core.bn_lr import extract_bn_posteriors, load_model, predict_proba
+
+    model_path = args.model
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model not found: {model_path}")
+
+    context_path = args.context
+    if not context_path.exists():
+        raise FileNotFoundError(f"Context file not found: {context_path}")
+
+    with open(context_path, "r") as f:
+        context = json.load(f)
+
+    model, metadata = load_model(model_path, verify_cpd_hash=not args.allow_skew)
+
+    features = extract_bn_posteriors(context)
+    probability = predict_proba(model, features)
+
+    result = {
+        "risk_probability": probability,
+        "bn_posteriors": {
+            "low": features[0],
+            "medium": features[1],
+            "high": features[2],
+            "critical": features[3],
+        },
+        "model_metadata": {
+            "bn_cpd_hash": metadata["bn_cpd_hash"],
+            "trained_at": metadata["trained_at"],
+            "calibration_method": metadata["calibration_method"],
+        },
+    }
+
+    if args.output:
+        ensure_output_directory(args.output.parent)
+        with args.output.open("w", encoding="utf-8") as handle:
+            json.dump(result, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if not args.quiet:
+        print(f"Risk probability: {probability:.4f}")
+        print(
+            f"BN posteriors: low={features[0]:.3f}, med={features[1]:.3f}, "
+            f"high={features[2]:.3f}, crit={features[3]:.3f}"
+        )
+
+    return 0
+
+
+def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
+    import pandas as pd
+
+    from core.bn_lr import backtest, load_model
+
+    model_path = args.model
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model not found: {model_path}")
+
+    data_path = args.data
+    if not data_path.exists():
+        raise FileNotFoundError(f"Test data not found: {data_path}")
+
+    model, metadata = load_model(model_path, verify_cpd_hash=not args.allow_skew)
+
+    df = pd.read_csv(data_path)
+    required_columns = [
+        "bn_p_low",
+        "bn_p_medium",
+        "bn_p_high",
+        "bn_p_critical",
+        "label",
+    ]
+    missing = set(required_columns) - set(df.columns)
+    if missing:
+        raise ValueError(f"Test data missing required columns: {missing}")
+
+    X_test = df[["bn_p_low", "bn_p_medium", "bn_p_high", "bn_p_critical"]].values
+    y_test = df["label"].values
+
+    thresholds = (
+        [0.6, 0.85]
+        if not args.thresholds
+        else [float(t) for t in args.thresholds.split(",")]
+    )
+
+    metrics = backtest(model, X_test, y_test, thresholds=thresholds)
+
+    if args.output:
+        ensure_output_directory(args.output.parent)
+        with args.output.open("w", encoding="utf-8") as handle:
+            json.dump(metrics, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if not args.quiet:
+        print(f"Backtest results on {metrics['n_samples']} samples:")
+        print(f"  Accuracy: {metrics['accuracy']:.4f}")
+        print(f"  ROC-AUC: {metrics['roc_auc']:.4f}")
+        print(f"  Positive samples: {metrics['n_positive']}")
+        print(f"  Negative samples: {metrics['n_negative']}")
+        print("  Threshold metrics:")
+        for threshold, threshold_metrics in metrics["thresholds"].items():
+            print(
+                f"    {threshold}: precision={threshold_metrics['precision']:.4f}, "
+                f"recall={threshold_metrics['recall']:.4f}"
+            )
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -1096,6 +1253,110 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress the demo summary",
     )
     demo_parser.set_defaults(func=_handle_demo)
+
+    train_bn_lr_parser = subparsers.add_parser(
+        "train-bn-lr",
+        help="Train BN-LR hybrid model using Bayesian Network posteriors and Logistic Regression",
+    )
+    train_bn_lr_parser.add_argument(
+        "--data",
+        type=Path,
+        required=True,
+        help="Path to CSV file with training data (columns: bn_p_low, bn_p_medium, bn_p_high, bn_p_critical, label)",
+    )
+    train_bn_lr_parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Directory to save trained model artifacts",
+    )
+    train_bn_lr_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress training summary",
+    )
+    train_bn_lr_parser.set_defaults(func=_handle_train_bn_lr)
+
+    predict_bn_lr_parser = subparsers.add_parser(
+        "predict-bn-lr",
+        help="Predict exploitation risk using trained BN-LR model",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--model",
+        type=Path,
+        required=True,
+        help="Path to trained model directory",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--context",
+        type=Path,
+        required=True,
+        help="Path to JSON file with context (exploitation, exposure, utility, etc.)",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write prediction result JSON",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--allow-skew",
+        action="store_true",
+        help="Allow BN CPD hash mismatch (skip training/serving skew check)",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress prediction output",
+    )
+    predict_bn_lr_parser.set_defaults(func=_handle_predict_bn_lr)
+
+    backtest_bn_lr_parser = subparsers.add_parser(
+        "backtest-bn-lr",
+        help="Backtest trained BN-LR model on labeled test data",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--model",
+        type=Path,
+        required=True,
+        help="Path to trained model directory",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--data",
+        type=Path,
+        required=True,
+        help="Path to CSV file with test data (same format as training data)",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write backtest metrics JSON",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--thresholds",
+        type=str,
+        help="Comma-separated decision thresholds to evaluate (default: 0.6,0.85)",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--allow-skew",
+        action="store_true",
+        help="Allow BN CPD hash mismatch (skip training/serving skew check)",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress backtest summary",
+    )
+    backtest_bn_lr_parser.set_defaults(func=_handle_backtest_bn_lr)
 
     return parser
 
