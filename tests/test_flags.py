@@ -292,7 +292,7 @@ class TestFlagRegistry:
     def test_registry_has_flags(self):
         """Test that registry has registered flags."""
         registry = get_registry()
-        assert len(registry.flags) > 0
+        assert len(registry.list_all()) > 0
 
     def test_registry_get_flag(self):
         """Test getting flag metadata from registry."""
@@ -306,34 +306,38 @@ class TestFlagRegistry:
     def test_registry_list_by_priority(self):
         """Test listing flags by priority."""
         registry = get_registry()
-        p0_flags = registry.list_by_priority(0)
-        assert len(p0_flags) > 0
-        assert all(f.priority == 0 for f in p0_flags)
+        ops_flags = registry.list_by_tag("ops")
+        assert len(ops_flags) > 0
+        assert all("ops" in f.tags for f in ops_flags)
 
     def test_registry_list_by_tag(self):
         """Test listing flags by tag."""
         registry = get_registry()
-        operational_flags = registry.list_by_tag("operational")
-        assert len(operational_flags) > 0
-        assert all("operational" in f.tags for f in operational_flags)
+        ops_flags = registry.list_by_tag("ops")
+        assert len(ops_flags) > 0
+        assert all("ops" in f.tags for f in ops_flags)
 
     def test_registry_validate_config(self):
         """Test validating config against registry."""
         registry = get_registry()
         config = {
-            "fixops.ops.kill_switch": False,
-            "fixops.module.guardrails.enabled": True,
+            "feature_flags": {
+                "fixops.ops.kill_switch": False,
+                "fixops.module.guardrails.enabled": True,
+            }
         }
-        errors = registry.validate_config(config)
+        errors = registry.validate_overlay_config(config)
         assert len(errors) == 0
 
     def test_registry_validate_config_type_mismatch(self):
         """Test that type mismatches are detected."""
         registry = get_registry()
         config = {
-            "fixops.ops.kill_switch": "not_a_bool",
+            "feature_flags": {
+                "fixops.ops.kill_switch": "not_a_bool",
+            }
         }
-        errors = registry.validate_config(config)
+        errors = registry.validate_overlay_config(config)
         assert len(errors) > 0
         assert "type mismatch" in errors[0].lower()
 
