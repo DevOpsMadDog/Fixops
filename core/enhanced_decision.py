@@ -182,6 +182,16 @@ class MultiLLMConsensusEngine:
         self.provider_clients = self._build_provider_clients(settings)
         self.policy_engine = DecisionPolicyEngine(settings)
 
+        decision_config = settings.get("decision", {})
+        self.use_risk_engine = decision_config.get("use_risk_engine", True)
+        self.policy_pre_consensus = decision_config.get("policy_pre_consensus", True)
+        self.risk_block_threshold = float(
+            decision_config.get("risk_block_threshold", 0.85)
+        )
+        self.risk_review_threshold = float(
+            decision_config.get("risk_review_threshold", 0.60)
+        )
+
     # ------------------------------------------------------------------
     # Public helpers
     # ------------------------------------------------------------------
@@ -204,14 +214,55 @@ class MultiLLMConsensusEngine:
         highest = _normalise_severity(severity_overview.get("highest"))
         counts = _as_counter(severity_overview.get("counts"))
         total_findings = sum(counts.values())
-        base_action, base_confidence, mitre_candidates = self._base_profile(
-            highest, total_findings
-        )
+
         guardrail_status = (guardrail or {}).get("status", "pass")
         compliance_gaps = _extract_compliance_gaps(compliance_status)
         exposures = _extract_exposures(cnapp_summary)
         exploit_stats = _extract_exploit_stats(exploitability)
         agent_components = _extract_agent_components(ai_agent_analysis)
+
+        risk_score = (
+            severity_overview.get("risk_score", 0.0)
+            if isinstance(severity_overview, Mapping)
+            else 0.0
+        )
+        if isinstance(risk_score, (int, float)):
+            risk_score = (
+                float(risk_score) / 100.0 if risk_score > 1.0 else float(risk_score)
+            )
+        else:
+            risk_score = 0.0
+
+        if self.use_risk_engine and risk_score > 0.0:
+            base_action, base_confidence, mitre_candidates = self._risk_based_profile(
+                risk_score, exploit_stats, exposures, highest
+            )
+        else:
+            base_action, base_confidence, mitre_candidates = self._base_profile(
+                highest, total_findings
+            )
+
+        if self.policy_pre_consensus:
+            finding_metadata = (
+                severity_overview.get("metadata", {})
+                if isinstance(severity_overview, Mapping)
+                else {}
+            )
+            context_details = dict(context_summary or {})
+            policy_override = self.policy_engine.evaluate_overrides(
+                base_verdict=base_action,
+                base_confidence=base_confidence,
+                severity=highest,
+                exposures=exposures,
+                context_summary=context_details,
+                finding_metadata=finding_metadata,
+            )
+
+            if policy_override.triggered and policy_override.new_verdict:
+                base_action = policy_override.new_verdict
+                base_confidence = min(
+                    0.99, base_confidence + policy_override.confidence_boost
+                )
         suppressed = int((noise_reduction or {}).get("suppressed_total", 0))
         marketplace_focus = [
             item.get("id")
@@ -340,35 +391,7 @@ class MultiLLMConsensusEngine:
             consensus_confidence -= 0.02
         consensus_confidence = max(0.45, min(0.99, consensus_confidence))
 
-        finding_metadata = (
-            severity_overview.get("metadata", {})
-            if isinstance(severity_overview, Mapping)
-            else {}
-        )
-        policy_override = self.policy_engine.evaluate_overrides(
-            base_verdict=final_decision,
-            base_confidence=consensus_confidence,
-            severity=highest,
-            exposures=exposures,
-            context_summary=context_details,
-            finding_metadata=finding_metadata,
-        )
-
-        # If policy override triggered, update verdict and confidence
-        if policy_override.triggered and policy_override.new_verdict:
-            final_decision = policy_override.new_verdict
-            consensus_confidence = min(
-                0.99, consensus_confidence + policy_override.confidence_boost
-            )
-            disagreement = []
-            disagreement.append(f"policy_override:{policy_override.policy_id}")
-        else:
-            disagreement = []
-
-        expert_validation = (
-            consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
-        )
-
+        disagreement = []
         if len(set(actions)) > 1:
             disagreement.append("model_action_split")
         if compliance_gaps:
@@ -376,11 +399,22 @@ class MultiLLMConsensusEngine:
         if agent_components:
             disagreement.append("ai_agent_components")
 
+        if self.policy_pre_consensus and policy_override.triggered:
+            disagreement.append(f"policy_override:{policy_override.policy_id}")
+
+        expert_validation = (
+            consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
+        )
+
         summary = _build_summary(
             final_decision, consensus_confidence, counts, exposures, exploit_stats
         )
 
-        if policy_override.triggered and policy_override.reason:
+        if (
+            self.policy_pre_consensus
+            and policy_override.triggered
+            and policy_override.reason
+        ):
             summary = f"{summary} {policy_override.reason}"
 
         signals = self._signals(final_decision, consensus_confidence, exploit_stats)
@@ -655,6 +689,49 @@ class MultiLLMConsensusEngine:
         if total_findings == 0:
             return "allow", 0.6, ["T1046"]
         return "allow", max(self.baseline_confidence - 0.18, 0.65), ["T1046"]
+
+    def _risk_based_profile(
+        self,
+        risk_score: float,
+        exploit_stats: Mapping[str, Any],
+        exposures: Sequence[Mapping[str, Any]],
+        highest: str,
+    ) -> tuple[str, float, List[str]]:
+        """Compute base verdict from risk score with exposure context.
+
+        This method uses the computed risk score (0.0-1.0) from the risk engine
+        which combines EPSS, KEV, version lag, and exposure context to determine
+        the base verdict using configurable thresholds.
+        """
+        mitre_candidates = ["T1190", "T1059", "T1078"]
+
+        if exploit_stats.get("kev_count", 0) > 0:
+            risk_score = max(risk_score, 0.90)
+            mitre_candidates = ["T1190", "T1059", "T1078"]
+
+        exposure_multiplier = self.policy_engine.calculate_exposure_multiplier(
+            exposures, context_summary=None, finding_metadata=None
+        )
+        adjusted_risk = min(1.0, risk_score * exposure_multiplier)
+
+        if adjusted_risk >= self.risk_block_threshold:
+            return (
+                "block",
+                max(self.baseline_confidence, 0.88),
+                mitre_candidates,
+            )
+        elif adjusted_risk >= self.risk_review_threshold:
+            return (
+                "review",
+                max(self.baseline_confidence - 0.05, 0.75),
+                mitre_candidates,
+            )
+        else:
+            return (
+                "allow",
+                max(self.baseline_confidence - 0.15, 0.65),
+                ["T1046"],
+            )
 
     @staticmethod
     def _risk_bucket(confidence: float, exploit_stats: Mapping[str, Any]) -> str:
