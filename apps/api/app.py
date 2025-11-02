@@ -78,7 +78,7 @@ def _load_or_generate_jwt_secret() -> str:
     # Priority 1: Environment variable
     env_secret = os.getenv("FIXOPS_JWT_SECRET")
     if env_secret:
-        logger.info("Using JWT signing key from FIXOPS_JWT_SECRET environment variable")
+        logger.info("Using JWT signing key from environment variable")
         return env_secret
 
     # Priority 2: Persisted file
@@ -101,7 +101,7 @@ def _load_or_generate_jwt_secret() -> str:
             _JWT_SECRET_FILE.chmod(0o600)  # Secure permissions
             logger.warning(
                 f"Generated and persisted new JWT signing key to {_JWT_SECRET_FILE}. "
-                "For production, set FIXOPS_JWT_SECRET environment variable."
+                "For production, set JWT signing key via environment variable."
             )
             return secret
         except Exception as e:
