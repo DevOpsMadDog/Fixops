@@ -91,6 +91,65 @@ export LAUNCHDARKLY_DISABLED=1
 export LAUNCHDARKLY_OFFLINE=1
 ```
 
+### Dynamic Product Branding (Namespace Aliasing)
+
+FixOps supports dynamic product branding through namespace aliasing. This allows you to rebrand the product (e.g., from "FixOps" to "Aldeci") without changing code or flag keys.
+
+**How it works:**
+
+1. Set a brand namespace via environment variable or branding flags
+2. Use branded flag keys (e.g., `aldeci.*`) in LaunchDarkly or local overlay
+3. Existing `fixops.*` keys continue to work (backward compatible)
+
+**Configuration:**
+
+```bash
+# Option 1: Set brand namespace via environment variable
+export PRODUCT_NAMESPACE=aldeci
+
+# Option 2: Set via branding flags (in config/fixops.overlay.yml)
+feature_flags:
+  fixops.branding:
+    product_name: "Aldeci"
+    short_name: "Aldeci"  # Used for namespace (lowercased)
+```
+
+**Example:**
+
+```yaml
+# In config/fixops.overlay.yml or LaunchDarkly
+feature_flags:
+  # Branded keys (tried first)
+  aldeci.module.guardrails: true
+  aldeci.feature.llm.sentinel: true
+  
+  # Canonical keys (fallback)
+  fixops.module.compliance: true
+  fixops.feature.evidence.encryption: true
+```
+
+**Evaluation precedence:**
+
+1. Try branded key first (e.g., `aldeci.module.guardrails`)
+2. Fall back to canonical key (e.g., `fixops.module.guardrails`)
+3. Use registry default if neither found
+
+**Environment variable fallback:**
+
+The system also supports branded environment variables:
+
+```bash
+# Branded variables (tried first)
+export ALDECI_API_TOKEN="token-123"
+export ALDECI_JIRA_TOKEN="jira-456"
+
+# Canonical variables (fallback)
+export FIXOPS_API_TOKEN="token-123"
+export FIXOPS_JIRA_TOKEN="jira-456"
+```
+
+Use the `get_env_with_namespace()` utility from `core.utils.env` to read environment variables with automatic fallback.
+
 ## Usage
 
 ### Basic Flag Evaluation
