@@ -385,7 +385,8 @@ class MultiLLMConsensusEngine:
                 )
             )
 
-        final_decision = _majority(actions, base_action)
+        provider_weights = [p.weight for p in self.providers]
+        final_decision = _majority(actions, base_action, weights=provider_weights)
         consensus_confidence = (
             statistics.fmean(confidences) if confidences else self.baseline_confidence
         )
@@ -747,6 +748,14 @@ class MultiLLMConsensusEngine:
         which combines EPSS, KEV, version lag, and exposure context to determine
         the base verdict using configurable thresholds.
 
+        IMPORTANT: This is the SINGLE SOURCE OF TRUTH for exposure multipliers.
+        Exposure multipliers are calculated by DecisionPolicyEngine.calculate_exposure_multiplier()
+        and applied ONLY here. The risk_score parameter is pre-exposure (raw risk from
+        compute_risk_profile). We apply exposure multipliers here to get adjusted_risk.
+
+        DO NOT apply exposure multipliers elsewhere (e.g., in SeverityPromotionEngine or
+        compute_risk_profile) to avoid double-counting.
+
         Returns:
             tuple: (action, confidence, mitre_candidates, adjusted_risk, exposure_multiplier)
         """
@@ -1067,17 +1076,59 @@ def _build_summary(
     )
 
 
-def _majority(actions: Sequence[str], fallback: str) -> str:
-    counts: Dict[str, int] = {}
-    for action in actions:
-        counts[action] = counts.get(action, 0) + 1
-    if not counts:
+def _majority(
+    actions: Sequence[str],
+    fallback: str,
+    weights: Optional[Sequence[float]] = None,
+) -> str:
+    """Determine consensus action using weighted voting.
+
+    Args:
+        actions: Sequence of action strings from each provider
+        fallback: Default action if no consensus
+        weights: Optional sequence of weights for each action (same length as actions)
+                If None, uses simple majority (weight=1.0 for all)
+
+    Returns:
+        Consensus action string
+    """
+    if not actions:
         return fallback
-    sorted_actions = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-    top_action, top_count = sorted_actions[0]
-    if len(sorted_actions) > 1 and sorted_actions[1][1] == top_count:
-        return fallback
-    return top_action
+
+    if weights and len(weights) == len(actions):
+        weighted_counts: Dict[str, float] = {}
+        for action, weight in zip(actions, weights):
+            weighted_counts[action] = weighted_counts.get(action, 0.0) + weight
+
+        if not weighted_counts:
+            return fallback
+
+        sorted_actions = sorted(
+            weighted_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+        top_action, top_weight = sorted_actions[0]
+
+        if len(sorted_actions) > 1:
+            second_weight = sorted_actions[1][1]
+            if abs(top_weight - second_weight) < 0.001:  # Tie threshold
+                return fallback
+
+        return top_action
+    else:
+        counts: Dict[str, int] = {}
+        for action in actions:
+            counts[action] = counts.get(action, 0) + 1
+
+        if not counts:
+            return fallback
+
+        sorted_actions = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        top_action, top_count = sorted_actions[0]
+
+        if len(sorted_actions) > 1 and sorted_actions[1][1] == top_count:
+            return fallback
+
+        return top_action
 
 
 # ----------------------------------------------------------------------
