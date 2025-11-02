@@ -65,9 +65,9 @@ class TestEvidenceGeneration:
         assert bundle.payload is not None, "Bundle missing payload"
 
         assert "run_id" in bundle.manifest, "Manifest missing run_id"
-        assert "timestamp" in bundle.manifest, "Manifest missing timestamp"
+        assert "mode" in bundle.manifest, "Manifest missing mode"
         assert "producer" in bundle.payload, "Payload missing producer"
-        assert "pipeline_result" in bundle.payload, "Payload missing pipeline_result"
+        assert "run_id" in bundle.payload, "Payload missing run_id"
 
     def test_evidence_bundle_validation(
         self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
