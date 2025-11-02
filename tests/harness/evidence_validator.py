@@ -74,8 +74,10 @@ class EvidenceValidator:
             return []
 
         bundles = []
-        for pattern in ["*.zip", "*.json.gz", "*.json"]:
+        for pattern in ["**/*.zip", "**/*.json.gz", "**/*-bundle.json"]:
             bundles.extend(evidence_dir.glob(pattern))
+
+        bundles = [b for b in bundles if "manifest.json" not in b.name]
 
         return sorted(bundles)
 
