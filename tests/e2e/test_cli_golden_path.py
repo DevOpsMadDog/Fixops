@@ -302,6 +302,7 @@ class TestCLIGoldenPath:
         output_file = fixture_manager.temp_dir / "pipeline-large.json"
 
         result = cli_runner.run_pipeline(
+            design=demo_fixtures["design"],
             sbom=large_sbom,
             cve=demo_fixtures["cve"],
             sarif=demo_fixtures["sarif"],
