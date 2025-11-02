@@ -1007,4 +1007,17 @@ class PipelineOrchestrator:
             }
             result["feature_matrix"] = build_feature_matrix(result)
 
+        risk_score = 0
+        if context_summary and isinstance(context_summary, dict):
+            summary = context_summary.get("summary", {})
+            if isinstance(summary, dict):
+                risk_score = summary.get("highest_score", 0)
+
+        if risk_score == 0 and "severity_overview" in result:
+            severity_map = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+            highest = result["severity_overview"].get("highest", "low")
+            risk_score = severity_map.get(highest, 0)
+
+        result["risk_score"] = risk_score
+
         return result
