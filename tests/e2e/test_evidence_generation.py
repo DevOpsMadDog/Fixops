@@ -162,11 +162,11 @@ class TestEvidenceGeneration:
         assert result.success, f"CLI failed: {result.stderr}"
 
         bundles = evidence_validator.find_bundles(evidence_dir)
-        if len(bundles) > 0:
-            bundle = evidence_validator.extract_bundle(bundles[0])
-            assert evidence_validator.check_retention(
-                bundle, 90
-            ), f"Expected retention_days=90, got {bundle.retention_days}"
+        assert len(bundles) > 0, "No evidence bundles created"
+        bundle = evidence_validator.extract_bundle(bundles[0])
+        assert evidence_validator.check_retention(
+            bundle, 90
+        ), f"Expected retention_days=90, got {bundle.retention_days}"
 
     def test_evidence_encryption_disabled(
         self,

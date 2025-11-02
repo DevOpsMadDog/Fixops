@@ -78,13 +78,13 @@ class FlagConfigManager:
         """
         for key, value in env_vars.items():
             if key not in self.original_env:
-                self.original_env[key] = os.environ.get(key, "")
+                self.original_env[key] = os.environ.get(key, None)
             os.environ[key] = value
 
     def restore_env_vars(self) -> None:
         """Restore original environment variables."""
         for key, value in self.original_env.items():
-            if value:
+            if value is not None:
                 os.environ[key] = value
             else:
                 os.environ.pop(key, None)

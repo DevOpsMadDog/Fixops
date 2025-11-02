@@ -125,11 +125,9 @@ class TestFlagWiring:
         assert result.success, f"CLI failed: {result.stderr}"
 
         bundles = evidence_validator.find_bundles(evidence_dir)
-        if len(bundles) > 0:
-            bundle = evidence_validator.extract_bundle(bundles[0])
-            assert (
-                not bundle.encrypted
-            ), "Bundle should not be encrypted when flag is False"
+        assert len(bundles) > 0, "No evidence bundles created"
+        bundle = evidence_validator.extract_bundle(bundles[0])
+        assert not bundle.encrypted, "Bundle should not be encrypted when flag is False"
 
     def test_evidence_retention_flag(
         self,

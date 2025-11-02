@@ -34,7 +34,7 @@ class TestBrandingNamespace:
             headers = {"X-API-Key": "test-token-branding"}
 
             response = requests.get(
-                f"{server.base_url}/api/v1/status",
+                f"{server.base_url}/api/v1/health",
                 headers=headers,
                 timeout=5,
             )
@@ -113,11 +113,11 @@ class TestBrandingNamespace:
         assert result.success, f"CLI failed: {result.stderr}"
 
         bundles = evidence_validator.find_bundles(evidence_dir)
-        if len(bundles) > 0:
-            bundle = evidence_validator.extract_bundle(bundles[0])
-            assert evidence_validator.check_branding(
-                bundle, "Aldeci"
-            ), f"Expected 'Aldeci' in producer field, got '{bundle.producer}'"
+        assert len(bundles) > 0, "No evidence bundles created"
+        bundle = evidence_validator.extract_bundle(bundles[0])
+        assert evidence_validator.check_branding(
+            bundle, "Aldeci"
+        ), f"Expected 'Aldeci' in producer field, got '{bundle.producer}'"
 
     def test_namespace_aliasing_aldeci_keys(
         self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
@@ -344,11 +344,11 @@ class TestBrandingNamespace:
         assert result.success, f"CLI failed: {result.stderr}"
 
         bundles = evidence_validator.find_bundles(evidence_dir)
-        if len(bundles) > 0:
-            bundle = evidence_validator.extract_bundle(bundles[0])
-            assert evidence_validator.check_branding(
-                bundle, "TestBrand"
-            ), f"Expected 'TestBrand' in producer field, got '{bundle.producer}'"
+        assert len(bundles) > 0, "No evidence bundles created"
+        bundle = evidence_validator.extract_bundle(bundles[0])
+        assert evidence_validator.check_branding(
+            bundle, "TestBrand"
+        ), f"Expected 'TestBrand' in producer field, got '{bundle.producer}'"
 
     def test_branding_persists_across_api_requests(
         self, fixture_manager, flag_config_manager, demo_fixtures
@@ -370,7 +370,7 @@ class TestBrandingNamespace:
 
             for i in range(3):
                 response = requests.get(
-                    f"{server.base_url}/api/v1/status",
+                    f"{server.base_url}/api/v1/health",
                     headers=headers,
                     timeout=5,
                 )

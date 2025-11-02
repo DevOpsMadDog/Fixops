@@ -74,7 +74,7 @@ class ServerManager:
 
         repo_root = Path(__file__).parent.parent.parent
         if "PYTHONPATH" in env:
-            env["PYTHONPATH"] = f"{repo_root}:{env['PYTHONPATH']}"
+            env["PYTHONPATH"] = f"{repo_root}{os.pathsep}{env['PYTHONPATH']}"
         else:
             env["PYTHONPATH"] = str(repo_root)
 
