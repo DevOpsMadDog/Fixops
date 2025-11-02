@@ -805,6 +805,74 @@ class PipelineOrchestrator:
         if highest_trigger:
             severity_overview["trigger"] = highest_trigger
 
+        # Extract metadata from SARIF findings for policy engine
+        if sarif and sarif.findings:
+            highest_finding = None
+            highest_idx = -1
+            for finding in sarif.findings:
+                finding_severity = self._normalise_sarif_severity(finding)
+                idx = self._severity_index(finding_severity)
+                if idx > highest_idx:
+                    highest_idx = idx
+                    highest_finding = finding
+
+            if highest_finding:
+                metadata: Dict[str, Any] = {}
+                # Extract file path from locations
+                if hasattr(highest_finding, "locations") and highest_finding.locations:
+                    location = highest_finding.locations[0]
+                    if hasattr(location, "physical_location"):
+                        phys_loc = location.physical_location
+                        if hasattr(phys_loc, "artifact_location"):
+                            artifact = phys_loc.artifact_location
+                            if hasattr(artifact, "uri"):
+                                metadata["file"] = artifact.uri
+                                if hasattr(phys_loc, "region") and hasattr(
+                                    phys_loc.region, "start_line"
+                                ):
+                                    metadata[
+                                        "location"
+                                    ] = f"{artifact.uri}:{phys_loc.region.start_line}"
+                                else:
+                                    metadata["location"] = artifact.uri
+
+                # Extract rule ID
+                if hasattr(highest_finding, "rule_id"):
+                    metadata["rule_id"] = highest_finding.rule_id
+
+                # Extract message
+                if hasattr(highest_finding, "message"):
+                    metadata["message"] = highest_finding.message
+
+                # Extract CWE IDs from properties
+                if hasattr(highest_finding, "properties") and isinstance(
+                    highest_finding.properties, dict
+                ):
+                    cwe = highest_finding.properties.get("cwe", [])
+                    if isinstance(cwe, list):
+                        metadata["cwe_ids"] = cwe
+
+                metadata["type"] = "sast"
+
+                if "file" in metadata:
+                    file_path = metadata["file"]
+                    # Extract service name from path like "src/services/auth_service.py"
+                    parts = file_path.split("/")
+                    for i, part in enumerate(parts):
+                        if part in ("services", "service"):
+                            if i + 1 < len(parts):
+                                service_file = parts[i + 1]
+                                service_name = (
+                                    service_file.replace(".py", "")
+                                    .replace(".js", "")
+                                    .replace(".ts", "")
+                                    .replace("_", "-")
+                                )
+                                metadata["service"] = service_name
+                                break
+
+                severity_overview["metadata"] = metadata
+
         processing_layer = ProcessingLayer()
         processing_result = processing_layer.evaluate(
             sbom_components=[component.to_dict() for component in sbom.components],
