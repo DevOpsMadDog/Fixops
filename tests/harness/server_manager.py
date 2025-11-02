@@ -53,6 +53,19 @@ class ServerManager:
         env.update(self.env)
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
 
+        if "FIXOPS_JWT_SECRET" not in env:
+            import secrets
+
+            env["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
+
+        if "FIXOPS_API_TOKEN" not in env:
+            import secrets
+
+            env["FIXOPS_API_TOKEN"] = secrets.token_hex(32)
+
+        if "FIXOPS_MODE" not in env:
+            env["FIXOPS_MODE"] = "demo"
+
         repo_root = Path(__file__).parent.parent.parent
         if "PYTHONPATH" in env:
             env["PYTHONPATH"] = f"{repo_root}:{env['PYTHONPATH']}"
