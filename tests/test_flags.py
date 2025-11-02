@@ -1,6 +1,7 @@
 """Tests for feature flag system."""
 
 from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, patch
 
 from core.flags import EvaluationContext
 from core.flags.base import FeatureFlagProvider
@@ -284,6 +285,56 @@ class TestCombinedProvider:
 
         provider = CombinedProvider(primary, fallback)
         assert provider.bool("fixops.feature.test", True) is True
+
+
+class TestLaunchDarklyProvider:
+    """Tests for LaunchDarklyProvider."""
+
+    def test_build_ld_context_uses_mode_as_environment_alias(self):
+        """Test that mode is treated as alias for environment in LD context."""
+        with patch("core.flags.ld_provider.LAUNCHDARKLY_AVAILABLE", True):
+            with patch("core.flags.ld_provider.ldclient"):
+                with patch("core.flags.ld_provider.LDContext") as mock_ld_context:
+                    mock_builder = MagicMock()
+                    mock_ld_context.builder.return_value = mock_builder
+                    mock_builder.set.return_value = mock_builder
+                    mock_builder.build.return_value = MagicMock()
+
+                    from core.flags.ld_provider import LaunchDarklyProvider
+
+                    provider = LaunchDarklyProvider(sdk_key="test-key", offline=True)
+
+                    context_with_mode = EvaluationContext(
+                        tenant_id="test-tenant", mode="production"
+                    )
+
+                    provider._build_ld_context(context_with_mode)
+
+                    mock_builder.set.assert_any_call("environment", "production")
+
+    def test_build_ld_context_prefers_environment_over_mode(self):
+        """Test that environment takes precedence over mode when both are set."""
+        with patch("core.flags.ld_provider.LAUNCHDARKLY_AVAILABLE", True):
+            with patch("core.flags.ld_provider.ldclient"):
+                with patch("core.flags.ld_provider.LDContext") as mock_ld_context:
+                    mock_builder = MagicMock()
+                    mock_ld_context.builder.return_value = mock_builder
+                    mock_builder.set.return_value = mock_builder
+                    mock_builder.build.return_value = MagicMock()
+
+                    from core.flags.ld_provider import LaunchDarklyProvider
+
+                    provider = LaunchDarklyProvider(sdk_key="test-key", offline=True)
+
+                    context_with_both = EvaluationContext(
+                        tenant_id="test-tenant",
+                        environment="staging",
+                        mode="production",
+                    )
+
+                    provider._build_ld_context(context_with_both)
+
+                    mock_builder.set.assert_any_call("environment", "staging")
 
 
 class TestFlagRegistry:
