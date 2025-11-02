@@ -272,7 +272,7 @@ class AutomationConnectors:
             if self.flag_provider:
                 try:
                     jira_enabled = self.flag_provider.bool(
-                        "fixops.connector.jira", True
+                        "fixops.feature.connector.jira", True
                     )
                 except Exception:
                     pass
@@ -289,7 +289,7 @@ class AutomationConnectors:
             if self.flag_provider:
                 try:
                     confluence_enabled = self.flag_provider.bool(
-                        "fixops.connector.confluence", True
+                        "fixops.feature.connector.confluence", True
                     )
                 except Exception:
                     pass
@@ -308,7 +308,7 @@ class AutomationConnectors:
             if self.flag_provider:
                 try:
                     slack_enabled = self.flag_provider.bool(
-                        "fixops.connector.slack", True
+                        "fixops.feature.connector.slack", True
                     )
                 except Exception:
                     pass

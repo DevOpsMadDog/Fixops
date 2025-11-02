@@ -107,10 +107,10 @@ class EvidenceHub:
         retention_value = self.settings.get("retention_days", 2555)
 
         try:
-            flag_retention = overlay.flag_provider.string(
-                "fixops.feature.evidence.retention", None
+            flag_retention = overlay.flag_provider.number(
+                "fixops.feature.evidence.retention_days", None
             )
-            if flag_retention:
+            if flag_retention is not None:
                 retention_value = flag_retention
         except Exception:
             pass
