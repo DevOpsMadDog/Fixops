@@ -38,7 +38,7 @@ def _derive_brand_namespace(provider: FeatureFlagProvider) -> str:
         return env_namespace.lower().strip()
 
     try:
-        branding = provider.json("fixops.branding", None)
+        branding = provider.json("fixops.branding", {})
         if branding and isinstance(branding, dict):
             short_name = branding.get("short_name", "fixops")
             return short_name.lower().strip()

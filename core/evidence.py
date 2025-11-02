@@ -108,7 +108,7 @@ class EvidenceHub:
 
         try:
             flag_retention = overlay.flag_provider.number(
-                "fixops.feature.evidence.retention_days", None
+                "fixops.feature.evidence.retention_days", float(retention_value)
             )
             if flag_retention is not None:
                 retention_value = flag_retention
@@ -134,7 +134,7 @@ class EvidenceHub:
     def _bundle_name(self) -> str:
         product_name = "fixops"
         try:
-            branding = self.overlay.flag_provider.json("fixops.branding", None)
+            branding = self.overlay.flag_provider.json("fixops.branding", {})
             if branding and isinstance(branding, dict):
                 product_name = branding.get("short_name", "fixops").lower()
         except Exception:
@@ -164,7 +164,7 @@ class EvidenceHub:
 
         producer_name = "FixOps"
         try:
-            branding = self.overlay.flag_provider.json("fixops.branding", None)
+            branding = self.overlay.flag_provider.json("fixops.branding", {})
             if branding and isinstance(branding, dict):
                 producer_name = branding.get("product_name", "FixOps")
         except Exception:
