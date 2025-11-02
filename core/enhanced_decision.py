@@ -16,6 +16,7 @@ from typing import (
     Sequence,
 )
 
+from core.decision_policy import DecisionPolicyEngine
 from core.llm_providers import (
     AnthropicMessagesProvider,
     BaseLLMProvider,
@@ -179,6 +180,7 @@ class MultiLLMConsensusEngine:
         )
         self.baseline_confidence = float(settings.get("baseline_confidence", 0.78))
         self.provider_clients = self._build_provider_clients(settings)
+        self.policy_engine = DecisionPolicyEngine(settings)
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -337,11 +339,36 @@ class MultiLLMConsensusEngine:
         if suppressed:
             consensus_confidence -= 0.02
         consensus_confidence = max(0.45, min(0.99, consensus_confidence))
+
+        finding_metadata = (
+            severity_overview.get("metadata", {})
+            if isinstance(severity_overview, Mapping)
+            else {}
+        )
+        policy_override = self.policy_engine.evaluate_overrides(
+            base_verdict=final_decision,
+            base_confidence=consensus_confidence,
+            severity=highest,
+            exposures=exposures,
+            context_summary=context_details,
+            finding_metadata=finding_metadata,
+        )
+
+        # If policy override triggered, update verdict and confidence
+        if policy_override.triggered and policy_override.new_verdict:
+            final_decision = policy_override.new_verdict
+            consensus_confidence = min(
+                0.99, consensus_confidence + policy_override.confidence_boost
+            )
+            disagreement = []
+            disagreement.append(f"policy_override:{policy_override.policy_id}")
+        else:
+            disagreement = []
+
         expert_validation = (
             consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
         )
 
-        disagreement = []
         if len(set(actions)) > 1:
             disagreement.append("model_action_split")
         if compliance_gaps:
@@ -352,6 +379,10 @@ class MultiLLMConsensusEngine:
         summary = _build_summary(
             final_decision, consensus_confidence, counts, exposures, exploit_stats
         )
+
+        if policy_override.triggered and policy_override.reason:
+            summary = f"{summary} {policy_override.reason}"
+
         signals = self._signals(final_decision, consensus_confidence, exploit_stats)
 
         telemetry = {
