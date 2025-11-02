@@ -268,6 +268,81 @@ def backtest(
     return metrics
 
 
+class BNLRPredictor:
+    """Wrapper class for BN-LR prediction with trained model."""
+
+    def __init__(self, model_path: str):
+        """Initialize predictor with trained model.
+
+        Args:
+            model_path: Path to directory containing model.joblib and metadata.json
+        """
+        self.model_path = Path(model_path)
+        self.model, self.metadata = load_model(self.model_path, verify_cpd_hash=False)
+
+    def predict_single(
+        self,
+        epss: float,
+        kev_listed: int,
+        cvss: float,
+        exploit_complexity: float,
+        attack_vector: float,
+        patch_available: int,
+        user_interaction: int,
+        asset_criticality: float,
+    ) -> Dict[str, Any]:
+        """Predict exploitation risk for a single vulnerability.
+
+        Args:
+            epss: EPSS score [0, 1]
+            kev_listed: 1 if in KEV catalog, 0 otherwise
+            cvss: CVSS score [0, 10]
+            exploit_complexity: Normalized exploit complexity [0, 1]
+            attack_vector: Normalized attack vector [0, 1]
+            patch_available: 1 if patch available, 0 otherwise
+            user_interaction: 1 if user interaction required, 0 otherwise
+            asset_criticality: Asset criticality [0, 1]
+
+        Returns:
+            Dict with probability, bn_posteriors, bn_cpd_hash
+        """
+        context = {
+            "exploitation": "high" if epss > 0.5 else "medium" if epss > 0.2 else "low",
+            "exposure": "high" if kev_listed else "medium" if epss > 0.1 else "low",
+            "utility": "super_effective"
+            if cvss > 7.0
+            else "efficient"
+            if cvss > 4.0
+            else "laborious",
+            "safety_impact": "hazardous"
+            if cvss > 9.0
+            else "major"
+            if cvss > 7.0
+            else "marginal"
+            if cvss > 4.0
+            else "negligible",
+            "mission_impact": "mev"
+            if asset_criticality > 0.7
+            else "crippled"
+            if asset_criticality > 0.4
+            else "degraded",
+        }
+
+        bn_posteriors = extract_bn_posteriors(context)
+        probability = predict_proba(self.model, bn_posteriors)
+
+        return {
+            "probability": probability,
+            "bn_posteriors": {
+                "p_low": bn_posteriors[0],
+                "p_medium": bn_posteriors[1],
+                "p_high": bn_posteriors[2],
+                "p_critical": bn_posteriors[3],
+            },
+            "bn_cpd_hash": self.metadata.get("bn_cpd_hash"),
+        }
+
+
 __all__ = [
     "compute_bn_cpd_hash",
     "extract_bn_posteriors",
@@ -276,4 +351,5 @@ __all__ = [
     "save_model",
     "load_model",
     "backtest",
+    "BNLRPredictor",
 ]
