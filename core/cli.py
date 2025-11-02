@@ -524,15 +524,16 @@ def _handle_analyze(args: argparse.Namespace) -> int:
     _copy_evidence(result, getattr(args, "evidence_dir", None))
 
     enhanced_decision = result.get("enhanced_decision", {})
+    telemetry = enhanced_decision.get("telemetry", {})
     summary = {
         "verdict": decision,
         "confidence": enhanced_decision.get("consensus_confidence"),
         "severity": result.get("severity_overview", {}).get("highest"),
         "guardrail": result.get("guardrail_evaluation", {}).get("status"),
-        "decision_strategy": enhanced_decision.get("decision_strategy"),
-        "raw_risk": enhanced_decision.get("raw_risk"),
-        "adjusted_risk": enhanced_decision.get("adjusted_risk"),
-        "exposure_multiplier": enhanced_decision.get("exposure_multiplier"),
+        "decision_strategy": telemetry.get("decision_strategy"),
+        "raw_risk": telemetry.get("raw_risk"),
+        "adjusted_risk": telemetry.get("adjusted_risk"),
+        "exposure_multiplier": telemetry.get("exposure_multiplier"),
     }
 
     format_type = getattr(args, "format", "json")
