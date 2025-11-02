@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import importlib.util
 import io
+import json
 import logging
 import os
 import secrets
@@ -675,6 +676,17 @@ def create_app() -> FastAPI:
         )
         buffer, total = await _read_limited(file, "sbom")
         try:
+            # Validate JSON structure if content-type is JSON
+            if file.content_type in ("application/json", "text/json"):
+                buffer.seek(0)
+                try:
+                    json.load(buffer)
+                    buffer.seek(0)
+                except json.JSONDecodeError as exc:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Invalid JSON payload: {exc}",
+                    ) from exc
             return _process_sbom(buffer, total, file.filename or "sbom.json")
         finally:
             with suppress(Exception):
