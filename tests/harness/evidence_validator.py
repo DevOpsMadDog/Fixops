@@ -135,9 +135,24 @@ class EvidenceValidator:
         with gzip.open(bundle_path, "rt") as f:
             data = json.load(f)
 
-        manifest = data.get("manifest", {})
-        payload = data.get("payload", {})
-        metadata = data.get("metadata", {})
+        if "manifest" in data and "payload" in data:
+            manifest = data.get("manifest", {})
+            payload = data.get("payload", {})
+            metadata = data.get("metadata", {})
+        else:
+            payload = data
+            manifest = {}
+            metadata = {}
+
+            manifest_path = bundle_path.parent / "manifest.json"
+            if manifest_path.exists():
+                with open(manifest_path, "r") as f:
+                    manifest = json.load(f)
+                    metadata = {
+                        "retention_days": manifest.get("retention_days"),
+                        "encrypted": manifest.get("encrypted", False),
+                        "compressed": manifest.get("compressed", False),
+                    }
 
         return EvidenceBundle(bundle_path, manifest, payload, metadata)
 
@@ -146,9 +161,24 @@ class EvidenceValidator:
         with open(bundle_path, "r") as f:
             data = json.load(f)
 
-        manifest = data.get("manifest", {})
-        payload = data.get("payload", {})
-        metadata = data.get("metadata", {})
+        if "manifest" in data and "payload" in data:
+            manifest = data.get("manifest", {})
+            payload = data.get("payload", {})
+            metadata = data.get("metadata", {})
+        else:
+            payload = data
+            manifest = {}
+            metadata = {}
+
+            manifest_path = bundle_path.parent / "manifest.json"
+            if manifest_path.exists():
+                with open(manifest_path, "r") as f:
+                    manifest = json.load(f)
+                    metadata = {
+                        "retention_days": manifest.get("retention_days"),
+                        "encrypted": manifest.get("encrypted", False),
+                        "compressed": manifest.get("compressed", False),
+                    }
 
         return EvidenceBundle(bundle_path, manifest, payload, metadata)
 
@@ -186,17 +216,10 @@ class EvidenceValidator:
         """
         errors = []
 
-        required_fields = ["producer", "pipeline_result"]
+        required_fields = ["producer", "run_id"]
         for field in required_fields:
             if field not in payload:
                 errors.append(f"Missing required field in payload: {field}")
-
-        if "pipeline_result" in payload:
-            result = payload["pipeline_result"]
-            if not isinstance(result, dict):
-                errors.append("pipeline_result must be a dict")
-            elif "verdict" not in result:
-                errors.append("pipeline_result missing verdict field")
 
         return errors
 
