@@ -6,6 +6,7 @@ from core.flags import EvaluationContext
 from core.flags.base import FeatureFlagProvider
 from core.flags.combined import CombinedProvider
 from core.flags.local_provider import LocalOverlayProvider
+from core.flags.namespace_adapter import NamespaceAdapterProvider
 from core.flags.registry import FlagType, get_registry
 
 
@@ -416,3 +417,84 @@ class TestFakeFlagProvider:
         provider = FakeFlagProvider({"test.flag": "treatment"})
         assert provider.variant("test.flag", "control") == "treatment"
         assert provider.variant("unknown.flag", "control") == "control"
+
+
+class TestNamespaceAdapter:
+    """Tests for NamespaceAdapterProvider."""
+
+    def test_namespace_aliasing_with_brand_key(self):
+        """Test that branded keys are tried first."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.module.guardrails": True,
+                "fixops.module.guardrails": False,
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        assert adapter.bool("fixops.module.guardrails", False) is True
+
+    def test_namespace_fallback_to_canonical(self):
+        """Test fallback to fixops.* when brand key not found."""
+        wrapped = FakeFlagProvider(
+            {
+                "fixops.module.compliance": True,
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        assert adapter.bool("fixops.module.compliance", False) is True
+
+    def test_namespace_default_when_neither_found(self):
+        """Test default is returned when neither brand nor canonical key found."""
+        wrapped = FakeFlagProvider({})
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        assert adapter.bool("fixops.module.unknown", False) is False
+
+    def test_namespace_no_aliasing_when_same_as_canonical(self):
+        """Test no aliasing when brand namespace is 'fixops'."""
+        wrapped = FakeFlagProvider(
+            {
+                "fixops.module.guardrails": True,
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="fixops")
+
+        assert adapter.bool("fixops.module.guardrails", False) is True
+
+    def test_namespace_string_flag(self):
+        """Test namespace aliasing for string flags."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.model.risk.default": "bn_lr_hybrid_v1",
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        assert (
+            adapter.string("fixops.model.risk.default", "weighted") == "bn_lr_hybrid_v1"
+        )
+
+    def test_namespace_number_flag(self):
+        """Test namespace aliasing for number flags."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.feature.evidence.retention_days": 365,
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        assert adapter.number("fixops.feature.evidence.retention_days", 90) == 365
+
+    def test_namespace_json_flag(self):
+        """Test namespace aliasing for JSON flags."""
+        wrapped = FakeFlagProvider(
+            {
+                "aldeci.branding": {"product_name": "Aldeci", "short_name": "Aldeci"},
+            }
+        )
+        adapter = NamespaceAdapterProvider(wrapped, brand_namespace="aldeci")
+
+        result = adapter.json("fixops.branding", {})
+        assert result["product_name"] == "Aldeci"
