@@ -3,6 +3,9 @@
 This test suite verifies that the DecisionPolicyEngine correctly overrides
 verdicts for critical vulnerability combinations like internet-facing SQL
 injection in authentication services.
+
+It also tests the comprehensive architectural fix that wires risk scoring
+into decision logic with configurable thresholds and feature flags.
 """
 
 import json
@@ -11,6 +14,7 @@ from pathlib import Path
 
 from tests.harness.cli_runner import CLIRunner
 from tests.harness.fixture_manager import FixtureManager
+from tests.harness.flag_config_manager import FlagConfigManager
 from tests.harness.server_manager import ServerManager
 
 
@@ -501,3 +505,367 @@ class TestCriticalDecisionPolicy:
                 assert (
                     "policy" in summary.lower() or "block" in summary.lower()
                 ), f"Expected policy override documented in summary: {summary}"
+
+
+class TestRiskBasedDecisions:
+    """Test comprehensive architectural fix: risk-based decision logic."""
+
+    def test_high_risk_score_triggers_block(
+        self, server_manager: ServerManager, fixture_manager: FixtureManager
+    ):
+        """Test that high risk score (≥0.85) triggers BLOCK verdict."""
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "critical-vulnerability",
+                            "level": "error",
+                            "message": {
+                                "text": "Critical vulnerability with high risk"
+                            },
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {
+                                            "uri": "src/api/handler.py"
+                                        },
+                                        "region": {"startLine": 100},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-94"],
+                                "severity": "critical",
+                                "risk_score": 0.90,  # High risk score
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        cnapp_data = {
+            "exposures": [
+                {
+                    "type": "internet-facing",
+                    "traits": ["public", "internet"],
+                    "service": "api-service",
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            cnapp_path = Path(tmpdir) / "cnapp.json"
+
+            sast_path.write_text(json.dumps(sast_data))
+            cnapp_path.write_text(json.dumps(cnapp_data))
+
+            response = server_manager.upload_files(
+                sast=str(sast_path), cnapp=str(cnapp_path)
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+
+            assert "verdict" in result
+            assert result["verdict"] == "block", (
+                f"Expected verdict 'block' for risk_score=0.90 (≥0.85 threshold), "
+                f"got '{result['verdict']}'"
+            )
+
+    def test_medium_risk_score_triggers_review(
+        self, server_manager: ServerManager, fixture_manager: FixtureManager
+    ):
+        """Test that medium risk score (0.60-0.85) triggers REVIEW verdict."""
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "medium-vulnerability",
+                            "level": "warning",
+                            "message": {"text": "Medium risk vulnerability"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/lib/util.py"},
+                                        "region": {"startLine": 50},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-79"],
+                                "severity": "medium",
+                                "risk_score": 0.70,  # Medium risk score
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            sast_path.write_text(json.dumps(sast_data))
+
+            response = server_manager.upload_files(sast=str(sast_path))
+
+            assert response.status_code == 200
+            result = response.json()
+
+            assert "verdict" in result
+            assert result["verdict"] == "review", (
+                f"Expected verdict 'review' for risk_score=0.70 (0.60-0.85 range), "
+                f"got '{result['verdict']}'"
+            )
+
+    def test_low_risk_score_triggers_allow(
+        self, server_manager: ServerManager, fixture_manager: FixtureManager
+    ):
+        """Test that low risk score (<0.60) triggers ALLOW verdict."""
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "low-vulnerability",
+                            "level": "note",
+                            "message": {"text": "Low risk vulnerability"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/test/mock.py"},
+                                        "region": {"startLine": 20},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-200"],
+                                "severity": "low",
+                                "risk_score": 0.30,  # Low risk score
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            sast_path.write_text(json.dumps(sast_data))
+
+            response = server_manager.upload_files(sast=str(sast_path))
+
+            assert response.status_code == 200
+            result = response.json()
+
+            assert "verdict" in result
+            assert result["verdict"] == "allow", (
+                f"Expected verdict 'allow' for risk_score=0.30 (<0.60 threshold), "
+                f"got '{result['verdict']}'"
+            )
+
+    def test_exposure_multiplier_escalates_verdict(
+        self, server_manager: ServerManager, fixture_manager: FixtureManager
+    ):
+        """Test that exposure multipliers escalate verdicts correctly."""
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "sql-injection",
+                            "level": "error",
+                            "message": {"text": "SQL injection vulnerability"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/api/query.py"},
+                                        "region": {"startLine": 75},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-89"],
+                                "severity": "high",
+                                "risk_score": 0.50,  # Base risk below REVIEW threshold
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        cnapp_data = {
+            "exposures": [
+                {
+                    "type": "internet-facing",
+                    "traits": ["public", "internet"],
+                    "service": "api-service",
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            cnapp_path = Path(tmpdir) / "cnapp.json"
+
+            sast_path.write_text(json.dumps(sast_data))
+            cnapp_path.write_text(json.dumps(cnapp_data))
+
+            response = server_manager.upload_files(
+                sast=str(sast_path), cnapp=str(cnapp_path)
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+
+            assert "verdict" in result
+            assert result["verdict"] in ["review", "block"], (
+                f"Expected verdict escalated by exposure multiplier, "
+                f"got '{result['verdict']}'"
+            )
+
+    def test_risk_engine_disabled_uses_severity_only(
+        self,
+        server_manager: ServerManager,
+        fixture_manager: FixtureManager,
+        flag_config_manager: FlagConfigManager,
+    ):
+        """Test that disabling risk engine falls back to severity-based decisions."""
+        flag_config = {
+            "fixops.decision.use_risk_engine": False,
+        }
+
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "high-severity-vuln",
+                            "level": "error",
+                            "message": {"text": "High severity vulnerability"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "src/app/main.py"},
+                                        "region": {"startLine": 100},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-94"],
+                                "severity": "high",
+                                "risk_score": 0.95,  # High risk score (should be ignored)
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            sast_path.write_text(json.dumps(sast_data))
+
+            config_path = flag_config_manager.create_config(flag_config)
+
+            with server_manager.start_server(overlay_config=str(config_path)):
+                response = server_manager.upload_files(sast=str(sast_path))
+
+                assert response.status_code == 200
+                result = response.json()
+
+                assert "verdict" in result
+                assert result["verdict"] in ["review", "allow"], (
+                    f"Expected severity-based verdict with risk engine disabled, "
+                    f"got '{result['verdict']}'"
+                )
+
+    def test_policy_pre_consensus_seeds_providers_correctly(
+        self, server_manager: ServerManager, fixture_manager: FixtureManager
+    ):
+        """Test that policy pre-consensus seeds LLM providers with correct base action."""
+        sast_data = {
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "semgrep"}},
+                    "results": [
+                        {
+                            "ruleId": "sql-injection",
+                            "level": "error",
+                            "message": {"text": "SQL injection in authentication"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {
+                                            "uri": "src/auth/authenticate.py"
+                                        },
+                                        "region": {"startLine": 50},
+                                    }
+                                }
+                            ],
+                            "properties": {
+                                "cwe": ["CWE-89"],
+                                "severity": "high",
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+
+        cnapp_data = {
+            "exposures": [
+                {
+                    "type": "internet-facing",
+                    "traits": ["public", "internet"],
+                    "service": "authentication-service",
+                }
+            ]
+        }
+
+        context_data = {
+            "service_name": "authentication-service",
+            "service_type": "auth",
+            "exposure": "internet-facing",
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sast_path = Path(tmpdir) / "sast.sarif"
+            cnapp_path = Path(tmpdir) / "cnapp.json"
+            context_path = Path(tmpdir) / "context.json"
+
+            sast_path.write_text(json.dumps(sast_data))
+            cnapp_path.write_text(json.dumps(cnapp_data))
+            context_path.write_text(json.dumps(context_data))
+
+            response = server_manager.upload_files(
+                sast=str(sast_path),
+                cnapp=str(cnapp_path),
+                context=str(context_path),
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+
+            assert "verdict" in result
+            assert result["verdict"] == "block"
+
+            if "enhanced_decision" in result:
+                enhanced = result["enhanced_decision"]
+                disagreement = enhanced.get("disagreement_areas", [])
+
+                policy_overrides = [
+                    d for d in disagreement if "policy_override" in str(d)
+                ]
+                assert (
+                    len(policy_overrides) > 0
+                ), "Expected policy override in disagreement_areas with pre-consensus"
