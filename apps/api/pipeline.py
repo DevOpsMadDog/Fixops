@@ -818,45 +818,37 @@ class PipelineOrchestrator:
 
             if highest_finding:
                 metadata: Dict[str, Any] = {}
-                # Extract file path from locations
-                if hasattr(highest_finding, "locations") and highest_finding.locations:
-                    location = highest_finding.locations[0]
-                    if hasattr(location, "physical_location"):
-                        phys_loc = location.physical_location
-                        if hasattr(phys_loc, "artifact_location"):
-                            artifact = phys_loc.artifact_location
-                            if hasattr(artifact, "uri"):
-                                metadata["file"] = artifact.uri
-                                if hasattr(phys_loc, "region") and hasattr(
-                                    phys_loc.region, "start_line"
-                                ):
-                                    metadata[
-                                        "location"
-                                    ] = f"{artifact.uri}:{phys_loc.region.start_line}"
-                                else:
-                                    metadata["location"] = artifact.uri
+
+                # Extract file path (already parsed in SarifFinding)
+                if highest_finding.file:
+                    metadata["file"] = highest_finding.file
+                    if highest_finding.line:
+                        metadata[
+                            "location"
+                        ] = f"{highest_finding.file}:{highest_finding.line}"
+                    else:
+                        metadata["location"] = highest_finding.file
 
                 # Extract rule ID
-                if hasattr(highest_finding, "rule_id"):
+                if highest_finding.rule_id:
                     metadata["rule_id"] = highest_finding.rule_id
 
                 # Extract message
-                if hasattr(highest_finding, "message"):
+                if highest_finding.message:
                     metadata["message"] = highest_finding.message
 
-                # Extract CWE IDs from properties
-                if hasattr(highest_finding, "properties") and isinstance(
-                    highest_finding.properties, dict
-                ):
-                    cwe = highest_finding.properties.get("cwe", [])
-                    if isinstance(cwe, list):
-                        metadata["cwe_ids"] = cwe
+                # Extract CWE IDs from raw SARIF result properties
+                if isinstance(highest_finding.raw, dict):
+                    properties = highest_finding.raw.get("properties", {})
+                    if isinstance(properties, dict):
+                        cwe = properties.get("cwe", [])
+                        if isinstance(cwe, list) and cwe:
+                            metadata["cwe_ids"] = cwe
 
                 metadata["type"] = "sast"
 
                 if "file" in metadata:
                     file_path = metadata["file"]
-                    # Extract service name from path like "src/services/auth_service.py"
                     parts = file_path.split("/")
                     for i, part in enumerate(parts):
                         if part in ("services", "service"):
