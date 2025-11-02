@@ -152,7 +152,7 @@ class TestCriticalDecisionPolicy:
                 ["analyze", "--sast", str(sast_path), "--format", "json"]
             )
 
-            assert result.returncode == 0
+            assert result.exit_code == 0
             output = json.loads(result.stdout)
 
             assert "verdict" in output
