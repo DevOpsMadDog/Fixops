@@ -166,13 +166,17 @@ class TestCLIGoldenPath:
         assert result.success, f"CLI failed: {result.stderr}"
         assert output_file.exists(), "Output file not created"
 
-    def test_cli_handles_missing_input_file(self, cli_runner, fixture_manager):
+    def test_cli_handles_missing_input_file(
+        self, cli_runner, demo_fixtures, fixture_manager
+    ):
         """Test that CLI handles missing input files gracefully."""
         missing_file = fixture_manager.temp_dir / "nonexistent.json"
         output_file = fixture_manager.temp_dir / "pipeline-error.json"
 
         result = cli_runner.run_pipeline(
             sbom=missing_file,
+            cve=demo_fixtures["cve"],
+            sarif=demo_fixtures["sarif"],
             output=output_file,
             timeout=30,
         )
@@ -181,6 +185,7 @@ class TestCLIGoldenPath:
         assert (
             "not found" in result.stderr.lower()
             or "no such file" in result.stderr.lower()
+            or "does not exist" in result.stderr.lower()
         )
 
     def test_cli_handles_invalid_json(self, cli_runner, fixture_manager):
