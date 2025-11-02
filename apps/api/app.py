@@ -339,6 +339,16 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
 
+    @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
+    async def authenticated_status() -> Dict[str, Any]:
+        """Authenticated status endpoint."""
+        return {
+            "status": "ok",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "service": "fixops-api",
+            "version": os.getenv("FIXOPS_VERSION", "0.1.0"),
+        }
+
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(provenance_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
