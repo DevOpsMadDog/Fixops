@@ -295,7 +295,7 @@ class PipelineOrchestrator:
         if not exploit_summary and not processing_result:
             return None
 
-        overlay = self.overlay
+        overlay = getattr(self, "overlay", None)
         flag_provider = overlay.flag_provider if overlay else None
 
         bn_lr_enabled = False

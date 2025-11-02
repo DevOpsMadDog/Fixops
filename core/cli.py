@@ -474,25 +474,43 @@ def _handle_make_decision(args: argparse.Namespace) -> int:
 
 def _handle_analyze(args: argparse.Namespace) -> int:
     """Handle analyze command with flexible input requirements."""
-    if not hasattr(args, "sbom") or args.sbom is None:
-        import tempfile
+    import tempfile
 
+    temp_files = []
+
+    if not hasattr(args, "design") or args.design is None:
+        dummy_design = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        )
+        dummy_design.write('{"architecture":{"components":[],"connections":[]}}')
+        dummy_design.close()
+        args.design = Path(dummy_design.name)
+        temp_files.append(dummy_design.name)
+
+    if not hasattr(args, "sbom") or args.sbom is None:
         dummy_sbom = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
         dummy_sbom.write(
             '{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}'
         )
-        dummy_sbom.flush()
+        dummy_sbom.close()
         args.sbom = Path(dummy_sbom.name)
+        temp_files.append(dummy_sbom.name)
 
     if not hasattr(args, "cve") or args.cve is None:
-        import tempfile
-
         dummy_cve = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
         dummy_cve.write('{"vulnerabilities":[]}')
-        dummy_cve.flush()
+        dummy_cve.close()
         args.cve = Path(dummy_cve.name)
+        temp_files.append(dummy_cve.name)
 
-    result = _build_pipeline_result(args)
+    try:
+        result = _build_pipeline_result(args)
+    finally:
+        for temp_file in temp_files:
+            try:
+                Path(temp_file).unlink()
+            except Exception:
+                pass
     decision, exit_code = _derive_decision_exit(result)
 
     output_path: Optional[Path] = getattr(args, "output", None)
