@@ -114,8 +114,9 @@ class LaunchDarklyProvider(FeatureFlagProvider):
 
         builder = LDContext.builder(key)
 
-        if context.environment:
-            builder.set("environment", context.environment)
+        env = context.environment or context.mode
+        if env:
+            builder.set("environment", env)
         if context.region:
             builder.set("region", context.region)
         if context.plan:
