@@ -336,6 +336,26 @@ class TestFlagWiring:
                 )
                 assert response.status_code == 200
 
+            with open(demo_fixtures["cve"], "rb") as f:
+                files = {"file": ("cve.json", f, "application/json")}
+                response = requests.post(
+                    f"{server.base_url}/inputs/cve",
+                    headers=headers,
+                    files=files,
+                    timeout=10,
+                )
+                assert response.status_code == 200
+
+            with open(demo_fixtures["sarif"], "rb") as f:
+                files = {"file": ("scan.sarif", f, "application/json")}
+                response = requests.post(
+                    f"{server.base_url}/inputs/sarif",
+                    headers=headers,
+                    files=files,
+                    timeout=10,
+                )
+                assert response.status_code == 200
+
             response = requests.post(
                 f"{server.base_url}/pipeline/run",
                 headers=headers,
