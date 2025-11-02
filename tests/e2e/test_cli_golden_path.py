@@ -28,9 +28,13 @@ class TestCLIGoldenPath:
         with open(output_file, "r") as f:
             data = json.load(f)
 
-        assert "verdict" in data
-        assert "risk_score" in data
-        assert "modules" in data
+        assert "modules" in data, "Missing 'modules' field"
+        assert "enhanced_decision" in data, "Missing 'enhanced_decision' field"
+        assert "processing_layer" in data, "Missing 'processing_layer' field"
+
+        assert (
+            "final_decision" in data["enhanced_decision"]
+        ), "Missing 'final_decision' in enhanced_decision"
 
     def test_cli_enterprise_mode_executes(self, cli_runner, fixture_manager):
         """Test that CLI enterprise mode executes successfully."""
@@ -49,9 +53,13 @@ class TestCLIGoldenPath:
         with open(output_file, "r") as f:
             data = json.load(f)
 
-        assert "verdict" in data
-        assert "risk_score" in data
-        assert "modules" in data
+        assert "modules" in data, "Missing 'modules' field"
+        assert "enhanced_decision" in data, "Missing 'enhanced_decision' field"
+        assert "processing_layer" in data, "Missing 'processing_layer' field"
+
+        assert (
+            "final_decision" in data["enhanced_decision"]
+        ), "Missing 'final_decision' in enhanced_decision"
 
     def test_cli_run_with_fixtures(self, cli_runner, demo_fixtures, fixture_manager):
         """Test CLI run command with explicit fixtures."""
@@ -75,9 +83,13 @@ class TestCLIGoldenPath:
         with open(output_file, "r") as f:
             data = json.load(f)
 
-        assert "verdict" in data
-        assert "risk_score" in data
-        assert "modules" in data
+        assert "modules" in data, "Missing 'modules' field"
+        assert "enhanced_decision" in data, "Missing 'enhanced_decision' field"
+        assert "processing_layer" in data, "Missing 'processing_layer' field"
+
+        assert (
+            "final_decision" in data["enhanced_decision"]
+        ), "Missing 'final_decision' in enhanced_decision"
 
     def test_cli_show_overlay(self, cli_runner, flag_config_manager):
         """Test CLI show-overlay command."""
