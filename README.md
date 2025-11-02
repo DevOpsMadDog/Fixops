@@ -100,6 +100,7 @@ python -m core.cli --help
 Available subcommands:
 - `demo` - Run with bundled fixtures
 - `run` - Execute pipeline with local artifacts
+- `ingest` - Normalize artifacts and print the pipeline response
 - `make-decision` - Run pipeline and use decision as exit code
 - `health` - Check integration readiness
 - `get-evidence` - Copy evidence bundle from pipeline result
@@ -161,6 +162,20 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
   http://127.0.0.1:8000/pipeline/run | jq
 ```
 
+**Pipeline response includes:**
+```json
+{
+  "risk_score": 15,
+  "verdict": "block",
+  "decision": null,
+  ...
+}
+```
+
+- `risk_score` - Numeric risk score (higher = more risky)
+- `verdict` - Decision verdict: "allow", "review", or "block"
+- `decision` - Legacy decision field (may be null)
+
 ### Analytics Dashboard
 
 View aggregated analytics:
@@ -189,8 +204,17 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
 - `GET /analytics/runs/{run_id}` - Specific run details
 
 **Health endpoints:**
-- `GET /health` - API health check
-- `GET /ready` - Readiness probe
+- `GET /api/v1/health` - Liveness probe (unauthenticated)
+- `GET /api/v1/ready` - Readiness probe (unauthenticated)
+- `GET /api/v1/status` - Authenticated status check (requires X-API-Key)
+- `GET /api/v1/version` - Version information
+- `GET /api/v1/metrics` - Metrics endpoint
+
+**Example authenticated status check:**
+```bash
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  http://127.0.0.1:8000/api/v1/status
+```
 
 ## Supported Input Formats
 
@@ -198,6 +222,7 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
 - **Formats:** CycloneDX JSON, SPDX JSON, GitHub Dependency Snapshot, Syft JSON
 - **Compression:** Raw JSON, gzip (.json.gz), or zip archive
 - **Content-Type:** `application/json`, `application/gzip`, `application/zip`
+- **Validation:** Malformed JSON returns 422 Unprocessable Entity with error details
 
 ### SARIF
 - **Format:** SARIF 2.1.0
@@ -242,6 +267,17 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
 - `FIXOPS_ALLOWED_ORIGINS` - Comma-separated CORS origins
 - `FIXOPS_DISABLE_TELEMETRY` - Set to "1" to disable OpenTelemetry
 - `OTEL_EXPORTER_OTLP_ENDPOINT` - OpenTelemetry collector endpoint (default: http://collector:4318)
+- `PRODUCT_NAMESPACE` - Product namespace for branding (e.g., "aldeci" to rebrand from "fixops")
+- `LAUNCHDARKLY_SDK_KEY` - LaunchDarkly SDK key for feature flags (optional, uses local overlay by default)
+
+**Feature Flags & Branding:**
+FixOps supports dynamic branding and feature flags. Set `PRODUCT_NAMESPACE` to rebrand the product (e.g., "aldeci"), which affects:
+- API response header `X-Product-Name`
+- CLI output branding
+- Evidence bundle metadata
+- Feature flag namespace aliasing
+
+See `docs/FEATURE_FLAGS.md` for complete feature flag documentation.
 
 ### Overlay Configuration
 
@@ -301,10 +337,19 @@ python -m pytest tests/e2e/ -v
 
 **Test Status:** All 67 tests passing (100% pass rate) ✅
 
+**Test Harness Components:**
+- `ServerManager` - Spawns real uvicorn servers for API testing
+- `CLIRunner` - Executes real CLI commands via subprocess
+- `FixtureManager` - Generates synthetic test fixtures
+- `FlagConfigManager` - Manages feature flag overlay configs
+- `EvidenceValidator` - Validates evidence bundle structure
+
 **Documentation:**
 - `docs/E2E_TESTING_CHEAT_SHEET.md` - Complete test coverage and risk assessment
 - `docs/RUTHLESS_E2E_FINDINGS.md` - Detailed findings from ruthless testing
 - `docs/RUTHLESS_E2E_TESTING_PLAN.md` - Testing strategy and future phases
+- `docs/FEATURE_FLAGS.md` - Feature flag system documentation
+- `docs/FEATURE_FLAGS_WIRING.md` - Feature flag integration guide
 
 ### Run Legacy End-to-End Tests
 
@@ -487,19 +532,29 @@ The repository includes sample data for testing:
 
 ```
 fixops/
-├── apps/api/          # FastAPI application
-├── core/              # Core business logic
-├── backend/           # Legacy backend (being phased out)
-├── fixops-blended-enterprise/  # Enterprise features
-├── services/          # Shared services
-├── domain/            # Domain models
-├── data/              # Data storage
-├── config/            # Configuration files
-├── tests/             # Test suite
-├── simulations/       # Demo scenarios
-├── artefacts/         # Test fixtures
-└── samples/           # Vendor samples
+├── apps/api/          # FastAPI application [ESSENTIAL]
+├── core/              # Core business logic [ESSENTIAL]
+├── backend/           # Legacy backend (still used by API) [ESSENTIAL]
+├── fixops-blended-enterprise/  # Enterprise features [ESSENTIAL]
+├── fixops-enterprise/ # Enterprise features [ESSENTIAL]
+├── services/          # Shared services (17 imports) [ESSENTIAL]
+├── domain/            # Domain models (2 files, no imports found) [REVIEW]
+├── data/              # Runtime data storage [ESSENTIAL]
+├── config/            # Configuration files [ESSENTIAL]
+├── tests/             # Test suite including E2E harness [ESSENTIAL]
+├── simulations/       # Demo mode fixtures [ESSENTIAL for demo]
+├── artefacts/         # Test fixtures and examples [ESSENTIAL for tests]
+└── samples/           # Vendor samples (no code references) [OPTIONAL]
 ```
+
+**Folder Status:**
+- **ESSENTIAL** - Required for core functionality, actively imported/used
+- **ESSENTIAL for demo** - Required for demo mode operation
+- **ESSENTIAL for tests** - Required for test suite
+- **REVIEW** - No imports found, may be unused (domain/)
+- **OPTIONAL** - No code references, documentation only (samples/)
+
+See analysis report below for detailed usage information.
 
 ### Running in Development Mode
 
