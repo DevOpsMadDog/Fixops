@@ -468,6 +468,26 @@ def create_app() -> FastAPI:
             buffer = text_stream.detach()  # type: ignore[assignment]
         if not rows:
             raise HTTPException(status_code=400, detail="Design CSV contained no rows")
+
+        required_columns = {
+            "component",
+            "subcomponent",
+            "owner",
+            "data_class",
+            "description",
+            "control_scope",
+        }
+        missing_columns = required_columns - set(columns)
+        if missing_columns:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Design CSV missing required columns",
+                    "missing_columns": sorted(missing_columns),
+                    "required_columns": sorted(required_columns),
+                },
+            )
+
         dataset = {"columns": columns, "rows": rows}
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("design", dataset, original_filename=filename, raw_bytes=raw_bytes)
@@ -483,9 +503,38 @@ def create_app() -> FastAPI:
     def _process_sbom(
         buffer: SpooledTemporaryFile, total: int, filename: str
     ) -> Dict[str, Any]:
+        buffer.seek(0)
+        try:
+            sbom_data = json.load(buffer)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid JSON in SBOM: {exc}"
+            ) from exc
+
+        bom_format = sbom_data.get("bomFormat")
+        if not bom_format:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "SBOM missing required bomFormat field",
+                    "required_fields": ["bomFormat", "specVersion"],
+                    "supported_formats": ["CycloneDX", "SPDX"],
+                },
+            )
+
+        if bom_format not in ("CycloneDX", "SPDX"):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": f"Unsupported SBOM format: {bom_format}",
+                    "supported_formats": ["CycloneDX", "SPDX"],
+                },
+            )
+
+        buffer.seek(0)
         try:
             sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
-        except Exception as exc:  # pragma: no cover - pass to FastAPI
+        except Exception as exc:
             logger.exception("SBOM normalisation failed")
             raise HTTPException(
                 status_code=400, detail=f"Failed to parse SBOM: {exc}"
@@ -508,11 +557,24 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
-        except Exception as exc:  # pragma: no cover - FastAPI serialises
+        except Exception as exc:
             logger.exception("CVE feed normalisation failed")
             raise HTTPException(
                 status_code=400, detail=f"Failed to parse CVE feed: {exc}"
             ) from exc
+
+        if cve_feed.errors:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "CVE feed contains validation errors",
+                    "record_count": cve_feed.metadata.get("record_count", 0),
+                    "validation_errors": cve_feed.errors[:10],
+                    "total_errors": len(cve_feed.errors),
+                    "hint": "Use official CVE JSON 5.1.1 format or ensure all required fields are present",
+                },
+            )
+
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
         return {
@@ -520,7 +582,6 @@ def create_app() -> FastAPI:
             "stage": "cve",
             "input_filename": filename,
             "record_count": cve_feed.metadata.get("record_count", 0),
-            "validation_errors": cve_feed.errors,
         }
 
     def _process_vex(
@@ -911,6 +972,11 @@ def create_app() -> FastAPI:
             context=app.state.artifacts.get("context"),
         )
         result["run_id"] = run_id
+
+        severity_overview = result.get("severity_overview", {})
+        guardrail_evaluation = result.get("guardrail_evaluation", {})
+        result["highest_severity"] = severity_overview.get("highest")
+        result["guardrail_status"] = guardrail_evaluation.get("status")
         analytics_store = getattr(app.state, "analytics_store", None)
         if analytics_store is not None:
             try:
