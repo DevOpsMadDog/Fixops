@@ -16,6 +16,7 @@ from typing import (
     Sequence,
 )
 
+from core.decision_policy import DecisionPolicyEngine
 from core.llm_providers import (
     AnthropicMessagesProvider,
     BaseLLMProvider,
@@ -179,6 +180,17 @@ class MultiLLMConsensusEngine:
         )
         self.baseline_confidence = float(settings.get("baseline_confidence", 0.78))
         self.provider_clients = self._build_provider_clients(settings)
+        self.policy_engine = DecisionPolicyEngine(settings)
+
+        decision_config = settings.get("decision", {})
+        self.use_risk_engine = decision_config.get("use_risk_engine", True)
+        self.policy_pre_consensus = decision_config.get("policy_pre_consensus", True)
+        self.risk_block_threshold = float(
+            decision_config.get("risk_block_threshold", 0.85)
+        )
+        self.risk_review_threshold = float(
+            decision_config.get("risk_review_threshold", 0.60)
+        )
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -196,20 +208,67 @@ class MultiLLMConsensusEngine:
         ai_agent_analysis: Optional[Mapping[str, Any]] = None,
         marketplace_recommendations: Optional[Iterable[Mapping[str, Any]]] = None,
         knowledge_graph: Optional[Mapping[str, Any]] = None,
+        risk_profile: Optional[Mapping[str, Any]] = None,
     ) -> MultiLLMResult:
         if knowledge_graph is not None:
             self.knowledge_graph = knowledge_graph
         highest = _normalise_severity(severity_overview.get("highest"))
         counts = _as_counter(severity_overview.get("counts"))
         total_findings = sum(counts.values())
-        base_action, base_confidence, mitre_candidates = self._base_profile(
-            highest, total_findings
-        )
+
         guardrail_status = (guardrail or {}).get("status", "pass")
         compliance_gaps = _extract_compliance_gaps(compliance_status)
         exposures = _extract_exposures(cnapp_summary)
         exploit_stats = _extract_exploit_stats(exploitability)
         agent_components = _extract_agent_components(ai_agent_analysis)
+
+        risk_score = 0.0
+        if risk_profile and isinstance(risk_profile, Mapping):
+            risk_score = risk_profile.get("score", 0.0)
+            if isinstance(risk_score, (int, float)):
+                risk_score = float(risk_score)
+            else:
+                risk_score = 0.0
+
+        adjusted_risk = None
+        exposure_multiplier = None
+        if self.use_risk_engine and risk_score > 0.0:
+            result = self._risk_based_profile(
+                risk_score, exploit_stats, exposures, highest
+            )
+            base_action, base_confidence, mitre_candidates = (
+                result[0],
+                result[1],
+                result[2],
+            )
+            adjusted_risk = result[3]
+            exposure_multiplier = result[4]
+        else:
+            base_action, base_confidence, mitre_candidates = self._base_profile(
+                highest, total_findings
+            )
+
+        if self.policy_pre_consensus:
+            finding_metadata = (
+                severity_overview.get("metadata", {})
+                if isinstance(severity_overview, Mapping)
+                else {}
+            )
+            context_details = dict(context_summary or {})
+            policy_override = self.policy_engine.evaluate_overrides(
+                base_verdict=base_action,
+                base_confidence=base_confidence,
+                severity=highest,
+                exposures=exposures,
+                context_summary=context_details,
+                finding_metadata=finding_metadata,
+            )
+
+            if policy_override.triggered and policy_override.new_verdict:
+                base_action = policy_override.new_verdict
+                base_confidence = min(
+                    0.99, base_confidence + policy_override.confidence_boost
+                )
         suppressed = int((noise_reduction or {}).get("suppressed_total", 0))
         marketplace_focus = [
             item.get("id")
@@ -326,7 +385,8 @@ class MultiLLMConsensusEngine:
                 )
             )
 
-        final_decision = _majority(actions, base_action)
+        provider_weights = [p.weight for p in self.providers]
+        final_decision = _majority(actions, base_action, weights=provider_weights)
         consensus_confidence = (
             statistics.fmean(confidences) if confidences else self.baseline_confidence
         )
@@ -337,9 +397,6 @@ class MultiLLMConsensusEngine:
         if suppressed:
             consensus_confidence -= 0.02
         consensus_confidence = max(0.45, min(0.99, consensus_confidence))
-        expert_validation = (
-            consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
-        )
 
         disagreement = []
         if len(set(actions)) > 1:
@@ -349,9 +406,24 @@ class MultiLLMConsensusEngine:
         if agent_components:
             disagreement.append("ai_agent_components")
 
+        if self.policy_pre_consensus and policy_override.triggered:
+            disagreement.append(f"policy_override:{policy_override.policy_id}")
+
+        expert_validation = (
+            consensus_confidence < 0.7 or len(set(actions)) > 1 or bool(compliance_gaps)
+        )
+
         summary = _build_summary(
             final_decision, consensus_confidence, counts, exposures, exploit_stats
         )
+
+        if (
+            self.policy_pre_consensus
+            and policy_override.triggered
+            and policy_override.reason
+        ):
+            summary = f"{summary} {policy_override.reason}"
+
         signals = self._signals(final_decision, consensus_confidence, exploit_stats)
 
         telemetry = {
@@ -364,6 +436,44 @@ class MultiLLMConsensusEngine:
             "max_processing_time_ms": max_processing,
             "knowledge_graph": self.knowledge_graph_summary,
             "marketplace_references": marketplace_focus,
+            "decision_strategy": (
+                "risk_based"
+                if (self.use_risk_engine and risk_score > 0.0)
+                else "severity"
+            ),
+            "raw_risk": round(risk_score, 4) if risk_score > 0.0 else None,
+            "adjusted_risk": (
+                round(adjusted_risk, 4) if adjusted_risk is not None else None
+            ),
+            "exposure_multiplier": (
+                round(exposure_multiplier, 4)
+                if exposure_multiplier is not None
+                else None
+            ),
+            "thresholds_used": (
+                {
+                    "block": self.risk_block_threshold,
+                    "review": self.risk_review_threshold,
+                }
+                if (self.use_risk_engine and risk_score > 0.0)
+                else None
+            ),
+            "policy_pre_consensus": self.policy_pre_consensus,
+            "policy_triggered": (
+                policy_override.triggered if self.policy_pre_consensus else False
+            ),
+            "inputs": (
+                {
+                    "risk_profile_method": (
+                        risk_profile.get("method") if risk_profile else None
+                    ),
+                    "risk_profile_components": (
+                        risk_profile.get("components") if risk_profile else None
+                    ),
+                }
+                if risk_profile
+                else None
+            ),
         }
 
         return MultiLLMResult(
@@ -624,6 +734,66 @@ class MultiLLMConsensusEngine:
         if total_findings == 0:
             return "allow", 0.6, ["T1046"]
         return "allow", max(self.baseline_confidence - 0.18, 0.65), ["T1046"]
+
+    def _risk_based_profile(
+        self,
+        risk_score: float,
+        exploit_stats: Mapping[str, Any],
+        exposures: Sequence[Mapping[str, Any]],
+        highest: str,
+    ) -> tuple[str, float, List[str], float, float]:
+        """Compute base verdict from risk score with exposure context.
+
+        This method uses the computed risk score (0.0-1.0) from the risk engine
+        which combines EPSS, KEV, version lag, and exposure context to determine
+        the base verdict using configurable thresholds.
+
+        IMPORTANT: This is the SINGLE SOURCE OF TRUTH for exposure multipliers.
+        Exposure multipliers are calculated by DecisionPolicyEngine.calculate_exposure_multiplier()
+        and applied ONLY here. The risk_score parameter is pre-exposure (raw risk from
+        compute_risk_profile). We apply exposure multipliers here to get adjusted_risk.
+
+        DO NOT apply exposure multipliers elsewhere (e.g., in SeverityPromotionEngine or
+        compute_risk_profile) to avoid double-counting.
+
+        Returns:
+            tuple: (action, confidence, mitre_candidates, adjusted_risk, exposure_multiplier)
+        """
+        mitre_candidates = ["T1190", "T1059", "T1078"]
+
+        if exploit_stats.get("kev_count", 0) > 0:
+            risk_score = max(risk_score, 0.90)
+            mitre_candidates = ["T1190", "T1059", "T1078"]
+
+        exposure_multiplier = self.policy_engine.calculate_exposure_multiplier(
+            exposures, context_summary=None, finding_metadata=None
+        )
+        adjusted_risk = min(1.0, risk_score * exposure_multiplier)
+
+        if adjusted_risk >= self.risk_block_threshold:
+            return (
+                "block",
+                max(self.baseline_confidence, 0.88),
+                mitre_candidates,
+                adjusted_risk,
+                exposure_multiplier,
+            )
+        elif adjusted_risk >= self.risk_review_threshold:
+            return (
+                "review",
+                max(self.baseline_confidence - 0.05, 0.75),
+                mitre_candidates,
+                adjusted_risk,
+                exposure_multiplier,
+            )
+        else:
+            return (
+                "allow",
+                max(self.baseline_confidence - 0.15, 0.65),
+                ["T1046"],
+                adjusted_risk,
+                exposure_multiplier,
+            )
 
     @staticmethod
     def _risk_bucket(confidence: float, exploit_stats: Mapping[str, Any]) -> str:
@@ -906,17 +1076,59 @@ def _build_summary(
     )
 
 
-def _majority(actions: Sequence[str], fallback: str) -> str:
-    counts: Dict[str, int] = {}
-    for action in actions:
-        counts[action] = counts.get(action, 0) + 1
-    if not counts:
+def _majority(
+    actions: Sequence[str],
+    fallback: str,
+    weights: Optional[Sequence[float]] = None,
+) -> str:
+    """Determine consensus action using weighted voting.
+
+    Args:
+        actions: Sequence of action strings from each provider
+        fallback: Default action if no consensus
+        weights: Optional sequence of weights for each action (same length as actions)
+                If None, uses simple majority (weight=1.0 for all)
+
+    Returns:
+        Consensus action string
+    """
+    if not actions:
         return fallback
-    sorted_actions = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-    top_action, top_count = sorted_actions[0]
-    if len(sorted_actions) > 1 and sorted_actions[1][1] == top_count:
-        return fallback
-    return top_action
+
+    if weights and len(weights) == len(actions):
+        weighted_counts: Dict[str, float] = {}
+        for action, weight in zip(actions, weights):
+            weighted_counts[action] = weighted_counts.get(action, 0.0) + weight
+
+        if not weighted_counts:
+            return fallback
+
+        sorted_actions = sorted(
+            weighted_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+        top_action, top_weight = sorted_actions[0]
+
+        if len(sorted_actions) > 1:
+            second_weight = sorted_actions[1][1]
+            if abs(top_weight - second_weight) < 0.001:  # Tie threshold
+                return fallback
+
+        return top_action
+    else:
+        counts: Dict[str, int] = {}
+        for action in actions:
+            counts[action] = counts.get(action, 0) + 1
+
+        if not counts:
+            return fallback
+
+        sorted_actions = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        top_action, top_count = sorted_actions[0]
+
+        if len(sorted_actions) > 1 and sorted_actions[1][1] == top_count:
+            return fallback
+
+        return top_action
 
 
 # ----------------------------------------------------------------------
@@ -946,6 +1158,7 @@ class EnhancedDecisionEngine:
         context_summary: Optional[Mapping[str, Any]] = None,
         compliance_status: Optional[Mapping[str, Any]] = None,
         knowledge_graph: Optional[Mapping[str, Any]] = None,
+        risk_profile: Optional[Mapping[str, Any]] = None,
     ) -> Dict[str, Any]:
         result = self.consensus.evaluate(
             severity_overview=pipeline_result.get("severity_overview", {}),
@@ -961,6 +1174,7 @@ class EnhancedDecisionEngine:
                 "marketplace_recommendations"
             ),
             knowledge_graph=knowledge_graph or pipeline_result.get("knowledge_graph"),
+            risk_profile=risk_profile,
         )
         return self._record(result)
 

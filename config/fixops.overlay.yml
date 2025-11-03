@@ -295,6 +295,36 @@ probabilistic:
       hash_key: cve_id  # Use CVE ID for consistent assignment
 exploit_signals:
   enabled: true
+  signals:
+    kev:
+      label: "CISA KEV Listed"
+      mode: "boolean"
+      fields:
+        - "knownExploited"
+        - "knownRansomwareCampaignUse"
+        - "kev.knownExploited"
+      escalate_to: "critical"
+      rationale: "CVE is listed in CISA Known Exploited Vulnerabilities catalog"
+    epss_high:
+      label: "EPSS High Probability"
+      mode: "probability"
+      fields:
+        - "epss"
+        - "epss_score"
+        - "metrics.epss"
+      threshold: 0.60
+      severity_floor: "high"
+      rationale: "EPSS score >= 60% indicates high exploitation probability"
+    epss_critical:
+      label: "EPSS Critical Probability"
+      mode: "probability"
+      fields:
+        - "epss"
+        - "epss_score"
+        - "metrics.epss"
+      threshold: 0.85
+      escalate_to: "critical"
+      rationale: "EPSS score >= 85% indicates critical exploitation probability"
 ssdlc:
   enabled: true
 iac:

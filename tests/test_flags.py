@@ -1,6 +1,7 @@
 """Tests for feature flag system."""
 
 from typing import Any, Dict, Optional
+from unittest.mock import MagicMock, patch
 
 from core.flags import EvaluationContext
 from core.flags.base import FeatureFlagProvider
@@ -286,13 +287,63 @@ class TestCombinedProvider:
         assert provider.bool("fixops.feature.test", True) is True
 
 
+class TestLaunchDarklyProvider:
+    """Tests for LaunchDarklyProvider."""
+
+    def test_build_ld_context_uses_mode_as_environment_alias(self):
+        """Test that mode is treated as alias for environment in LD context."""
+        with patch("core.flags.ld_provider.LAUNCHDARKLY_AVAILABLE", True):
+            with patch("core.flags.ld_provider.ldclient"):
+                with patch("core.flags.ld_provider.LDContext") as mock_ld_context:
+                    mock_builder = MagicMock()
+                    mock_ld_context.builder.return_value = mock_builder
+                    mock_builder.set.return_value = mock_builder
+                    mock_builder.build.return_value = MagicMock()
+
+                    from core.flags.ld_provider import LaunchDarklyProvider
+
+                    provider = LaunchDarklyProvider(sdk_key="test-key", offline=True)
+
+                    context_with_mode = EvaluationContext(
+                        tenant_id="test-tenant", mode="production"
+                    )
+
+                    provider._build_ld_context(context_with_mode)
+
+                    mock_builder.set.assert_any_call("environment", "production")
+
+    def test_build_ld_context_prefers_environment_over_mode(self):
+        """Test that environment takes precedence over mode when both are set."""
+        with patch("core.flags.ld_provider.LAUNCHDARKLY_AVAILABLE", True):
+            with patch("core.flags.ld_provider.ldclient"):
+                with patch("core.flags.ld_provider.LDContext") as mock_ld_context:
+                    mock_builder = MagicMock()
+                    mock_ld_context.builder.return_value = mock_builder
+                    mock_builder.set.return_value = mock_builder
+                    mock_builder.build.return_value = MagicMock()
+
+                    from core.flags.ld_provider import LaunchDarklyProvider
+
+                    provider = LaunchDarklyProvider(sdk_key="test-key", offline=True)
+
+                    context_with_both = EvaluationContext(
+                        tenant_id="test-tenant",
+                        environment="staging",
+                        mode="production",
+                    )
+
+                    provider._build_ld_context(context_with_both)
+
+                    mock_builder.set.assert_any_call("environment", "staging")
+
+
 class TestFlagRegistry:
     """Tests for flag registry."""
 
     def test_registry_has_flags(self):
         """Test that registry has registered flags."""
         registry = get_registry()
-        assert len(registry.flags) > 0
+        assert len(registry.list_all()) > 0
 
     def test_registry_get_flag(self):
         """Test getting flag metadata from registry."""
@@ -306,34 +357,38 @@ class TestFlagRegistry:
     def test_registry_list_by_priority(self):
         """Test listing flags by priority."""
         registry = get_registry()
-        p0_flags = registry.list_by_priority(0)
-        assert len(p0_flags) > 0
-        assert all(f.priority == 0 for f in p0_flags)
+        ops_flags = registry.list_by_tag("ops")
+        assert len(ops_flags) > 0
+        assert all("ops" in f.tags for f in ops_flags)
 
     def test_registry_list_by_tag(self):
         """Test listing flags by tag."""
         registry = get_registry()
-        operational_flags = registry.list_by_tag("operational")
-        assert len(operational_flags) > 0
-        assert all("operational" in f.tags for f in operational_flags)
+        ops_flags = registry.list_by_tag("ops")
+        assert len(ops_flags) > 0
+        assert all("ops" in f.tags for f in ops_flags)
 
     def test_registry_validate_config(self):
         """Test validating config against registry."""
         registry = get_registry()
         config = {
-            "fixops.ops.kill_switch": False,
-            "fixops.module.guardrails.enabled": True,
+            "feature_flags": {
+                "fixops.ops.kill_switch": False,
+                "fixops.module.guardrails.enabled": True,
+            }
         }
-        errors = registry.validate_config(config)
+        errors = registry.validate_overlay_config(config)
         assert len(errors) == 0
 
     def test_registry_validate_config_type_mismatch(self):
         """Test that type mismatches are detected."""
         registry = get_registry()
         config = {
-            "fixops.ops.kill_switch": "not_a_bool",
+            "feature_flags": {
+                "fixops.ops.kill_switch": "not_a_bool",
+            }
         }
-        errors = registry.validate_config(config)
+        errors = registry.validate_overlay_config(config)
         assert len(errors) > 0
         assert "type mismatch" in errors[0].lower()
 

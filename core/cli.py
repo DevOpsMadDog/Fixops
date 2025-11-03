@@ -204,20 +204,35 @@ def _copy_evidence(
 ) -> Optional[Path]:
     if destination is None:
         return None
-    files = (
-        result.get("evidence_bundle", {}).get("files")
-        if isinstance(result.get("evidence_bundle"), dict)
-        else {}
-    )
+    evidence_bundle = result.get("evidence_bundle")
+    if not isinstance(evidence_bundle, dict):
+        return None
+    files = evidence_bundle.get("files")
     if not isinstance(files, dict):
         return None
     bundle = files.get("bundle")
     if not bundle:
         return None
     bundle_path = Path(bundle)
-    ensure_secure_directory(destination)
-    target = destination / bundle_path.name
+
+    bundle_id = evidence_bundle.get("bundle_id")
+    if bundle_id:
+        target_dir = destination / str(bundle_id)
+    else:
+        target_dir = destination
+
+    ensure_secure_directory(target_dir)
+
+    target = target_dir / bundle_path.name
     target.write_bytes(bundle_path.read_bytes())
+
+    manifest = files.get("manifest")
+    if manifest:
+        manifest_path = Path(manifest)
+        if manifest_path.exists():
+            manifest_target = target_dir / "manifest.json"
+            manifest_target.write_bytes(manifest_path.read_bytes())
+
     return target
 
 
@@ -454,6 +469,81 @@ def _handle_make_decision(args: argparse.Namespace) -> int:
         "guardrail": result.get("guardrail_evaluation", {}).get("status"),
     }
     print(json.dumps(summary, indent=2 if getattr(args, "pretty", False) else None))
+    return exit_code
+
+
+def _handle_analyze(args: argparse.Namespace) -> int:
+    """Handle analyze command with flexible input requirements."""
+    import tempfile
+
+    temp_files = []
+
+    if not hasattr(args, "design") or args.design is None:
+        dummy_design = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False
+        )
+        dummy_design.write(
+            "component_name,component_type,criticality,internet_facing,authentication_required\n"
+        )
+        dummy_design.write("default-service,service,medium,false,false\n")
+        dummy_design.close()
+        args.design = Path(dummy_design.name)
+        temp_files.append(dummy_design.name)
+
+    if not hasattr(args, "sbom") or args.sbom is None:
+        dummy_sbom = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        dummy_sbom.write(
+            '{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}'
+        )
+        dummy_sbom.close()
+        args.sbom = Path(dummy_sbom.name)
+        temp_files.append(dummy_sbom.name)
+
+    if not hasattr(args, "cve") or args.cve is None:
+        dummy_cve = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        dummy_cve.write('{"vulnerabilities":[]}')
+        dummy_cve.close()
+        args.cve = Path(dummy_cve.name)
+        temp_files.append(dummy_cve.name)
+
+    try:
+        result = _build_pipeline_result(args)
+    finally:
+        for temp_file in temp_files:
+            try:
+                Path(temp_file).unlink()
+            except Exception:
+                pass
+    decision, exit_code = _derive_decision_exit(result)
+
+    output_path: Optional[Path] = getattr(args, "output", None)
+    if output_path is not None:
+        output_path = output_path.expanduser().resolve()
+        _write_output(output_path, result, pretty=getattr(args, "pretty", False))
+
+    _copy_evidence(result, getattr(args, "evidence_dir", None))
+
+    enhanced_decision = result.get("enhanced_decision", {})
+    telemetry = enhanced_decision.get("telemetry", {})
+    summary = {
+        "verdict": decision,
+        "confidence": enhanced_decision.get("consensus_confidence"),
+        "severity": result.get("severity_overview", {}).get("highest"),
+        "guardrail": result.get("guardrail_evaluation", {}).get("status"),
+        "decision_strategy": telemetry.get("decision_strategy"),
+        "raw_risk": telemetry.get("raw_risk"),
+        "adjusted_risk": telemetry.get("adjusted_risk"),
+        "exposure_multiplier": telemetry.get("exposure_multiplier"),
+    }
+
+    format_type = getattr(args, "format", "json")
+    if format_type == "json":
+        print(json.dumps(summary, indent=2 if getattr(args, "pretty", False) else None))
+    else:
+        print(f"Verdict: {decision}")
+        print(f"Confidence: {summary.get('confidence')}")
+        print(f"Severity: {summary.get('severity')}")
+
     return exit_code
 
 
@@ -889,6 +979,163 @@ def _handle_demo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_train_bn_lr(args: argparse.Namespace) -> int:
+    import numpy as np
+    import pandas as pd
+
+    from core.bn_lr import save_model, train
+
+    data_path = args.data
+    if not data_path.exists():
+        raise FileNotFoundError(f"Training data not found: {data_path}")
+
+    df = pd.read_csv(data_path)
+
+    required_columns = [
+        "bn_p_low",
+        "bn_p_medium",
+        "bn_p_high",
+        "bn_p_critical",
+        "label",
+    ]
+    missing = set(required_columns) - set(df.columns)
+    if missing:
+        raise ValueError(f"Training data missing required columns: {missing}")
+
+    X = df[["bn_p_low", "bn_p_medium", "bn_p_high", "bn_p_critical"]].values
+    y = df["label"].values
+
+    if not args.quiet:
+        print(f"Training BN-LR model on {len(X)} samples...")
+        print(f"  Positive samples: {np.sum(y)}")
+        print(f"  Negative samples: {len(y) - np.sum(y)}")
+
+    model, metadata = train(X, y)
+
+    output_path = args.output
+    save_model(model, metadata, output_path)
+
+    if not args.quiet:
+        print(f"Model saved to {output_path}")
+        print(f"  BN CPD hash: {metadata['bn_cpd_hash'][:16]}...")
+        print(f"  Calibration: {metadata['calibration_method']}")
+        print(f"  Trained at: {metadata['trained_at']}")
+
+    return 0
+
+
+def _handle_predict_bn_lr(args: argparse.Namespace) -> int:
+    from core.bn_lr import extract_bn_posteriors, load_model, predict_proba
+
+    model_path = args.model
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model not found: {model_path}")
+
+    context_path = args.context
+    if not context_path.exists():
+        raise FileNotFoundError(f"Context file not found: {context_path}")
+
+    with open(context_path, "r") as f:
+        context = json.load(f)
+
+    model, metadata = load_model(model_path, verify_cpd_hash=not args.allow_skew)
+
+    features = extract_bn_posteriors(context)
+    probability = predict_proba(model, features)
+
+    result = {
+        "risk_probability": probability,
+        "bn_posteriors": {
+            "low": features[0],
+            "medium": features[1],
+            "high": features[2],
+            "critical": features[3],
+        },
+        "model_metadata": {
+            "bn_cpd_hash": metadata["bn_cpd_hash"],
+            "trained_at": metadata["trained_at"],
+            "calibration_method": metadata["calibration_method"],
+        },
+    }
+
+    if args.output:
+        ensure_output_directory(args.output.parent)
+        with args.output.open("w", encoding="utf-8") as handle:
+            json.dump(result, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if not args.quiet:
+        print(f"Risk probability: {probability:.4f}")
+        print(
+            f"BN posteriors: low={features[0]:.3f}, med={features[1]:.3f}, "
+            f"high={features[2]:.3f}, crit={features[3]:.3f}"
+        )
+
+    return 0
+
+
+def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
+    import pandas as pd
+
+    from core.bn_lr import backtest, load_model
+
+    model_path = args.model
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model not found: {model_path}")
+
+    data_path = args.data
+    if not data_path.exists():
+        raise FileNotFoundError(f"Test data not found: {data_path}")
+
+    model, metadata = load_model(model_path, verify_cpd_hash=not args.allow_skew)
+
+    df = pd.read_csv(data_path)
+    required_columns = [
+        "bn_p_low",
+        "bn_p_medium",
+        "bn_p_high",
+        "bn_p_critical",
+        "label",
+    ]
+    missing = set(required_columns) - set(df.columns)
+    if missing:
+        raise ValueError(f"Test data missing required columns: {missing}")
+
+    X_test = df[["bn_p_low", "bn_p_medium", "bn_p_high", "bn_p_critical"]].values
+    y_test = df["label"].values
+
+    thresholds = (
+        [0.6, 0.85]
+        if not args.thresholds
+        else [float(t) for t in args.thresholds.split(",")]
+    )
+
+    metrics = backtest(model, X_test, y_test, thresholds=thresholds)
+
+    if args.output:
+        ensure_output_directory(args.output.parent)
+        with args.output.open("w", encoding="utf-8") as handle:
+            json.dump(metrics, handle, indent=2 if args.pretty else None)
+            if args.pretty:
+                handle.write("\n")
+
+    if not args.quiet:
+        print(f"Backtest results on {metrics['n_samples']} samples:")
+        print(f"  Accuracy: {metrics['accuracy']:.4f}")
+        print(f"  ROC-AUC: {metrics['roc_auc']:.4f}")
+        print(f"  Positive samples: {metrics['n_positive']}")
+        print(f"  Negative samples: {metrics['n_negative']}")
+        print("  Threshold metrics:")
+        for threshold, threshold_metrics in metrics["thresholds"].items():
+            print(
+                f"    {threshold}: precision={threshold_metrics['precision']:.4f}, "
+                f"recall={threshold_metrics['recall']:.4f}"
+            )
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -972,6 +1219,101 @@ def build_parser() -> argparse.ArgumentParser:
         decision_parser, include_quiet=False, include_overlay_flag=True
     )
     decision_parser.set_defaults(func=_handle_make_decision)
+
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help="Analyze security findings and output verdict",
+    )
+    analyze_parser.add_argument(
+        "--overlay",
+        type=Path,
+        default=None,
+        help="Path to an overlay file (defaults to repository overlay)",
+    )
+    analyze_parser.add_argument(
+        "--design", type=Path, help="Path to design CSV artefact"
+    )
+    analyze_parser.add_argument("--sbom", type=Path, help="Path to SBOM JSON artefact")
+    analyze_parser.add_argument(
+        "--sarif", type=Path, help="Path to SARIF JSON artefact"
+    )
+    analyze_parser.add_argument(
+        "--sast",
+        type=Path,
+        dest="sarif",
+        help="Path to SAST/SARIF JSON artefact (alias for --sarif)",
+    )
+    analyze_parser.add_argument(
+        "--cve", type=Path, help="Path to CVE/KEV JSON artefact"
+    )
+    analyze_parser.add_argument(
+        "--vex",
+        type=Path,
+        help="Optional path to a CycloneDX VEX document used for noise reduction",
+    )
+    analyze_parser.add_argument(
+        "--cnapp",
+        type=Path,
+        help="Optional path to CNAPP findings JSON for threat-path enrichment",
+    )
+    analyze_parser.add_argument(
+        "--context",
+        type=Path,
+        help="Optional FixOps.yaml, OTM.json, or SSVC YAML business context artefact",
+    )
+    analyze_parser.add_argument(
+        "--output", type=Path, help="Location to write the pipeline result JSON"
+    )
+    analyze_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output when saving to disk",
+    )
+    analyze_parser.add_argument(
+        "--include-overlay",
+        action="store_true",
+        help="Attach the sanitised overlay to the result payload",
+    )
+    analyze_parser.add_argument(
+        "--disable",
+        dest="disable_modules",
+        action="append",
+        default=[],
+        metavar="MODULE",
+        help="Disable a module for this run (e.g. exploit_signals)",
+    )
+    analyze_parser.add_argument(
+        "--enable",
+        dest="enable_modules",
+        action="append",
+        default=[],
+        metavar="MODULE",
+        help="Force-enable a module for this run",
+    )
+    analyze_parser.add_argument(
+        "--env",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Set environment variables before loading the overlay",
+    )
+    analyze_parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Disable exploit feed auto-refresh to avoid network calls",
+    )
+    analyze_parser.add_argument(
+        "--evidence-dir",
+        type=Path,
+        help="Directory to copy the generated evidence bundle into",
+    )
+    analyze_parser.add_argument(
+        "--format",
+        choices=["json", "text"],
+        default="json",
+        help="Output format (default: json)",
+    )
+    analyze_parser.set_defaults(func=_handle_analyze)
 
     health_parser = subparsers.add_parser(
         "health", help="Check integration readiness for local runs"
@@ -1081,6 +1423,110 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress the demo summary",
     )
     demo_parser.set_defaults(func=_handle_demo)
+
+    train_bn_lr_parser = subparsers.add_parser(
+        "train-bn-lr",
+        help="Train BN-LR hybrid model using Bayesian Network posteriors and Logistic Regression",
+    )
+    train_bn_lr_parser.add_argument(
+        "--data",
+        type=Path,
+        required=True,
+        help="Path to CSV file with training data (columns: bn_p_low, bn_p_medium, bn_p_high, bn_p_critical, label)",
+    )
+    train_bn_lr_parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Directory to save trained model artifacts",
+    )
+    train_bn_lr_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress training summary",
+    )
+    train_bn_lr_parser.set_defaults(func=_handle_train_bn_lr)
+
+    predict_bn_lr_parser = subparsers.add_parser(
+        "predict-bn-lr",
+        help="Predict exploitation risk using trained BN-LR model",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--model",
+        type=Path,
+        required=True,
+        help="Path to trained model directory",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--context",
+        type=Path,
+        required=True,
+        help="Path to JSON file with context (exploitation, exposure, utility, etc.)",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write prediction result JSON",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--allow-skew",
+        action="store_true",
+        help="Allow BN CPD hash mismatch (skip training/serving skew check)",
+    )
+    predict_bn_lr_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress prediction output",
+    )
+    predict_bn_lr_parser.set_defaults(func=_handle_predict_bn_lr)
+
+    backtest_bn_lr_parser = subparsers.add_parser(
+        "backtest-bn-lr",
+        help="Backtest trained BN-LR model on labeled test data",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--model",
+        type=Path,
+        required=True,
+        help="Path to trained model directory",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--data",
+        type=Path,
+        required=True,
+        help="Path to CSV file with test data (same format as training data)",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Optional path to write backtest metrics JSON",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--thresholds",
+        type=str,
+        help="Comma-separated decision thresholds to evaluate (default: 0.6,0.85)",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--allow-skew",
+        action="store_true",
+        help="Allow BN CPD hash mismatch (skip training/serving skew check)",
+    )
+    backtest_bn_lr_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress backtest summary",
+    )
+    backtest_bn_lr_parser.set_defaults(func=_handle_backtest_bn_lr)
 
     return parser
 

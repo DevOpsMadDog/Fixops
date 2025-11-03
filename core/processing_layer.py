@@ -144,6 +144,26 @@ class ProcessingLayer:
             values=[[0.5], [0.3], [0.2]],
             state_names={"exposure": ["controlled", "limited", "open"]},
         )
+        utility_cpd = TabularCPD(
+            variable="utility",
+            variable_card=3,
+            values=[[0.4], [0.4], [0.2]],
+            state_names={"utility": ["laborious", "efficient", "super_effective"]},
+        )
+        safety_impact_cpd = TabularCPD(
+            variable="safety_impact",
+            variable_card=4,
+            values=[[0.5], [0.3], [0.15], [0.05]],
+            state_names={
+                "safety_impact": ["negligible", "marginal", "major", "hazardous"]
+            },
+        )
+        mission_impact_cpd = TabularCPD(
+            variable="mission_impact",
+            variable_card=3,
+            values=[[0.5], [0.35], [0.15]],
+            state_names={"mission_impact": ["degraded", "crippled", "mev"]},
+        )
         risk_cpd = TabularCPD(
             variable="risk",
             variable_card=4,
@@ -164,7 +184,14 @@ class ProcessingLayer:
             },
         )
         try:
-            model.add_cpds(exploitation_cpd, exposure_cpd, risk_cpd)
+            model.add_cpds(
+                exploitation_cpd,
+                exposure_cpd,
+                utility_cpd,
+                safety_impact_cpd,
+                mission_impact_cpd,
+                risk_cpd,
+            )
             inference = VariableElimination(model)
             evidence = {key: value for key, value in defaults.items() if value}
             result = inference.query(["risk"], evidence=evidence)
