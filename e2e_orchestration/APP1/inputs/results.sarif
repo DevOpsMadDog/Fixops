@@ -1,0 +1,390 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Snyk Code",
+          "informationUri": "https://snyk.io",
+          "version": "1.1045.0",
+          "rules": [
+            {
+              "id": "javascript/SqlInjection",
+              "name": "SqlInjection",
+              "shortDescription": {
+                "text": "SQL Injection"
+              },
+              "fullDescription": {
+                "text": "Unsanitized input from an HTTP parameter flows into a SQL query, where it is used in a SQL expression. This may result in a SQL Injection vulnerability."
+              },
+              "help": {
+                "text": "## Remediation\nUse parameterized queries or prepared statements to prevent SQL injection.",
+                "markdown": "## Remediation\nUse parameterized queries or prepared statements to prevent SQL injection."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-89"],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "javascript/PrototypePollution",
+              "name": "PrototypePollution",
+              "shortDescription": {
+                "text": "Prototype Pollution"
+              },
+              "fullDescription": {
+                "text": "Prototype pollution vulnerability in lodash allows an attacker to add or modify properties of Object.prototype."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-1321"],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "javascript/HardcodedSensitiveValue",
+              "name": "HardcodedSensitiveValue",
+              "shortDescription": {
+                "text": "Hardcoded Credentials"
+              },
+              "fullDescription": {
+                "text": "Hardcoded credentials in source code can be easily discovered and exploited by attackers."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-798"],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "javascript/XSS",
+              "name": "CrossSiteScripting",
+              "shortDescription": {
+                "text": "Cross-Site Scripting (XSS)"
+              },
+              "fullDescription": {
+                "text": "Untrusted user input flows into HTML output without proper sanitization, potentially allowing XSS attacks."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-79"],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "javascript/WeakCrypto",
+              "name": "WeakCryptography",
+              "shortDescription": {
+                "text": "Use of Weak Cryptographic Algorithm"
+              },
+              "fullDescription": {
+                "text": "The application uses a weak cryptographic algorithm (MD5) which is vulnerable to collision attacks."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-327"],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "javascript/PathTraversal",
+              "name": "PathTraversal",
+              "shortDescription": {
+                "text": "Path Traversal"
+              },
+              "fullDescription": {
+                "text": "User-controlled input is used to construct a file path without proper validation, potentially allowing access to sensitive files."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-22"],
+                "precision": "high"
+              }
+            },
+            {
+              "id": "javascript/InsecureRandomness",
+              "name": "InsecureRandomness",
+              "shortDescription": {
+                "text": "Insecure Randomness"
+              },
+              "fullDescription": {
+                "text": "Use of Math.random() for security-sensitive operations is insecure. Use crypto.randomBytes() instead."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": ["security", "external/cwe/cwe-338"],
+                "precision": "medium"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "javascript/SqlInjection",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "SQL query is constructed using string concatenation with unsanitized user input from req.query.customerId"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/services/quote-service.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 123,
+                  "startColumn": 15,
+                  "endLine": 123,
+                  "endColumn": 85,
+                  "snippet": {
+                    "text": "const query = `SELECT * FROM quotes WHERE customer_id = '${req.query.customerId}'`;"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "8f3e9d2a1b4c5e6f"
+          },
+          "properties": {
+            "priorityScore": 850,
+            "priorityScoreFactors": [
+              {"label": "Internet-facing", "value": true},
+              {"label": "Handles PII/PHI", "value": true},
+              {"label": "Pre-auth endpoint", "value": false}
+            ]
+          }
+        },
+        {
+          "ruleId": "javascript/PrototypePollution",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "Prototype pollution vulnerability in lodash 4.17.20. Upgrade to 4.17.21 or later."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 5,
+                  "snippet": {
+                    "text": "\"lodash\": \"4.17.20\""
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "7a2b8c9d3e4f5a6b"
+          },
+          "properties": {
+            "priorityScore": 650,
+            "priorityScoreFactors": [
+              {"label": "Internet-facing", "value": true},
+              {"label": "Exploitable", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "javascript/HardcodedSensitiveValue",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "Hardcoded Stripe api config found in source code"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/services/payment-service.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 8,
+                  "startColumn": 20,
+                  "snippet": {
+                    "text": "const stripe = require('stripe')('STRIPE_KEY_PLACEHOLDER...');"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "9c4d5e6f7a8b9c0d"
+          },
+          "properties": {
+            "priorityScore": 900,
+            "priorityScoreFactors": [
+              {"label": "PCI scope", "value": true},
+              {"label": "Production credentials", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "javascript/XSS",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "User input from req.body.name is rendered without sanitization"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/services/quote-service.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 234,
+                  "startColumn": 10,
+                  "snippet": {
+                    "text": "res.send(`<h1>Welcome ${req.body.name}</h1>`);"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "6b7c8d9e0f1a2b3c"
+          },
+          "properties": {
+            "priorityScore": 600,
+            "priorityScoreFactors": [
+              {"label": "Internet-facing", "value": true},
+              {"label": "Reflected XSS", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "javascript/WeakCrypto",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "Use of MD5 hash function for auth_string hashing is insecure"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/services/auth-service.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 67,
+                  "startColumn": 25,
+                  "snippet": {
+                    "text": "const hash = crypto.createHash('md5').update(auth_string).digest('hex');"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "5a6b7c8d9e0f1a2b"
+          },
+          "properties": {
+            "priorityScore": 550,
+            "priorityScoreFactors": [
+              {"label": "Authentication path", "value": true},
+              {"label": "Handles credentials", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "javascript/PathTraversal",
+          "ruleIndex": 5,
+          "level": "warning",
+          "message": {
+            "text": "File path constructed from user input without validation"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/services/document-service.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 20,
+                  "snippet": {
+                    "text": "const filePath = path.join(__dirname, 'uploads', req.query.filename);"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "4a5b6c7d8e9f0a1b"
+          },
+          "properties": {
+            "priorityScore": 500,
+            "priorityScoreFactors": [
+              {"label": "File system access", "value": true},
+              {"label": "User-controlled path", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "javascript/InsecureRandomness",
+          "ruleIndex": 6,
+          "level": "note",
+          "message": {
+            "text": "Math.random() used for session auth_value generation"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/services/auth-service.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 112,
+                  "startColumn": 25,
+                  "snippet": {
+                    "text": "const sessionId = Math.random().toString(36).substring(7);"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "3a4b5c6d7e8f9a0b"
+          },
+          "properties": {
+            "priorityScore": 400,
+            "priorityScoreFactors": [
+              {"label": "Session management", "value": true},
+              {"label": "Predictable auth_values", "value": true}
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
