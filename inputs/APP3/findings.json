@@ -1,0 +1,8 @@
+{
+  "scan_time": "2025-10-28T14:05:00Z",
+  "findings": [
+    {"id": "F-301", "type": "k8s:privilege", "severity": "high", "resource": "deployment/ehr-gateway", "description": "Container running as root"},
+    {"id": "F-302", "type": "iam:overprivileged", "severity": "medium", "resource": "azure/ad/app/app3-svc", "description": "Service principal has directory.write"},
+    {"id": "F-303", "type": "network:exposure", "severity": "critical", "resource": "aks/app3-loadbalancer", "description": "Ingress allows 0.0.0.0/0 to admin API"}
+  ]
+}

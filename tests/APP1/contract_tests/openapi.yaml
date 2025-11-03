@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: APP1 Insurance API
+  version: "2.6.4"
+servers:
+  - url: https://api.app1-insurance.example.com
+paths:
+  /api/quote:
+    post:
+      summary: Create quote
+      tags: [Quotes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteRequest'
+      responses:
+        '200':
+          description: quote created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+        '400':
+          description: validation error
+        '401':
+          description: unauthorized
+    get:
+      summary: List quotes by customer
+      tags: [Quotes]
+      parameters:
+        - in: query
+          name: customer_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: list quotes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuoteResponse'
+  /api/claim:
+    post:
+      summary: Submit claim notice
+      tags: [Claims]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimRequest'
+      responses:
+        '202': { description: claim accepted }
+        '409': { description: duplicate claim }
+  /api/admin/quote/{quoteId}/approve:
+    post:
+      summary: Approve quote
+      tags: [Admin]
+      parameters:
+        - in: path
+          name: quoteId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204': { description: approved }
+        '403': { description: forbidden }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    QuoteRequest:
+      type: object
+      required: [customer_id, product_code, coverage_amount]
+      properties:
+        customer_id: { type: string, example: CUST-123 }
+        product_code: { type: string, example: AUTO-PLUS }
+        coverage_amount: { type: number, format: float, example: 250000 }
+    QuoteResponse:
+      type: object
+      properties:
+        quote_id: { type: string }
+        premium: { type: number }
+        currency: { type: string }
+        expires_at: { type: string, format: date-time }
+    ClaimRequest:
+      type: object
+      required: [claim_id, quote_id, loss_type]
+      properties:
+        claim_id: { type: string }
+        quote_id: { type: string }
+        loss_type: { type: string, enum: [collision, theft, comprehensive] }
+        loss_date: { type: string, format: date }

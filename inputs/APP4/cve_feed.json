@@ -1,0 +1,7 @@
+{
+  "generated": "2025-10-28T14:22:00Z",
+  "cves": [
+    {"id": "CVE-2024-55781", "package": "go-chi", "version": "5.0.10", "cvss": 8.2, "published": "2024-11-02", "summary": "Routing bypass allows path traversal"},
+    {"id": "CVE-2025-01911", "package": "grpc", "version": "1.62.0", "cvss": 7.9, "published": "2025-03-01", "summary": "TLS downgrade vulnerability"}
+  ]
+}

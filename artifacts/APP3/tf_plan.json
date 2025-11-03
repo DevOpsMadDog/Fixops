@@ -1,0 +1,26 @@
+{
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "azurerm_kubernetes_cluster.app3",
+          "type": "azurerm_kubernetes_cluster",
+          "change": {
+            "actions": ["update"],
+            "before": {"api_server_authorized_ip_ranges": ["0.0.0.0/0"]},
+            "after": {"api_server_authorized_ip_ranges": ["10.20.0.0/16", "192.168.5.0/24"]}
+          }
+        },
+        {
+          "address": "azurerm_linux_virtual_machine.kafka1",
+          "type": "azurerm_linux_virtual_machine",
+          "change": {
+            "actions": ["update"],
+            "before": {"admin_username": "root"},
+            "after": {"admin_username": "app3svc"}
+          }
+        }
+      ]
+    }
+  }
+}

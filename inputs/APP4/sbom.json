@@ -1,0 +1,20 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-10-28T14:20:00Z",
+    "component": {
+      "type": "application",
+      "name": "APP4 Retail Payments",
+      "version": "3.9.0",
+      "purl": "pkg:app/app4-retail@3.9.0"
+    }
+  },
+  "components": [
+    {"type": "library", "name": "go-chi", "version": "5.0.10", "purl": "pkg:golang/github.com/go-chi/chi@5.0.10"},
+    {"type": "library", "name": "aws-lambda-go", "version": "1.45.0", "purl": "pkg:golang/github.com/aws/aws-lambda-go@1.45.0"},
+    {"type": "library", "name": "grpc", "version": "1.62.0", "purl": "pkg:golang/google.golang.org/grpc@1.62.0"},
+    {"type": "library", "name": "node", "version": "20.10.0", "purl": "pkg:docker/node@20.10.0"}
+  ]
+}

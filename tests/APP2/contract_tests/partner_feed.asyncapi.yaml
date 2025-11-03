@@ -1,0 +1,42 @@
+asyncapi: 2.6.0
+info:
+  title: APP2 Partner Event Stream
+  version: "1.14.2"
+channels:
+  partner.offers:
+    description: Partner offer updates published via SNS
+    subscribe:
+      operationId: consumeOfferUpdate
+      summary: Consume offer updates
+      message:
+        name: OfferUpdate
+        payload:
+          type: object
+          required: [event_id, partner_id, offer]
+          properties:
+            event_id: { type: string }
+            partner_id: { type: string }
+            offer:
+              type: object
+              properties:
+                id: { type: string }
+                price: { type: number }
+                currency: { type: string }
+                expires_at: { type: string, format: date-time }
+  partner.deletions:
+    description: Partner deletion confirmations
+    publish:
+      operationId: publishDeletionAck
+      summary: Publish GDPR deletion acknowledgment
+      message:
+        name: DeletionAck
+        payload:
+          type: object
+          required: [request_id, status]
+          properties:
+            request_id: { type: string }
+            status: { type: string, enum: [accepted, rejected] }
+servers:
+  sns:
+    url: arn:aws:sns:us-east-1:123456789012:app2-partner-events
+    protocol: aws-sns

@@ -1,0 +1,43 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "app1-sast",
+          "informationUri": "https://scanner.example.com/app1",
+          "version": "2025.10"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "S001",
+          "level": "warning",
+          "message": {"text": "Potential SQL injection in /api/quote"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "services/pricing.js"},
+                "region": {"startLine": 123}
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "S014",
+          "level": "error",
+          "message": {"text": "Hardcoded JWT secret in config"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "config/default.json"},
+                "region": {"startLine": 17}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

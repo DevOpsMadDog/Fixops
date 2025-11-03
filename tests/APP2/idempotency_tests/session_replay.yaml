@@ -1,0 +1,36 @@
+test: session-replay
+scenario: Duplicate persisted query requests with same nonce should be treated as cache hits
+steps:
+  - name: initial request
+    request:
+      method: POST
+      url: ${HOST}/graphql
+      headers:
+        Authorization: Bearer {{viewer_token}}
+        Content-Type: application/json
+        X-Request-Nonce: 88ec9367-4476-47e5-a23c-6f66ab5b34f7
+      body:
+        id: offerFeed
+        variables:
+          partnerId: PART-44
+          locale: en-US
+    expect:
+      status: 200
+      body.data.offers: !store offers_snapshot
+  - name: replay request
+    request:
+      method: POST
+      url: ${HOST}/graphql
+      headers:
+        Authorization: Bearer {{viewer_token}}
+        Content-Type: application/json
+        X-Request-Nonce: 88ec9367-4476-47e5-a23c-6f66ab5b34f7
+      body:
+        id: offerFeed
+        variables:
+          partnerId: PART-44
+          locale: en-US
+    expect:
+      status: 200
+      headers.X-Cache: HIT
+      body.data.offers: !assert_equal offers_snapshot
