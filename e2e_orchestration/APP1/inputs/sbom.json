@@ -1,0 +1,175 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2024-10-28T12:00:00Z",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "syft",
+        "version": "0.98.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "insurance-quote-platform",
+      "version": "2.4.1",
+      "description": "Healthcare insurance quote and enrollment platform"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react@18.2.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "react-dom",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react-dom@18.2.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "express",
+      "version": "4.18.2",
+      "purl": "pkg:npm/express@4.18.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Fast, unopinionated, minimalist web framework"
+    },
+    {
+      "type": "library",
+      "name": "pg",
+      "version": "8.9.0",
+      "purl": "pkg:npm/pg@8.9.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "PostgreSQL client for Node.js"
+    },
+    {
+      "type": "library",
+      "name": "lodash",
+      "version": "4.17.20",
+      "purl": "pkg:npm/lodash@4.17.20",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Lodash modular utilities"
+    },
+    {
+      "type": "library",
+      "name": "axios",
+      "version": "1.6.0",
+      "purl": "pkg:npm/axios@1.6.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Promise based HTTP client"
+    },
+    {
+      "type": "library",
+      "name": "jsonwebtoken",
+      "version": "9.0.2",
+      "purl": "pkg:npm/jsonwebtoken@9.0.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "JSON Web Token implementation"
+    },
+    {
+      "type": "library",
+      "name": "bcrypt",
+      "version": "5.1.1",
+      "purl": "pkg:npm/bcrypt@5.1.1",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "A bcrypt library for NodeJS"
+    },
+    {
+      "type": "library",
+      "name": "stripe",
+      "version": "14.5.0",
+      "purl": "pkg:npm/stripe@14.5.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Stripe API wrapper"
+    },
+    {
+      "type": "library",
+      "name": "redis",
+      "version": "4.6.10",
+      "purl": "pkg:npm/redis@4.6.10",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Redis client for Node.js"
+    },
+    {
+      "type": "library",
+      "name": "helmet",
+      "version": "7.1.0",
+      "purl": "pkg:npm/helmet@7.1.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Help secure Express apps with various HTTP headers"
+    },
+    {
+      "type": "library",
+      "name": "cors",
+      "version": "2.8.5",
+      "purl": "pkg:npm/cors@2.8.5",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "CORS middleware"
+    },
+    {
+      "type": "library",
+      "name": "dotenv",
+      "version": "16.3.1",
+      "purl": "pkg:npm/dotenv@16.3.1",
+      "licenses": [{"license": {"id": "BSD-2-Clause"}}],
+      "description": "Loads environment variables from .env file"
+    },
+    {
+      "type": "library",
+      "name": "winston",
+      "version": "3.11.0",
+      "purl": "pkg:npm/winston@3.11.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "A logger for just about everything"
+    },
+    {
+      "type": "library",
+      "name": "joi",
+      "version": "17.11.0",
+      "purl": "pkg:npm/joi@17.11.0",
+      "licenses": [{"license": {"id": "BSD-3-Clause"}}],
+      "description": "Object schema validation"
+    },
+    {
+      "type": "library",
+      "name": "node",
+      "version": "18.18.2",
+      "purl": "pkg:generic/node@18.18.2",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Node.js runtime"
+    },
+    {
+      "type": "operating-system",
+      "name": "alpine",
+      "version": "3.18.4",
+      "purl": "pkg:generic/alpine@3.18.4",
+      "description": "Alpine Linux base image"
+    },
+    {
+      "type": "library",
+      "name": "openssl",
+      "version": "3.1.4",
+      "purl": "pkg:generic/openssl@3.1.4",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Cryptography and SSL/TLS toolkit"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:npm/express@4.18.2",
+      "dependsOn": ["pkg:npm/body-parser@1.20.1"]
+    },
+    {
+      "ref": "pkg:npm/react-dom@18.2.0",
+      "dependsOn": ["pkg:npm/react@18.2.0"]
+    }
+  ]
+}

@@ -468,6 +468,30 @@ def create_app() -> FastAPI:
             buffer = text_stream.detach()  # type: ignore[assignment]
         if not rows:
             raise HTTPException(status_code=400, detail="Design CSV contained no rows")
+
+        overlay: OverlayConfig = app.state.overlay
+        strict_validation = overlay.toggles.get("strict_validation", False)
+
+        if strict_validation:
+            required_columns = {
+                "component",
+                "subcomponent",
+                "owner",
+                "data_class",
+                "description",
+                "control_scope",
+            }
+            missing_columns = required_columns - set(columns)
+            if missing_columns:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": "Design CSV missing required columns (strict mode)",
+                        "missing_columns": sorted(missing_columns),
+                        "required_columns": sorted(required_columns),
+                    },
+                )
+
         dataset = {"columns": columns, "rows": rows}
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("design", dataset, original_filename=filename, raw_bytes=raw_bytes)
@@ -483,9 +507,59 @@ def create_app() -> FastAPI:
     def _process_sbom(
         buffer: SpooledTemporaryFile, total: int, filename: str
     ) -> Dict[str, Any]:
+        buffer.seek(0)
+        try:
+            sbom_data = json.load(buffer)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid JSON in SBOM: {exc}"
+            ) from exc
+
+        overlay: OverlayConfig = app.state.overlay
+        strict_validation = overlay.toggles.get("strict_validation", False)
+
+        bom_format = sbom_data.get("bomFormat")
+        if bom_format and bom_format not in ("CycloneDX", "SPDX"):
+            if strict_validation:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": f"Unsupported SBOM format: {bom_format}",
+                        "supported_formats": ["CycloneDX", "SPDX"],
+                    },
+                )
+            else:
+                logger.warning(
+                    "SBOM has unsupported bomFormat: %s, continuing with provider fallback",
+                    bom_format,
+                )
+
+        if not bom_format:
+            components = sbom_data.get("components")
+            detected_manifests = sbom_data.get("detectedManifests")
+            artifacts = sbom_data.get("artifacts")
+            descriptor = sbom_data.get("descriptor")
+
+            has_known_format = (
+                isinstance(components, list)
+                or isinstance(detected_manifests, dict)
+                or isinstance(artifacts, list)
+                or isinstance(descriptor, dict)
+            )
+
+            if not has_known_format and strict_validation:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": "SBOM missing bomFormat and has unrecognized structure",
+                        "hint": "Provide bomFormat field or use a known format (CycloneDX, GitHub dependency snapshot, Syft)",
+                    },
+                )
+
+        buffer.seek(0)
         try:
             sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
-        except Exception as exc:  # pragma: no cover - pass to FastAPI
+        except Exception as exc:
             logger.exception("SBOM normalisation failed")
             raise HTTPException(
                 status_code=400, detail=f"Failed to parse SBOM: {exc}"
@@ -508,11 +582,27 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
-        except Exception as exc:  # pragma: no cover - FastAPI serialises
+        except Exception as exc:
             logger.exception("CVE feed normalisation failed")
             raise HTTPException(
                 status_code=400, detail=f"Failed to parse CVE feed: {exc}"
             ) from exc
+
+        overlay: OverlayConfig = app.state.overlay
+        strict_validation = overlay.toggles.get("strict_validation", False)
+
+        if cve_feed.errors and strict_validation:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "CVE feed contains validation errors (strict mode)",
+                    "record_count": cve_feed.metadata.get("record_count", 0),
+                    "validation_errors": cve_feed.errors[:10],
+                    "total_errors": len(cve_feed.errors),
+                    "hint": "Use official CVE JSON 5.1.1 format or ensure all required fields are present",
+                },
+            )
+
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
         return {
@@ -911,6 +1001,11 @@ def create_app() -> FastAPI:
             context=app.state.artifacts.get("context"),
         )
         result["run_id"] = run_id
+
+        severity_overview = result.get("severity_overview", {})
+        guardrail_evaluation = result.get("guardrail_evaluation", {})
+        result["highest_severity"] = severity_overview.get("highest")
+        result["guardrail_status"] = guardrail_evaluation.get("status")
         analytics_store = getattr(app.state, "analytics_store", None)
         if analytics_store is not None:
             try:
