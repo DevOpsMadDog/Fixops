@@ -1,0 +1,206 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:8f2a4b6c-7d3e-4f5a-9b1c-2d3e4f5a6b7c",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2024-10-28T13:00:00Z",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "syft",
+        "version": "0.98.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "ecommerce-marketplace",
+      "version": "3.12.5",
+      "description": "Multi-vendor e-commerce marketplace platform"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "next",
+      "version": "14.0.3",
+      "purl": "pkg:npm/next@14.0.3",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "The React Framework"
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react@18.2.0",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "spring-boot-starter-web",
+      "version": "3.1.5",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.1.5",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Spring Boot Web Starter"
+    },
+    {
+      "type": "library",
+      "name": "spring-boot-starter-data-jpa",
+      "version": "3.1.5",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-data-jpa@3.1.5",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "spring-boot-starter-security",
+      "version": "3.1.5",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-security@3.1.5",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "spring-kafka",
+      "version": "3.0.12",
+      "purl": "pkg:maven/org.springframework.kafka/spring-kafka@3.0.12",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Spring Kafka Support"
+    },
+    {
+      "type": "library",
+      "name": "log4j-core",
+      "version": "2.20.0",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.20.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Apache Log4j Core"
+    },
+    {
+      "type": "library",
+      "name": "kafka-clients",
+      "version": "3.6.0",
+      "purl": "pkg:maven/org.apache.kafka/kafka-clients@3.6.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Apache Kafka Clients"
+    },
+    {
+      "type": "library",
+      "name": "mongodb-driver-sync",
+      "version": "4.11.1",
+      "purl": "pkg:maven/org.mongodb/mongodb-driver-sync@4.11.1",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "MongoDB Java Driver"
+    },
+    {
+      "type": "library",
+      "name": "postgresql",
+      "version": "42.6.0",
+      "purl": "pkg:maven/org.postgresql/postgresql@42.6.0",
+      "licenses": [{"license": {"id": "BSD-2-Clause"}}],
+      "description": "PostgreSQL JDBC Driver"
+    },
+    {
+      "type": "library",
+      "name": "lettuce-core",
+      "version": "6.2.6.RELEASE",
+      "purl": "pkg:maven/io.lettuce/lettuce-core@6.2.6.RELEASE",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Redis Java client"
+    },
+    {
+      "type": "library",
+      "name": "stripe-java",
+      "version": "24.2.0",
+      "purl": "pkg:maven/com.stripe/stripe-java@24.2.0",
+      "licenses": [{"license": {"id": "MIT"}}],
+      "description": "Stripe Java bindings"
+    },
+    {
+      "type": "library",
+      "name": "elasticsearch-java",
+      "version": "8.10.4",
+      "purl": "pkg:maven/co.elastic.clients/elasticsearch-java@8.10.4",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Elasticsearch Java API Client"
+    },
+    {
+      "type": "library",
+      "name": "jackson-databind",
+      "version": "2.15.3",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.3",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Jackson Databind"
+    },
+    {
+      "type": "library",
+      "name": "micrometer-core",
+      "version": "1.11.5",
+      "purl": "pkg:maven/io.micrometer/micrometer-core@1.11.5",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Micrometer Application Metrics"
+    },
+    {
+      "type": "library",
+      "name": "kong",
+      "version": "3.4.0",
+      "purl": "pkg:generic/kong@3.4.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Kong API Gateway"
+    },
+    {
+      "type": "application",
+      "name": "kafka",
+      "version": "3.6.0",
+      "purl": "pkg:generic/kafka@3.6.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "description": "Apache Kafka"
+    },
+    {
+      "type": "application",
+      "name": "mongodb",
+      "version": "7.0.2",
+      "purl": "pkg:generic/mongodb@7.0.2",
+      "licenses": [{"license": {"id": "SSPL"}}],
+      "description": "MongoDB Database"
+    },
+    {
+      "type": "application",
+      "name": "redis",
+      "version": "7.2.0",
+      "purl": "pkg:generic/redis@7.2.0",
+      "licenses": [{"license": {"id": "BSD-3-Clause"}}],
+      "description": "Redis In-Memory Database"
+    },
+    {
+      "type": "application",
+      "name": "elasticsearch",
+      "version": "8.10.0",
+      "purl": "pkg:generic/elasticsearch@8.10.0",
+      "licenses": [{"license": {"id": "Elastic-2.0"}}],
+      "description": "Elasticsearch Search Engine"
+    },
+    {
+      "type": "library",
+      "name": "openjdk",
+      "version": "17.0.9",
+      "purl": "pkg:generic/openjdk@17.0.9",
+      "licenses": [{"license": {"id": "GPL-2.0"}}],
+      "description": "OpenJDK Java Runtime"
+    },
+    {
+      "type": "operating-system",
+      "name": "ubuntu",
+      "version": "22.04",
+      "purl": "pkg:generic/ubuntu@22.04",
+      "description": "Ubuntu Linux"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.1.5",
+      "dependsOn": ["pkg:maven/org.springframework/spring-webmvc@6.0.13"]
+    },
+    {
+      "ref": "pkg:maven/org.springframework.kafka/spring-kafka@3.0.12",
+      "dependsOn": ["pkg:maven/org.apache.kafka/kafka-clients@3.6.0"]
+    }
+  ]
+}

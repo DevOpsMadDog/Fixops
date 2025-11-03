@@ -1,0 +1,36 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2024-10-28T15:00:00Z",
+    "tools": [{"vendor": "anchore", "name": "syft", "version": "0.98.0"}],
+    "component": {
+      "type": "application",
+      "name": "iot-device-management-platform",
+      "version": "5.3.1",
+      "description": "Industrial IoT device management and control platform"
+    }
+  },
+  "components": [
+    {"type": "library", "name": "angular", "version": "17.0.0", "purl": "pkg:npm/@angular/core@17.0.0", "licenses": [{"license": {"id": "MIT"}}]},
+    {"type": "library", "name": "go", "version": "1.21.5", "purl": "pkg:golang/go@1.21.5", "licenses": [{"license": {"id": "BSD-3-Clause"}}]},
+    {"type": "library", "name": "grpc-go", "version": "1.59.0", "purl": "pkg:golang/google.golang.org/grpc@1.59.0", "licenses": [{"license": {"id": "Apache-2.0"}}]},
+    {"type": "library", "name": "protobuf", "version": "1.31.0", "purl": "pkg:golang/google.golang.org/protobuf@1.31.0", "licenses": [{"license": {"id": "BSD-3-Clause"}}]},
+    {"type": "library", "name": "etcd-client", "version": "3.5.10", "purl": "pkg:golang/go.etcd.io/etcd/client/v3@3.5.10", "licenses": [{"license": {"id": "Apache-2.0"}}]},
+    {"type": "library", "name": "influxdb-client-go", "version": "2.13.0", "purl": "pkg:golang/github.com/influxdata/influxdb-client-go/v2@2.13.0", "licenses": [{"license": {"id": "MIT"}}]},
+    {"type": "library", "name": "pq", "version": "1.10.9", "purl": "pkg:golang/github.com/lib/pq@1.10.9", "licenses": [{"license": {"id": "MIT"}}]},
+    {"type": "library", "name": "paho.mqtt.golang", "version": "1.4.3", "purl": "pkg:golang/github.com/eclipse/paho.mqtt.golang@1.4.3", "licenses": [{"license": {"id": "EPL-2.0"}}]},
+    {"type": "library", "name": "aws-sdk-go-v2", "version": "1.23.0", "purl": "pkg:golang/github.com/aws/aws-sdk-go-v2@1.23.0", "licenses": [{"license": {"id": "Apache-2.0"}}]},
+    {"type": "library", "name": "jwt-go", "version": "5.1.0", "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@5.1.0", "licenses": [{"license": {"id": "MIT"}}]},
+    {"type": "library", "name": "crypto", "version": "0.15.0", "purl": "pkg:golang/golang.org/x/crypto@0.15.0", "licenses": [{"license": {"id": "BSD-3-Clause"}}]},
+    {"type": "library", "name": "net", "version": "0.18.0", "purl": "pkg:golang/golang.org/x/net@0.18.0", "licenses": [{"license": {"id": "BSD-3-Clause"}}]},
+    {"type": "application", "name": "mosquitto", "version": "2.0.18", "purl": "pkg:generic/mosquitto@2.0.18", "licenses": [{"license": {"id": "EPL-2.0"}}]},
+    {"type": "application", "name": "etcd", "version": "3.5.10", "purl": "pkg:generic/etcd@3.5.10", "licenses": [{"license": {"id": "Apache-2.0"}}]},
+    {"type": "application", "name": "influxdb", "version": "2.7.4", "purl": "pkg:generic/influxdb@2.7.4", "licenses": [{"license": {"id": "MIT"}}]},
+    {"type": "application", "name": "postgresql", "version": "15.5", "purl": "pkg:generic/postgresql@15.5", "licenses": [{"license": {"id": "PostgreSQL"}}]},
+    {"type": "application", "name": "k3s", "version": "1.28.3", "purl": "pkg:generic/k3s@1.28.3", "licenses": [{"license": {"id": "Apache-2.0"}}]},
+    {"type": "operating-system", "name": "alpine", "version": "3.19.0", "purl": "pkg:generic/alpine@3.19.0", "description": "Alpine Linux"}
+  ]
+}
