@@ -1176,7 +1176,12 @@ class InputNormalizer:
                 entry.get("cveID")
                 or entry.get("cve_id")
                 or entry.get("id")
-                or entry.get("cve", {}).get("cveId")
+                or (entry.get("cve") if isinstance(entry.get("cve"), str) else None)
+                or (
+                    entry.get("cve", {}).get("cveId")
+                    if isinstance(entry.get("cve"), dict)
+                    else None
+                )
                 or "UNKNOWN"
             )
             title = (
@@ -1750,6 +1755,29 @@ class InputNormalizer:
             nested = document.get("business_context")
             if isinstance(nested, Mapping):
                 return self._from_fixops_context(nested, source)
+        if (
+            document.get("org")
+            or document.get("crown_jewels")
+            or document.get("environments")
+        ):
+            metadata = {
+                "source": source,
+                "org_name": document.get("org", {}).get("name")
+                if isinstance(document.get("org"), dict)
+                else None,
+                "crown_jewels": document.get("crown_jewels", []),
+                "environments": document.get("environments", []),
+            }
+
+            return NormalizedBusinessContext(
+                format="org_context.yaml"
+                if source.endswith("yaml")
+                else "org_context.json",
+                components=[],
+                ssvc={},
+                metadata=metadata,
+                raw=dict(document),
+            )
         raise ValueError(
             "Unsupported business context document; expected FixOps, OTM, or SSVC payload"
         )
