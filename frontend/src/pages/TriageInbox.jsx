@@ -31,13 +31,34 @@ const TriageInbox = () => {
 
   const loadIssues = async () => {
     try {
-      const response = await fetch('/demo/triage.json')
+      const apiBase = import.meta.env.VITE_FIXOPS_API_BASE
+      const apiToken = import.meta.env.VITE_FIXOPS_API_TOKEN
+      
+      let url = '/demo/triage.json'
+      let headers = {}
+      
+      if (apiBase) {
+        url = `${apiBase}/api/v1/triage`
+        if (apiToken) {
+          headers['X-API-Key'] = apiToken
+        }
+      }
+      
+      const response = await fetch(url, { headers })
       const data = await response.json()
       setIssues(data.rows || [])
       setSummary(data.summary || {})
     } catch (error) {
       console.error('Failed to load issues:', error)
-      setIssues([])
+      try {
+        const fallbackResponse = await fetch('/demo/triage.json')
+        const fallbackData = await fallbackResponse.json()
+        setIssues(fallbackData.rows || [])
+        setSummary(fallbackData.summary || {})
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError)
+        setIssues([])
+      }
     } finally {
       setLoading(false)
     }
