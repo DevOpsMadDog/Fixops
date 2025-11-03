@@ -9,6 +9,7 @@ from tests.harness import (
     EvidenceValidator,
     FixtureManager,
     FlagConfigManager,
+    ServerManager,
 )
 
 
@@ -39,6 +40,14 @@ def cli_runner(fixture_manager):
 def evidence_validator():
     """Provide an EvidenceValidator."""
     return EvidenceValidator()
+
+
+@pytest.fixture
+def server_manager():
+    """Provide a ServerManager with automatic cleanup."""
+    manager = ServerManager()
+    yield manager
+    manager.stop()
 
 
 @pytest.fixture
