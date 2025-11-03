@@ -284,6 +284,7 @@ def create_app() -> FastAPI:
     app.state.archive = archive
     app.state.archive_records: Dict[str, Dict[str, Any]] = {}  # type: ignore[misc]
     app.state.analytics_store = analytics_store
+    app.state.last_pipeline_result: Optional[Dict[str, Any]] = None  # type: ignore[misc]
     app.state.feedback = (
         FeedbackRecorder(overlay, analytics_store=analytics_store)
         if overlay.toggles.get("capture_feedback")
@@ -935,7 +936,209 @@ def create_app() -> FastAPI:
         if overlay.toggles.get("auto_attach_overlay_metadata", True):
             result["overlay"] = overlay.to_sanitised_dict()
             result["overlay"]["required_inputs"] = list(required)
+
+        app.state.last_pipeline_result = result
+
         return result
+
+    @app.get("/api/v1/triage", dependencies=[Depends(_verify_api_key)])
+    async def get_triage() -> Dict[str, Any]:
+        """Transform last pipeline result into triage inbox format."""
+        last_result = app.state.last_pipeline_result
+
+        if last_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
+            )
+
+        rows = []
+        crosswalk = last_result.get("crosswalk", [])
+        evidence_bundle = last_result.get("evidence_bundle", {})
+        compliance_status = last_result.get("compliance_status", {})
+        exploitability_insights = last_result.get("exploitability_insights", {})
+
+        retention_days = 90 if overlay.mode == "demo" else 2555
+
+        for idx, entry in enumerate(crosswalk):
+            design_row = entry.get("design_row", {})
+            findings = entry.get("findings", [])
+            cves = entry.get("cves", [])
+
+            component_name = design_row.get("component", "unknown")
+            exposure = design_row.get("exposure", "internal")
+            internet_facing = exposure == "internet"
+
+            for finding in findings:
+                rule_id = finding.get("rule_id", "unknown")
+                message = finding.get("message", "No description")
+                level = finding.get("level", "warning")
+                file_path = finding.get("file", "")
+                line = finding.get("line", 0)
+
+                severity_map = {"error": "high", "warning": "medium", "note": "low"}
+                severity = severity_map.get(level, "medium")
+
+                location = f"{file_path}:{line}" if file_path else component_name
+
+                row_id = f"sarif-{idx}-{rule_id}"
+
+                rows.append(
+                    {
+                        "id": row_id,
+                        "severity": severity,
+                        "title": f"{rule_id} - {message[:80]}",
+                        "source": "SAST",
+                        "repo": component_name,
+                        "location": location,
+                        "exploitability": {"kev": False, "epss": 0.0},
+                        "age_days": 0,
+                        "internet_facing": internet_facing,
+                        "description": message,
+                        "remediation": f"Review and fix {rule_id} in {location}",
+                        "evidence_bundle": {
+                            "id": evidence_bundle.get("bundle_id", "unknown"),
+                            "signature_algorithm": "RSA-SHA256",
+                            "retention_days": retention_days,
+                            "retained_until": (
+                                datetime.utcnow() + timedelta(days=retention_days)
+                            ).strftime("%m/%d/%Y"),
+                            "sha256": "demo-checksum-"
+                            + evidence_bundle.get("bundle_id", "unknown")[:16],
+                        },
+                        "decision": {
+                            "verdict": "review" if severity == "high" else "allow",
+                            "confidence": 0.75,
+                            "ssvc_outcome": "scheduled",
+                            "rationale": f"SAST finding with {severity} severity in {component_name}",
+                            "signals": {
+                                "severity": severity,
+                                "internet_facing": internet_facing,
+                                "source": "SAST",
+                            },
+                        },
+                        "compliance_mappings": _get_compliance_mappings(
+                            compliance_status, "SAST"
+                        ),
+                    }
+                )
+
+            for cve in cves:
+                cve_id = cve.get("cve_id", "unknown")
+                cve_severity = cve.get("severity", "medium")
+                exploited = cve.get("exploited", False)
+                raw_cve = cve.get("raw", {})
+                short_desc = raw_cve.get("shortDescription", "No description")
+
+                epss_score = 0.0
+                if exploitability_insights:
+                    epss_data = exploitability_insights.get("epss", {})
+                    epss_score = epss_data.get(cve_id, 0.0)
+
+                age_days = 7
+
+                verdict = (
+                    "block"
+                    if (exploited or epss_score > 0.7) and cve_severity == "critical"
+                    else "review"
+                )
+                ssvc_outcome = "immediate" if verdict == "block" else "scheduled"
+
+                row_id = f"cve-{idx}-{cve_id}"
+
+                rows.append(
+                    {
+                        "id": row_id,
+                        "severity": cve_severity,
+                        "title": f"{cve_id} - {short_desc[:80]}",
+                        "source": "CVE",
+                        "repo": component_name,
+                        "location": component_name,
+                        "exploitability": {"kev": exploited, "epss": epss_score},
+                        "age_days": age_days,
+                        "internet_facing": internet_facing,
+                        "description": short_desc,
+                        "remediation": f"Update {component_name} to patch {cve_id}",
+                        "evidence_bundle": {
+                            "id": evidence_bundle.get("bundle_id", "unknown"),
+                            "signature_algorithm": "RSA-SHA256",
+                            "retention_days": retention_days,
+                            "retained_until": (
+                                datetime.utcnow() + timedelta(days=retention_days)
+                            ).strftime("%m/%d/%Y"),
+                            "sha256": "demo-checksum-"
+                            + evidence_bundle.get("bundle_id", "unknown")[:16],
+                        },
+                        "decision": {
+                            "verdict": verdict,
+                            "confidence": 0.95 if exploited else 0.80,
+                            "ssvc_outcome": ssvc_outcome,
+                            "rationale": f"CVE with {cve_severity} severity, KEV={exploited}, EPSS={epss_score:.2f}",
+                            "signals": {
+                                "kev": exploited,
+                                "epss": epss_score,
+                                "severity": cve_severity,
+                                "internet_facing": internet_facing,
+                                "age_days": age_days,
+                            },
+                        },
+                        "compliance_mappings": _get_compliance_mappings(
+                            compliance_status, "CVE"
+                        ),
+                    }
+                )
+
+        new_7d = sum(1 for r in rows if r["age_days"] <= 7)
+        high_critical = sum(1 for r in rows if r["severity"] in ["high", "critical"])
+        exploitable = sum(
+            1
+            for r in rows
+            if r["exploitability"]["kev"] or r["exploitability"]["epss"] > 0.7
+        )
+        internet_facing_count = sum(1 for r in rows if r["internet_facing"])
+
+        return {
+            "rows": rows,
+            "summary": {
+                "total": len(rows),
+                "new_7d": new_7d,
+                "high_critical": high_critical,
+                "exploitable": exploitable,
+                "internet_facing": internet_facing_count,
+            },
+        }
+
+    def _get_compliance_mappings(
+        compliance_status: Dict[str, Any], source_type: str
+    ) -> list:
+        """Extract compliance mappings from compliance_status."""
+        mappings = []
+        frameworks = compliance_status.get("frameworks", [])
+
+        for framework in frameworks[:3]:
+            framework_name = framework.get("name", "")
+            controls = framework.get("controls", [])
+
+            if source_type == "CVE" and controls:
+                for control in controls[:2]:
+                    mappings.append(
+                        {
+                            "framework": framework_name,
+                            "control": control.get("id", ""),
+                            "description": control.get("title", ""),
+                        }
+                    )
+            elif source_type == "SAST" and controls:
+                for control in controls[:1]:
+                    mappings.append(
+                        {
+                            "framework": framework_name,
+                            "control": control.get("id", ""),
+                            "description": control.get("title", ""),
+                        }
+                    )
+
+        return mappings
 
     @app.get("/analytics/dashboard", dependencies=[Depends(_verify_api_key)])
     async def analytics_dashboard(limit: int = 10) -> Dict[str, Any]:
