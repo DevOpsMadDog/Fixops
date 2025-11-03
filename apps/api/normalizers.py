@@ -1122,12 +1122,24 @@ class InputNormalizer:
         data = _safe_json_loads(payload)
 
         if isinstance(data, dict):
-            entries = (
-                data.get("vulnerabilities")
-                or data.get("cves")
-                or data.get("data")
-                or []
-            )
+            entries = data.get("vulnerabilities") or data.get("cves")
+
+            if not entries:
+                nested_data = data.get("data")
+                if isinstance(nested_data, dict):
+                    entries = (
+                        nested_data.get("vulnerabilities")
+                        or nested_data.get("cves")
+                        or nested_data.get("data")
+                        or []
+                    )
+                elif isinstance(nested_data, list):
+                    entries = nested_data
+                else:
+                    entries = []
+
+            if not entries:
+                entries = []
         elif isinstance(data, list):
             entries = data
         else:
@@ -1187,6 +1199,9 @@ class InputNormalizer:
                 or entry.get("knownExploited")
                 or entry.get("exploited")
             )
+
+            if exploited and not severity:
+                severity = "critical"
 
             if cve_id in seen_cve_ids:
                 existing_idx = seen_cve_ids[cve_id]
