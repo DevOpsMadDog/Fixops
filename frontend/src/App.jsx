@@ -7,6 +7,10 @@ import ExecutiveBriefing from './pages/ExecutiveBriefing'
 import ArchitectureCenter from './pages/ArchitectureCenter'
 import InstallPage from './pages/InstallPage'
 import ArchitecturePage from './pages/ArchitecturePage'
+import TriageQueue from './pages/TriageQueue'
+import RiskExplorer from './pages/RiskExplorer'
+import ComplianceRollup from './pages/ComplianceRollup'
+import EvidenceTimeline from './pages/EvidenceTimeline'
 
 function App() {
   return (
@@ -19,6 +23,10 @@ function App() {
         <Route path="/architect" element={<ArchitectureCenter />} />
         <Route path="/install" element={<InstallPage />} />
         <Route path="/architecture" element={<ArchitecturePage />} />
+        <Route path="/triage" element={<TriageQueue />} />
+        <Route path="/risk" element={<RiskExplorer />} />
+        <Route path="/compliance" element={<ComplianceRollup />} />
+        <Route path="/evidence" element={<EvidenceTimeline />} />
         <Route path="*" element={<Navigate to="/enhanced" replace />} />
       </Routes>
     </SecurityLayout>
