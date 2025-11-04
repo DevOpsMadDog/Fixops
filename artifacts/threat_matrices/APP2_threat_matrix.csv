@@ -1,0 +1,8 @@
+threat_id,framework,category,description,attacker_objective,attack_vector,mitigation,test_reference
+APP2-T1,STRIDE,spoofing,Partner impersonates webhook sender,Inject fraudulent bookings,Forged HMAC signature,Rotate secrets + verify timestamp,tests/APP2/partner_simulators/valid_signature.py
+APP2-T2,STRIDE,tampering,Modify offer payload mid-flight,Manipulate pricing,MITM on CDN edge,Strict TLS pinning + integrity headers,tests/APP2/contract_tests/openapi.yaml
+APP2-T3,STRIDE,information disclosure,Leak partner deals before embargo,Competitive advantage,Kong route exposing preview API,Access control policies + authz tests,tests/APP2/authz_tests/matrix.csv
+APP2-T4,STRIDE,denial of service,Saturate GraphQL gateway,Downtime for partner launch,Botnet hitting persisted queries,Adaptive rate limiting + backoff,tests/APP2/perf_k6.js
+APP2-L1,LINDDUN,linkability,Correlate partner user IDs,Privacy breach,Combining analytics tokens,Token anonymization,tests/APP2/idempotency_tests/session_replay.yaml
+APP2-L2,LINDDUN,detectability,Infer partner contract terms,Competitive intel,Response length variations,Response padding + caching,tests/APP2/perf_k6.js
+APP2-L3,LINDDUN,non-compliance,GDPR deletion violation,Regulatory fine,Async queue backlog,Deletion workflow tests,artifacts/APP2/run_manifest.json

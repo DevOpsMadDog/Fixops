@@ -1,0 +1,28 @@
+{
+  "app": "APP3",
+  "run_id": "f0f7c1bc-5b6c-4dd6-8f1a-6a361d02cd8d",
+  "mode": "simulated-offline",
+  "host": "https://fixops.local",
+  "inputs": {
+    "design": "inputs/APP3/design.csv",
+    "sbom": "inputs/APP3/sbom.json",
+    "sarif": "inputs/APP3/results.sarif",
+    "cve_feed": "inputs/APP3/cve_feed.json",
+    "vex": "inputs/APP3/vex_doc.json",
+    "cnapp": "inputs/APP3/findings.json"
+  },
+  "tests": {
+    "contract": "tests/APP3/contract_tests/openapi.yaml",
+    "authz": "tests/APP3/authz_tests/matrix.csv",
+    "idempotency": [
+      "tests/APP3/idempotency_tests/audit_append.yaml",
+      "tests/APP3/idempotency_tests/patient_create.yaml"
+    ],
+    "performance": "tests/APP3/perf_k6.js",
+    "chaos": "tests/APP3/chaos_playbooks"
+  },
+  "policy": ["policy/APP3/security_controls.rego"],
+  "partner_simulators": "tests/APP3/partner_simulators",
+  "backtests": ["2025-fhir-wildcard", "2024-admin-ingress"],
+  "created_at": "2025-10-28T14:10:00Z"
+}

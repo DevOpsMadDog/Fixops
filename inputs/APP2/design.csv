@@ -1,0 +1,7 @@
+component,subcomponent,owner,data_class,description,control_scope
+frontend,shell,experience-team,Internal,"Micro-frontend shell orchestrating partner widgets","SOC2,ISO27001"
+frontend,partner-widget,partner-integrations,Confidential,"Embeds partner travel offers","SOC2,ISO27001,GDPR"
+api,aggregation,api-team,Confidential,"GraphQL gateway aggregating partner APIs","SOC2,ISO27001"
+services,rate-limiter,platform-team,Operational,"Kong gateway enforcing policies","SOC2"
+queue,event-bridge,platform-team,Confidential,"Handles partner webhook ingestion","SOC2,GDPR"
+iac,terraform,cloud-team,Config,"Provisions CDN, gateway, lambda transformers","SOC2,ISO27001"

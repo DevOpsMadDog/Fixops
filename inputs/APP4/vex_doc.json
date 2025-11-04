@@ -1,0 +1,8 @@
+{
+  "vex_id": "VEX-APP4-2025-10-28-001",
+  "statements": [
+    {"cve": "CVE-2024-55781", "status": "affected", "justification": "Checkout uses vulnerable router", "action": "Upgrade to go-chi 5.0.11 and add regression test"},
+    {"cve": "CVE-2025-01911", "status": "not_affected", "justification": "Mutual TLS enforced with TLS1.3 only"}
+  ],
+  "generated": "2025-10-28T14:23:00Z"
+}

@@ -1,0 +1,9 @@
+{
+  "app": "APP1",
+  "components": [
+    {"name": "frontend", "language": "React", "version": "18.2.0", "owner": "frontend-team"},
+    {"name": "pricing-service", "language": "Node.js", "version": "20.10.0", "owner": "pricing-team"},
+    {"name": "claims-processor", "language": "Python", "version": "3.11", "owner": "claims-team"},
+    {"name": "terraform", "language": "HCL", "version": "1.7.5", "owner": "platform-team"}
+  ]
+}

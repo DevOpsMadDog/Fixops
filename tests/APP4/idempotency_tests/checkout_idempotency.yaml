@@ -1,0 +1,37 @@
+test: checkout-idempotency
+scenario: Duplicate checkout request with same idempotency key should reuse session_id
+steps:
+  - name: submit checkout
+    request:
+      method: POST
+      url: ${HOST}/checkout
+      headers:
+        Authorization: Bearer {{device_token}}
+        Content-Type: application/json
+        Idempotency-Key: 4d4fa932-5ac7-4efd-a9f5-e0decb7e27c3
+      body:
+        store_id: STORE-102
+        amount: 59.99
+        currency: USD
+        payment_token: tok_123
+        device_attestation: att-abc
+    expect:
+      status: 201
+      body.session_id: !store session
+  - name: replay checkout
+    request:
+      method: POST
+      url: ${HOST}/checkout
+      headers:
+        Authorization: Bearer {{device_token}}
+        Content-Type: application/json
+        Idempotency-Key: 4d4fa932-5ac7-4efd-a9f5-e0decb7e27c3
+      body:
+        store_id: STORE-102
+        amount: 59.99
+        currency: USD
+        payment_token: tok_123
+        device_attestation: att-abc
+    expect:
+      status: 200
+      body.session_id: !assert_equal session
