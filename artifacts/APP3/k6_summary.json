@@ -1,0 +1,8 @@
+{
+  "scenario": "surge",
+  "vus_max": 200,
+  "requests": 32000,
+  "http_req_duration": {"avg": 310, "p95": 490, "max": 780},
+  "http_req_failed": 0.009,
+  "notes": "Slight SLO breach under surge, plan caching improvements"
+}

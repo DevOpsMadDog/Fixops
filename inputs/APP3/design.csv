@@ -1,0 +1,7 @@
+component,subcomponent,owner,data_class,description,control_scope
+web,patient-portal,experience-team,PHI,"Patient portal for scheduling and messaging","SOC2,HIPAA"
+api,ehr-gateway,clinical-platform,PHI,"FHIR API proxy for EMR integrations","SOC2,HIPAA"
+services,ml-triage,ml-team,PHI,"Risk scoring service for remote monitoring","SOC2,HIPAA"
+queue,event-stream,platform-team,PHI,"HL7 event ingestion via Kafka","SOC2,HIPAA"
+db,audit-ledger,security-team,PHI,"Immutable audit trail on PostgreSQL","SOC2,HIPAA"
+iac,terraform,platform-team,Config,"Provision AKS cluster, Key Vault, CosmosDB","SOC2,HIPAA"

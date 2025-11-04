@@ -1,0 +1,11 @@
+{
+  "app": "APP1",
+  "experiments": [
+    {"name": "pod_kill", "status": "pass", "error_rate": 0.006, "p95_ms": 410, "rollback": "scale restored"},
+    {"name": "az_failure", "status": "pass", "failover_duration_s": 96, "p95_ms": 480},
+    {"name": "network_partition", "status": "pass", "breaker_open_s": 9, "customer_impact": "retry-after 3s"},
+    {"name": "disk_full", "status": "pass", "eviction_time_s": 70},
+    {"name": "broker_failover", "status": "warn", "consumer_lag": 122, "notes": "lag exceeded SLO 100 messages"}
+  ],
+  "generated_at": "2025-10-28T13:20:00Z"
+}

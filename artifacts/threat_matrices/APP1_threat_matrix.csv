@@ -1,0 +1,9 @@
+threat_id,framework,category,description,attacker_objective,attack_vector,mitigation,test_reference
+APP1-T1,STRIDE,spoofing,Forge customer identity to retrieve quotes,Steal competitor data,Compromised customer credentials,MFA on login + anomaly detection,tests/APP1/authz_tests/matrix.csv
+APP1-T2,STRIDE,tampering,Modify pricing algorithm for lower premiums,Financial fraud,Supply chain attack on pricing service,Immutable builds + signed images,tests/APP1/chaos_playbooks/pipeline_supply_chain.md
+APP1-T3,STRIDE,repudiation,Delete audit trail for quote approvals,Cover insider fraud,Privilege escalation in admin portal,Immutable audit logs + least privilege,tests/APP1/idempotency_tests/audit_replay.yaml
+APP1-T4,STRIDE,information disclosure,Expose PHI from customer DB,Data exfiltration,Exposed LoadBalancer for postgres,Private networking + network policies,policy/APP1/deny_public_db.rego
+APP1-T5,STRIDE,denial of service,Overwhelm quote API,Service disruption,API flood from botnet,Rate limiting + autoscaling,tests/APP1/perf_k6.js
+APP1-P1,LINDDUN,linkability,Correlate quotes to individuals,Privacy breach,Re-identification via analytics dataset,Differential privacy + tokenization,tests/APP1/contract_tests/openapi.yaml
+APP1-P2,LINDDUN,detectability,Detect claim history from response times,Competitive intelligence,Timing side-channel via risk score endpoint,Constant-time responses + caching,tests/APP1/perf_k6.js
+APP1-P3,LINDDUN,non-compliance,Breach HIPAA logging requirements,Regulatory penalty,Improper access logging retention,Centralized audit pipeline + controls,artifacts/APP1/run_manifest.json

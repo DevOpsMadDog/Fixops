@@ -1,0 +1,10 @@
+{
+  "app": "APP4",
+  "run_id": "6f05d2e4-1b7d-4d87-a9fa-a9f1c6d25c5b",
+  "decisions": [
+    {"stage": "design-review", "status": "pass"},
+    {"stage": "supply-chain", "status": "fail", "reason": "go-chi CVE and hardcoded HSM password"},
+    {"stage": "runtime-controls", "status": "fail", "reason": "Broker failover produced lag 210"},
+    {"stage": "release", "status": "blocked", "reason": "Policy violation: MQTT public"}
+  ]
+}

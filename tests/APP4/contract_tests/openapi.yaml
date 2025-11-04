@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: APP4 Checkout API
+  version: "3.9.0"
+servers:
+  - url: https://checkout.app4.example.com
+paths:
+  /checkout:
+    post:
+      summary: Create checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [store_id, amount, currency, payment_token]
+              properties:
+                store_id: { type: string }
+                amount: { type: number }
+                currency: { type: string }
+                payment_token: { type: string }
+                device_attestation: { type: string }
+      responses:
+        '201': { description: session created }
+        '400': { description: invalid input }
+        '401': { description: invalid device }
+  /settlement/batch:
+    post:
+      summary: Trigger settlement batch
+      responses:
+        '202': { description: batch started }
+        '403': { description: forbidden }

@@ -1,0 +1,8 @@
+{
+  "vex_id": "VEX-APP3-2025-10-28-001",
+  "statements": [
+    {"cve": "CVE-2024-34145", "status": "affected", "justification": "Spring boot version pending upgrade", "action": "Upgrade to 3.3.4 and retest by 2025-11-10"},
+    {"cve": "CVE-2025-07701", "status": "not_affected", "justification": "Client configured with enforceHostnameVerification=true"}
+  ],
+  "generated": "2025-10-28T14:03:00Z"
+}

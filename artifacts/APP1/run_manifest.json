@@ -1,0 +1,27 @@
+{
+  "app": "APP1",
+  "run_id": "7c8d2b8e-4f37-4f64-8c86-4ad23d45bc11",
+  "mode": "simulated-offline",
+  "host": "https://fixops.local",
+  "inputs": {
+    "design": "inputs/APP1/design.csv",
+    "sbom": "inputs/APP1/sbom.json",
+    "sarif": "inputs/APP1/results.sarif",
+    "cve_feed": "inputs/APP1/cve_feed.json",
+    "vex": "inputs/APP1/vex_doc.json",
+    "cnapp": "inputs/APP1/findings.json"
+  },
+  "tests": {
+    "contract": "tests/APP1/contract_tests/openapi.yaml",
+    "authz": "tests/APP1/authz_tests/matrix.csv",
+    "idempotency": [
+      "tests/APP1/idempotency_tests/quote_idempotency.yaml",
+      "tests/APP1/idempotency_tests/audit_replay.yaml"
+    ],
+    "performance": "tests/APP1/perf_k6.js",
+    "chaos": "tests/APP1/chaos_playbooks"
+  },
+  "policy": ["policy/APP1/security_controls.rego"],
+  "backtests": ["2024-08-pricing-outage", "2023-credential-stuffing"],
+  "created_at": "2025-10-28T12:45:00Z"
+}

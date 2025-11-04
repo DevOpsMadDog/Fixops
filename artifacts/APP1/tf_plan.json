@@ -1,0 +1,25 @@
+{
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_db_instance.customers",
+          "type": "aws_db_instance",
+          "change": {
+            "actions": ["update"],
+            "before": {"storage_encrypted": false, "publicly_accessible": true},
+            "after": {"storage_encrypted": true, "publicly_accessible": false}
+          }
+        },
+        {
+          "address": "aws_security_group.api",
+          "type": "aws_security_group",
+          "change": {
+            "actions": ["no-op"],
+            "after": {"ingress": [{"cidr_blocks": ["10.0.0.0/16"], "from_port": 443, "to_port": 443}]}
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+<testsuite name="APP4-SSDLC" tests="21" failures="3" errors="0" skipped="0" timestamp="2025-10-28T14:34:00Z">
+  <testcase classname="contract.checkout" name="create-session" time="0.28"/>
+  <testcase classname="contract.checkout" name="invalid-device" time="0.19"/>
+  <testcase classname="authz" name="finance-settlement" time="0.11"/>
+  <testcase classname="idempotency" name="checkout-replay" time="0.14"/>
+  <testcase classname="idempotency" name="audit-log-masking" time="0.30">
+    <failure message="PAN found">Log scrubbing missing for settlement batch</failure>
+  </testcase>
+  <testcase classname="performance" name="spike" time="540">
+    <failure message="p95 430ms">Exceeded 420ms target</failure>
+  </testcase>
+  <testcase classname="chaos" name="network-partition" time="360"/>
+  <testcase classname="chaos" name="broker-failover" time="420">
+    <failure message="lag 210">Consumer lag exceeded SLO</failure>
+  </testcase>
+</testsuite>
