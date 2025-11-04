@@ -1,0 +1,8 @@
+{
+  "scan_time": "2025-10-28T14:25:00Z",
+  "findings": [
+    {"id": "F-401", "type": "pci:unencrypted", "severity": "critical", "resource": "lambda/tokenizer", "description": "HSM credentials stored as plaintext env"},
+    {"id": "F-402", "type": "network:exposure", "severity": "high", "resource": "edge-gateway", "description": "MQTT listener open to internet"},
+    {"id": "F-403", "type": "compliance:logging", "severity": "medium", "resource": "checkout-api", "description": "Audit logs missing card token masking"}
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "app": "APP2",
+  "run_id": "91e1f59b-fef7-4637-9d36-0a7ef5a547ab",
+  "mode": "simulated-offline",
+  "host": "https://fixops.local",
+  "inputs": {
+    "design": "inputs/APP2/design.csv",
+    "sbom": "inputs/APP2/sbom.json",
+    "sarif": "inputs/APP2/results.sarif",
+    "cve_feed": "inputs/APP2/cve_feed.json",
+    "vex": "inputs/APP2/vex_doc.json",
+    "cnapp": "inputs/APP2/findings.json"
+  },
+  "tests": {
+    "contract": [
+      "tests/APP2/contract_tests/openapi.yaml",
+      "tests/APP2/contract_tests/partner_feed.asyncapi.yaml"
+    ],
+    "authz": "tests/APP2/authz_tests/matrix.csv",
+    "idempotency": [
+      "tests/APP2/idempotency_tests/session_replay.yaml",
+      "tests/APP2/idempotency_tests/deletion_ack.yaml"
+    ],
+    "performance": "tests/APP2/perf_k6.js",
+    "chaos": "tests/APP2/chaos_playbooks"
+  },
+  "policy": ["policy/APP2/security_controls.rego"],
+  "partner_simulators": "tests/APP2/partner_simulators",
+  "backtests": ["2024-partner-429", "2023-webhook-leak"],
+  "created_at": "2025-10-28T13:40:00Z"
+}

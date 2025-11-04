@@ -1,0 +1,11 @@
+{
+  "app": "APP2",
+  "experiments": [
+    {"name": "pod_kill", "status": "pass", "p95_ms": 380},
+    {"name": "az_failure", "status": "pass", "error_rate": 0.024},
+    {"name": "broker_failover", "status": "fail", "dlq_messages": 5},
+    {"name": "network_partition", "status": "pass", "fallback_hit_rate": 0.92},
+    {"name": "disk_full", "status": "pass"}
+  ],
+  "generated_at": "2025-10-28T13:50:00Z"
+}

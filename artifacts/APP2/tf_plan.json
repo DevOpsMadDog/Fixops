@@ -1,0 +1,26 @@
+{
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_cloudfront_distribution.partnerhub",
+          "type": "aws_cloudfront_distribution",
+          "change": {
+            "actions": ["update"],
+            "before": {"origin_groups": []},
+            "after": {"origin_groups": [{"primary_origin_id": "origin-a", "failover_criteria": ["5xx"]}]}
+          }
+        },
+        {
+          "address": "aws_lambda_function.transformer",
+          "type": "aws_lambda_function",
+          "change": {
+            "actions": ["update"],
+            "before": {"environment": {"variables": {"PARTNER_SECRET": "plaintext"}}},
+            "after": {"environment": {"variables": {"PARTNER_SECRET": "{{secretsmanager:partner/secret}}"}}}
+          }
+        }
+      ]
+    }
+  }
+}

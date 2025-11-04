@@ -1,0 +1,9 @@
+{
+  "app": "APP3",
+  "components": [
+    {"name": "patient-portal", "framework": "Angular", "owner": "experience-team"},
+    {"name": "fhir-gateway", "language": "Java", "owner": "clinical-platform"},
+    {"name": "ml-triage", "language": "Python", "owner": "ml-team"},
+    {"name": "audit-ledger", "language": "Python", "owner": "security-team"}
+  ]
+}

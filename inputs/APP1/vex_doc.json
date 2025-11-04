@@ -1,0 +1,9 @@
+{
+  "vex_id": "VEX-APP1-2025-10-28-001",
+  "statements": [
+    {"cve": "CVE-2025-0001", "status": "not_affected", "justification": "Database uses pgbouncer with input sanitization"},
+    {"cve": "CVE-2024-1709", "status": "fixed", "justification": "Upgraded to express 4.19.0 in October 2025"},
+    {"cve": "CVE-2024-31122", "status": "under_investigation", "justification": "JWT tokens signed via HSM; verifying claim"}
+  ],
+  "generated": "2025-10-28T12:10:00Z"
+}

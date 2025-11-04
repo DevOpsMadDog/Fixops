@@ -1,0 +1,5 @@
+role,endpoint,method,expected_status,token_example,notes
+store-device,/checkout,POST,201,"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.device","Valid attestation"
+store-device,/settlement/batch,POST,403,"","Devices cannot trigger settlement"
+finance-ops,/settlement/batch,POST,202,"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.ops","Finance ops triggers batch"
+fraud-analyst,/checkout,POST,401,"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.fraud","Fraud analysts cannot create checkouts"

@@ -1,0 +1,35 @@
+test: audit-append
+scenario: Replaying audit append should produce same signature hash and not duplicate entry
+steps:
+  - name: append entry
+    request:
+      method: POST
+      url: ${HOST}/admin/audit/sign
+      headers:
+        Authorization: Bearer {{auditor_token}}
+        Content-Type: application/json
+        X-Idempotency-Key: 3d1e8c8b-8cb4-4f4b-936f-2bcd7edaa8a1
+      body:
+        event_id: EVT-551
+        actor: clinician-22
+        action: patient-view
+        occurred_at: 2025-10-28T10:00:00Z
+    expect:
+      status: 204
+      headers.X-Audit-Signature: !store signature
+  - name: replay entry
+    request:
+      method: POST
+      url: ${HOST}/admin/audit/sign
+      headers:
+        Authorization: Bearer {{auditor_token}}
+        Content-Type: application/json
+        X-Idempotency-Key: 3d1e8c8b-8cb4-4f4b-936f-2bcd7edaa8a1
+      body:
+        event_id: EVT-551
+        actor: clinician-22
+        action: patient-view
+        occurred_at: 2025-10-28T10:00:00Z
+    expect:
+      status: 204
+      headers.X-Audit-Signature: !assert_equal signature
