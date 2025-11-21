@@ -7,7 +7,8 @@
       "criticality": "mission_critical",
       "exposure": "internet",
       "internet_facing": true,
-      "has_pii": true
+      "has_pii": true,
+      "owner": "team-1"
     },
     {
       "id": "service-user-service",
@@ -16,161 +17,904 @@
       "criticality": "mission_critical",
       "exposure": "internet",
       "internet_facing": true,
-      "has_pii": true
+      "has_pii": true,
+      "owner": "team-2"
     },
     {
-      "id": "service-analytics-worker",
+      "id": "service-auth-service",
       "type": "service",
-      "label": "analytics-worker",
-      "criticality": "standard",
-      "exposure": "internal",
-      "internet_facing": false,
-      "has_pii": false
+      "label": "auth-service",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-3"
+    },
+    {
+      "id": "service-order-service",
+      "type": "service",
+      "label": "order-service",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-4"
+    },
+    {
+      "id": "service-inventory-api",
+      "type": "service",
+      "label": "inventory-api",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-5"
     },
     {
       "id": "service-notification-service",
       "type": "service",
       "label": "notification-service",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-1"
+    },
+    {
+      "id": "service-analytics-worker",
+      "type": "service",
+      "label": "analytics-worker",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-2"
+    },
+    {
+      "id": "service-search-api",
+      "type": "service",
+      "label": "search-api",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-3"
+    },
+    {
+      "id": "service-recommendation-engine",
+      "type": "service",
+      "label": "recommendation-engine",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-4"
+    },
+    {
+      "id": "service-billing-service",
+      "type": "service",
+      "label": "billing-service",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-5"
+    },
+    {
+      "id": "service-shipping-api",
+      "type": "service",
+      "label": "shipping-api",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-1"
+    },
+    {
+      "id": "service-admin-portal",
+      "type": "service",
+      "label": "admin-portal",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true,
+      "owner": "team-2"
+    },
+    {
+      "id": "service-customer-portal",
+      "type": "service",
+      "label": "customer-portal",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true,
+      "owner": "team-3"
+    },
+    {
+      "id": "service-mobile-api",
+      "type": "service",
+      "label": "mobile-api",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true,
+      "owner": "team-4"
+    },
+    {
+      "id": "service-webhook-processor",
+      "type": "service",
+      "label": "webhook-processor",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true,
+      "owner": "team-5"
+    },
+    {
+      "id": "service-email-service",
+      "type": "service",
+      "label": "email-service",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true,
+      "owner": "team-1"
+    },
+    {
+      "id": "service-sms-gateway",
+      "type": "service",
+      "label": "sms-gateway",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-2"
+    },
+    {
+      "id": "service-file-storage",
+      "type": "service",
+      "label": "file-storage",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-3"
+    },
+    {
+      "id": "service-image-processor",
+      "type": "service",
+      "label": "image-processor",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-4"
+    },
+    {
+      "id": "service-report-generator",
+      "type": "service",
+      "label": "report-generator",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-5"
+    },
+    {
+      "id": "service-audit-logger",
+      "type": "service",
+      "label": "audit-logger",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-1"
+    },
+    {
+      "id": "service-metrics-collector",
+      "type": "service",
+      "label": "metrics-collector",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-2"
+    },
+    {
+      "id": "service-cache-service",
+      "type": "service",
+      "label": "cache-service",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-3"
+    },
+    {
+      "id": "service-session-manager",
+      "type": "service",
+      "label": "session-manager",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false,
+      "owner": "team-4"
+    },
+    {
+      "id": "component-nodemailer-6-7-2",
+      "type": "component",
+      "label": "nodemailer@6.7.2",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-winston-3-10-0",
+      "type": "component",
+      "label": "winston@3.10.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-redis-4-0-6",
+      "type": "component",
+      "label": "redis@4.0.6",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-passport-0-7-0",
+      "type": "component",
+      "label": "passport@0.7.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-bcrypt-5-0-1",
+      "type": "component",
+      "label": "bcrypt@5.0.1",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-stripe-12-0-0",
+      "type": "component",
+      "label": "stripe@12.0.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-jsonwebtoken-9-0-0",
+      "type": "component",
+      "label": "jsonwebtoken@9.0.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-express-4-18-2",
+      "type": "component",
+      "label": "express@4.18.2",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-twilio-4-10-0",
+      "type": "component",
+      "label": "twilio@4.10.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-multer-1-4-5",
+      "type": "component",
+      "label": "multer@1.4.5",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-pg-8-7-1",
+      "type": "component",
+      "label": "pg@8.7.1",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-redis-3-1-2",
+      "type": "component",
+      "label": "redis@3.1.2",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-pg-8-11-0",
+      "type": "component",
+      "label": "pg@8.11.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-mongoose-6-0-12",
+      "type": "component",
+      "label": "mongoose@6.0.12",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-axios-0-21-1",
+      "type": "component",
+      "label": "axios@0.21.1",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-express-4-18-0",
+      "type": "component",
+      "label": "express@4.18.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-joi-17-6-0",
+      "type": "component",
+      "label": "joi@17.6.0",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-socket.io-4-5-1",
+      "type": "component",
+      "label": "socket.io@4.5.1",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-winston-3-8-2",
+      "type": "component",
+      "label": "winston@3.8.2",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-joi-17-9-2",
+      "type": "component",
+      "label": "joi@17.9.2",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-multer-1-4-4",
+      "type": "component",
+      "label": "multer@1.4.4",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-passport-0-6-0",
+      "type": "component",
+      "label": "passport@0.6.0",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-stripe-8-2-0",
+      "type": "component",
+      "label": "stripe@8.2.0",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-bcrypt-5-1-0",
+      "type": "component",
+      "label": "bcrypt@5.1.0",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-jsonwebtoken-8-5-1",
+      "type": "component",
+      "label": "jsonwebtoken@8.5.1",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-nodemailer-6-9-1",
+      "type": "component",
+      "label": "nodemailer@6.9.1",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-lodash-4-17-21",
+      "type": "component",
+      "label": "lodash@4.17.21",
+      "criticality": "high",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-sharp-0-29-3",
+      "type": "component",
+      "label": "sharp@0.29.3",
       "criticality": "standard",
       "exposure": "partner",
       "internet_facing": false,
       "has_pii": true
     },
     {
-      "id": "component-stripe-sdk",
+      "id": "component-mongoose-7-0-3",
       "type": "component",
-      "label": "stripe-sdk@8.2.0",
-      "criticality": "mission_critical",
-      "exposure": "internet",
-      "internet_facing": true,
-      "has_pii": true
-    },
-    {
-      "id": "component-express",
-      "type": "component",
-      "label": "express@4.17.1",
-      "criticality": "mission_critical",
-      "exposure": "internet",
-      "internet_facing": true,
-      "has_pii": true
-    },
-    {
-      "id": "component-jsonwebtoken",
-      "type": "component",
-      "label": "jsonwebtoken@8.5.1",
-      "criticality": "mission_critical",
-      "exposure": "internet",
-      "internet_facing": true,
-      "has_pii": true
-    },
-    {
-      "id": "component-lodash",
-      "type": "component",
-      "label": "lodash@4.17.19",
+      "label": "mongoose@7.0.3",
       "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true
+    },
+    {
+      "id": "component-socket.io-4-6-1",
+      "type": "component",
+      "label": "socket.io@4.6.1",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true
+    },
+    {
+      "id": "component-aws-sdk-2-1000-0",
+      "type": "component",
+      "label": "aws-sdk@2.1000.0",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": false
+    },
+    {
+      "id": "component-axios-1-4-0",
+      "type": "component",
+      "label": "axios@1.4.0",
+      "criticality": "low",
       "exposure": "internal",
       "internet_facing": false,
       "has_pii": false
     },
     {
-      "id": "component-axios",
+      "id": "component-mysql2-2-3-3",
       "type": "component",
-      "label": "axios@0.21.1",
-      "criticality": "standard",
-      "exposure": "partner",
+      "label": "mysql2@2.3.3",
+      "criticality": "low",
+      "exposure": "internal",
       "internet_facing": false,
-      "has_pii": true
+      "has_pii": false
     },
     {
-      "id": "cve-payment-api-CVE-2024-1234",
+      "id": "component-pdfkit-0-14-0",
+      "type": "component",
+      "label": "pdfkit@0.14.0",
+      "criticality": "low",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false
+    },
+    {
+      "id": "cve-component-jsonwebtoken-8-5-1-CVE-2021-1105",
       "type": "cve",
-      "label": "CVE-2024-1234",
+      "label": "CVE-2021-1105",
       "severity": "critical",
-      "message": "SQL Injection vulnerability in payment processing endpoint allows unauthorized access to payment data",
+      "message": "Remote Code Execution in jsonwebtoken@8.5.1",
       "source": "CVE",
       "kev": true,
-      "epss": 0.89
+      "epss": 0.92
     },
     {
-      "id": "cve-user-service-CVE-2023-5678",
+      "id": "cve-component-winston-3-8-2-CVE-2020-6818",
       "type": "cve",
-      "label": "CVE-2023-5678",
+      "label": "CVE-2020-6818",
+      "severity": "medium",
+      "message": "Denial of Service in winston@3.8.2",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.15
+    },
+    {
+      "id": "cve-component-passport-0-6-0-CVE-2024-8667",
+      "type": "cve",
+      "label": "CVE-2024-8667",
       "severity": "high",
-      "message": "Authentication bypass in JWT validation allows privilege escalation",
+      "message": "Authentication Bypass in passport@0.6.0",
       "source": "CVE",
       "kev": true,
       "epss": 0.75
     },
     {
-      "id": "cve-user-service-CVE-2023-9012",
+      "id": "cve-component-redis-3-1-2-CVE-2022-6797",
       "type": "cve",
-      "label": "CVE-2023-9012",
+      "label": "CVE-2022-6797",
       "severity": "critical",
-      "message": "Remote code execution via prototype pollution in Express middleware",
+      "message": "SQL Injection in redis@3.1.2",
       "source": "CVE",
-      "kev": false,
-      "epss": 0.45
+      "kev": true,
+      "epss": 0.89
     },
     {
-      "id": "cve-analytics-worker-CVE-2021-3456",
+      "id": "cve-component-socket.io-4-5-1-CVE-2021-1981",
       "type": "cve",
-      "label": "CVE-2021-3456",
-      "severity": "high",
-      "message": "Prototype pollution in lodash allows arbitrary code execution",
-      "source": "CVE",
-      "kev": false,
-      "epss": 0.12
-    },
-    {
-      "id": "cve-notification-service-CVE-2021-7890",
-      "type": "cve",
-      "label": "CVE-2021-7890",
+      "label": "CVE-2021-1981",
       "severity": "medium",
-      "message": "SSRF vulnerability in axios allows internal network scanning",
+      "message": "Denial of Service in socket.io@4.5.1",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.15
+    },
+    {
+      "id": "cve-component-bcrypt-5-1-0-CVE-2021-7270",
+      "type": "cve",
+      "label": "CVE-2021-7270",
+      "severity": "medium",
+      "message": "Path Traversal in bcrypt@5.1.0",
       "source": "CVE",
       "kev": false,
       "epss": 0.08
     },
     {
-      "id": "finding-payment-api-hardcoded-secret-0",
-      "type": "finding",
-      "label": "hardcoded-secret",
-      "severity": "high",
-      "message": "Hardcoded API key found in payment processing code",
-      "file": "src/payment/processor.js",
-      "source": "SAST",
+      "id": "cve-component-stripe-12-0-0-CVE-2020-6297",
+      "type": "cve",
+      "label": "CVE-2020-6297",
+      "severity": "medium",
+      "message": "Denial of Service in stripe@12.0.0",
+      "source": "CVE",
       "kev": false,
-      "epss": 0.0
+      "epss": 0.15
     },
     {
-      "id": "finding-payment-api-sql-injection-1",
-      "type": "finding",
-      "label": "sql-injection",
+      "id": "cve-component-stripe-12-0-0-CVE-2021-3060",
+      "type": "cve",
+      "label": "CVE-2021-3060",
       "severity": "critical",
-      "message": "SQL injection vulnerability in user input validation",
-      "file": "src/payment/queries.js",
-      "source": "SAST",
-      "kev": false,
-      "epss": 0.0
+      "message": "Remote Code Execution in stripe@12.0.0",
+      "source": "CVE",
+      "kev": true,
+      "epss": 0.92
     },
     {
-      "id": "finding-user-service-weak-crypto-0",
+      "id": "cve-component-mysql2-2-3-3-CVE-2022-5446",
+      "type": "cve",
+      "label": "CVE-2022-5446",
+      "severity": "medium",
+      "message": "Denial of Service in mysql2@2.3.3",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.15
+    },
+    {
+      "id": "cve-component-mongoose-7-0-3-CVE-2024-1106",
+      "type": "cve",
+      "label": "CVE-2024-1106",
+      "severity": "high",
+      "message": "Authentication Bypass in mongoose@7.0.3",
+      "source": "CVE",
+      "kev": true,
+      "epss": 0.75
+    },
+    {
+      "id": "cve-component-jsonwebtoken-9-0-0-CVE-2023-8943",
+      "type": "cve",
+      "label": "CVE-2023-8943",
+      "severity": "medium",
+      "message": "Path Traversal in jsonwebtoken@9.0.0",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.08
+    },
+    {
+      "id": "cve-component-jsonwebtoken-9-0-0-CVE-2023-4424",
+      "type": "cve",
+      "label": "CVE-2023-4424",
+      "severity": "critical",
+      "message": "Insecure Deserialization in jsonwebtoken@9.0.0",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.67
+    },
+    {
+      "id": "finding-service-search-api-weak-crypto-0",
       "type": "finding",
       "label": "weak-crypto",
       "severity": "medium",
-      "message": "Weak cryptographic algorithm (MD5) used for password hashing",
-      "file": "src/auth/crypto.js",
+      "message": "Weak cryptographic algorithm in search-api",
+      "file": "src/search/api/handler.js",
       "source": "SAST",
       "kev": false,
       "epss": 0.0
     },
     {
-      "id": "finding-user-service-xss-1",
+      "id": "finding-service-admin-portal-insecure-random-0",
+      "type": "finding",
+      "label": "insecure-random",
+      "severity": "low",
+      "message": "Insecure random number generation in admin-portal",
+      "file": "src/admin/portal/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-admin-portal-race-condition-1",
+      "type": "finding",
+      "label": "race-condition",
+      "severity": "medium",
+      "message": "Race condition vulnerability in admin-portal",
+      "file": "src/admin/portal/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-auth-service-race-condition-0",
+      "type": "finding",
+      "label": "race-condition",
+      "severity": "medium",
+      "message": "Race condition vulnerability in auth-service",
+      "file": "src/auth/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-auth-service-sql-injection-1",
+      "type": "finding",
+      "label": "sql-injection",
+      "severity": "critical",
+      "message": "SQL injection vulnerability in auth-service",
+      "file": "src/auth/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-auth-service-cleartext-transmission-2",
+      "type": "finding",
+      "label": "cleartext-transmission",
+      "severity": "medium",
+      "message": "Sensitive data transmitted in cleartext in auth-service",
+      "file": "src/auth/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-image-processor-weak-crypto-0",
+      "type": "finding",
+      "label": "weak-crypto",
+      "severity": "medium",
+      "message": "Weak cryptographic algorithm in image-processor",
+      "file": "src/image/processor/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-image-processor-cleartext-transmission-1",
+      "type": "finding",
+      "label": "cleartext-transmission",
+      "severity": "medium",
+      "message": "Sensitive data transmitted in cleartext in image-processor",
+      "file": "src/image/processor/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-session-manager-hardcoded-secret-0",
+      "type": "finding",
+      "label": "hardcoded-secret",
+      "severity": "high",
+      "message": "Hardcoded API key found in session-manager",
+      "file": "src/session/manager/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-cache-service-hardcoded-secret-0",
+      "type": "finding",
+      "label": "hardcoded-secret",
+      "severity": "high",
+      "message": "Hardcoded API key found in cache-service",
+      "file": "src/cache/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-cache-service-path-traversal-1",
+      "type": "finding",
+      "label": "path-traversal",
+      "severity": "high",
+      "message": "Path traversal vulnerability in cache-service",
+      "file": "src/cache/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-sms-gateway-hardcoded-secret-0",
+      "type": "finding",
+      "label": "hardcoded-secret",
+      "severity": "high",
+      "message": "Hardcoded API key found in sms-gateway",
+      "file": "src/sms/gateway/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-sms-gateway-path-traversal-1",
+      "type": "finding",
+      "label": "path-traversal",
+      "severity": "high",
+      "message": "Path traversal vulnerability in sms-gateway",
+      "file": "src/sms/gateway/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-email-service-hardcoded-secret-0",
+      "type": "finding",
+      "label": "hardcoded-secret",
+      "severity": "high",
+      "message": "Hardcoded API key found in email-service",
+      "file": "src/email/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-email-service-cleartext-transmission-1",
+      "type": "finding",
+      "label": "cleartext-transmission",
+      "severity": "medium",
+      "message": "Sensitive data transmitted in cleartext in email-service",
+      "file": "src/email/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-email-service-xss-vulnerability-2",
       "type": "finding",
       "label": "xss-vulnerability",
       "severity": "high",
-      "message": "Cross-site scripting vulnerability in user profile rendering",
-      "file": "src/user/profile.js",
+      "message": "Cross-site scripting vulnerability in email-service",
+      "file": "src/email/service/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-file-storage-hardcoded-secret-0",
+      "type": "finding",
+      "label": "hardcoded-secret",
+      "severity": "high",
+      "message": "Hardcoded API key found in file-storage",
+      "file": "src/file/storage/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-file-storage-missing-auth-1",
+      "type": "finding",
+      "label": "missing-auth",
+      "severity": "high",
+      "message": "Missing authentication check in file-storage",
+      "file": "src/file/storage/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-file-storage-missing-auth-2",
+      "type": "finding",
+      "label": "missing-auth",
+      "severity": "high",
+      "message": "Missing authentication check in file-storage",
+      "file": "src/file/storage/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-mobile-api-sql-injection-0",
+      "type": "finding",
+      "label": "sql-injection",
+      "severity": "critical",
+      "message": "SQL injection vulnerability in mobile-api",
+      "file": "src/mobile/api/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-audit-logger-race-condition-0",
+      "type": "finding",
+      "label": "race-condition",
+      "severity": "medium",
+      "message": "Race condition vulnerability in audit-logger",
+      "file": "src/audit/logger/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-customer-portal-race-condition-0",
+      "type": "finding",
+      "label": "race-condition",
+      "severity": "medium",
+      "message": "Race condition vulnerability in customer-portal",
+      "file": "src/customer/portal/handler.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-service-customer-portal-insecure-random-1",
+      "type": "finding",
+      "label": "insecure-random",
+      "severity": "low",
+      "message": "Insecure random number generation in customer-portal",
+      "file": "src/customer/portal/handler.js",
       "source": "SAST",
       "kev": false,
       "epss": 0.0
@@ -178,100 +922,712 @@
   ],
   "edges": [
     {
-      "id": "edge-service-payment-api-stripe-sdk",
+      "id": "edge-service-payment-api-component-nodemailer-6-7-2",
       "source": "service-payment-api",
-      "target": "component-stripe-sdk",
+      "target": "component-nodemailer-6-7-2",
       "type": "contains"
     },
     {
-      "id": "edge-service-payment-api-express",
+      "id": "edge-service-payment-api-component-winston-3-10-0",
       "source": "service-payment-api",
-      "target": "component-express",
+      "target": "component-winston-3-10-0",
       "type": "contains"
     },
     {
-      "id": "edge-service-user-service-express",
+      "id": "edge-service-user-service-component-redis-4-0-6",
       "source": "service-user-service",
-      "target": "component-express",
+      "target": "component-redis-4-0-6",
       "type": "contains"
     },
     {
-      "id": "edge-service-user-service-jsonwebtoken",
+      "id": "edge-service-user-service-component-passport-0-7-0",
       "source": "service-user-service",
-      "target": "component-jsonwebtoken",
+      "target": "component-passport-0-7-0",
       "type": "contains"
     },
     {
-      "id": "edge-service-analytics-worker-lodash",
-      "source": "service-analytics-worker",
-      "target": "component-lodash",
+      "id": "edge-service-user-service-component-bcrypt-5-0-1",
+      "source": "service-user-service",
+      "target": "component-bcrypt-5-0-1",
       "type": "contains"
     },
     {
-      "id": "edge-service-notification-service-axios",
+      "id": "edge-service-user-service-component-stripe-12-0-0",
+      "source": "service-user-service",
+      "target": "component-stripe-12-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-user-service-component-jsonwebtoken-9-0-0",
+      "source": "service-user-service",
+      "target": "component-jsonwebtoken-9-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-auth-service-component-express-4-18-2",
+      "source": "service-auth-service",
+      "target": "component-express-4-18-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-auth-service-component-twilio-4-10-0",
+      "source": "service-auth-service",
+      "target": "component-twilio-4-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-order-service-component-multer-1-4-5",
+      "source": "service-order-service",
+      "target": "component-multer-1-4-5",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-order-service-component-pg-8-7-1",
+      "source": "service-order-service",
+      "target": "component-pg-8-7-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-inventory-api-component-redis-3-1-2",
+      "source": "service-inventory-api",
+      "target": "component-redis-3-1-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-inventory-api-component-winston-3-10-0",
+      "source": "service-inventory-api",
+      "target": "component-winston-3-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-inventory-api-component-pg-8-11-0",
+      "source": "service-inventory-api",
+      "target": "component-pg-8-11-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-inventory-api-component-passport-0-7-0",
+      "source": "service-inventory-api",
+      "target": "component-passport-0-7-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-inventory-api-component-mongoose-6-0-12",
+      "source": "service-inventory-api",
+      "target": "component-mongoose-6-0-12",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-notification-service-component-axios-0-21-1",
       "source": "service-notification-service",
-      "target": "component-axios",
+      "target": "component-axios-0-21-1",
       "type": "contains"
     },
     {
-      "id": "edge-stripe-sdk-cve-1",
-      "source": "component-stripe-sdk",
-      "target": "cve-payment-api-CVE-2024-1234",
+      "id": "edge-service-notification-service-component-express-4-18-0",
+      "source": "service-notification-service",
+      "target": "component-express-4-18-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-notification-service-component-jsonwebtoken-9-0-0",
+      "source": "service-notification-service",
+      "target": "component-jsonwebtoken-9-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-analytics-worker-component-pg-8-7-1",
+      "source": "service-analytics-worker",
+      "target": "component-pg-8-7-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-analytics-worker-component-twilio-4-10-0",
+      "source": "service-analytics-worker",
+      "target": "component-twilio-4-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-analytics-worker-component-stripe-12-0-0",
+      "source": "service-analytics-worker",
+      "target": "component-stripe-12-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-search-api-component-joi-17-6-0",
+      "source": "service-search-api",
+      "target": "component-joi-17-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-search-api-component-socket.io-4-5-1",
+      "source": "service-search-api",
+      "target": "component-socket.io-4-5-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-recommendation-engine-component-winston-3-8-2",
+      "source": "service-recommendation-engine",
+      "target": "component-winston-3-8-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-recommendation-engine-component-joi-17-9-2",
+      "source": "service-recommendation-engine",
+      "target": "component-joi-17-9-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-recommendation-engine-component-multer-1-4-4",
+      "source": "service-recommendation-engine",
+      "target": "component-multer-1-4-4",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-recommendation-engine-component-express-4-18-2",
+      "source": "service-recommendation-engine",
+      "target": "component-express-4-18-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-billing-service-component-joi-17-6-0",
+      "source": "service-billing-service",
+      "target": "component-joi-17-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-billing-service-component-passport-0-6-0",
+      "source": "service-billing-service",
+      "target": "component-passport-0-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-billing-service-component-stripe-8-2-0",
+      "source": "service-billing-service",
+      "target": "component-stripe-8-2-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-billing-service-component-pg-8-7-1",
+      "source": "service-billing-service",
+      "target": "component-pg-8-7-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-billing-service-component-redis-3-1-2",
+      "source": "service-billing-service",
+      "target": "component-redis-3-1-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-shipping-api-component-bcrypt-5-1-0",
+      "source": "service-shipping-api",
+      "target": "component-bcrypt-5-1-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-shipping-api-component-jsonwebtoken-8-5-1",
+      "source": "service-shipping-api",
+      "target": "component-jsonwebtoken-8-5-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-shipping-api-component-nodemailer-6-9-1",
+      "source": "service-shipping-api",
+      "target": "component-nodemailer-6-9-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-admin-portal-component-lodash-4-17-21",
+      "source": "service-admin-portal",
+      "target": "component-lodash-4-17-21",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-admin-portal-component-stripe-12-0-0",
+      "source": "service-admin-portal",
+      "target": "component-stripe-12-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-admin-portal-component-joi-17-9-2",
+      "source": "service-admin-portal",
+      "target": "component-joi-17-9-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-admin-portal-component-express-4-18-2",
+      "source": "service-admin-portal",
+      "target": "component-express-4-18-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-customer-portal-component-express-4-18-0",
+      "source": "service-customer-portal",
+      "target": "component-express-4-18-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-customer-portal-component-nodemailer-6-9-1",
+      "source": "service-customer-portal",
+      "target": "component-nodemailer-6-9-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-customer-portal-component-winston-3-10-0",
+      "source": "service-customer-portal",
+      "target": "component-winston-3-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-customer-portal-component-joi-17-9-2",
+      "source": "service-customer-portal",
+      "target": "component-joi-17-9-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-mobile-api-component-sharp-0-29-3",
+      "source": "service-mobile-api",
+      "target": "component-sharp-0-29-3",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-mobile-api-component-mongoose-6-0-12",
+      "source": "service-mobile-api",
+      "target": "component-mongoose-6-0-12",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-mobile-api-component-express-4-18-2",
+      "source": "service-mobile-api",
+      "target": "component-express-4-18-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-mobile-api-component-lodash-4-17-21",
+      "source": "service-mobile-api",
+      "target": "component-lodash-4-17-21",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-webhook-processor-component-stripe-12-0-0",
+      "source": "service-webhook-processor",
+      "target": "component-stripe-12-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-webhook-processor-component-axios-0-21-1",
+      "source": "service-webhook-processor",
+      "target": "component-axios-0-21-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-webhook-processor-component-mongoose-6-0-12",
+      "source": "service-webhook-processor",
+      "target": "component-mongoose-6-0-12",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-email-service-component-axios-0-21-1",
+      "source": "service-email-service",
+      "target": "component-axios-0-21-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-email-service-component-mongoose-7-0-3",
+      "source": "service-email-service",
+      "target": "component-mongoose-7-0-3",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-email-service-component-socket.io-4-6-1",
+      "source": "service-email-service",
+      "target": "component-socket.io-4-6-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-sms-gateway-component-mongoose-6-0-12",
+      "source": "service-sms-gateway",
+      "target": "component-mongoose-6-0-12",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-sms-gateway-component-aws-sdk-2-1000-0",
+      "source": "service-sms-gateway",
+      "target": "component-aws-sdk-2-1000-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-sms-gateway-component-redis-3-1-2",
+      "source": "service-sms-gateway",
+      "target": "component-redis-3-1-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-sms-gateway-component-axios-0-21-1",
+      "source": "service-sms-gateway",
+      "target": "component-axios-0-21-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-sms-gateway-component-twilio-4-10-0",
+      "source": "service-sms-gateway",
+      "target": "component-twilio-4-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-file-storage-component-jsonwebtoken-9-0-0",
+      "source": "service-file-storage",
+      "target": "component-jsonwebtoken-9-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-file-storage-component-redis-4-0-6",
+      "source": "service-file-storage",
+      "target": "component-redis-4-0-6",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-file-storage-component-socket.io-4-5-1",
+      "source": "service-file-storage",
+      "target": "component-socket.io-4-5-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-image-processor-component-winston-3-10-0",
+      "source": "service-image-processor",
+      "target": "component-winston-3-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-image-processor-component-axios-1-4-0",
+      "source": "service-image-processor",
+      "target": "component-axios-1-4-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-report-generator-component-nodemailer-6-9-1",
+      "source": "service-report-generator",
+      "target": "component-nodemailer-6-9-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-report-generator-component-bcrypt-5-0-1",
+      "source": "service-report-generator",
+      "target": "component-bcrypt-5-0-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-report-generator-component-passport-0-7-0",
+      "source": "service-report-generator",
+      "target": "component-passport-0-7-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-report-generator-component-jsonwebtoken-9-0-0",
+      "source": "service-report-generator",
+      "target": "component-jsonwebtoken-9-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-audit-logger-component-bcrypt-5-0-1",
+      "source": "service-audit-logger",
+      "target": "component-bcrypt-5-0-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-audit-logger-component-passport-0-6-0",
+      "source": "service-audit-logger",
+      "target": "component-passport-0-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-audit-logger-component-mysql2-2-3-3",
+      "source": "service-audit-logger",
+      "target": "component-mysql2-2-3-3",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-metrics-collector-component-nodemailer-6-9-1",
+      "source": "service-metrics-collector",
+      "target": "component-nodemailer-6-9-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-metrics-collector-component-winston-3-8-2",
+      "source": "service-metrics-collector",
+      "target": "component-winston-3-8-2",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-metrics-collector-component-twilio-4-10-0",
+      "source": "service-metrics-collector",
+      "target": "component-twilio-4-10-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-metrics-collector-component-joi-17-6-0",
+      "source": "service-metrics-collector",
+      "target": "component-joi-17-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-cache-service-component-axios-1-4-0",
+      "source": "service-cache-service",
+      "target": "component-axios-1-4-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-cache-service-component-multer-1-4-4",
+      "source": "service-cache-service",
+      "target": "component-multer-1-4-4",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-cache-service-component-joi-17-6-0",
+      "source": "service-cache-service",
+      "target": "component-joi-17-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-cache-service-component-stripe-12-0-0",
+      "source": "service-cache-service",
+      "target": "component-stripe-12-0-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-cache-service-component-passport-0-6-0",
+      "source": "service-cache-service",
+      "target": "component-passport-0-6-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-session-manager-component-pdfkit-0-14-0",
+      "source": "service-session-manager",
+      "target": "component-pdfkit-0-14-0",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-session-manager-component-bcrypt-5-0-1",
+      "source": "service-session-manager",
+      "target": "component-bcrypt-5-0-1",
+      "type": "contains"
+    },
+    {
+      "id": "edge-component-jsonwebtoken-8-5-1-cve-component-jsonwebtoken-8-5-1-CVE-2021-1105",
+      "source": "component-jsonwebtoken-8-5-1",
+      "target": "cve-component-jsonwebtoken-8-5-1-CVE-2021-1105",
       "type": "has_issue"
     },
     {
-      "id": "edge-stripe-sdk-finding-1",
-      "source": "component-stripe-sdk",
-      "target": "finding-payment-api-hardcoded-secret-0",
+      "id": "edge-component-winston-3-8-2-cve-component-winston-3-8-2-CVE-2020-6818",
+      "source": "component-winston-3-8-2",
+      "target": "cve-component-winston-3-8-2-CVE-2020-6818",
       "type": "has_issue"
     },
     {
-      "id": "edge-express-finding-2",
-      "source": "component-express",
-      "target": "finding-payment-api-sql-injection-1",
+      "id": "edge-component-passport-0-6-0-cve-component-passport-0-6-0-CVE-2024-8667",
+      "source": "component-passport-0-6-0",
+      "target": "cve-component-passport-0-6-0-CVE-2024-8667",
       "type": "has_issue"
     },
     {
-      "id": "edge-express-cve-2",
-      "source": "component-express",
-      "target": "cve-user-service-CVE-2023-9012",
+      "id": "edge-component-redis-3-1-2-cve-component-redis-3-1-2-CVE-2022-6797",
+      "source": "component-redis-3-1-2",
+      "target": "cve-component-redis-3-1-2-CVE-2022-6797",
       "type": "has_issue"
     },
     {
-      "id": "edge-jsonwebtoken-cve-3",
-      "source": "component-jsonwebtoken",
-      "target": "cve-user-service-CVE-2023-5678",
+      "id": "edge-component-socket.io-4-5-1-cve-component-socket.io-4-5-1-CVE-2021-1981",
+      "source": "component-socket.io-4-5-1",
+      "target": "cve-component-socket.io-4-5-1-CVE-2021-1981",
       "type": "has_issue"
     },
     {
-      "id": "edge-jsonwebtoken-finding-3",
-      "source": "component-jsonwebtoken",
-      "target": "finding-user-service-weak-crypto-0",
+      "id": "edge-component-bcrypt-5-1-0-cve-component-bcrypt-5-1-0-CVE-2021-7270",
+      "source": "component-bcrypt-5-1-0",
+      "target": "cve-component-bcrypt-5-1-0-CVE-2021-7270",
       "type": "has_issue"
     },
     {
-      "id": "edge-express-finding-4",
-      "source": "component-express",
-      "target": "finding-user-service-xss-1",
+      "id": "edge-component-stripe-12-0-0-cve-component-stripe-12-0-0-CVE-2020-6297",
+      "source": "component-stripe-12-0-0",
+      "target": "cve-component-stripe-12-0-0-CVE-2020-6297",
       "type": "has_issue"
     },
     {
-      "id": "edge-lodash-cve-4",
-      "source": "component-lodash",
-      "target": "cve-analytics-worker-CVE-2021-3456",
+      "id": "edge-component-stripe-12-0-0-cve-component-stripe-12-0-0-CVE-2021-3060",
+      "source": "component-stripe-12-0-0",
+      "target": "cve-component-stripe-12-0-0-CVE-2021-3060",
       "type": "has_issue"
     },
     {
-      "id": "edge-axios-cve-5",
-      "source": "component-axios",
-      "target": "cve-notification-service-CVE-2021-7890",
+      "id": "edge-component-mysql2-2-3-3-cve-component-mysql2-2-3-3-CVE-2022-5446",
+      "source": "component-mysql2-2-3-3",
+      "target": "cve-component-mysql2-2-3-3-CVE-2022-5446",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-mongoose-7-0-3-cve-component-mongoose-7-0-3-CVE-2024-1106",
+      "source": "component-mongoose-7-0-3",
+      "target": "cve-component-mongoose-7-0-3-CVE-2024-1106",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-jsonwebtoken-9-0-0-cve-component-jsonwebtoken-9-0-0-CVE-2023-8943",
+      "source": "component-jsonwebtoken-9-0-0",
+      "target": "cve-component-jsonwebtoken-9-0-0-CVE-2023-8943",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-jsonwebtoken-9-0-0-cve-component-jsonwebtoken-9-0-0-CVE-2023-4424",
+      "source": "component-jsonwebtoken-9-0-0",
+      "target": "cve-component-jsonwebtoken-9-0-0-CVE-2023-4424",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-joi-17-6-0-finding-service-search-api-weak-crypto-0",
+      "source": "component-joi-17-6-0",
+      "target": "finding-service-search-api-weak-crypto-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-lodash-4-17-21-finding-service-admin-portal-insecure-random-0",
+      "source": "component-lodash-4-17-21",
+      "target": "finding-service-admin-portal-insecure-random-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-stripe-12-0-0-finding-service-admin-portal-race-condition-1",
+      "source": "component-stripe-12-0-0",
+      "target": "finding-service-admin-portal-race-condition-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-express-4-18-2-finding-service-auth-service-race-condition-0",
+      "source": "component-express-4-18-2",
+      "target": "finding-service-auth-service-race-condition-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-twilio-4-10-0-finding-service-auth-service-sql-injection-1",
+      "source": "component-twilio-4-10-0",
+      "target": "finding-service-auth-service-sql-injection-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-twilio-4-10-0-finding-service-auth-service-cleartext-transmission-2",
+      "source": "component-twilio-4-10-0",
+      "target": "finding-service-auth-service-cleartext-transmission-2",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-axios-1-4-0-finding-service-image-processor-weak-crypto-0",
+      "source": "component-axios-1-4-0",
+      "target": "finding-service-image-processor-weak-crypto-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-winston-3-10-0-finding-service-image-processor-cleartext-transmission-1",
+      "source": "component-winston-3-10-0",
+      "target": "finding-service-image-processor-cleartext-transmission-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-bcrypt-5-0-1-finding-service-session-manager-hardcoded-secret-0",
+      "source": "component-bcrypt-5-0-1",
+      "target": "finding-service-session-manager-hardcoded-secret-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-axios-1-4-0-finding-service-cache-service-hardcoded-secret-0",
+      "source": "component-axios-1-4-0",
+      "target": "finding-service-cache-service-hardcoded-secret-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-joi-17-6-0-finding-service-cache-service-path-traversal-1",
+      "source": "component-joi-17-6-0",
+      "target": "finding-service-cache-service-path-traversal-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-axios-0-21-1-finding-service-sms-gateway-hardcoded-secret-0",
+      "source": "component-axios-0-21-1",
+      "target": "finding-service-sms-gateway-hardcoded-secret-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-axios-0-21-1-finding-service-sms-gateway-path-traversal-1",
+      "source": "component-axios-0-21-1",
+      "target": "finding-service-sms-gateway-path-traversal-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-mongoose-7-0-3-finding-service-email-service-hardcoded-secret-0",
+      "source": "component-mongoose-7-0-3",
+      "target": "finding-service-email-service-hardcoded-secret-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-axios-0-21-1-finding-service-email-service-cleartext-transmission-1",
+      "source": "component-axios-0-21-1",
+      "target": "finding-service-email-service-cleartext-transmission-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-mongoose-7-0-3-finding-service-email-service-xss-vulnerability-2",
+      "source": "component-mongoose-7-0-3",
+      "target": "finding-service-email-service-xss-vulnerability-2",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-redis-4-0-6-finding-service-file-storage-hardcoded-secret-0",
+      "source": "component-redis-4-0-6",
+      "target": "finding-service-file-storage-hardcoded-secret-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-jsonwebtoken-9-0-0-finding-service-file-storage-missing-auth-1",
+      "source": "component-jsonwebtoken-9-0-0",
+      "target": "finding-service-file-storage-missing-auth-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-jsonwebtoken-9-0-0-finding-service-file-storage-missing-auth-2",
+      "source": "component-jsonwebtoken-9-0-0",
+      "target": "finding-service-file-storage-missing-auth-2",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-mongoose-6-0-12-finding-service-mobile-api-sql-injection-0",
+      "source": "component-mongoose-6-0-12",
+      "target": "finding-service-mobile-api-sql-injection-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-bcrypt-5-0-1-finding-service-audit-logger-race-condition-0",
+      "source": "component-bcrypt-5-0-1",
+      "target": "finding-service-audit-logger-race-condition-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-winston-3-10-0-finding-service-customer-portal-race-condition-0",
+      "source": "component-winston-3-10-0",
+      "target": "finding-service-customer-portal-race-condition-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-component-joi-17-9-2-finding-service-customer-portal-insecure-random-1",
+      "source": "component-joi-17-9-2",
+      "target": "finding-service-customer-portal-insecure-random-1",
       "type": "has_issue"
     }
   ],
   "summary": {
-    "services": 4,
-    "components": 5,
-    "issues": 10,
-    "kev_count": 2
+    "services": 24,
+    "components": 34,
+    "issues": 35,
+    "kev_count": 5
   }
 }
