@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard } from 'lucide-react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const DEMO_ISSUES = [
@@ -179,6 +179,17 @@ export default function TriagePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState('all')
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
+  const [showColumnChooser, setShowColumnChooser] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState({
+    severity: true,
+    title: true,
+    source: true,
+    repo: true,
+    location: true,
+    exploitability: true,
+    age: true,
+  })
+  const [pinnedColumns, setPinnedColumns] = useState<Set<string>>(new Set(['severity', 'title']))
 
   const summary = {
     total: issues.length,
@@ -330,6 +341,38 @@ export default function TriagePage() {
     }
   }
 
+  const toggleColumnVisibility = (column: string) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column as keyof typeof prev]
+    }))
+  }
+
+  const toggleColumnPin = (column: string) => {
+    setPinnedColumns(prev => {
+      const newPinned = new Set(prev)
+      if (newPinned.has(column)) {
+        newPinned.delete(column)
+      } else {
+        newPinned.add(column)
+      }
+      return newPinned
+    })
+  }
+
+  const columnDefinitions = [
+    { id: 'severity', label: 'Severity', width: '80px' },
+    { id: 'title', label: 'Issue', width: '1fr' },
+    { id: 'source', label: 'Source', width: '100px' },
+    { id: 'repo', label: 'Repository', width: '180px' },
+    { id: 'location', label: 'Location', width: '180px' },
+    { id: 'exploitability', label: 'Exploitability', width: '120px' },
+    { id: 'age', label: 'Age', width: '80px' },
+  ]
+
+  const visibleColumnDefs = columnDefinitions.filter(col => visibleColumns[col.id as keyof typeof visibleColumns])
+  const gridTemplateColumns = `40px ${visibleColumnDefs.map(col => col.width).join(' ')}`
+
   const getSeverityColor = (severity: string) => {
     const colors = {
       critical: '#dc2626',
@@ -405,6 +448,13 @@ export default function TriagePage() {
           >
             <BarChart3 size={16} />
             Risk Graph
+          </button>
+          <button
+            onClick={() => setShowColumnChooser(!showColumnChooser)}
+            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
+          >
+            <Settings size={16} />
+            Columns
           </button>
           <button
             onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
@@ -780,6 +830,73 @@ export default function TriagePage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showColumnChooser && (
+        <div
+          onClick={() => setShowColumnChooser(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-[450px] bg-[#1e293b] border border-white/10 rounded-lg flex flex-col"
+          >
+            <div className="p-6 border-b border-white/10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Column Settings</h3>
+                  <p className="text-sm text-slate-400">Show, hide, and pin columns</p>
+                </div>
+                <button
+                  onClick={() => setShowColumnChooser(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-3">
+              {columnDefinitions.map(({ id, label }) => {
+                const isVisible = visibleColumns[id as keyof typeof visibleColumns]
+                const isPinned = pinnedColumns.has(id)
+                return (
+                  <div key={id} className="flex items-center justify-between p-3 bg-white/2 rounded-lg border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isVisible}
+                        onChange={() => toggleColumnVisibility(id)}
+                        className="cursor-pointer"
+                      />
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    <button
+                      onClick={() => toggleColumnPin(id)}
+                      disabled={!isVisible}
+                      className={`p-1.5 rounded transition-colors ${
+                        isPinned
+                          ? 'bg-[#6B5AED]/20 text-[#6B5AED]'
+                          : isVisible
+                          ? 'text-slate-400 hover:bg-white/5'
+                          : 'text-slate-600 cursor-not-allowed'
+                      }`}
+                      title={isPinned ? 'Unpin column' : 'Pin column'}
+                    >
+                      {isPinned ? <Pin size={16} /> : <PinOff size={16} />}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="p-6 border-t border-white/10 bg-white/2">
+              <p className="text-xs text-slate-400 text-center">
+                Pinned columns stay visible when scrolling horizontally
+              </p>
             </div>
           </div>
         </div>
