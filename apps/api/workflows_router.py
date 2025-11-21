@@ -142,7 +142,7 @@ async def delete_workflow(id: str):
 
 
 @router.post("/{id}/execute", response_model=WorkflowExecutionResponse)
-async def execute_workflow(id: str, input_data: Dict[str, Any] = None):
+async def execute_workflow(id: str, input_data: Optional[Dict[str, Any]] = None):
     """Execute a workflow."""
     workflow = db.get_workflow(id)
     if not workflow:
