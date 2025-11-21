@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ArrowLeft, ExternalLink, Copy, CheckCircle, AlertTriangle, Shield, Clock, TrendingUp } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const FINDING_DETAIL = {
   id: '1',
@@ -119,6 +120,7 @@ export default function FindingDetailPage() {
   ]
 
   return (
+    <EnterpriseShell>
     <div className="min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Top Bar */}
       <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm sticky top-0 z-10">

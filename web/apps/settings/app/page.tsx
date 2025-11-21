@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Settings as SettingsIcon, Key, Users, Bell, Shield, ArrowLeft, Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const API_KEYS = [
   {
@@ -70,6 +71,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Tabs */}
       <div className="w-64 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">

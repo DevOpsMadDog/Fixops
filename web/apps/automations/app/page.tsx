@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Play, Pause, Plus, Trash2, Edit2, ArrowLeft, Zap, Shield, AlertTriangle } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const AUTOMATION_RULES = [
   {
@@ -127,6 +128,7 @@ export default function AutomationsPage() {
   }
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Rules/Gates List */}
       <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">

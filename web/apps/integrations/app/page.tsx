@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, Check, X, ArrowLeft, ExternalLink, RefreshCw, Settings } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const INTEGRATIONS = [
   {
@@ -112,6 +113,7 @@ export default function IntegrationsPage() {
   const [isConfiguring, setIsConfiguring] = useState(false)
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Integrations List */}
       <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">

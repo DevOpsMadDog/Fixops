@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3 } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const DEMO_ISSUES = [
   {
@@ -284,6 +285,7 @@ export default function TriagePage() {
   }
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Feed Navigation */}
       <div className="w-60 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">

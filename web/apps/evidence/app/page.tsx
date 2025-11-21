@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const EVIDENCE_BUNDLES = [
   {
@@ -185,6 +186,7 @@ export default function EvidencePage() {
     : EVIDENCE_BUNDLES.filter(b => b.severity === filterSeverity)
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Filters */}
       <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">

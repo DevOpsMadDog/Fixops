@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Star, Plus, Trash2, Edit2, ArrowLeft, Filter, Clock } from 'lucide-react'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const SAVED_VIEWS = [
   {
@@ -98,6 +99,7 @@ export default function SavedViewsPage() {
   }
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Views List */}
       <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import EnterpriseShell from './components/EnterpriseShell'
 import { AlertCircle, Shield, Code, Cloud, XCircle, Filter, Search, Layers, ArrowLeft } from 'lucide-react'
 
 const CytoscapeComponent = dynamic(
@@ -216,6 +217,7 @@ export default function RiskGraphPage() {
   }
 
   return (
+    <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Filters */}
       <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
