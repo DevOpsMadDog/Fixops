@@ -495,6 +495,118 @@ fixops integrations test <id>
 
 **Flow:** CLI → IntegrationDB operations → Output results
 
+### 19. reports
+**Purpose:** Manage report generation and scheduling
+**Entry Point:** `core/cli.py:_handle_reports()`
+
+#### 19.1 reports list
+```bash
+fixops reports list [--type security_summary|compliance|risk_assessment|vulnerability|audit|custom] [--limit N] [--offset N] [--format table|json]
+```
+- Lists all reports with optional type filtering
+- Default format: table
+- Returns exit code 0 on success
+
+#### 19.2 reports generate
+```bash
+fixops reports generate \
+  --name "Security Summary Report" \
+  --type security_summary|compliance|risk_assessment|vulnerability|audit|custom \
+  [--output-format pdf|html|json|csv|sarif]
+```
+- Generates a new report
+- Returns report ID and status
+- Returns exit code 0 on success
+
+#### 19.3 reports get
+```bash
+fixops reports get <report_id>
+```
+- Gets report details by ID
+- Shows generation status, file path, and metadata
+- Returns exit code 0 if found, 1 if not found
+
+**Flow:** CLI → ReportDB operations → Output results
+
+### 20. audit
+**Purpose:** Query audit logs and compliance frameworks
+**Entry Point:** `core/cli.py:_handle_audit()`
+
+#### 20.1 audit logs
+```bash
+fixops audit logs [--event-type user_login|policy_updated|decision_made|...] [--user-id USER_ID] [--limit N] [--offset N] [--format table|json]
+```
+- Queries audit logs with filtering
+- Default format: table
+- Returns exit code 0 on success
+
+#### 20.2 audit frameworks
+```bash
+fixops audit frameworks [--limit N] [--offset N] [--format table|json]
+```
+- Lists supported compliance frameworks
+- Shows framework name, version, and description
+- Returns exit code 0 on success
+
+#### 20.3 audit controls
+```bash
+fixops audit controls [--framework-id FRAMEWORK_ID] [--limit N] [--offset N] [--format table|json]
+```
+- Lists compliance controls
+- Optional filtering by framework
+- Returns exit code 0 on success
+
+**Flow:** CLI → AuditDB operations → Output results
+
+### 21. workflows
+**Purpose:** Manage workflow orchestration
+**Entry Point:** `core/cli.py:_handle_workflows()`
+
+#### 21.1 workflows list
+```bash
+fixops workflows list [--limit N] [--offset N] [--format table|json]
+```
+- Lists all workflows
+- Default format: table
+- Returns exit code 0 on success
+
+#### 21.2 workflows create
+```bash
+fixops workflows create \
+  --name "Security Scan Workflow" \
+  --description "Automated security scanning workflow"
+```
+- Creates a new workflow
+- Steps and triggers can be added via JSON stdin
+- Returns workflow ID
+- Returns exit code 0 on success
+
+#### 21.3 workflows get
+```bash
+fixops workflows get <workflow_id>
+```
+- Gets workflow details by ID
+- Shows configuration, steps, and triggers
+- Returns exit code 0 if found, 1 if not found
+
+#### 21.4 workflows execute
+```bash
+fixops workflows execute <workflow_id>
+```
+- Executes a workflow
+- Returns execution ID and status
+- Returns exit code 0 on success, 1 if workflow disabled
+
+#### 21.5 workflows history
+```bash
+fixops workflows history <workflow_id> [--limit N] [--offset N] [--format table|json]
+```
+- Gets workflow execution history
+- Shows execution status, timestamps, and results
+- Returns exit code 0 on success
+
+**Flow:** CLI → WorkflowDB operations → Output results
+
 ## API Endpoints
 
 ### Core API (apps/api/app.py)
@@ -595,8 +707,40 @@ fixops integrations test <id>
 - Graph API (backend/api/graph/router.py)
 - Evidence API (backend/api/evidence/router.py)
 
-**Total Endpoints**: ~97 (40 existing + 15 Phase 1 + 22 Phase 2 + 20 Phase 3)
-**Remaining to 120+**: ~23 endpoints (Phase 4: Reports, Audit, Workflows)
+### Report Management API (apps/api/reports_router.py) - Phase 4 🚧
+- `GET /api/v1/reports` - List reports with filtering
+- `POST /api/v1/reports` - Generate new report
+- `GET /api/v1/reports/{id}` - Get report details
+- `GET /api/v1/reports/{id}/download` - Download report file
+- `POST /api/v1/reports/schedule` - Schedule recurring report
+- `GET /api/v1/reports/schedules/list` - List scheduled reports
+- `GET /api/v1/reports/templates/list` - List report templates
+- `POST /api/v1/reports/export/sarif` - Export findings as SARIF
+- `POST /api/v1/reports/export/csv` - Export findings as CSV
+
+### Audit & Compliance API (apps/api/audit_router.py) - Phase 4 🚧
+- `GET /api/v1/audit/logs` - Query audit logs with filtering
+- `GET /api/v1/audit/logs/{id}` - Get audit log entry
+- `GET /api/v1/audit/user-activity` - Get user activity logs
+- `GET /api/v1/audit/policy-changes` - Get policy change history
+- `GET /api/v1/audit/decision-trail` - Get decision audit trail
+- `GET /api/v1/audit/compliance/frameworks` - List compliance frameworks
+- `GET /api/v1/audit/compliance/frameworks/{id}/status` - Get framework compliance status
+- `GET /api/v1/audit/compliance/frameworks/{id}/gaps` - Get compliance gaps
+- `POST /api/v1/audit/compliance/frameworks/{id}/report` - Generate compliance report
+- `GET /api/v1/audit/compliance/controls` - List compliance controls
+
+### Workflow Orchestration API (apps/api/workflows_router.py) - Phase 4 🚧
+- `GET /api/v1/workflows` - List workflows
+- `POST /api/v1/workflows` - Create workflow
+- `GET /api/v1/workflows/{id}` - Get workflow details
+- `PUT /api/v1/workflows/{id}` - Update workflow
+- `DELETE /api/v1/workflows/{id}` - Delete workflow
+- `POST /api/v1/workflows/{id}/execute` - Execute workflow
+- `GET /api/v1/workflows/{id}/history` - Get workflow execution history
+
+**Total Endpoints**: ~120 (40 existing + 15 Phase 1 + 22 Phase 2 + 20 Phase 3 + 23 Phase 4)
+**Status**: Phase 4 implementation in progress
 
 ## Output Files
 

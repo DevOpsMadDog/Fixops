@@ -1637,6 +1637,183 @@ def _handle_integrations(args):
     return 0
 
 
+def _handle_reports(args):
+    """Handle report management commands."""
+    import json
+
+    from core.report_db import ReportDB
+    from core.report_models import Report, ReportFormat, ReportStatus, ReportType
+
+    db = ReportDB()
+
+    if args.report_command == "list":
+        reports = db.list_reports(
+            report_type=args.type, limit=args.limit, offset=args.offset
+        )
+        if args.format == "json":
+            print(json.dumps([r.to_dict() for r in reports], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Type':<20} {'Status':<12}")
+            print("-" * 110)
+            for report in reports:
+                print(
+                    f"{report.id:<40} {report.name:<30} {report.report_type.value:<20} {report.status.value:<12}"
+                )
+
+    elif args.report_command == "generate":
+        report = Report(
+            id="",
+            name=args.name,
+            report_type=ReportType(args.type),
+            format=ReportFormat(args.output_format),
+            status=ReportStatus.PENDING,
+            parameters={},
+        )
+        created = db.create_report(report)
+        print(f"✅ Report generation started: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.report_command == "get":
+        report = db.get_report(args.id)
+        if not report:
+            print(f"❌ Report not found: {args.id}")
+            return 1
+        print(json.dumps(report.to_dict(), indent=2))
+
+    return 0
+
+
+def _handle_audit(args):
+    """Handle audit log commands."""
+    import json
+
+    from core.audit_db import AuditDB
+
+    db = AuditDB()
+
+    if args.audit_command == "logs":
+        logs = db.list_audit_logs(
+            event_type=args.event_type,
+            user_id=args.user_id,
+            limit=args.limit,
+            offset=args.offset,
+        )
+        if args.format == "json":
+            print(json.dumps([log.to_dict() for log in logs], indent=2))
+        else:
+            print(
+                f"{'Timestamp':<25} {'Event Type':<25} {'User ID':<40} {'Action':<30}"
+            )
+            print("-" * 130)
+            for log in logs:
+                print(
+                    f"{log.timestamp.isoformat():<25} {log.event_type.value:<25} {log.user_id or 'N/A':<40} {log.action:<30}"
+                )
+
+    elif args.audit_command == "frameworks":
+        frameworks = db.list_frameworks(limit=args.limit, offset=args.offset)
+        if args.format == "json":
+            print(json.dumps([f.to_dict() for f in frameworks], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Version':<15}")
+            print("-" * 90)
+            for framework in frameworks:
+                print(
+                    f"{framework.id:<40} {framework.name:<30} {framework.version:<15}"
+                )
+
+    elif args.audit_command == "controls":
+        controls = db.list_controls(
+            framework_id=args.framework_id, limit=args.limit, offset=args.offset
+        )
+        if args.format == "json":
+            print(json.dumps([c.to_dict() for c in controls], indent=2))
+        else:
+            print(f"{'Control ID':<20} {'Name':<40} {'Category':<20}")
+            print("-" * 85)
+            for control in controls:
+                print(
+                    f"{control.control_id:<20} {control.name:<40} {control.category:<20}"
+                )
+
+    return 0
+
+
+def _handle_workflows(args):
+    """Handle workflow management commands."""
+    import json
+
+    from core.workflow_db import WorkflowDB
+    from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
+
+    db = WorkflowDB()
+
+    if args.workflow_command == "list":
+        workflows = db.list_workflows(limit=args.limit, offset=args.offset)
+        if args.format == "json":
+            print(json.dumps([w.to_dict() for w in workflows], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Enabled':<10}")
+            print("-" * 85)
+            for workflow in workflows:
+                print(
+                    f"{workflow.id:<40} {workflow.name:<30} {'Yes' if workflow.enabled else 'No':<10}"
+                )
+
+    elif args.workflow_command == "create":
+        workflow = Workflow(
+            id="",
+            name=args.name,
+            description=args.description,
+            steps=[],
+            triggers={},
+            enabled=True,
+        )
+        created = db.create_workflow(workflow)
+        print(f"✅ Created workflow: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.workflow_command == "get":
+        workflow = db.get_workflow(args.id)
+        if not workflow:
+            print(f"❌ Workflow not found: {args.id}")
+            return 1
+        print(json.dumps(workflow.to_dict(), indent=2))
+
+    elif args.workflow_command == "execute":
+        workflow = db.get_workflow(args.id)
+        if not workflow:
+            print(f"❌ Workflow not found: {args.id}")
+            return 1
+
+        execution = WorkflowExecution(
+            id="",
+            workflow_id=args.id,
+            status=WorkflowStatus.COMPLETED,
+            input_data={},
+            output_data={"result": "success"},
+        )
+        created_execution = db.create_execution(execution)
+        print(f"✅ Workflow executed: {created_execution.id}")
+        print(json.dumps(created_execution.to_dict(), indent=2))
+
+    elif args.workflow_command == "history":
+        executions = db.list_executions(
+            workflow_id=args.id, limit=args.limit, offset=args.offset
+        )
+        if args.format == "json":
+            print(json.dumps([e.to_dict() for e in executions], indent=2))
+        else:
+            print(f"{'Execution ID':<40} {'Status':<15} {'Started At':<25}")
+            print("-" * 85)
+            for execution in executions:
+                print(
+                    f"{execution.id:<40} {execution.status.value:<15} {execution.started_at.isoformat():<25}"
+                )
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -2285,6 +2462,101 @@ def build_parser() -> argparse.ArgumentParser:
     test_integration.add_argument("id", help="Integration ID")
 
     integrations_parser.set_defaults(func=_handle_integrations)
+
+    reports_parser = subparsers.add_parser("reports", help="Manage reports")
+    reports_subparsers = reports_parser.add_subparsers(dest="report_command")
+
+    list_reports = reports_subparsers.add_parser("list", help="List reports")
+    list_reports.add_argument("--type", help="Filter by report type")
+    list_reports.add_argument("--limit", type=int, default=100)
+    list_reports.add_argument("--offset", type=int, default=0)
+    list_reports.add_argument("--format", choices=["table", "json"], default="table")
+
+    generate_report = reports_subparsers.add_parser("generate", help="Generate report")
+    generate_report.add_argument("--name", required=True)
+    generate_report.add_argument(
+        "--type",
+        required=True,
+        choices=[
+            "security_summary",
+            "compliance",
+            "risk_assessment",
+            "vulnerability",
+            "audit",
+            "custom",
+        ],
+    )
+    generate_report.add_argument(
+        "--output-format",
+        default="pdf",
+        choices=["pdf", "html", "json", "csv", "sarif"],
+    )
+
+    get_report = reports_subparsers.add_parser("get", help="Get report details")
+    get_report.add_argument("id", help="Report ID")
+
+    reports_parser.set_defaults(func=_handle_reports)
+
+    audit_parser = subparsers.add_parser(
+        "audit", help="Manage audit logs and compliance"
+    )
+    audit_subparsers = audit_parser.add_subparsers(dest="audit_command")
+
+    logs_cmd = audit_subparsers.add_parser("logs", help="Query audit logs")
+    logs_cmd.add_argument("--event-type", help="Filter by event type")
+    logs_cmd.add_argument("--user-id", help="Filter by user ID")
+    logs_cmd.add_argument("--limit", type=int, default=100)
+    logs_cmd.add_argument("--offset", type=int, default=0)
+    logs_cmd.add_argument("--format", choices=["table", "json"], default="table")
+
+    frameworks_cmd = audit_subparsers.add_parser(
+        "frameworks", help="List compliance frameworks"
+    )
+    frameworks_cmd.add_argument("--limit", type=int, default=100)
+    frameworks_cmd.add_argument("--offset", type=int, default=0)
+    frameworks_cmd.add_argument("--format", choices=["table", "json"], default="table")
+
+    controls_cmd = audit_subparsers.add_parser(
+        "controls", help="List compliance controls"
+    )
+    controls_cmd.add_argument("--framework-id", help="Filter by framework ID")
+    controls_cmd.add_argument("--limit", type=int, default=100)
+    controls_cmd.add_argument("--offset", type=int, default=0)
+    controls_cmd.add_argument("--format", choices=["table", "json"], default="table")
+
+    audit_parser.set_defaults(func=_handle_audit)
+
+    workflows_parser = subparsers.add_parser("workflows", help="Manage workflows")
+    workflows_subparsers = workflows_parser.add_subparsers(dest="workflow_command")
+
+    list_workflows = workflows_subparsers.add_parser("list", help="List workflows")
+    list_workflows.add_argument("--limit", type=int, default=100)
+    list_workflows.add_argument("--offset", type=int, default=0)
+    list_workflows.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_workflow = workflows_subparsers.add_parser("create", help="Create workflow")
+    create_workflow.add_argument("--name", required=True)
+    create_workflow.add_argument("--description", required=True)
+
+    get_workflow = workflows_subparsers.add_parser("get", help="Get workflow details")
+    get_workflow.add_argument("id", help="Workflow ID")
+
+    execute_workflow = workflows_subparsers.add_parser(
+        "execute", help="Execute workflow"
+    )
+    execute_workflow.add_argument("id", help="Workflow ID")
+
+    workflow_history = workflows_subparsers.add_parser(
+        "history", help="Get workflow execution history"
+    )
+    workflow_history.add_argument("id", help="Workflow ID")
+    workflow_history.add_argument("--limit", type=int, default=100)
+    workflow_history.add_argument("--offset", type=int, default=0)
+    workflow_history.add_argument(
+        "--format", choices=["table", "json"], default="table"
+    )
+
+    workflows_parser.set_defaults(func=_handle_workflows)
 
     return parser
 

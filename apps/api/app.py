@@ -22,11 +22,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from apps.api.analytics_router import router as analytics_router
+from apps.api.audit_router import router as audit_router
 from apps.api.integrations_router import router as integrations_router
 from apps.api.inventory_router import router as inventory_router
 from apps.api.policies_router import router as policies_router
+from apps.api.reports_router import router as reports_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
+from apps.api.workflows_router import router as workflows_router
 from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
@@ -367,6 +370,9 @@ def create_app() -> FastAPI:
     app.include_router(policies_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(integrations_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(reports_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(workflows_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024

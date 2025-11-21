@@ -720,9 +720,201 @@ fixops inventory search <query> [--limit N]
   ```
 
 ### Phase 4 (Reports, Audit, Workflows)
-- Scheduled report generation
-- Comprehensive audit trail
-- Workflow orchestration engine
+
+#### 2.6 Report Management (8 endpoints)
+
+**2.6.1 List Reports**
+- **Endpoint**: `GET /api/v1/reports`
+- **Description**: List all reports with optional filtering by type
+- **Query Parameters**:
+  - `report_type` (optional): Filter by report type (security_summary, compliance, risk_assessment, vulnerability, audit, custom)
+  - `limit` (optional, default: 100): Maximum number of results
+  - `offset` (optional, default: 0): Pagination offset
+- **Response**: Paginated list of reports with metadata
+- **CLI**: `fixops reports list [--type TYPE] [--limit N] [--offset N] [--format json|table]`
+
+**2.6.2 Generate Report**
+- **Endpoint**: `POST /api/v1/reports`
+- **Description**: Generate a new report
+- **Request Body**:
+  - `name` (required): Report name
+  - `report_type` (required): Type of report
+  - `format` (optional, default: pdf): Output format (pdf, html, json, csv, sarif)
+  - `parameters` (optional): Report-specific parameters
+- **Response**: Report record with generation status
+- **CLI**: `fixops reports generate --name NAME --type TYPE [--output-format FORMAT]`
+
+**2.6.3 Get Report**
+- **Endpoint**: `GET /api/v1/reports/{id}`
+- **Description**: Get report details by ID
+- **Response**: Full report record including file path and status
+- **CLI**: `fixops reports get REPORT_ID`
+
+**2.6.4 Download Report**
+- **Endpoint**: `GET /api/v1/reports/{id}/download`
+- **Description**: Download generated report file
+- **Response**: Download URL and file metadata
+- **Error**: 400 if report not ready, 404 if file not found
+
+**2.6.5 Schedule Report**
+- **Endpoint**: `POST /api/v1/reports/schedule`
+- **Description**: Schedule recurring report generation
+- **Request Body**:
+  - `report_type` (required): Type of report
+  - `format` (optional, default: pdf): Output format
+  - `schedule_cron` (required): Cron expression for schedule
+  - `parameters` (optional): Report parameters
+- **Response**: Schedule record with ID
+
+**2.6.6 List Schedules**
+- **Endpoint**: `GET /api/v1/reports/schedules/list`
+- **Description**: List all scheduled reports
+- **Response**: Paginated list of report schedules
+
+**2.6.7 Export SARIF**
+- **Endpoint**: `POST /api/v1/reports/export/sarif`
+- **Description**: Export findings in SARIF 2.1.0 format
+- **Query Parameters**:
+  - `start_date` (optional): Filter findings from date
+  - `end_date` (optional): Filter findings to date
+- **Response**: SARIF-formatted findings
+
+**2.6.8 Export CSV**
+- **Endpoint**: `POST /api/v1/reports/export/csv`
+- **Description**: Export findings in CSV format
+- **Query Parameters**:
+  - `start_date` (optional): Filter findings from date
+  - `end_date` (optional): Filter findings to date
+- **Response**: CSV download URL
+
+#### 2.7 Audit & Compliance (10 endpoints)
+
+**2.7.1 List Audit Logs**
+- **Endpoint**: `GET /api/v1/audit/logs`
+- **Description**: Query audit logs with filtering
+- **Query Parameters**:
+  - `event_type` (optional): Filter by event type
+  - `user_id` (optional): Filter by user
+  - `limit` (optional, default: 100): Maximum results
+  - `offset` (optional, default: 0): Pagination offset
+- **Response**: Paginated audit log entries
+- **CLI**: `fixops audit logs [--event-type TYPE] [--user-id ID] [--limit N] [--format json|table]`
+
+**2.7.2 Get Audit Log**
+- **Endpoint**: `GET /api/v1/audit/logs/{id}`
+- **Description**: Get specific audit log entry
+- **Response**: Full audit log record
+
+**2.7.3 Get User Activity**
+- **Endpoint**: `GET /api/v1/audit/user-activity`
+- **Description**: Get activity logs for a specific user
+- **Query Parameters**:
+  - `user_id` (required): User ID to query
+  - `limit` (optional, default: 100): Maximum results
+- **Response**: User's activity history
+
+**2.7.4 Get Policy Changes**
+- **Endpoint**: `GET /api/v1/audit/policy-changes`
+- **Description**: Get policy change history
+- **Query Parameters**:
+  - `limit` (optional, default: 100): Maximum results
+- **Response**: Policy change audit trail
+
+**2.7.5 Get Decision Trail**
+- **Endpoint**: `GET /api/v1/audit/decision-trail`
+- **Description**: Get decision-making audit trail
+- **Query Parameters**:
+  - `limit` (optional, default: 100): Maximum results
+  - `offset` (optional, default: 0): Pagination offset
+- **Response**: Decision audit records
+
+**2.7.6 List Frameworks**
+- **Endpoint**: `GET /api/v1/audit/compliance/frameworks`
+- **Description**: List supported compliance frameworks
+- **Response**: Available frameworks (NIST 800-53, ISO 27001, PCI-DSS, SOC2, etc.)
+- **CLI**: `fixops audit frameworks [--limit N] [--format json|table]`
+
+**2.7.7 Get Framework Status**
+- **Endpoint**: `GET /api/v1/audit/compliance/frameworks/{id}/status`
+- **Description**: Get compliance status for a framework
+- **Response**: Compliance percentage, passed/failed controls, last assessment date
+
+**2.7.8 Get Compliance Gaps**
+- **Endpoint**: `GET /api/v1/audit/compliance/frameworks/{id}/gaps`
+- **Description**: Identify compliance gaps for a framework
+- **Response**: List of gaps with severity and remediation guidance
+
+**2.7.9 Generate Compliance Report**
+- **Endpoint**: `POST /api/v1/audit/compliance/frameworks/{id}/report`
+- **Description**: Generate compliance report for a framework
+- **Response**: Report ID and download URL
+
+**2.7.10 List Controls**
+- **Endpoint**: `GET /api/v1/audit/compliance/controls`
+- **Description**: List all compliance controls
+- **Query Parameters**:
+  - `framework_id` (optional): Filter by framework
+  - `limit` (optional, default: 100): Maximum results
+  - `offset` (optional, default: 0): Pagination offset
+- **Response**: Paginated list of controls
+- **CLI**: `fixops audit controls [--framework-id ID] [--limit N] [--format json|table]`
+
+#### 2.8 Workflow Orchestration (5 endpoints)
+
+**2.8.1 List Workflows**
+- **Endpoint**: `GET /api/v1/workflows`
+- **Description**: List all workflows
+- **Query Parameters**:
+  - `limit` (optional, default: 100): Maximum results
+  - `offset` (optional, default: 0): Pagination offset
+- **Response**: Paginated list of workflows
+- **CLI**: `fixops workflows list [--limit N] [--format json|table]`
+
+**2.8.2 Create Workflow**
+- **Endpoint**: `POST /api/v1/workflows`
+- **Description**: Create a new workflow
+- **Request Body**:
+  - `name` (required): Workflow name
+  - `description` (required): Workflow description
+  - `steps` (optional): List of workflow steps
+  - `triggers` (optional): Trigger configuration
+  - `enabled` (optional, default: true): Whether workflow is enabled
+- **Response**: Created workflow record
+- **CLI**: `fixops workflows create --name NAME --description DESC`
+
+**2.8.3 Get Workflow**
+- **Endpoint**: `GET /api/v1/workflows/{id}`
+- **Description**: Get workflow details
+- **Response**: Full workflow configuration
+- **CLI**: `fixops workflows get WORKFLOW_ID`
+
+**2.8.4 Update Workflow**
+- **Endpoint**: `PUT /api/v1/workflows/{id}`
+- **Description**: Update workflow configuration
+- **Request Body**: Partial workflow update (name, description, steps, triggers, enabled)
+- **Response**: Updated workflow record
+
+**2.8.5 Delete Workflow**
+- **Endpoint**: `DELETE /api/v1/workflows/{id}`
+- **Description**: Delete a workflow
+- **Response**: 204 No Content
+
+**2.8.6 Execute Workflow**
+- **Endpoint**: `POST /api/v1/workflows/{id}/execute`
+- **Description**: Execute a workflow
+- **Request Body**: Input data for workflow execution
+- **Response**: Execution record with status
+- **Error**: 400 if workflow is disabled
+- **CLI**: `fixops workflows execute WORKFLOW_ID`
+
+**2.8.7 Get Workflow History**
+- **Endpoint**: `GET /api/v1/workflows/{id}/history`
+- **Description**: Get workflow execution history
+- **Query Parameters**:
+  - `limit` (optional, default: 100): Maximum results
+  - `offset` (optional, default: 0): Pagination offset
+- **Response**: Paginated list of executions
+- **CLI**: `fixops workflows history WORKFLOW_ID [--limit N] [--format json|table]`
 
 ## 7. Success Criteria
 
@@ -744,6 +936,15 @@ fixops inventory search <query> [--limit N]
 - Finding and decision tracking with MTTR calculation
 - Integration management with connection testing
 - CLI commands for analytics queries and integration management
+
+### Phase 4 (In Progress)
+- All 23 report/audit/workflow endpoints functional and tested
+- Report generation with multiple formats (PDF, HTML, JSON, CSV, SARIF)
+- Scheduled report generation with cron expressions
+- Comprehensive audit logging with event type filtering
+- Compliance framework support (NIST 800-53, ISO 27001, PCI-DSS, SOC2)
+- Workflow orchestration with execution history
+- CLI commands for reports, audit logs, and workflows
 
 ### General Requirements
 - Zero critical security vulnerabilities
