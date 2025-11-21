@@ -17,6 +17,7 @@ import {
   Menu,
   X
 } from 'lucide-react'
+import ProvenanceBar from './ProvenanceBar'
 
 interface EnterpriseShellProps {
   children: React.ReactNode
@@ -187,9 +188,20 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         </div>
       </div>
 
+      {/* Provenance Bar */}
+      <div className="fixed top-16 left-0 right-0 z-40">
+        <ProvenanceBar 
+          mode="demo"
+          runId="run-2024-001-demo"
+          commitSha="c70dcd5"
+          timestamp={new Date().toISOString()}
+          signatureVerified={true}
+        />
+      </div>
+
       {/* Sidebar */}
       <div
-        className={`fixed top-16 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-transform duration-200 z-40 ${
+        className={`fixed top-26 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-transform duration-200 z-40 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -216,7 +228,7 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
 
       {/* Main Content */}
       <div
-        className={`pt-16 transition-all duration-200 ${
+        className={`pt-26 transition-all duration-200 ${
           sidebarOpen ? 'pl-64' : 'pl-0'
         }`}
       >

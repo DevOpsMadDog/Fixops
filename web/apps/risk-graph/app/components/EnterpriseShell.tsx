@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ProvenanceBar from './ProvenanceBar'
 import { 
   Bell, 
   Search, 
