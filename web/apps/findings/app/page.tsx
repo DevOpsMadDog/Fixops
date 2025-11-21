@@ -436,5 +436,6 @@ export default function FindingDetailPage() {
         </div>
       </div>
     </div>
+    </EnterpriseShell>
   )
 }

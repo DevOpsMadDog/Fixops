@@ -490,5 +490,6 @@ export default function AutomationsPage() {
         </div>
       </div>
     </div>
+    </EnterpriseShell>
   )
 }

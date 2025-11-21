@@ -427,5 +427,6 @@ export default function SavedViewsPage() {
         </div>
       </div>
     </div>
+    </EnterpriseShell>
   )
 }

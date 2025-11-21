@@ -35,14 +35,14 @@ const DEMO_ISSUES = [
     internet_facing: true,
     age_days: 12,
     description: 'SQL injection vulnerability in user authentication endpoint allowing unauthorized access.',
-    assignee: 'infra-team',
-    tags: ['secrets', 'aws'],
-    sla_date: '2024-11-30',
     remediation: 'Use parameterized queries or prepared statements. Implement input validation and sanitization.'
   },
   {
     id: '3',
     title: 'Exposed AWS Credentials in Configuration',
+    assignee: 'infra-team',
+    tags: ['secrets', 'aws'],
+    sla_date: '2024-11-30',
     severity: 'critical',
     source: 'IaC',
     repo: 'infrastructure',
@@ -52,13 +52,13 @@ const DEMO_ISSUES = [
     age_days: 1,
     description: 'AWS access keys hardcoded in Terraform configuration files.',
     remediation: 'Remove hardcoded credentials. Use AWS Secrets Manager or environment variables.'
-    assignee: 'security-team',
-    tags: ['openssl', 'cve'],
-    sla_date: '2024-12-10',
   },
   {
     id: '4',
     title: 'Outdated OpenSSL Library (CVE-2023-4807)',
+    assignee: 'security-team',
+    tags: ['openssl', 'cve'],
+    sla_date: '2024-12-10',
     severity: 'high',
     source: 'CVE',
     repo: 'api-gateway',
@@ -69,12 +69,12 @@ const DEMO_ISSUES = [
     description: 'Vulnerable OpenSSL version with known exploits in the wild.',
     remediation: 'Update OpenSSL to version 3.0.11 or later. Rebuild and redeploy containers.'
   },
-    assignee: 'dev-team',
-    tags: ['xss', 'frontend'],
-    sla_date: '2024-12-15',
   {
     id: '5',
     title: 'Cross-Site Scripting (XSS) in Dashboard',
+    assignee: 'dev-team',
+    tags: ['xss', 'frontend'],
+    sla_date: '2024-12-15',
     severity: 'medium',
     source: 'SAST',
     repo: 'web-dashboard',
@@ -1036,5 +1036,6 @@ export default function TriagePage() {
         }
       `}</style>
     </div>
+    </EnterpriseShell>
   )
 }

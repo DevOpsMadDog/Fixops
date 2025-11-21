@@ -543,5 +543,6 @@ export default function RiskGraphPage() {
         }
       `}</style>
     </div>
+    </EnterpriseShell>
   )
 }

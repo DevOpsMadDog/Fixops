@@ -524,5 +524,6 @@ export default function CompliancePage() {
         }
       `}</style>
     </div>
+    </EnterpriseShell>
   )
 }
