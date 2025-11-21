@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3 } from 'lucide-react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const DEMO_ISSUES = [
@@ -178,6 +178,7 @@ export default function TriagePage() {
   })
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState('all')
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
 
   const summary = {
     total: issues.length,
@@ -227,12 +228,21 @@ export default function TriagePage() {
           }
           break
         
-        case 'Escape': // Close drawer
+        case 'Escape':
           e.preventDefault()
-          setSelectedIssue(null)
+          if (showKeyboardHelp) {
+            setShowKeyboardHelp(false)
+          } else {
+            setSelectedIssue(null)
+          }
           break
         
-        case 'a': // Select all (Ctrl+A or Cmd+A)
+        case '?':
+          e.preventDefault()
+          setShowKeyboardHelp(true)
+          break
+        
+        case 'a':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault()
             toggleSelectAll()
@@ -243,7 +253,7 @@ export default function TriagePage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [focusedIndex, filteredIssues, selectedIssue])
+  }, [focusedIndex, filteredIssues, selectedIssue, showKeyboardHelp])
 
   useEffect(() => {
     setFocusedIndex(0)
@@ -388,13 +398,20 @@ export default function TriagePage() {
         </div>
 
         {/* Bottom Actions */}
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-white/10 space-y-2">
           <button
             onClick={() => window.location.href = '/risk'}
             className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
           >
             <BarChart3 size={16} />
             Risk Graph
+          </button>
+          <button
+            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
+          >
+            <Keyboard size={16} />
+            Shortcuts
           </button>
         </div>
       </div>
@@ -763,6 +780,64 @@ export default function TriagePage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showKeyboardHelp && (
+        <div
+          onClick={() => setShowKeyboardHelp(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-[500px] bg-[#1e293b] border border-white/10 rounded-lg flex flex-col"
+          >
+            <div className="p-6 border-b border-white/10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Keyboard Shortcuts</h3>
+                  <p className="text-sm text-slate-400">Navigate and manage issues faster</p>
+                </div>
+                <button
+                  onClick={() => setShowKeyboardHelp(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {[
+                { keys: ['j', '↓'], description: 'Move down to next issue' },
+                { keys: ['k', '↑'], description: 'Move up to previous issue' },
+                { keys: ['Space'], description: 'Toggle selection of focused issue' },
+                { keys: ['Enter'], description: 'Open issue detail drawer' },
+                { keys: ['Escape'], description: 'Close drawer or modal' },
+                { keys: ['Ctrl+A', 'Cmd+A'], description: 'Select all issues' },
+              ].map(({ keys, description }, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm text-slate-300">{description}</span>
+                  <div className="flex gap-2">
+                    {keys.map((key, i) => (
+                      <span key={i}>
+                        <kbd className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs font-mono text-slate-300">
+                          {key}
+                        </kbd>
+                        {i < keys.length - 1 && <span className="text-slate-500 mx-1">or</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-6 border-t border-white/10 bg-white/2">
+              <p className="text-xs text-slate-400 text-center">
+                Press <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-xs font-mono">?</kbd> anytime to show this help
+              </p>
             </div>
           </div>
         </div>
