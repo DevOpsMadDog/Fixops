@@ -19,5 +19,14 @@
   "packageManager": "npm@10.2.4",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-toast": "^1.2.15",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.23.24",
+    "recharts": "^3.4.1"
   }
 }
