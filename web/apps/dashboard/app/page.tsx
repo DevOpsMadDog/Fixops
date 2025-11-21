@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import EnterpriseShell from './components/EnterpriseShell'
 
 const SUMMARY_STATS = {
   total_issues: 789,
@@ -119,9 +120,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Top Bar */}
-      <div className="p-6 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+    <EnterpriseShell>
+      <div className="min-h-screen bg-[#0f172a] font-sans text-white">
+        {/* Top Bar */}
+        <div className="p-6 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-semibold mb-2">FixOps Dashboard</h1>
@@ -473,5 +475,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </EnterpriseShell>
   )
 }
