@@ -21,6 +21,8 @@ from fastapi import Body, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
+from apps.api.analytics_router import router as analytics_router
+from apps.api.integrations_router import router as integrations_router
 from apps.api.inventory_router import router as inventory_router
 from apps.api.policies_router import router as policies_router
 from apps.api.teams_router import router as teams_router
@@ -363,6 +365,8 @@ def create_app() -> FastAPI:
     app.include_router(users_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(teams_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(policies_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(integrations_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024

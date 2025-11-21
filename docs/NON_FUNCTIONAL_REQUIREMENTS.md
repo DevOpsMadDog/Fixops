@@ -78,9 +78,10 @@
 - **MFA**: (Future) Multi-factor authentication for sensitive operations
 
 ### 4.2 Authorization
-- **RBAC**: Role-based access control (Future - Phase 2)
+- **RBAC**: Role-based access control with 4 roles (admin, security_analyst, developer, viewer)
 - **Principle of Least Privilege**: Default deny, explicit allow
 - **Audit Trail**: All access logged with user, timestamp, action
+- **Team-Based Access**: Users can be organized into teams for collaborative work
 
 ### 4.3 Data Protection
 - **Encryption at Rest**: Evidence bundles encrypted with Fernet (AES-128)
@@ -231,6 +232,12 @@
 ### 11.3 CLI Performance
 - fixops inventory list: < 1s
 - fixops inventory create: < 2s
+- fixops users list: < 1s
+- fixops teams list: < 1s
+- fixops policies list: < 1s
+- fixops analytics dashboard: < 2s
+- fixops analytics findings: < 1s
+- fixops integrations list: < 1s
 - fixops demo: < 60s
 - fixops pipeline run: < 90s
 
@@ -247,3 +254,36 @@
 - **CLI Usability**: > 4.5/5 user rating
 - **API Documentation**: > 4.0/5 completeness rating
 - **Support Response Time**: < 24 hours for critical issues
+
+## 13. Phase 3 Specific Requirements
+
+### 13.1 Analytics Performance
+- **Dashboard Overview**: < 500ms for aggregated metrics
+- **Trend Queries**: < 1s for 30-day time series
+- **Top Risks Calculation**: < 300ms for top 10 risks
+- **MTTR Calculation**: < 200ms for mean time to remediation
+- **Custom Queries**: < 2s for complex aggregations
+
+### 13.2 Analytics Data Retention
+- **Findings**: 2 years of historical data
+- **Decisions**: 2 years of decision history
+- **Metrics**: 1 year of time-series metrics
+- **Aggregated Data**: 5 years of monthly summaries
+
+### 13.3 Integration Management
+- **Connection Testing**: < 5s timeout for external service tests
+- **Sync Operations**: < 30s for full integration sync
+- **Retry Logic**: 3 retries with exponential backoff
+- **Circuit Breaker**: Open after 5 consecutive failures
+
+### 13.4 Analytics Scalability
+- **Findings Volume**: Support 1M+ findings without degradation
+- **Decisions Volume**: Support 500K+ decisions
+- **Metrics Volume**: Support 10M+ metric data points
+- **Query Performance**: Maintain < 1s response time at scale
+
+### 13.5 Integration Security
+- **Secret Storage**: Integration credentials encrypted at rest
+- **Secret Redaction**: Secrets never returned in API responses (unless explicitly requested with proper auth)
+- **Connection Validation**: All integration configs validated before storage
+- **Audit Logging**: All integration operations logged with user context
