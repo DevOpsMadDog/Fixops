@@ -12,14 +12,14 @@ router = APIRouter(prefix="/api/v1/bulk", tags=["bulk"])
 class BulkUpdateRequest(BaseModel):
     """Request model for bulk update operations."""
 
-    ids: List[str] = Field(..., min_items=1)
+    ids: List[str] = Field(..., min_length=1)
     updates: Dict[str, Any]
 
 
 class BulkDeleteRequest(BaseModel):
     """Request model for bulk delete operations."""
 
-    ids: List[str] = Field(..., min_items=1)
+    ids: List[str] = Field(..., min_length=1)
 
 
 class BulkOperationResponse(BaseModel):
