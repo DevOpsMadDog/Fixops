@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, FileKey, Info, Download, ChevronDown, ChevronUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, FileKey, Info, Download, ChevronDown, ChevronUp, Network } from 'lucide-react'
 
 const TriageInbox = () => {
+  const navigate = useNavigate()
   const [issues, setIssues] = useState([])
   const [filteredIssues, setFilteredIssues] = useState([])
   const [loading, setLoading] = useState(true)
@@ -241,6 +243,30 @@ const TriageInbox = () => {
                   {showCapabilities ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>
               </div>
+            </div>
+            <button
+              onClick={() => navigate('/risk')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: '#1E293B',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                color: '#E2E8F0',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => { e.target.style.background = '#334155' }}
+              onMouseLeave={(e) => { e.target.style.background = '#1E293B' }}
+            >
+              <Network size={16} />
+              Risk Graph
+            </button>
+          </div>
+          <div>
               <p style={{
                 fontSize: '14px',
                 color: '#94a3b8',

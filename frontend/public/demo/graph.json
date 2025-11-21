@@ -1,0 +1,277 @@
+{
+  "nodes": [
+    {
+      "id": "service-payment-api",
+      "type": "service",
+      "label": "payment-api",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "service-user-service",
+      "type": "service",
+      "label": "user-service",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "service-analytics-worker",
+      "type": "service",
+      "label": "analytics-worker",
+      "criticality": "standard",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false
+    },
+    {
+      "id": "service-notification-service",
+      "type": "service",
+      "label": "notification-service",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true
+    },
+    {
+      "id": "component-stripe-sdk",
+      "type": "component",
+      "label": "stripe-sdk@8.2.0",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-express",
+      "type": "component",
+      "label": "express@4.17.1",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-jsonwebtoken",
+      "type": "component",
+      "label": "jsonwebtoken@8.5.1",
+      "criticality": "mission_critical",
+      "exposure": "internet",
+      "internet_facing": true,
+      "has_pii": true
+    },
+    {
+      "id": "component-lodash",
+      "type": "component",
+      "label": "lodash@4.17.19",
+      "criticality": "standard",
+      "exposure": "internal",
+      "internet_facing": false,
+      "has_pii": false
+    },
+    {
+      "id": "component-axios",
+      "type": "component",
+      "label": "axios@0.21.1",
+      "criticality": "standard",
+      "exposure": "partner",
+      "internet_facing": false,
+      "has_pii": true
+    },
+    {
+      "id": "cve-payment-api-CVE-2024-1234",
+      "type": "cve",
+      "label": "CVE-2024-1234",
+      "severity": "critical",
+      "message": "SQL Injection vulnerability in payment processing endpoint allows unauthorized access to payment data",
+      "source": "CVE",
+      "kev": true,
+      "epss": 0.89
+    },
+    {
+      "id": "cve-user-service-CVE-2023-5678",
+      "type": "cve",
+      "label": "CVE-2023-5678",
+      "severity": "high",
+      "message": "Authentication bypass in JWT validation allows privilege escalation",
+      "source": "CVE",
+      "kev": true,
+      "epss": 0.75
+    },
+    {
+      "id": "cve-user-service-CVE-2023-9012",
+      "type": "cve",
+      "label": "CVE-2023-9012",
+      "severity": "critical",
+      "message": "Remote code execution via prototype pollution in Express middleware",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.45
+    },
+    {
+      "id": "cve-analytics-worker-CVE-2021-3456",
+      "type": "cve",
+      "label": "CVE-2021-3456",
+      "severity": "high",
+      "message": "Prototype pollution in lodash allows arbitrary code execution",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.12
+    },
+    {
+      "id": "cve-notification-service-CVE-2021-7890",
+      "type": "cve",
+      "label": "CVE-2021-7890",
+      "severity": "medium",
+      "message": "SSRF vulnerability in axios allows internal network scanning",
+      "source": "CVE",
+      "kev": false,
+      "epss": 0.08
+    },
+    {
+      "id": "finding-payment-api-hardcoded-secret-0",
+      "type": "finding",
+      "label": "hardcoded-secret",
+      "severity": "high",
+      "message": "Hardcoded API key found in payment processing code",
+      "file": "src/payment/processor.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-payment-api-sql-injection-1",
+      "type": "finding",
+      "label": "sql-injection",
+      "severity": "critical",
+      "message": "SQL injection vulnerability in user input validation",
+      "file": "src/payment/queries.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-user-service-weak-crypto-0",
+      "type": "finding",
+      "label": "weak-crypto",
+      "severity": "medium",
+      "message": "Weak cryptographic algorithm (MD5) used for password hashing",
+      "file": "src/auth/crypto.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    },
+    {
+      "id": "finding-user-service-xss-1",
+      "type": "finding",
+      "label": "xss-vulnerability",
+      "severity": "high",
+      "message": "Cross-site scripting vulnerability in user profile rendering",
+      "file": "src/user/profile.js",
+      "source": "SAST",
+      "kev": false,
+      "epss": 0.0
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-service-payment-api-stripe-sdk",
+      "source": "service-payment-api",
+      "target": "component-stripe-sdk",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-payment-api-express",
+      "source": "service-payment-api",
+      "target": "component-express",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-user-service-express",
+      "source": "service-user-service",
+      "target": "component-express",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-user-service-jsonwebtoken",
+      "source": "service-user-service",
+      "target": "component-jsonwebtoken",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-analytics-worker-lodash",
+      "source": "service-analytics-worker",
+      "target": "component-lodash",
+      "type": "contains"
+    },
+    {
+      "id": "edge-service-notification-service-axios",
+      "source": "service-notification-service",
+      "target": "component-axios",
+      "type": "contains"
+    },
+    {
+      "id": "edge-stripe-sdk-cve-1",
+      "source": "component-stripe-sdk",
+      "target": "cve-payment-api-CVE-2024-1234",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-stripe-sdk-finding-1",
+      "source": "component-stripe-sdk",
+      "target": "finding-payment-api-hardcoded-secret-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-express-finding-2",
+      "source": "component-express",
+      "target": "finding-payment-api-sql-injection-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-express-cve-2",
+      "source": "component-express",
+      "target": "cve-user-service-CVE-2023-9012",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-jsonwebtoken-cve-3",
+      "source": "component-jsonwebtoken",
+      "target": "cve-user-service-CVE-2023-5678",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-jsonwebtoken-finding-3",
+      "source": "component-jsonwebtoken",
+      "target": "finding-user-service-weak-crypto-0",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-express-finding-4",
+      "source": "component-express",
+      "target": "finding-user-service-xss-1",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-lodash-cve-4",
+      "source": "component-lodash",
+      "target": "cve-analytics-worker-CVE-2021-3456",
+      "type": "has_issue"
+    },
+    {
+      "id": "edge-axios-cve-5",
+      "source": "component-axios",
+      "target": "cve-notification-service-CVE-2021-7890",
+      "type": "has_issue"
+    }
+  ],
+  "summary": {
+    "services": 4,
+    "components": 5,
+    "issues": 10,
+    "kev_count": 2
+  }
+}
