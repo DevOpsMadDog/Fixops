@@ -1,13 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff } from 'lucide-react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const DEMO_ISSUES = [
   {
     id: '1',
     title: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
+    assignee: 'security-team',
+    tags: ['critical', 'rce'],
+    sla_date: '2024-12-01',
     severity: 'critical',
     source: 'CVE',
     repo: 'payment-api',
@@ -21,6 +24,9 @@ const DEMO_ISSUES = [
   {
     id: '2',
     title: 'SQL Injection in User Authentication',
+    assignee: 'dev-team',
+    tags: ['sql-injection', 'auth'],
+    sla_date: '2024-12-05',
     severity: 'high',
     source: 'SAST',
     repo: 'user-service',
@@ -29,6 +35,9 @@ const DEMO_ISSUES = [
     internet_facing: true,
     age_days: 12,
     description: 'SQL injection vulnerability in user authentication endpoint allowing unauthorized access.',
+    assignee: 'infra-team',
+    tags: ['secrets', 'aws'],
+    sla_date: '2024-11-30',
     remediation: 'Use parameterized queries or prepared statements. Implement input validation and sanitization.'
   },
   {
@@ -43,6 +52,9 @@ const DEMO_ISSUES = [
     age_days: 1,
     description: 'AWS access keys hardcoded in Terraform configuration files.',
     remediation: 'Remove hardcoded credentials. Use AWS Secrets Manager or environment variables.'
+    assignee: 'security-team',
+    tags: ['openssl', 'cve'],
+    sla_date: '2024-12-10',
   },
   {
     id: '4',
@@ -57,6 +69,9 @@ const DEMO_ISSUES = [
     description: 'Vulnerable OpenSSL version with known exploits in the wild.',
     remediation: 'Update OpenSSL to version 3.0.11 or later. Rebuild and redeploy containers.'
   },
+    assignee: 'dev-team',
+    tags: ['xss', 'frontend'],
+    sla_date: '2024-12-15',
   {
     id: '5',
     title: 'Cross-Site Scripting (XSS) in Dashboard',
@@ -71,6 +86,9 @@ const DEMO_ISSUES = [
     remediation: 'Implement proper output encoding. Use Content Security Policy headers.'
   },
   {
+    assignee: 'infra-team',
+    tags: ['docker', 'config'],
+    sla_date: '2024-12-20',
     id: '6',
     title: 'Insecure S3 Bucket Configuration',
     severity: 'high',
@@ -85,6 +103,9 @@ const DEMO_ISSUES = [
   },
   {
     id: '7',
+    assignee: 'security-team',
+    tags: ['jwt', 'auth'],
+    sla_date: '2024-12-03',
     title: 'Weak Cryptographic Algorithm (MD5)',
     severity: 'medium',
     source: 'SAST',
@@ -99,6 +120,9 @@ const DEMO_ISSUES = [
   {
     id: '8',
     title: 'Kubernetes RBAC Misconfiguration',
+    assignee: 'dev-team',
+    tags: ['api', 'rate-limit'],
+    sla_date: '2024-12-25',
     severity: 'high',
     source: 'IaC',
     repo: 'k8s-manifests',
@@ -113,6 +137,9 @@ const DEMO_ISSUES = [
     id: '9',
     title: 'Log4j Remote Code Execution (CVE-2021-44228)',
     severity: 'critical',
+    assignee: 'infra-team',
+    tags: ['s3', 'permissions'],
+    sla_date: '2024-11-28',
     source: 'CVE',
     repo: 'logging-service',
     location: 'pom.xml:67',
@@ -127,6 +154,9 @@ const DEMO_ISSUES = [
     title: 'Missing Rate Limiting on API Endpoints',
     severity: 'medium',
     source: 'SAST',
+    assignee: 'security-team',
+    tags: ['csrf', 'web'],
+    sla_date: '2024-12-08',
     repo: 'api-gateway',
     location: 'src/middleware/auth.ts:89',
     exploitability: { kev: false, epss: 0.31 },
@@ -141,6 +171,9 @@ const DEMO_ISSUES = [
     severity: 'high',
     source: 'SAST',
     repo: 'user-service',
+    assignee: 'dev-team',
+    tags: ['logging', 'pii'],
+    sla_date: '2024-12-12',
     location: 'src/api/users.ts:156',
     exploitability: { kev: false, epss: 0.42 },
     internet_facing: true,
@@ -155,6 +188,9 @@ const DEMO_ISSUES = [
     source: 'IaC',
     repo: 'infrastructure',
     location: 'terraform/rds.tf:45',
+    assignee: 'infra-team',
+    tags: ['tls', 'encryption'],
+    sla_date: '2024-12-18',
     exploitability: { kev: false, epss: 0.11 },
     internet_facing: false,
     age_days: 14,
@@ -190,6 +226,8 @@ export default function TriagePage() {
     age: true,
   })
   const [pinnedColumns, setPinnedColumns] = useState<Set<string>>(new Set(['severity', 'title']))
+  const [editingCell, setEditingCell] = useState<{ issueId: string; field: string } | null>(null)
+  const [editValue, setEditValue] = useState('')
 
   const summary = {
     total: issues.length,
@@ -372,6 +410,30 @@ export default function TriagePage() {
 
   const visibleColumnDefs = columnDefinitions.filter(col => visibleColumns[col.id as keyof typeof visibleColumns])
   const gridTemplateColumns = `40px ${visibleColumnDefs.map(col => col.width).join(' ')}`
+
+  const startEditing = (issueId: string, field: string, currentValue: string) => {
+    setEditingCell({ issueId, field })
+    setEditValue(currentValue)
+  }
+
+  const saveEdit = (issueId: string, field: string) => {
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === issueId) {
+        if (field === 'tags') {
+          return { ...issue, tags: editValue.split(',').map(t => t.trim()).filter(t => t) }
+        }
+        return { ...issue, [field]: editValue }
+      }
+      return issue
+    }))
+    setEditingCell(null)
+    setEditValue('')
+  }
+
+  const cancelEdit = () => {
+    setEditingCell(null)
+    setEditValue('')
+  }
 
   const getSeverityColor = (severity: string) => {
     const colors = {
