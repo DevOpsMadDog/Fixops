@@ -51,6 +51,7 @@ from .normalizers import (
     NormalizedVEX,
 )
 from .pipeline import PipelineOrchestrator
+from .rate_limiter import RateLimitMiddleware
 from .routes.enhanced import router as enhanced_router
 from .upload_manager import ChunkUploadManager
 
@@ -180,12 +181,36 @@ def create_app() -> FastAPI:
 
     app.add_middleware(RequestLoggingMiddleware)
 
+    rate_limit_enabled = flag_provider.bool("fixops.feature.rate_limit", default=True)
+    if rate_limit_enabled:
+        requests_per_minute = int(os.getenv("FIXOPS_RL_REQ_PER_MIN", "60"))
+        burst_size = int(os.getenv("FIXOPS_RL_BURST_SIZE", "10"))
+        app.add_middleware(
+            RateLimitMiddleware,
+            requests_per_minute=requests_per_minute,
+            burst_size=burst_size,
+        )
+
     @app.middleware("http")
     async def add_product_header(request, call_next):
         """Add X-Product-Name header to all responses."""
         response = await call_next(request)
         response.headers["X-Product-Name"] = branding["product_name"]
         response.headers["X-Product-Version"] = "0.1.0"
+        return response
+
+    @app.middleware("http")
+    async def add_security_headers(request, call_next):
+        """Add security headers to all responses."""
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault(
+            "Referrer-Policy", "strict-origin-when-cross-origin"
+        )
+        response.headers.setdefault(
+            "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
+        )
         return response
 
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
