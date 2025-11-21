@@ -142,8 +142,8 @@ async def test_integration(id: str):
 
     try:
         if integration.integration_type == IntegrationType.JIRA:
-            connector = JiraConnector(integration.config)
-            if not connector.configured:
+            jira_connector = JiraConnector(integration.config)
+            if not jira_connector.configured:
                 return {
                     "integration_id": id,
                     "success": False,
@@ -154,14 +154,14 @@ async def test_integration(id: str):
                 "success": True,
                 "message": "Jira connection test successful",
                 "details": {
-                    "url": connector.base_url,
-                    "project_key": connector.project_key,
+                    "url": jira_connector.base_url,
+                    "project_key": jira_connector.project_key,
                 },
             }
 
         elif integration.integration_type == IntegrationType.CONFLUENCE:
-            connector = ConfluenceConnector(integration.config)
-            if not connector.configured:
+            confluence_connector = ConfluenceConnector(integration.config)
+            if not confluence_connector.configured:
                 return {
                     "integration_id": id,
                     "success": False,
@@ -172,14 +172,14 @@ async def test_integration(id: str):
                 "success": True,
                 "message": "Confluence connection test successful",
                 "details": {
-                    "url": connector.base_url,
-                    "space_key": connector.space_key,
+                    "url": confluence_connector.base_url,
+                    "space_key": confluence_connector.space_key,
                 },
             }
 
         elif integration.integration_type == IntegrationType.SLACK:
-            connector = SlackConnector(integration.config)
-            if not connector.default_webhook:
+            slack_connector = SlackConnector(integration.config)
+            if not slack_connector.default_webhook:
                 return {
                     "integration_id": id,
                     "success": False,
