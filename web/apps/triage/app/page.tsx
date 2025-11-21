@@ -168,6 +168,7 @@ export default function TriagePage() {
   const [filteredIssues, setFilteredIssues] = useState(DEMO_ISSUES)
   const [selectedIssue, setSelectedIssue] = useState<typeof DEMO_ISSUES[0] | null>(null)
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set())
+  const [focusedIndex, setFocusedIndex] = useState(0)
   const [feedView, setFeedView] = useState('all')
   const [filters, setFilters] = useState({
     new_7d: false,
@@ -192,6 +193,61 @@ export default function TriagePage() {
   useEffect(() => {
     applyFilters()
   }, [filters, issues, feedView, searchQuery, viewMode])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      switch (e.key) {
+        case 'j': // Move down
+        case 'ArrowDown':
+          e.preventDefault()
+          setFocusedIndex(prev => Math.min(prev + 1, filteredIssues.length - 1))
+          break
+        
+        case 'k': // Move up
+        case 'ArrowUp':
+          e.preventDefault()
+          setFocusedIndex(prev => Math.max(prev - 1, 0))
+          break
+        
+        case ' ': // Toggle selection
+          e.preventDefault()
+          if (filteredIssues[focusedIndex]) {
+            toggleIssueSelection(filteredIssues[focusedIndex].id)
+          }
+          break
+        
+        case 'Enter': // Open drawer
+          e.preventDefault()
+          if (filteredIssues[focusedIndex]) {
+            setSelectedIssue(filteredIssues[focusedIndex])
+          }
+          break
+        
+        case 'Escape': // Close drawer
+          e.preventDefault()
+          setSelectedIssue(null)
+          break
+        
+        case 'a': // Select all (Ctrl+A or Cmd+A)
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault()
+            toggleSelectAll()
+          }
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [focusedIndex, filteredIssues, selectedIssue])
+
+  useEffect(() => {
+    setFocusedIndex(0)
+  }, [filteredIssues])
 
   const applyFilters = () => {
     let filtered = [...issues]
@@ -504,12 +560,14 @@ export default function TriagePage() {
               </div>
 
               {/* Table Body */}
-              {filteredIssues.map((issue) => {
+              {filteredIssues.map((issue, index) => {
                 const isSelected = selectedIssues.has(issue.id)
+                const isFocused = index === focusedIndex
                 return (
                   <div
                     key={issue.id}
                     className={`grid grid-cols-[40px_80px_1fr_100px_180px_180px_120px_80px] gap-3 p-4 border-b border-white/5 cursor-pointer transition-colors ${
+                      isFocused ? 'bg-[#6B5AED]/10 ring-2 ring-[#6B5AED]/30' : 
                       isSelected ? 'bg-[#6B5AED]/5' : 'hover:bg-white/2'
                     }`}
                     onClick={() => setSelectedIssue(issue)}
