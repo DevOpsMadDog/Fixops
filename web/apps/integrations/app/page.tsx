@@ -523,7 +523,7 @@ export default function IntegrationsPage() {
                     <div className="text-xs text-slate-500 mb-1">Category</div>
                     <div className="text-sm text-slate-300">{selectedIntegration.category}</div>
                   </div>
-                  {selectedIntegration.stats && (
+                  {selectedIntegration.stats?.last_sync && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">Last Sync</div>
                       <div className="text-sm text-slate-300">
