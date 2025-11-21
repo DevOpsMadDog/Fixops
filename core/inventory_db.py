@@ -197,7 +197,12 @@ class InventoryDB:
         conn = self._get_connection()
         try:
             search_pattern = f"%{query}%"
-            results = {"applications": [], "services": [], "apis": [], "components": []}
+            results: Dict[str, List[Dict]] = {
+                "applications": [],
+                "services": [],
+                "apis": [],
+                "components": [],
+            }
 
             app_rows = conn.execute(
                 """SELECT * FROM applications WHERE name LIKE ? OR description LIKE ?
