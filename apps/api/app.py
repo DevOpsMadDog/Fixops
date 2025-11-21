@@ -1140,6 +1140,161 @@ def create_app() -> FastAPI:
 
         return mappings
 
+    @app.get("/api/v1/graph", dependencies=[Depends(_verify_api_key)])
+    async def get_graph() -> Dict[str, Any]:
+        """Transform last pipeline result into interactive graph format."""
+        last_result = app.state.last_pipeline_result
+
+        if last_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
+            )
+
+        nodes = []
+        edges = []
+        crosswalk = last_result.get("crosswalk", [])
+        context_summary = last_result.get("context_summary", {})
+        exploitability_insights = last_result.get("exploitability_insights", {})
+
+        services_seen = set()
+        components_seen = set()
+
+        context_components = {}
+        for comp in context_summary.get("components", []):
+            name = comp.get("component", "")
+            if name:
+                context_components[name] = comp
+
+        for idx, entry in enumerate(crosswalk):
+            design_row = entry.get("design_row", {})
+            findings = entry.get("findings", [])
+            cves = entry.get("cves", [])
+
+            component_name = design_row.get("component", f"component-{idx}")
+            service_name = design_row.get("service", component_name)
+            exposure = design_row.get("exposure", "internal")
+
+            context = context_components.get(component_name, {})
+            criticality = context.get("criticality", "standard")
+            data_classification = context.get("data_classification", [])
+
+            if service_name not in services_seen:
+                services_seen.add(service_name)
+                nodes.append(
+                    {
+                        "id": f"service-{service_name}",
+                        "type": "service",
+                        "label": service_name,
+                        "criticality": criticality,
+                        "exposure": exposure,
+                        "internet_facing": exposure == "internet",
+                        "has_pii": "pii" in data_classification,
+                    }
+                )
+
+            if component_name not in components_seen:
+                components_seen.add(component_name)
+                nodes.append(
+                    {
+                        "id": f"component-{component_name}",
+                        "type": "component",
+                        "label": component_name,
+                        "criticality": criticality,
+                        "exposure": exposure,
+                        "internet_facing": exposure == "internet",
+                        "has_pii": "pii" in data_classification,
+                    }
+                )
+
+                edges.append(
+                    {
+                        "id": f"edge-service-{service_name}-{component_name}",
+                        "source": f"service-{service_name}",
+                        "target": f"component-{component_name}",
+                        "type": "contains",
+                    }
+                )
+
+            for finding_idx, finding in enumerate(findings):
+                rule_id = finding.get("rule_id", f"finding-{finding_idx}")
+                level = finding.get("level", "warning")
+                message = finding.get("message", "No description")
+                file_path = finding.get("file", "")
+
+                severity_map = {"error": "high", "warning": "medium", "note": "low"}
+                severity = severity_map.get(level, "medium")
+
+                finding_id = f"finding-{component_name}-{rule_id}-{finding_idx}"
+                nodes.append(
+                    {
+                        "id": finding_id,
+                        "type": "finding",
+                        "label": rule_id,
+                        "severity": severity,
+                        "message": message[:100],
+                        "file": file_path,
+                        "source": "SAST",
+                        "kev": False,
+                        "epss": 0.0,
+                    }
+                )
+
+                edges.append(
+                    {
+                        "id": f"edge-{component_name}-{finding_id}",
+                        "source": f"component-{component_name}",
+                        "target": finding_id,
+                        "type": "has_issue",
+                    }
+                )
+
+            for cve_idx, cve in enumerate(cves):
+                cve_id = cve.get("cve_id", f"cve-{cve_idx}")
+                cve_severity = cve.get("severity", "medium")
+                exploited = cve.get("exploited", False)
+                raw_cve = cve.get("raw", {})
+                short_desc = raw_cve.get("shortDescription", "No description")
+
+                epss_score = 0.0
+                if exploitability_insights:
+                    epss_data = exploitability_insights.get("epss", {})
+                    epss_score = epss_data.get(cve_id, 0.0)
+
+                cve_node_id = f"cve-{component_name}-{cve_id}"
+                nodes.append(
+                    {
+                        "id": cve_node_id,
+                        "type": "cve",
+                        "label": cve_id,
+                        "severity": cve_severity,
+                        "message": short_desc[:100],
+                        "source": "CVE",
+                        "kev": exploited,
+                        "epss": epss_score,
+                    }
+                )
+
+                edges.append(
+                    {
+                        "id": f"edge-{component_name}-{cve_node_id}",
+                        "source": f"component-{component_name}",
+                        "target": cve_node_id,
+                        "type": "has_issue",
+                    }
+                )
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "summary": {
+                "services": len(services_seen),
+                "components": len(components_seen),
+                "issues": len([n for n in nodes if n["type"] in ["finding", "cve"]]),
+                "kev_count": len([n for n in nodes if n.get("kev", False)]),
+            },
+        }
+
     @app.get("/analytics/dashboard", dependencies=[Depends(_verify_api_key)])
     async def analytics_dashboard(limit: int = 10) -> Dict[str, Any]:
         store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
