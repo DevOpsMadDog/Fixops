@@ -1136,6 +1136,108 @@ def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_pentagi(args):
+    """Handle Pentagi pen testing commands."""
+    import json
+
+    from core.pentagi_db import PentagiDB
+    from core.pentagi_models import ExploitabilityLevel, PenTestPriority, PenTestStatus
+
+    db = PentagiDB()
+
+    if args.pentagi_command == "list-requests":
+        requests = db.list_requests(
+            finding_id=args.finding_id,
+            status=PenTestStatus(args.status) if args.status else None,
+            limit=args.limit,
+            offset=args.offset,
+        )
+        if args.format == "json":
+            print(json.dumps([r.to_dict() for r in requests], indent=2))
+        else:
+            print(f"{'ID':<40} {'Finding ID':<40} {'Status':<12} {'Priority':<10}")
+            print("-" * 110)
+            for req in requests:
+                print(
+                    f"{req.id:<40} {req.finding_id:<40} {req.status.value:<12} {req.priority.value:<10}"
+                )
+
+    elif args.pentagi_command == "create-request":
+        from core.pentagi_models import PenTestRequest
+
+        request = PenTestRequest(
+            id="",
+            finding_id=args.finding_id,
+            target_url=args.target_url,
+            vulnerability_type=args.vuln_type,
+            test_case=args.test_case,
+            priority=PenTestPriority(args.priority),
+        )
+        created = db.create_request(request)
+        print(f"✅ Created pen test request: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.pentagi_command == "get-request":
+        request = db.get_request(args.id)
+        if not request:
+            print(f"❌ Pen test request not found: {args.id}")
+            return 1
+        print(json.dumps(request.to_dict(), indent=2))
+
+    elif args.pentagi_command == "list-results":
+        results = db.list_results(
+            finding_id=args.finding_id,
+            exploitability=(
+                ExploitabilityLevel(args.exploitability)
+                if args.exploitability
+                else None
+            ),
+            limit=args.limit,
+            offset=args.offset,
+        )
+        if args.format == "json":
+            print(json.dumps([r.to_dict() for r in results], indent=2))
+        else:
+            print(
+                f"{'ID':<40} {'Finding ID':<40} {'Exploitability':<25} {'Success':<8}"
+            )
+            print("-" * 120)
+            for result in results:
+                print(
+                    f"{result.id:<40} {result.finding_id:<40} {result.exploitability.value:<25} {'Yes' if result.exploit_successful else 'No':<8}"
+                )
+
+    elif args.pentagi_command == "list-configs":
+        configs = db.list_configs(limit=args.limit, offset=args.offset)
+        if args.format == "json":
+            print(json.dumps([c.to_dict() for c in configs], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Enabled':<10}")
+            print("-" * 85)
+            for config in configs:
+                print(
+                    f"{config.id:<40} {config.name:<30} {'Yes' if config.enabled else 'No':<10}"
+                )
+
+    elif args.pentagi_command == "create-config":
+        from core.pentagi_models import PenTestConfig
+
+        config = PenTestConfig(
+            id="",
+            name=args.name,
+            pentagi_url=args.url,
+            api_key=args.api_key,
+            enabled=not args.disabled,
+        )
+        created = db.create_config(config)
+        print(f"✅ Created Pentagi config: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    return 0
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -1527,6 +1629,72 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress backtest summary",
     )
     backtest_bn_lr_parser.set_defaults(func=_handle_backtest_bn_lr)
+
+    pentagi_parser = subparsers.add_parser("pentagi", help="Manage Pentagi pen testing")
+    pentagi_subparsers = pentagi_parser.add_subparsers(dest="pentagi_command")
+
+    list_requests = pentagi_subparsers.add_parser(
+        "list-requests", help="List pen test requests"
+    )
+    list_requests.add_argument("--finding-id")
+    list_requests.add_argument(
+        "--status",
+        choices=["pending", "running", "completed", "failed", "cancelled"],
+    )
+    list_requests.add_argument("--limit", type=int, default=100)
+    list_requests.add_argument("--offset", type=int, default=0)
+    list_requests.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_request = pentagi_subparsers.add_parser(
+        "create-request", help="Create pen test request"
+    )
+    create_request.add_argument("--finding-id", required=True)
+    create_request.add_argument("--target-url", required=True)
+    create_request.add_argument("--vuln-type", required=True)
+    create_request.add_argument("--test-case", required=True)
+    create_request.add_argument(
+        "--priority", default="medium", choices=["critical", "high", "medium", "low"]
+    )
+
+    get_request = pentagi_subparsers.add_parser(
+        "get-request", help="Get pen test request"
+    )
+    get_request.add_argument("id", help="Request ID")
+
+    list_results = pentagi_subparsers.add_parser(
+        "list-results", help="List pen test results"
+    )
+    list_results.add_argument("--finding-id")
+    list_results.add_argument(
+        "--exploitability",
+        choices=[
+            "confirmed_exploitable",
+            "likely_exploitable",
+            "unexploitable",
+            "blocked",
+            "inconclusive",
+        ],
+    )
+    list_results.add_argument("--limit", type=int, default=100)
+    list_results.add_argument("--offset", type=int, default=0)
+    list_results.add_argument("--format", choices=["table", "json"], default="table")
+
+    list_configs = pentagi_subparsers.add_parser(
+        "list-configs", help="List Pentagi configurations"
+    )
+    list_configs.add_argument("--limit", type=int, default=100)
+    list_configs.add_argument("--offset", type=int, default=0)
+    list_configs.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_config = pentagi_subparsers.add_parser(
+        "create-config", help="Create Pentagi configuration"
+    )
+    create_config.add_argument("--name", required=True)
+    create_config.add_argument("--url", required=True)
+    create_config.add_argument("--api-key")
+    create_config.add_argument("--disabled", action="store_true")
+
+    pentagi_parser.set_defaults(func=_handle_pentagi)
 
     return parser
 
