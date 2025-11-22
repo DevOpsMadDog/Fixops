@@ -1458,6 +1458,185 @@ def _handle_inventory(args):
     return 0
 
 
+def _handle_analytics(args):
+    """Handle analytics commands."""
+    import json
+
+    from core.analytics_db import AnalyticsDB
+    from core.analytics_models import FindingSeverity, FindingStatus
+
+    db = AnalyticsDB()
+
+    if args.analytics_command == "dashboard":
+        overview = db.get_dashboard_overview()
+        print(json.dumps(overview, indent=2))
+
+    elif args.analytics_command == "findings":
+        findings = db.list_findings(
+            severity=args.severity,
+            status=args.status,
+            limit=args.limit,
+            offset=args.offset,
+        )
+        if args.format == "json":
+            print(json.dumps([f.to_dict() for f in findings], indent=2))
+        else:
+            print(f"{'ID':<40} {'Severity':<12} {'Status':<15} {'Title':<50}")
+            print("-" * 120)
+            for finding in findings:
+                print(
+                    f"{finding.id:<40} {finding.severity.value:<12} {finding.status.value:<15} {finding.title[:47]:<50}"
+                )
+
+    elif args.analytics_command == "decisions":
+        decisions = db.list_decisions(
+            finding_id=args.finding_id, limit=args.limit, offset=args.offset
+        )
+        if args.format == "json":
+            print(json.dumps([d.to_dict() for d in decisions], indent=2))
+        else:
+            print(f"{'ID':<40} {'Outcome':<12} {'Confidence':<12} {'Finding ID':<40}")
+            print("-" * 110)
+            for decision in decisions:
+                print(
+                    f"{decision.id:<40} {decision.outcome.value:<12} {decision.confidence:<12.2f} {decision.finding_id:<40}"
+                )
+
+    elif args.analytics_command == "top-risks":
+        risks = db.get_top_risks(limit=args.limit)
+        print(json.dumps(risks, indent=2))
+
+    elif args.analytics_command == "mttr":
+        mttr_hours = db.calculate_mttr()
+        if mttr_hours is None:
+            print("No resolved findings available for MTTR calculation")
+        else:
+            print(
+                f"Mean Time to Remediation: {mttr_hours:.2f} hours ({mttr_hours/24:.2f} days)"
+            )
+
+    elif args.analytics_command == "roi":
+        findings = db.list_findings(limit=10000)
+        total_findings = len(findings)
+        critical_blocked = sum(
+            1
+            for f in findings
+            if f.severity == FindingSeverity.CRITICAL
+            and f.status == FindingStatus.RESOLVED
+        )
+
+        avg_breach_cost = 4_240_000
+        critical_breach_probability = 0.15
+        prevented_cost = (
+            critical_blocked * avg_breach_cost * critical_breach_probability
+        )
+
+        roi_data = {
+            "total_findings": total_findings,
+            "critical_blocked": critical_blocked,
+            "estimated_prevented_cost": round(prevented_cost, 2),
+            "currency": "USD",
+        }
+        print(json.dumps(roi_data, indent=2))
+
+    elif args.analytics_command == "export":
+        if args.data_type == "findings":
+            findings = db.list_findings(limit=10000)
+            data = [f.to_dict() for f in findings]
+        elif args.data_type == "decisions":
+            decisions = db.list_decisions(limit=10000)
+            data = [d.to_dict() for d in decisions]
+        else:
+            print(f"❌ Unsupported data type: {args.data_type}")
+            return 1
+
+        print(json.dumps(data, indent=2))
+
+    return 0
+
+
+def _handle_integrations(args):
+    """Handle integration management commands."""
+    import json
+
+    from core.integration_db import IntegrationDB
+    from core.integration_models import Integration, IntegrationStatus, IntegrationType
+
+    db = IntegrationDB()
+
+    if args.integration_command == "list":
+        integrations = db.list_integrations(
+            integration_type=args.type, limit=args.limit, offset=args.offset
+        )
+        if args.format == "json":
+            print(json.dumps([i.to_dict() for i in integrations], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Type':<15} {'Status':<12}")
+            print("-" * 100)
+            for integration in integrations:
+                print(
+                    f"{integration.id:<40} {integration.name:<30} {integration.integration_type.value:<15} {integration.status.value:<12}"
+                )
+
+    elif args.integration_command == "create":
+        integration = Integration(
+            id="",
+            name=args.name,
+            integration_type=IntegrationType(args.type),
+            status=IntegrationStatus.ACTIVE,
+            config={},
+        )
+        created = db.create_integration(integration)
+        print(f"✅ Created integration: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.integration_command == "get":
+        integration = db.get_integration(args.id)
+        if not integration:
+            print(f"❌ Integration not found: {args.id}")
+            return 1
+        print(
+            json.dumps(integration.to_dict(include_secrets=args.show_secrets), indent=2)
+        )
+
+    elif args.integration_command == "update":
+        integration = db.get_integration(args.id)
+        if not integration:
+            print(f"❌ Integration not found: {args.id}")
+            return 1
+
+        if args.name:
+            integration.name = args.name
+        if args.status:
+            integration.status = IntegrationStatus(args.status)
+
+        updated = db.update_integration(integration)
+        print(f"✅ Updated integration: {updated.id}")
+        print(json.dumps(updated.to_dict(), indent=2))
+
+    elif args.integration_command == "delete":
+        if not args.confirm:
+            print("❌ Please use --confirm to delete")
+            return 1
+        if db.delete_integration(args.id):
+            print(f"✅ Deleted integration: {args.id}")
+        else:
+            print(f"❌ Failed to delete integration: {args.id}")
+            return 1
+
+    elif args.integration_command == "test":
+        integration = db.get_integration(args.id)
+        if not integration:
+            print(f"❌ Integration not found: {args.id}")
+            return 1
+        print(
+            f"Testing integration: {integration.name} ({integration.integration_type.value})"
+        )
+        print("✅ Test functionality not yet implemented in CLI")
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -2008,6 +2187,104 @@ def build_parser() -> argparse.ArgumentParser:
     delete_policy.add_argument("--confirm", action="store_true")
 
     policies_parser.set_defaults(func=_handle_policies)
+
+    analytics_parser = subparsers.add_parser(
+        "analytics", help="Analytics and dashboard queries"
+    )
+    analytics_subparsers = analytics_parser.add_subparsers(dest="analytics_command")
+
+    analytics_subparsers.add_parser("dashboard", help="Get dashboard overview")
+
+    findings_cmd = analytics_subparsers.add_parser("findings", help="Query findings")
+    findings_cmd.add_argument(
+        "--severity", choices=["critical", "high", "medium", "low", "info"]
+    )
+    findings_cmd.add_argument(
+        "--status",
+        choices=["open", "in_progress", "resolved", "false_positive", "accepted_risk"],
+    )
+    findings_cmd.add_argument("--limit", type=int, default=100)
+    findings_cmd.add_argument("--offset", type=int, default=0)
+    findings_cmd.add_argument("--format", choices=["table", "json"], default="table")
+
+    decisions_cmd = analytics_subparsers.add_parser(
+        "decisions", help="Query decision history"
+    )
+    decisions_cmd.add_argument("--finding-id", help="Filter by finding ID")
+    decisions_cmd.add_argument("--limit", type=int, default=100)
+    decisions_cmd.add_argument("--offset", type=int, default=0)
+    decisions_cmd.add_argument("--format", choices=["table", "json"], default="table")
+
+    top_risks_cmd = analytics_subparsers.add_parser(
+        "top-risks", help="Get top security risks"
+    )
+    top_risks_cmd.add_argument("--limit", type=int, default=10)
+
+    analytics_subparsers.add_parser("mttr", help="Get mean time to remediation")
+
+    analytics_subparsers.add_parser("roi", help="Get ROI calculations")
+
+    export_cmd = analytics_subparsers.add_parser("export", help="Export analytics data")
+    export_cmd.add_argument(
+        "--data-type", required=True, choices=["findings", "decisions"]
+    )
+
+    analytics_parser.set_defaults(func=_handle_analytics)
+
+    integrations_parser = subparsers.add_parser(
+        "integrations", help="Manage integrations"
+    )
+    integrations_subparsers = integrations_parser.add_subparsers(
+        dest="integration_command"
+    )
+
+    list_integrations = integrations_subparsers.add_parser(
+        "list", help="List integrations"
+    )
+    list_integrations.add_argument("--type", help="Filter by integration type")
+    list_integrations.add_argument("--limit", type=int, default=100)
+    list_integrations.add_argument("--offset", type=int, default=0)
+    list_integrations.add_argument(
+        "--format", choices=["table", "json"], default="table"
+    )
+
+    create_integration = integrations_subparsers.add_parser(
+        "create", help="Create integration"
+    )
+    create_integration.add_argument("--name", required=True)
+    create_integration.add_argument(
+        "--type",
+        required=True,
+        choices=["jira", "confluence", "slack", "github", "gitlab", "pagerduty"],
+    )
+
+    get_integration = integrations_subparsers.add_parser(
+        "get", help="Get integration details"
+    )
+    get_integration.add_argument("id", help="Integration ID")
+    get_integration.add_argument(
+        "--show-secrets", action="store_true", help="Show secret values"
+    )
+
+    update_integration = integrations_subparsers.add_parser(
+        "update", help="Update integration"
+    )
+    update_integration.add_argument("id", help="Integration ID")
+    update_integration.add_argument("--name")
+    update_integration.add_argument("--status", choices=["active", "inactive", "error"])
+
+    delete_integration = integrations_subparsers.add_parser(
+        "delete", help="Delete integration"
+    )
+    delete_integration.add_argument("id", help="Integration ID")
+    delete_integration.add_argument("--confirm", action="store_true")
+
+    test_integration = integrations_subparsers.add_parser(
+        "test", help="Test integration connection"
+    )
+    test_integration.add_argument("id", help="Integration ID")
+
+    integrations_parser.set_defaults(func=_handle_integrations)
 
     return parser
 

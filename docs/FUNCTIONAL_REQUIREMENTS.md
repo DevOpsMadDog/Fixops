@@ -348,10 +348,376 @@ fixops inventory search <query> [--limit N]
 - Team-based application ownership
 - Policy CRUD with validation
 
-### Phase 3 (Analytics, Integrations)
-- Time-series analytics for security trends
-- Integration health monitoring
-- Custom dashboard configuration
+### 2.4 Dashboard & Analytics APIs (12 endpoints)
+
+#### 2.4.1 Get Dashboard Overview
+- **Endpoint**: `GET /api/v1/analytics/dashboard/overview`
+- **Purpose**: Get comprehensive security posture overview
+- **Authentication**: Required (API key)
+- **Response**: 200 OK
+  ```json
+  {
+    "total_findings": 0,
+    "open_findings": 0,
+    "critical_findings": 0,
+    "high_findings": 0,
+    "findings_by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "findings_by_status": {
+      "open": 0,
+      "in_progress": 0,
+      "resolved": 0,
+      "false_positive": 0,
+      "accepted_risk": 0
+    },
+    "total_decisions": 0,
+    "decisions_by_outcome": {
+      "block": 0,
+      "alert": 0,
+      "allow": 0,
+      "review": 0
+    }
+  }
+  ```
+
+#### 2.4.2 Get Dashboard Trends
+- **Endpoint**: `GET /api/v1/analytics/dashboard/trends`
+- **Purpose**: Get time-series trend data for security metrics
+- **Authentication**: Required
+- **Request Parameters**:
+  - `days` (query, optional): Number of days to include (default: 30)
+- **Response**: 200 OK
+  ```json
+  {
+    "period_days": 30,
+    "findings_trend": [
+      {"date": "2024-11-01", "count": 10, "critical": 2, "high": 5}
+    ],
+    "resolution_trend": [
+      {"date": "2024-11-01", "resolved": 5, "mttr_hours": 24.5}
+    ]
+  }
+  ```
+
+#### 2.4.3 Get Top Risks
+- **Endpoint**: `GET /api/v1/analytics/dashboard/top-risks`
+- **Purpose**: Get highest priority security risks
+- **Authentication**: Required
+- **Request Parameters**:
+  - `limit` (query, optional): Number of risks to return (default: 10)
+- **Response**: 200 OK
+  ```json
+  {
+    "risks": [
+      {
+        "finding_id": "uuid",
+        "title": "string",
+        "severity": "critical",
+        "cvss_score": 9.8,
+        "epss_score": 0.95,
+        "exploitable": true,
+        "application_id": "uuid",
+        "risk_score": 95.0
+      }
+    ]
+  }
+  ```
+
+#### 2.4.4 Get Compliance Status
+- **Endpoint**: `GET /api/v1/analytics/dashboard/compliance-status`
+- **Purpose**: Get compliance framework status
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "frameworks": [
+      {
+        "name": "SOC2",
+        "coverage": 85.5,
+        "passing_controls": 34,
+        "total_controls": 40,
+        "failing_controls": 6
+      }
+    ]
+  }
+  ```
+
+#### 2.4.5 Query Findings
+- **Endpoint**: `GET /api/v1/analytics/findings`
+- **Purpose**: Query findings with filtering and pagination
+- **Authentication**: Required
+- **Request Parameters**:
+  - `severity` (query, optional): Filter by severity
+  - `status` (query, optional): Filter by status
+  - `application_id` (query, optional): Filter by application
+  - `limit` (query, optional): Results per page (default: 100)
+  - `offset` (query, optional): Pagination offset (default: 0)
+- **Response**: 200 OK (array of Finding objects)
+
+#### 2.4.6 Create Finding
+- **Endpoint**: `POST /api/v1/analytics/findings`
+- **Purpose**: Create a new security finding
+- **Authentication**: Required
+- **Request Body**:
+  ```json
+  {
+    "rule_id": "string (required)",
+    "severity": "critical|high|medium|low|info (required)",
+    "status": "open|in_progress|resolved|false_positive|accepted_risk (required)",
+    "title": "string (required)",
+    "description": "string (required)",
+    "source": "string (required)",
+    "application_id": "string (optional)",
+    "service_id": "string (optional)",
+    "cve_id": "string (optional)",
+    "cvss_score": "float (optional)",
+    "epss_score": "float (optional)",
+    "exploitable": "boolean (optional)",
+    "metadata": {} (optional)
+  }
+  ```
+- **Response**: 201 Created
+
+#### 2.4.7 Get Finding
+- **Endpoint**: `GET /api/v1/analytics/findings/{id}`
+- **Purpose**: Get detailed finding information
+- **Authentication**: Required
+- **Response**: 200 OK
+- **Error Responses**: 404 Not Found
+
+#### 2.4.8 Update Finding
+- **Endpoint**: `PUT /api/v1/analytics/findings/{id}`
+- **Purpose**: Update finding status or details
+- **Authentication**: Required
+- **Request Body**: Same as create, all fields optional
+- **Response**: 200 OK
+
+#### 2.4.9 Query Decisions
+- **Endpoint**: `GET /api/v1/analytics/decisions`
+- **Purpose**: Query decision history with filtering
+- **Authentication**: Required
+- **Request Parameters**:
+  - `finding_id` (query, optional): Filter by finding
+  - `outcome` (query, optional): Filter by outcome
+  - `limit` (query, optional): Results per page (default: 100)
+  - `offset` (query, optional): Pagination offset (default: 0)
+- **Response**: 200 OK (array of Decision objects)
+
+#### 2.4.10 Create Decision
+- **Endpoint**: `POST /api/v1/analytics/decisions`
+- **Purpose**: Record a security decision
+- **Authentication**: Required
+- **Request Body**:
+  ```json
+  {
+    "finding_id": "string (required)",
+    "outcome": "block|alert|allow|review (required)",
+    "confidence": "float 0-1 (required)",
+    "reasoning": "string (required)",
+    "llm_votes": {} (optional),
+    "policy_matched": "string (optional)"
+  }
+  ```
+- **Response**: 201 Created
+
+#### 2.4.11 Get MTTR
+- **Endpoint**: `GET /api/v1/analytics/mttr`
+- **Purpose**: Calculate mean time to remediation
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "mttr_hours": 24.5,
+    "mttr_days": 1.02,
+    "sample_size": 150
+  }
+  ```
+
+#### 2.4.12 Get Coverage Metrics
+- **Endpoint**: `GET /api/v1/analytics/coverage`
+- **Purpose**: Get security coverage metrics
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "total_findings": 500,
+    "scanned_applications": 25,
+    "total_applications": 30,
+    "coverage_percentage": 83.3,
+    "scan_types": {
+      "SAST": 200,
+      "DAST": 150,
+      "SCA": 150
+    }
+  }
+  ```
+
+#### 2.4.13 Get ROI Calculations
+- **Endpoint**: `GET /api/v1/analytics/roi`
+- **Purpose**: Calculate return on investment metrics
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "total_findings": 500,
+    "critical_blocked": 25,
+    "estimated_prevented_cost": 1060000.0,
+    "currency": "USD",
+    "avg_breach_cost": 4240000,
+    "critical_breach_probability": 0.15
+  }
+  ```
+
+#### 2.4.14 Get Noise Reduction
+- **Endpoint**: `GET /api/v1/analytics/noise-reduction`
+- **Purpose**: Calculate noise reduction metrics
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "total_findings": 500,
+    "false_positives": 150,
+    "noise_reduction_percentage": 30.0,
+    "signal_to_noise_ratio": 2.33
+  }
+  ```
+
+#### 2.4.15 Custom Query
+- **Endpoint**: `POST /api/v1/analytics/custom-query`
+- **Purpose**: Execute custom analytics query
+- **Authentication**: Required
+- **Request Body**:
+  ```json
+  {
+    "type": "findings|decisions|metrics",
+    "filters": {},
+    "aggregations": []
+  }
+  ```
+- **Response**: 200 OK
+
+#### 2.4.16 Export Analytics
+- **Endpoint**: `GET /api/v1/analytics/export`
+- **Purpose**: Export analytics data in various formats
+- **Authentication**: Required
+- **Request Parameters**:
+  - `format` (query, required): Export format (json|csv)
+  - `data_type` (query, required): Data type to export (findings|decisions|metrics)
+- **Response**: 200 OK
+
+### 2.5 Integration Management APIs (8 endpoints)
+
+#### 2.5.1 List Integrations
+- **Endpoint**: `GET /api/v1/integrations`
+- **Purpose**: List all configured integrations
+- **Authentication**: Required (API key)
+- **Request Parameters**:
+  - `integration_type` (query, optional): Filter by type
+  - `limit` (query, optional): Results per page (default: 100)
+  - `offset` (query, optional): Pagination offset (default: 0)
+- **Response**: 200 OK
+  ```json
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "name": "string",
+        "integration_type": "jira|confluence|slack|github|gitlab|pagerduty",
+        "status": "active|inactive|error",
+        "config": {},
+        "last_sync_at": "ISO8601",
+        "last_sync_status": "string",
+        "created_at": "ISO8601",
+        "updated_at": "ISO8601"
+      }
+    ],
+    "total": 0,
+    "limit": 100,
+    "offset": 0
+  }
+  ```
+
+#### 2.5.2 Create Integration
+- **Endpoint**: `POST /api/v1/integrations`
+- **Purpose**: Add a new integration
+- **Authentication**: Required
+- **Request Body**:
+  ```json
+  {
+    "name": "string (required)",
+    "integration_type": "jira|confluence|slack|github|gitlab|pagerduty (required)",
+    "status": "active|inactive (optional, default: active)",
+    "config": {} (required)
+  }
+  ```
+- **Response**: 201 Created
+
+#### 2.5.3 Get Integration
+- **Endpoint**: `GET /api/v1/integrations/{id}`
+- **Purpose**: Get integration details
+- **Authentication**: Required
+- **Response**: 200 OK
+- **Error Responses**: 404 Not Found
+
+#### 2.5.4 Update Integration
+- **Endpoint**: `PUT /api/v1/integrations/{id}`
+- **Purpose**: Update integration configuration
+- **Authentication**: Required
+- **Request Body**: Same as create, all fields optional
+- **Response**: 200 OK
+
+#### 2.5.5 Delete Integration
+- **Endpoint**: `DELETE /api/v1/integrations/{id}`
+- **Purpose**: Remove an integration
+- **Authentication**: Required
+- **Response**: 204 No Content
+
+#### 2.5.6 Test Integration
+- **Endpoint**: `POST /api/v1/integrations/{id}/test`
+- **Purpose**: Test integration connection
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "integration_id": "uuid",
+    "success": true,
+    "message": "string",
+    "details": {}
+  }
+  ```
+
+#### 2.5.7 Get Sync Status
+- **Endpoint**: `GET /api/v1/integrations/{id}/sync-status`
+- **Purpose**: Get integration sync status
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "integration_id": "uuid",
+    "last_sync_at": "ISO8601",
+    "last_sync_status": "string",
+    "status": "active"
+  }
+  ```
+
+#### 2.5.8 Trigger Sync
+- **Endpoint**: `POST /api/v1/integrations/{id}/sync`
+- **Purpose**: Manually trigger integration sync
+- **Authentication**: Required
+- **Response**: 200 OK
+  ```json
+  {
+    "integration_id": "uuid",
+    "sync_triggered": true,
+    "sync_time": "ISO8601",
+    "message": "string"
+  }
+  ```
 
 ### Phase 4 (Reports, Audit, Workflows)
 - Scheduled report generation
@@ -360,10 +726,28 @@ fixops inventory search <query> [--limit N]
 
 ## 7. Success Criteria
 
-- All 15 Phase 1 endpoints functional and tested
+### Phase 1 (Complete)
+- All 15 inventory endpoints functional and tested
 - CLI commands working for all inventory operations
 - Comprehensive test coverage (>80%)
 - Documentation complete and accurate
+
+### Phase 2 (Complete)
+- All 22 user/team/policy endpoints functional and tested
+- JWT authentication and bcrypt password hashing implemented
+- RBAC with 4 roles (admin, security_analyst, developer, viewer)
+- CLI commands for users, teams, and policies
+
+### Phase 3 (Complete)
+- All 20 analytics/integration endpoints functional and tested
+- Dashboard overview, trends, top risks, compliance status
+- Finding and decision tracking with MTTR calculation
+- Integration management with connection testing
+- CLI commands for analytics queries and integration management
+
+### General Requirements
 - Zero critical security vulnerabilities
 - Performance: <200ms response time for list operations
 - Scalability: Support 10,000+ applications without degradation
+- Test coverage: >80% for all new code
+- All code passes lint, format, and type checks
