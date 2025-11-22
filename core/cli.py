@@ -1136,6 +1136,237 @@ def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_users(args):
+    """Handle user management commands."""
+    import json
+
+    from core.user_db import UserDB
+    from core.user_models import User, UserRole, UserStatus
+
+    db = UserDB()
+
+    if args.user_command == "list":
+        users = db.list_users(limit=args.limit, offset=args.offset)
+        if args.format == "json":
+            print(json.dumps([u.to_dict() for u in users], indent=2))
+        else:
+            print(f"{'ID':<40} {'Email':<30} {'Role':<20} {'Status':<12}")
+            print("-" * 110)
+            for user in users:
+                print(
+                    f"{user.id:<40} {user.email:<30} {user.role.value:<20} {user.status.value:<12}"
+                )
+
+    elif args.user_command == "create":
+        user = User(
+            id="",
+            email=args.email,
+            password_hash=db.hash_password(args.password),
+            first_name=args.first_name,
+            last_name=args.last_name,
+            role=UserRole(args.role),
+            status=UserStatus.ACTIVE,
+            department=args.department,
+        )
+        created = db.create_user(user)
+        print(f"✅ Created user: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.user_command == "get":
+        user = db.get_user(args.id)
+        if not user:
+            print(f"❌ User not found: {args.id}")
+            return 1
+        print(json.dumps(user.to_dict(), indent=2))
+
+    elif args.user_command == "update":
+        user = db.get_user(args.id)
+        if not user:
+            print(f"❌ User not found: {args.id}")
+            return 1
+
+        if args.first_name:
+            user.first_name = args.first_name
+        if args.last_name:
+            user.last_name = args.last_name
+        if args.role:
+            user.role = UserRole(args.role)
+        if args.status:
+            user.status = UserStatus(args.status)
+
+        updated = db.update_user(user)
+        print(f"✅ Updated user: {updated.id}")
+        print(json.dumps(updated.to_dict(), indent=2))
+
+    elif args.user_command == "delete":
+        if not args.confirm:
+            print("❌ Please use --confirm to delete")
+            return 1
+        if db.delete_user(args.id):
+            print(f"✅ Deleted user: {args.id}")
+        else:
+            print(f"❌ Failed to delete user: {args.id}")
+            return 1
+
+    return 0
+
+
+def _handle_teams(args):
+    """Handle team management commands."""
+    import json
+
+    from core.user_db import UserDB
+    from core.user_models import Team
+
+    db = UserDB()
+
+    if args.team_command == "list":
+        teams = db.list_teams(limit=args.limit, offset=args.offset)
+        if args.format == "json":
+            print(json.dumps([t.to_dict() for t in teams], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Description':<50}")
+            print("-" * 125)
+            for team in teams:
+                desc = (
+                    team.description[:47] + "..."
+                    if len(team.description) > 50
+                    else team.description
+                )
+                print(f"{team.id:<40} {team.name:<30} {desc:<50}")
+
+    elif args.team_command == "create":
+        team = Team(id="", name=args.name, description=args.description)
+        created = db.create_team(team)
+        print(f"✅ Created team: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.team_command == "get":
+        team = db.get_team(args.id)
+        if not team:
+            print(f"❌ Team not found: {args.id}")
+            return 1
+        print(json.dumps(team.to_dict(), indent=2))
+
+    elif args.team_command == "update":
+        team = db.get_team(args.id)
+        if not team:
+            print(f"❌ Team not found: {args.id}")
+            return 1
+
+        if args.name:
+            team.name = args.name
+        if args.description:
+            team.description = args.description
+
+        updated = db.update_team(team)
+        print(f"✅ Updated team: {updated.id}")
+        print(json.dumps(updated.to_dict(), indent=2))
+
+    elif args.team_command == "delete":
+        if not args.confirm:
+            print("❌ Please use --confirm to delete")
+            return 1
+        if db.delete_team(args.id):
+            print(f"✅ Deleted team: {args.id}")
+        else:
+            print(f"❌ Failed to delete team: {args.id}")
+            return 1
+
+    elif args.team_command == "members":
+        members = db.list_team_members(args.id)
+        print(json.dumps(members, indent=2))
+
+    elif args.team_command == "add-member":
+        member = db.add_team_member(args.id, args.user_id, args.role)
+        print(f"✅ Added user {args.user_id} to team {args.id}")
+        print(json.dumps(member.to_dict(), indent=2))
+
+    elif args.team_command == "remove-member":
+        if db.remove_team_member(args.id, args.user_id):
+            print(f"✅ Removed user {args.user_id} from team {args.id}")
+        else:
+            print("❌ Failed to remove user from team")
+            return 1
+
+    return 0
+
+
+def _handle_policies(args):
+    """Handle policy management commands."""
+    import json
+
+    from core.policy_db import PolicyDB
+    from core.policy_models import Policy, PolicyStatus
+
+    db = PolicyDB()
+
+    if args.policy_command == "list":
+        policies = db.list_policies(
+            policy_type=args.type, limit=args.limit, offset=args.offset
+        )
+        if args.format == "json":
+            print(json.dumps([p.to_dict() for p in policies], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Type':<15} {'Status':<12}")
+            print("-" * 105)
+            for policy in policies:
+                print(
+                    f"{policy.id:<40} {policy.name:<30} {policy.policy_type:<15} {policy.status.value:<12}"
+                )
+
+    elif args.policy_command == "create":
+        policy = Policy(
+            id="",
+            name=args.name,
+            description=args.description,
+            policy_type=args.type,
+            status=PolicyStatus(args.status),
+            rules=json.loads(args.rules) if args.rules else {},
+        )
+        created = db.create_policy(policy)
+        print(f"✅ Created policy: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.policy_command == "get":
+        policy = db.get_policy(args.id)
+        if not policy:
+            print(f"❌ Policy not found: {args.id}")
+            return 1
+        print(json.dumps(policy.to_dict(), indent=2))
+
+    elif args.policy_command == "update":
+        policy = db.get_policy(args.id)
+        if not policy:
+            print(f"❌ Policy not found: {args.id}")
+            return 1
+
+        if args.name:
+            policy.name = args.name
+        if args.description:
+            policy.description = args.description
+        if args.type:
+            policy.policy_type = args.type
+        if args.status:
+            policy.status = PolicyStatus(args.status)
+
+        updated = db.update_policy(policy)
+        print(f"✅ Updated policy: {updated.id}")
+        print(json.dumps(updated.to_dict(), indent=2))
+
+    elif args.policy_command == "delete":
+        if not args.confirm:
+            print("❌ Please use --confirm to delete")
+            return 1
+        if db.delete_policy(args.id):
+            print(f"✅ Deleted policy: {args.id}")
+        else:
+            print(f"❌ Failed to delete policy: {args.id}")
+            return 1
+
+    return 0
+
+
 def _handle_inventory(args):
     """Handle inventory management commands."""
     import json
@@ -1661,6 +1892,122 @@ def build_parser() -> argparse.ArgumentParser:
     search_inv.add_argument("--limit", type=int, default=100)
 
     inventory_parser.set_defaults(func=_handle_inventory)
+
+    users_parser = subparsers.add_parser(
+        "users", help="Manage users and authentication"
+    )
+    users_subparsers = users_parser.add_subparsers(dest="user_command")
+
+    list_users = users_subparsers.add_parser("list", help="List users")
+    list_users.add_argument("--limit", type=int, default=100)
+    list_users.add_argument("--offset", type=int, default=0)
+    list_users.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_user = users_subparsers.add_parser("create", help="Create user")
+    create_user.add_argument("--email", required=True)
+    create_user.add_argument("--password", required=True)
+    create_user.add_argument("--first-name", required=True)
+    create_user.add_argument("--last-name", required=True)
+    create_user.add_argument(
+        "--role",
+        required=True,
+        choices=["admin", "security_analyst", "developer", "viewer"],
+    )
+    create_user.add_argument("--department")
+
+    get_user = users_subparsers.add_parser("get", help="Get user details")
+    get_user.add_argument("id", help="User ID")
+
+    update_user = users_subparsers.add_parser("update", help="Update user")
+    update_user.add_argument("id", help="User ID")
+    update_user.add_argument("--first-name")
+    update_user.add_argument("--last-name")
+    update_user.add_argument(
+        "--role", choices=["admin", "security_analyst", "developer", "viewer"]
+    )
+    update_user.add_argument("--status", choices=["active", "inactive", "suspended"])
+
+    delete_user = users_subparsers.add_parser("delete", help="Delete user")
+    delete_user.add_argument("id", help="User ID")
+    delete_user.add_argument("--confirm", action="store_true")
+
+    users_parser.set_defaults(func=_handle_users)
+
+    teams_parser = subparsers.add_parser("teams", help="Manage teams")
+    teams_subparsers = teams_parser.add_subparsers(dest="team_command")
+
+    list_teams = teams_subparsers.add_parser("list", help="List teams")
+    list_teams.add_argument("--limit", type=int, default=100)
+    list_teams.add_argument("--offset", type=int, default=0)
+    list_teams.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_team = teams_subparsers.add_parser("create", help="Create team")
+    create_team.add_argument("--name", required=True)
+    create_team.add_argument("--description", required=True)
+
+    get_team = teams_subparsers.add_parser("get", help="Get team details")
+    get_team.add_argument("id", help="Team ID")
+
+    update_team = teams_subparsers.add_parser("update", help="Update team")
+    update_team.add_argument("id", help="Team ID")
+    update_team.add_argument("--name")
+    update_team.add_argument("--description")
+
+    delete_team = teams_subparsers.add_parser("delete", help="Delete team")
+    delete_team.add_argument("id", help="Team ID")
+    delete_team.add_argument("--confirm", action="store_true")
+
+    members_team = teams_subparsers.add_parser("members", help="List team members")
+    members_team.add_argument("id", help="Team ID")
+
+    add_member = teams_subparsers.add_parser("add-member", help="Add user to team")
+    add_member.add_argument("id", help="Team ID")
+    add_member.add_argument("--user-id", required=True)
+    add_member.add_argument("--role", default="member")
+
+    remove_member = teams_subparsers.add_parser(
+        "remove-member", help="Remove user from team"
+    )
+    remove_member.add_argument("id", help="Team ID")
+    remove_member.add_argument("--user-id", required=True)
+
+    teams_parser.set_defaults(func=_handle_teams)
+
+    policies_parser = subparsers.add_parser("policies", help="Manage security policies")
+    policies_subparsers = policies_parser.add_subparsers(dest="policy_command")
+
+    list_policies = policies_subparsers.add_parser("list", help="List policies")
+    list_policies.add_argument("--type", help="Filter by policy type")
+    list_policies.add_argument("--limit", type=int, default=100)
+    list_policies.add_argument("--offset", type=int, default=0)
+    list_policies.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_policy = policies_subparsers.add_parser("create", help="Create policy")
+    create_policy.add_argument("--name", required=True)
+    create_policy.add_argument("--description", required=True)
+    create_policy.add_argument(
+        "--type", required=True, help="Policy type (guardrail, compliance, custom)"
+    )
+    create_policy.add_argument(
+        "--status", default="draft", choices=["active", "draft", "archived"]
+    )
+    create_policy.add_argument("--rules", help="JSON string of policy rules")
+
+    get_policy = policies_subparsers.add_parser("get", help="Get policy details")
+    get_policy.add_argument("id", help="Policy ID")
+
+    update_policy = policies_subparsers.add_parser("update", help="Update policy")
+    update_policy.add_argument("id", help="Policy ID")
+    update_policy.add_argument("--name")
+    update_policy.add_argument("--description")
+    update_policy.add_argument("--type")
+    update_policy.add_argument("--status", choices=["active", "draft", "archived"])
+
+    delete_policy = policies_subparsers.add_parser("delete", help="Delete policy")
+    delete_policy.add_argument("id", help="Policy ID")
+    delete_policy.add_argument("--confirm", action="store_true")
+
+    policies_parser.set_defaults(func=_handle_policies)
 
     return parser
 
