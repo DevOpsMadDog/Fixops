@@ -229,6 +229,7 @@ export default function TriagePage() {
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
   const [showColumnChooser, setShowColumnChooser] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState({
+    risk_score: true,
     severity: true,
     title: true,
     source: true,
@@ -237,7 +238,7 @@ export default function TriagePage() {
     exploitability: true,
     age: true,
   })
-  const [pinnedColumns, setPinnedColumns] = useState<Set<string>>(new Set(['severity', 'title']))
+  const [pinnedColumns, setPinnedColumns] = useState<Set<string>>(new Set(['risk_score', 'title']))
   const [editingCell, setEditingCell] = useState<{ issueId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; issue: typeof DEMO_ISSUES[0] } | null>(null)
@@ -412,6 +413,7 @@ export default function TriagePage() {
   }
 
   const columnDefinitions = [
+    { id: 'risk_score', label: 'Risk Score', width: '100px' },
     { id: 'severity', label: 'Severity', width: '80px' },
     { id: 'title', label: 'Issue', width: '1fr' },
     { id: 'source', label: 'Source', width: '100px' },
@@ -774,7 +776,7 @@ export default function TriagePage() {
           ) : (
             <div className="bg-white/2 rounded-lg border border-white/5 overflow-hidden">
               {/* Table Header */}
-              <div className="grid grid-cols-[40px_80px_1fr_100px_180px_180px_120px_80px] gap-3 p-3 bg-black/20 border-b border-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="grid gap-3 p-3 bg-black/20 border-b border-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider" style={{ gridTemplateColumns: gridTemplateColumns }}>
                 <div>
                   <input
                     type="checkbox"
@@ -783,26 +785,29 @@ export default function TriagePage() {
                     className="cursor-pointer"
                   />
                 </div>
-                <div>Severity</div>
-                <div>Issue</div>
-                <div>Source</div>
-                <div>Repository</div>
-                <div>Location</div>
-                <div>Exploitability</div>
-                <div>Age</div>
+                {visibleColumns.risk_score && <div>Risk Score</div>}
+                {visibleColumns.severity && <div>Severity</div>}
+                {visibleColumns.title && <div>Issue</div>}
+                {visibleColumns.source && <div>Source</div>}
+                {visibleColumns.repo && <div>Repository</div>}
+                {visibleColumns.location && <div>Location</div>}
+                {visibleColumns.exploitability && <div>Exploitability</div>}
+                {visibleColumns.age && <div>Age</div>}
               </div>
 
               {/* Table Body */}
               {filteredIssues.map((issue, index) => {
                 const isSelected = selectedIssues.has(issue.id)
                 const isFocused = index === focusedIndex
+                const { score, breakdown } = calculateRiskScore(issue)
                 return (
                   <div
                     key={issue.id}
-                    className={`grid grid-cols-[40px_80px_1fr_100px_180px_180px_120px_80px] gap-3 p-4 border-b border-white/5 cursor-pointer transition-colors ${
+                    className={`grid gap-3 p-4 border-b border-white/5 cursor-pointer transition-colors ${
                       isFocused ? 'bg-[#6B5AED]/10 ring-2 ring-[#6B5AED]/30' : 
                       isSelected ? 'bg-[#6B5AED]/5' : 'hover:bg-white/2'
                     }`}
+                    style={{ gridTemplateColumns: gridTemplateColumns }}
                     onClick={() => setSelectedIssue(issue)}
                     onContextMenu={(e) => handleContextMenu(e, issue)}
                   >
@@ -820,19 +825,64 @@ export default function TriagePage() {
                       />
                     </div>
 
+                    {/* Risk Score */}
+                    {visibleColumns.risk_score && (
+                      <div className="flex items-center group relative">
+                        <div className={`px-2 py-1 rounded text-xs font-bold ${
+                          score >= 70 ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                          score >= 50 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                          'bg-green-500/20 text-green-300 border border-green-500/30'
+                        }`}>
+                          {score}
+                        </div>
+                        {/* Tooltip with breakdown */}
+                        <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-50 bg-[#1e293b] border border-white/10 rounded-md shadow-2xl p-3 min-w-[250px]">
+                          <div className="text-xs font-semibold text-slate-300 mb-2">FixOps Risk Score Breakdown</div>
+                          <div className="space-y-1.5 text-[11px]">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Severity ({issue.severity}):</span>
+                              <span className="text-white font-medium">{breakdown.severity} pts</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">KEV Status:</span>
+                              <span className="text-white font-medium">{breakdown.kev} pts</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">EPSS ({(issue.exploitability.epss * 100).toFixed(0)}%):</span>
+                              <span className="text-white font-medium">{breakdown.epss} pts</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Internet Exposure:</span>
+                              <span className="text-white font-medium">{breakdown.exposure} pts</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Business Criticality:</span>
+                              <span className="text-white font-medium">{breakdown.criticality} pts</span>
+                            </div>
+                            <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-semibold">
+                              <span className="text-slate-300">Total Score:</span>
+                              <span className="text-[#6B5AED]">{score} / 100</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Severity */}
-                    <div className="flex items-center">
-                      <div
-                        className="w-2 h-2 rounded-full mr-2"
-                        style={{ backgroundColor: getSeverityColor(issue.severity) }}
-                      ></div>
-                      <span
-                        className="text-xs font-medium capitalize"
-                        style={{ color: getSeverityColor(issue.severity) }}
-                      >
-                        {issue.severity}
-                      </span>
-                    </div>
+                    {visibleColumns.severity && (
+                      <div className="flex items-center">
+                        <div
+                          className="w-2 h-2 rounded-full mr-2"
+                          style={{ backgroundColor: getSeverityColor(issue.severity) }}
+                        ></div>
+                        <span
+                          className="text-xs font-medium capitalize"
+                          style={{ color: getSeverityColor(issue.severity) }}
+                        >
+                          {issue.severity}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Issue */}
                     <div className="text-sm font-medium text-white">
