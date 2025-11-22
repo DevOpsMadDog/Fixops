@@ -1,0 +1,38 @@
+test: audit-ledger-replay
+scenario: Replaying approval event should not duplicate audit log entries
+steps:
+  - name: baseline fetch
+    request:
+      method: GET
+      url: ${HOST}/api/admin/audit?quote_id={{quote_id}}
+      headers:
+        Authorization: Bearer {{auditor_token}}
+    expect:
+      status: 200
+      body.count: !store baseline_count
+  - name: approve quote
+    request:
+      method: POST
+      url: ${HOST}/api/admin/quote/{{quote_id}}/approve
+      headers:
+        Authorization: Bearer {{underwriter_token}}
+    expect:
+      status: 204
+  - name: replay approval event
+    request:
+      method: POST
+      url: ${HOST}/api/admin/quote/{{quote_id}}/approve
+      headers:
+        Authorization: Bearer {{underwriter_token}}
+        Idempotency-Key: 7b3f3c10-d20f-4df4-a113-8d64a719c561
+    expect:
+      status: 204
+  - name: verify audit count
+    request:
+      method: GET
+      url: ${HOST}/api/admin/audit?quote_id={{quote_id}}
+      headers:
+        Authorization: Bearer {{auditor_token}}
+    expect:
+      status: 200
+      body.count: !assert_equal baseline_count+1

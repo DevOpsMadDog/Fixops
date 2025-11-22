@@ -1,0 +1,20 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-10-28T13:30:00Z",
+    "component": {
+      "type": "application",
+      "name": "APP2 Partner Hub",
+      "version": "1.14.2",
+      "purl": "pkg:app/app2-partner-hub@1.14.2"
+    }
+  },
+  "components": [
+    {"type": "library", "name": "next", "version": "14.1.0", "purl": "pkg:npm/next@14.1.0"},
+    {"type": "library", "name": "apollo-server", "version": "4.9.3", "purl": "pkg:npm/apollo-server@4.9.3"},
+    {"type": "library", "name": "kong", "version": "3.5.0", "purl": "pkg:docker/kong@3.5.0"},
+    {"type": "library", "name": "aws-sdk", "version": "3.540.0", "purl": "pkg:npm/@aws-sdk/client-sqs@3.540.0"}
+  ]
+}

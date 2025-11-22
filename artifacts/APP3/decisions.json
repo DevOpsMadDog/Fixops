@@ -1,0 +1,10 @@
+{
+  "app": "APP3",
+  "run_id": "f0f7c1bc-5b6c-4dd6-8f1a-6a361d02cd8d",
+  "decisions": [
+    {"stage": "design-review", "status": "pass"},
+    {"stage": "supply-chain", "status": "fail", "reason": "Spring Boot RCE (CVE-2024-34145)"},
+    {"stage": "runtime-controls", "status": "warn", "reason": "Cosmos throttling 7m"},
+    {"stage": "release", "status": "blocked", "reason": "Public admin ingress"}
+  ]
+}

@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: APP2 Partner Hub API
+  version: "1.14.2"
+servers:
+  - url: https://partnerhub.app2.example.com
+paths:
+  /graphql:
+    post:
+      summary: Execute persisted GraphQL queries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, variables]
+              properties:
+                id: { type: string, example: offerFeed }
+                variables:
+                  type: object
+                  properties:
+                    partnerId: { type: string }
+                    locale: { type: string }
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: object }
+                  errors: { type: array, items: { type: object } }
+        '429': { description: rate limited }
+        '401': { description: invalid signature }
+  /api/webhooks/{partner}:
+    post:
+      summary: Receive partner webhook notifications
+      parameters:
+        - in: path
+          name: partner
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEvent'
+      responses:
+        '202': { description: accepted }
+        '400': { description: invalid payload }
+        '401': { description: signature mismatch }
+components:
+  schemas:
+    WebhookEvent:
+      type: object
+      required: [event_id, type, payload]
+      properties:
+        event_id: { type: string }
+        type: { type: string, enum: [offer.created, offer.updated, booking.cancelled] }
+        payload: { type: object }
+        occurred_at: { type: string, format: date-time }

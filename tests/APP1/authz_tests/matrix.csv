@@ -1,0 +1,7 @@
+role,endpoint,method,expected_status,token_example,notes
+broker,/api/quote,POST,200,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.broker.payload.signature","Broker can create quote"
+broker,/api/admin/quote/{id}/approve,POST,403,"...","Broker cannot approve"
+underwriter,/api/admin/quote/{id}/approve,POST,204,"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.underwriter.payload.sig","Underwriter approves"
+auditor,/api/quote,GET,200,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.auditor.payload.sig","Read-only"
+malicious,/api/quote,POST,401,"invalid","No token returns unauthorized"
+malicious,/api/quote,POST,429,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.burner.payload.sig","Rate limit triggered during DoS scenario"

@@ -1,0 +1,40 @@
+test: deletion-ack
+scenario: Duplicate GDPR deletion acknowledgments should not enqueue duplicates
+steps:
+  - name: send ack
+    request:
+      method: POST
+      url: ${HOST}/api/webhooks/partner-x
+      headers:
+        Authorization: Bearer {{integration_token}}
+        Content-Type: application/json
+        X-App2-Signature: {{valid_signature}}
+      body:
+        event_id: 6f447838-4a0c-4895-8b9c-4337fdd95ffd
+        type: booking.cancelled
+        payload:
+          booking_id: BK-9912
+          reason: user_request
+        occurred_at: 2025-10-27T15:20:00Z
+    expect:
+      status: 202
+      headers.X-Idempotency-Key: !store webhook_key
+  - name: replay ack
+    request:
+      method: POST
+      url: ${HOST}/api/webhooks/partner-x
+      headers:
+        Authorization: Bearer {{integration_token}}
+        Content-Type: application/json
+        X-App2-Signature: {{valid_signature}}
+        X-Idempotency-Key: ${webhook_key}
+      body:
+        event_id: 6f447838-4a0c-4895-8b9c-4337fdd95ffd
+        type: booking.cancelled
+        payload:
+          booking_id: BK-9912
+          reason: user_request
+        occurred_at: 2025-10-27T15:20:00Z
+    expect:
+      status: 202
+      headers.X-Idempotent-Replay: "true"

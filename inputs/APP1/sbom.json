@@ -1,0 +1,21 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-10-28T12:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "APP1 Insurance Platform",
+      "version": "2.6.4",
+      "purl": "pkg:app/app1-insurance@2.6.4"
+    }
+  },
+  "components": [
+    {"type": "library", "name": "react", "version": "18.2.0", "purl": "pkg:npm/react@18.2.0"},
+    {"type": "library", "name": "express", "version": "4.18.2", "purl": "pkg:npm/express@4.18.2"},
+    {"type": "library", "name": "pg", "version": "8.9.0", "purl": "pkg:npm/pg@8.9.0"},
+    {"type": "library", "name": "jsonwebtoken", "version": "9.0.2", "purl": "pkg:npm/jsonwebtoken@9.0.2"},
+    {"type": "library", "name": "terraform", "version": "1.7.5", "purl": "pkg:generic/hashicorp/terraform@1.7.5"}
+  ]
+}

@@ -1,0 +1,33 @@
+test: quote-idempotency
+scenario: Repeat quote submissions with same payload should return same quote_id
+steps:
+  - name: initial submit
+    request:
+      method: POST
+      url: ${HOST}/api/quote
+      headers:
+        Authorization: Bearer {{broker_token}}
+        Content-Type: application/json
+      body:
+        customer_id: CUST-4421
+        product_code: AUTO-PLUS
+        coverage_amount: 150000
+    expect:
+      status: 200
+      body.quote_id: !store quote_id
+  - name: replay submit
+    request:
+      method: POST
+      url: ${HOST}/api/quote
+      headers:
+        Authorization: Bearer {{broker_token}}
+        Content-Type: application/json
+        Idempotency-Key: b3dd9ed1-210f-4ff9-a339-4c3a9a0c44e0
+      body:
+        customer_id: CUST-4421
+        product_code: AUTO-PLUS
+        coverage_amount: 150000
+    expect:
+      status: 200
+      body.quote_id: !assert_equal quote_id
+      headers.X-Idempotent-Replay: "true"
