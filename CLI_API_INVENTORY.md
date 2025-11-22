@@ -92,743 +92,99 @@
 
 **Flow:** CLI → Load fixtures → PipelineOrchestrator.run() → Output
 
-### 10. train-bn-lr
-**Purpose:** Train Bayesian Network + Logistic Regression hybrid model
-**Entry Point:** `core/cli.py:_handle_train_bn_lr()`
-**Arguments:**
-- `--data` (required): Path to CSV training data
-- `--output`: Path to write trained model
-- `--pretty`: Pretty-print JSON
-- `--quiet`: Suppress training summary
+### 10. pentagi
+**Purpose:** Manage Pentagi pen testing integration
+**Entry Point:** `core/cli.py:_handle_pentagi()`
 
-**Flow:** CLI → Train BN-LR model → Save model file
-
-### 11. predict-bn-lr
-**Purpose:** Make predictions using trained BN-LR model
-**Entry Point:** `core/cli.py:_handle_predict_bn_lr()`
-**Arguments:**
-- `--model` (required): Path to trained model
-- `--data` (required): Path to CSV test data
-- `--output`: Path to write predictions
-- `--pretty`: Pretty-print JSON
-- `--quiet`: Suppress prediction summary
-
-**Flow:** CLI → Load model → Make predictions → Output results
-
-### 12. backtest-bn-lr
-**Purpose:** Backtest BN-LR model performance
-**Entry Point:** `core/cli.py:_handle_backtest_bn_lr()`
-**Arguments:**
-- `--model` (required): Path to trained model
-- `--data` (required): Path to CSV test data
-- `--output`: Path to write metrics
-- `--pretty`: Pretty-print JSON
-- `--thresholds`: Comma-separated decision thresholds
-- `--allow-skew`: Allow BN CPD hash mismatch
-- `--quiet`: Suppress backtest summary
-
-**Flow:** CLI → Load model → Evaluate on test data → Output metrics
-
-### 13. inventory
-**Purpose:** Manage application and service inventory
-**Entry Point:** `core/cli.py:_handle_inventory()`
-
-#### 13.1 inventory list
+#### 10.1 pentagi list-requests
 ```bash
-fixops inventory list [--limit N] [--offset N] [--format table|json]
+python -m core.cli pentagi list-requests [--finding-id ID] [--status STATUS] [--limit N] [--offset N] [--format table|json]
 ```
-- Lists all applications with pagination
+- Lists pen test requests with optional filtering
+- Status choices: pending, running, completed, failed, cancelled
 - Default format: table
 - Returns exit code 0 on success
 
-#### 13.2 inventory create
+#### 10.2 pentagi create-request
 ```bash
-fixops inventory create \
-  --name "App Name" \
-  --description "Description" \
-  --criticality critical|high|medium|low \
-  [--environment production] \
-  [--owner-team "Team Name"] \
-  [--repo-url "https://..."]
+python -m core.cli pentagi create-request \
+  --finding-id "finding-123" \
+  --target-url "https://test.example.com/api" \
+  --vuln-type "sql_injection" \
+  --test-case "Test SQL injection via username parameter" \
+  --priority critical|high|medium|low
 ```
-- Creates new application
-- Prints application ID and JSON on success
-- Returns exit code 0 on success, 1 on failure
+- Creates new pen test request for a finding
+- Priority defaults to medium
+- Returns request ID and JSON on success
+- Returns exit code 0 on success
 
-#### 13.3 inventory get
+#### 10.3 pentagi get-request
 ```bash
-fixops inventory get <id> [--format table|json]
+python -m core.cli pentagi get-request <request_id>
 ```
-- Gets application details by ID
-- Default format: json
+- Gets pen test request details by ID
+- Returns JSON with full request details
 - Returns exit code 0 if found, 1 if not found
 
-#### 13.4 inventory update
+#### 10.4 pentagi list-results
 ```bash
-fixops inventory update <id> \
-  [--name "New Name"] \
-  [--description "New Description"] \
-  [--criticality critical|high|medium|low] \
-  [--status active|deprecated|archived]
+python -m core.cli pentagi list-results [--finding-id ID] [--exploitability LEVEL] [--limit N] [--offset N] [--format table|json]
 ```
-- Updates application fields
-- Only specified fields are updated
-- Returns exit code 0 on success
-
-#### 13.5 inventory delete
-```bash
-fixops inventory delete <id> --confirm
-```
-- Deletes application (requires --confirm flag)
-- Returns exit code 0 on success, 1 on failure
-
-#### 13.6 inventory search
-```bash
-fixops inventory search <query> [--limit N]
-```
-- Searches across all inventory types
-- Returns JSON with results
-- Returns exit code 0 on success
-
-**Flow:** CLI → InventoryDB operations → Output results
-
-### 14. users
-**Purpose:** Manage users and authentication
-**Entry Point:** `core/cli.py:_handle_users()`
-
-#### 14.1 users list
-```bash
-fixops users list [--limit N] [--offset N] [--format table|json]
-```
-- Lists all users with pagination
+- Lists pen test results with optional filtering
+- Exploitability choices: confirmed_exploitable, likely_exploitable, unexploitable, blocked, inconclusive
 - Default format: table
 - Returns exit code 0 on success
 
-#### 14.2 users create
+#### 10.5 pentagi list-configs
 ```bash
-fixops users create \
-  --email "user@example.com" \
-  --password "password" \
-  --first-name "John" \
-  --last-name "Doe" \
-  --role admin|security_analyst|developer|viewer \
-  [--department "Engineering"]
+python -m core.cli pentagi list-configs [--limit N] [--offset N] [--format table|json]
 ```
-- Creates new user with bcrypt password hashing
-- Returns exit code 0 on success, 1 on failure
-
-#### 14.3 users get
-```bash
-fixops users get <id>
-```
-- Gets user details by ID
-- Password hash is redacted by default
-- Returns exit code 0 if found, 1 if not found
-
-#### 14.4 users update
-```bash
-fixops users update <id> \
-  [--first-name "Jane"] \
-  [--last-name "Smith"] \
-  [--role admin|security_analyst|developer|viewer] \
-  [--status active|inactive|suspended]
-```
-- Updates user fields
-- Returns exit code 0 on success
-
-#### 14.5 users delete
-```bash
-fixops users delete <id> --confirm
-```
-- Deletes user (requires --confirm flag)
-- Returns exit code 0 on success, 1 on failure
-
-**Flow:** CLI → UserDB operations → Output results
-
-### 15. teams
-**Purpose:** Manage teams and team membership
-**Entry Point:** `core/cli.py:_handle_teams()`
-
-#### 15.1 teams list
-```bash
-fixops teams list [--limit N] [--offset N] [--format table|json]
-```
-- Lists all teams with pagination
-- Returns exit code 0 on success
-
-#### 15.2 teams create
-```bash
-fixops teams create \
-  --name "Security Team" \
-  --description "Application security team"
-```
-- Creates new team
-- Returns exit code 0 on success
-
-#### 15.3 teams get
-```bash
-fixops teams get <id>
-```
-- Gets team details by ID
-- Returns exit code 0 if found, 1 if not found
-
-#### 15.4 teams update
-```bash
-fixops teams update <id> \
-  [--name "New Name"] \
-  [--description "New Description"]
-```
-- Updates team fields
-- Returns exit code 0 on success
-
-#### 15.5 teams delete
-```bash
-fixops teams delete <id> --confirm
-```
-- Deletes team (requires --confirm flag)
-- Returns exit code 0 on success
-
-#### 15.6 teams members
-```bash
-fixops teams members <team_id> [--format table|json]
-```
-- Lists all members of a team
-- Returns exit code 0 on success
-
-#### 15.7 teams add-member
-```bash
-fixops teams add-member <team_id> --user-id <user_id> [--role member|lead]
-```
-- Adds user to team
-- Returns exit code 0 on success
-
-#### 15.8 teams remove-member
-```bash
-fixops teams remove-member <team_id> --user-id <user_id>
-```
-- Removes user from team
-- Returns exit code 0 on success
-
-**Flow:** CLI → UserDB operations → Output results
-
-### 16. policies
-**Purpose:** Manage security policies
-**Entry Point:** `core/cli.py:_handle_policies()`
-
-#### 16.1 policies list
-```bash
-fixops policies list [--type guardrail|compliance|custom] [--limit N] [--offset N] [--format table|json]
-```
-- Lists all policies with optional type filtering
-- Returns exit code 0 on success
-
-#### 16.2 policies create
-```bash
-fixops policies create \
-  --name "SQL Injection Policy" \
-  --description "Block SQL injection vulnerabilities" \
-  --type guardrail \
-  [--status active|draft|archived]
-```
-- Creates new policy
-- Returns exit code 0 on success
-
-#### 16.3 policies get
-```bash
-fixops policies get <id>
-```
-- Gets policy details by ID
-- Returns exit code 0 if found, 1 if not found
-
-#### 16.4 policies update
-```bash
-fixops policies update <id> \
-  [--name "New Name"] \
-  [--description "New Description"] \
-  [--status active|draft|archived]
-```
-- Updates policy fields
-- Returns exit code 0 on success
-
-#### 16.5 policies delete
-```bash
-fixops policies delete <id> --confirm
-```
-- Deletes policy (requires --confirm flag)
-- Returns exit code 0 on success
-
-**Flow:** CLI → PolicyDB operations → Output results
-
-### 17. analytics
-**Purpose:** Query analytics data and generate reports
-**Entry Point:** `core/cli.py:_handle_analytics()`
-
-#### 17.1 analytics dashboard
-```bash
-fixops analytics dashboard
-```
-- Gets comprehensive security posture overview
-- Returns JSON with total findings, decisions, and breakdowns
-- Returns exit code 0 on success
-
-#### 17.2 analytics findings
-```bash
-fixops analytics findings \
-  [--severity critical|high|medium|low|info] \
-  [--status open|in_progress|resolved|false_positive|accepted_risk] \
-  [--limit N] \
-  [--offset N] \
-  [--format table|json]
-```
-- Lists findings with optional filtering
+- Lists Pentagi configuration instances
 - Default format: table
 - Returns exit code 0 on success
 
-#### 17.3 analytics decisions
+#### 10.6 pentagi create-config
 ```bash
-fixops analytics decisions \
-  [--outcome block|alert|allow|review] \
-  [--limit N] \
-  [--offset N] \
-  [--format table|json]
+python -m core.cli pentagi create-config \
+  --name "Production Pentagi" \
+  --url "https://pentagi.example.com" \
+  [--api-key "secret-key"] \
+  [--disabled]
 ```
-- Lists decision history with optional filtering
-- Default format: table
+- Creates new Pentagi configuration
+- Config is enabled by default unless --disabled flag is used
+- API key is optional
+- Returns config ID and JSON on success
 - Returns exit code 0 on success
 
-#### 17.4 analytics top-risks
-```bash
-fixops analytics top-risks [--limit N]
-```
-- Gets highest priority security risks
-- Default limit: 10
-- Returns JSON with risk details
-- Returns exit code 0 on success
+**Flow:** CLI → PentagiDB operations → Output results
 
-#### 17.5 analytics mttr
-```bash
-fixops analytics mttr
-```
-- Calculates mean time to remediation
-- Returns JSON with MTTR in hours and days
-- Returns exit code 0 on success
+## API Endpoints (apps/api/app.py)
 
-#### 17.6 analytics roi
-```bash
-fixops analytics roi
-```
-- Calculates return on investment metrics
-- Returns JSON with cost savings estimates
-- Returns exit code 0 on success
+### Phase 6: Pentagi Integration (12 endpoints) ✅
 
-#### 17.7 analytics export
-```bash
-fixops analytics export \
-  --data-type findings|decisions|metrics \
-  [--format json|csv]
-```
-- Exports analytics data
-- Default format: json
-- Returns exit code 0 on success
+#### Pen Test Request Management (apps/api/pentagi_router.py)
+- `GET /api/v1/pentagi/requests` - List pen test requests with filtering
+- `POST /api/v1/pentagi/requests` - Create pen test request
+- `GET /api/v1/pentagi/requests/{id}` - Get pen test request details
+- `PUT /api/v1/pentagi/requests/{id}` - Update pen test request
+- `POST /api/v1/pentagi/requests/{id}/start` - Start pen test execution
+- `POST /api/v1/pentagi/requests/{id}/cancel` - Cancel running pen test
 
-**Flow:** CLI → AnalyticsDB operations → Output results
+#### Pen Test Results (apps/api/pentagi_router.py)
+- `GET /api/v1/pentagi/results` - List pen test results with filtering
+- `POST /api/v1/pentagi/results` - Create pen test result
+- `GET /api/v1/pentagi/results/by-request/{request_id}` - Get result by request ID
 
-### 18. integrations
-**Purpose:** Manage external integrations
-**Entry Point:** `core/cli.py:_handle_integrations()`
+#### Pentagi Configuration (apps/api/pentagi_router.py)
+- `GET /api/v1/pentagi/configs` - List Pentagi configurations
+- `POST /api/v1/pentagi/configs` - Create Pentagi configuration
+- `GET /api/v1/pentagi/configs/{id}` - Get configuration details
+- `PUT /api/v1/pentagi/configs/{id}` - Update configuration
+- `DELETE /api/v1/pentagi/configs/{id}` - Delete configuration
 
-#### 18.1 integrations list
-```bash
-fixops integrations list \
-  [--type jira|confluence|slack|github|gitlab|pagerduty] \
-  [--limit N] \
-  [--offset N] \
-  [--format table|json]
-```
-- Lists all integrations with optional type filtering
-- Secrets are redacted by default
-- Default format: table
-- Returns exit code 0 on success
-
-#### 18.2 integrations create
-```bash
-fixops integrations create \
-  --name "Production Jira" \
-  --type jira|confluence|slack|github|gitlab|pagerduty \
-  [--status active|inactive]
-```
-- Creates new integration
-- Config must be provided via stdin as JSON
-- Returns exit code 0 on success
-
-#### 18.3 integrations get
-```bash
-fixops integrations get <id> [--show-secrets]
-```
-- Gets integration details by ID
-- Secrets are redacted unless --show-secrets is used
-- Returns exit code 0 if found, 1 if not found
-
-#### 18.4 integrations update
-```bash
-fixops integrations update <id> \
-  [--name "New Name"] \
-  [--status active|inactive|error]
-```
-- Updates integration fields
-- Returns exit code 0 on success
-
-#### 18.5 integrations delete
-```bash
-fixops integrations delete <id> --confirm
-```
-- Deletes integration (requires --confirm flag)
-- Returns exit code 0 on success
-
-#### 18.6 integrations test
-```bash
-fixops integrations test <id>
-```
-- Tests integration connection
-- Returns JSON with test results
-- Returns exit code 0 on success
-
-**Flow:** CLI → IntegrationDB operations → Output results
-
-### 19. reports
-**Purpose:** Manage report generation and scheduling
-**Entry Point:** `core/cli.py:_handle_reports()`
-
-#### 19.1 reports list
-```bash
-fixops reports list [--type security_summary|compliance|risk_assessment|vulnerability|audit|custom] [--limit N] [--offset N] [--format table|json]
-```
-- Lists all reports with optional type filtering
-- Default format: table
-- Returns exit code 0 on success
-
-#### 19.2 reports generate
-```bash
-fixops reports generate \
-  --name "Security Summary Report" \
-  --type security_summary|compliance|risk_assessment|vulnerability|audit|custom \
-  [--output-format pdf|html|json|csv|sarif]
-```
-- Generates a new report
-- Returns report ID and status
-- Returns exit code 0 on success
-
-#### 19.3 reports get
-```bash
-fixops reports get <report_id>
-```
-- Gets report details by ID
-- Shows generation status, file path, and metadata
-- Returns exit code 0 if found, 1 if not found
-
-**Flow:** CLI → ReportDB operations → Output results
-
-### 20. audit
-**Purpose:** Query audit logs and compliance frameworks
-**Entry Point:** `core/cli.py:_handle_audit()`
-
-#### 20.1 audit logs
-```bash
-fixops audit logs [--event-type user_login|policy_updated|decision_made|...] [--user-id USER_ID] [--limit N] [--offset N] [--format table|json]
-```
-- Queries audit logs with filtering
-- Default format: table
-- Returns exit code 0 on success
-
-#### 20.2 audit frameworks
-```bash
-fixops audit frameworks [--limit N] [--offset N] [--format table|json]
-```
-- Lists supported compliance frameworks
-- Shows framework name, version, and description
-- Returns exit code 0 on success
-
-#### 20.3 audit controls
-```bash
-fixops audit controls [--framework-id FRAMEWORK_ID] [--limit N] [--offset N] [--format table|json]
-```
-- Lists compliance controls
-- Optional filtering by framework
-- Returns exit code 0 on success
-
-**Flow:** CLI → AuditDB operations → Output results
-
-### 21. workflows
-**Purpose:** Manage workflow orchestration
-**Entry Point:** `core/cli.py:_handle_workflows()`
-
-#### 21.1 workflows list
-```bash
-fixops workflows list [--limit N] [--offset N] [--format table|json]
-```
-- Lists all workflows
-- Default format: table
-- Returns exit code 0 on success
-
-#### 21.2 workflows create
-```bash
-fixops workflows create \
-  --name "Security Scan Workflow" \
-  --description "Automated security scanning workflow"
-```
-- Creates a new workflow
-- Steps and triggers can be added via JSON stdin
-- Returns workflow ID
-- Returns exit code 0 on success
-
-#### 21.3 workflows get
-```bash
-fixops workflows get <workflow_id>
-```
-- Gets workflow details by ID
-- Shows configuration, steps, and triggers
-- Returns exit code 0 if found, 1 if not found
-
-#### 21.4 workflows execute
-```bash
-
-## Phase 5: Enterprise Features (22 endpoints, 3 CLI commands)
-
-### Authentication Management
-**CLI Command**: `python -m core.cli auth`
-
-Subcommands:
-- `list-sso` - List SSO configurations
-- `create-sso` - Create SSO configuration
-- `get-sso <id>` - Get SSO configuration
-- `delete-sso <id>` - Delete SSO configuration
-
-Examples:
-```bash
-python -m core.cli auth list-sso
-python -m core.cli auth list-sso --format json
-python -m core.cli auth create-sso --name "Corporate SAML" --provider saml --entity-id https://corp.example.com
-python -m core.cli auth get-sso abc-123
-python -m core.cli auth delete-sso abc-123 --confirm
-```
-
-**API Endpoints**:
-- GET /api/v1/auth/sso
-- POST /api/v1/auth/sso
-- GET /api/v1/auth/sso/{id}
-- PUT /api/v1/auth/sso/{id}
-
-### Secrets Detection
-**CLI Command**: `python -m core.cli secrets`
-
-Subcommands:
-- `list` - List secret findings
-- `scan` - Scan repository for secrets
-- `resolve <id>` - Resolve secret finding
-
-Examples:
-```bash
-python -m core.cli secrets list
-python -m core.cli secrets list --repository myapp --format json
-python -m core.cli secrets scan --repository myapp --branch main
-python -m core.cli secrets resolve abc-123
-```
-
-**API Endpoints**:
-- GET /api/v1/secrets
-- POST /api/v1/secrets
-- GET /api/v1/secrets/{id}
-- POST /api/v1/secrets/{id}/resolve
-- POST /api/v1/secrets/scan
-
-### IaC Scanning
-**CLI Command**: `python -m core.cli iac`
-
-Subcommands:
-- `list` - List IaC findings
-- `scan` - Scan IaC files
-- `resolve <id>` - Resolve IaC finding
-
-Examples:
-```bash
-python -m core.cli iac list
-python -m core.cli iac list --provider terraform --format json
-python -m core.cli iac scan --provider terraform --file-path terraform/
-python -m core.cli iac scan --provider kubernetes --file-path k8s/
-python -m core.cli iac resolve abc-123
-```
-
-**API Endpoints**:
-- GET /api/v1/iac
-- POST /api/v1/iac
-- GET /api/v1/iac/{id}
-- POST /api/v1/iac/{id}/resolve
-- POST /api/v1/iac/scan
-
-### Bulk Operations
-**API Endpoints** (no CLI commands - designed for programmatic use):
-- POST /api/v1/bulk/findings/update
-- POST /api/v1/bulk/findings/delete
-- POST /api/v1/bulk/findings/assign
-- POST /api/v1/bulk/policies/apply
-- POST /api/v1/bulk/export
-
-### IDE Extension Support
-**API Endpoints** (no CLI commands - designed for IDE integration):
-- GET /api/v1/ide/config
-- POST /api/v1/ide/analyze
-- GET /api/v1/ide/suggestions
-
-fixops workflows execute <workflow_id>
-```
-- Executes a workflow
-- Returns execution ID and status
-- Returns exit code 0 on success, 1 if workflow disabled
-
-#### 21.5 workflows history
-```bash
-fixops workflows history <workflow_id> [--limit N] [--offset N] [--format table|json]
-```
-- Gets workflow execution history
-- Shows execution status, timestamps, and results
-- Returns exit code 0 on success
-
-**Flow:** CLI → WorkflowDB operations → Output results
-
-## API Endpoints
-
-### Core API (apps/api/app.py)
-- `GET /health` - Health check endpoint
-- `GET /api/v1/status` - Authenticated status endpoint
-- `POST /inputs/design` - Upload design CSV
-- `POST /inputs/sbom` - Upload SBOM JSON
-- `POST /inputs/cve` - Upload CVE JSON
-- `POST /inputs/vex` - Upload VEX document
-- `POST /inputs/cnapp` - Upload CNAPP findings
-- `POST /inputs/sarif` - Upload SARIF scan results
-- `POST /inputs/context` - Upload business context
-- `POST /api/v1/uploads/init` - Initialize chunked upload
-- `POST /api/v1/uploads/{upload_id}/chunk` - Upload chunk
-- `POST /api/v1/uploads/{upload_id}/complete` - Complete upload
-- `GET /api/v1/uploads/{upload_id}/status` - Get upload status
-- `POST /pipeline/run` - Execute pipeline
-- `GET /analytics/dashboard` - Get analytics dashboard
-- `GET /analytics/run/{run_id}` - Get analytics for specific run
-- `POST /feedback` - Submit feedback
-
-### Inventory API (apps/api/inventory_router.py) - Phase 1 ✅
-- `GET /api/v1/inventory/applications` - List applications
-- `POST /api/v1/inventory/applications` - Create application
-- `GET /api/v1/inventory/applications/{id}` - Get application
-- `PUT /api/v1/inventory/applications/{id}` - Update application
-- `DELETE /api/v1/inventory/applications/{id}` - Delete application
-- `GET /api/v1/inventory/applications/{id}/components` - List components
-- `GET /api/v1/inventory/applications/{id}/apis` - List APIs
-- `GET /api/v1/inventory/applications/{id}/dependencies` - Get dependencies
-- `GET /api/v1/inventory/services` - List services
-- `POST /api/v1/inventory/services` - Create service
-- `GET /api/v1/inventory/services/{id}` - Get service
-- `GET /api/v1/inventory/apis` - List API endpoints
-- `POST /api/v1/inventory/apis` - Create API endpoint
-- `GET /api/v1/inventory/apis/{id}/security` - Get API security
-- `GET /api/v1/inventory/search` - Search inventory
-
-### User Management API (apps/api/users_router.py) - Phase 2 ✅
-- `POST /api/v1/users/login` - Authenticate user and return JWT token
-- `GET /api/v1/users` - List users
-- `POST /api/v1/users` - Create user
-- `GET /api/v1/users/{id}` - Get user details
-- `PUT /api/v1/users/{id}` - Update user
-- `DELETE /api/v1/users/{id}` - Delete user
-
-### Team Management API (apps/api/teams_router.py) - Phase 2 ✅
-- `GET /api/v1/teams` - List teams
-- `POST /api/v1/teams` - Create team
-- `GET /api/v1/teams/{id}` - Get team details
-- `PUT /api/v1/teams/{id}` - Update team
-- `DELETE /api/v1/teams/{id}` - Delete team
-- `GET /api/v1/teams/{id}/members` - List team members
-- `POST /api/v1/teams/{id}/members` - Add team member
-- `DELETE /api/v1/teams/{id}/members/{user_id}` - Remove team member
-
-### Policy Management API (apps/api/policies_router.py) - Phase 2 ✅
-- `GET /api/v1/policies` - List policies
-- `POST /api/v1/policies` - Create policy
-- `GET /api/v1/policies/{id}` - Get policy details
-- `PUT /api/v1/policies/{id}` - Update policy
-- `DELETE /api/v1/policies/{id}` - Delete policy
-- `POST /api/v1/policies/{id}/validate` - Validate policy syntax
-- `POST /api/v1/policies/{id}/test` - Test policy against sample data
-- `GET /api/v1/policies/{id}/violations` - Get policy violations
-
-### Analytics API (apps/api/analytics_router.py) - Phase 3 ✅
-- `GET /api/v1/analytics/dashboard/overview` - Get security posture overview
-- `GET /api/v1/analytics/dashboard/trends` - Get time-series trend data
-- `GET /api/v1/analytics/dashboard/top-risks` - Get highest priority risks
-- `GET /api/v1/analytics/dashboard/compliance-status` - Get compliance status
-- `GET /api/v1/analytics/findings` - Query findings with filtering
-- `POST /api/v1/analytics/findings` - Create finding
-- `GET /api/v1/analytics/findings/{id}` - Get finding details
-- `PUT /api/v1/analytics/findings/{id}` - Update finding
-- `GET /api/v1/analytics/decisions` - Query decision history
-- `POST /api/v1/analytics/decisions` - Record decision
-- `GET /api/v1/analytics/mttr` - Calculate mean time to remediation
-- `GET /api/v1/analytics/coverage` - Get security coverage metrics
-- `GET /api/v1/analytics/roi` - Calculate ROI metrics
-- `GET /api/v1/analytics/noise-reduction` - Get noise reduction metrics
-- `POST /api/v1/analytics/custom-query` - Execute custom query
-- `GET /api/v1/analytics/export` - Export analytics data
-
-### Integration Management API (apps/api/integrations_router.py) - Phase 3 ✅
-- `GET /api/v1/integrations` - List integrations
-- `POST /api/v1/integrations` - Create integration
-- `GET /api/v1/integrations/{id}` - Get integration details
-- `PUT /api/v1/integrations/{id}` - Update integration
-- `DELETE /api/v1/integrations/{id}` - Delete integration
-- `POST /api/v1/integrations/{id}/test` - Test integration connection
-- `GET /api/v1/integrations/{id}/sync-status` - Get sync status
-- `POST /api/v1/integrations/{id}/sync` - Trigger manual sync
-
-### Backend API Routers
-- Provenance API (backend/api/provenance/router.py)
-- Risk API (backend/api/risk/router.py)
-- Graph API (backend/api/graph/router.py)
-- Evidence API (backend/api/evidence/router.py)
-
-### Report Management API (apps/api/reports_router.py) - Phase 4 🚧
-- `GET /api/v1/reports` - List reports with filtering
-- `POST /api/v1/reports` - Generate new report
-- `GET /api/v1/reports/{id}` - Get report details
-- `GET /api/v1/reports/{id}/download` - Download report file
-- `POST /api/v1/reports/schedule` - Schedule recurring report
-- `GET /api/v1/reports/schedules/list` - List scheduled reports
-- `GET /api/v1/reports/templates/list` - List report templates
-- `POST /api/v1/reports/export/sarif` - Export findings as SARIF
-- `POST /api/v1/reports/export/csv` - Export findings as CSV
-
-### Audit & Compliance API (apps/api/audit_router.py) - Phase 4 🚧
-- `GET /api/v1/audit/logs` - Query audit logs with filtering
-- `GET /api/v1/audit/logs/{id}` - Get audit log entry
-- `GET /api/v1/audit/user-activity` - Get user activity logs
-- `GET /api/v1/audit/policy-changes` - Get policy change history
-- `GET /api/v1/audit/decision-trail` - Get decision audit trail
-- `GET /api/v1/audit/compliance/frameworks` - List compliance frameworks
-- `GET /api/v1/audit/compliance/frameworks/{id}/status` - Get framework compliance status
-- `GET /api/v1/audit/compliance/frameworks/{id}/gaps` - Get compliance gaps
-- `POST /api/v1/audit/compliance/frameworks/{id}/report` - Generate compliance report
-- `GET /api/v1/audit/compliance/controls` - List compliance controls
-
-### Workflow Orchestration API (apps/api/workflows_router.py) - Phase 4 🚧
-- `GET /api/v1/workflows` - List workflows
-- `POST /api/v1/workflows` - Create workflow
-- `GET /api/v1/workflows/{id}` - Get workflow details
-- `PUT /api/v1/workflows/{id}` - Update workflow
-- `DELETE /api/v1/workflows/{id}` - Delete workflow
-- `POST /api/v1/workflows/{id}/execute` - Execute workflow
-- `GET /api/v1/workflows/{id}/history` - Get workflow execution history
-
-**Total Endpoints**: ~120 (40 existing + 15 Phase 1 + 22 Phase 2 + 20 Phase 3 + 23 Phase 4)
-**Status**: Phase 4 implementation in progress
+**Total API Surface: 137 endpoints** (125 from Phases 1-5 + 12 from Phase 6)
 
 ## Output Files
 

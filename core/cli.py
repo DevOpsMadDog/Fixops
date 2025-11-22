@@ -1136,817 +1136,102 @@ def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     return 0
 
 
-def _handle_users(args):
-    """Handle user management commands."""
+def _handle_pentagi(args):
+    """Handle Pentagi pen testing commands."""
     import json
 
-    from core.user_db import UserDB
-    from core.user_models import User, UserRole, UserStatus
+    from core.pentagi_db import PentagiDB
+    from core.pentagi_models import ExploitabilityLevel, PenTestPriority, PenTestStatus
 
-    db = UserDB()
+    db = PentagiDB()
 
-    if args.user_command == "list":
-        users = db.list_users(limit=args.limit, offset=args.offset)
-        if args.format == "json":
-            print(json.dumps([u.to_dict() for u in users], indent=2))
-        else:
-            print(f"{'ID':<40} {'Email':<30} {'Role':<20} {'Status':<12}")
-            print("-" * 110)
-            for user in users:
-                print(
-                    f"{user.id:<40} {user.email:<30} {user.role.value:<20} {user.status.value:<12}"
-                )
-
-    elif args.user_command == "create":
-        user = User(
-            id="",
-            email=args.email,
-            password_hash=db.hash_password(args.password),
-            first_name=args.first_name,
-            last_name=args.last_name,
-            role=UserRole(args.role),
-            status=UserStatus.ACTIVE,
-            department=args.department,
-        )
-        created = db.create_user(user)
-        print(f"✅ Created user: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.user_command == "get":
-        user = db.get_user(args.id)
-        if not user:
-            print(f"❌ User not found: {args.id}")
-            return 1
-        print(json.dumps(user.to_dict(), indent=2))
-
-    elif args.user_command == "update":
-        user = db.get_user(args.id)
-        if not user:
-            print(f"❌ User not found: {args.id}")
-            return 1
-
-        if args.first_name:
-            user.first_name = args.first_name
-        if args.last_name:
-            user.last_name = args.last_name
-        if args.role:
-            user.role = UserRole(args.role)
-        if args.status:
-            user.status = UserStatus(args.status)
-
-        updated = db.update_user(user)
-        print(f"✅ Updated user: {updated.id}")
-        print(json.dumps(updated.to_dict(), indent=2))
-
-    elif args.user_command == "delete":
-        if not args.confirm:
-            print("❌ Please use --confirm to delete")
-            return 1
-        if db.delete_user(args.id):
-            print(f"✅ Deleted user: {args.id}")
-        else:
-            print(f"❌ Failed to delete user: {args.id}")
-            return 1
-
-    return 0
-
-
-def _handle_teams(args):
-    """Handle team management commands."""
-    import json
-
-    from core.user_db import UserDB
-    from core.user_models import Team
-
-    db = UserDB()
-
-    if args.team_command == "list":
-        teams = db.list_teams(limit=args.limit, offset=args.offset)
-        if args.format == "json":
-            print(json.dumps([t.to_dict() for t in teams], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Description':<50}")
-            print("-" * 125)
-            for team in teams:
-                desc = (
-                    team.description[:47] + "..."
-                    if len(team.description) > 50
-                    else team.description
-                )
-                print(f"{team.id:<40} {team.name:<30} {desc:<50}")
-
-    elif args.team_command == "create":
-        team = Team(id="", name=args.name, description=args.description)
-        created = db.create_team(team)
-        print(f"✅ Created team: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.team_command == "get":
-        team = db.get_team(args.id)
-        if not team:
-            print(f"❌ Team not found: {args.id}")
-            return 1
-        print(json.dumps(team.to_dict(), indent=2))
-
-    elif args.team_command == "update":
-        team = db.get_team(args.id)
-        if not team:
-            print(f"❌ Team not found: {args.id}")
-            return 1
-
-        if args.name:
-            team.name = args.name
-        if args.description:
-            team.description = args.description
-
-        updated = db.update_team(team)
-        print(f"✅ Updated team: {updated.id}")
-        print(json.dumps(updated.to_dict(), indent=2))
-
-    elif args.team_command == "delete":
-        if not args.confirm:
-            print("❌ Please use --confirm to delete")
-            return 1
-        if db.delete_team(args.id):
-            print(f"✅ Deleted team: {args.id}")
-        else:
-            print(f"❌ Failed to delete team: {args.id}")
-            return 1
-
-    elif args.team_command == "members":
-        members = db.list_team_members(args.id)
-        print(json.dumps(members, indent=2))
-
-    elif args.team_command == "add-member":
-        member = db.add_team_member(args.id, args.user_id, args.role)
-        print(f"✅ Added user {args.user_id} to team {args.id}")
-        print(json.dumps(member.to_dict(), indent=2))
-
-    elif args.team_command == "remove-member":
-        if db.remove_team_member(args.id, args.user_id):
-            print(f"✅ Removed user {args.user_id} from team {args.id}")
-        else:
-            print("❌ Failed to remove user from team")
-            return 1
-
-    return 0
-
-
-def _handle_policies(args):
-    """Handle policy management commands."""
-    import json
-
-    from core.policy_db import PolicyDB
-    from core.policy_models import Policy, PolicyStatus
-
-    db = PolicyDB()
-
-    if args.policy_command == "list":
-        policies = db.list_policies(
-            policy_type=args.type, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([p.to_dict() for p in policies], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Type':<15} {'Status':<12}")
-            print("-" * 105)
-            for policy in policies:
-                print(
-                    f"{policy.id:<40} {policy.name:<30} {policy.policy_type:<15} {policy.status.value:<12}"
-                )
-
-    elif args.policy_command == "create":
-        policy = Policy(
-            id="",
-            name=args.name,
-            description=args.description,
-            policy_type=args.type,
-            status=PolicyStatus(args.status),
-            rules=json.loads(args.rules) if args.rules else {},
-        )
-        created = db.create_policy(policy)
-        print(f"✅ Created policy: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.policy_command == "get":
-        policy = db.get_policy(args.id)
-        if not policy:
-            print(f"❌ Policy not found: {args.id}")
-            return 1
-        print(json.dumps(policy.to_dict(), indent=2))
-
-    elif args.policy_command == "update":
-        policy = db.get_policy(args.id)
-        if not policy:
-            print(f"❌ Policy not found: {args.id}")
-            return 1
-
-        if args.name:
-            policy.name = args.name
-        if args.description:
-            policy.description = args.description
-        if args.type:
-            policy.policy_type = args.type
-        if args.status:
-            policy.status = PolicyStatus(args.status)
-
-        updated = db.update_policy(policy)
-        print(f"✅ Updated policy: {updated.id}")
-        print(json.dumps(updated.to_dict(), indent=2))
-
-    elif args.policy_command == "delete":
-        if not args.confirm:
-            print("❌ Please use --confirm to delete")
-            return 1
-        if db.delete_policy(args.id):
-            print(f"✅ Deleted policy: {args.id}")
-        else:
-            print(f"❌ Failed to delete policy: {args.id}")
-            return 1
-
-    return 0
-
-
-def _handle_inventory(args):
-    """Handle inventory management commands."""
-    import json
-
-    from core.inventory_db import InventoryDB
-    from core.inventory_models import (
-        Application,
-        ApplicationCriticality,
-        ApplicationStatus,
-    )
-
-    db = InventoryDB()
-
-    if args.inventory_command == "list":
-        apps = db.list_applications(limit=args.limit, offset=args.offset)
-        if args.format == "json":
-            print(json.dumps([app.to_dict() for app in apps], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Criticality':<12} {'Status':<12}")
-            print("-" * 100)
-            for app in apps:
-                print(
-                    f"{app.id:<40} {app.name:<30} {app.criticality.value:<12} {app.status.value:<12}"
-                )
-
-    elif args.inventory_command == "create":
-        app = Application(
-            id="",
-            name=args.name,
-            description=args.description,
-            criticality=ApplicationCriticality(args.criticality),
-            status=ApplicationStatus.ACTIVE,
-            environment=args.environment,
-            owner_team=args.owner_team,
-            repository_url=args.repo_url,
-        )
-        created = db.create_application(app)
-        print(f"✅ Created application: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.inventory_command == "get":
-        app = db.get_application(args.id)
-        if not app:
-            print(f"❌ Application not found: {args.id}")
-            return 1
-        if args.format == "json":
-            print(json.dumps(app.to_dict(), indent=2))
-        else:
-            print(f"ID: {app.id}")
-            print(f"Name: {app.name}")
-            print(f"Description: {app.description}")
-            print(f"Criticality: {app.criticality.value}")
-            print(f"Status: {app.status.value}")
-            print(f"Environment: {app.environment}")
-
-    elif args.inventory_command == "update":
-        app = db.get_application(args.id)
-        if not app:
-            print(f"❌ Application not found: {args.id}")
-            return 1
-
-        if args.name:
-            app.name = args.name
-        if args.description:
-            app.description = args.description
-        if args.criticality:
-            app.criticality = ApplicationCriticality(args.criticality)
-        if args.status:
-            app.status = ApplicationStatus(args.status)
-
-        updated = db.update_application(app)
-        print(f"✅ Updated application: {updated.id}")
-        print(json.dumps(updated.to_dict(), indent=2))
-
-    elif args.inventory_command == "delete":
-        if not args.confirm:
-            print("❌ Please use --confirm to delete")
-            return 1
-        if db.delete_application(args.id):
-            print(f"✅ Deleted application: {args.id}")
-        else:
-            print(f"❌ Failed to delete application: {args.id}")
-            return 1
-
-    elif args.inventory_command == "search":
-        results = db.search_inventory(args.query, limit=args.limit)
-        print(json.dumps(results, indent=2))
-
-    return 0
-
-
-def _handle_analytics(args):
-    """Handle analytics commands."""
-    import json
-
-    from core.analytics_db import AnalyticsDB
-    from core.analytics_models import FindingSeverity, FindingStatus
-
-    db = AnalyticsDB()
-
-    if args.analytics_command == "dashboard":
-        overview = db.get_dashboard_overview()
-        print(json.dumps(overview, indent=2))
-
-    elif args.analytics_command == "findings":
-        findings = db.list_findings(
-            severity=args.severity,
-            status=args.status,
+    if args.pentagi_command == "list-requests":
+        requests = db.list_requests(
+            finding_id=args.finding_id,
+            status=PenTestStatus(args.status) if args.status else None,
             limit=args.limit,
             offset=args.offset,
         )
         if args.format == "json":
-            print(json.dumps([f.to_dict() for f in findings], indent=2))
+            print(json.dumps([r.to_dict() for r in requests], indent=2))
         else:
-            print(f"{'ID':<40} {'Severity':<12} {'Status':<15} {'Title':<50}")
+            print(f"{'ID':<40} {'Finding ID':<40} {'Status':<12} {'Priority':<10}")
+            print("-" * 110)
+            for req in requests:
+                print(
+                    f"{req.id:<40} {req.finding_id:<40} {req.status.value:<12} {req.priority.value:<10}"
+                )
+
+    elif args.pentagi_command == "create-request":
+        from core.pentagi_models import PenTestRequest
+
+        request = PenTestRequest(
+            id="",
+            finding_id=args.finding_id,
+            target_url=args.target_url,
+            vulnerability_type=args.vuln_type,
+            test_case=args.test_case,
+            priority=PenTestPriority(args.priority),
+        )
+        created = db.create_request(request)
+        print(f"✅ Created pen test request: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.pentagi_command == "get-request":
+        request = db.get_request(args.id)
+        if not request:
+            print(f"❌ Pen test request not found: {args.id}")
+            return 1
+        print(json.dumps(request.to_dict(), indent=2))
+
+    elif args.pentagi_command == "list-results":
+        results = db.list_results(
+            finding_id=args.finding_id,
+            exploitability=(
+                ExploitabilityLevel(args.exploitability)
+                if args.exploitability
+                else None
+            ),
+            limit=args.limit,
+            offset=args.offset,
+        )
+        if args.format == "json":
+            print(json.dumps([r.to_dict() for r in results], indent=2))
+        else:
+            print(
+                f"{'ID':<40} {'Finding ID':<40} {'Exploitability':<25} {'Success':<8}"
+            )
             print("-" * 120)
-            for finding in findings:
+            for result in results:
                 print(
-                    f"{finding.id:<40} {finding.severity.value:<12} {finding.status.value:<15} {finding.title[:47]:<50}"
+                    f"{result.id:<40} {result.finding_id:<40} {result.exploitability.value:<25} {'Yes' if result.exploit_successful else 'No':<8}"
                 )
 
-    elif args.analytics_command == "decisions":
-        decisions = db.list_decisions(
-            finding_id=args.finding_id, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([d.to_dict() for d in decisions], indent=2))
-        else:
-            print(f"{'ID':<40} {'Outcome':<12} {'Confidence':<12} {'Finding ID':<40}")
-            print("-" * 110)
-            for decision in decisions:
-                print(
-                    f"{decision.id:<40} {decision.outcome.value:<12} {decision.confidence:<12.2f} {decision.finding_id:<40}"
-                )
-
-    elif args.analytics_command == "top-risks":
-        risks = db.get_top_risks(limit=args.limit)
-        print(json.dumps(risks, indent=2))
-
-    elif args.analytics_command == "mttr":
-        mttr_hours = db.calculate_mttr()
-        if mttr_hours is None:
-            print("No resolved findings available for MTTR calculation")
-        else:
-            print(
-                f"Mean Time to Remediation: {mttr_hours:.2f} hours ({mttr_hours/24:.2f} days)"
-            )
-
-    elif args.analytics_command == "roi":
-        findings = db.list_findings(limit=10000)
-        total_findings = len(findings)
-        critical_blocked = sum(
-            1
-            for f in findings
-            if f.severity == FindingSeverity.CRITICAL
-            and f.status == FindingStatus.RESOLVED
-        )
-
-        avg_breach_cost = 4_240_000
-        critical_breach_probability = 0.15
-        prevented_cost = (
-            critical_blocked * avg_breach_cost * critical_breach_probability
-        )
-
-        roi_data = {
-            "total_findings": total_findings,
-            "critical_blocked": critical_blocked,
-            "estimated_prevented_cost": round(prevented_cost, 2),
-            "currency": "USD",
-        }
-        print(json.dumps(roi_data, indent=2))
-
-    elif args.analytics_command == "export":
-        if args.data_type == "findings":
-            findings = db.list_findings(limit=10000)
-            data = [f.to_dict() for f in findings]
-        elif args.data_type == "decisions":
-            decisions = db.list_decisions(limit=10000)
-            data = [d.to_dict() for d in decisions]
-        else:
-            print(f"❌ Unsupported data type: {args.data_type}")
-            return 1
-
-        print(json.dumps(data, indent=2))
-
-    return 0
-
-
-def _handle_integrations(args):
-    """Handle integration management commands."""
-    import json
-
-    from core.integration_db import IntegrationDB
-    from core.integration_models import Integration, IntegrationStatus, IntegrationType
-
-    db = IntegrationDB()
-
-    if args.integration_command == "list":
-        integrations = db.list_integrations(
-            integration_type=args.type, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([i.to_dict() for i in integrations], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Type':<15} {'Status':<12}")
-            print("-" * 100)
-            for integration in integrations:
-                print(
-                    f"{integration.id:<40} {integration.name:<30} {integration.integration_type.value:<15} {integration.status.value:<12}"
-                )
-
-    elif args.integration_command == "create":
-        integration = Integration(
-            id="",
-            name=args.name,
-            integration_type=IntegrationType(args.type),
-            status=IntegrationStatus.ACTIVE,
-            config={},
-        )
-        created = db.create_integration(integration)
-        print(f"✅ Created integration: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.integration_command == "get":
-        integration = db.get_integration(args.id)
-        if not integration:
-            print(f"❌ Integration not found: {args.id}")
-            return 1
-        print(
-            json.dumps(integration.to_dict(include_secrets=args.show_secrets), indent=2)
-        )
-
-    elif args.integration_command == "update":
-        integration = db.get_integration(args.id)
-        if not integration:
-            print(f"❌ Integration not found: {args.id}")
-            return 1
-
-        if args.name:
-            integration.name = args.name
-        if args.status:
-            integration.status = IntegrationStatus(args.status)
-
-        updated = db.update_integration(integration)
-        print(f"✅ Updated integration: {updated.id}")
-        print(json.dumps(updated.to_dict(), indent=2))
-
-    elif args.integration_command == "delete":
-        if not args.confirm:
-            print("❌ Please use --confirm to delete")
-            return 1
-        if db.delete_integration(args.id):
-            print(f"✅ Deleted integration: {args.id}")
-        else:
-            print(f"❌ Failed to delete integration: {args.id}")
-            return 1
-
-    elif args.integration_command == "test":
-        integration = db.get_integration(args.id)
-        if not integration:
-            print(f"❌ Integration not found: {args.id}")
-            return 1
-        print(
-            f"Testing integration: {integration.name} ({integration.integration_type.value})"
-        )
-        print("✅ Test functionality not yet implemented in CLI")
-
-    return 0
-
-
-def _handle_reports(args):
-    """Handle report management commands."""
-    import json
-
-    from core.report_db import ReportDB
-    from core.report_models import Report, ReportFormat, ReportStatus, ReportType
-
-    db = ReportDB()
-
-    if args.report_command == "list":
-        reports = db.list_reports(
-            report_type=args.type, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([r.to_dict() for r in reports], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Type':<20} {'Status':<12}")
-            print("-" * 110)
-            for report in reports:
-                print(
-                    f"{report.id:<40} {report.name:<30} {report.report_type.value:<20} {report.status.value:<12}"
-                )
-
-    elif args.report_command == "generate":
-        report = Report(
-            id="",
-            name=args.name,
-            report_type=ReportType(args.type),
-            format=ReportFormat(args.output_format),
-            status=ReportStatus.PENDING,
-            parameters={},
-        )
-        created = db.create_report(report)
-        print(f"✅ Report generation started: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.report_command == "get":
-        report = db.get_report(args.id)
-        if not report:
-            print(f"❌ Report not found: {args.id}")
-            return 1
-        print(json.dumps(report.to_dict(), indent=2))
-
-    return 0
-
-
-def _handle_audit(args):
-    """Handle audit log commands."""
-    import json
-
-    from core.audit_db import AuditDB
-
-    db = AuditDB()
-
-    if args.audit_command == "logs":
-        logs = db.list_audit_logs(
-            event_type=args.event_type,
-            user_id=args.user_id,
-            limit=args.limit,
-            offset=args.offset,
-        )
-        if args.format == "json":
-            print(json.dumps([log.to_dict() for log in logs], indent=2))
-        else:
-            print(
-                f"{'Timestamp':<25} {'Event Type':<25} {'User ID':<40} {'Action':<30}"
-            )
-            print("-" * 130)
-            for log in logs:
-                print(
-                    f"{log.timestamp.isoformat():<25} {log.event_type.value:<25} {log.user_id or 'N/A':<40} {log.action:<30}"
-                )
-
-    elif args.audit_command == "frameworks":
-        frameworks = db.list_frameworks(limit=args.limit, offset=args.offset)
-        if args.format == "json":
-            print(json.dumps([f.to_dict() for f in frameworks], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Version':<15}")
-            print("-" * 90)
-            for framework in frameworks:
-                print(
-                    f"{framework.id:<40} {framework.name:<30} {framework.version:<15}"
-                )
-
-    elif args.audit_command == "controls":
-        controls = db.list_controls(
-            framework_id=args.framework_id, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([c.to_dict() for c in controls], indent=2))
-        else:
-            print(f"{'Control ID':<20} {'Name':<40} {'Category':<20}")
-            print("-" * 85)
-            for control in controls:
-                print(
-                    f"{control.control_id:<20} {control.name:<40} {control.category:<20}"
-                )
-
-    return 0
-
-
-def _handle_workflows(args):
-    """Handle workflow management commands."""
-    import json
-
-    from core.workflow_db import WorkflowDB
-    from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
-
-    db = WorkflowDB()
-
-    if args.workflow_command == "list":
-        workflows = db.list_workflows(limit=args.limit, offset=args.offset)
-        if args.format == "json":
-            print(json.dumps([w.to_dict() for w in workflows], indent=2))
-        else:
-            print(f"{'ID':<40} {'Name':<30} {'Enabled':<10}")
-            print("-" * 85)
-            for workflow in workflows:
-                print(
-                    f"{workflow.id:<40} {workflow.name:<30} {'Yes' if workflow.enabled else 'No':<10}"
-                )
-
-    elif args.workflow_command == "create":
-        workflow = Workflow(
-            id="",
-            name=args.name,
-            description=args.description,
-            steps=[],
-            triggers={},
-            enabled=True,
-        )
-        created = db.create_workflow(workflow)
-        print(f"✅ Created workflow: {created.id}")
-        print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.workflow_command == "get":
-        workflow = db.get_workflow(args.id)
-        if not workflow:
-            print(f"❌ Workflow not found: {args.id}")
-            return 1
-        print(json.dumps(workflow.to_dict(), indent=2))
-
-    elif args.workflow_command == "execute":
-        workflow = db.get_workflow(args.id)
-        if not workflow:
-            print(f"❌ Workflow not found: {args.id}")
-            return 1
-
-        execution = WorkflowExecution(
-            id="",
-            workflow_id=args.id,
-            status=WorkflowStatus.COMPLETED,
-            input_data={},
-            output_data={"result": "success"},
-        )
-        created_execution = db.create_execution(execution)
-        print(f"✅ Workflow executed: {created_execution.id}")
-        print(json.dumps(created_execution.to_dict(), indent=2))
-
-    elif args.workflow_command == "history":
-        executions = db.list_executions(
-            workflow_id=args.id, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([e.to_dict() for e in executions], indent=2))
-        else:
-            print(f"{'Execution ID':<40} {'Status':<15} {'Started At':<25}")
-            print("-" * 85)
-            for execution in executions:
-                print(
-                    f"{execution.id:<40} {execution.status.value:<15} {execution.started_at.isoformat():<25}"
-                )
-
-
-def _handle_auth(args):
-    """Handle SSO/SAML configuration commands."""
-    import json
-
-    from core.auth_db import AuthDB
-    from core.auth_models import AuthProvider, SSOConfig, SSOStatus
-
-    db = AuthDB()
-
-    if args.auth_command == "list-sso":
-        configs = db.list_sso_configs(limit=args.limit, offset=args.offset)
+    elif args.pentagi_command == "list-configs":
+        configs = db.list_configs(limit=args.limit, offset=args.offset)
         if args.format == "json":
             print(json.dumps([c.to_dict() for c in configs], indent=2))
         else:
-            print(f"{'ID':<40} {'Name':<30} {'Provider':<15} {'Status':<12}")
-            print("-" * 100)
+            print(f"{'ID':<40} {'Name':<30} {'Enabled':<10}")
+            print("-" * 85)
             for config in configs:
                 print(
-                    f"{config.id:<40} {config.name:<30} {config.provider.value:<15} {config.status.value:<12}"
+                    f"{config.id:<40} {config.name:<30} {'Yes' if config.enabled else 'No':<10}"
                 )
 
-    elif args.auth_command == "create-sso":
-        config = SSOConfig(
+    elif args.pentagi_command == "create-config":
+        from core.pentagi_models import PenTestConfig
+
+        config = PenTestConfig(
             id="",
             name=args.name,
-            provider=AuthProvider(args.provider),
-            status=SSOStatus(args.status) if args.status else SSOStatus.PENDING,
-            entity_id=args.entity_id,
-            sso_url=args.sso_url,
-            certificate=args.certificate,
+            pentagi_url=args.url,
+            api_key=args.api_key,
+            enabled=not args.disabled,
         )
-        created = db.create_sso_config(config)
-        print(f"✅ Created SSO config: {created.id}")
+        created = db.create_config(config)
+        print(f"✅ Created Pentagi config: {created.id}")
         print(json.dumps(created.to_dict(), indent=2))
-
-    elif args.auth_command == "get-sso":
-        config = db.get_sso_config(args.id)
-        if not config:
-            print(f"❌ SSO config not found: {args.id}")
-            return 1
-        print(json.dumps(config.to_dict(), indent=2))
-
-    elif args.auth_command == "delete-sso":
-        if not args.confirm:
-            print("❌ Please use --confirm to delete")
-            return 1
-        if db.delete_sso_config(args.id):
-            print(f"✅ Deleted SSO config: {args.id}")
-        else:
-            print(f"❌ Failed to delete SSO config: {args.id}")
-            return 1
-
-    return 0
-
-
-def _handle_secrets(args):
-    """Handle secrets detection commands."""
-    import json
-    from datetime import datetime
-
-    from core.secrets_db import SecretsDB
-    from core.secrets_models import SecretStatus
-
-    db = SecretsDB()
-
-    if args.secrets_command == "list":
-        findings = db.list_findings(
-            repository=args.repository, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([f.to_dict() for f in findings], indent=2))
-        else:
-            print(f"{'ID':<40} {'Type':<20} {'Repository':<30} {'Status':<12}")
-            print("-" * 110)
-            for finding in findings:
-                print(
-                    f"{finding.id:<40} {finding.secret_type.value:<20} {finding.repository:<30} {finding.status.value:<12}"
-                )
-
-    elif args.secrets_command == "scan":
-        print(f"🔍 Scanning repository: {args.repository} (branch: {args.branch})")
-        print("✅ Scan initiated")
-        return 0
-
-    elif args.secrets_command == "resolve":
-        finding = db.get_finding(args.id)
-        if not finding:
-            print(f"❌ Secret finding not found: {args.id}")
-            return 1
-        finding.status = SecretStatus.RESOLVED
-        finding.resolved_at = datetime.utcnow()
-        db.update_finding(finding)
-        print(f"✅ Resolved secret finding: {args.id}")
-
-    return 0
-
-
-def _handle_iac(args):
-    """Handle IaC scanning commands."""
-    import json
-    from datetime import datetime
-
-    from core.iac_db import IaCDB
-    from core.iac_models import IaCFindingStatus
-
-    db = IaCDB()
-
-    if args.iac_command == "list":
-        findings = db.list_findings(
-            provider=args.provider, limit=args.limit, offset=args.offset
-        )
-        if args.format == "json":
-            print(json.dumps([f.to_dict() for f in findings], indent=2))
-        else:
-            print(f"{'ID':<40} {'Provider':<15} {'Severity':<10} {'Status':<12}")
-            print("-" * 85)
-            for finding in findings:
-                print(
-                    f"{finding.id:<40} {finding.provider.value:<15} {finding.severity:<10} {finding.status.value:<12}"
-                )
-
-    elif args.iac_command == "scan":
-        print(f"🔍 Scanning IaC: {args.file_path} (provider: {args.provider})")
-        print("✅ Scan initiated")
-        return 0
-
-    elif args.iac_command == "resolve":
-        finding = db.get_finding(args.id)
-        if not finding:
-            print(f"❌ IaC finding not found: {args.id}")
-            return 1
-        finding.status = IaCFindingStatus.RESOLVED
-        finding.resolved_at = datetime.utcnow()
-        db.update_finding(finding)
-        print(f"✅ Resolved IaC finding: {args.id}")
 
     return 0
 
@@ -2345,435 +1630,71 @@ def build_parser() -> argparse.ArgumentParser:
     )
     backtest_bn_lr_parser.set_defaults(func=_handle_backtest_bn_lr)
 
-    inventory_parser = subparsers.add_parser(
-        "inventory", help="Manage application and service inventory"
+    pentagi_parser = subparsers.add_parser("pentagi", help="Manage Pentagi pen testing")
+    pentagi_subparsers = pentagi_parser.add_subparsers(dest="pentagi_command")
+
+    list_requests = pentagi_subparsers.add_parser(
+        "list-requests", help="List pen test requests"
     )
-    inventory_subparsers = inventory_parser.add_subparsers(dest="inventory_command")
-
-    list_apps = inventory_subparsers.add_parser("list", help="List applications")
-    list_apps.add_argument("--limit", type=int, default=100, help="Results per page")
-    list_apps.add_argument("--offset", type=int, default=0, help="Pagination offset")
-    list_apps.add_argument("--format", choices=["table", "json"], default="table")
-
-    create_app = inventory_subparsers.add_parser("create", help="Create application")
-    create_app.add_argument("--name", required=True, help="Application name")
-    create_app.add_argument("--description", required=True, help="Description")
-    create_app.add_argument(
-        "--criticality", required=True, choices=["critical", "high", "medium", "low"]
-    )
-    create_app.add_argument("--environment", default="production")
-    create_app.add_argument("--owner-team", help="Owning team")
-    create_app.add_argument("--repo-url", help="Repository URL")
-
-    get_app = inventory_subparsers.add_parser("get", help="Get application details")
-    get_app.add_argument("id", help="Application ID")
-    get_app.add_argument("--format", choices=["table", "json"], default="json")
-
-    update_app = inventory_subparsers.add_parser("update", help="Update application")
-    update_app.add_argument("id", help="Application ID")
-    update_app.add_argument("--name", help="Application name")
-    update_app.add_argument("--description", help="Description")
-    update_app.add_argument(
-        "--criticality", choices=["critical", "high", "medium", "low"]
-    )
-    update_app.add_argument("--status", choices=["active", "deprecated", "archived"])
-
-    delete_app = inventory_subparsers.add_parser("delete", help="Delete application")
-    delete_app.add_argument("id", help="Application ID")
-    delete_app.add_argument("--confirm", action="store_true", help="Confirm deletion")
-
-    search_inv = inventory_subparsers.add_parser("search", help="Search inventory")
-    search_inv.add_argument("query", help="Search query")
-    search_inv.add_argument("--limit", type=int, default=100)
-
-    inventory_parser.set_defaults(func=_handle_inventory)
-
-    users_parser = subparsers.add_parser(
-        "users", help="Manage users and authentication"
-    )
-    users_subparsers = users_parser.add_subparsers(dest="user_command")
-
-    list_users = users_subparsers.add_parser("list", help="List users")
-    list_users.add_argument("--limit", type=int, default=100)
-    list_users.add_argument("--offset", type=int, default=0)
-    list_users.add_argument("--format", choices=["table", "json"], default="table")
-
-    create_user = users_subparsers.add_parser("create", help="Create user")
-    create_user.add_argument("--email", required=True)
-    create_user.add_argument("--password", required=True)
-    create_user.add_argument("--first-name", required=True)
-    create_user.add_argument("--last-name", required=True)
-    create_user.add_argument(
-        "--role",
-        required=True,
-        choices=["admin", "security_analyst", "developer", "viewer"],
-    )
-    create_user.add_argument("--department")
-
-    get_user = users_subparsers.add_parser("get", help="Get user details")
-    get_user.add_argument("id", help="User ID")
-
-    update_user = users_subparsers.add_parser("update", help="Update user")
-    update_user.add_argument("id", help="User ID")
-    update_user.add_argument("--first-name")
-    update_user.add_argument("--last-name")
-    update_user.add_argument(
-        "--role", choices=["admin", "security_analyst", "developer", "viewer"]
-    )
-    update_user.add_argument("--status", choices=["active", "inactive", "suspended"])
-
-    delete_user = users_subparsers.add_parser("delete", help="Delete user")
-    delete_user.add_argument("id", help="User ID")
-    delete_user.add_argument("--confirm", action="store_true")
-
-    users_parser.set_defaults(func=_handle_users)
-
-    teams_parser = subparsers.add_parser("teams", help="Manage teams")
-    teams_subparsers = teams_parser.add_subparsers(dest="team_command")
-
-    list_teams = teams_subparsers.add_parser("list", help="List teams")
-    list_teams.add_argument("--limit", type=int, default=100)
-    list_teams.add_argument("--offset", type=int, default=0)
-    list_teams.add_argument("--format", choices=["table", "json"], default="table")
-
-    create_team = teams_subparsers.add_parser("create", help="Create team")
-    create_team.add_argument("--name", required=True)
-    create_team.add_argument("--description", required=True)
-
-    get_team = teams_subparsers.add_parser("get", help="Get team details")
-    get_team.add_argument("id", help="Team ID")
-
-    update_team = teams_subparsers.add_parser("update", help="Update team")
-    update_team.add_argument("id", help="Team ID")
-    update_team.add_argument("--name")
-    update_team.add_argument("--description")
-
-    delete_team = teams_subparsers.add_parser("delete", help="Delete team")
-    delete_team.add_argument("id", help="Team ID")
-    delete_team.add_argument("--confirm", action="store_true")
-
-    members_team = teams_subparsers.add_parser("members", help="List team members")
-    members_team.add_argument("id", help="Team ID")
-
-    add_member = teams_subparsers.add_parser("add-member", help="Add user to team")
-    add_member.add_argument("id", help="Team ID")
-    add_member.add_argument("--user-id", required=True)
-    add_member.add_argument("--role", default="member")
-
-    remove_member = teams_subparsers.add_parser(
-        "remove-member", help="Remove user from team"
-    )
-    remove_member.add_argument("id", help="Team ID")
-    remove_member.add_argument("--user-id", required=True)
-
-    teams_parser.set_defaults(func=_handle_teams)
-
-    policies_parser = subparsers.add_parser("policies", help="Manage security policies")
-    policies_subparsers = policies_parser.add_subparsers(dest="policy_command")
-
-    list_policies = policies_subparsers.add_parser("list", help="List policies")
-    list_policies.add_argument("--type", help="Filter by policy type")
-    list_policies.add_argument("--limit", type=int, default=100)
-    list_policies.add_argument("--offset", type=int, default=0)
-    list_policies.add_argument("--format", choices=["table", "json"], default="table")
-
-    create_policy = policies_subparsers.add_parser("create", help="Create policy")
-    create_policy.add_argument("--name", required=True)
-    create_policy.add_argument("--description", required=True)
-    create_policy.add_argument(
-        "--type", required=True, help="Policy type (guardrail, compliance, custom)"
-    )
-    create_policy.add_argument(
-        "--status", default="draft", choices=["active", "draft", "archived"]
-    )
-    create_policy.add_argument("--rules", help="JSON string of policy rules")
-
-    get_policy = policies_subparsers.add_parser("get", help="Get policy details")
-    get_policy.add_argument("id", help="Policy ID")
-
-    update_policy = policies_subparsers.add_parser("update", help="Update policy")
-    update_policy.add_argument("id", help="Policy ID")
-    update_policy.add_argument("--name")
-    update_policy.add_argument("--description")
-    update_policy.add_argument("--type")
-    update_policy.add_argument("--status", choices=["active", "draft", "archived"])
-
-    delete_policy = policies_subparsers.add_parser("delete", help="Delete policy")
-    delete_policy.add_argument("id", help="Policy ID")
-    delete_policy.add_argument("--confirm", action="store_true")
-
-    policies_parser.set_defaults(func=_handle_policies)
-
-    analytics_parser = subparsers.add_parser(
-        "analytics", help="Analytics and dashboard queries"
-    )
-    analytics_subparsers = analytics_parser.add_subparsers(dest="analytics_command")
-
-    analytics_subparsers.add_parser("dashboard", help="Get dashboard overview")
-
-    findings_cmd = analytics_subparsers.add_parser("findings", help="Query findings")
-    findings_cmd.add_argument(
-        "--severity", choices=["critical", "high", "medium", "low", "info"]
-    )
-    findings_cmd.add_argument(
+    list_requests.add_argument("--finding-id")
+    list_requests.add_argument(
         "--status",
-        choices=["open", "in_progress", "resolved", "false_positive", "accepted_risk"],
+        choices=["pending", "running", "completed", "failed", "cancelled"],
     )
-    findings_cmd.add_argument("--limit", type=int, default=100)
-    findings_cmd.add_argument("--offset", type=int, default=0)
-    findings_cmd.add_argument("--format", choices=["table", "json"], default="table")
+    list_requests.add_argument("--limit", type=int, default=100)
+    list_requests.add_argument("--offset", type=int, default=0)
+    list_requests.add_argument("--format", choices=["table", "json"], default="table")
 
-    decisions_cmd = analytics_subparsers.add_parser(
-        "decisions", help="Query decision history"
+    create_request = pentagi_subparsers.add_parser(
+        "create-request", help="Create pen test request"
     )
-    decisions_cmd.add_argument("--finding-id", help="Filter by finding ID")
-    decisions_cmd.add_argument("--limit", type=int, default=100)
-    decisions_cmd.add_argument("--offset", type=int, default=0)
-    decisions_cmd.add_argument("--format", choices=["table", "json"], default="table")
-
-    top_risks_cmd = analytics_subparsers.add_parser(
-        "top-risks", help="Get top security risks"
-    )
-    top_risks_cmd.add_argument("--limit", type=int, default=10)
-
-    analytics_subparsers.add_parser("mttr", help="Get mean time to remediation")
-
-    analytics_subparsers.add_parser("roi", help="Get ROI calculations")
-
-    export_cmd = analytics_subparsers.add_parser("export", help="Export analytics data")
-    export_cmd.add_argument(
-        "--data-type", required=True, choices=["findings", "decisions"]
+    create_request.add_argument("--finding-id", required=True)
+    create_request.add_argument("--target-url", required=True)
+    create_request.add_argument("--vuln-type", required=True)
+    create_request.add_argument("--test-case", required=True)
+    create_request.add_argument(
+        "--priority", default="medium", choices=["critical", "high", "medium", "low"]
     )
 
-    analytics_parser.set_defaults(func=_handle_analytics)
-
-    integrations_parser = subparsers.add_parser(
-        "integrations", help="Manage integrations"
+    get_request = pentagi_subparsers.add_parser(
+        "get-request", help="Get pen test request"
     )
-    integrations_subparsers = integrations_parser.add_subparsers(
-        dest="integration_command"
-    )
+    get_request.add_argument("id", help="Request ID")
 
-    list_integrations = integrations_subparsers.add_parser(
-        "list", help="List integrations"
+    list_results = pentagi_subparsers.add_parser(
+        "list-results", help="List pen test results"
     )
-    list_integrations.add_argument("--type", help="Filter by integration type")
-    list_integrations.add_argument("--limit", type=int, default=100)
-    list_integrations.add_argument("--offset", type=int, default=0)
-    list_integrations.add_argument(
-        "--format", choices=["table", "json"], default="table"
-    )
-
-    create_integration = integrations_subparsers.add_parser(
-        "create", help="Create integration"
-    )
-    create_integration.add_argument("--name", required=True)
-    create_integration.add_argument(
-        "--type",
-        required=True,
-        choices=["jira", "confluence", "slack", "github", "gitlab", "pagerduty"],
-    )
-
-    get_integration = integrations_subparsers.add_parser(
-        "get", help="Get integration details"
-    )
-    get_integration.add_argument("id", help="Integration ID")
-    get_integration.add_argument(
-        "--show-secrets", action="store_true", help="Show secret values"
-    )
-
-    update_integration = integrations_subparsers.add_parser(
-        "update", help="Update integration"
-    )
-    update_integration.add_argument("id", help="Integration ID")
-    update_integration.add_argument("--name")
-    update_integration.add_argument("--status", choices=["active", "inactive", "error"])
-
-    delete_integration = integrations_subparsers.add_parser(
-        "delete", help="Delete integration"
-    )
-    delete_integration.add_argument("id", help="Integration ID")
-    delete_integration.add_argument("--confirm", action="store_true")
-
-    test_integration = integrations_subparsers.add_parser(
-        "test", help="Test integration connection"
-    )
-    test_integration.add_argument("id", help="Integration ID")
-
-    integrations_parser.set_defaults(func=_handle_integrations)
-
-    reports_parser = subparsers.add_parser("reports", help="Manage reports")
-    reports_subparsers = reports_parser.add_subparsers(dest="report_command")
-
-    list_reports = reports_subparsers.add_parser("list", help="List reports")
-    list_reports.add_argument("--type", help="Filter by report type")
-    list_reports.add_argument("--limit", type=int, default=100)
-    list_reports.add_argument("--offset", type=int, default=0)
-    list_reports.add_argument("--format", choices=["table", "json"], default="table")
-
-    generate_report = reports_subparsers.add_parser("generate", help="Generate report")
-    generate_report.add_argument("--name", required=True)
-    generate_report.add_argument(
-        "--type",
-        required=True,
+    list_results.add_argument("--finding-id")
+    list_results.add_argument(
+        "--exploitability",
         choices=[
-            "security_summary",
-            "compliance",
-            "risk_assessment",
-            "vulnerability",
-            "audit",
-            "custom",
+            "confirmed_exploitable",
+            "likely_exploitable",
+            "unexploitable",
+            "blocked",
+            "inconclusive",
         ],
     )
-    generate_report.add_argument(
-        "--output-format",
-        default="pdf",
-        choices=["pdf", "html", "json", "csv", "sarif"],
+    list_results.add_argument("--limit", type=int, default=100)
+    list_results.add_argument("--offset", type=int, default=0)
+    list_results.add_argument("--format", choices=["table", "json"], default="table")
+
+    list_configs = pentagi_subparsers.add_parser(
+        "list-configs", help="List Pentagi configurations"
     )
+    list_configs.add_argument("--limit", type=int, default=100)
+    list_configs.add_argument("--offset", type=int, default=0)
+    list_configs.add_argument("--format", choices=["table", "json"], default="table")
 
-    get_report = reports_subparsers.add_parser("get", help="Get report details")
-    get_report.add_argument("id", help="Report ID")
-
-    reports_parser.set_defaults(func=_handle_reports)
-
-    audit_parser = subparsers.add_parser(
-        "audit", help="Manage audit logs and compliance"
+    create_config = pentagi_subparsers.add_parser(
+        "create-config", help="Create Pentagi configuration"
     )
-    audit_subparsers = audit_parser.add_subparsers(dest="audit_command")
+    create_config.add_argument("--name", required=True)
+    create_config.add_argument("--url", required=True)
+    create_config.add_argument("--api-key")
+    create_config.add_argument("--disabled", action="store_true")
 
-    logs_cmd = audit_subparsers.add_parser("logs", help="Query audit logs")
-    logs_cmd.add_argument("--event-type", help="Filter by event type")
-    logs_cmd.add_argument("--user-id", help="Filter by user ID")
-    logs_cmd.add_argument("--limit", type=int, default=100)
-    logs_cmd.add_argument("--offset", type=int, default=0)
-    logs_cmd.add_argument("--format", choices=["table", "json"], default="table")
-
-    frameworks_cmd = audit_subparsers.add_parser(
-        "frameworks", help="List compliance frameworks"
-    )
-    frameworks_cmd.add_argument("--limit", type=int, default=100)
-    frameworks_cmd.add_argument("--offset", type=int, default=0)
-    frameworks_cmd.add_argument("--format", choices=["table", "json"], default="table")
-
-    controls_cmd = audit_subparsers.add_parser(
-        "controls", help="List compliance controls"
-    )
-    controls_cmd.add_argument("--framework-id", help="Filter by framework ID")
-    controls_cmd.add_argument("--limit", type=int, default=100)
-    controls_cmd.add_argument("--offset", type=int, default=0)
-    controls_cmd.add_argument("--format", choices=["table", "json"], default="table")
-
-    audit_parser.set_defaults(func=_handle_audit)
-
-    workflows_parser = subparsers.add_parser("workflows", help="Manage workflows")
-    workflows_subparsers = workflows_parser.add_subparsers(dest="workflow_command")
-
-    list_workflows = workflows_subparsers.add_parser("list", help="List workflows")
-    list_workflows.add_argument("--limit", type=int, default=100)
-    list_workflows.add_argument("--offset", type=int, default=0)
-    list_workflows.add_argument("--format", choices=["table", "json"], default="table")
-
-    create_workflow = workflows_subparsers.add_parser("create", help="Create workflow")
-    create_workflow.add_argument("--name", required=True)
-    create_workflow.add_argument("--description", required=True)
-
-    get_workflow = workflows_subparsers.add_parser("get", help="Get workflow details")
-    get_workflow.add_argument("id", help="Workflow ID")
-
-    execute_workflow = workflows_subparsers.add_parser(
-        "execute", help="Execute workflow"
-    )
-    execute_workflow.add_argument("id", help="Workflow ID")
-
-    workflow_history = workflows_subparsers.add_parser(
-        "history", help="Get workflow execution history"
-    )
-    workflow_history.add_argument("id", help="Workflow ID")
-    workflow_history.add_argument("--limit", type=int, default=100)
-    workflow_history.add_argument("--offset", type=int, default=0)
-    workflow_history.add_argument(
-        "--format", choices=["table", "json"], default="table"
-    )
-
-    workflows_parser.set_defaults(func=_handle_workflows)
-
-    auth_parser = subparsers.add_parser("auth", help="Manage SSO/SAML authentication")
-    auth_subparsers = auth_parser.add_subparsers(dest="auth_command")
-
-    list_sso = auth_subparsers.add_parser("list-sso", help="List SSO configurations")
-    list_sso.add_argument("--limit", type=int, default=100)
-    list_sso.add_argument("--offset", type=int, default=0)
-    list_sso.add_argument("--format", choices=["table", "json"], default="table")
-
-    create_sso = auth_subparsers.add_parser(
-        "create-sso", help="Create SSO configuration"
-    )
-    create_sso.add_argument("--name", required=True)
-    create_sso.add_argument(
-        "--provider", required=True, choices=["local", "saml", "oauth2", "ldap"]
-    )
-    create_sso.add_argument("--status", choices=["active", "inactive", "pending"])
-    create_sso.add_argument("--entity-id")
-    create_sso.add_argument("--sso-url")
-    create_sso.add_argument("--certificate")
-
-    get_sso = auth_subparsers.add_parser("get-sso", help="Get SSO configuration")
-    get_sso.add_argument("id", help="SSO config ID")
-
-    delete_sso = auth_subparsers.add_parser(
-        "delete-sso", help="Delete SSO configuration"
-    )
-    delete_sso.add_argument("id", help="SSO config ID")
-    delete_sso.add_argument("--confirm", action="store_true")
-
-    auth_parser.set_defaults(func=_handle_auth)
-
-    secrets_parser = subparsers.add_parser("secrets", help="Manage secrets detection")
-    secrets_subparsers = secrets_parser.add_subparsers(dest="secrets_command")
-
-    list_secrets = secrets_subparsers.add_parser("list", help="List secret findings")
-    list_secrets.add_argument("--repository")
-    list_secrets.add_argument("--limit", type=int, default=100)
-    list_secrets.add_argument("--offset", type=int, default=0)
-    list_secrets.add_argument("--format", choices=["table", "json"], default="table")
-
-    scan_secrets = secrets_subparsers.add_parser(
-        "scan", help="Scan repository for secrets"
-    )
-    scan_secrets.add_argument("--repository", required=True)
-    scan_secrets.add_argument("--branch", default="main")
-
-    resolve_secrets = secrets_subparsers.add_parser(
-        "resolve", help="Resolve secret finding"
-    )
-    resolve_secrets.add_argument("id", help="Finding ID")
-
-    secrets_parser.set_defaults(func=_handle_secrets)
-
-    iac_parser = subparsers.add_parser("iac", help="Manage IaC scanning")
-    iac_subparsers = iac_parser.add_subparsers(dest="iac_command")
-
-    list_iac = iac_subparsers.add_parser("list", help="List IaC findings")
-    list_iac.add_argument(
-        "--provider",
-        choices=["terraform", "cloudformation", "kubernetes", "ansible", "helm"],
-    )
-    list_iac.add_argument("--limit", type=int, default=100)
-    list_iac.add_argument("--offset", type=int, default=0)
-    list_iac.add_argument("--format", choices=["table", "json"], default="table")
-
-    scan_iac = iac_subparsers.add_parser("scan", help="Scan IaC files")
-    scan_iac.add_argument(
-        "--provider",
-        required=True,
-        choices=["terraform", "cloudformation", "kubernetes", "ansible", "helm"],
-    )
-    scan_iac.add_argument("--file-path", required=True)
-
-    resolve_iac = iac_subparsers.add_parser("resolve", help="Resolve IaC finding")
-    resolve_iac.add_argument("id", help="Finding ID")
-
-    iac_parser.set_defaults(func=_handle_iac)
+    pentagi_parser.set_defaults(func=_handle_pentagi)
 
     return parser
 
