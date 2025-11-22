@@ -21,7 +21,21 @@ from fastapi import Body, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
+from apps.api.analytics_router import router as analytics_router
+from apps.api.audit_router import router as audit_router
+from apps.api.auth_router import router as auth_router
+from apps.api.bulk_router import router as bulk_router
+from apps.api.iac_router import router as iac_router
+from apps.api.ide_router import router as ide_router
+from apps.api.integrations_router import router as integrations_router
+from apps.api.inventory_router import router as inventory_router
 from apps.api.pentagi_router import router as pentagi_router
+from apps.api.policies_router import router as policies_router
+from apps.api.reports_router import router as reports_router
+from apps.api.secrets_router import router as secrets_router
+from apps.api.teams_router import router as teams_router
+from apps.api.users_router import router as users_router
+from apps.api.workflows_router import router as workflows_router
 from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
@@ -356,6 +370,26 @@ def create_app() -> FastAPI:
     app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(users_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(teams_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(policies_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(integrations_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(reports_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(workflows_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(auth_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(secrets_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(iac_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(ide_router, dependencies=[Depends(_verify_api_key)])
+
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
