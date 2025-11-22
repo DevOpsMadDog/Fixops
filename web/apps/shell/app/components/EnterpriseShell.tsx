@@ -55,12 +55,13 @@ interface AppUrls {
 }
 
 export default function EnterpriseShell({ children }: EnterpriseShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false) // Default to closed on mobile
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [appUrls, setAppUrls] = useState<AppUrls | null>(null)
   const [currentApp, setCurrentApp] = useState<string>('')
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
     fetch('/app-urls.json')
@@ -77,6 +78,16 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
       .catch(err => {
         console.error('Failed to load app URLs:', err)
       })
+  }, [])
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768)
+    }
+    
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   useEffect(() => {
@@ -155,8 +166,8 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
             </div>
           </div>
 
-          {/* Center: Global Search */}
-          <div className="flex-1 max-w-2xl mx-8">
+          {/* Center: Global Search - Hidden on mobile */}
+          <div className="hidden md:flex flex-1 max-w-2xl mx-8">
             <button
               onClick={() => setCommandPaletteOpen(true)}
               className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-slate-400 hover:bg-white/10 transition-all flex items-center justify-between"
@@ -259,19 +270,34 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         </div>
       </div>
 
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <div
-        className={`fixed top-16 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-transform duration-200 z-40 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className="fixed top-16 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-all duration-200 z-40"
+        style={{
+          display: isDesktop || sidebarOpen ? 'block' : 'none',
+          transform: isDesktop || sidebarOpen ? 'translateX(0)' : 'translateX(-100%)'
+        }}
       >
-        <div className="p-4 space-y-1">
+        <div className="p-4 space-y-1 overflow-y-auto h-full">
           {navigation.map((item) => {
             const Icon = item.icon
             return (
               <a
                 key={item.name}
                 href={item.href}
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    setSidebarOpen(false)
+                  }
+                }}
                 className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   item.current
                     ? 'bg-[#6B5AED]/10 text-[#6B5AED]'
@@ -288,9 +314,7 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
 
       {/* Main Content */}
       <div
-        className={`pt-16 transition-all duration-200 ${
-          sidebarOpen ? 'pl-64' : 'pl-0'
-        }`}
+        className="pt-16 pl-0 md:pl-64 transition-all duration-200"
       >
         {children}
       </div>
