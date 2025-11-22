@@ -591,6 +591,94 @@ fixops workflows get <workflow_id>
 
 #### 21.4 workflows execute
 ```bash
+
+## Phase 5: Enterprise Features (22 endpoints, 3 CLI commands)
+
+### Authentication Management
+**CLI Command**: `python -m core.cli auth`
+
+Subcommands:
+- `list-sso` - List SSO configurations
+- `create-sso` - Create SSO configuration
+- `get-sso <id>` - Get SSO configuration
+- `delete-sso <id>` - Delete SSO configuration
+
+Examples:
+```bash
+python -m core.cli auth list-sso
+python -m core.cli auth list-sso --format json
+python -m core.cli auth create-sso --name "Corporate SAML" --provider saml --entity-id https://corp.example.com
+python -m core.cli auth get-sso abc-123
+python -m core.cli auth delete-sso abc-123 --confirm
+```
+
+**API Endpoints**:
+- GET /api/v1/auth/sso
+- POST /api/v1/auth/sso
+- GET /api/v1/auth/sso/{id}
+- PUT /api/v1/auth/sso/{id}
+
+### Secrets Detection
+**CLI Command**: `python -m core.cli secrets`
+
+Subcommands:
+- `list` - List secret findings
+- `scan` - Scan repository for secrets
+- `resolve <id>` - Resolve secret finding
+
+Examples:
+```bash
+python -m core.cli secrets list
+python -m core.cli secrets list --repository myapp --format json
+python -m core.cli secrets scan --repository myapp --branch main
+python -m core.cli secrets resolve abc-123
+```
+
+**API Endpoints**:
+- GET /api/v1/secrets
+- POST /api/v1/secrets
+- GET /api/v1/secrets/{id}
+- POST /api/v1/secrets/{id}/resolve
+- POST /api/v1/secrets/scan
+
+### IaC Scanning
+**CLI Command**: `python -m core.cli iac`
+
+Subcommands:
+- `list` - List IaC findings
+- `scan` - Scan IaC files
+- `resolve <id>` - Resolve IaC finding
+
+Examples:
+```bash
+python -m core.cli iac list
+python -m core.cli iac list --provider terraform --format json
+python -m core.cli iac scan --provider terraform --file-path terraform/
+python -m core.cli iac scan --provider kubernetes --file-path k8s/
+python -m core.cli iac resolve abc-123
+```
+
+**API Endpoints**:
+- GET /api/v1/iac
+- POST /api/v1/iac
+- GET /api/v1/iac/{id}
+- POST /api/v1/iac/{id}/resolve
+- POST /api/v1/iac/scan
+
+### Bulk Operations
+**API Endpoints** (no CLI commands - designed for programmatic use):
+- POST /api/v1/bulk/findings/update
+- POST /api/v1/bulk/findings/delete
+- POST /api/v1/bulk/findings/assign
+- POST /api/v1/bulk/policies/apply
+- POST /api/v1/bulk/export
+
+### IDE Extension Support
+**API Endpoints** (no CLI commands - designed for IDE integration):
+- GET /api/v1/ide/config
+- POST /api/v1/ide/analyze
+- GET /api/v1/ide/suggestions
+
 fixops workflows execute <workflow_id>
 ```
 - Executes a workflow

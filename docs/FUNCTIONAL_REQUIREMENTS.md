@@ -644,6 +644,124 @@ fixops inventory search <query> [--limit N]
 
 #### 2.5.2 Create Integration
 - **Endpoint**: `POST /api/v1/integrations`
+
+## Phase 5: Enterprise Features (22 endpoints)
+
+### SSO/SAML Authentication (4 endpoints)
+1. **GET /api/v1/auth/sso** - List SSO configurations
+   - Query params: limit, offset
+   - Returns: Paginated list of SSO configs
+   - Auth: API key required
+
+2. **POST /api/v1/auth/sso** - Create SSO configuration
+   - Body: name, provider (local/saml/oauth2/ldap), status, entity_id, sso_url, certificate
+   - Returns: Created SSO config with ID
+   - Auth: API key required
+
+3. **GET /api/v1/auth/sso/{id}** - Get SSO configuration
+   - Path param: config ID
+   - Returns: SSO config details
+   - Auth: API key required
+
+4. **PUT /api/v1/auth/sso/{id}** - Update SSO configuration
+   - Path param: config ID
+   - Body: Partial updates (name, status, metadata, entity_id, sso_url, certificate)
+   - Returns: Updated SSO config
+   - Auth: API key required
+
+### Secrets Detection (5 endpoints)
+1. **GET /api/v1/secrets** - List secret findings
+   - Query params: repository, limit, offset
+   - Returns: Paginated list of secret findings
+   - Auth: API key required
+
+2. **POST /api/v1/secrets** - Create secret finding
+   - Body: secret_type, file_path, line_number, repository, branch, commit_hash, matched_pattern, entropy_score
+   - Returns: Created finding with ID
+   - Auth: API key required
+
+3. **GET /api/v1/secrets/{id}** - Get secret finding
+   - Path param: finding ID
+   - Returns: Secret finding details
+   - Auth: API key required
+
+4. **POST /api/v1/secrets/{id}/resolve** - Resolve secret finding
+   - Path param: finding ID
+   - Returns: Updated finding with resolved status
+   - Auth: API key required
+
+5. **POST /api/v1/secrets/scan** - Trigger secrets scan
+   - Query params: repository, branch
+   - Returns: Scan initiation status
+   - Auth: API key required
+
+### IaC Scanning (5 endpoints)
+1. **GET /api/v1/iac** - List IaC findings
+   - Query params: provider, limit, offset
+   - Returns: Paginated list of IaC findings
+   - Auth: API key required
+
+2. **POST /api/v1/iac** - Create IaC finding
+   - Body: provider, severity, title, description, file_path, line_number, resource_type, resource_name, rule_id, remediation
+   - Returns: Created finding with ID
+   - Auth: API key required
+
+3. **GET /api/v1/iac/{id}** - Get IaC finding
+   - Path param: finding ID
+   - Returns: IaC finding details
+   - Auth: API key required
+
+4. **POST /api/v1/iac/{id}/resolve** - Resolve IaC finding
+   - Path param: finding ID
+   - Returns: Updated finding with resolved status
+   - Auth: API key required
+
+5. **POST /api/v1/iac/scan** - Trigger IaC scan
+   - Query params: provider (terraform/cloudformation/kubernetes/ansible/helm), file_path
+   - Returns: Scan initiation status
+   - Auth: API key required
+
+### Bulk Operations (5 endpoints)
+1. **POST /api/v1/bulk/findings/update** - Bulk update findings
+   - Body: ids (list), updates (dict)
+   - Returns: Success/failure counts with errors
+   - Auth: API key required
+
+2. **POST /api/v1/bulk/findings/delete** - Bulk delete findings
+   - Body: ids (list)
+   - Returns: Success/failure counts with errors
+   - Auth: API key required
+
+3. **POST /api/v1/bulk/findings/assign** - Bulk assign findings
+   - Query params: ids (list), assignee
+   - Returns: Success/failure counts with errors
+   - Auth: API key required
+
+4. **POST /api/v1/bulk/policies/apply** - Bulk apply policies
+   - Query params: policy_ids (list), target_ids (list)
+   - Returns: Success/failure counts with errors
+   - Auth: API key required
+
+5. **POST /api/v1/bulk/export** - Bulk export findings
+   - Query params: ids (list), format (json/csv/sarif)
+   - Returns: Export ID and download URL
+   - Auth: API key required
+
+### IDE Extension Support (3 endpoints)
+1. **GET /api/v1/ide/config** - Get IDE configuration
+   - Returns: API endpoint, supported languages, features
+   - Auth: API key required
+
+2. **POST /api/v1/ide/analyze** - Analyze code in real-time
+   - Body: file_path, content, language
+   - Returns: Findings, suggestions, metrics
+   - Auth: API key required
+
+3. **GET /api/v1/ide/suggestions** - Get code suggestions
+   - Query params: file_path, line, column
+   - Returns: Suggestions with context
+   - Auth: API key required
+
 - **Purpose**: Add a new integration
 - **Authentication**: Required
 - **Request Body**:
