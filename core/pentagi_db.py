@@ -1,4 +1,5 @@
 """Database manager for Pentagi pen testing data."""
+import json
 import sqlite3
 import uuid
 from datetime import datetime
@@ -221,7 +222,7 @@ class PentagiDB:
                 if row["completed_at"]
                 else None,
                 pentagi_job_id=row["pentagi_job_id"],
-                metadata=eval(row["metadata"]) if row["metadata"] else {},
+                metadata=json.loads(row["metadata"]) if row["metadata"] else {},
             )
             for row in rows
         ]
@@ -242,7 +243,7 @@ class PentagiDB:
                 request.started_at.isoformat() if request.started_at else None,
                 request.completed_at.isoformat() if request.completed_at else None,
                 request.pentagi_job_id,
-                str(request.metadata),
+                json.dumps(request.metadata),
                 request.id,
             ),
         )
@@ -273,12 +274,12 @@ class PentagiDB:
                 result.exploitability.value,
                 1 if result.exploit_successful else 0,
                 result.evidence,
-                str(result.steps_taken),
-                str(result.artifacts),
+                json.dumps(result.steps_taken),
+                json.dumps(result.artifacts),
                 result.confidence_score,
                 result.execution_time_seconds,
                 result.created_at.isoformat(),
-                str(result.metadata),
+                json.dumps(result.metadata),
             ),
         )
 
@@ -307,12 +308,12 @@ class PentagiDB:
             exploitability=ExploitabilityLevel(row["exploitability"]),
             exploit_successful=bool(row["exploit_successful"]),
             evidence=row["evidence"],
-            steps_taken=eval(row["steps_taken"]) if row["steps_taken"] else [],
-            artifacts=eval(row["artifacts"]) if row["artifacts"] else [],
+            steps_taken=json.loads(row["steps_taken"]) if row["steps_taken"] else [],
+            artifacts=json.loads(row["artifacts"]) if row["artifacts"] else [],
             confidence_score=row["confidence_score"],
             execution_time_seconds=row["execution_time_seconds"],
             created_at=datetime.fromisoformat(row["created_at"]),
-            metadata=eval(row["metadata"]) if row["metadata"] else {},
+            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
         )
 
     def list_results(
@@ -352,12 +353,14 @@ class PentagiDB:
                 exploitability=ExploitabilityLevel(row["exploitability"]),
                 exploit_successful=bool(row["exploit_successful"]),
                 evidence=row["evidence"],
-                steps_taken=eval(row["steps_taken"]) if row["steps_taken"] else [],
-                artifacts=eval(row["artifacts"]) if row["artifacts"] else [],
+                steps_taken=json.loads(row["steps_taken"])
+                if row["steps_taken"]
+                else [],
+                artifacts=json.loads(row["artifacts"]) if row["artifacts"] else [],
                 confidence_score=row["confidence_score"],
                 execution_time_seconds=row["execution_time_seconds"],
                 created_at=datetime.fromisoformat(row["created_at"]),
-                metadata=eval(row["metadata"]) if row["metadata"] else {},
+                metadata=json.loads(row["metadata"]) if row["metadata"] else {},
             )
             for row in rows
         ]
@@ -386,10 +389,10 @@ class PentagiDB:
                 config.max_concurrent_tests,
                 config.timeout_seconds,
                 1 if config.auto_trigger else 0,
-                str(config.target_environments),
+                json.dumps(config.target_environments),
                 config.created_at.isoformat(),
                 config.updated_at.isoformat(),
-                str(config.metadata),
+                json.dumps(config.metadata),
             ),
         )
 
@@ -418,12 +421,12 @@ class PentagiDB:
             max_concurrent_tests=row["max_concurrent_tests"],
             timeout_seconds=row["timeout_seconds"],
             auto_trigger=bool(row["auto_trigger"]),
-            target_environments=eval(row["target_environments"])
+            target_environments=json.loads(row["target_environments"])
             if row["target_environments"]
             else [],
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
-            metadata=eval(row["metadata"]) if row["metadata"] else {},
+            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
         )
 
     def list_configs(self, limit: int = 100, offset: int = 0) -> List[PenTestConfig]:
@@ -448,12 +451,12 @@ class PentagiDB:
                 max_concurrent_tests=row["max_concurrent_tests"],
                 timeout_seconds=row["timeout_seconds"],
                 auto_trigger=bool(row["auto_trigger"]),
-                target_environments=eval(row["target_environments"])
+                target_environments=json.loads(row["target_environments"])
                 if row["target_environments"]
                 else [],
                 created_at=datetime.fromisoformat(row["created_at"]),
                 updated_at=datetime.fromisoformat(row["updated_at"]),
-                metadata=eval(row["metadata"]) if row["metadata"] else {},
+                metadata=json.loads(row["metadata"]) if row["metadata"] else {},
             )
             for row in rows
         ]
@@ -480,9 +483,9 @@ class PentagiDB:
                 config.max_concurrent_tests,
                 config.timeout_seconds,
                 1 if config.auto_trigger else 0,
-                str(config.target_environments),
+                json.dumps(config.target_environments),
                 config.updated_at.isoformat(),
-                str(config.metadata),
+                json.dumps(config.metadata),
                 config.id,
             ),
         )
