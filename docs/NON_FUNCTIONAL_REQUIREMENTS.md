@@ -287,3 +287,95 @@
 - **Secret Redaction**: Secrets never returned in API responses (unless explicitly requested with proper auth)
 - **Connection Validation**: All integration configs validated before storage
 - **Audit Logging**: All integration operations logged with user context
+
+## 14. Phase 4 Specific Requirements
+
+### 14.1 Report Generation Performance
+- **Report Generation**: < 10s for standard reports (security summary, compliance)
+- **Large Reports**: < 30s for reports with >1000 findings
+- **PDF Generation**: < 5s for PDF rendering
+- **HTML Generation**: < 2s for HTML rendering
+- **CSV Export**: < 3s for CSV generation
+- **SARIF Export**: < 5s for SARIF 2.1.0 export
+
+### 14.2 Report Storage & Retention
+- **Report Files**: 90 days retention for generated reports
+- **Report Metadata**: 2 years retention for report records
+- **Scheduled Reports**: Indefinite retention for schedules
+- **Report Templates**: Version-controlled with change history
+- **File Size Limits**: 100MB max per report file
+
+### 14.3 Report Scheduling
+- **Cron Validation**: Validate cron expressions before accepting
+- **Schedule Execution**: < 1 minute deviation from scheduled time
+- **Concurrent Reports**: Support 10 concurrent report generations
+- **Retry Logic**: 3 retries with exponential backoff for failed generations
+- **Email Delivery**: < 5 minutes for report email delivery (when implemented)
+
+### 14.4 Audit Log Performance
+- **Log Ingestion**: < 50ms to write audit log entry
+- **Log Query**: < 500ms for filtered audit log queries
+- **User Activity**: < 300ms to retrieve user activity logs
+- **Decision Trail**: < 1s for decision audit trail queries
+- **Bulk Export**: < 10s to export 10,000 audit logs
+
+### 14.5 Audit Log Retention
+- **Audit Logs**: 7 years retention for compliance
+- **User Activity**: 2 years retention for user actions
+- **Policy Changes**: 5 years retention for policy modifications
+- **Decision Trail**: 3 years retention for decision history
+- **Compliance Events**: 7 years retention for compliance-related events
+
+### 14.6 Audit Log Security
+- **Immutability**: Audit logs cannot be modified or deleted
+- **Integrity**: Cryptographic hashing for audit log integrity
+- **Access Control**: Audit logs only accessible by admin and security_analyst roles
+- **Sensitive Data**: PII and secrets redacted in audit logs
+- **Tamper Detection**: Alert on any attempted audit log tampering
+
+### 14.7 Compliance Framework Support
+- **Framework Coverage**: Support 5+ major frameworks (NIST 800-53, ISO 27001, PCI-DSS, SOC2, HIPAA)
+- **Control Mapping**: < 100ms to retrieve control mappings
+- **Gap Analysis**: < 2s to calculate compliance gaps
+- **Status Calculation**: < 1s to calculate framework compliance percentage
+- **Report Generation**: < 15s to generate compliance report
+
+### 14.8 Workflow Performance
+- **Workflow Execution**: < 5s for simple workflows (1-3 steps)
+- **Complex Workflows**: < 30s for workflows with 10+ steps
+- **Workflow Creation**: < 500ms to create workflow
+- **Workflow Update**: < 500ms to update workflow
+- **History Query**: < 1s to retrieve workflow execution history
+
+### 14.9 Workflow Scalability
+- **Concurrent Executions**: Support 50 concurrent workflow executions
+- **Workflow Volume**: Support 1,000+ workflows without degradation
+- **Execution History**: Retain 10,000+ executions per workflow
+- **Step Complexity**: Support workflows with up to 50 steps
+- **Trigger Evaluation**: < 100ms to evaluate workflow triggers
+
+### 14.10 Workflow Reliability
+- **Execution Success Rate**: > 99% successful executions
+- **Error Handling**: Graceful failure with detailed error messages
+- **Retry Logic**: Configurable retry with exponential backoff
+- **Timeout Protection**: Configurable timeouts per workflow step
+- **State Persistence**: Workflow state persisted for recovery
+
+### 14.11 CLI Performance (Phase 4)
+- **fixops reports list**: < 1s
+- **fixops reports generate**: < 15s (includes generation time)
+- **fixops reports get**: < 500ms
+- **fixops audit logs**: < 1s
+- **fixops audit frameworks**: < 500ms
+- **fixops audit controls**: < 1s
+- **fixops workflows list**: < 1s
+- **fixops workflows create**: < 2s
+- **fixops workflows execute**: < 10s (includes execution time)
+- **fixops workflows history**: < 1s
+
+### 14.12 Data Integrity
+- **Report Checksums**: SHA-256 checksums for all generated reports
+- **Audit Log Hashing**: Cryptographic hashing for audit log chains
+- **Workflow State**: Atomic state transitions with rollback capability
+- **Database Transactions**: ACID compliance for all database operations
+- **Backup Verification**: Monthly verification of backup integrity
