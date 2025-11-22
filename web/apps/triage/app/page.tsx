@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar } from 'lucide-react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const DEMO_ISSUES = [
@@ -242,6 +242,8 @@ export default function TriagePage() {
   const [editingCell, setEditingCell] = useState<{ issueId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; issue: typeof DEMO_ISSUES[0] } | null>(null)
+  const [undoStack, setUndoStack] = useState<Array<{ issueId: string; field: string; oldValue: any; newValue: any; timestamp: number }>>([])
+  const [showUndoToast, setShowUndoToast] = useState(false)
 
   const summary = {
     total: issues.length,
@@ -432,17 +434,43 @@ export default function TriagePage() {
   }
 
   const saveEdit = (issueId: string, field: string) => {
+    const oldIssue = issues.find(i => i.id === issueId)
+    if (!oldIssue) return
+
+    const oldValue = oldIssue[field as keyof typeof oldIssue]
+    const newValue = field === 'tags' ? editValue.split(',').map(t => t.trim()).filter(t => t) : editValue
+
     setIssues(prev => prev.map(issue => {
       if (issue.id === issueId) {
         if (field === 'tags') {
-          return { ...issue, tags: editValue.split(',').map(t => t.trim()).filter(t => t) }
+          return { ...issue, tags: newValue as string[] }
         }
-        return { ...issue, [field]: editValue }
+        return { ...issue, [field]: newValue }
       }
       return issue
     }))
+
+    setUndoStack(prev => [...prev, { issueId, field, oldValue, newValue, timestamp: Date.now() }])
+    setShowUndoToast(true)
+    setTimeout(() => setShowUndoToast(false), 5000)
+
     setEditingCell(null)
     setEditValue('')
+  }
+
+  const undoLastEdit = () => {
+    if (undoStack.length === 0) return
+
+    const lastEdit = undoStack[undoStack.length - 1]
+    setIssues(prev => prev.map(issue => {
+      if (issue.id === lastEdit.issueId) {
+        return { ...issue, [lastEdit.field]: lastEdit.oldValue }
+      }
+      return issue
+    }))
+
+    setUndoStack(prev => prev.slice(0, -1))
+    setShowUndoToast(false)
   }
 
   const cancelEdit = () => {
@@ -885,25 +913,129 @@ export default function TriagePage() {
                     )}
 
                     {/* Issue */}
-                    <div className="text-sm font-medium text-white">
-                      {issue.title}
-                    </div>
+                    {visibleColumns.title && (
+                      <div className="text-sm font-medium text-white group/title relative">
+                        {editingCell?.issueId === issue.id && editingCell?.field === 'assignee' ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(issue.id, 'assignee')
+                                if (e.key === 'Escape') cancelEdit()
+                              }}
+                              className="flex-1 px-2 py-1 bg-[#1e293b] border border-[#6B5AED] rounded text-xs text-white focus:outline-none"
+                              placeholder="Assignee..."
+                              autoFocus
+                            />
+                            <button onClick={() => saveEdit(issue.id, 'assignee')} className="p-1 hover:bg-white/10 rounded">
+                              <Save size={12} className="text-green-400" />
+                            </button>
+                            <button onClick={cancelEdit} className="p-1 hover:bg-white/10 rounded">
+                              <X size={12} className="text-red-400" />
+                            </button>
+                          </div>
+                        ) : editingCell?.issueId === issue.id && editingCell?.field === 'tags' ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(issue.id, 'tags')
+                                if (e.key === 'Escape') cancelEdit()
+                              }}
+                              className="flex-1 px-2 py-1 bg-[#1e293b] border border-[#6B5AED] rounded text-xs text-white focus:outline-none"
+                              placeholder="tag1, tag2, tag3..."
+                              autoFocus
+                            />
+                            <button onClick={() => saveEdit(issue.id, 'tags')} className="p-1 hover:bg-white/10 rounded">
+                              <Save size={12} className="text-green-400" />
+                            </button>
+                            <button onClick={cancelEdit} className="p-1 hover:bg-white/10 rounded">
+                              <X size={12} className="text-red-400" />
+                            </button>
+                          </div>
+                        ) : editingCell?.issueId === issue.id && editingCell?.field === 'sla_date' ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="date"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(issue.id, 'sla_date')
+                                if (e.key === 'Escape') cancelEdit()
+                              }}
+                              className="flex-1 px-2 py-1 bg-[#1e293b] border border-[#6B5AED] rounded text-xs text-white focus:outline-none"
+                              autoFocus
+                            />
+                            <button onClick={() => saveEdit(issue.id, 'sla_date')} className="p-1 hover:bg-white/10 rounded">
+                              <Save size={12} className="text-green-400" />
+                            </button>
+                            <button onClick={cancelEdit} className="p-1 hover:bg-white/10 rounded">
+                              <X size={12} className="text-red-400" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            {issue.title}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                startEditing(issue.id, 'assignee', issue.assignee)
+                              }}
+                              className="ml-2 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                              title="Edit assignee"
+                            >
+                              <Users size={12} className="text-slate-400 hover:text-[#6B5AED]" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                startEditing(issue.id, 'tags', issue.tags.join(', '))
+                              }}
+                              className="ml-1 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                              title="Edit tags"
+                            >
+                              <Tag size={12} className="text-slate-400 hover:text-[#6B5AED]" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                startEditing(issue.id, 'sla_date', issue.sla_date)
+                              }}
+                              className="ml-1 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                              title="Edit SLA date"
+                            >
+                              <Calendar size={12} className="text-slate-400 hover:text-[#6B5AED]" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     {/* Source */}
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                      {getSourceIcon(issue.source)}
-                      {issue.source}
-                    </div>
+                    {visibleColumns.source && (
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                        {getSourceIcon(issue.source)}
+                        {issue.source}
+                      </div>
+                    )}
 
                     {/* Repository */}
-                    <div className="text-xs text-slate-400 font-mono">
-                      {issue.repo}
-                    </div>
+                    {visibleColumns.repo && (
+                      <div className="text-xs text-slate-400 font-mono">
+                        {issue.repo}
+                      </div>
+                    )}
 
                     {/* Location */}
-                    <div className="text-[11px] text-slate-500 font-mono overflow-hidden text-ellipsis whitespace-nowrap">
-                      {issue.location}
-                    </div>
+                    {visibleColumns.location && (
+                      <div className="text-[11px] text-slate-500 font-mono overflow-hidden text-ellipsis whitespace-nowrap">
+                        {issue.location}
+                      </div>
+                    )}
 
                     {/* Exploitability */}
                     <div className="flex flex-col gap-1">
@@ -1177,6 +1309,26 @@ export default function TriagePage() {
         </div>
       )}
 
+      {/* Undo Toast */}
+      {showUndoToast && undoStack.length > 0 && (
+        <div className="fixed bottom-6 right-6 bg-[#1e293b] border border-white/10 rounded-md shadow-2xl p-4 z-[100] flex items-center gap-3 animate-slide-up">
+          <CheckCircle size={16} className="text-green-400" />
+          <div className="flex-1">
+            <div className="text-sm font-medium text-white">Change saved</div>
+            <div className="text-xs text-slate-400">
+              {undoStack[undoStack.length - 1].field} updated
+            </div>
+          </div>
+          <button
+            onClick={undoLastEdit}
+            className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-1.5 hover:bg-[#6B5AED]/30 transition-all"
+          >
+            <Undo2 size={14} />
+            Undo
+          </button>
+        </div>
+      )}
+
       {/* Context Menu */}
       {contextMenu && (
         <div
@@ -1242,6 +1394,19 @@ export default function TriagePage() {
         }
         .animate-slide-in {
           animation: slide-in 0.2s ease-out;
+        }
+        @keyframes slide-up {
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.2s ease-out;
         }
       `}</style>
     </div>
