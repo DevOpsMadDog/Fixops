@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X } from 'lucide-react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const DEMO_ISSUES = [
@@ -244,6 +244,49 @@ export default function TriagePage() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; issue: typeof DEMO_ISSUES[0] } | null>(null)
   const [undoStack, setUndoStack] = useState<Array<{ issueId: string; field: string; oldValue: any; newValue: any; timestamp: number }>>([])
   const [showUndoToast, setShowUndoToast] = useState(false)
+  const [showActivityDrawer, setShowActivityDrawer] = useState(false)
+  const [activityLog, setActivityLog] = useState<Array<{
+    id: string
+    issueId: string
+    issueTitle: string
+    action: string
+    field?: string
+    oldValue?: any
+    newValue?: any
+    user: string
+    timestamp: number
+  }>>([
+    {
+      id: '1',
+      issueId: '1',
+      issueTitle: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
+      action: 'created',
+      user: 'security-team',
+      timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000
+    },
+    {
+      id: '2',
+      issueId: '1',
+      issueTitle: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
+      action: 'updated',
+      field: 'severity',
+      oldValue: 'high',
+      newValue: 'critical',
+      user: 'security-team',
+      timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000
+    },
+    {
+      id: '3',
+      issueId: '1',
+      issueTitle: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
+      action: 'updated',
+      field: 'assignee',
+      oldValue: 'unassigned',
+      newValue: 'security-team',
+      user: 'admin',
+      timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000
+    }
+  ])
 
   const summary = {
     total: issues.length,
@@ -453,6 +496,21 @@ export default function TriagePage() {
     setUndoStack(prev => [...prev, { issueId, field, oldValue, newValue, timestamp: Date.now() }])
     setShowUndoToast(true)
     setTimeout(() => setShowUndoToast(false), 5000)
+
+    const issue = issues.find(i => i.id === issueId)
+    if (issue) {
+      setActivityLog(prev => [...prev, {
+        id: `activity-${Date.now()}`,
+        issueId,
+        issueTitle: issue.title,
+        action: 'updated',
+        field,
+        oldValue,
+        newValue,
+        user: 'current-user',
+        timestamp: Date.now()
+      }])
+    }
 
     setEditingCell(null)
     setEditValue('')
@@ -1304,6 +1362,110 @@ export default function TriagePage() {
               <p className="text-xs text-slate-400 text-center">
                 Press <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-xs font-mono">?</kbd> anytime to show this help
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activity Drawer */}
+      {showActivityDrawer && (
+        <div
+          onClick={() => setShowActivityDrawer(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-end"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-[500px] h-full bg-[#1e293b] border-l border-white/10 flex flex-col animate-slide-in"
+          >
+            {/* Drawer Header */}
+            <div className="p-6 border-b border-white/10">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-2">
+                  <Activity size={20} className="text-[#6B5AED]" />
+                  <h3 className="text-lg font-semibold text-white">Activity Log</h3>
+                </div>
+                <button
+                  onClick={() => setShowActivityDrawer(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-slate-400">
+                Full audit trail of all changes and actions
+              </p>
+            </div>
+
+            {/* Activity Timeline */}
+            <div className="flex-1 overflow-auto p-6">
+              <div className="space-y-4">
+                {activityLog.slice().reverse().map((activity, index) => (
+                  <div key={activity.id} className="relative pl-6 pb-4 border-l-2 border-white/10 last:border-l-0">
+                    {/* Timeline dot */}
+                    <div className="absolute left-[-5px] top-0 w-2.5 h-2.5 rounded-full bg-[#6B5AED] border-2 border-[#1e293b]"></div>
+                    
+                    <div className="bg-white/2 rounded-lg p-4 border border-white/5 hover:border-white/10 transition-colors">
+                      {/* Activity Header */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {activity.action === 'created' && <FileText size={14} className="text-green-400" />}
+                          {activity.action === 'updated' && <Edit2 size={14} className="text-blue-400" />}
+                          {activity.action === 'deleted' && <XCircle size={14} className="text-red-400" />}
+                          <span className="text-sm font-medium text-white capitalize">{activity.action}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <Clock size={12} />
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+
+                      {/* Issue Title */}
+                      <div className="text-sm text-slate-300 mb-2">
+                        {activity.issueTitle}
+                      </div>
+
+                      {/* Field Changes */}
+                      {activity.field && (
+                        <div className="bg-black/20 rounded p-2 text-xs font-mono">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-slate-400">Field:</span>
+                            <span className="text-[#6B5AED] font-semibold">{activity.field}</span>
+                          </div>
+                          {activity.oldValue !== undefined && (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-slate-400">Old:</span>
+                              <span className="text-red-300 line-through">
+                                {Array.isArray(activity.oldValue) ? activity.oldValue.join(', ') : activity.oldValue}
+                              </span>
+                            </div>
+                          )}
+                          {activity.newValue !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400">New:</span>
+                              <span className="text-green-300">
+                                {Array.isArray(activity.newValue) ? activity.newValue.join(', ') : activity.newValue}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* User */}
+                      <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-400">
+                        <User size={12} />
+                        <span>{activity.user}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-white/10 bg-white/2">
+              <div className="text-xs text-slate-400 text-center">
+                Press <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded font-mono">a</kbd> to toggle activity log
+              </div>
             </div>
           </div>
         </div>
