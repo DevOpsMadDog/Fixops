@@ -228,6 +228,8 @@ export default function TriagePage() {
   const [viewMode, setViewMode] = useState('all')
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
   const [showColumnChooser, setShowColumnChooser] = useState(false)
+  const [showShareView, setShowShareView] = useState(false)
+  const [shareableUrl, setShareableUrl] = useState('')
   const [visibleColumns, setVisibleColumns] = useState({
     risk_score: true,
     severity: true,
@@ -302,6 +304,34 @@ export default function TriagePage() {
   useEffect(() => {
     applyFilters()
   }, [filters, issues, feedView, searchQuery, viewMode])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      
+      if (params.has('filters')) {
+        try {
+          const decodedFilters = JSON.parse(atob(params.get('filters')!))
+          setFilters(decodedFilters)
+        } catch (e) {
+          console.error('Failed to parse filters from URL', e)
+        }
+      }
+      
+      if (params.has('columns')) {
+        try {
+          const decodedColumns = JSON.parse(atob(params.get('columns')!))
+          setVisibleColumns(decodedColumns)
+        } catch (e) {
+          console.error('Failed to parse columns from URL', e)
+        }
+      }
+      
+      if (params.has('search')) {
+        setSearchQuery(params.get('search')!)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -645,6 +675,23 @@ export default function TriagePage() {
     score += breakdown.criticality
 
     return { score: Math.min(score, 100), breakdown }
+  }
+
+  const generateShareableUrl = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
+    const params = new URLSearchParams()
+    
+    params.set('filters', btoa(JSON.stringify(filters)))
+    params.set('columns', btoa(JSON.stringify(visibleColumns)))
+    if (searchQuery) {
+      params.set('search', searchQuery)
+    }
+    
+    const url = `${baseUrl}?${params.toString()}`
+    setShareableUrl(url)
+    setShowShareView(true)
+    
+    navigator.clipboard.writeText(url)
   }
 
   return (
@@ -1466,6 +1513,96 @@ export default function TriagePage() {
               <div className="text-xs text-slate-400 text-center">
                 Press <kbd className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded font-mono">a</kbd> to toggle activity log
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share View Modal */}
+      {showShareView && (
+        <div
+          onClick={() => setShowShareView(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-[500px] bg-[#1e293b] border border-white/10 rounded-lg flex flex-col"
+          >
+            <div className="p-6 border-b border-white/10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Share This View</h3>
+                  <p className="text-sm text-slate-400">Anyone with this link can see your current filters and columns</p>
+                </div>
+                <button
+                  onClick={() => setShowShareView(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                  Shareable URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={shareableUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 bg-black/20 border border-white/10 rounded text-sm text-white font-mono focus:outline-none focus:border-[#6B5AED]"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareableUrl)
+                      alert('URL copied to clipboard!')
+                    }}
+                    className="px-3 py-2 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all text-[#6B5AED]"
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white/2 rounded-lg p-4 border border-white/5">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                  What's Included
+                </div>
+                <div className="space-y-2 text-sm text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-green-400" />
+                    <span>Active filters ({Object.values(filters).filter(v => v).length} enabled)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-green-400" />
+                    <span>Visible columns ({Object.values(visibleColumns).filter(v => v).length} shown)</span>
+                  </div>
+                  {searchQuery && (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={14} className="text-green-400" />
+                      <span>Search query: "{searchQuery}"</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                <AlertCircle size={12} />
+                <span>URL has been copied to your clipboard</span>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-white/10 bg-white/2 flex justify-end gap-2">
+              <button
+                onClick={() => setShowShareView(false)}
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded text-sm font-medium hover:bg-white/10 transition-all"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
