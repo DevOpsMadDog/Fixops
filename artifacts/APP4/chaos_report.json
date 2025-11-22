@@ -1,0 +1,11 @@
+{
+  "app": "APP4",
+  "experiments": [
+    {"name": "pod_kill", "status": "pass", "p95_ms": 380},
+    {"name": "az_failure", "status": "pass", "error_rate": 0.019},
+    {"name": "broker_failover", "status": "fail", "lag": 210},
+    {"name": "network_partition", "status": "pass", "queue_drain_minutes": 4},
+    {"name": "disk_full", "status": "pass"}
+  ],
+  "generated_at": "2025-10-28T14:35:00Z"
+}

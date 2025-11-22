@@ -1,0 +1,6 @@
+role,endpoint,method,expected_status,token_example,notes
+viewer,/graphql,POST,200,"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.viewer","Viewer can execute persisted queries"
+viewer,/api/webhooks/{partner},POST,401,"","Viewers cannot post webhooks"
+integration,/api/webhooks/{partner},POST,202,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.integration","Partner integration key accepted"
+rate-limited,/graphql,POST,429,"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.rl","Simulate 429 after threshold"
+malicious,/graphql,POST,401,"invalid","Invalid JWT rejected"
