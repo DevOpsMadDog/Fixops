@@ -228,6 +228,7 @@ export default function TriagePage() {
   const [pinnedColumns, setPinnedColumns] = useState<Set<string>>(new Set(['severity', 'title']))
   const [editingCell, setEditingCell] = useState<{ issueId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; issue: typeof DEMO_ISSUES[0] } | null>(null)
 
   const summary = {
     total: issues.length,
@@ -434,6 +435,53 @@ export default function TriagePage() {
     setEditingCell(null)
     setEditValue('')
   }
+
+  const handleContextMenu = (e: React.MouseEvent, issue: typeof DEMO_ISSUES[0]) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, issue })
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu(null)
+  }
+
+  const handleContextAction = (action: string, issue: typeof DEMO_ISSUES[0]) => {
+    switch (action) {
+      case 'assign':
+        startEditing(issue.id, 'assignee', issue.assignee)
+        break
+      case 'create-ticket':
+        alert(`Creating ticket for: ${issue.title}`)
+        break
+      case 'accept-risk':
+        alert(`Accepting risk for: ${issue.title}`)
+        break
+      case 'snooze':
+        alert(`Snoozing: ${issue.title}`)
+        break
+      case 'ignore':
+        alert(`Ignoring: ${issue.title}`)
+        break
+      case 'copy-link':
+        navigator.clipboard.writeText(`${window.location.origin}/findings/${issue.id}`)
+        alert('Link copied to clipboard!')
+        break
+    }
+    closeContextMenu()
+  }
+
+  useEffect(() => {
+    const handleClick = () => closeContextMenu()
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeContextMenu()
+    }
+    document.addEventListener('click', handleClick)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -700,6 +748,7 @@ export default function TriagePage() {
                       isSelected ? 'bg-[#6B5AED]/5' : 'hover:bg-white/2'
                     }`}
                     onClick={() => setSelectedIssue(issue)}
+                    onContextMenu={(e) => handleContextMenu(e, issue)}
                   >
                     {/* Checkbox */}
                     <div className="flex items-center">
@@ -1019,6 +1068,60 @@ export default function TriagePage() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed bg-[#1e293b] border border-white/10 rounded-md shadow-2xl py-1 z-[100] min-w-[200px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => handleContextAction('assign', contextMenu.issue)}
+            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+          >
+            <Users size={14} />
+            Assign to Team
+          </button>
+          <button
+            onClick={() => handleContextAction('create-ticket', contextMenu.issue)}
+            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+          >
+            <Ticket size={14} />
+            Create Ticket
+          </button>
+          <button
+            onClick={() => handleContextAction('accept-risk', contextMenu.issue)}
+            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+          >
+            <CheckCircle size={14} />
+            Accept Risk
+          </button>
+          <div className="border-t border-white/10 my-1"></div>
+          <button
+            onClick={() => handleContextAction('snooze', contextMenu.issue)}
+            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+          >
+            <Archive size={14} />
+            Snooze
+          </button>
+          <button
+            onClick={() => handleContextAction('ignore', contextMenu.issue)}
+            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+          >
+            <Eye size={14} />
+            Ignore
+          </button>
+          <div className="border-t border-white/10 my-1"></div>
+          <button
+            onClick={() => handleContextAction('copy-link', contextMenu.issue)}
+            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+          >
+            <Copy size={14} />
+            Copy Link
+          </button>
         </div>
       )}
 
