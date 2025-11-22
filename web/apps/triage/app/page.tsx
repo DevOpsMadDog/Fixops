@@ -18,6 +18,7 @@ const DEMO_ISSUES = [
     exploitability: { kev: true, epss: 0.89 },
     internet_facing: true,
     age_days: 3,
+    business_criticality: 'mission_critical',
     description: 'Critical RCE vulnerability in Apache Struts allowing remote attackers to execute arbitrary code.',
     remediation: 'Upgrade Apache Struts to version 2.5.33 or later. Apply security patches immediately.'
   },
@@ -32,6 +33,7 @@ const DEMO_ISSUES = [
     repo: 'user-service',
     location: 'src/auth/login.ts:127',
     exploitability: { kev: false, epss: 0.45 },
+    business_criticality: 'high',
     internet_facing: true,
     age_days: 12,
     description: 'SQL injection vulnerability in user authentication endpoint allowing unauthorized access.',
@@ -48,6 +50,7 @@ const DEMO_ISSUES = [
     repo: 'infrastructure',
     location: 'terraform/main.tf:89',
     exploitability: { kev: false, epss: 0.12 },
+    business_criticality: 'mission_critical',
     internet_facing: false,
     age_days: 1,
     description: 'AWS access keys hardcoded in Terraform configuration files.',
@@ -64,6 +67,7 @@ const DEMO_ISSUES = [
     repo: 'api-gateway',
     location: 'Dockerfile:12',
     exploitability: { kev: true, epss: 0.72 },
+    business_criticality: 'high',
     internet_facing: true,
     age_days: 8,
     description: 'Vulnerable OpenSSL version with known exploits in the wild.',
@@ -80,6 +84,7 @@ const DEMO_ISSUES = [
     repo: 'web-dashboard',
     location: 'src/components/UserProfile.tsx:45',
     exploitability: { kev: false, epss: 0.23 },
+    business_criticality: 'medium',
     internet_facing: true,
     age_days: 15,
     description: 'Reflected XSS vulnerability in user profile component.',
@@ -96,6 +101,7 @@ const DEMO_ISSUES = [
     repo: 'infrastructure',
     location: 'terraform/s3.tf:23',
     exploitability: { kev: false, epss: 0.08 },
+    business_criticality: 'high',
     internet_facing: true,
     age_days: 5,
     description: 'S3 bucket configured with public read access exposing sensitive data.',
@@ -112,6 +118,7 @@ const DEMO_ISSUES = [
     repo: 'auth-service',
     location: 'src/crypto/hash.ts:34',
     exploitability: { kev: false, epss: 0.15 },
+    business_criticality: 'medium',
     internet_facing: false,
     age_days: 22,
     description: 'MD5 hash algorithm used for password hashing, vulnerable to collision attacks.',
@@ -128,6 +135,7 @@ const DEMO_ISSUES = [
     repo: 'k8s-manifests',
     location: 'rbac/service-account.yaml:15',
     exploitability: { kev: false, epss: 0.19 },
+    business_criticality: 'high',
     internet_facing: false,
     age_days: 4,
     description: 'Service account with cluster-admin privileges violating least privilege principle.',
@@ -144,6 +152,7 @@ const DEMO_ISSUES = [
     repo: 'logging-service',
     location: 'pom.xml:67',
     exploitability: { kev: true, epss: 0.95 },
+    business_criticality: 'mission_critical',
     internet_facing: true,
     age_days: 2,
     description: 'Critical Log4Shell vulnerability allowing remote code execution.',
@@ -160,6 +169,7 @@ const DEMO_ISSUES = [
     repo: 'api-gateway',
     location: 'src/middleware/auth.ts:89',
     exploitability: { kev: false, epss: 0.31 },
+    business_criticality: 'medium',
     internet_facing: true,
     age_days: 18,
     description: 'API endpoints lack rate limiting, vulnerable to brute force and DoS attacks.',
@@ -176,6 +186,7 @@ const DEMO_ISSUES = [
     sla_date: '2024-12-12',
     location: 'src/api/users.ts:156',
     exploitability: { kev: false, epss: 0.42 },
+    business_criticality: 'high',
     internet_facing: true,
     age_days: 9,
     description: 'User ID parameter not validated, allowing unauthorized access to other users data.',
@@ -192,6 +203,7 @@ const DEMO_ISSUES = [
     tags: ['tls', 'encryption'],
     sla_date: '2024-12-18',
     exploitability: { kev: false, epss: 0.11 },
+    business_criticality: 'medium',
     internet_facing: false,
     age_days: 14,
     description: 'RDS database connection not enforcing SSL/TLS encryption.',
@@ -501,6 +513,50 @@ export default function TriagePage() {
     }
     const Icon = icons[source as keyof typeof icons] || AlertCircle
     return <Icon size={14} />
+  }
+
+  const calculateRiskScore = (issue: typeof DEMO_ISSUES[0]) => {
+    let score = 0
+    const breakdown = {
+      severity: 0,
+      kev: 0,
+      epss: 0,
+      exposure: 0,
+      criticality: 0,
+    }
+
+    const severityPoints = {
+      critical: 40,
+      high: 30,
+      medium: 20,
+      low: 10,
+    }
+    breakdown.severity = severityPoints[issue.severity as keyof typeof severityPoints] || 0
+    score += breakdown.severity
+
+    if (issue.exploitability.kev) {
+      breakdown.kev = 30
+      score += 30
+    }
+
+    breakdown.epss = Math.round(issue.exploitability.epss * 20)
+    score += breakdown.epss
+
+    if (issue.internet_facing) {
+      breakdown.exposure = 10
+      score += 10
+    }
+
+    const criticalityPoints = {
+      mission_critical: 10,
+      high: 5,
+      medium: 0,
+      low: 0,
+    }
+    breakdown.criticality = criticalityPoints[issue.business_criticality as keyof typeof criticalityPoints] || 0
+    score += breakdown.criticality
+
+    return { score: Math.min(score, 100), breakdown }
   }
 
   return (
