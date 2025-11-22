@@ -21,6 +21,7 @@ from fastapi import Body, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
+from apps.api.inventory_router import router as inventory_router
 from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
@@ -380,6 +381,7 @@ def create_app() -> FastAPI:
     app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024

@@ -1136,6 +1136,97 @@ def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_inventory(args):
+    """Handle inventory management commands."""
+    import json
+
+    from core.inventory_db import InventoryDB
+    from core.inventory_models import (
+        Application,
+        ApplicationCriticality,
+        ApplicationStatus,
+    )
+
+    db = InventoryDB()
+
+    if args.inventory_command == "list":
+        apps = db.list_applications(limit=args.limit, offset=args.offset)
+        if args.format == "json":
+            print(json.dumps([app.to_dict() for app in apps], indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Criticality':<12} {'Status':<12}")
+            print("-" * 100)
+            for app in apps:
+                print(
+                    f"{app.id:<40} {app.name:<30} {app.criticality.value:<12} {app.status.value:<12}"
+                )
+
+    elif args.inventory_command == "create":
+        app = Application(
+            id="",
+            name=args.name,
+            description=args.description,
+            criticality=ApplicationCriticality(args.criticality),
+            status=ApplicationStatus.ACTIVE,
+            environment=args.environment,
+            owner_team=args.owner_team,
+            repository_url=args.repo_url,
+        )
+        created = db.create_application(app)
+        print(f"✅ Created application: {created.id}")
+        print(json.dumps(created.to_dict(), indent=2))
+
+    elif args.inventory_command == "get":
+        app = db.get_application(args.id)
+        if not app:
+            print(f"❌ Application not found: {args.id}")
+            return 1
+        if args.format == "json":
+            print(json.dumps(app.to_dict(), indent=2))
+        else:
+            print(f"ID: {app.id}")
+            print(f"Name: {app.name}")
+            print(f"Description: {app.description}")
+            print(f"Criticality: {app.criticality.value}")
+            print(f"Status: {app.status.value}")
+            print(f"Environment: {app.environment}")
+
+    elif args.inventory_command == "update":
+        app = db.get_application(args.id)
+        if not app:
+            print(f"❌ Application not found: {args.id}")
+            return 1
+
+        if args.name:
+            app.name = args.name
+        if args.description:
+            app.description = args.description
+        if args.criticality:
+            app.criticality = ApplicationCriticality(args.criticality)
+        if args.status:
+            app.status = ApplicationStatus(args.status)
+
+        updated = db.update_application(app)
+        print(f"✅ Updated application: {updated.id}")
+        print(json.dumps(updated.to_dict(), indent=2))
+
+    elif args.inventory_command == "delete":
+        if not args.confirm:
+            print("❌ Please use --confirm to delete")
+            return 1
+        if db.delete_application(args.id):
+            print(f"✅ Deleted application: {args.id}")
+        else:
+            print(f"❌ Failed to delete application: {args.id}")
+            return 1
+
+    elif args.inventory_command == "search":
+        results = db.search_inventory(args.query, limit=args.limit)
+        print(json.dumps(results, indent=2))
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -1527,6 +1618,49 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress backtest summary",
     )
     backtest_bn_lr_parser.set_defaults(func=_handle_backtest_bn_lr)
+
+    inventory_parser = subparsers.add_parser(
+        "inventory", help="Manage application and service inventory"
+    )
+    inventory_subparsers = inventory_parser.add_subparsers(dest="inventory_command")
+
+    list_apps = inventory_subparsers.add_parser("list", help="List applications")
+    list_apps.add_argument("--limit", type=int, default=100, help="Results per page")
+    list_apps.add_argument("--offset", type=int, default=0, help="Pagination offset")
+    list_apps.add_argument("--format", choices=["table", "json"], default="table")
+
+    create_app = inventory_subparsers.add_parser("create", help="Create application")
+    create_app.add_argument("--name", required=True, help="Application name")
+    create_app.add_argument("--description", required=True, help="Description")
+    create_app.add_argument(
+        "--criticality", required=True, choices=["critical", "high", "medium", "low"]
+    )
+    create_app.add_argument("--environment", default="production")
+    create_app.add_argument("--owner-team", help="Owning team")
+    create_app.add_argument("--repo-url", help="Repository URL")
+
+    get_app = inventory_subparsers.add_parser("get", help="Get application details")
+    get_app.add_argument("id", help="Application ID")
+    get_app.add_argument("--format", choices=["table", "json"], default="json")
+
+    update_app = inventory_subparsers.add_parser("update", help="Update application")
+    update_app.add_argument("id", help="Application ID")
+    update_app.add_argument("--name", help="Application name")
+    update_app.add_argument("--description", help="Description")
+    update_app.add_argument(
+        "--criticality", choices=["critical", "high", "medium", "low"]
+    )
+    update_app.add_argument("--status", choices=["active", "deprecated", "archived"])
+
+    delete_app = inventory_subparsers.add_parser("delete", help="Delete application")
+    delete_app.add_argument("id", help="Application ID")
+    delete_app.add_argument("--confirm", action="store_true", help="Confirm deletion")
+
+    search_inv = inventory_subparsers.add_parser("search", help="Search inventory")
+    search_inv.add_argument("query", help="Search query")
+    search_inv.add_argument("--limit", type=int, default=100)
+
+    inventory_parser.set_defaults(func=_handle_inventory)
 
     return parser
 
