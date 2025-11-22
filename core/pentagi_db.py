@@ -173,7 +173,7 @@ class PentagiDB:
             if row["completed_at"]
             else None,
             pentagi_job_id=row["pentagi_job_id"],
-            metadata=eval(row["metadata"]) if row["metadata"] else {},
+            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
         )
 
     def list_requests(
