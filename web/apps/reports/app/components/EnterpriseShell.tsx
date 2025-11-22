@@ -16,13 +16,7 @@ import {
   GitBranch,
   Command,
   Menu,
-  X,
-  Users,
-  Layers,
-  Cloud,
-  Key,
-  Workflow,
-  Package
+  X
 } from 'lucide-react'
 
 interface EnterpriseShellProps {
@@ -40,18 +34,6 @@ interface AppUrls {
   automations: string
   integrations: string
   settings: string
-  users: string
-  teams: string
-  policies: string
-  inventory: string
-  reports: string
-  audit: string
-  workflows: string
-  sso: string
-  secrets: string
-  iac: string
-  bulk: string
-  pentagi: string
 }
 
 export default function EnterpriseShell({ children }: EnterpriseShellProps) {
@@ -106,18 +88,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
     { name: 'Saved Views', key: 'saved-views', icon: FileText },
     { name: 'Automations', key: 'automations', icon: Zap },
     { name: 'Integrations', key: 'integrations', icon: GitBranch },
-    { name: 'Users', key: 'users', icon: Users },
-    { name: 'Teams', key: 'teams', icon: Users },
-    { name: 'Policies', key: 'policies', icon: Shield },
-    { name: 'Inventory', key: 'inventory', icon: Package },
-    { name: 'Reports', key: 'reports', icon: FileText },
-    { name: 'Audit Logs', key: 'audit', icon: FileText },
-    { name: 'Workflows', key: 'workflows', icon: Workflow },
-    { name: 'SSO Config', key: 'sso', icon: Shield },
-    { name: 'Secrets', key: 'secrets', icon: Key },
-    { name: 'IaC Scanning', key: 'iac', icon: Cloud },
-    { name: 'Bulk Operations', key: 'bulk', icon: Layers },
-    { name: 'Pentagi', key: 'pentagi', icon: Shield },
     { name: 'Settings', key: 'settings', icon: Settings },
   ]
 
