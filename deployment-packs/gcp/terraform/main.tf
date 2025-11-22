@@ -275,7 +275,7 @@ resource "kubernetes_secret" "backend_secrets" {
   
   string_data = {
     EMERGENT_LLM_KEY = var.emergent_llm_key
-    MONGO_URL        = "mongodb://fixops:${var.mongo_password}@${google_compute_instance.mongodb.network_interface[0].network_ip}:27017/fixops"
+    MONGO_URL        = "mongodb://fixops:${var.mongo_password}@${google_compute_instance.mongodb.network_interface[0].network_ip}:27017/fixops?authSource=admin"
     REDIS_URL        = "redis://:${var.redis_password}@${google_redis_instance.redis.host}:${google_redis_instance.redis.port}/0"
   }
   
