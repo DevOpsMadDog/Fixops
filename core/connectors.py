@@ -257,7 +257,7 @@ class AutomationConnectors:
         toggles: Mapping[str, Any],
         flag_provider: Any = None,
     ):
-        self.enforce_sync = bool(toggles.get("enforce_ticket_sync"))
+        self.enforce_sync = bool(toggles.get("enforce_ticket_sync", True))
         self.flag_provider = flag_provider
         self.jira = JiraConnector(overlay_settings.get("jira", {}))
         self.confluence = ConfluenceConnector(overlay_settings.get("confluence", {}))
