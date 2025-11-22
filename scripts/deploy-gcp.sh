@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+TERRAFORM_DIR="$ROOT_DIR/deployment-packs/gcp/terraform"
+
+echo "========================================="
+echo "   FixOps GCP GKE Deployment"
+echo "========================================="
+echo ""
+
+if ! command -v gcloud &> /dev/null; then
+    echo "❌ gcloud CLI not found. Please install: https://cloud.google.com/sdk/docs/install"
+    exit 1
+fi
+
+if ! command -v terraform &> /dev/null; then
+    echo "❌ Terraform not found. Please install: https://www.terraform.io/downloads"
+    exit 1
+fi
+
+if ! command -v kubectl &> /dev/null; then
+    echo "❌ kubectl not found. Please install: https://kubernetes.io/docs/tasks/tools/"
+    exit 1
+fi
+
+echo "✅ Prerequisites check passed"
+echo ""
+
+read -p "GCP Project ID: " PROJECT_ID
+if [[ -z "$PROJECT_ID" ]]; then
+    echo "❌ Project ID is required"
+    exit 1
+fi
+
+read -p "GCP Region [us-central1]: " REGION
+REGION="${REGION:-us-central1}"
+
+read -p "Environment (development/staging/production) [production]: " ENVIRONMENT
+ENVIRONMENT="${ENVIRONMENT:-production}"
+
+read -p "Cluster Name [fixops-${ENVIRONMENT}]: " CLUSTER_NAME
+CLUSTER_NAME="${CLUSTER_NAME:-fixops-${ENVIRONMENT}}"
+
+read -p "Domain Name: " DOMAIN_NAME
+if [[ -z "$DOMAIN_NAME" ]]; then
+    echo "❌ Domain name is required"
+    exit 1
+fi
+
+echo ""
+if [[ -z "${EMERGENT_LLM_KEY:-}" ]]; then
+    read -sp "Emergent LLM Key: " EMERGENT_LLM_KEY
+    echo ""
+    if [[ -z "$EMERGENT_LLM_KEY" ]]; then
+        echo "❌ Emergent LLM key is required"
+        exit 1
+    fi
+fi
+
+if [[ -z "${MONGO_PASSWORD:-}" ]]; then
+    read -sp "MongoDB Password: " MONGO_PASSWORD
+    echo ""
+    if [[ -z "$MONGO_PASSWORD" ]]; then
+        echo "❌ MongoDB password is required"
+        exit 1
+    fi
+fi
+
+if [[ -z "${REDIS_PASSWORD:-}" ]]; then
+    read -sp "Redis Password: " REDIS_PASSWORD
+    echo ""
+    if [[ -z "$REDIS_PASSWORD" ]]; then
+        echo "❌ Redis password is required"
+        exit 1
+    fi
+fi
+
+export TF_VAR_emergent_llm_key="$EMERGENT_LLM_KEY"
+export TF_VAR_mongo_password="$MONGO_PASSWORD"
+export TF_VAR_redis_password="$REDIS_PASSWORD"
+
+cat > "$TERRAFORM_DIR/terraform.tfvars" <<EOF
+project_id           = "$PROJECT_ID"
+region               = "$REGION"
+environment          = "$ENVIRONMENT"
+cluster_name         = "$CLUSTER_NAME"
+domain_name          = "$DOMAIN_NAME"
+backend_replicas     = 3
+enable_monitoring    = true
+node_count           = 3
+EOF
+
+if ! grep -q "terraform.tfvars" "$ROOT_DIR/.gitignore" 2>/dev/null; then
+    echo "terraform.tfvars" >> "$ROOT_DIR/.gitignore"
+    echo "✅ Added terraform.tfvars to .gitignore"
+fi
+
+echo ""
+echo "📝 Configuration saved to terraform.tfvars (secrets passed via environment)"
+echo ""
+
+cd "$TERRAFORM_DIR"
+
+echo "🔧 Initializing Terraform..."
+terraform init
+
+echo ""
+echo "📋 Planning deployment..."
+terraform plan
+
+echo ""
+read -p "Proceed with deployment? (yes/no): " PROCEED
+if [[ "$PROCEED" != "yes" ]]; then
+    echo "Deployment cancelled"
+    exit 0
+fi
+
+echo ""
+echo "🚀 Deploying to GCP GKE..."
+START_TIME=$(date +%s)
+
+terraform apply -auto-approve
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+MINUTES=$((DURATION / 60))
+
+echo ""
+echo "========================================="
+echo "✅ Deployment Complete!"
+echo "========================================="
+echo "Time taken: ${MINUTES} minutes"
+echo ""
+echo "Cluster: $(terraform output -raw cluster_name)"
+echo "Namespace: $(terraform output -raw namespace)"
+echo ""
+echo "Next steps:"
+echo "  1. Configure kubectl: gcloud container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT_ID"
+echo "  2. Verify deployment: kubectl get pods -n fixops"
+echo ""

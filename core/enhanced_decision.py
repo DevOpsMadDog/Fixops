@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import statistics
 from dataclasses import dataclass, field
 from typing import (
@@ -164,6 +165,49 @@ class MultiLLMConsensusEngine:
                 ProviderSpec(name=name, weight=weight, style=style, focus=focus)
             )
         self.providers: List[ProviderSpec] = providers or list(self.DEFAULT_PROVIDERS)
+
+        enabled_providers = []
+        for provider in self.providers:
+            provider_name = provider.name.lower()
+            if "gpt" in provider_name or "openai" in provider_name:
+                if os.getenv("FIXOPS_ENABLE_OPENAI", "true").lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                ):
+                    enabled_providers.append(provider)
+            elif "claude" in provider_name or "anthropic" in provider_name:
+                if os.getenv("FIXOPS_ENABLE_ANTHROPIC", "true").lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                ):
+                    enabled_providers.append(provider)
+            elif "gemini" in provider_name or "google" in provider_name:
+                if os.getenv("FIXOPS_ENABLE_GEMINI", "true").lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                ):
+                    enabled_providers.append(provider)
+            elif "sentinel" in provider_name or "cyber" in provider_name:
+                if os.getenv("FIXOPS_ENABLE_SENTINEL", "true").lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                ):
+                    enabled_providers.append(provider)
+            else:
+                enabled_providers.append(provider)
+
+        self.providers = (
+            enabled_providers
+            if enabled_providers
+            else [
+                ProviderSpec("deterministic", weight=1.0, style="consensus", focus=[])
+            ]
+        )
+
         self.knowledge_graph = settings.get(
             "knowledge_graph",
             {
