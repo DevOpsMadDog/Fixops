@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ProvenanceBar from './ProvenanceBar'
 import { 
   Bell, 
   Search, 
@@ -17,10 +18,22 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import ProvenanceBar from './ProvenanceBar'
 
 interface EnterpriseShellProps {
   children: React.ReactNode
+}
+
+interface AppUrls {
+  dashboard: string
+  triage: string
+  risk: string
+  compliance: string
+  evidence: string
+  findings: string
+  'saved-views': string
+  automations: string
+  integrations: string
+  settings: string
 }
 
 export default function EnterpriseShell({ children }: EnterpriseShellProps) {
@@ -28,6 +41,25 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [appUrls, setAppUrls] = useState<AppUrls | null>(null)
+  const [currentApp, setCurrentApp] = useState<string>('')
+
+  useEffect(() => {
+    fetch('/app-urls.json')
+      .then(res => res.json())
+      .then((urls: AppUrls) => {
+        setAppUrls(urls)
+        
+        const origin = window.location.origin
+        const currentAppEntry = Object.entries(urls).find(([_, url]) => url === origin)
+        if (currentAppEntry) {
+          setCurrentApp(currentAppEntry[0])
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load app URLs:', err)
+      })
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,18 +78,27 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: BarChart3, current: false },
-    { name: 'Triage Inbox', href: '/triage', icon: Shield, current: false },
-    { name: 'Risk Graph', href: '/risk', icon: GitBranch, current: false },
-    { name: 'Findings', href: '/findings', icon: FileText, current: false },
-    { name: 'Compliance', href: '/compliance', icon: Archive, current: false },
-    { name: 'Evidence', href: '/evidence', icon: Shield, current: false },
-    { name: 'Saved Views', href: '/saved-views', icon: FileText, current: false },
-    { name: 'Automations', href: '/automations', icon: Zap, current: false },
-    { name: 'Integrations', href: '/integrations', icon: GitBranch, current: false },
-    { name: 'Settings', href: '/settings', icon: Settings, current: false },
+  const navigationBase = [
+    { name: 'Dashboard', key: 'dashboard', icon: BarChart3 },
+    { name: 'Triage Inbox', key: 'triage', icon: Shield },
+    { name: 'Risk Graph', key: 'risk', icon: GitBranch },
+    { name: 'Findings', key: 'findings', icon: FileText },
+    { name: 'Compliance', key: 'compliance', icon: Archive },
+    { name: 'Evidence', key: 'evidence', icon: Shield },
+    { name: 'Saved Views', key: 'saved-views', icon: FileText },
+    { name: 'Automations', key: 'automations', icon: Zap },
+    { name: 'Integrations', key: 'integrations', icon: GitBranch },
+    { name: 'Settings', key: 'settings', icon: Settings },
   ]
+
+  const navigation = navigationBase.map(item => ({
+    ...item,
+    href: appUrls && item.key in appUrls 
+      ? (item.key === currentApp ? '/' : appUrls[item.key as keyof AppUrls])
+      : '#',
+    current: item.key === currentApp,
+    disabled: !appUrls
+  }))
 
   const notifications = [
     { id: 1, title: 'New critical vulnerability detected', time: '2 min ago', unread: true },
@@ -188,20 +229,9 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         </div>
       </div>
 
-      {/* Provenance Bar */}
-      <div className="fixed top-16 left-0 right-0 z-40">
-        <ProvenanceBar 
-          mode="demo"
-          runId="run-2024-001-demo"
-          commitSha="c70dcd5"
-          timestamp={new Date().toISOString()}
-          signatureVerified={true}
-        />
-      </div>
-
       {/* Sidebar */}
       <div
-        className={`fixed top-26 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-transform duration-200 z-40 ${
+        className={`fixed top-16 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-transform duration-200 z-40 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -228,7 +258,7 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
 
       {/* Main Content */}
       <div
-        className={`pt-26 transition-all duration-200 ${
+        className={`pt-16 transition-all duration-200 ${
           sidebarOpen ? 'pl-64' : 'pl-0'
         }`}
       >
