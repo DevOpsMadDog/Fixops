@@ -1133,6 +1133,8 @@ def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
                 f"recall={threshold_metrics['recall']:.4f}"
             )
 
+    return 0
+
 
 def _handle_pentagi(args):
     """Handle Pentagi pen testing commands."""

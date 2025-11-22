@@ -198,7 +198,7 @@ class PentagiDB:
             params.append(status.value)
 
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+        params.extend([str(limit), str(offset)])
 
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -338,7 +338,7 @@ class PentagiDB:
             params.append(exploitability.value)
 
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+        params.extend([str(limit), str(offset)])
 
         cursor.execute(query, params)
         rows = cursor.fetchall()
