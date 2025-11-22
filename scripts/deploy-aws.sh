@@ -54,11 +54,39 @@ fi
 
 export TF_VAR_emergent_llm_key="$EMERGENT_LLM_KEY"
 
+read -p "Terraform State S3 Bucket: " STATE_BUCKET
+if [[ -z "$STATE_BUCKET" ]]; then
+    echo "❌ Terraform state bucket is required"
+    exit 1
+fi
+
+read -p "Terraform Lock DynamoDB Table: " LOCK_TABLE
+if [[ -z "$LOCK_TABLE" ]]; then
+    echo "❌ Terraform lock table is required"
+    exit 1
+fi
+
+read -p "VPC ID: " VPC_ID
+if [[ -z "$VPC_ID" ]]; then
+    echo "❌ VPC ID is required"
+    exit 1
+fi
+
+read -p "Subnet IDs (comma-separated): " SUBNET_IDS
+if [[ -z "$SUBNET_IDS" ]]; then
+    echo "❌ Subnet IDs are required"
+    exit 1
+fi
+
 cat > "$TERRAFORM_DIR/terraform.tfvars" <<EOF
 aws_region              = "$AWS_REGION"
 environment             = "$ENVIRONMENT"
 cluster_name            = "$CLUSTER_NAME"
 domain_name             = "$DOMAIN_NAME"
+terraform_state_bucket  = "$STATE_BUCKET"
+terraform_lock_table    = "$LOCK_TABLE"
+vpc_id                  = "$VPC_ID"
+subnet_ids              = ["${SUBNET_IDS//,/\",\"}"]
 backend_replicas        = 3
 enable_monitoring       = true
 enable_autoscaling      = true

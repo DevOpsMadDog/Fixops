@@ -49,6 +49,7 @@ if [[ -z "$DOMAIN_NAME" ]]; then
     exit 1
 fi
 
+echo ""
 if [[ -z "${EMERGENT_LLM_KEY:-}" ]]; then
     read -sp "Emergent LLM Key: " EMERGENT_LLM_KEY
     echo ""
@@ -58,7 +59,27 @@ if [[ -z "${EMERGENT_LLM_KEY:-}" ]]; then
     fi
 fi
 
+if [[ -z "${MONGO_PASSWORD:-}" ]]; then
+    read -sp "MongoDB Password: " MONGO_PASSWORD
+    echo ""
+    if [[ -z "$MONGO_PASSWORD" ]]; then
+        echo "❌ MongoDB password is required"
+        exit 1
+    fi
+fi
+
+if [[ -z "${REDIS_PASSWORD:-}" ]]; then
+    read -sp "Redis Password: " REDIS_PASSWORD
+    echo ""
+    if [[ -z "$REDIS_PASSWORD" ]]; then
+        echo "❌ Redis password is required"
+        exit 1
+    fi
+fi
+
 export TF_VAR_emergent_llm_key="$EMERGENT_LLM_KEY"
+export TF_VAR_mongo_password="$MONGO_PASSWORD"
+export TF_VAR_redis_password="$REDIS_PASSWORD"
 
 cat > "$TERRAFORM_DIR/terraform.tfvars" <<EOF
 project_id           = "$PROJECT_ID"

@@ -78,6 +78,19 @@ variable "emergent_llm_key" {
   description = "Emergent LLM API key"
   type        = string
   sensitive   = true
+
+variable "mongo_password" {
+  description = "MongoDB root password"
+  type        = string
+  sensitive   = true
+}
+
+variable "redis_password" {
+  description = "Redis password"
+  type        = string
+  sensitive   = true
+}
+
 }
 
 variable "enable_monitoring" {
@@ -197,8 +210,15 @@ resource "google_compute_instance" "mongodb" {
     echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list
     apt-get update
     apt-get install -y mongodb-org
+    
+    sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongod.conf
+    
     systemctl start mongod
     systemctl enable mongod
+    
+    sleep 5
+    
+    mongosh --eval 'db.getSiblingDB("admin").createUser({user: "fixops", pwd: "${var.mongo_password}", roles: [{role: "root", db: "admin"}]})'
   EOF
   
   labels = local.common_labels
@@ -253,10 +273,10 @@ resource "kubernetes_secret" "backend_secrets" {
     namespace = kubernetes_namespace.fixops.metadata[0].name
   }
   
-  data = {
+  string_data = {
     EMERGENT_LLM_KEY = var.emergent_llm_key
-    MONGO_URL        = "mongodb://${google_compute_instance.mongodb.network_interface[0].network_ip}:27017/fixops"
-    REDIS_URL        = "redis://${google_redis_instance.redis.host}:${google_redis_instance.redis.port}/0"
+    MONGO_URL        = "mongodb://fixops:${var.mongo_password}@${google_compute_instance.mongodb.network_interface[0].network_ip}:27017/fixops"
+    REDIS_URL        = "redis://:${var.redis_password}@${google_redis_instance.redis.host}:${google_redis_instance.redis.port}/0"
   }
   
   type = "Opaque"

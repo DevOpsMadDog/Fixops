@@ -55,13 +55,14 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 echo "" > "$ENV_FILE"
+chmod 600 "$ENV_FILE"
 
 echo ""
 echo "2. Core Configuration"
 API_TOKEN=$(prompt_with_default "API Token (or leave blank to generate)" "")
 if [[ -z "$API_TOKEN" ]]; then
     API_TOKEN=$(generate_secret)
-    echo -e "${GREEN}Generated API token: $API_TOKEN${NC}"
+    echo -e "${GREEN}Generated secure API token${NC}"
 fi
 echo "FIXOPS_API_TOKEN=$API_TOKEN" >> "$ENV_FILE"
 echo "FIXOPS_ENVIRONMENT=$DEPLOYMENT_MODE" >> "$ENV_FILE"
