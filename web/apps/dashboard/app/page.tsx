@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap } from 'lucide-react'
+import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap, Users, Filter, Calendar, Download, RefreshCw } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import EnterpriseShell from './components/EnterpriseShell'
 
@@ -108,7 +108,32 @@ const TOP_SERVICES = [
   { name: 'api-gateway', issues: 24, critical: 3, high: 9 },
 ]
 
+const TEAM_DATA = [
+  { name: 'Security Team', issues: 234, critical: 18, resolved_7d: 23, avg_resolution: 3.2 },
+  { name: 'Platform Team', issues: 189, critical: 12, resolved_7d: 19, avg_resolution: 4.1 },
+  { name: 'Backend Team', issues: 156, critical: 8, resolved_7d: 15, avg_resolution: 4.8 },
+  { name: 'Frontend Team', issues: 123, critical: 5, resolved_7d: 12, avg_resolution: 5.2 },
+  { name: 'DevOps Team', issues: 87, critical: 2, resolved_7d: 8, avg_resolution: 3.9 },
+]
+
+const MTTR_MTTD_DATA = [
+  { week: 'W1', mttr: 5.2, mttd: 2.1 },
+  { week: 'W2', mttr: 5.0, mttd: 2.0 },
+  { week: 'W3', mttr: 4.8, mttd: 1.9 },
+  { week: 'W4', mttr: 4.9, mttd: 2.0 },
+  { week: 'W5', mttr: 4.7, mttd: 1.8 },
+  { week: 'W6', mttr: 4.5, mttd: 1.7 },
+  { week: 'W7', mttr: 4.4, mttd: 1.8 },
+  { week: 'W8', mttr: 4.3, mttd: 1.6 },
+  { week: 'W9', mttr: 4.2, mttd: 1.5 },
+  { week: 'W10', mttr: 4.2, mttd: 1.5 },
+]
+
 export default function DashboardPage() {
+  const [selectedTeam, setSelectedTeam] = useState<string>('all')
+  const [timeRange, setTimeRange] = useState<string>('7d')
+  const [showDeltaMode, setShowDeltaMode] = useState(false)
+
   const getSeverityColor = (severity: string) => {
     const colors = {
       critical: '#dc2626',
@@ -133,16 +158,47 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => setShowDeltaMode(!showDeltaMode)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+                showDeltaMode 
+                  ? 'bg-[#6B5AED] text-white' 
+                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+              }`}
+            >
+              <RefreshCw size={14} />
+              Delta Mode
+            </button>
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all focus:outline-none focus:border-[#6B5AED]"
+            >
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="90d">Last 90 Days</option>
+            </select>
+            <select
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all focus:outline-none focus:border-[#6B5AED]"
+            >
+              <option value="all">All Teams</option>
+              {TEAM_DATA.map(team => (
+                <option key={team.name} value={team.name}>{team.name}</option>
+              ))}
+            </select>
+            <button
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all flex items-center gap-2"
+            >
+              <Download size={14} />
+              Export
+            </button>
+            <button
               onClick={() => window.location.href = '/triage'}
               className="px-4 py-2 bg-[#6B5AED] rounded-md text-white text-sm font-medium hover:bg-[#5B4ADD] transition-all"
             >
               View Triage Inbox
-            </button>
-            <button
-              onClick={() => window.location.href = '/risk'}
-              className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-            >
-              Risk Graph
             </button>
           </div>
         </div>
@@ -224,6 +280,119 @@ export default function DashboardPage() {
               <div className="text-xs text-green-300/70">
                 4 frameworks tracked
               </div>
+            </div>
+          </div>
+
+          {/* MTTR/MTTD Metrics */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-5 bg-white/2 rounded-lg border border-white/5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-sm text-slate-400 mb-1">Mean Time to Resolve (MTTR)</div>
+                  <div className="text-3xl font-bold text-white">4.2 <span className="text-lg text-slate-400">days</span></div>
+                </div>
+                <div className="p-3 bg-blue-500/10 rounded-lg">
+                  <Clock size={24} className="text-blue-400" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1 text-green-500">
+                  <TrendingDown size={12} />
+                  <span className="font-semibold">-8.3%</span>
+                </div>
+                <span className="text-slate-500">vs last period</span>
+              </div>
+            </div>
+
+            <div className="p-5 bg-white/2 rounded-lg border border-white/5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-sm text-slate-400 mb-1">Mean Time to Detect (MTTD)</div>
+                  <div className="text-3xl font-bold text-white">1.5 <span className="text-lg text-slate-400">days</span></div>
+                </div>
+                <div className="p-3 bg-purple-500/10 rounded-lg">
+                  <Activity size={24} className="text-purple-400" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1 text-green-500">
+                  <TrendingDown size={12} />
+                  <span className="font-semibold">-12.5%</span>
+                </div>
+                <span className="text-slate-500">vs last period</span>
+              </div>
+            </div>
+          </div>
+
+          {/* MTTR/MTTD Trend Chart */}
+          <div className="p-6 bg-white/2 rounded-lg border border-white/5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">MTTR & MTTD Trend (10 Weeks)</h3>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#6B5AED]"></div>
+                  <span className="text-slate-400">MTTR</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#10b981]"></div>
+                  <span className="text-slate-400">MTTD</span>
+                </div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={MTTR_MTTD_DATA}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                <XAxis dataKey="week" stroke="#64748b" fontSize={11} />
+                <YAxis stroke="#64748b" fontSize={11} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '6px' }}
+                  labelStyle={{ color: '#e2e8f0' }}
+                />
+                <Line type="monotone" dataKey="mttr" stroke="#6B5AED" strokeWidth={2} dot={{ fill: '#6B5AED', r: 4 }} name="MTTR (days)" />
+                <Line type="monotone" dataKey="mttd" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 4 }} name="MTTD (days)" />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="mt-3 text-xs text-slate-400">
+              Both metrics trending down - faster detection and resolution
+            </div>
+          </div>
+
+          {/* Team Performance */}
+          <div className="p-6 bg-white/2 rounded-lg border border-white/5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Team Performance</h3>
+              <Users size={18} className="text-[#6B5AED]" />
+            </div>
+            <div className="space-y-3">
+              {TEAM_DATA.map((team, index) => (
+                <div 
+                  key={team.name}
+                  className="p-4 bg-white/2 rounded-lg border border-white/5 hover:border-[#6B5AED]/30 transition-all cursor-pointer"
+                  onClick={() => setSelectedTeam(team.name)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-white">{team.name}</div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <span className="text-slate-400">{team.critical} critical</span>
+                      </div>
+                      <div className="text-slate-500">{team.issues} total</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="text-slate-400">
+                        Resolved: <span className="text-green-400 font-semibold">{team.resolved_7d}</span> (7d)
+                      </div>
+                      <div className="text-slate-400">
+                        Avg Resolution: <span className="text-white font-semibold">{team.avg_resolution}d</span>
+                      </div>
+                    </div>
+                    <ArrowRight size={14} className="text-slate-500" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
