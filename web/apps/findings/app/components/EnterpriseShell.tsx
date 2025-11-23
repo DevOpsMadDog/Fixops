@@ -81,13 +81,20 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768)
+      const wasDesktop = isDesktop
+      const nowDesktop = window.innerWidth >= 768
+      setIsDesktop(nowDesktop)
+      
+      if (!wasDesktop && nowDesktop && sidebarOpen) {
+        setSidebarOpen(false)
+        document.body.style.overflow = ''
+      }
     }
     
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [isDesktop, sidebarOpen])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -99,12 +106,29 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         setCommandPaletteOpen(false)
         setNotificationsOpen(false)
         setUserMenuOpen(false)
+        // Close sidebar on Escape if open on mobile
+        if (sidebarOpen && !isDesktop) {
+          setSidebarOpen(false)
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [sidebarOpen, isDesktop])
+
+  // Body scroll lock when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen && !isDesktop) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [sidebarOpen, isDesktop])
 
   const navigationBase = [
     { name: 'Dashboard', key: 'dashboard', icon: BarChart3 },
