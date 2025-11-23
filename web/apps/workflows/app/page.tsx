@@ -233,7 +233,7 @@ export default function WorkflowsPage() {
     <EnterpriseShell>
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 min-h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-4">
