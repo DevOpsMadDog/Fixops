@@ -38,7 +38,6 @@ from apps.api.users_router import router as users_router
 from apps.api.workflows_router import router as workflows_router
 from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
-from backend.api.pentagi import router as pentagi_router
 from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
 from core.analytics import AnalyticsStore

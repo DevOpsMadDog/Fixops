@@ -301,44 +301,51 @@ export default function TriagePage() {
     solved: 0,
   }
 
-  function applyFilters() {
+  const applyFilters = () => {
     let filtered = [...issues]
+
+    if (viewMode === 'refined') {
+      filtered = filtered.filter(issue => {
+        if (issue.severity === 'low' && !issue.exploitability.kev && issue.exploitability.epss < 0.3) {
+          return false
+        }
+        return true
+      })
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(issue =>
+        issue.title?.toLowerCase().includes(query) ||
+        issue.repo?.toLowerCase().includes(query) ||
+        issue.location?.toLowerCase().includes(query)
+      )
+    }
 
     if (filters.new_7d) {
       filtered = filtered.filter(issue => issue.age_days <= 7)
     }
 
     if (filters.high_critical) {
-      filtered = filtered.filter(issue => issue.severity === 'high' || issue.severity === 'critical')
+      filtered = filtered.filter(issue => 
+        issue.severity === 'high' || issue.severity === 'critical'
+      )
     }
 
     if (filters.exploitable) {
-      filtered = filtered.filter(issue => issue.exploitability.kev || issue.exploitability.epss >= 0.7)
+      filtered = filtered.filter(issue => 
+        issue.exploitability.kev || issue.exploitability.epss >= 0.7
+      )
     }
 
     if (filters.internet_facing) {
       filtered = filtered.filter(issue => issue.internet_facing)
     }
 
-    if (filters.mission_critical) {
-      filtered = filtered.filter(issue => issue.business_criticality === 'mission_critical')
-    }
-
-    if (filters.used_in_code) {
-      filtered = filtered.filter(issue => issue.source === 'SAST')
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(issue =>
-        issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        issue.repo.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-
     setFilteredIssues(filtered)
   }
 
-  function toggleSelectAll() {
+  const toggleSelectAll = () => {
     if (selectedIssues.size === filteredIssues.length) {
       setSelectedIssues(new Set())
     } else {
@@ -442,50 +449,6 @@ export default function TriagePage() {
     setFocusedIndex(0)
   }, [filteredIssues])
 
-  const applyFilters = () => {
-    let filtered = [...issues]
-
-    if (viewMode === 'refined') {
-      filtered = filtered.filter(issue => {
-        if (issue.severity === 'low' && !issue.exploitability.kev && issue.exploitability.epss < 0.3) {
-          return false
-        }
-        return true
-      })
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(issue =>
-        issue.title?.toLowerCase().includes(query) ||
-        issue.repo?.toLowerCase().includes(query) ||
-        issue.location?.toLowerCase().includes(query)
-      )
-    }
-
-    if (filters.new_7d) {
-      filtered = filtered.filter(issue => issue.age_days <= 7)
-    }
-
-    if (filters.high_critical) {
-      filtered = filtered.filter(issue => 
-        issue.severity === 'high' || issue.severity === 'critical'
-      )
-    }
-
-    if (filters.exploitable) {
-      filtered = filtered.filter(issue => 
-        issue.exploitability.kev || issue.exploitability.epss >= 0.7
-      )
-    }
-
-    if (filters.internet_facing) {
-      filtered = filtered.filter(issue => issue.internet_facing)
-    }
-
-    setFilteredIssues(filtered)
-  }
-
   const toggleFilter = (filterKey: keyof typeof filters) => {
     setFilters(prev => ({
       ...prev,
@@ -503,14 +466,6 @@ export default function TriagePage() {
       }
       return newSet
     })
-  }
-
-  const toggleSelectAll = () => {
-    if (selectedIssues.size === filteredIssues.length) {
-      setSelectedIssues(new Set())
-    } else {
-      setSelectedIssues(new Set(filteredIssues.map(i => i.id)))
-    }
   }
 
   const toggleColumnVisibility = (column: string) => {
