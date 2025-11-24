@@ -23,6 +23,7 @@ from fastapi.security import APIKeyHeader
 
 from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
+from backend.api.pentagi import router as pentagi_router
 from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
 from core.analytics import AnalyticsStore
@@ -196,6 +197,7 @@ def create_app() -> FastAPI:
             "http://localhost:8000",
             "http://127.0.0.1:3000",
             "http://127.0.0.1:8000",
+            "https://*.devinapps.com",
         ]
         if overlay.mode != "demo":
             logger.warning(
@@ -356,6 +358,7 @@ def create_app() -> FastAPI:
     app.include_router(risk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
@@ -1107,6 +1110,77 @@ def create_app() -> FastAPI:
                 "internet_facing": internet_facing_count,
             },
         }
+
+    @app.get("/api/v1/triage/export", dependencies=[Depends(_verify_api_key)])
+    async def export_triage(format: str = "csv") -> Any:
+        """Export triage data as CSV or JSON."""
+        last_result = app.state.last_pipeline_result
+
+        if last_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
+            )
+
+        triage_data = await get_triage()
+        rows = triage_data["rows"]
+
+        if format == "json":
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                content={"data": rows, "summary": triage_data["summary"]},
+                headers={
+                    "Content-Disposition": 'attachment; filename="fixops-triage-export.json"',
+                    "Access-Control-Expose-Headers": "Content-Disposition",
+                },
+            )
+        elif format == "csv":
+            import io
+
+            from fastapi.responses import StreamingResponse
+
+            output = io.StringIO()
+            if rows:
+                fieldnames = [
+                    "id",
+                    "severity",
+                    "title",
+                    "source",
+                    "repo",
+                    "location",
+                    "age_days",
+                    "internet_facing",
+                ]
+                writer = csv.DictWriter(output, fieldnames=fieldnames)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(
+                        {
+                            "id": row["id"],
+                            "severity": row["severity"],
+                            "title": row["title"],
+                            "source": row["source"],
+                            "repo": row["repo"],
+                            "location": row["location"],
+                            "age_days": row["age_days"],
+                            "internet_facing": row["internet_facing"],
+                        }
+                    )
+
+            output.seek(0)
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": 'attachment; filename="fixops-triage-export.csv"',
+                    "Access-Control-Expose-Headers": "Content-Disposition",
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=400, detail="Invalid format. Use 'csv' or 'json'."
+            )
 
     def _get_compliance_mappings(
         compliance_status: Dict[str, Any], source_type: str
