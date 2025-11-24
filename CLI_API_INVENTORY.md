@@ -92,9 +92,99 @@
 
 **Flow:** CLI → Load fixtures → PipelineOrchestrator.run() → Output
 
+### 10. pentagi
+**Purpose:** Manage Pentagi pen testing integration
+**Entry Point:** `core/cli.py:_handle_pentagi()`
+
+#### 10.1 pentagi list-requests
+```bash
+python -m core.cli pentagi list-requests [--finding-id ID] [--status STATUS] [--limit N] [--offset N] [--format table|json]
+```
+- Lists pen test requests with optional filtering
+- Status choices: pending, running, completed, failed, cancelled
+- Default format: table
+- Returns exit code 0 on success
+
+#### 10.2 pentagi create-request
+```bash
+python -m core.cli pentagi create-request \
+  --finding-id "finding-123" \
+  --target-url "https://test.example.com/api" \
+  --vuln-type "sql_injection" \
+  --test-case "Test SQL injection via username parameter" \
+  --priority critical|high|medium|low
+```
+- Creates new pen test request for a finding
+- Priority defaults to medium
+- Returns request ID and JSON on success
+- Returns exit code 0 on success
+
+#### 10.3 pentagi get-request
+```bash
+python -m core.cli pentagi get-request <request_id>
+```
+- Gets pen test request details by ID
+- Returns JSON with full request details
+- Returns exit code 0 if found, 1 if not found
+
+#### 10.4 pentagi list-results
+```bash
+python -m core.cli pentagi list-results [--finding-id ID] [--exploitability LEVEL] [--limit N] [--offset N] [--format table|json]
+```
+- Lists pen test results with optional filtering
+- Exploitability choices: confirmed_exploitable, likely_exploitable, unexploitable, blocked, inconclusive
+- Default format: table
+- Returns exit code 0 on success
+
+#### 10.5 pentagi list-configs
+```bash
+python -m core.cli pentagi list-configs [--limit N] [--offset N] [--format table|json]
+```
+- Lists Pentagi configuration instances
+- Default format: table
+- Returns exit code 0 on success
+
+#### 10.6 pentagi create-config
+```bash
+python -m core.cli pentagi create-config \
+  --name "Production Pentagi" \
+  --url "https://pentagi.example.com" \
+  [--api-key "secret-key"] \
+  [--disabled]
+```
+- Creates new Pentagi configuration
+- Config is enabled by default unless --disabled flag is used
+- API key is optional
+- Returns config ID and JSON on success
+- Returns exit code 0 on success
+
+**Flow:** CLI → PentagiDB operations → Output results
+
 ## API Endpoints (apps/api/app.py)
 
-TODO: Inventory all FastAPI endpoints
+### Phase 6: Pentagi Integration (12 endpoints) ✅
+
+#### Pen Test Request Management (apps/api/pentagi_router.py)
+- `GET /api/v1/pentagi/requests` - List pen test requests with filtering
+- `POST /api/v1/pentagi/requests` - Create pen test request
+- `GET /api/v1/pentagi/requests/{id}` - Get pen test request details
+- `PUT /api/v1/pentagi/requests/{id}` - Update pen test request
+- `POST /api/v1/pentagi/requests/{id}/start` - Start pen test execution
+- `POST /api/v1/pentagi/requests/{id}/cancel` - Cancel running pen test
+
+#### Pen Test Results (apps/api/pentagi_router.py)
+- `GET /api/v1/pentagi/results` - List pen test results with filtering
+- `POST /api/v1/pentagi/results` - Create pen test result
+- `GET /api/v1/pentagi/results/by-request/{request_id}` - Get result by request ID
+
+#### Pentagi Configuration (apps/api/pentagi_router.py)
+- `GET /api/v1/pentagi/configs` - List Pentagi configurations
+- `POST /api/v1/pentagi/configs` - Create Pentagi configuration
+- `GET /api/v1/pentagi/configs/{id}` - Get configuration details
+- `PUT /api/v1/pentagi/configs/{id}` - Update configuration
+- `DELETE /api/v1/pentagi/configs/{id}` - Delete configuration
+
+**Total API Surface: 137 endpoints** (125 from Phases 1-5 + 12 from Phase 6)
 
 ## Output Files
 

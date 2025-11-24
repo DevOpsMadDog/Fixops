@@ -1122,12 +1122,24 @@ class InputNormalizer:
         data = _safe_json_loads(payload)
 
         if isinstance(data, dict):
-            entries = (
-                data.get("vulnerabilities")
-                or data.get("cves")
-                or data.get("data")
-                or []
-            )
+            entries = data.get("vulnerabilities") or data.get("cves")
+
+            if not entries:
+                nested_data = data.get("data")
+                if isinstance(nested_data, dict):
+                    entries = (
+                        nested_data.get("vulnerabilities")
+                        or nested_data.get("cves")
+                        or nested_data.get("data")
+                        or []
+                    )
+                elif isinstance(nested_data, list):
+                    entries = nested_data
+                else:
+                    entries = []
+
+            if not entries:
+                entries = []
         elif isinstance(data, list):
             entries = data
         else:
@@ -1164,7 +1176,12 @@ class InputNormalizer:
                 entry.get("cveID")
                 or entry.get("cve_id")
                 or entry.get("id")
-                or entry.get("cve", {}).get("cveId")
+                or (entry.get("cve") if isinstance(entry.get("cve"), str) else None)
+                or (
+                    entry.get("cve", {}).get("cveId")
+                    if isinstance(entry.get("cve"), dict)
+                    else None
+                )
                 or "UNKNOWN"
             )
             title = (
@@ -1187,6 +1204,9 @@ class InputNormalizer:
                 or entry.get("knownExploited")
                 or entry.get("exploited")
             )
+
+            if exploited and not severity:
+                severity = "critical"
 
             if cve_id in seen_cve_ids:
                 existing_idx = seen_cve_ids[cve_id]
@@ -1735,6 +1755,29 @@ class InputNormalizer:
             nested = document.get("business_context")
             if isinstance(nested, Mapping):
                 return self._from_fixops_context(nested, source)
+        if (
+            document.get("org")
+            or document.get("crown_jewels")
+            or document.get("environments")
+        ):
+            metadata = {
+                "source": source,
+                "org_name": document.get("org", {}).get("name")
+                if isinstance(document.get("org"), dict)
+                else None,
+                "crown_jewels": document.get("crown_jewels", []),
+                "environments": document.get("environments", []),
+            }
+
+            return NormalizedBusinessContext(
+                format="org_context.yaml"
+                if source.endswith("yaml")
+                else "org_context.json",
+                components=[],
+                ssvc={},
+                metadata=metadata,
+                raw=dict(document),
+            )
         raise ValueError(
             "Unsupported business context document; expected FixOps, OTM, or SSVC payload"
         )

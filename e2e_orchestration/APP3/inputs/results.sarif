@@ -1,0 +1,65 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [{
+    "tool": {
+      "driver": {
+        "name": "Bandit",
+        "informationUri": "https://bandit.readthedocs.io",
+        "version": "1.7.5",
+        "rules": [
+          {"id": "B608", "name": "SQLInjection", "shortDescription": {"text": "SQL Injection"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "external/cwe/cwe-89"]}},
+          {"id": "B201", "name": "FlaskDebugMode", "shortDescription": {"text": "Flask Debug Mode"}, "defaultConfiguration": {"level": "warning"}, "properties": {"tags": ["security", "external/cwe/cwe-489"]}},
+          {"id": "B105", "name": "HardcodedPassword", "shortDescription": {"text": "Hardcoded auth_string"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "external/cwe/cwe-798"]}},
+          {"id": "B501", "name": "WeakCrypto", "shortDescription": {"text": "Weak Cryptography"}, "defaultConfiguration": {"level": "warning"}, "properties": {"tags": ["security", "external/cwe/cwe-327"]}},
+          {"id": "B506", "name": "YAMLLoad", "shortDescription": {"text": "Unsafe YAML Load"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "external/cwe/cwe-502"]}},
+          {"id": "B602", "name": "ShellInjection", "shortDescription": {"text": "Shell Injection"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "external/cwe/cwe-78"]}}
+        ]
+      }
+    },
+    "results": [
+      {
+        "ruleId": "B608",
+        "level": "error",
+        "message": {"text": "SQL query constructed with f-string using tenant_id from request"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/query-service/query_builder.py"}, "region": {"startLine": 156, "snippet": {"text": "query = f\"SELECT * FROM metrics WHERE tenant_id = '{tenant_id}'\""}}}}],
+        "properties": {"priorityScore": 890}
+      },
+      {
+        "ruleId": "B201",
+        "level": "warning",
+        "message": {"text": "FastAPI debug mode enabled in production configuration"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/api-gateway/main.py"}, "region": {"startLine": 23, "snippet": {"text": "app = FastAPI(debug=True)"}}}}],
+        "properties": {"priorityScore": 720}
+      },
+      {
+        "ruleId": "B105",
+        "level": "error",
+        "message": {"text": "Hardcoded JWT sensitive_value key in authentication service"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/auth-service/config.py"}, "region": {"startLine": 12, "snippet": {"text": "JWT_SECRET = 'super-sensitive_value-key-12345'"}}}}],
+        "properties": {"priorityScore": 910}
+      },
+      {
+        "ruleId": "B501",
+        "level": "warning",
+        "message": {"text": "Use of MD5 hash for data integrity checks"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/export-service/file_handler.py"}, "region": {"startLine": 89, "snippet": {"text": "checksum = hashlib.md5(data).hexdigest()"}}}}],
+        "properties": {"priorityScore": 580}
+      },
+      {
+        "ruleId": "B506",
+        "level": "error",
+        "message": {"text": "Unsafe YAML deserialization in configuration loader"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/tenant-service/config_loader.py"}, "region": {"startLine": 45, "snippet": {"text": "config = yaml.load(file, Loader=yaml.Loader)"}}}}],
+        "properties": {"priorityScore": 860}
+      },
+      {
+        "ruleId": "B602",
+        "level": "error",
+        "message": {"text": "Shell command constructed with user input in export service"},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/export-service/pdf_generator.py"}, "region": {"startLine": 123, "snippet": {"text": "os.system(f'wkhtmltopdf {user_template} output.pdf')"}}}}],
+        "properties": {"priorityScore": 880}
+      }
+    ]
+  }]
+}
