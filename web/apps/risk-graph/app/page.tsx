@@ -510,7 +510,7 @@ export default function RiskGraphPage() {
                       </div>
                     )}
 
-                    {selectedNode.epss > 0 && (
+                    {selectedNode.epss && selectedNode.epss > 0 && (
                       <div className="p-3 bg-white/5 rounded-md">
                         <div className="text-xs font-semibold text-slate-300 mb-1">
                           EPSS Score
