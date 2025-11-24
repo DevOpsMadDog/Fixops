@@ -244,7 +244,7 @@ export default function TriagePage() {
   const [editingCell, setEditingCell] = useState<{ issueId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; issue: typeof DEMO_ISSUES[0] } | null>(null)
-  const [undoStack, setUndoStack] = useState<Array<{ issueId: string; field: string; oldValue: string | boolean; newValue: string | boolean; timestamp: number }>>([])
+  const [undoStack, setUndoStack] = useState<Array<{ issueId: string; field: string; oldValue: any; newValue: any; timestamp: number }>>([])
   const [showUndoToast, setShowUndoToast] = useState(false)
   const [showActivityDrawer, setShowActivityDrawer] = useState(false)
   const [activityLog, setActivityLog] = useState<Array<{
