@@ -1424,3 +1424,6 @@ def create_app() -> FastAPI:
         return entry
 
     return app
+
+
+app = create_app()
