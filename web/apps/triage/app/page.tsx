@@ -244,7 +244,7 @@ export default function TriagePage() {
   const [editingCell, setEditingCell] = useState<{ issueId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; issue: typeof DEMO_ISSUES[0] } | null>(null)
-  const [undoStack, setUndoStack] = useState<Array<{ issueId: string; field: string; oldValue: any; newValue: any; timestamp: number }>>([])
+  const [undoStack, setUndoStack] = useState<Array<{ issueId: string; field: string; oldValue: string | boolean; newValue: string | boolean; timestamp: number }>>([])
   const [showUndoToast, setShowUndoToast] = useState(false)
   const [showActivityDrawer, setShowActivityDrawer] = useState(false)
   const [activityLog, setActivityLog] = useState<Array<{
@@ -253,8 +253,8 @@ export default function TriagePage() {
     issueTitle: string
     action: string
     field?: string
-    oldValue?: any
-    newValue?: any
+    oldValue?: string | boolean
+    newValue?: string | boolean
     user: string
     timestamp: number
   }>>([
@@ -264,7 +264,7 @@ export default function TriagePage() {
       issueTitle: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
       action: 'created',
       user: 'security-team',
-      timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000
+      timestamp: 1700000000000
     },
     {
       id: '2',
@@ -275,7 +275,7 @@ export default function TriagePage() {
       oldValue: 'high',
       newValue: 'critical',
       user: 'security-team',
-      timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000
+      timestamp: 1700172800000
     },
     {
       id: '3',
@@ -286,7 +286,7 @@ export default function TriagePage() {
       oldValue: 'unassigned',
       newValue: 'security-team',
       user: 'admin',
-      timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000
+      timestamp: 1700259200000
     }
   ])
 
@@ -299,6 +299,51 @@ export default function TriagePage() {
     snoozed: 0,
     ignored: 0,
     solved: 0,
+  }
+
+  function applyFilters() {
+    let filtered = [...issues]
+
+    if (filters.new_7d) {
+      filtered = filtered.filter(issue => issue.age_days <= 7)
+    }
+
+    if (filters.high_critical) {
+      filtered = filtered.filter(issue => issue.severity === 'high' || issue.severity === 'critical')
+    }
+
+    if (filters.exploitable) {
+      filtered = filtered.filter(issue => issue.exploitability.kev || issue.exploitability.epss >= 0.7)
+    }
+
+    if (filters.internet_facing) {
+      filtered = filtered.filter(issue => issue.internet_facing)
+    }
+
+    if (filters.mission_critical) {
+      filtered = filtered.filter(issue => issue.business_criticality === 'mission_critical')
+    }
+
+    if (filters.used_in_code) {
+      filtered = filtered.filter(issue => issue.source === 'SAST')
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter(issue =>
+        issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.repo.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    setFilteredIssues(filtered)
+  }
+
+  function toggleSelectAll() {
+    if (selectedIssues.size === filteredIssues.length) {
+      setSelectedIssues(new Set())
+    } else {
+      setSelectedIssues(new Set(filteredIssues.map(i => i.id)))
+    }
   }
 
   useEffect(() => {
@@ -677,7 +722,7 @@ export default function TriagePage() {
     return { score: Math.min(score, 100), breakdown }
   }
 
-  const generateShareableUrl = () => {
+  const handleShareView = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''
     const params = new URLSearchParams()
     
@@ -1570,7 +1615,7 @@ export default function TriagePage() {
 
               <div className="bg-white/2 rounded-lg p-4 border border-white/5">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                  What's Included
+                  What&apos;s Included
                 </div>
                 <div className="space-y-2 text-sm text-slate-300">
                   <div className="flex items-center gap-2">
@@ -1584,7 +1629,7 @@ export default function TriagePage() {
                   {searchQuery && (
                     <div className="flex items-center gap-2">
                       <CheckCircle size={14} className="text-green-400" />
-                      <span>Search query: "{searchQuery}"</span>
+                      <span>Search query: &quot;{searchQuery}&quot;</span>
                     </div>
                   )}
                 </div>
