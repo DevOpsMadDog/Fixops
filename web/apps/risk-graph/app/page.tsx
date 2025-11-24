@@ -427,7 +427,7 @@ export default function RiskGraphPage() {
                   {selectedNode.type === 'service' && <Shield size={20} className="text-[#6B5AED]" />}
                   {selectedNode.type === 'component' && <Code size={20} className="text-green-500" />}
                   {(selectedNode.type === 'cve' || selectedNode.type === 'sast') && (
-                    <AlertCircle size={20} style={{ color: getSeverityColor(selectedNode.severity) }} />
+                    <AlertCircle size={20} style={{ color: getSeverityColor(selectedNode.severity || 'low') }} />
                   )}
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                     {selectedNode.type}
