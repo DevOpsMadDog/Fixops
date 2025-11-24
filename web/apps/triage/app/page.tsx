@@ -253,8 +253,8 @@ export default function TriagePage() {
     issueTitle: string
     action: string
     field?: string
-    oldValue?: string | boolean
-    newValue?: string | boolean
+    oldValue?: any
+    newValue?: any
     user: string
     timestamp: number
   }>>([
