@@ -82,7 +82,7 @@ export default function RiskGraphPage() {
     min_epss: 0,
   })
   const [searchQuery, setSearchQuery] = useState('')
-  const cyRef = useRef<Cytoscape.Core | null>(null)
+  const cyRef = useRef<any>(null)
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -161,7 +161,7 @@ export default function RiskGraphPage() {
     minTemp: 1.0,
   }
 
-  const handleNodeClick = (event: Cytoscape.EventObject) => {
+  const handleNodeClick = (event: any) => {
     const node = event.target
     setSelectedNode(node.data() as SelectedNodeData)
   }
