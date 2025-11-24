@@ -49,9 +49,31 @@ const DEMO_GRAPH_DATA = {
   ],
 }
 
+interface GraphNode {
+  data: {
+    id: string
+    label: string
+    type: string
+    severity?: string
+    kev?: boolean
+  }
+}
+
+interface SelectedNodeData {
+  id: string
+  label: string
+  type: string
+  severity?: string
+  kev?: boolean
+  epss?: number
+  internet_facing?: boolean
+  business_criticality?: string
+  data_classification?: string[]
+}
+
 export default function RiskGraphPage() {
   const [graphData, setGraphData] = useState(DEMO_GRAPH_DATA)
-  const [selectedNode, setSelectedNode] = useState<any>(null)
+  const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null)
   const [filters, setFilters] = useState({
     kev_only: false,
     internet_facing: false,
@@ -61,7 +83,7 @@ export default function RiskGraphPage() {
     min_epss: 0,
   })
   const [searchQuery, setSearchQuery] = useState('')
-  const cyRef = useRef<any>(null)
+  const cyRef = useRef<Cytoscape.Core | null>(null)
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -73,13 +95,13 @@ export default function RiskGraphPage() {
     return colors[severity as keyof typeof colors] || colors.low
   }
 
-  const getNodeColor = (node: any) => {
+  const getNodeColor = (node: GraphNode['data']) => {
     if (node.type === 'service') return '#6B5AED'
     if (node.type === 'component') return '#10b981'
-    return getSeverityColor(node.severity)
+    return getSeverityColor(node.severity || 'low')
   }
 
-  const getNodeSize = (node: any) => {
+  const getNodeSize = (node: GraphNode['data']) => {
     if (node.type === 'service') return 60
     if (node.type === 'component') return 50
     if (node.severity === 'critical') return 45
@@ -91,16 +113,16 @@ export default function RiskGraphPage() {
     {
       selector: 'node',
       style: {
-        'background-color': (ele: any) => getNodeColor(ele.data()),
+        'background-color': (ele: Cytoscape.NodeSingular) => getNodeColor(ele.data() as GraphNode['data']),
         'label': 'data(label)',
         'color': '#ffffff',
         'text-valign': 'center',
         'text-halign': 'center',
         'font-size': '10px',
         'font-weight': 'bold',
-        'width': (ele: any) => getNodeSize(ele.data()),
-        'height': (ele: any) => getNodeSize(ele.data()),
-        'border-width': (ele: any) => ele.data().kev ? 3 : 0,
+        'width': (ele: Cytoscape.NodeSingular) => getNodeSize(ele.data() as GraphNode['data']),
+        'height': (ele: Cytoscape.NodeSingular) => getNodeSize(ele.data() as GraphNode['data']),
+        'border-width': (ele: Cytoscape.NodeSingular) => (ele.data() as GraphNode['data']).kev ? 3 : 0,
         'border-color': '#fbbf24',
         'text-wrap': 'wrap',
         'text-max-width': '80px',
