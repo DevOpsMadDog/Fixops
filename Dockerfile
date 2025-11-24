@@ -23,6 +23,7 @@ EXPOSE 8000
 # Set environment variables
 ENV FIXOPS_MODE=demo
 ENV FIXOPS_DATA_DIR=/app/.fixops_data
+ENV FIXOPS_API_TOKEN=demo-token-12345
 ENV PYTHONUNBUFFERED=1
 
 # Run the API
