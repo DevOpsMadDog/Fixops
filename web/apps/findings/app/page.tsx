@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ExternalLink, Copy } from 'lucide-react'
+import { ExternalLink, Copy, ArrowLeft } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const FINDING_DETAIL = {
