@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import EnterpriseShell from './components/EnterpriseShell'
-import { AlertCircle, Shield, Code, Cloud, XCircle, Filter, Search, Layers, ArrowLeft } from 'lucide-react'
+import { AlertCircle, Shield, Code, XCircle, Filter, Search, Layers, ArrowLeft } from 'lucide-react'
 
 const CytoscapeComponent = dynamic(
   () => import('react-cytoscapejs'),
@@ -72,7 +72,6 @@ interface SelectedNodeData {
 }
 
 export default function RiskGraphPage() {
-  const [graphData, setGraphData] = useState(DEMO_GRAPH_DATA)
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null)
   const [filters, setFilters] = useState({
     kev_only: false,
@@ -167,7 +166,7 @@ export default function RiskGraphPage() {
     setSelectedNode(node.data() as SelectedNodeData)
   }
 
-  useEffect(() => {
+  const graphData = useMemo(() => {
     let filteredNodes = [...DEMO_GRAPH_DATA.nodes]
     let filteredEdges = [...DEMO_GRAPH_DATA.edges]
 
@@ -221,10 +220,10 @@ export default function RiskGraphPage() {
       nodeIds.has(e.data.source) && nodeIds.has(e.data.target)
     )
 
-    setGraphData({
+    return {
       nodes: filteredNodes,
       edges: filteredEdges,
-    })
+    }
   }, [filters, searchQuery])
 
   const summary = {
