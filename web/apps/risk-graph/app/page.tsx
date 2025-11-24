@@ -162,12 +162,12 @@ export default function RiskGraphPage() {
     minTemp: 1.0,
   }
 
-  const handleNodeClick = (event: any) => {
+  const handleNodeClick = (event: Cytoscape.EventObject) => {
     const node = event.target
-    setSelectedNode(node.data())
+    setSelectedNode(node.data() as SelectedNodeData)
   }
 
-  const applyFilters = () => {
+  useEffect(() => {
     let filteredNodes = [...DEMO_GRAPH_DATA.nodes]
     let filteredEdges = [...DEMO_GRAPH_DATA.edges]
 
@@ -225,10 +225,6 @@ export default function RiskGraphPage() {
       nodes: filteredNodes,
       edges: filteredEdges,
     })
-  }
-
-  useEffect(() => {
-    applyFilters()
   }, [filters, searchQuery])
 
   const summary = {
