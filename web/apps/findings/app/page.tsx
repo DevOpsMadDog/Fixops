@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowLeft, ExternalLink, Copy, CheckCircle, AlertTriangle, Shield, Clock, TrendingUp } from 'lucide-react'
+import { ExternalLink, Copy } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
 const FINDING_DETAIL = {
@@ -15,6 +15,7 @@ const FINDING_DETAIL = {
   discovered: '2023-12-07',
   published: '2023-12-08',
   last_modified: '2024-01-15',
+  age: 45,
   kev: true,
   epss_score: 0.89,
   exploitability: {
@@ -84,11 +85,11 @@ const FINDING_DETAIL = {
 
 export default function FindingDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
-  const [findingId, setFindingId] = useState<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    setFindingId(params.get('id'))
+    const id = params.get('id')
+    console.log('Finding ID:', id)
   }, [])
 
   const getSeverityColor = (severity: string) => {
@@ -205,7 +206,7 @@ export default function FindingDetailPage() {
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">Age</div>
                   <div className="text-2xl font-bold text-slate-300">
-                    {Math.floor((Date.now() - new Date(FINDING_DETAIL.discovered).getTime()) / (1000 * 60 * 60 * 24))}d
+                    {FINDING_DETAIL.age}d
                   </div>
                 </div>
               </div>
