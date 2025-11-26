@@ -267,12 +267,30 @@ export default function ShowcasePage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      const startTime = Date.now();
+      addActivityLog({
+        method: 'POST',
+        url: `${apiBase}${endpoint}`,
+        status: 0,
+        duration: 0,
+        type: 'request'
+      });
+
       const response = await fetch(`${apiBase}${endpoint}`, {
         method: 'POST',
         headers: {
           'X-API-Key': apiKey,
         },
         body: formData,
+      });
+
+      const duration = Date.now() - startTime;
+      addActivityLog({
+        method: 'POST',
+        url: `${apiBase}${endpoint}`,
+        status: response.status,
+        duration,
+        type: 'response'
       });
 
       if (!response.ok) {
@@ -313,7 +331,24 @@ export default function ShowcasePage() {
   };
 
   const loadSampleData = async () => {
-    alert('Sample data loading feature coming soon. For now, please upload your own files.');
+    const sampleFiles = {
+      sbom: '/demo/sbom.json',
+      sarif: '/demo/scanner.sarif',
+      cve: '/demo/cve-feed.json',
+      design: '/demo/requirements-input.csv'
+    };
+
+    for (const [type, path] of Object.entries(sampleFiles)) {
+      try {
+        const response = await fetch(path);
+        const blob = await response.blob();
+        const filename = path.split('/').pop() || 'file';
+        const file = new File([blob], filename, { type: blob.type });
+        handleFileUpload(type as any, file);
+      } catch (error) {
+        console.error(`Failed to load sample ${type}:`, error);
+      }
+    }
   };
 
   const tabs = [
@@ -506,32 +541,57 @@ export default function ShowcasePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Value Metrics */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          {valueMetrics.map((metric, idx) => (
-            <div
-              key={idx}
-              className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-lg" style={{ backgroundColor: `${metric.color}20` }}>
-                  <metric.icon size={24} style={{ color: metric.color }} />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {metric.value}
-              </div>
-              <div className="text-sm text-slate-400 mb-2">{metric.label}</div>
-              <div className="text-xs font-medium" style={{ color: metric.color }}>
-                {metric.change}
-              </div>
-            </div>
-          ))}
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-800 bg-slate-900/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex gap-1">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-purple-500 text-white bg-slate-800/50'
+                    : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800/30'
+                }`}
+              >
+                <tab.icon size={18} />
+                {tab.name}
+              </button>
+            ))}
+          </div>
         </div>
+      </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Workflow Tab */}
+        {activeTab === 'workflow' && (
+          <div className="space-y-6">
+            {/* Value Metrics */}
+            <div className="grid grid-cols-4 gap-4">
+              {valueMetrics.map((metric, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: `${metric.color}20` }}>
+                      <metric.icon size={24} style={{ color: metric.color}} />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {metric.value}
+                  </div>
+                  <div className="text-sm text-slate-400 mb-2">{metric.label}</div>
+                  <div className="text-xs font-medium" style={{ color: metric.color }}>
+                    {metric.change}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-3 gap-6">
           {/* Left Column - Upload & Pipeline */}
           <div className="col-span-2 space-y-6">
             {/* File Upload Section */}
@@ -582,17 +642,26 @@ export default function ShowcasePage() {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={runPipeline}
-                disabled={pipelineRunning || Object.keys(uploadedFiles).length === 0}
-                className="w-full mt-4 px-6 py-3 rounded-lg font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: pipelineRunning ? COLORS.secondary : COLORS.primary,
-                }}
-              >
-                <Play size={20} />
-                {pipelineRunning ? 'Pipeline Running...' : 'Run Pipeline'}
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={loadSampleData}
+                  className="px-6 py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600"
+                >
+                  <Database size={20} />
+                  Use Sample Data
+                </button>
+                <button
+                  onClick={runPipeline}
+                  disabled={pipelineRunning || Object.keys(uploadedFiles).length === 0}
+                  className="flex-1 px-6 py-3 rounded-lg font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: pipelineRunning ? COLORS.secondary : COLORS.primary,
+                  }}
+                >
+                  <Play size={20} />
+                  {pipelineRunning ? 'Pipeline Running...' : 'Run Pipeline'}
+                </button>
+              </div>
             </div>
 
             {/* Pipeline Stages */}
@@ -757,8 +826,210 @@ export default function ShowcasePage() {
                 </div>
               </div>
             </div>
+
+            {/* Activity Log */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Activity size={20} style={{ color: COLORS.primary }} />
+                Activity Log
+              </h2>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {activityLog.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    No activity yet. Upload files and run the pipeline to see HTTP requests.
+                  </div>
+                ) : (
+                  activityLog.map(entry => (
+                    <div
+                      key={entry.id}
+                      className="p-3 bg-slate-800/50 rounded-lg text-xs font-mono"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${
+                            entry.type === 'request' ? 'text-blue-400' : 
+                            entry.status >= 200 && entry.status < 300 ? 'text-green-400' :
+                            'text-red-400'
+                          }`}>
+                            {entry.method}
+                          </span>
+                          <span className="text-slate-400">{entry.url}</span>
+                        </div>
+                        {entry.type === 'response' && (
+                          <div className="flex items-center gap-2">
+                            <span className={`${
+                              entry.status >= 200 && entry.status < 300 ? 'text-green-400' :
+                              'text-red-400'
+                            }`}>
+                              {entry.status}
+                            </span>
+                            <span className="text-slate-500">{entry.duration}ms</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-slate-500">
+                        {new Date(entry.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+        )}
+
+        {/* API Explorer Tab */}
+        {activeTab === 'api-explorer' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Code size={20} style={{ color: COLORS.primary }} />
+                API Explorer
+              </h2>
+              <p className="text-slate-400 mb-6">
+                Explore FixOps API endpoints with Try It Live forms and code snippets
+              </p>
+
+              {apiEndpoints.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-slate-500 mb-4">Loading API endpoints from OpenAPI spec...</div>
+                  <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {apiEndpoints.slice(0, 10).map((endpoint, idx) => (
+                    <div key={idx} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs font-bold">
+                          {endpoint.methods[0]?.toUpperCase()}
+                        </span>
+                        <span className="font-mono text-sm text-white">{endpoint.path}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mb-3">
+                        {endpoint[endpoint.methods[0]]?.summary || 'API endpoint'}
+                      </p>
+                      <button className="px-3 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white text-xs transition-colors">
+                        Try It Live
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CLI Explorer Tab */}
+        {activeTab === 'cli-explorer' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Terminal size={20} style={{ color: COLORS.primary }} />
+                CLI Explorer
+              </h2>
+              <p className="text-slate-400 mb-6">
+                Explore all 13 FixOps CLI commands with syntax, flags, and examples
+              </p>
+
+              <div className="space-y-4">
+                {[
+                  { cmd: 'fixops demo', desc: 'Run demo pipeline with sample data', flags: ['--mode', '--output'] },
+                  { cmd: 'fixops ingest', desc: 'Ingest security artifacts', flags: ['--sbom', '--sarif', '--cve', '--design'] },
+                  { cmd: 'fixops normalize', desc: 'Normalize ingested data', flags: ['--format', '--output'] },
+                  { cmd: 'fixops correlate', desc: 'Correlate findings across sources', flags: ['--threshold'] },
+                  { cmd: 'fixops assess', desc: 'Assess risk using SSVC framework', flags: ['--policy'] },
+                  { cmd: 'fixops decide', desc: 'Make policy decisions', flags: ['--consensus'] },
+                  { cmd: 'fixops evidence', desc: 'Generate evidence bundles', flags: ['--sign', '--retention'] },
+                  { cmd: 'fixops triage', desc: 'Export triage data', flags: ['--format'] },
+                  { cmd: 'fixops graph', desc: 'Generate knowledge graph', flags: ['--layout'] },
+                  { cmd: 'fixops compliance', desc: 'Check compliance status', flags: ['--framework'] },
+                  { cmd: 'fixops pipeline', desc: 'Run full pipeline', flags: ['--config'] },
+                  { cmd: 'fixops status', desc: 'Check system status', flags: [] },
+                  { cmd: 'fixops version', desc: 'Show version info', flags: [] },
+                ].map((cli, idx) => (
+                  <div key={idx} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <code className="text-purple-400 font-mono text-sm">{cli.cmd}</code>
+                      <button className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs transition-colors">
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mb-2">{cli.desc}</p>
+                    {cli.flags.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {cli.flags.map(flag => (
+                          <span key={flag} className="px-2 py-1 rounded bg-slate-900 text-slate-300 text-xs font-mono">
+                            {flag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Health Dashboard Tab */}
+        {activeTab === 'health' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <Heart size={20} style={{ color: COLORS.primary }} />
+                    Health Dashboard
+                  </h2>
+                  <p className="text-slate-400">
+                    Real-time health checks for all FixOps API endpoints
+                  </p>
+                </div>
+                <button
+                  onClick={runHealthChecks}
+                  disabled={healthChecks.some(c => c.status === 'running')}
+                  className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm transition-colors"
+                >
+                  Run Health Checks
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {healthChecks.map(check => (
+                  <div
+                    key={check.id}
+                    className={`p-4 rounded-lg border ${
+                      check.status === 'success' ? 'bg-green-500/10 border-green-500/30' :
+                      check.status === 'error' ? 'bg-red-500/10 border-red-500/30' :
+                      check.status === 'running' ? 'bg-purple-500/10 border-purple-500/30 animate-pulse' :
+                      'bg-slate-800/50 border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium text-white">{check.name}</div>
+                      {check.status === 'success' && <CheckCircle size={16} className="text-green-400" />}
+                      {check.status === 'error' && <AlertTriangle size={16} className="text-red-400" />}
+                      {check.status === 'running' && (
+                        <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      )}
+                    </div>
+                    {check.endpoint && (
+                      <div className="text-xs font-mono text-slate-400 mb-2">{check.endpoint}</div>
+                    )}
+                    {check.duration !== undefined && (
+                      <div className="text-xs text-slate-500">Response time: {check.duration}ms</div>
+                    )}
+                    {check.error && (
+                      <div className="text-xs text-red-400 mt-2">{check.error}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
