@@ -1,0 +1,1 @@
+{"runs":[{"tool":{"driver":{"name":"sast-pro"}},"results":[{"ruleId":"SQLi","level":"error","message":{"text":"Unsanitized input"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"app/db.py"}}}]},{"ruleId":"WeakTLS","level":"warning","message":{"text":"TLS <1.2"}}]}]}
