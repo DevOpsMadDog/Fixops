@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { 
   Upload, Play, CheckCircle, Clock, Shield, FileText, 
   TrendingDown, DollarSign, Target, AlertTriangle,
-  Database, Cpu, Network, Lock, FileCheck, BarChart3
+  Database, Cpu, Network, Lock, FileCheck, BarChart3,
+  Activity, Code, Terminal, Heart, Settings, Workflow
 } from 'lucide-react';
 
 const COLORS = {
@@ -15,6 +16,8 @@ const COLORS = {
   error: '#ef4444',
   info: '#3b82f6',
 };
+
+type TabId = 'workflow' | 'api-explorer' | 'cli-explorer' | 'health';
 
 interface PipelineStage {
   id: string;
@@ -32,7 +35,29 @@ interface ValueMetric {
   color: string;
 }
 
+interface ActivityLogEntry {
+  id: string;
+  timestamp: string;
+  method: string;
+  url: string;
+  status: number;
+  duration: number;
+  type: 'request' | 'response';
+}
+
+interface HealthCheck {
+  id: string;
+  name: string;
+  endpoint?: string;
+  command?: string;
+  status: 'pending' | 'running' | 'success' | 'error';
+  duration?: number;
+  response?: any;
+  error?: string;
+}
+
 export default function ShowcasePage() {
+  const [activeTab, setActiveTab] = useState<TabId>('workflow');
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [currentStage, setCurrentStage] = useState(0);
   const [pipelineData, setPipelineData] = useState<any>(null);
@@ -53,6 +78,9 @@ export default function ShowcasePage() {
       ? localStorage.getItem('fixops_api_key') || process.env.NEXT_PUBLIC_FIXOPS_API_TOKEN || 'demo-token'
       : 'demo-token'
   );
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
+  const [apiEndpoints, setApiEndpoints] = useState<any[]>([]);
 
   const [stages, setStages] = useState<PipelineStage[]>([
     { id: 'ingest', name: 'Ingest Artifacts', status: 'pending', icon: Upload },
@@ -274,6 +302,107 @@ export default function ShowcasePage() {
       localStorage.setItem('fixops_api_key', apiKey);
     }
     setShowConfig(false);
+  };
+
+  const addActivityLog = (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => {
+    setActivityLog(prev => [{
+      ...entry,
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: new Date().toISOString(),
+    }, ...prev].slice(0, 50));
+  };
+
+  const loadSampleData = async () => {
+    alert('Sample data loading feature coming soon. For now, please upload your own files.');
+  };
+
+  const tabs = [
+    { id: 'workflow' as TabId, name: 'Workflow', icon: Workflow },
+    { id: 'api-explorer' as TabId, name: 'API Explorer', icon: Code },
+    { id: 'cli-explorer' as TabId, name: 'CLI Explorer', icon: Terminal },
+    { id: 'health' as TabId, name: 'Health Dashboard', icon: Heart },
+  ];
+
+  useEffect(() => {
+    if (activeTab === 'api-explorer') {
+      loadApiEndpoints();
+    } else if (activeTab === 'health') {
+      initializeHealthChecks();
+    }
+  }, [activeTab]);
+
+  const loadApiEndpoints = async () => {
+    try {
+      const response = await fetch(`${apiBase}/openapi.json`);
+      if (response.ok) {
+        const openapi = await response.json();
+        const endpoints = Object.entries(openapi.paths || {}).map(([path, methods]: [string, any]) => ({
+          path,
+          methods: Object.keys(methods),
+          ...methods
+        }));
+        setApiEndpoints(endpoints);
+      }
+    } catch (error) {
+      console.error('Failed to load API endpoints:', error);
+    }
+  };
+
+  const initializeHealthChecks = () => {
+    setHealthChecks([
+      { id: 'status', name: 'API Status', endpoint: '/api/v1/status', status: 'pending' },
+      { id: 'sbom', name: 'SBOM Ingest', endpoint: '/inputs/sbom', status: 'pending' },
+      { id: 'sarif', name: 'SARIF Ingest', endpoint: '/inputs/sarif', status: 'pending' },
+      { id: 'cve', name: 'CVE Ingest', endpoint: '/inputs/cve', status: 'pending' },
+      { id: 'design', name: 'Design Ingest', endpoint: '/inputs/design', status: 'pending' },
+      { id: 'pipeline', name: 'Pipeline Run', endpoint: '/pipeline/run', status: 'pending' },
+      { id: 'triage', name: 'Triage API', endpoint: '/api/v1/triage', status: 'pending' },
+      { id: 'graph', name: 'Graph API', endpoint: '/api/v1/graph', status: 'pending' },
+    ]);
+  };
+
+  const runHealthChecks = async () => {
+    for (const check of healthChecks) {
+      setHealthChecks(prev => prev.map(c => 
+        c.id === check.id ? { ...c, status: 'running' } : c
+      ));
+
+      const startTime = Date.now();
+      
+      try {
+        if (check.endpoint) {
+          const response = await fetch(`${apiBase}${check.endpoint}`, {
+            method: check.endpoint.startsWith('/inputs/') ? 'POST' : 'GET',
+            headers: { 'X-API-Key': apiKey },
+          });
+          
+          const duration = Date.now() - startTime;
+          const responseData = await response.json().catch(() => null);
+          
+          setHealthChecks(prev => prev.map(c => 
+            c.id === check.id ? {
+              ...c,
+              status: response.ok ? 'success' : 'error',
+              duration,
+              response: responseData,
+              error: response.ok ? undefined : `HTTP ${response.status}`
+            } : c
+          ));
+        }
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        setHealthChecks(prev => prev.map(c => 
+          c.id === check.id ? {
+            ...c,
+            status: 'error',
+            duration,
+            error: error.message
+          } : c
+        ));
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   };
 
   const isLiveMode = apiBase !== 'http://localhost:8000' && apiBase !== '';
