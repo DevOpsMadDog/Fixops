@@ -42,6 +42,17 @@ export default function ShowcasePage() {
     cve?: File;
     design?: File;
   }>({});
+  const [showConfig, setShowConfig] = useState(false);
+  const [apiBase, setApiBase] = useState(
+    typeof window !== 'undefined' 
+      ? localStorage.getItem('fixops_api_base') || process.env.NEXT_PUBLIC_FIXOPS_API_BASE || 'http://localhost:8000'
+      : 'http://localhost:8000'
+  );
+  const [apiKey, setApiKey] = useState(
+    typeof window !== 'undefined'
+      ? localStorage.getItem('fixops_api_key') || process.env.NEXT_PUBLIC_FIXOPS_API_TOKEN || 'demo-token'
+      : 'demo-token'
+  );
 
   const [stages, setStages] = useState<PipelineStage[]>([
     { id: 'ingest', name: 'Ingest Artifacts', status: 'pending', icon: Upload },
@@ -119,44 +130,229 @@ export default function ShowcasePage() {
   const runPipeline = async () => {
     setPipelineRunning(true);
     setCurrentStage(0);
-
-    for (let i = 0; i < stages.length; i++) {
-      setCurrentStage(i);
-      
-      setStages(prev => prev.map((s, idx) => 
-        idx === i ? { ...s, status: 'running' } : s
-      ));
-
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-
-      setStages(prev => prev.map((s, idx) => 
-        idx === i ? { ...s, status: 'completed', duration: 2 + Math.random() * 2 } : s
-      ));
-    }
+    setPipelineData(null);
 
     try {
-      const response = await fetch('/api/v1/showcase/pipeline-result');
-      if (response.ok) {
-        const data = await response.json();
-        setPipelineData(data);
-      } else {
-        const demoResponse = await fetch('/demo/pipeline-output.json');
-        const demoData = await demoResponse.json();
-        setPipelineData(demoData);
-      }
-    } catch (error) {
-      console.error('Failed to load pipeline data:', error);
-    }
+      setStages(prev => prev.map((s, idx) => 
+        idx === 0 ? { ...s, status: 'running' } : s
+      ));
 
-    setPipelineRunning(false);
+      const uploadPromises = [];
+      
+      if (uploadedFiles.design) {
+        uploadPromises.push(
+          uploadFile(apiBase, apiKey, '/inputs/design', uploadedFiles.design, 'design')
+        );
+      }
+      
+      if (uploadedFiles.sbom) {
+        uploadPromises.push(
+          uploadFile(apiBase, apiKey, '/inputs/sbom', uploadedFiles.sbom, 'sbom')
+        );
+      }
+      
+      if (uploadedFiles.sarif) {
+        uploadPromises.push(
+          uploadFile(apiBase, apiKey, '/inputs/sarif', uploadedFiles.sarif, 'sarif')
+        );
+      }
+      
+      if (uploadedFiles.cve) {
+        uploadPromises.push(
+          uploadFile(apiBase, apiKey, '/inputs/cve', uploadedFiles.cve, 'cve')
+        );
+      }
+
+      const uploadResults = await Promise.all(uploadPromises);
+      const uploadErrors = uploadResults.filter(r => !r.success);
+      
+      if (uploadErrors.length > 0) {
+        setStages(prev => prev.map((s, idx) => 
+          idx === 0 ? { ...s, status: 'error' } : s
+        ));
+        alert(`Upload failed: ${uploadErrors.map(e => e.error).join(', ')}`);
+        setPipelineRunning(false);
+        return;
+      }
+
+      setStages(prev => prev.map((s, idx) => 
+        idx === 0 ? { ...s, status: 'completed', duration: 1.5 } : s
+      ));
+
+      for (let i = 1; i < 5; i++) {
+        setStages(prev => prev.map((s, idx) => 
+          idx === i ? { ...s, status: 'running' } : s
+        ));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setStages(prev => prev.map((s, idx) => 
+          idx === i ? { ...s, status: 'completed', duration: 0.5 } : s
+        ));
+      }
+
+      setStages(prev => prev.map((s, idx) => 
+        idx === 5 ? { ...s, status: 'running' } : s
+      ));
+
+      const runResponse = await fetch(`${apiBase}/pipeline/run`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': apiKey,
+        },
+      });
+
+      if (!runResponse.ok) {
+        const errorData = await runResponse.json().catch(() => ({ detail: 'Unknown error' }));
+        setStages(prev => prev.map((s, idx) => 
+          idx === 5 ? { ...s, status: 'error' } : s
+        ));
+        alert(`Pipeline failed: ${JSON.stringify(errorData.detail || errorData)}`);
+        setPipelineRunning(false);
+        return;
+      }
+
+      const result = await runResponse.json();
+      setPipelineData(result);
+
+      setStages(prev => prev.map((s, idx) => 
+        idx === 5 ? { ...s, status: 'completed', duration: 2.0 } : s
+      ));
+
+    } catch (error: any) {
+      console.error('Pipeline execution failed:', error);
+      alert(`Pipeline execution failed: ${error.message}`);
+      setStages(prev => prev.map(s => 
+        s.status === 'running' ? { ...s, status: 'error' } : s
+      ));
+    } finally {
+      setPipelineRunning(false);
+    }
+  };
+
+  const uploadFile = async (
+    apiBase: string,
+    apiKey: string,
+    endpoint: string,
+    file: File,
+    type: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${apiBase}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': apiKey,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }));
+        return { 
+          success: false, 
+          error: `${type}: ${JSON.stringify(errorData.detail || errorData)}` 
+        };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        error: `${type}: ${error.message}` 
+      };
+    }
   };
 
   const handleFileUpload = (type: 'sbom' | 'sarif' | 'cve' | 'design', file: File) => {
     setUploadedFiles(prev => ({ ...prev, [type]: file }));
   };
 
+  const saveConfig = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fixops_api_base', apiBase);
+      localStorage.setItem('fixops_api_key', apiKey);
+    }
+    setShowConfig(false);
+  };
+
+  const isLiveMode = apiBase !== 'http://localhost:8000' && apiBase !== '';
+  const dataSource = isLiveMode ? 'Live API' : 'Local Demo';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Data Provenance Banner */}
+      <div className={`border-b ${isLiveMode ? 'bg-green-500/10 border-green-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}>
+        <div className="max-w-7xl mx-auto px-6 py-2">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-4">
+              <div className={`font-medium ${isLiveMode ? 'text-green-400' : 'text-yellow-400'}`}>
+                {isLiveMode ? '🟢 Live Mode' : '🟡 Demo Mode'}
+              </div>
+              <div className="text-slate-400">
+                API: <span className="text-white font-mono text-xs">{apiBase}</span>
+              </div>
+              {pipelineData?.run_id && (
+                <div className="text-slate-400">
+                  Run ID: <span className="text-white font-mono text-xs">{pipelineData.run_id}</span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setShowConfig(!showConfig)}
+              className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-xs transition-colors"
+            >
+              Configure API
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* API Configuration Panel */}
+      {showConfig && (
+        <div className="border-b border-slate-800 bg-slate-900">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <h3 className="text-white font-medium mb-3">API Configuration</h3>
+            <div className="grid grid-cols-2 gap-4 mb-3">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">API Base URL</label>
+                <input
+                  type="text"
+                  value={apiBase}
+                  onChange={(e) => setApiBase(e.target.value)}
+                  placeholder="http://localhost:8000"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">API Token</label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="demo-token"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={saveConfig}
+                className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm transition-colors"
+              >
+                Save Configuration
+              </button>
+              <button
+                onClick={() => setShowConfig(false)}
+                className="px-4 py-2 rounded bg-slate-700 hover:bg-slate-600 text-white text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-6">
