@@ -101,3 +101,4 @@ coverage.xml
 !reports/coverage/coverage.xml
 data/data/
 real_cve_*.json
+terraform.tfvars
