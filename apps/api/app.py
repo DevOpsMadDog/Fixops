@@ -40,6 +40,13 @@ from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
+
+# Enterprise reachability analysis
+try:
+    from risk.reachability.api import router as reachability_router
+except ImportError:
+    reachability_router = None
+    logger.warning("Reachability analysis API not available")
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -373,6 +380,9 @@ def create_app() -> FastAPI:
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
+    # Enterprise reachability analysis API
+    if reachability_router:
+        app.include_router(reachability_router, dependencies=[Depends(_verify_api_key)])
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
 
