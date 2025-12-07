@@ -24,6 +24,10 @@ node_modules/
 /out/
 next-env.d.ts
 *.tsbuildinfo
+web/apps/*/.next/
+web/apps/*/out/
+web/apps/*/.turbo/
+web/.turbo/
 
 # Production builds
 /build
@@ -67,6 +71,7 @@ chainlit.md
 agenthub/agents/youtube/db
 data/automation/
 data/evidence/
+.fixops_data/
 
 # Archive files and large assets
 **/*.zip

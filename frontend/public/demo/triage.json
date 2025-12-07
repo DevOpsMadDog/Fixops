@@ -1,0 +1,474 @@
+{
+  "rows": [
+    {
+      "id": "cve-2024-001",
+      "severity": "critical",
+      "title": "CVE-2024-45678 - Remote Code Execution in Apache Struts",
+      "source": "CVE",
+      "repo": "payment-service",
+      "location": "org.apache.struts:struts2-core:2.5.30",
+      "exploitability": {
+        "kev": true,
+        "epss": 0.89
+      },
+      "age_days": 3,
+      "internet_facing": true,
+      "created_at": "2024-10-30T10:23:00Z",
+      "description": "A critical remote code execution vulnerability exists in Apache Struts 2.5.30 and earlier versions. Attackers can execute arbitrary code by sending specially crafted requests.",
+      "remediation": "Upgrade to Apache Struts 2.5.31 or later. Apply the security patch immediately for internet-facing services.",
+      "evidence_bundle": {
+        "id": "eb-2024-001-a3f9c8",
+        "created_at": "2024-10-30T10:25:00Z",
+        "retained_until": "2025-01-28T10:25:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "a3f9c8d2e1b4f7a6c5d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+        "size_bytes": 45678,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "block",
+        "confidence": 0.98,
+        "ssvc_outcome": "immediate",
+        "rationale": "BLOCK: Critical RCE with active exploitation (KEV), high EPSS (89%), internet-facing service. SSVC framework mandates immediate action for mission-critical payment service.",
+        "signals": ["KEV=true", "EPSS=0.89", "Internet-facing", "Critical severity", "Age=3d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "ISO27001", "control": "A.12.6.1", "description": "Management of Technical Vulnerabilities"},
+        {"framework": "PCI-DSS", "control": "6.2", "description": "Ensure all systems are protected from known vulnerabilities"}
+      ]
+    },
+    {
+      "id": "sast-2024-002",
+      "severity": "high",
+      "title": "SQL Injection in User Authentication",
+      "source": "SAST",
+      "repo": "auth-service",
+      "location": "src/auth/login.py:145",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.12
+      },
+      "age_days": 12,
+      "internet_facing": true,
+      "created_at": "2024-10-21T14:30:00Z",
+      "description": "User input is directly concatenated into SQL query without proper sanitization, allowing SQL injection attacks.",
+      "remediation": "Use parameterized queries or prepared statements. Replace string concatenation with ORM methods or bound parameters.",
+      "evidence_bundle": {
+        "id": "eb-2024-002-b7e4d1",
+        "created_at": "2024-10-21T14:32:00Z",
+        "retained_until": "2025-01-19T14:32:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "b7e4d1c3f2a5b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+        "size_bytes": 34521,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "review",
+        "confidence": 0.82,
+        "ssvc_outcome": "scheduled",
+        "rationale": "REVIEW: High severity SQL injection in authentication service. Internet-facing but low EPSS (12%). SSVC recommends scheduled remediation within sprint cycle.",
+        "signals": ["High severity", "Internet-facing", "EPSS=0.12", "SAST finding", "Age=12d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "PCI-DSS", "control": "6.5.1", "description": "Injection flaws, particularly SQL injection"},
+        {"framework": "OWASP", "control": "A03:2021", "description": "Injection"}
+      ]
+    },
+    {
+      "id": "cve-2024-003",
+      "severity": "high",
+      "title": "CVE-2024-23456 - Authentication Bypass in Spring Security",
+      "source": "CVE",
+      "repo": "api-gateway",
+      "location": "org.springframework.security:spring-security-core:5.7.5",
+      "exploitability": {
+        "kev": true,
+        "epss": 0.76
+      },
+      "age_days": 5,
+      "internet_facing": true,
+      "created_at": "2024-10-28T09:15:00Z",
+      "description": "An authentication bypass vulnerability in Spring Security allows attackers to access protected resources without proper credentials.",
+      "remediation": "Upgrade to Spring Security 5.7.11 or 6.1.5. Review authentication configuration and test access controls.",
+      "evidence_bundle": {
+        "id": "eb-2024-003-c8f5e2",
+        "created_at": "2024-10-28T09:17:00Z",
+        "retained_until": "2025-01-26T09:17:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "c8f5e2d4a3b6c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "size_bytes": 42890,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "block",
+        "confidence": 0.94,
+        "ssvc_outcome": "immediate",
+        "rationale": "BLOCK: Authentication bypass in API gateway with active exploitation (KEV), high EPSS (76%), internet-facing. SSVC mandates immediate action for gateway security.",
+        "signals": ["KEV=true", "EPSS=0.76", "Internet-facing", "High severity", "Gateway component"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC6.1", "description": "Logical and Physical Access Controls"},
+        {"framework": "ISO27001", "control": "A.9.4.2", "description": "Secure log-on procedures"},
+        {"framework": "PCI-DSS", "control": "8.2", "description": "User authentication and password management"}
+      ]
+    },
+    {
+      "id": "sast-2024-004",
+      "severity": "medium",
+      "title": "Hardcoded Credentials in Configuration",
+      "source": "SAST",
+      "repo": "data-processor",
+      "location": "config/database.yml:23",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.05
+      },
+      "age_days": 45,
+      "internet_facing": false,
+      "created_at": "2024-09-18T11:20:00Z",
+      "description": "Database credentials are hardcoded in configuration file, posing a security risk if the repository is compromised.",
+      "remediation": "Move credentials to environment variables or a secure secrets management system like HashiCorp Vault or AWS Secrets Manager.",
+      "evidence_bundle": {
+        "id": "eb-2024-004-d9g6f3",
+        "created_at": "2024-09-18T11:22:00Z",
+        "retained_until": "2024-12-17T11:22:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "d9g6f3e5c4b7d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+        "size_bytes": 28934,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "allow",
+        "confidence": 0.71,
+        "ssvc_outcome": "defer",
+        "rationale": "ALLOW: Medium severity hardcoded credentials in internal service. Not internet-facing, low EPSS. SSVC recommends deferring to next maintenance window.",
+        "signals": ["Medium severity", "Internal only", "EPSS=0.05", "SAST finding", "Age=45d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC6.7", "description": "Restricted access to sensitive data"},
+        {"framework": "ISO27001", "control": "A.9.4.3", "description": "Password management system"}
+      ]
+    },
+    {
+      "id": "iac-2024-005",
+      "severity": "high",
+      "title": "S3 Bucket Publicly Accessible",
+      "source": "IaC",
+      "repo": "infrastructure",
+      "location": "terraform/s3.tf:45",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.0
+      },
+      "age_days": 2,
+      "internet_facing": true,
+      "created_at": "2024-10-31T16:45:00Z",
+      "description": "S3 bucket 'customer-data-prod' is configured with public read access, exposing sensitive customer data.",
+      "remediation": "Remove public access configuration. Set bucket policy to private and use IAM roles for access control.",
+      "evidence_bundle": {
+        "id": "eb-2024-005-e0h7g4",
+        "created_at": "2024-10-31T16:47:00Z",
+        "retained_until": "2025-01-29T16:47:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "e0h7g4f6d5c8e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+        "size_bytes": 31245,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "block",
+        "confidence": 0.96,
+        "ssvc_outcome": "immediate",
+        "rationale": "BLOCK: High severity data exposure via public S3 bucket containing customer PII. Internet-facing misconfiguration. SSVC mandates immediate remediation for data protection.",
+        "signals": ["High severity", "Internet-facing", "PII exposure", "IaC misconfiguration", "Age=2d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC6.7", "description": "Restricted access to sensitive data"},
+        {"framework": "GDPR", "control": "Art. 32", "description": "Security of processing"},
+        {"framework": "PCI-DSS", "control": "3.4", "description": "Render PAN unreadable"}
+      ]
+    },
+    {
+      "id": "cve-2024-006",
+      "severity": "critical",
+      "title": "CVE-2024-34567 - Deserialization Vulnerability in Jackson",
+      "source": "CVE",
+      "repo": "order-service",
+      "location": "com.fasterxml.jackson.core:jackson-databind:2.13.4",
+      "exploitability": {
+        "kev": true,
+        "epss": 0.92
+      },
+      "age_days": 1,
+      "internet_facing": true,
+      "created_at": "2024-11-01T08:30:00Z",
+      "description": "A critical deserialization vulnerability in Jackson allows remote code execution through malicious JSON payloads.",
+      "remediation": "Upgrade to Jackson 2.15.3 or later immediately. Review all JSON deserialization endpoints for proper input validation.",
+      "evidence_bundle": {
+        "id": "eb-2024-006-f1i8h5",
+        "created_at": "2024-11-01T08:32:00Z",
+        "retained_until": "2025-01-30T08:32:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "f1i8h5g7e6d9f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6g7",
+        "size_bytes": 48123,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "block",
+        "confidence": 0.99,
+        "ssvc_outcome": "immediate",
+        "rationale": "BLOCK: Critical deserialization RCE with active exploitation (KEV), highest EPSS (92%), internet-facing order service. SSVC mandates emergency patching within 24 hours.",
+        "signals": ["KEV=true", "EPSS=0.92", "Internet-facing", "Critical severity", "Age=1d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "ISO27001", "control": "A.12.6.1", "description": "Management of Technical Vulnerabilities"},
+        {"framework": "PCI-DSS", "control": "6.2", "description": "Ensure all systems are protected from known vulnerabilities"}
+      ]
+    },
+    {
+      "id": "sast-2024-007",
+      "severity": "medium",
+      "title": "Cross-Site Scripting (XSS) in User Profile",
+      "source": "SAST",
+      "repo": "web-frontend",
+      "location": "src/components/UserProfile.jsx:78",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.08
+      },
+      "age_days": 18,
+      "internet_facing": true,
+      "created_at": "2024-10-15T13:10:00Z",
+      "description": "User-supplied data is rendered without proper sanitization, allowing XSS attacks through profile fields.",
+      "remediation": "Use React's built-in XSS protection. Avoid dangerouslySetInnerHTML. Sanitize user input with DOMPurify if HTML rendering is required.",
+      "evidence_bundle": {
+        "id": "eb-2024-007-g2j9i6",
+        "created_at": "2024-10-15T13:12:00Z",
+        "retained_until": "2025-01-13T13:12:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "g2j9i6h8f7e0g3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7g8",
+        "size_bytes": 26789,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "review",
+        "confidence": 0.75,
+        "ssvc_outcome": "scheduled",
+        "rationale": "REVIEW: Medium severity XSS in user profile. Internet-facing but low EPSS (8%). SSVC recommends scheduled fix in current sprint.",
+        "signals": ["Medium severity", "Internet-facing", "EPSS=0.08", "SAST finding", "Age=18d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "OWASP", "control": "A03:2021", "description": "Injection"}
+      ]
+    },
+    {
+      "id": "cve-2024-008",
+      "severity": "high",
+      "title": "CVE-2024-12345 - Path Traversal in Express.js",
+      "source": "CVE",
+      "repo": "file-service",
+      "location": "express:4.17.1",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.45
+      },
+      "age_days": 8,
+      "internet_facing": true,
+      "created_at": "2024-10-25T10:00:00Z",
+      "description": "A path traversal vulnerability in Express.js allows attackers to access files outside the intended directory.",
+      "remediation": "Upgrade to Express.js 4.18.2 or later. Validate and sanitize all file path inputs. Use path.resolve() to prevent directory traversal.",
+      "evidence_bundle": {
+        "id": "eb-2024-008-h3k0j7",
+        "created_at": "2024-10-25T10:02:00Z",
+        "retained_until": "2025-01-23T10:02:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "h3k0j7i9g8f1h4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8g9",
+        "size_bytes": 38456,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "review",
+        "confidence": 0.84,
+        "ssvc_outcome": "scheduled",
+        "rationale": "REVIEW: High severity path traversal in file service. Internet-facing with moderate EPSS (45%). SSVC recommends scheduled remediation within 2 weeks.",
+        "signals": ["High severity", "Internet-facing", "EPSS=0.45", "CVE", "Age=8d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "ISO27001", "control": "A.12.6.1", "description": "Management of Technical Vulnerabilities"},
+        {"framework": "OWASP", "control": "A01:2021", "description": "Broken Access Control"}
+      ]
+    },
+    {
+      "id": "sast-2024-009",
+      "severity": "low",
+      "title": "Weak Cryptographic Algorithm (MD5)",
+      "source": "SAST",
+      "repo": "auth-service",
+      "location": "src/utils/hash.py:34",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.02
+      },
+      "age_days": 67,
+      "internet_facing": false,
+      "created_at": "2024-08-27T09:45:00Z",
+      "description": "MD5 hashing algorithm is used for password hashing, which is cryptographically weak and vulnerable to collision attacks.",
+      "remediation": "Replace MD5 with bcrypt, scrypt, or Argon2 for password hashing. Migrate existing password hashes during user login.",
+      "evidence_bundle": {
+        "id": "eb-2024-009-i4l1k8",
+        "created_at": "2024-08-27T09:47:00Z",
+        "retained_until": "2024-11-25T09:47:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "i4l1k8j0h9g2i5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9g0",
+        "size_bytes": 22134,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "allow",
+        "confidence": 0.68,
+        "ssvc_outcome": "defer",
+        "rationale": "ALLOW: Low severity weak crypto in internal auth utility. Not internet-facing, very low EPSS (2%). SSVC recommends deferring to next major refactor.",
+        "signals": ["Low severity", "Internal only", "EPSS=0.02", "SAST finding", "Age=67d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC6.8", "description": "Encryption of sensitive data"},
+        {"framework": "ISO27001", "control": "A.10.1.1", "description": "Policy on the use of cryptographic controls"}
+      ]
+    },
+    {
+      "id": "iac-2024-010",
+      "severity": "medium",
+      "title": "Security Group Allows All Inbound Traffic",
+      "source": "IaC",
+      "repo": "infrastructure",
+      "location": "terraform/security_groups.tf:67",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.0
+      },
+      "age_days": 15,
+      "internet_facing": true,
+      "created_at": "2024-10-18T14:20:00Z",
+      "description": "Security group 'web-sg' allows inbound traffic from 0.0.0.0/0 on all ports, violating least privilege principle.",
+      "remediation": "Restrict inbound rules to specific ports (80, 443) and source IP ranges. Remove unrestricted access rules.",
+      "evidence_bundle": {
+        "id": "eb-2024-010-j5m2l9",
+        "created_at": "2024-10-18T14:22:00Z",
+        "retained_until": "2025-01-16T14:22:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "j5m2l9k1i0h3j6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+        "size_bytes": 29567,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "review",
+        "confidence": 0.78,
+        "ssvc_outcome": "scheduled",
+        "rationale": "REVIEW: Medium severity overly permissive security group. Internet-facing infrastructure misconfiguration. SSVC recommends scheduled fix in current sprint.",
+        "signals": ["Medium severity", "Internet-facing", "IaC misconfiguration", "Least privilege violation", "Age=15d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC6.6", "description": "Logical and physical access controls"},
+        {"framework": "ISO27001", "control": "A.13.1.3", "description": "Segregation in networks"}
+      ]
+    },
+    {
+      "id": "cve-2024-011",
+      "severity": "high",
+      "title": "CVE-2024-56789 - SSRF in Axios HTTP Client",
+      "source": "CVE",
+      "repo": "integration-service",
+      "location": "axios:0.21.1",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.38
+      },
+      "age_days": 22,
+      "internet_facing": false,
+      "created_at": "2024-10-11T11:30:00Z",
+      "description": "Server-Side Request Forgery vulnerability in Axios allows attackers to make requests to internal services.",
+      "remediation": "Upgrade to Axios 1.6.0 or later. Implement URL validation and allowlist for external requests.",
+      "evidence_bundle": {
+        "id": "eb-2024-011-k6n3m0",
+        "created_at": "2024-10-11T11:32:00Z",
+        "retained_until": "2025-01-09T11:32:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "k6n3m0l2j1i4k7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
+        "size_bytes": 35678,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "review",
+        "confidence": 0.79,
+        "ssvc_outcome": "scheduled",
+        "rationale": "REVIEW: High severity SSRF in internal integration service. Not internet-facing, moderate EPSS (38%). SSVC recommends scheduled remediation within 2 weeks.",
+        "signals": ["High severity", "Internal only", "EPSS=0.38", "CVE", "Age=22d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "OWASP", "control": "A10:2021", "description": "Server-Side Request Forgery"}
+      ]
+    },
+    {
+      "id": "sast-2024-012",
+      "severity": "critical",
+      "title": "Command Injection in File Processing",
+      "source": "SAST",
+      "repo": "document-processor",
+      "location": "src/processors/pdf.js:112",
+      "exploitability": {
+        "kev": false,
+        "epss": 0.15
+      },
+      "age_days": 4,
+      "internet_facing": true,
+      "created_at": "2024-10-29T15:40:00Z",
+      "description": "User-supplied filename is passed directly to shell command without sanitization, allowing command injection.",
+      "remediation": "Use parameterized commands or safe APIs. Validate and sanitize all user inputs. Avoid shell execution when possible.",
+      "evidence_bundle": {
+        "id": "eb-2024-012-l7o4n1",
+        "created_at": "2024-10-29T15:42:00Z",
+        "retained_until": "2025-01-27T15:42:00Z",
+        "retention_days": 90,
+        "signature_algorithm": "RSA-SHA256",
+        "sha256": "l7o4n1m3k2j5l8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3",
+        "size_bytes": 41234,
+        "signer": "FixOps Evidence Service"
+      },
+      "decision": {
+        "verdict": "block",
+        "confidence": 0.91,
+        "ssvc_outcome": "immediate",
+        "rationale": "BLOCK: Critical command injection in document processor. Internet-facing with potential for RCE. SSVC mandates immediate remediation despite low EPSS.",
+        "signals": ["Critical severity", "Internet-facing", "Command injection", "SAST finding", "Age=4d"]
+      },
+      "compliance_mappings": [
+        {"framework": "SOC2", "control": "CC8.1", "description": "Vulnerability Management"},
+        {"framework": "OWASP", "control": "A03:2021", "description": "Injection"},
+        {"framework": "PCI-DSS", "control": "6.5.1", "description": "Injection flaws"}
+      ]
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "new_7d": 5,
+    "high_critical": 8,
+    "exploitable": 4,
+    "internet_facing": 9
+  }
+}
