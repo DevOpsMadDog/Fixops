@@ -46,7 +46,8 @@ export default defineConfig({
           ui: ['lucide-react', '@headlessui/react', 'framer-motion'],
           charts: ['recharts'],
           forms: ['react-hook-form'],
-          utils: ['axios', '@tanstack/react-query', 'zustand']
+          utils: ['axios', '@tanstack/react-query', 'zustand'],
+          graph: ['cytoscape', 'cytoscape-cose-bilkent', 'react-cytoscapejs']
         }
       }
     }
