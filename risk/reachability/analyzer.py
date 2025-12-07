@@ -242,46 +242,51 @@ class ReachabilityAnalyzer:
                     cve_id, component_name, component_version
                 )
             
+            # Initialize result variables
+            proprietary_result = None
+            design_time_result = None
+            runtime_result = None
+            call_graph = {}
+            data_flow_result = None
+            reachable_paths = []
+            
             # Use proprietary analyzer if enabled
             if self.use_proprietary:
                 # Proprietary analysis (no OSS tools)
+                primary_language = (
+                    list(repo_metadata.language_distribution.keys())[0]
+                    if repo_metadata.language_distribution
+                    else "python"
+                )
                 proprietary_result = self.proprietary_analyzer.analyze_repository(
                     repo_path,
-                    [{"cve_id": cve_id, **vuln_details} for _ in vulnerable_patterns],
-                    repo_metadata.language_distribution.get("Python", "python"),
+                    [{"cve_id": cve_id, **vulnerability_details} for _ in vulnerable_patterns],
+                    primary_language.lower(),
                 )
                 
-                design_time_result = None
-                runtime_result = None
+                # Extract from proprietary result
+                call_graph = proprietary_result.get("call_graph", {}).get("graph", {})
+                data_flow_result = None  # Included in proprietary result
+                reachable_paths = self._extract_proprietary_paths(proprietary_result)
             else:
                 # Perform design-time analysis (OSS tools)
-                design_time_result = None
                 if self.enable_design_time:
                     design_time_result = self._analyze_design_time(
                         repo_path, vulnerable_patterns, repo_metadata
                     )
                 
                 # Perform runtime analysis (OSS tools)
-                runtime_result = None
                 if self.enable_runtime:
                     runtime_result = self._analyze_runtime(
                         repo_path, vulnerable_patterns, repo_metadata
                     )
                 
-                proprietary_result = None
-            
-            # Build call graph (proprietary or OSS)
-            if self.use_proprietary and proprietary_result:
-                call_graph = proprietary_result.get("call_graph", {}).get("graph", {})
-                data_flow_result = None  # Included in proprietary result
-                reachable_paths = self._extract_proprietary_paths(proprietary_result)
-            else:
+                # Build call graph (OSS)
                 call_graph = self.call_graph_builder.build_call_graph(
                     repo_path, repo_metadata.language_distribution
                 )
                 
                 # Perform data-flow analysis
-                data_flow_result = None
                 if vulnerable_patterns:
                     data_flow_result = self.data_flow_analyzer.analyze_data_flow(
                         repo_path, vulnerable_patterns[0], call_graph
@@ -291,7 +296,6 @@ class ReachabilityAnalyzer:
                 reachable_paths = self._check_pattern_reachability(
                     vulnerable_patterns, call_graph, repo_path, data_flow_result
                 )
-                proprietary_result = None
             
             # Determine confidence (proprietary or standard)
             if self.use_proprietary and proprietary_result:
