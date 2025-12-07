@@ -1,26 +1,45 @@
 [run]
-branch = True
-source = .
+# Coverage configuration for FixOps
 
-[paths]
-source =
-    enterprise/src
-    fixops-blended-enterprise/src
+source = 
+    risk
+    automation
+    cli
+    apps
+    core
+
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */env/*
+    */build/*
+    */dist/*
+    */.eggs/*
+
+branch = True
 
 [report]
-include =
-    */services/provenance/*
-    */services/graph/*
-    */services/repro/*
-    */lib4sbom/*
-    */risk/*
-    */backend/api/provenance/*
-    */backend/api/risk/*
-    */backend/api/graph/*
-    */backend/api/evidence/*
-    */evidence/*
-    */telemetry/*
-    */scripts/graph_worker.py
+# Coverage reporting
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+
 exclude_lines =
     pragma: no cover
-    if __name__ == "__main__":
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @property
+    @.*\.setter
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
