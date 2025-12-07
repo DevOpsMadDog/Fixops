@@ -1,0 +1,6 @@
+role,endpoint,method,expected_status,token_example,notes
+clinician,/fhir/Patient,GET,200,"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.clinician","Clinician search"
+clinician,/admin/audit/sign,POST,403,"","Clinicians blocked from audit endpoints"
+patient,/fhir/Patient,GET,403,"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.patient","Patients cannot perform bulk search"
+auditor,/admin/audit/sign,POST,204,"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.auditor","Auditor appends signature"
+malicious,/admin/audit/sign,POST,401,"invalid","Rejected without valid token"

@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title: APP3 FHIR Gateway
+  version: "5.3.1"
+servers:
+  - url: https://ehr.app3.example.com
+paths:
+  /fhir/Patient:
+    get:
+      summary: Search patients
+      parameters:
+        - in: query
+          name: name
+          schema: { type: string }
+        - in: query
+          name: birthdate
+          schema: { type: string }
+      responses:
+        '200': { description: FHIR bundle }
+        '400': { description: invalid search }
+    post:
+      summary: Create patient
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '201': { description: created }
+        '409': { description: duplicate }
+  /appointments:
+    get:
+      summary: List appointments
+      responses:
+        '200': { description: appointment list }
+        '401': { description: unauthorized }
+  /admin/audit/sign:
+    post:
+      summary: Append signed audit entry
+      responses:
+        '204': { description: appended }
+        '403': { description: forbidden }
+components:
+  schemas:
+    Patient:
+      type: object
+      required: [resourceType, id]
+      properties:
+        resourceType: { type: string, enum: [Patient] }
+        id: { type: string }
+        name:
+          type: array
+          items:
+            type: object
+            properties:
+              family: { type: string }
+              given: { type: array, items: { type: string } }

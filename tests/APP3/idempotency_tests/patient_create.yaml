@@ -1,0 +1,41 @@
+test: patient-create-idempotency
+scenario: Duplicate patient create with same source id should reuse resource identifier
+steps:
+  - name: create patient
+    request:
+      method: POST
+      url: ${HOST}/fhir/Patient
+      headers:
+        Authorization: Bearer {{clinician_token}}
+        Content-Type: application/fhir+json
+        If-None-Exist: identifier=MRN|445566
+      body:
+        resourceType: Patient
+        identifier:
+          - system: MRN
+            value: "445566"
+        name:
+          - family: Doe
+            given: [Jane]
+    expect:
+      status: 201
+      headers.Location: !store patient_location
+  - name: replay patient
+    request:
+      method: POST
+      url: ${HOST}/fhir/Patient
+      headers:
+        Authorization: Bearer {{clinician_token}}
+        Content-Type: application/fhir+json
+        If-None-Exist: identifier=MRN|445566
+      body:
+        resourceType: Patient
+        identifier:
+          - system: MRN
+            value: "445566"
+        name:
+          - family: Doe
+            given: [Jane]
+    expect:
+      status: 200
+      headers.Location: !assert_equal patient_location

@@ -1,0 +1,8 @@
+{
+  "scan_time": "2025-10-28T12:15:00Z",
+  "findings": [
+    {"id": "F-001", "type": "k8s:misconfig", "severity": "high", "resource": "ns/prod/db", "description": "postgres service exposed via LoadBalancer (public)"},
+    {"id": "F-002", "type": "iam:exposed_key", "severity": "medium", "resource": "aws/iam/user/deploy", "description": "long-lived access key active > 90 days"},
+    {"id": "F-003", "type": "workload:vuln", "severity": "critical", "resource": "deployment/pricing", "description": "container image uses vulnerable openssl 1.1.1u"}
+  ]
+}

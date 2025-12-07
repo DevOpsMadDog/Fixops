@@ -1,0 +1,8 @@
+threat_id,framework,category,description,attacker_objective,attack_vector,mitigation,test_reference
+APP3-T1,STRIDE,spoofing,Impersonate clinician to view records,Access PHI,Compromised Azure AD credentials,Conditional access + device checks,tests/APP3/authz_tests/matrix.csv
+APP3-T2,STRIDE,tampering,Alter FHIR resource history,Medical fraud,Compromise FHIR gateway,Immutable audit ledger + signatures,tests/APP3/idempotency_tests/audit_append.yaml
+APP3-T3,STRIDE,information disclosure,Leak remote monitoring data,Data breach,Open admin ingress 0.0.0.0/0,Network policy + WAF,policy/APP3/security_controls.rego
+APP3-T4,STRIDE,denial of service,Exhaust FHIR gateway threads,Impact care coordination,Batched wildcard queries,Rate limiting + caching,tests/APP3/perf_k6.js
+APP3-L1,LINDDUN,linkability,Link wearable data to patient identity,Privacy violation,Correlate ML triage outputs,Noise injection + pseudonyms,tests/APP3/contract_tests/openapi.yaml
+APP3-L2,LINDDUN,non-compliance,Miss HIPAA audit trails,Regulatory penalty,Unsigned audit entries,Signing service + ledger tests,tests/APP3/idempotency_tests/audit_append.yaml
+APP3-L3,LINDDUN,detectability,Infer mental health visits,Stigma risk,Timing differences in appointment API,Uniform response times,tests/APP3/perf_k6.js

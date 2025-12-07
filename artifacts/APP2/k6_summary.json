@@ -1,0 +1,8 @@
+{
+  "scenario": "spike",
+  "vus_max": 300,
+  "requests": 25000,
+  "http_req_duration": {"avg": 290, "p95": 460, "max": 730},
+  "http_req_failed": 0.018,
+  "notes": "Backoff header missing for 429 responses"
+}

@@ -1,0 +1,18 @@
+test: audit-log-masking
+scenario: Replaying settlement log events should mask PAN tokens consistently
+steps:
+  - name: emit log
+    request:
+      method: POST
+      url: ${HOST}/settlement/batch
+      headers:
+        Authorization: Bearer {{finance_token}}
+      body: {}
+    expect:
+      status: 202
+      logs: !store log_snapshot
+  - name: verify mask
+    script: |
+      import re, json
+      logs = json.loads('${log_snapshot}')
+      assert all(not re.search(r"\d{16}", entry['message']) for entry in logs), "PAN present"
