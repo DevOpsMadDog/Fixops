@@ -1,4 +1,5 @@
 """API router for Pentagi pen testing integration."""
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -6,7 +7,13 @@ from pydantic import BaseModel, Field
 
 from core.pentagi_db import PentagiDB
 from core.pentagi_models import (
+    ApprovalState,
     ExploitabilityLevel,
+    MicroTestCategory,
+    MicroTestLifecycle,
+    MicroTestPlaybook,
+    MicroTestRun,
+    MicroTestRunStatus,
     PenTestConfig,
     PenTestPriority,
     PenTestRequest,
@@ -72,6 +79,84 @@ class UpdatePenTestConfigModel(BaseModel):
     timeout_seconds: Optional[int] = None
     auto_trigger: Optional[bool] = None
     target_environments: Optional[List[str]] = None
+
+
+class CreateMicroTestPlaybookModel(BaseModel):
+    """Model for creating micro pen test playbooks."""
+
+    name: str
+    description: str
+    category: str
+    lifecycle: str = MicroTestLifecycle.DRAFT.value
+    severity_focus: List[str] = Field(default_factory=list)
+    target_types: List[str] = Field(default_factory=list)
+    prerequisites: List[str] = Field(default_factory=list)
+    tooling_profile: List[str] = Field(default_factory=list)
+    controls_required: List[str] = Field(default_factory=list)
+    estimated_runtime_seconds: int = 600
+    max_execution_seconds: int = 900
+    version: str = "1.0.0"
+    owner: Optional[str] = None
+    enabled: bool = True
+    compliance_tags: List[str] = Field(default_factory=list)
+    guardrails: dict = Field(default_factory=dict)
+    metadata: dict = Field(default_factory=dict)
+
+
+class UpdateMicroTestPlaybookModel(BaseModel):
+    """Model for updating micro pen test playbooks."""
+
+    description: Optional[str] = None
+    category: Optional[str] = None
+    lifecycle: Optional[str] = None
+    severity_focus: Optional[List[str]] = None
+    target_types: Optional[List[str]] = None
+    prerequisites: Optional[List[str]] = None
+    tooling_profile: Optional[List[str]] = None
+    controls_required: Optional[List[str]] = None
+    estimated_runtime_seconds: Optional[int] = None
+    max_execution_seconds: Optional[int] = None
+    version: Optional[str] = None
+    owner: Optional[str] = None
+    enabled: Optional[bool] = None
+    compliance_tags: Optional[List[str]] = None
+    guardrails: Optional[dict] = None
+    metadata: Optional[dict] = None
+
+
+class CreateMicroTestRunModel(BaseModel):
+    """Model for scheduling/executing micro test runs."""
+
+    playbook_id: str
+    request_id: Optional[str] = None
+    tenant_id: Optional[str] = None
+    priority: str = PenTestPriority.MEDIUM.value
+    approval_state: str = ApprovalState.NOT_REQUIRED.value
+    runner_label: Optional[str] = None
+    runner_location: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    commands: List[str] = Field(default_factory=list)
+    policy_blockers: List[str] = Field(default_factory=list)
+    telemetry: dict = Field(default_factory=dict)
+    risk_score: float = 0.0
+
+
+class UpdateMicroTestRunModel(BaseModel):
+    """Model for updating micro test runs."""
+
+    status: Optional[str] = None
+    approval_state: Optional[str] = None
+    runner_label: Optional[str] = None
+    runner_location: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    evidence_path: Optional[str] = None
+    artifacts: Optional[List[str]] = None
+    commands: Optional[List[str]] = None
+    results: Optional[dict] = None
+    policy_blockers: Optional[List[str]] = None
+    telemetry: Optional[dict] = None
+    risk_score: Optional[float] = None
 
 
 @router.get("/requests")
@@ -288,3 +373,258 @@ def delete_pen_test_config(config_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail="Pentagi configuration not found")
     return {"status": "deleted"}
+
+
+@router.get("/micro-tests")
+def list_micro_tests(
+    category: Optional[str] = Query(None),
+    lifecycle: Optional[str] = Query(None),
+    enabled: Optional[bool] = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    """List micro pen test playbooks."""
+    try:
+        category_enum = MicroTestCategory(category) if category else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid category value") from None
+
+    try:
+        lifecycle_enum = MicroTestLifecycle(lifecycle) if lifecycle else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid lifecycle value") from None
+
+    playbooks = db.list_micro_test_playbooks(
+        category=category_enum,
+        lifecycle=lifecycle_enum,
+        enabled=enabled,
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": [p.to_dict() for p in playbooks], "total": len(playbooks)}
+
+
+@router.post("/micro-tests", status_code=201)
+def create_micro_test_playbook(data: CreateMicroTestPlaybookModel):
+    """Create micro pen test playbook."""
+    try:
+        category = MicroTestCategory(data.category)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid category value") from None
+
+    try:
+        lifecycle = MicroTestLifecycle(data.lifecycle)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid lifecycle value") from None
+
+    playbook = MicroTestPlaybook(
+        id="",
+        name=data.name,
+        description=data.description,
+        category=category,
+        lifecycle=lifecycle,
+        severity_focus=data.severity_focus,
+        target_types=data.target_types,
+        prerequisites=data.prerequisites,
+        tooling_profile=data.tooling_profile,
+        controls_required=data.controls_required,
+        estimated_runtime_seconds=data.estimated_runtime_seconds,
+        max_execution_seconds=data.max_execution_seconds,
+        version=data.version,
+        owner=data.owner,
+        enabled=data.enabled,
+        compliance_tags=data.compliance_tags,
+        guardrails=data.guardrails,
+        metadata=data.metadata,
+    )
+    created = db.create_micro_test_playbook(playbook)
+    return created.to_dict()
+
+
+@router.get("/micro-tests/{playbook_id}")
+def get_micro_test_playbook(playbook_id: str):
+    """Get micro test playbook."""
+    playbook = db.get_micro_test_playbook(playbook_id)
+    if not playbook:
+        raise HTTPException(status_code=404, detail="Micro test playbook not found")
+    return playbook.to_dict()
+
+
+@router.put("/micro-tests/{playbook_id}")
+def update_micro_test_playbook(
+    playbook_id: str, data: UpdateMicroTestPlaybookModel
+):
+    """Update micro test playbook."""
+    playbook = db.get_micro_test_playbook(playbook_id)
+    if not playbook:
+        raise HTTPException(status_code=404, detail="Micro test playbook not found")
+
+    if data.description is not None:
+        playbook.description = data.description
+    if data.category is not None:
+        try:
+            playbook.category = MicroTestCategory(data.category)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid category value") from None
+    if data.lifecycle is not None:
+        try:
+            playbook.lifecycle = MicroTestLifecycle(data.lifecycle)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid lifecycle value") from None
+    if data.severity_focus is not None:
+        playbook.severity_focus = data.severity_focus
+    if data.target_types is not None:
+        playbook.target_types = data.target_types
+    if data.prerequisites is not None:
+        playbook.prerequisites = data.prerequisites
+    if data.tooling_profile is not None:
+        playbook.tooling_profile = data.tooling_profile
+    if data.controls_required is not None:
+        playbook.controls_required = data.controls_required
+    if data.estimated_runtime_seconds is not None:
+        playbook.estimated_runtime_seconds = data.estimated_runtime_seconds
+    if data.max_execution_seconds is not None:
+        playbook.max_execution_seconds = data.max_execution_seconds
+    if data.version is not None:
+        playbook.version = data.version
+    if data.owner is not None:
+        playbook.owner = data.owner
+    if data.enabled is not None:
+        playbook.enabled = data.enabled
+    if data.compliance_tags is not None:
+        playbook.compliance_tags = data.compliance_tags
+    if data.guardrails is not None:
+        playbook.guardrails = data.guardrails
+    if data.metadata is not None:
+        playbook.metadata = data.metadata
+
+    updated = db.update_micro_test_playbook(playbook)
+    return updated.to_dict()
+
+
+@router.delete("/micro-tests/{playbook_id}")
+def delete_micro_test_playbook(playbook_id: str):
+    """Delete micro test playbook."""
+    deleted = db.delete_micro_test_playbook(playbook_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Micro test playbook not found")
+    return {"status": "deleted"}
+
+
+@router.get("/micro-test-runs")
+def list_micro_test_runs(
+    playbook_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    request_id: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    """List micro test runs."""
+    try:
+        status_enum = MicroTestRunStatus(status) if status else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid status value") from None
+
+    runs = db.list_micro_test_runs(
+        playbook_id=playbook_id,
+        status=status_enum,
+        request_id=request_id,
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": [r.to_dict() for r in runs], "total": len(runs)}
+
+
+@router.post("/micro-test-runs", status_code=201)
+def create_micro_test_run(data: CreateMicroTestRunModel):
+    """Create micro test run."""
+    playbook = db.get_micro_test_playbook(data.playbook_id)
+    if not playbook:
+        raise HTTPException(status_code=404, detail="Micro test playbook not found")
+
+    try:
+        priority = PenTestPriority(data.priority)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid priority value") from None
+
+    try:
+        approval_state = ApprovalState(data.approval_state)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid approval state value"
+        ) from None
+
+    run = MicroTestRun(
+        id="",
+        playbook_id=data.playbook_id,
+        status=MicroTestRunStatus.QUEUED,
+        priority=priority,
+        approval_state=approval_state,
+        request_id=data.request_id,
+        tenant_id=data.tenant_id,
+        runner_label=data.runner_label,
+        runner_location=data.runner_location,
+        scheduled_at=data.scheduled_at,
+        commands=data.commands,
+        policy_blockers=data.policy_blockers,
+        telemetry=data.telemetry,
+        risk_score=data.risk_score,
+    )
+
+    created = db.create_micro_test_run(run)
+    return created.to_dict()
+
+
+@router.get("/micro-test-runs/{run_id}")
+def get_micro_test_run(run_id: str):
+    """Get micro test run."""
+    run = db.get_micro_test_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Micro test run not found")
+    return run.to_dict()
+
+
+@router.put("/micro-test-runs/{run_id}")
+def update_micro_test_run(run_id: str, data: UpdateMicroTestRunModel):
+    """Update micro test run."""
+    run = db.get_micro_test_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Micro test run not found")
+
+    if data.status is not None:
+        try:
+            run.status = MicroTestRunStatus(data.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid status value") from None
+    if data.approval_state is not None:
+        try:
+            run.approval_state = ApprovalState(data.approval_state)
+        except ValueError:
+            raise HTTPException(
+                status_code=400, detail="Invalid approval state value"
+            ) from None
+    if data.runner_label is not None:
+        run.runner_label = data.runner_label
+    if data.runner_location is not None:
+        run.runner_location = data.runner_location
+    if data.started_at is not None:
+        run.started_at = data.started_at
+    if data.completed_at is not None:
+        run.completed_at = data.completed_at
+    if data.evidence_path is not None:
+        run.evidence_path = data.evidence_path
+    if data.artifacts is not None:
+        run.artifacts = data.artifacts
+    if data.commands is not None:
+        run.commands = data.commands
+    if data.results is not None:
+        run.results = data.results
+    if data.policy_blockers is not None:
+        run.policy_blockers = data.policy_blockers
+    if data.telemetry is not None:
+        run.telemetry = data.telemetry
+    if data.risk_score is not None:
+        run.risk_score = data.risk_score
+
+    updated = db.update_micro_test_run(run)
+    return updated.to_dict()

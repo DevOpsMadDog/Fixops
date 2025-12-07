@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import List, Optional
 
 from core.pentagi_models import (
+    ApprovalState,
     ExploitabilityLevel,
+    MicroTestCategory,
+    MicroTestLifecycle,
+    MicroTestPlaybook,
+    MicroTestRun,
+    MicroTestRunStatus,
     PenTestConfig,
     PenTestPriority,
     PenTestRequest,
@@ -95,6 +101,61 @@ class PentagiDB:
         )
 
         cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS micro_test_playbooks (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                category TEXT NOT NULL,
+                lifecycle TEXT NOT NULL,
+                severity_focus TEXT,
+                target_types TEXT,
+                prerequisites TEXT,
+                tooling_profile TEXT,
+                controls_required TEXT,
+                estimated_runtime_seconds INTEGER,
+                max_execution_seconds INTEGER,
+                version TEXT,
+                owner TEXT,
+                enabled INTEGER NOT NULL,
+                compliance_tags TEXT,
+                guardrails TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                metadata TEXT
+            )
+        """
+        )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS micro_test_runs (
+                id TEXT PRIMARY KEY,
+                playbook_id TEXT NOT NULL,
+                request_id TEXT,
+                tenant_id TEXT,
+                status TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                approval_state TEXT NOT NULL,
+                runner_label TEXT,
+                runner_location TEXT,
+                scheduled_at TEXT,
+                started_at TEXT,
+                completed_at TEXT,
+                evidence_path TEXT,
+                artifacts TEXT,
+                commands TEXT,
+                results TEXT,
+                policy_blockers TEXT,
+                telemetry TEXT,
+                risk_score REAL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(playbook_id) REFERENCES micro_test_playbooks(id)
+            )
+        """
+        )
+
+        cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_requests_finding ON pen_test_requests(finding_id)"
         )
         cursor.execute(
@@ -105,6 +166,15 @@ class PentagiDB:
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_results_exploitability ON pen_test_results(exploitability)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_micro_tests_category ON micro_test_playbooks(category)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_micro_runs_status ON micro_test_runs(status)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_micro_runs_playbook ON micro_test_runs(playbook_id)"
         )
 
         conn.commit()
@@ -505,3 +575,358 @@ class PentagiDB:
         conn.commit()
         conn.close()
         return deleted
+
+    # --- Micro Test Playbooks -------------------------------------------------
+
+    def create_micro_test_playbook(
+        self, playbook: MicroTestPlaybook
+    ) -> MicroTestPlaybook:
+        """Create a new micro test playbook."""
+        if not playbook.id:
+            playbook.id = str(uuid.uuid4())
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO micro_test_playbooks
+            (id, name, description, category, lifecycle, severity_focus, target_types,
+             prerequisites, tooling_profile, controls_required, estimated_runtime_seconds,
+             max_execution_seconds, version, owner, enabled, compliance_tags, guardrails,
+             created_at, updated_at, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                playbook.id,
+                playbook.name,
+                playbook.description,
+                playbook.category.value,
+                playbook.lifecycle.value,
+                json.dumps(playbook.severity_focus),
+                json.dumps(playbook.target_types),
+                json.dumps(playbook.prerequisites),
+                json.dumps(playbook.tooling_profile),
+                json.dumps(playbook.controls_required),
+                playbook.estimated_runtime_seconds,
+                playbook.max_execution_seconds,
+                playbook.version,
+                playbook.owner,
+                1 if playbook.enabled else 0,
+                json.dumps(playbook.compliance_tags),
+                json.dumps(playbook.guardrails),
+                playbook.created_at.isoformat(),
+                playbook.updated_at.isoformat(),
+                json.dumps(playbook.metadata),
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+        return playbook
+
+    def list_micro_test_playbooks(
+        self,
+        category: Optional[MicroTestCategory] = None,
+        lifecycle: Optional[MicroTestLifecycle] = None,
+        enabled: Optional[bool] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[MicroTestPlaybook]:
+        """List micro test playbooks."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM micro_test_playbooks WHERE 1=1"
+        params: List = []
+
+        if category:
+            query += " AND category = ?"
+            params.append(category.value)
+
+        if lifecycle:
+            query += " AND lifecycle = ?"
+            params.append(lifecycle.value)
+
+        if enabled is not None:
+            query += " AND enabled = ?"
+            params.append(1 if enabled else 0)
+
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([str(limit), str(offset)])
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [self._row_to_playbook(row) for row in rows]
+
+    def get_micro_test_playbook(self, playbook_id: str) -> Optional[MicroTestPlaybook]:
+        """Get a micro test playbook."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM micro_test_playbooks WHERE id = ?", (playbook_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        return self._row_to_playbook(row) if row else None
+
+    def update_micro_test_playbook(
+        self, playbook: MicroTestPlaybook
+    ) -> MicroTestPlaybook:
+        """Update a micro test playbook."""
+        playbook.updated_at = datetime.utcnow()
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE micro_test_playbooks
+            SET description = ?, category = ?, lifecycle = ?, severity_focus = ?,
+                target_types = ?, prerequisites = ?, tooling_profile = ?, controls_required = ?,
+                estimated_runtime_seconds = ?, max_execution_seconds = ?, version = ?, owner = ?,
+                enabled = ?, compliance_tags = ?, guardrails = ?, updated_at = ?, metadata = ?
+            WHERE id = ?
+        """,
+            (
+                playbook.description,
+                playbook.category.value,
+                playbook.lifecycle.value,
+                json.dumps(playbook.severity_focus),
+                json.dumps(playbook.target_types),
+                json.dumps(playbook.prerequisites),
+                json.dumps(playbook.tooling_profile),
+                json.dumps(playbook.controls_required),
+                playbook.estimated_runtime_seconds,
+                playbook.max_execution_seconds,
+                playbook.version,
+                playbook.owner,
+                1 if playbook.enabled else 0,
+                json.dumps(playbook.compliance_tags),
+                json.dumps(playbook.guardrails),
+                playbook.updated_at.isoformat(),
+                json.dumps(playbook.metadata),
+                playbook.id,
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+        return playbook
+
+    def delete_micro_test_playbook(self, playbook_id: str) -> bool:
+        """Delete a micro test playbook."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM micro_test_playbooks WHERE id = ?", (playbook_id,))
+        deleted = cursor.rowcount > 0
+
+        conn.commit()
+        conn.close()
+        return deleted
+
+    def _row_to_playbook(self, row: sqlite3.Row) -> MicroTestPlaybook:
+        """Convert DB row to MicroTestPlaybook."""
+        return MicroTestPlaybook(
+            id=row["id"],
+            name=row["name"],
+            description=row["description"],
+            category=MicroTestCategory(row["category"]),
+            lifecycle=MicroTestLifecycle(row["lifecycle"]),
+            severity_focus=json.loads(row["severity_focus"])
+            if row["severity_focus"]
+            else [],
+            target_types=json.loads(row["target_types"])
+            if row["target_types"]
+            else [],
+            prerequisites=json.loads(row["prerequisites"])
+            if row["prerequisites"]
+            else [],
+            tooling_profile=json.loads(row["tooling_profile"])
+            if row["tooling_profile"]
+            else [],
+            controls_required=json.loads(row["controls_required"])
+            if row["controls_required"]
+            else [],
+            estimated_runtime_seconds=row["estimated_runtime_seconds"],
+            max_execution_seconds=row["max_execution_seconds"],
+            version=row["version"],
+            owner=row["owner"],
+            enabled=bool(row["enabled"]),
+            compliance_tags=json.loads(row["compliance_tags"])
+            if row["compliance_tags"]
+            else [],
+            guardrails=json.loads(row["guardrails"]) if row["guardrails"] else {},
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
+        )
+
+    # --- Micro Test Runs ------------------------------------------------------
+
+    def create_micro_test_run(self, run: MicroTestRun) -> MicroTestRun:
+        """Create a micro test run."""
+        if not run.id:
+            run.id = str(uuid.uuid4())
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO micro_test_runs
+            (id, playbook_id, request_id, tenant_id, status, priority, approval_state,
+             runner_label, runner_location, scheduled_at, started_at, completed_at,
+             evidence_path, artifacts, commands, results, policy_blockers, telemetry,
+             risk_score, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                run.id,
+                run.playbook_id,
+                run.request_id,
+                run.tenant_id,
+                run.status.value,
+                run.priority.value,
+                run.approval_state.value,
+                run.runner_label,
+                run.runner_location,
+                run.scheduled_at.isoformat() if run.scheduled_at else None,
+                run.started_at.isoformat() if run.started_at else None,
+                run.completed_at.isoformat() if run.completed_at else None,
+                run.evidence_path,
+                json.dumps(run.artifacts),
+                json.dumps(run.commands),
+                json.dumps(run.results),
+                json.dumps(run.policy_blockers),
+                json.dumps(run.telemetry),
+                run.risk_score,
+                run.created_at.isoformat(),
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+        return run
+
+    def list_micro_test_runs(
+        self,
+        playbook_id: Optional[str] = None,
+        status: Optional[MicroTestRunStatus] = None,
+        request_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[MicroTestRun]:
+        """List micro test runs."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM micro_test_runs WHERE 1=1"
+        params: List = []
+
+        if playbook_id:
+            query += " AND playbook_id = ?"
+            params.append(playbook_id)
+
+        if status:
+            query += " AND status = ?"
+            params.append(status.value)
+
+        if request_id:
+            query += " AND request_id = ?"
+            params.append(request_id)
+
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([str(limit), str(offset)])
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [self._row_to_run(row) for row in rows]
+
+    def get_micro_test_run(self, run_id: str) -> Optional[MicroTestRun]:
+        """Get micro test run by ID."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM micro_test_runs WHERE id = ?", (run_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        return self._row_to_run(row) if row else None
+
+    def update_micro_test_run(self, run: MicroTestRun) -> MicroTestRun:
+        """Update micro test run state."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE micro_test_runs
+            SET status = ?, approval_state = ?, runner_label = ?, runner_location = ?,
+                scheduled_at = ?, started_at = ?, completed_at = ?, evidence_path = ?,
+                artifacts = ?, commands = ?, results = ?, policy_blockers = ?, telemetry = ?,
+                risk_score = ?
+            WHERE id = ?
+        """,
+            (
+                run.status.value,
+                run.approval_state.value,
+                run.runner_label,
+                run.runner_location,
+                run.scheduled_at.isoformat() if run.scheduled_at else None,
+                run.started_at.isoformat() if run.started_at else None,
+                run.completed_at.isoformat() if run.completed_at else None,
+                run.evidence_path,
+                json.dumps(run.artifacts),
+                json.dumps(run.commands),
+                json.dumps(run.results),
+                json.dumps(run.policy_blockers),
+                json.dumps(run.telemetry),
+                run.risk_score,
+                run.id,
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+        return run
+
+    def _row_to_run(self, row: sqlite3.Row) -> MicroTestRun:
+        """Convert DB row to MicroTestRun."""
+        return MicroTestRun(
+            id=row["id"],
+            playbook_id=row["playbook_id"],
+            status=MicroTestRunStatus(row["status"]),
+            priority=PenTestPriority(row["priority"]),
+            approval_state=ApprovalState(row["approval_state"]),
+            request_id=row["request_id"],
+            tenant_id=row["tenant_id"],
+            runner_label=row["runner_label"],
+            runner_location=row["runner_location"],
+            scheduled_at=datetime.fromisoformat(row["scheduled_at"])
+            if row["scheduled_at"]
+            else None,
+            started_at=datetime.fromisoformat(row["started_at"])
+            if row["started_at"]
+            else None,
+            completed_at=datetime.fromisoformat(row["completed_at"])
+            if row["completed_at"]
+            else None,
+            evidence_path=row["evidence_path"],
+            artifacts=json.loads(row["artifacts"]) if row["artifacts"] else [],
+            commands=json.loads(row["commands"]) if row["commands"] else [],
+            results=json.loads(row["results"]) if row["results"] else {},
+            policy_blockers=json.loads(row["policy_blockers"])
+            if row["policy_blockers"]
+            else [],
+            telemetry=json.loads(row["telemetry"]) if row["telemetry"] else {},
+            risk_score=row["risk_score"] if row["risk_score"] else 0.0,
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )

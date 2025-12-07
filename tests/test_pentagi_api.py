@@ -303,3 +303,114 @@ def test_delete_pen_test_config(client, db, monkeypatch):
     response = client.delete(f"/api/v1/pentagi/configs/{config_id}")
     assert response.status_code == 200
     assert response.json()["status"] == "deleted"
+
+
+def test_micro_test_playbook_crud(client, db, monkeypatch):
+    """Test micro test playbook lifecycle."""
+    monkeypatch.setattr("apps.api.pentagi_router.db", db)
+
+    create_response = client.post(
+        "/api/v1/pentagi/micro-tests",
+        json={
+            "name": "SQLI Micro Probe",
+            "description": "Focused SQLi verification for API endpoints",
+            "category": "api",
+            "lifecycle": "approved",
+            "severity_focus": ["high", "critical"],
+            "target_types": ["api_gateway", "web_service"],
+            "tooling_profile": ["sqlmap", "curl"],
+            "controls_required": ["allowlisted_ip"],
+            "estimated_runtime_seconds": 180,
+            "max_execution_seconds": 240,
+            "version": "1.2.0",
+            "owner": "security-team@fixops.io",
+            "enabled": True,
+            "compliance_tags": ["pci", "soc2"],
+            "guardrails": {"rate_limit": "5rps"},
+        },
+    )
+    assert create_response.status_code == 201
+    playbook_id = create_response.json()["id"]
+
+    list_response = client.get("/api/v1/pentagi/micro-tests")
+    assert list_response.status_code == 200
+    assert list_response.json()["total"] == 1
+
+    get_response = client.get(f"/api/v1/pentagi/micro-tests/{playbook_id}")
+    assert get_response.status_code == 200
+    assert get_response.json()["name"] == "SQLI Micro Probe"
+
+    update_response = client.put(
+        f"/api/v1/pentagi/micro-tests/{playbook_id}",
+        json={"enabled": False, "lifecycle": "disabled"},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["enabled"] is False
+    assert update_response.json()["lifecycle"] == "disabled"
+
+    delete_response = client.delete(f"/api/v1/pentagi/micro-tests/{playbook_id}")
+    assert delete_response.status_code == 200
+    assert delete_response.json()["status"] == "deleted"
+
+
+def test_micro_test_run_flow(client, db, monkeypatch):
+    """Test micro test run creation and updates."""
+    monkeypatch.setattr("apps.api.pentagi_router.db", db)
+
+    playbook_resp = client.post(
+        "/api/v1/pentagi/micro-tests",
+        json={
+            "name": "Auth Bypass Probe",
+            "description": "Checks for weak auth paths",
+            "category": "web_application",
+            "lifecycle": "approved",
+        },
+    )
+    playbook_id = playbook_resp.json()["id"]
+
+    request_resp = client.post(
+        "/api/v1/pentagi/requests",
+        json={
+            "finding_id": "finding-micro",
+            "target_url": "https://auth.fixops.com",
+            "vulnerability_type": "auth_bypass",
+            "test_case": "Validate bypass via session fixation",
+            "priority": "high",
+        },
+    )
+    request_id = request_resp.json()["id"]
+
+    run_resp = client.post(
+        "/api/v1/pentagi/micro-test-runs",
+        json={
+            "playbook_id": playbook_id,
+            "request_id": request_id,
+            "priority": "high",
+            "approval_state": "pending",
+            "commands": ["nuclei -t auth-bypass"],
+            "policy_blockers": [],
+            "telemetry": {"expected_runtime": 120},
+            "risk_score": 0.87,
+        },
+    )
+    assert run_resp.status_code == 201
+    run_id = run_resp.json()["id"]
+    assert run_resp.json()["status"] == "queued"
+
+    list_resp = client.get("/api/v1/pentagi/micro-test-runs")
+    assert list_resp.status_code == 200
+    assert list_resp.json()["total"] == 1
+
+    update_resp = client.put(
+        f"/api/v1/pentagi/micro-test-runs/{run_id}",
+        json={
+            "status": "running",
+            "approval_state": "approved",
+            "runner_label": "runner-us-east-1",
+            "runner_location": "us-east-1",
+            "artifacts": ["s3://evidence/run1/log.txt"],
+        },
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["status"] == "running"
+    assert update_resp.json()["approval_state"] == "approved"
