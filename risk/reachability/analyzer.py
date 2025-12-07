@@ -22,6 +22,13 @@ from risk.reachability.git_integration import (
     GitRepositoryAnalyzer,
     RepositoryMetadata,
 )
+from risk.reachability.proprietary_analyzer import (
+    ProprietaryReachabilityAnalyzer,
+    ProprietaryPatternMatcher,
+)
+from risk.reachability.proprietary_scoring import ProprietaryScoringEngine
+from risk.reachability.proprietary_threat_intel import ProprietaryThreatIntelligenceEngine
+from risk.reachability.proprietary_consensus import ProprietaryConsensusEngine
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +152,23 @@ class ReachabilityAnalyzer:
             config=self.config.get("data_flow", {})
         )
         
+        # Proprietary analyzers (no OSS dependencies)
+        self.proprietary_analyzer = ProprietaryReachabilityAnalyzer(
+            config=self.config.get("proprietary", {})
+        )
+        self.proprietary_scoring = ProprietaryScoringEngine(
+            config=self.config.get("proprietary_scoring", {})
+        )
+        self.proprietary_threat_intel = ProprietaryThreatIntelligenceEngine(
+            config=self.config.get("proprietary_threat_intel", {})
+        )
+        self.proprietary_consensus = ProprietaryConsensusEngine(
+            config=self.config.get("proprietary_consensus", {})
+        )
+        
+        # Use proprietary by default
+        self.use_proprietary = self.config.get("use_proprietary", True)
+        
         # Analysis settings
         self.enable_design_time = self.config.get("enable_design_time", True)
         self.enable_runtime = self.config.get("enable_runtime", True)
@@ -218,46 +242,71 @@ class ReachabilityAnalyzer:
                     cve_id, component_name, component_version
                 )
             
-            # Perform design-time analysis
-            design_time_result = None
-            if self.enable_design_time:
-                design_time_result = self._analyze_design_time(
-                    repo_path, vulnerable_patterns, repo_metadata
+            # Use proprietary analyzer if enabled
+            if self.use_proprietary:
+                # Proprietary analysis (no OSS tools)
+                proprietary_result = self.proprietary_analyzer.analyze_repository(
+                    repo_path,
+                    [{"cve_id": cve_id, **vuln_details} for _ in vulnerable_patterns],
+                    repo_metadata.language_distribution.get("Python", "python"),
                 )
+                
+                design_time_result = None
+                runtime_result = None
+            else:
+                # Perform design-time analysis (OSS tools)
+                design_time_result = None
+                if self.enable_design_time:
+                    design_time_result = self._analyze_design_time(
+                        repo_path, vulnerable_patterns, repo_metadata
+                    )
+                
+                # Perform runtime analysis (OSS tools)
+                runtime_result = None
+                if self.enable_runtime:
+                    runtime_result = self._analyze_runtime(
+                        repo_path, vulnerable_patterns, repo_metadata
+                    )
+                
+                proprietary_result = None
             
-            # Perform runtime analysis
-            runtime_result = None
-            if self.enable_runtime:
-                runtime_result = self._analyze_runtime(
-                    repo_path, vulnerable_patterns, repo_metadata
+            # Build call graph (proprietary or OSS)
+            if self.use_proprietary and proprietary_result:
+                call_graph = proprietary_result.get("call_graph", {}).get("graph", {})
+                data_flow_result = None  # Included in proprietary result
+                reachable_paths = self._extract_proprietary_paths(proprietary_result)
+            else:
+                call_graph = self.call_graph_builder.build_call_graph(
+                    repo_path, repo_metadata.language_distribution
                 )
-            
-            # Build call graph
-            call_graph = self.call_graph_builder.build_call_graph(
-                repo_path, repo_metadata.language_distribution
-            )
-            
-            # Perform data-flow analysis
-            data_flow_result = None
-            if vulnerable_patterns:
-                data_flow_result = self.data_flow_analyzer.analyze_data_flow(
-                    repo_path, vulnerable_patterns[0], call_graph
+                
+                # Perform data-flow analysis
+                data_flow_result = None
+                if vulnerable_patterns:
+                    data_flow_result = self.data_flow_analyzer.analyze_data_flow(
+                        repo_path, vulnerable_patterns[0], call_graph
+                    )
+                
+                # Check reachability
+                reachable_paths = self._check_pattern_reachability(
+                    vulnerable_patterns, call_graph, repo_path, data_flow_result
                 )
+                proprietary_result = None
             
-            # Check reachability
-            reachable_paths = self._check_pattern_reachability(
-                vulnerable_patterns, call_graph, repo_path, data_flow_result
-            )
-            
-            # Determine confidence
-            confidence_score = self._calculate_confidence(
-                reachable_paths,
-                vulnerable_patterns,
-                call_graph,
-                design_time_result,
-                runtime_result,
-                data_flow_result,
-            )
+            # Determine confidence (proprietary or standard)
+            if self.use_proprietary and proprietary_result:
+                confidence_score = self._calculate_proprietary_confidence(
+                    proprietary_result, reachable_paths
+                )
+            else:
+                confidence_score = self._calculate_confidence(
+                    reachable_paths,
+                    vulnerable_patterns,
+                    call_graph,
+                    design_time_result,
+                    runtime_result,
+                    data_flow_result,
+                )
             
             confidence = self._confidence_level(confidence_score)
             
@@ -286,8 +335,9 @@ class ReachabilityAnalyzer:
                 data_flow_depth=(
                     data_flow_result.max_depth if data_flow_result else 0
                 ),
-                analysis_method=self._determine_analysis_method(
-                    design_time_result, runtime_result
+                analysis_method=(
+                    "proprietary" if self.use_proprietary and proprietary_result
+                    else self._determine_analysis_method(design_time_result, runtime_result)
                 ),
                 design_time_analysis=(
                     design_time_result.to_dict()
@@ -306,6 +356,8 @@ class ReachabilityAnalyzer:
                     "language_distribution": repo_metadata.language_distribution,
                     "file_count": repo_metadata.file_count,
                     "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
+                    "proprietary_analysis": self.use_proprietary,
+                    "proprietary_result": proprietary_result if self.use_proprietary else None,
                 },
             )
             
@@ -681,6 +733,53 @@ class ReachabilityAnalyzer:
         if not paths:
             return 0
         return max(len(p.call_chain) for p in paths if p.call_chain)
+    
+    def _extract_proprietary_paths(
+        self, proprietary_result: Dict[str, Any]
+    ) -> List[CodePath]:
+        """Extract code paths from proprietary analysis result."""
+        paths = []
+        
+        reachability = proprietary_result.get("reachability", {})
+        reachable_matches = reachability.get("reachable_matches", [])
+        
+        for match in reachable_matches:
+            file_path, line_num = match.get("location", ("", 0))
+            paths.append(
+                CodePath(
+                    file_path=file_path,
+                    line_number=line_num,
+                    is_invoked=True,
+                    call_chain=[],
+                )
+            )
+        
+        return paths
+    
+    def _calculate_proprietary_confidence(
+        self, proprietary_result: Dict[str, Any], reachable_paths: List[CodePath]
+    ) -> float:
+        """Calculate confidence using proprietary algorithm."""
+        reachability = proprietary_result.get("reachability", {})
+        reachable_count = reachability.get("reachable_count", 0)
+        unreachable_count = reachability.get("unreachable_count", 0)
+        total = reachable_count + unreachable_count
+        
+        if total == 0:
+            return 0.0
+        
+        # Proprietary confidence calculation
+        if reachable_count > 0:
+            # High confidence if we found reachable paths
+            base_confidence = 0.7
+            # Boost if we also found unreachable (shows analysis is working)
+            if unreachable_count > 0:
+                base_confidence = 0.85
+        else:
+            # Lower confidence if nothing reachable
+            base_confidence = 0.5
+        
+        return min(1.0, max(0.0, base_confidence))
     
     def _create_unknown_result(
         self, cve_id: str, component_name: str, component_version: str
