@@ -97,7 +97,7 @@ def get_analyzer() -> ReachabilityAnalyzer:
     from core.configuration import load_overlay
     
     overlay = load_overlay()
-    config = overlay.get("reachability_analysis", {})
+    config = overlay.raw_config.get("reachability_analysis", {})
     return ReachabilityAnalyzer(config=config)
 
 
@@ -106,7 +106,7 @@ def get_storage() -> ReachabilityStorage:
     from core.configuration import load_overlay
     
     overlay = load_overlay()
-    config = overlay.get("reachability_analysis", {}).get("storage", {})
+    config = overlay.raw_config.get("reachability_analysis", {}).get("storage", {})
     return ReachabilityStorage(config=config)
 
 
@@ -115,7 +115,7 @@ def get_job_queue() -> JobQueue:
     from core.configuration import load_overlay
     
     overlay = load_overlay()
-    config = overlay.get("reachability_analysis", {}).get("job_queue", {})
+    config = overlay.raw_config.get("reachability_analysis", {}).get("job_queue", {})
     return JobQueue(config=config)
 
 
@@ -126,7 +126,7 @@ async def analyze_reachability(
     analyzer: ReachabilityAnalyzer = Depends(get_analyzer),
     storage: ReachabilityStorage = Depends(get_storage),
     job_queue: JobQueue = Depends(get_job_queue),
-    background_tasks: BackgroundTasks = None,
+    background_tasks: Optional[BackgroundTasks] = None,
 ):
     """Analyze vulnerability reachability in a Git repository.
     

@@ -39,7 +39,7 @@ class OSSTool:
     enabled: bool
     path: str
     config_path: Optional[str] = None
-    args: List[str] = None
+    args: Optional[List[str]] = None
     timeout: int = 300  # seconds
 
 
@@ -49,7 +49,7 @@ class AnalysisResult:
     
     source: str  # "proprietary" or "oss"
     tool_name: Optional[str] = None
-    findings: List[Dict[str, Any]] = None
+    findings: Optional[List[Dict[str, Any]]] = None
     success: bool = True
     error: Optional[str] = None
     execution_time: float = 0.0

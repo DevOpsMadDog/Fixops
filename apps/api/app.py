@@ -165,8 +165,7 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 
 
 def create_app() -> FastAPI:
-    """Create and configure FastAPI application."""
-    """Create the FastAPI application with file-upload ingestion endpoints."""
+    """Create and configure FastAPI application with file-upload ingestion endpoints."""
 
     try:
         overlay = load_overlay(allow_demo_token_fallback=True)
@@ -187,9 +186,6 @@ def create_app() -> FastAPI:
 
     configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
 
-    # Import health router
-    from apps.api.health_router import router as health_router
-    
     app = FastAPI(
         title=f"{branding['product_name']} Ingestion Demo API",
         description=f"Security decision engine by {branding['org_name']}",
