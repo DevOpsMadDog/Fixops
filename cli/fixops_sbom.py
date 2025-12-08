@@ -76,13 +76,16 @@ def _handle_normalize(
     """Normalize SBOM files into a single canonical document."""
     try:
         normalized = write_normalized_sbom(inputs, output, strict_schema=strict_schema)
-        component_count = len(normalized.get('components', []))
+        component_count = len(normalized.get("components", []))
         print(f"Normalized {component_count} components to {output}")
         if strict_schema:
             print("Strict schema validation: PASSED")
-        validation_errors = normalized.get('metadata', {}).get('validation_errors', [])
+        validation_errors = normalized.get("metadata", {}).get("validation_errors", [])
         if validation_errors:
-            print(f"Warning: {len(validation_errors)} components have validation errors", file=sys.stderr)
+            print(
+                f"Warning: {len(validation_errors)} components have validation errors",
+                file=sys.stderr,
+            )
         return 0
     except FileNotFoundError as e:
         print(f"Error: Input file not found: {e}", file=sys.stderr)
@@ -100,7 +103,10 @@ def _handle_quality(normalized_path: str, html_path: str, json_path: str) -> int
     try:
         path = Path(normalized_path)
         if not path.exists():
-            print(f"Error: Normalized SBOM file not found: {normalized_path}", file=sys.stderr)
+            print(
+                f"Error: Normalized SBOM file not found: {normalized_path}",
+                file=sys.stderr,
+            )
             return 1
         with path.open("r", encoding="utf-8") as handle:
             normalized = json.load(handle)
@@ -114,7 +120,9 @@ def _handle_quality(normalized_path: str, html_path: str, json_path: str) -> int
         print(f"Error: Invalid JSON in {normalized_path}: {e}", file=sys.stderr)
         return 1
     except Exception as e:
-        print(f"Unexpected error during quality report generation: {e}", file=sys.stderr)
+        print(
+            f"Unexpected error during quality report generation: {e}", file=sys.stderr
+        )
         return 1
 
 

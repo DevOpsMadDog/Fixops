@@ -269,16 +269,16 @@ def _identity_for(
 def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
     """
     Normalize multiple SBOM files into a single canonical document.
-    
+
     Args:
         paths: Iterable of file paths (strings or Path objects) to SBOM files
-        
+
     Returns:
         Dictionary containing:
         - metadata: Generation info, component counts, validation errors
         - components: List of normalized component dictionaries
         - sources: List of source file information
-        
+
     Raises:
         FileNotFoundError: If any input file doesn't exist
         ValueError: If any file contains invalid JSON or unsupported structure
@@ -394,15 +394,15 @@ def write_normalized_sbom(
 ) -> Dict[str, Any]:
     """
     Normalize SBOM files and write the result to a JSON file.
-    
+
     Args:
         paths: Iterable of file paths to SBOM files
         destination: Path where the normalized SBOM JSON will be written
         strict_schema: If True, raise ValueError if any components have missing required fields
-        
+
     Returns:
         Dictionary containing the normalized SBOM data
-        
+
     Raises:
         FileNotFoundError: If any input file doesn't exist
         ValueError: If strict_schema is True and validation errors are found,
@@ -442,16 +442,16 @@ def _safe_percentage(numerator: int, denominator: int) -> float:
 def build_quality_report(normalized: Mapping[str, Any]) -> Dict[str, Any]:
     """
     Build a quality report from a normalized SBOM.
-    
+
     Calculates metrics including:
     - Component coverage (unique vs total)
     - License coverage percentage
     - Resolvability (components with purl or hashes)
     - Generator variance (agreement between different SBOM generators)
-    
+
     Args:
         normalized: Normalized SBOM dictionary (from normalize_sboms or write_normalized_sbom)
-        
+
     Returns:
         Dictionary containing:
         - generated_at: ISO timestamp
@@ -605,15 +605,15 @@ def build_and_write_quality_outputs(
 ) -> Dict[str, Any]:
     """
     Build quality report and write both JSON and HTML outputs.
-    
+
     Args:
         normalized: Normalized SBOM dictionary
         json_destination: Path for JSON quality report
         html_destination: Path for HTML quality report
-        
+
     Returns:
         Dictionary containing the quality report data
-        
+
     Raises:
         IOError: If there's an error writing the output files
     """
