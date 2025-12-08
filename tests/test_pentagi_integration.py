@@ -2,10 +2,17 @@
 
 import asyncio
 import json
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from core.automated_remediation import (
+    AutomatedRemediationEngine,
+    RemediationPriority,
+    RemediationStatus,
+    RemediationType,
+)
 from core.continuous_validation import (
     ContinuousValidationEngine,
     ValidationJob,
@@ -20,9 +27,9 @@ from core.exploit_generator import (
 from core.llm_providers import LLMProviderManager
 from core.pentagi_advanced import (
     AdvancedPentagiClient,
-    MultiAIOrchestrator,
-    AIRole,
     AIDecision,
+    AIRole,
+    MultiAIOrchestrator,
 )
 from core.pentagi_models import (
     ExploitabilityLevel,
@@ -30,12 +37,6 @@ from core.pentagi_models import (
     PenTestPriority,
     PenTestRequest,
     PenTestStatus,
-)
-from core.automated_remediation import (
-    AutomatedRemediationEngine,
-    RemediationPriority,
-    RemediationStatus,
-    RemediationType,
 )
 
 
@@ -180,15 +181,15 @@ class TestAdvancedPentagiClient:
     """Test Advanced PentAGI client."""
 
     @pytest.mark.asyncio
-    async def test_execute_pentest(
-        self, pentagi_config, llm_manager, sample_context
-    ):
+    async def test_execute_pentest(self, pentagi_config, llm_manager, sample_context):
         """Test basic pentest execution."""
         with patch("core.pentagi_db.PentagiDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
 
             request = PenTestRequest(
                 id="test-request",
@@ -222,7 +223,9 @@ class TestAdvancedPentagiClient:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
 
             result = await client.execute_pentest_with_consensus(
                 sample_vulnerability, sample_context
@@ -306,7 +309,9 @@ class TestContinuousValidation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             orchestrator = MultiAIOrchestrator(llm_manager)
             engine = ContinuousValidationEngine(client, orchestrator)
 
@@ -328,7 +333,9 @@ class TestContinuousValidation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             orchestrator = MultiAIOrchestrator(llm_manager)
             engine = ContinuousValidationEngine(client, orchestrator)
 
@@ -353,7 +360,9 @@ class TestAutomatedRemediation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             suggestions = await engine.generate_remediation_suggestions(
@@ -377,7 +386,9 @@ class TestAutomatedRemediation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             findings = [
@@ -403,7 +414,9 @@ class TestAutomatedRemediation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             client.validate_remediation = AsyncMock(
                 return_value=(True, "Vulnerability fixed")
             )
@@ -438,7 +451,9 @@ class TestIntegrationWorkflow:
             mock_db.return_value = mock_db_instance
 
             # Initialize components
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             generator = IntelligentExploitGenerator(llm_manager)
 
             # 1. Generate custom exploit
@@ -465,7 +480,9 @@ class TestIntegrationWorkflow:
             mock_db.return_value = mock_db_instance
 
             # Initialize components
-            client = AdvancedPentagiClient(pentagi_config, llm_manager, mock_db_instance)
+            client = AdvancedPentagiClient(
+                pentagi_config, llm_manager, mock_db_instance
+            )
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             # 1. Generate remediation suggestions
@@ -480,9 +497,7 @@ class TestIntegrationWorkflow:
             suggestion.status = RemediationStatus.APPLIED
 
             # 3. Verify the remediation
-            client.validate_remediation = AsyncMock(
-                return_value=(True, "Fix verified")
-            )
+            client.validate_remediation = AsyncMock(return_value=(True, "Fix verified"))
 
             verification = await engine.verify_remediation(suggestion, sample_context)
 

@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 try:  # Ensure FieldInfo is available for compatibility across Pydantic versions
-    from pydantic.fields import FieldInfo as _FieldInfo
     import pydantic
+    from pydantic.fields import FieldInfo as _FieldInfo
 
     if not hasattr(pydantic, "FieldInfo"):
         pydantic.FieldInfo = _FieldInfo  # type: ignore[attr-defined]

@@ -140,16 +140,20 @@ class AutomatedRemediationEngine:
         self, finding: Dict, context: Dict
     ) -> List[RemediationSuggestion]:
         """Generate multiple remediation suggestions for a finding."""
-        logger.info(f"Generating remediation suggestions for finding: {finding.get('id')}")
+        logger.info(
+            f"Generating remediation suggestions for finding: {finding.get('id')}"
+        )
 
         # Get suggestions from multiple AI models
         architect_task = self._get_architect_remediation(finding, context)
         developer_task = self._get_developer_remediation(finding, context)
         lead_task = self._get_lead_remediation(finding, context)
 
-        architect_suggestions, developer_suggestions, lead_suggestions = await asyncio.gather(
-            architect_task, developer_task, lead_task
-        )
+        (
+            architect_suggestions,
+            developer_suggestions,
+            lead_suggestions,
+        ) = await asyncio.gather(architect_task, developer_task, lead_task)
 
         # Combine and deduplicate suggestions
         all_suggestions = (
@@ -514,7 +518,9 @@ If no regressions are likely, return empty array.
                     "week": week,
                     "priority": "high",
                     "items": len(by_priority[RemediationPriority.HIGH]),
-                    "suggestions": [s.id for s in by_priority[RemediationPriority.HIGH]],
+                    "suggestions": [
+                        s.id for s in by_priority[RemediationPriority.HIGH]
+                    ],
                 }
             )
             week += 2
@@ -546,9 +552,7 @@ If no regressions are likely, return empty array.
 
         return timeline
 
-    def _calculate_total_effort(
-        self, suggestions: List[RemediationSuggestion]
-    ) -> str:
+    def _calculate_total_effort(self, suggestions: List[RemediationSuggestion]) -> str:
         """Calculate total effort estimate."""
         total_hours = 0
 

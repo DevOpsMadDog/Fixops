@@ -50,7 +50,9 @@ class RegressionCase:
         try:
             normalised_decision = decision_map[decision_value]
         except KeyError as exc:
-            raise ValueError(f"Unsupported regression decision '{decision_value}'") from exc
+            raise ValueError(
+                f"Unsupported regression decision '{decision_value}'"
+            ) from exc
 
         confidence = float(payload.get("confidence") or 0.0)
         metadata = {
@@ -99,7 +101,9 @@ class GoldenRegressionStore:
         self._load_dataset()
 
     @classmethod
-    def get_instance(cls, dataset_path: Optional[Path] = None) -> "GoldenRegressionStore":
+    def get_instance(
+        cls, dataset_path: Optional[Path] = None
+    ) -> "GoldenRegressionStore":
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls(dataset_path)

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import base64
-import json
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import string
@@ -306,7 +306,10 @@ class AzureKeyVaultProvider:
         key_version = self.key_client.get_key(self.key_id)
         self._fingerprint = key_version.properties.version
         self._last_rotated = getattr(key_version.properties, "updated_on", None)
-        if isinstance(self._last_rotated, datetime) and self._last_rotated.tzinfo is None:
+        if (
+            isinstance(self._last_rotated, datetime)
+            and self._last_rotated.tzinfo is None
+        ):
             self._last_rotated = self._last_rotated.replace(tzinfo=timezone.utc)
 
     def sign(self, payload: bytes) -> bytes:
@@ -341,7 +344,10 @@ class AzureKeyVaultProvider:
         new_version = poller.result()
         self._fingerprint = new_version.properties.version
         self._last_rotated = getattr(new_version.properties, "updated_on", None)
-        if isinstance(self._last_rotated, datetime) and self._last_rotated.tzinfo is None:
+        if (
+            isinstance(self._last_rotated, datetime)
+            and self._last_rotated.tzinfo is None
+        ):
             self._last_rotated = self._last_rotated.replace(tzinfo=timezone.utc)
         return self._fingerprint
 
@@ -378,8 +384,8 @@ def get_key_provider() -> KeyProvider:
     if _KEY_PROVIDER is not None:
         return _KEY_PROVIDER
     settings = get_settings()
-    provider_name = (
-        getattr(settings, "SIGNING_PROVIDER", None) or os.getenv("SIGNING_PROVIDER")
+    provider_name = getattr(settings, "SIGNING_PROVIDER", None) or os.getenv(
+        "SIGNING_PROVIDER"
     )
     provider = (provider_name or "env").strip().lower()
 
@@ -629,7 +635,9 @@ def generate_api_signature(payload: Mapping[str, Any], secret: str) -> str:
     return hmac.new(secret.encode(), canonical, hashlib.sha256).hexdigest()
 
 
-def verify_api_signature(payload: Mapping[str, Any], secret: str, signature: str) -> bool:
+def verify_api_signature(
+    payload: Mapping[str, Any], secret: str, signature: str
+) -> bool:
     """Verify API signature."""
     expected = generate_api_signature(payload, secret)
     return hmac.compare_digest(expected, signature)

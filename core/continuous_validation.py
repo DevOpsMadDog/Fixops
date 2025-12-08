@@ -227,9 +227,7 @@ class ContinuousValidationEngine:
             job.status = ValidationStatus.COMPLETED
             job.completed_at = datetime.utcnow()
 
-            logger.info(
-                f"Validation job {job.id} completed: {job.result['summary']}"
-            )
+            logger.info(f"Validation job {job.id} completed: {job.result['summary']}")
 
         except Exception as e:
             logger.error(f"Validation job {job.id} failed: {e}")
@@ -246,7 +244,9 @@ class ContinuousValidationEngine:
     def _get_next_job(self) -> Optional[ValidationJob]:
         """Get the next job to process based on priority."""
         scheduled_jobs = [
-            j for j in self.active_jobs.values() if j.status == ValidationStatus.SCHEDULED
+            j
+            for j in self.active_jobs.values()
+            if j.status == ValidationStatus.SCHEDULED
         ]
 
         if not scheduled_jobs:
@@ -266,7 +266,9 @@ class ContinuousValidationEngine:
 
         return sorted_jobs[0] if sorted_jobs else None
 
-    def _group_vulnerabilities(self, vulnerabilities: List[Dict]) -> Dict[str, List[Dict]]:
+    def _group_vulnerabilities(
+        self, vulnerabilities: List[Dict]
+    ) -> Dict[str, List[Dict]]:
         """Group vulnerabilities by type for efficient batch testing."""
         grouped: Dict[str, List[Dict]] = {}
 
@@ -300,9 +302,7 @@ class ContinuousValidationEngine:
         total = len(results)
         completed = sum(1 for r in results if r.get("status") == "completed")
         exploitable = sum(
-            1
-            for r in results
-            if r.get("result", {}).get("exploit_successful", False)
+            1 for r in results if r.get("result", {}).get("exploit_successful", False)
         )
 
         return {
@@ -386,9 +386,8 @@ class ContinuousValidationEngine:
 
             results = job.result.get("results", [])
             for result in results:
-                if (
-                    result.get("status") == "completed"
-                    and result.get("result", {}).get("exploit_successful", False)
+                if result.get("status") == "completed" and result.get("result", {}).get(
+                    "exploit_successful", False
                 ):
                     consensus = result.get("consensus", {})
                     if consensus.get("confidence", 0) > 0.8:

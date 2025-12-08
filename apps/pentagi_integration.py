@@ -381,9 +381,7 @@ async def trigger_validation(
     }
 
     trigger = trigger_map.get(request.trigger.lower(), ValidationTrigger.MANUAL)
-    priority = (
-        priority_map.get(request.priority.lower()) if request.priority else None
-    )
+    priority = priority_map.get(request.priority.lower()) if request.priority else None
 
     job = await engine.trigger_validation(
         trigger,
@@ -487,7 +485,9 @@ async def get_exploitable_findings() -> List[Dict]:
 async def get_false_positives() -> List[Dict]:
     """Get all confirmed false positives."""
     db = PentagiDB()
-    results = db.list_results(exploitability=ExploitabilityLevel.UNEXPLOITABLE, limit=100)
+    results = db.list_results(
+        exploitability=ExploitabilityLevel.UNEXPLOITABLE, limit=100
+    )
     return [r.to_dict() for r in results]
 
 

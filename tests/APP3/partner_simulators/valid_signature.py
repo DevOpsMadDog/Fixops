@@ -13,14 +13,15 @@ message = {
     "patient": "PAT-8821",
     "value": 98.2,
     "unit": "F",
-    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
 }
 
 body = json.dumps(message, separators=(",", ":")).encode()
 ts = str(int(time.time()))
 sig = hmac.new(SECRET.encode(), ts.encode() + b"." + body, hashlib.sha512).digest()
-print(json.dumps({
-    "timestamp": ts,
-    "signature": base64.b64encode(sig).decode(),
-    "body": message
-}, indent=2))
+print(
+    json.dumps(
+        {"timestamp": ts, "signature": base64.b64encode(sig).decode(), "body": message},
+        indent=2,
+    )
+)

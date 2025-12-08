@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class FallbackStrategy(Enum):
     """Fallback strategy options."""
-    
+
     PROPRIETARY_FIRST = "proprietary_first"  # Try proprietary, fallback to OSS
     OSS_FIRST = "oss_first"  # Try OSS, fallback to proprietary
     PROPRIETARY_ONLY = "proprietary_only"  # Only use proprietary
@@ -25,7 +25,7 @@ class FallbackStrategy(Enum):
 
 class ResultCombination(Enum):
     """How to combine proprietary and OSS results."""
-    
+
     MERGE = "merge"  # Merge all results
     REPLACE = "replace"  # Replace with fallback results
     BEST_OF = "best_of"  # Use best results from either
@@ -34,7 +34,7 @@ class ResultCombination(Enum):
 @dataclass
 class OSSTool:
     """OSS tool configuration."""
-    
+
     name: str
     enabled: bool
     path: str
@@ -46,7 +46,7 @@ class OSSTool:
 @dataclass
 class AnalysisResult:
     """Analysis result from proprietary or OSS tool."""
-    
+
     source: str  # "proprietary" or "oss"
     tool_name: Optional[str] = None
     findings: List[Dict[str, Any]] = None
@@ -57,23 +57,21 @@ class AnalysisResult:
 
 class OSSFallbackEngine:
     """OSS Fallback Engine - Manages fallback to OSS tools."""
-    
+
     def __init__(self, config: Dict[str, Any]):
         """Initialize OSS fallback engine."""
         self.config = config
-        self.strategy = FallbackStrategy(
-            config.get("strategy", "proprietary_first")
-        )
+        self.strategy = FallbackStrategy(config.get("strategy", "proprietary_first"))
         self.result_combination = ResultCombination(
             config.get("result_combination", "merge")
         )
         self.oss_tools: Dict[str, OSSTool] = {}
         self._load_oss_tools()
-    
+
     def _load_oss_tools(self):
         """Load OSS tool configurations."""
         oss_config = self.config.get("oss_tools", {})
-        
+
         for tool_name, tool_config in oss_config.items():
             if tool_config.get("enabled", False):
                 self.oss_tools[tool_name] = OSSTool(
@@ -84,7 +82,7 @@ class OSSFallbackEngine:
                     args=tool_config.get("args", []),
                     timeout=tool_config.get("timeout", 300),
                 )
-    
+
     def analyze_with_fallback(
         self,
         language: str,
@@ -93,16 +91,18 @@ class OSSFallbackEngine:
         proprietary_config: Optional[Dict[str, Any]] = None,
     ) -> AnalysisResult:
         """Analyze with proprietary-first, OSS fallback."""
-        language_config = self.config.get("analysis_engines", {}).get(
-            "languages", {}
-        ).get(language, {})
-        
+        language_config = (
+            self.config.get("analysis_engines", {})
+            .get("languages", {})
+            .get(language, {})
+        )
+
         # Check if proprietary is enabled
         proprietary_enabled = language_config.get("proprietary", "enabled") == "enabled"
-        oss_fallback_enabled = (
-            language_config.get("oss_fallback", {}).get("enabled", False)
+        oss_fallback_enabled = language_config.get("oss_fallback", {}).get(
+            "enabled", False
         )
-        
+
         results: List[AnalysisResult] = []
         plan = {
             FallbackStrategy.PROPRIETARY_FIRST: ["proprietary", "oss"],
@@ -110,9 +110,9 @@ class OSSFallbackEngine:
             FallbackStrategy.PROPRIETARY_ONLY: ["proprietary"],
             FallbackStrategy.OSS_ONLY: ["oss"],
         }[self.strategy]
-        
+
         oss_tools = language_config.get("oss_fallback", {}).get("tools", [])
-        
+
         for step in plan:
             if step == "proprietary":
                 if not proprietary_enabled:
@@ -132,7 +132,7 @@ class OSSFallbackEngine:
                 results.append(proprietary_result)
                 if self.strategy == FallbackStrategy.PROPRIETARY_ONLY:
                     return self._combine_results(results)
-            
+
             elif step == "oss":
                 if not oss_fallback_enabled:
                     continue
@@ -141,9 +141,7 @@ class OSSFallbackEngine:
                     if not tool or not tool.enabled:
                         continue
                     try:
-                        oss_result = self._run_oss_tool(
-                            tool, language, codebase_path
-                        )
+                        oss_result = self._run_oss_tool(tool, language, codebase_path)
                     except Exception as e:
                         logger.warning(f"OSS tool {tool_name} failed: {e}")
                         oss_result = AnalysisResult(
@@ -156,22 +154,22 @@ class OSSFallbackEngine:
                     results.append(oss_result)
                 if self.strategy == FallbackStrategy.OSS_ONLY:
                     return self._combine_results(results)
-        
+
         # Combine results
         return self._combine_results(results)
-    
+
     def _run_proprietary(
         self, analyzer: callable, codebase_path: str, config: Optional[Dict[str, Any]]
     ) -> AnalysisResult:
         """Run proprietary analyzer."""
         import time
-        
+
         start_time = time.time()
-        
+
         try:
             findings = analyzer(codebase_path, config or {})
             execution_time = time.time() - start_time
-            
+
             return AnalysisResult(
                 source="proprietary",
                 findings=findings,
@@ -187,19 +185,19 @@ class OSSFallbackEngine:
                 error=str(e),
                 execution_time=execution_time,
             )
-    
+
     def _run_oss_tool(
         self, tool: OSSTool, language: str, codebase_path: str
     ) -> AnalysisResult:
         """Run OSS tool."""
         import time
-        
+
         start_time = time.time()
-        
+
         try:
             # Build command
             cmd = [tool.path]
-            
+
             # Add language-specific args
             if language == "python":
                 if tool.name == "semgrep":
@@ -212,11 +210,11 @@ class OSSFallbackEngine:
                 elif tool.name == "eslint":
                     cmd.extend(["--format", "json", codebase_path])
             # ... add more language/tool combinations
-            
+
             # Add custom args
             if tool.args:
                 cmd.extend(tool.args)
-            
+
             # Run tool
             result = subprocess.run(
                 cmd,
@@ -224,13 +222,13 @@ class OSSFallbackEngine:
                 text=True,
                 timeout=tool.timeout,
             )
-            
+
             execution_time = time.time() - start_time
-            
+
             if result.returncode == 0:
                 # Parse output (tool-specific)
                 findings = self._parse_oss_output(tool.name, result.stdout)
-                
+
                 return AnalysisResult(
                     source="oss",
                     tool_name=tool.name,
@@ -247,7 +245,7 @@ class OSSFallbackEngine:
                     error=result.stderr or result.stdout,
                     execution_time=execution_time,
                 )
-        
+
         except subprocess.TimeoutExpired:
             execution_time = time.time() - start_time
             return AnalysisResult(
@@ -268,49 +266,55 @@ class OSSFallbackEngine:
                 error=str(e),
                 execution_time=execution_time,
             )
-    
+
     def _parse_oss_output(self, tool_name: str, output: str) -> List[Dict[str, Any]]:
         """Parse OSS tool output to FixOps format."""
         import json
-        
+
         findings = []
-        
+
         try:
             if tool_name == "semgrep":
                 # Parse Semgrep JSON output
                 data = json.loads(output)
                 for result in data.get("results", []):
-                    findings.append({
-                        "rule_id": result.get("check_id", ""),
-                        "severity": result.get("extra", {}).get("severity", "medium"),
-                        "file": result.get("path", ""),
-                        "line": result.get("start", {}).get("line", 0),
-                        "message": result.get("message", ""),
-                        "source": "oss",
-                        "tool": "semgrep",
-                    })
-            
+                    findings.append(
+                        {
+                            "rule_id": result.get("check_id", ""),
+                            "severity": result.get("extra", {}).get(
+                                "severity", "medium"
+                            ),
+                            "file": result.get("path", ""),
+                            "line": result.get("start", {}).get("line", 0),
+                            "message": result.get("message", ""),
+                            "source": "oss",
+                            "tool": "semgrep",
+                        }
+                    )
+
             elif tool_name == "bandit":
                 # Parse Bandit JSON output
                 data = json.loads(output)
                 for result in data.get("results", []):
-                    findings.append({
-                        "rule_id": result.get("test_id", ""),
-                        "severity": result.get("issue_severity", "medium"),
-                        "file": result.get("filename", ""),
-                        "line": result.get("line_number", 0),
-                        "message": result.get("issue_text", ""),
-                        "source": "oss",
-                        "tool": "bandit",
-                    })
-            
+                    findings.append(
+                        {
+                            "rule_id": result.get("test_id", ""),
+                            "severity": result.get("issue_severity", "medium"),
+                            "file": result.get("filename", ""),
+                            "line": result.get("line_number", 0),
+                            "message": result.get("issue_text", ""),
+                            "source": "oss",
+                            "tool": "bandit",
+                        }
+                    )
+
             # ... add more tool parsers
-            
+
         except Exception as e:
             logger.error(f"Failed to parse {tool_name} output: {e}")
-        
+
         return findings
-    
+
     def _combine_results(self, results: List[AnalysisResult]) -> AnalysisResult:
         """Combine multiple analysis results."""
         if not results:
@@ -320,23 +324,23 @@ class OSSFallbackEngine:
                 success=False,
                 error="No results available",
             )
-        
+
         if self.result_combination == ResultCombination.REPLACE:
             # Use last result (fallback)
             return results[-1]
-        
+
         elif self.result_combination == ResultCombination.BEST_OF:
             # Use result with most findings
             best_result = max(results, key=lambda r: len(r.findings or []))
             return best_result
-        
+
         else:  # MERGE
             # Merge all findings
             all_findings = []
             for result in results:
                 if result.findings:
                     all_findings.extend(result.findings)
-            
+
             # Deduplicate (same file, line, rule_id)
             seen = set()
             unique_findings = []
@@ -349,10 +353,10 @@ class OSSFallbackEngine:
                 if key not in seen:
                     seen.add(key)
                     unique_findings.append(finding)
-            
+
             # Use first successful result as base
             base_result = next((r for r in results if r.success), results[0])
-            
+
             combined_success = any(r.success for r in results)
             combined_error = None
             if not combined_success:
@@ -360,7 +364,7 @@ class OSSFallbackEngine:
                     (r.error for r in results if r.error),
                     "Analysis completed but no successful results",
                 )
-            
+
             return AnalysisResult(
                 source="combined",
                 findings=unique_findings,
