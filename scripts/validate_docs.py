@@ -16,7 +16,9 @@ from typing import List, Tuple
 
 # Pattern to match file references in markdown
 # Matches patterns like: `path/to/file.py`, `lib4sbom/normalizer.py`, etc.
-FILE_REF_PATTERN = re.compile(r"`([a-zA-Z0-9_\-./]+\.(py|js|jsx|ts|tsx|yaml|yml|json|md|rego|psl))`")
+FILE_REF_PATTERN = re.compile(
+    r"`([a-zA-Z0-9_\-./]+\.(py|js|jsx|ts|tsx|yaml|yml|json|md|rego|psl))`"
+)
 
 
 def find_file_references(content: str) -> List[str]:
@@ -44,14 +46,16 @@ def validate_documentation_file(doc_path: Path, workspace_root: Path) -> List[st
     try:
         content = doc_path.read_text(encoding="utf-8")
         references = find_file_references(content)
-        
+
         for ref in references:
             exists, error_msg = validate_file_exists(ref, workspace_root)
             if not exists:
                 errors.append(f"{doc_path.relative_to(workspace_root)}: {error_msg}")
     except Exception as e:
-        errors.append(f"{doc_path.relative_to(workspace_root)}: Error reading file: {e}")
-    
+        errors.append(
+            f"{doc_path.relative_to(workspace_root)}: Error reading file: {e}"
+        )
+
     return errors
 
 
@@ -77,28 +81,28 @@ def main():
         action="store_true",
         help="Exit with error code if any issues found",
     )
-    
+
     args = parser.parse_args()
     workspace_root = args.workspace_root.resolve()
-    
+
     # Collect all markdown files
     markdown_files = []
     for path_arg in args.paths:
         path = Path(path_arg)
         if not path.is_absolute():
             path = workspace_root / path
-        
+
         if path.is_file() and path.suffix == ".md":
             markdown_files.append(path)
         elif path.is_dir():
             markdown_files.extend(path.rglob("*.md"))
-    
+
     # Validate each file
     all_errors = []
     for doc_file in sorted(markdown_files):
         errors = validate_documentation_file(doc_file, workspace_root)
         all_errors.extend(errors)
-    
+
     # Report results
     if all_errors:
         print("❌ Documentation validation found issues:\n", file=sys.stderr)
