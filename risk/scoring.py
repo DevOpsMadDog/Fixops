@@ -216,6 +216,7 @@ def _score_vulnerability(
     epss_scores: Mapping[str, float],
     kev_entries: Mapping[str, Any],
     weights: Mapping[str, float],
+    reachability_result: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any] | None:
     cve = (
         vulnerability.get("cve")
@@ -243,31 +244,78 @@ def _score_vulnerability(
     )
     exposure_score = _exposure_factor(exposure_flags)
 
+    # Enterprise: Reachability analysis integration
+    reachability_factor = 1.0
+    reachability_confidence = 0.0
+    is_reachable = None
+    
+    if reachability_result:
+        is_reachable = reachability_result.get("is_reachable", False)
+        confidence = reachability_result.get("confidence_score", 0.0)
+        reachability_confidence = confidence
+        
+        # Adjust score based on reachability with high confidence
+        if not is_reachable and confidence >= 0.8:
+            # High confidence NOT reachable - reduce score significantly
+            reachability_factor = 0.1  # Reduce to 10%
+        elif is_reachable and confidence >= 0.8:
+            # High confidence IS reachable - boost score
+            reachability_factor = 1.5  # Increase by 50%
+        elif is_reachable and confidence >= 0.5:
+            # Medium confidence reachable - slight boost
+            reachability_factor = 1.2  # Increase by 20%
+
     contributions = {
         "epss": epss,
         "kev": 1.0 if kev_present else 0.0,
         "version_lag": lag_score,
         "exposure": exposure_score,
+        "reachability": reachability_confidence,
     }
 
-    total_weight = sum(weights.values())
-    weighted_score = sum(contributions[key] * weights[key] for key in contributions)
-    normalized_score = weighted_score / total_weight if total_weight else 0.0
-    final_score = round(normalized_score * 100, 2)
+    # Enhanced weights with reachability
+    enhanced_weights = dict(weights)
+    if "reachability" not in enhanced_weights and reachability_result:
+        enhanced_weights["reachability"] = 0.15  # 15% weight
+        # Adjust other weights proportionally
+        total_existing = sum(v for k, v in weights.items())
+        if total_existing > 0:
+            scale_factor = 0.85 / total_existing
+            for key in weights:
+                enhanced_weights[key] = weights[key] * scale_factor
 
-    return {
+    total_weight = sum(enhanced_weights.values())
+    weighted_score = sum(
+        contributions[key] * enhanced_weights.get(key, 0.0) 
+        for key in contributions if key in enhanced_weights
+    )
+    normalized_score = weighted_score / total_weight if total_weight else 0.0
+    
+    # Apply reachability factor
+    final_score = round(normalized_score * 100 * reachability_factor, 2)
+    final_score = min(100.0, max(0.0, final_score))  # Clamp to 0-100
+
+    result = {
         "cve": cve_id,
         "epss": round(epss, 4),
         "kev": kev_present,
         "version_lag_days": round(lag_days, 2),
         "exposure_flags": exposure_flags,
+        "reachability": {
+            "is_reachable": is_reachable,
+            "confidence": round(reachability_confidence, 3),
+            "factor_applied": round(reachability_factor, 2),
+        } if reachability_result else None,
         "risk_breakdown": {
-            "weights": dict(weights),
+            "weights": enhanced_weights,
             "contributions": contributions,
             "normalized_score": round(normalized_score, 4),
+            "reachability_adjusted": round(final_score, 2),
         },
         "fixops_risk": final_score,
     }
+    
+    return result
 
 
 def compute_risk_profile(
@@ -276,6 +324,7 @@ def compute_risk_profile(
     kev_entries: Mapping[str, Any],
     *,
     weights: Mapping[str, float] = DEFAULT_WEIGHTS,
+    reachability_results: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Compute a composite risk profile for the provided SBOM."""
 
@@ -308,8 +357,19 @@ def compute_risk_profile(
             for vulnerability in vulnerabilities:
                 if not isinstance(vulnerability, Mapping):
                     continue
+                # Get reachability result for this CVE if available
+                cve_id_for_lookup = (
+                    vulnerability.get("cve")
+                    or vulnerability.get("cve_id")
+                    or vulnerability.get("id")
+                )
+                reachability = None
+                if reachability_results and isinstance(cve_id_for_lookup, str):
+                    reachability = reachability_results.get(cve_id_for_lookup.upper())
+                
                 scored = _score_vulnerability(
-                    component, vulnerability, epss_scores, kev_entries, weights
+                    component, vulnerability, epss_scores, kev_entries, weights,
+                    reachability_result=reachability
                 )
                 if not scored:
                     continue
