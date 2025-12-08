@@ -148,6 +148,13 @@ const apiMethods = {
     analysis: (payload) => api.post('/enhanced/analysis', payload),
   },
 
+  // Micro Penetration Test endpoints
+  microPentest: {
+    run: (payload) => api.post('/micro-pentest/run', payload),
+    status: (flowId) => api.get(`/micro-pentest/status/${flowId}`),
+    batch: (payload) => api.post('/micro-pentest/batch', payload),
+  },
+
   // Scans
   scans: {
     upload: (formData) => api.post('/scans/upload', formData),
