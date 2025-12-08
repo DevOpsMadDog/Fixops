@@ -120,18 +120,21 @@ class OSSFallbackEngine:
                     # If proprietary succeeded and strategy is proprietary_only, return
                     if self.strategy == FallbackStrategy.PROPRIETARY_ONLY:
                         return self._combine_results(results)
+                else:
+                    # Log the actual error for troubleshooting
+                    logger.error(f"Proprietary analysis failed: {proprietary_result.error}")
             except Exception as e:
                 logger.warning(f"Proprietary analysis failed: {e}")
                 if self.strategy == FallbackStrategy.PROPRIETARY_ONLY:
-                    # No fallback, return error
+                    # Propagate the actual error for troubleshooting
                     return AnalysisResult(
                         source="proprietary",
                         success=False,
-                        error=str(e),
+                        error=f"Proprietary analysis failed: {str(e)}",
                         findings=[],
                     )
         
-        # Try OSS fallback (if enabled and strategy allows)
+        # Try OSS (if enabled and strategy allows)
         if (
             oss_fallback_enabled
             and self.strategy
@@ -155,6 +158,17 @@ class OSSFallbackEngine:
                         except Exception as e:
                             logger.warning(f"OSS tool {tool_name} failed: {e}")
                             continue
+        
+        # For OSS_FIRST strategy, if OSS succeeded, we may still try proprietary as fallback
+        if self.strategy == FallbackStrategy.OSS_FIRST and proprietary_enabled and not results:
+            try:
+                proprietary_result = self._run_proprietary(
+                    proprietary_analyzer, codebase_path, proprietary_config
+                )
+                if proprietary_result.success:
+                    results.append(proprietary_result)
+            except Exception as e:
+                logger.warning(f"Proprietary fallback failed: {e}")
         
         # Combine results
         return self._combine_results(results)
@@ -202,12 +216,12 @@ class OSSFallbackEngine:
             # Add language-specific args
             if language == "python":
                 if tool.name == "semgrep":
-                    cmd.extend(["--config", "p/python", codebase_path])
+                    cmd.extend(["--config", "p/python", "--json", codebase_path])
                 elif tool.name == "bandit":
                     cmd.extend(["-r", codebase_path, "-f", "json"])
             elif language == "javascript":
                 if tool.name == "semgrep":
-                    cmd.extend(["--config", "p/javascript", codebase_path])
+                    cmd.extend(["--config", "p/javascript", "--json", codebase_path])
                 elif tool.name == "eslint":
                     cmd.extend(["--format", "json", codebase_path])
             # ... add more language/tool combinations

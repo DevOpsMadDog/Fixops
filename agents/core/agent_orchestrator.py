@@ -52,7 +52,7 @@ class AgentOrchestrator:
         self, design_data: Dict[str, Any], runtime_data: Dict[str, Any], rule: Dict[str, Any]
     ) -> bool:
         """Check if data matches correlation rule."""
-        # Simple matching logic (can be enhanced)
+        # Check if all required fields exist
         design_fields = rule.get("design_fields", [])
         runtime_fields = rule.get("runtime_fields", [])
         
@@ -63,6 +63,35 @@ class AgentOrchestrator:
         for rf in runtime_fields:
             if rf not in runtime_data:
                 return False
+        
+        # Compare field values for actual correlation
+        correlations = rule.get("correlations", [])
+        if not correlations:
+            # If no specific correlations defined, just check field existence
+            return True
+        
+        for correlation in correlations:
+            design_field = correlation.get("design_field")
+            runtime_field = correlation.get("runtime_field")
+            match_type = correlation.get("match_type", "exact")  # exact, contains, regex
+            
+            if not design_field or not runtime_field:
+                continue
+            
+            design_value = design_data.get(design_field)
+            runtime_value = runtime_data.get(runtime_field)
+            
+            if match_type == "exact":
+                if design_value != runtime_value:
+                    return False
+            elif match_type == "contains":
+                if not (design_value and runtime_value and str(design_value) in str(runtime_value)):
+                    return False
+            elif match_type == "regex":
+                import re
+                pattern = correlation.get("pattern", "")
+                if not (pattern and re.search(pattern, str(runtime_value))):
+                    return False
         
         return True
     

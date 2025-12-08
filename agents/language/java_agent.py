@@ -45,30 +45,37 @@ class JavaAgent(CodeRepoAgent):
     async def _collect_sarif_oss_fallback(self) -> Optional[Dict[str, Any]]:
         """Collect SARIF using OSS tools (CodeQL, Semgrep, SpotBugs)."""
         try:
-            import subprocess
+            import asyncio
             import json
             
-            # Try CodeQL
-            result = subprocess.run(
-                ["codeql", "database", "analyze", "--format=sarif", self.repo_path],
-                capture_output=True,
-                text=True,
-                timeout=600,
-            )
+            # Try CodeQL (using async subprocess)
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "codeql", "database", "analyze", "--format=sarif", self.repo_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=600)
+                
+                if process.returncode == 0 and stdout:
+                    return json.loads(stdout.decode())
+            except (asyncio.TimeoutError, FileNotFoundError) as e:
+                logger.warning(f"CodeQL failed: {e}")
             
-            if result.returncode == 0:
-                return json.loads(result.stdout)
-            
-            # Try Semgrep
-            result = subprocess.run(
-                ["semgrep", "--config", "p/java", "--json", self.repo_path],
-                capture_output=True,
-                text=True,
-                timeout=300,
-            )
-            
-            if result.returncode == 0:
-                return self._semgrep_to_sarif(json.loads(result.stdout))
+            # Try Semgrep (using async subprocess)
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "semgrep", "--config", "p/java", "--json", self.repo_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=300)
+                
+                # Semgrep returns 0 for no matches, 1 for matches found
+                if process.returncode in [0, 1] and stdout:
+                    return self._semgrep_to_sarif(json.loads(stdout.decode()))
+            except (asyncio.TimeoutError, FileNotFoundError) as e:
+                logger.warning(f"Semgrep failed: {e}")
         
         except Exception as e:
             logger.error(f"Error in OSS fallback: {e}")
@@ -107,4 +114,15 @@ class JavaAgent(CodeRepoAgent):
     
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        return self._findings_to_sarif(semgrep_data.get("results", []), "Semgrep")
+        # Normalize Semgrep findings before conversion
+        findings = []
+        for result in semgrep_data.get("results", []):
+            findings.append({
+                "rule_id": result.get("check_id", ""),
+                "severity": result.get("extra", {}).get("severity", "warning"),
+                "file": result.get("path", ""),
+                "line": result.get("start", {}).get("line", 0),
+                "column": result.get("start", {}).get("col", 0),
+                "message": result.get("extra", {}).get("message", result.get("check_id", "")),
+            })
+        return self._findings_to_sarif(findings, "Semgrep")

@@ -49,7 +49,7 @@ class JavaScriptAgent(CodeRepoAgent):
             import subprocess
             import json
             
-            # Try Semgrep
+            # Try Semgrep (exit code 1 when matches are found)
             result = subprocess.run(
                 ["semgrep", "--config", "p/javascript", "--json", self.repo_path],
                 capture_output=True,
@@ -57,10 +57,14 @@ class JavaScriptAgent(CodeRepoAgent):
                 timeout=300,
             )
             
-            if result.returncode == 0:
-                return self._semgrep_to_sarif(json.loads(result.stdout))
+            # Semgrep returns 0 for no matches, 1 for matches found, >1 for errors
+            if result.returncode in [0, 1] and result.stdout:
+                try:
+                    return self._semgrep_to_sarif(json.loads(result.stdout))
+                except json.JSONDecodeError:
+                    logger.warning("Failed to parse Semgrep output")
             
-            # Try ESLint
+            # Try ESLint (exit code 1 when lint errors exist)
             result = subprocess.run(
                 ["eslint", "--format", "json", self.repo_path],
                 capture_output=True,
@@ -68,8 +72,12 @@ class JavaScriptAgent(CodeRepoAgent):
                 timeout=180,
             )
             
-            if result.returncode == 0:
-                return self._eslint_to_sarif(json.loads(result.stdout))
+            # ESLint returns 0 for no errors, 1 for lint errors, 2 for fatal errors
+            if result.returncode in [0, 1] and result.stdout:
+                try:
+                    return self._eslint_to_sarif(json.loads(result.stdout))
+                except json.JSONDecodeError:
+                    logger.warning("Failed to parse ESLint output")
         
         except Exception as e:
             logger.error(f"Error in OSS fallback: {e}")
@@ -108,16 +116,31 @@ class JavaScriptAgent(CodeRepoAgent):
     
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        return self._findings_to_sarif(semgrep_data.get("results", []), "Semgrep")
+        # Normalize Semgrep findings to the format expected by _findings_to_sarif
+        findings = []
+        for result in semgrep_data.get("results", []):
+            findings.append({
+                "rule_id": result.get("check_id", ""),
+                "severity": result.get("extra", {}).get("severity", "warning"),
+                "file": result.get("path", ""),
+                "line": result.get("start", {}).get("line", 0),
+                "column": result.get("start", {}).get("col", 0),
+                "message": result.get("extra", {}).get("message", result.get("check_id", "")),
+            })
+        return self._findings_to_sarif(findings, "Semgrep")
     
     def _eslint_to_sarif(self, eslint_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert ESLint output to SARIF."""
         findings = []
         for file_data in eslint_data:
             for message in file_data.get("messages", []):
+                # Map ESLint severity (1=warning, 2=error) to SARIF level strings
+                eslint_severity = message.get("severity", 1)
+                severity = "error" if eslint_severity == 2 else "warning"
+                
                 findings.append({
                     "rule_id": message.get("ruleId", ""),
-                    "severity": message.get("severity", 2),
+                    "severity": severity,
                     "file": file_data.get("filePath", ""),
                     "line": message.get("line", 0),
                     "column": message.get("column", 0),

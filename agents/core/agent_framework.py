@@ -144,7 +144,9 @@ class BaseAgent(ABC):
             return False
         
         finally:
-            self.status = AgentStatus.MONITORING
+            # Only reset to MONITORING if agent hasn't been stopped
+            if self.status != AgentStatus.DISCONNECTED:
+                self.status = AgentStatus.MONITORING
     
     def _get_endpoint(self, data_type: str) -> str:
         """Get FixOps API endpoint for data type."""
