@@ -68,7 +68,7 @@ class GoAgent(CodeRepoAgent):
                 timeout=180,
             )
             
-            if result.returncode == 0:
+            if result.returncode in (0, 1):
                 return self._gosec_to_sarif(json.loads(result.stdout))
         
         except Exception as e:

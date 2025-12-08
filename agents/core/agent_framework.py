@@ -79,6 +79,7 @@ class BaseAgent(ABC):
         self.error_count = 0
         self.collection_count = 0
         self.push_count = 0
+        self._stop_requested = False
     
     @abstractmethod
     async def connect(self) -> bool:
@@ -144,7 +145,11 @@ class BaseAgent(ABC):
             return False
         
         finally:
-            self.status = AgentStatus.MONITORING
+            if not self._stop_requested:
+                self.status = AgentStatus.MONITORING
+    def request_stop(self):
+        """Signal the agent to stop after the current iteration."""
+        self._stop_requested = True
     
     def _get_endpoint(self, data_type: str) -> str:
         """Get FixOps API endpoint for data type."""
@@ -178,7 +183,7 @@ class BaseAgent(ABC):
             self.status = AgentStatus.MONITORING
             
             # Main monitoring loop
-            while self.status != AgentStatus.DISCONNECTED:
+        while not self._stop_requested and self.status != AgentStatus.DISCONNECTED:
                 try:
                     # Collect data
                     self.status = AgentStatus.COLLECTING
@@ -192,10 +197,15 @@ class BaseAgent(ABC):
                         if not success:
                             self.error_count += 1
                     
-                    self.status = AgentStatus.MONITORING
+                if self._stop_requested:
+                    break
+                
+                self.status = AgentStatus.MONITORING
                     
                     # Wait for next polling interval
-                    await asyncio.sleep(self.config.polling_interval)
+                await asyncio.sleep(self.config.polling_interval)
+                if self._stop_requested:
+                    break
                 
                 except Exception as e:
                     logger.error(f"Error in agent {self.config.agent_id} loop: {e}")
@@ -273,7 +283,7 @@ class AgentFramework:
         self.running = False
         
         for agent in self.agents.values():
-            agent.status = AgentStatus.DISCONNECTED
+            agent.request_stop()
         
         logger.info("Stopped all agents")
     

@@ -4,6 +4,15 @@ from pathlib import Path
 
 import pytest
 
+try:  # Ensure FieldInfo is available for compatibility across Pydantic versions
+    from pydantic.fields import FieldInfo as _FieldInfo
+    import pydantic
+
+    if not hasattr(pydantic, "FieldInfo"):
+        pydantic.FieldInfo = _FieldInfo  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover - optional shim
+    pass
+
 # Add fixops-enterprise to Python path for imports
 repo_root = Path(__file__).parent.parent
 enterprise_src = repo_root / "fixops-enterprise"

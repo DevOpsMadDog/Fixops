@@ -57,7 +57,7 @@ class JavaScriptAgent(CodeRepoAgent):
                 timeout=300,
             )
             
-            if result.returncode == 0:
+            if result.returncode in (0, 1):
                 return self._semgrep_to_sarif(json.loads(result.stdout))
             
             # Try ESLint
@@ -68,7 +68,7 @@ class JavaScriptAgent(CodeRepoAgent):
                 timeout=180,
             )
             
-            if result.returncode == 0:
+            if result.returncode in (0, 1):
                 return self._eslint_to_sarif(json.loads(result.stdout))
         
         except Exception as e:
@@ -108,16 +108,34 @@ class JavaScriptAgent(CodeRepoAgent):
     
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        return self._findings_to_sarif(semgrep_data.get("results", []), "Semgrep")
+        findings = []
+        for result in semgrep_data.get("results", []):
+            start = result.get("start", {})
+            extra = result.get("extra", {})
+            findings.append({
+                "rule_id": result.get("check_id", ""),
+                "severity": extra.get("severity", "warning"),
+                "file": result.get("path", ""),
+                "line": start.get("line", 0),
+                "column": start.get("col", 0),
+                "message": extra.get("message") or result.get("message", ""),
+            })
+        return self._findings_to_sarif(findings, "Semgrep")
     
     def _eslint_to_sarif(self, eslint_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert ESLint output to SARIF."""
         findings = []
         for file_data in eslint_data:
             for message in file_data.get("messages", []):
+                severity = message.get("severity", 2)
+                severity_map = {
+                    0: "note",
+                    1: "warning",
+                    2: "error",
+                }
                 findings.append({
                     "rule_id": message.get("ruleId", ""),
-                    "severity": message.get("severity", 2),
+                    "severity": severity_map.get(severity, "warning"),
                     "file": file_data.get("filePath", ""),
                     "line": message.get("line", 0),
                     "column": message.get("column", 0),

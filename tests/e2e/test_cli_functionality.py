@@ -28,10 +28,6 @@ def api_server_running():
 class TestCLIFunctionality:
     """Test CLI functionality end-to-end."""
     
-    @pytest.mark.skipif(
-        not pytest.config.getoption("--api-server-running", default=False),
-        reason="API server not running",
-    )
     def test_cli_scan_command(self, api_server_running):
         """Test CLI scan command."""
         if not api_server_running:
