@@ -8,7 +8,6 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-
 from src.api.dependencies import authenticated_payload
 from src.services.ci_adapters import GitHubCIAdapter, JenkinsCIAdapter, SonarQubeAdapter
 from src.services.runtime import DECISION_ENGINE

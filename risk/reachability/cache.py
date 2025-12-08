@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class AnalysisCache:
     """Cache for reachability analysis results to improve performance."""
-    
+
     def __init__(
         self,
         cache_dir: Optional[Path] = None,
@@ -24,7 +24,7 @@ class AnalysisCache:
         max_size_mb: int = 1000,
     ):
         """Initialize analysis cache.
-        
+
         Parameters
         ----------
         cache_dir
@@ -35,12 +35,14 @@ class AnalysisCache:
             Maximum cache size in MB.
         """
         import tempfile
-        
-        self.cache_dir = cache_dir or Path(tempfile.gettempdir()) / "fixops_reachability_cache"
+
+        self.cache_dir = (
+            cache_dir or Path(tempfile.gettempdir()) / "fixops_reachability_cache"
+        )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl_hours = ttl_hours
         self.max_size_mb = max_size_mb
-    
+
     def get_cache_key(
         self,
         cve_id: str,
@@ -59,7 +61,7 @@ class AnalysisCache:
         ]
         key_string = "|".join(key_parts)
         return hashlib.sha256(key_string.encode()).hexdigest()
-    
+
     def get(
         self,
         cve_id: str,
@@ -69,7 +71,7 @@ class AnalysisCache:
         repo_commit: Optional[str] = None,
     ) -> Optional[VulnerabilityReachability]:
         """Get cached analysis result.
-        
+
         Returns
         -------
         Optional[VulnerabilityReachability]
@@ -79,30 +81,30 @@ class AnalysisCache:
             cve_id, component_name, component_version, repo_url, repo_commit
         )
         cache_file = self.cache_dir / f"{cache_key}.json"
-        
+
         if not cache_file.exists():
             return None
-        
+
         try:
             with open(cache_file) as f:
                 data = json.load(f)
-            
+
             # Check TTL
             cached_at = datetime.fromisoformat(data["cached_at"])
             age = datetime.now(timezone.utc) - cached_at.replace(tzinfo=timezone.utc)
-            
+
             if age > timedelta(hours=self.ttl_hours):
                 # Expired, delete and return None
                 cache_file.unlink()
                 return None
-            
+
             # Reconstruct result
             return VulnerabilityReachability(**data["result"])
         except Exception as e:
             logger.warning(f"Failed to load cache entry: {e}")
             cache_file.unlink(missing_ok=True)
             return None
-    
+
     def set(
         self,
         result: VulnerabilityReachability,
@@ -118,21 +120,21 @@ class AnalysisCache:
             repo_commit,
         )
         cache_file = self.cache_dir / f"{cache_key}.json"
-        
+
         try:
             data = {
                 "cached_at": datetime.now(timezone.utc).isoformat(),
                 "result": result.to_dict(),
             }
-            
+
             with open(cache_file, "w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             logger.warning(f"Failed to cache result: {e}")
-    
+
     def clear_expired(self) -> int:
         """Clear expired cache entries.
-        
+
         Returns
         -------
         int
@@ -140,12 +142,12 @@ class AnalysisCache:
         """
         cleared = 0
         cutoff = datetime.now(timezone.utc) - timedelta(hours=self.ttl_hours)
-        
+
         for cache_file in self.cache_dir.glob("*.json"):
             try:
                 with open(cache_file) as f:
                     data = json.load(f)
-                
+
                 cached_at = datetime.fromisoformat(data["cached_at"])
                 if cached_at.replace(tzinfo=timezone.utc) < cutoff:
                     cache_file.unlink()
@@ -154,9 +156,9 @@ class AnalysisCache:
                 # Invalid cache file, delete it
                 cache_file.unlink(missing_ok=True)
                 cleared += 1
-        
+
         return cleared
-    
+
     def clear_all(self) -> None:
         """Clear all cache entries."""
         for cache_file in self.cache_dir.glob("*.json"):

@@ -8,7 +8,6 @@ import json
 from typing import Dict, Optional
 
 import structlog
-
 from src.db.session import DatabaseManager
 from src.utils.crypto import rsa_verify
 
@@ -34,8 +33,8 @@ class EvidenceLake:
                 payload = row[0] if isinstance(row, (list, tuple)) else row
                 evidence_record: Dict[str, Any] = json.loads(payload)
 
-                stored_hash = (
-                    evidence_record.get("immutable_hash", "").replace("SHA256:", "")
+                stored_hash = evidence_record.get("immutable_hash", "").replace(
+                    "SHA256:", ""
                 )
                 working_copy = dict(evidence_record)
                 for field in [

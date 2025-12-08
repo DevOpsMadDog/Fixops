@@ -150,11 +150,11 @@ class PentagiClient:
             except httpx.HTTPStatusError as e:
                 if e.response.status_code < 500 or attempt == self.max_retries - 1:
                     raise
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(2**attempt)
             except Exception as e:
                 if attempt == self.max_retries - 1:
                     raise
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(2**attempt)
 
         raise Exception("Max retries exceeded")
 
@@ -227,9 +227,7 @@ class PentagiClient:
                 id=vuln.get("id", ""),
                 title=vuln.get("title", "Unknown Vulnerability"),
                 description=vuln.get("description", ""),
-                severity=PentagiSeverity(
-                    vuln.get("severity", "medium").lower()
-                ),
+                severity=PentagiSeverity(vuln.get("severity", "medium").lower()),
                 vulnerability_type=vuln.get("type", ""),
                 exploitability=vuln.get("exploitability", "unknown"),
                 cvss_score=vuln.get("cvss_score"),

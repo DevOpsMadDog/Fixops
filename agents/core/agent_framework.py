@@ -179,34 +179,34 @@ class BaseAgent(ABC):
                 self.status = AgentStatus.ERROR
                 logger.error(f"Failed to connect agent {self.config.agent_id}")
                 return
-            
+
             self.status = AgentStatus.MONITORING
-            
+
             # Main monitoring loop
-        while not self._stop_requested and self.status != AgentStatus.DISCONNECTED:
+            while not self._stop_requested and self.status != AgentStatus.DISCONNECTED:
                 try:
                     # Collect data
                     self.status = AgentStatus.COLLECTING
                     data = await self.collect_data()
                     self.last_collection = datetime.now(timezone.utc)
                     self.collection_count += len(data)
-                    
+
                     if data:
                         # Push data
                         success = await self.push_data(data)
                         if not success:
                             self.error_count += 1
-                    
-                if self._stop_requested:
-                    break
-                
-                self.status = AgentStatus.MONITORING
-                    
+
+                    if self._stop_requested:
+                        break
+
+                    self.status = AgentStatus.MONITORING
+
                     # Wait for next polling interval
-                await asyncio.sleep(self.config.polling_interval)
-                if self._stop_requested:
-                    break
-                
+                    await asyncio.sleep(self.config.polling_interval)
+                    if self._stop_requested:
+                        break
+
                 except Exception as e:
                     logger.error(f"Error in agent {self.config.agent_id} loop: {e}")
                     self.error_count += 1

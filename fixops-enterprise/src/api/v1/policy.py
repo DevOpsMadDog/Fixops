@@ -10,7 +10,6 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.models.waivers import KevWaiver
 
 router = APIRouter(prefix="/policy", tags=["policy-gates"])
@@ -124,14 +123,10 @@ def _extract_kev_cves(
         if not isinstance(finding, dict):
             continue
         cve = (
-            finding.get("cve_id")
-            or finding.get("cve")
-            or finding.get("kev_reference")
+            finding.get("cve_id") or finding.get("cve") or finding.get("kev_reference")
         )
         is_kev = bool(
-            finding.get("kev")
-            or finding.get("is_kev")
-            or finding.get("kev_reference")
+            finding.get("kev") or finding.get("is_kev") or finding.get("kev_reference")
         )
         if cve and is_kev:
             kev_ids.add(str(cve).strip().upper())
@@ -181,7 +176,9 @@ async def evaluate_gate(request: GateRequest, db: AsyncSession) -> GateResponse:
     )
     if service_name:
         stmt = stmt.where(
-            or_(KevWaiver.service_name == None, KevWaiver.service_name == service_name)  # noqa: E711
+            or_(
+                KevWaiver.service_name == None, KevWaiver.service_name == service_name
+            )  # noqa: E711
         )
 
     result = await db.execute(stmt)

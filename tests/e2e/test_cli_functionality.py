@@ -27,12 +27,12 @@ def api_server_running():
 
 class TestCLIFunctionality:
     """Test CLI functionality end-to-end."""
-    
+
     def test_cli_scan_command(self, api_server_running):
         """Test CLI scan command."""
         if not api_server_running:
             pytest.skip("API server not running")
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create test Python file
             test_file = Path(tmpdir) / "test.py"
@@ -43,7 +43,7 @@ def vulnerable_function(user_input):
     return execute(query)
 """
             )
-            
+
             # Run CLI scan
             result = subprocess.run(
                 [
@@ -62,15 +62,15 @@ def vulnerable_function(user_input):
                 timeout=60,
                 env={**os.environ, "FIXOPS_API_TOKEN": API_KEY},
             )
-            
+
             # Should execute successfully
             assert result.returncode in [0, 1]  # 0 = success, 1 = error (acceptable)
-    
+
     def test_cli_auth_login(self, api_server_running):
         """Test CLI auth login."""
         if not api_server_running:
             pytest.skip("API server not running")
-        
+
         result = subprocess.run(
             [
                 "python",
@@ -85,15 +85,15 @@ def vulnerable_function(user_input):
             text=True,
             timeout=10,
         )
-        
+
         # Should execute without crashing
         assert result.returncode in [0, 1]
-    
+
     def test_cli_config(self, api_server_running):
         """Test CLI config commands."""
         if not api_server_running:
             pytest.skip("API server not running")
-        
+
         # Test config show
         result = subprocess.run(
             ["python", "-m", "cli.main", "config", "show"],
@@ -101,9 +101,9 @@ def vulnerable_function(user_input):
             text=True,
             timeout=10,
         )
-        
+
         assert result.returncode == 0
-        
+
         # Test config set-api-url
         result = subprocess.run(
             [
@@ -120,21 +120,21 @@ def vulnerable_function(user_input):
             timeout=10,
             input="y\n",  # Confirm
         )
-        
+
         assert result.returncode in [0, 1]
 
 
 class TestCLIWithRealAPI:
     """Test CLI with real API server."""
-    
+
     def test_scan_real_codebase(self, api_server_running):
         """Test scanning a real codebase."""
         if not api_server_running:
             pytest.skip("API server not running")
-        
+
         # Use workspace root as test codebase
         workspace_root = Path(__file__).parent.parent.parent
-        
+
         result = subprocess.run(
             [
                 "python",
@@ -156,18 +156,18 @@ class TestCLIWithRealAPI:
             timeout=120,
             env={**os.environ, "FIXOPS_API_TOKEN": API_KEY},
         )
-        
+
         # Should execute (may have findings or not)
         assert result.returncode in [0, 1]
-    
+
     def test_monitor_command(self, api_server_running):
         """Test monitor command."""
         if not api_server_running:
             pytest.skip("API server not running")
-        
+
         # Run monitor for a short time
         import signal
-        
+
         process = subprocess.Popen(
             [
                 "python",
@@ -181,14 +181,14 @@ class TestCLIWithRealAPI:
             stderr=subprocess.PIPE,
             env={**os.environ, "FIXOPS_API_TOKEN": API_KEY},
         )
-        
+
         # Wait a bit then kill
         import time
-        
+
         time.sleep(2)
         process.terminate()
         process.wait(timeout=5)
-        
+
         # Should have started without crashing
         assert process.returncode in [0, -15]  # 0 = success, -15 = terminated
 
