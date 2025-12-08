@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from agents.core.agent_framework import (
     BaseAgent,
@@ -46,42 +46,7 @@ class PythonAgent(CodeRepoAgent):
             findings = analyzer.analyze_codebase(self.repo_path)
             
             # Convert to SARIF format
-            sarif = {
-                "version": "2.1.0",
-                "runs": [
-                    {
-                        "tool": {
-                            "driver": {
-                                "name": "FixOps Python Analyzer",
-                                "version": "1.0.0",
-                            }
-                        },
-                        "results": [
-                            {
-                                "ruleId": f.get("rule_id", ""),
-                                "level": f.get("severity", "warning"),
-                                "message": {"text": f.get("message", "")},
-                                "locations": [
-                                    {
-                                        "physicalLocation": {
-                                            "artifactLocation": {
-                                                "uri": f.get("file", "")
-                                            },
-                                            "region": {
-                                                "startLine": f.get("line", 0),
-                                                "startColumn": f.get("column", 0),
-                                            },
-                                        }
-                                    }
-                                ],
-                            }
-                            for f in findings
-                        ],
-                    }
-                ],
-            }
-            
-            return sarif
+            return self._findings_to_sarif("FixOps Python Analyzer", findings)
         
         except Exception as e:
             logger.error(f"Error collecting Python SARIF: {e}")
@@ -127,36 +92,71 @@ class PythonAgent(CodeRepoAgent):
     
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        # Implementation to convert Semgrep JSON to SARIF
-        return {
-            "version": "2.1.0",
-            "runs": [
-                {
-                    "tool": {
-                        "driver": {
-                            "name": "Semgrep",
-                            "version": "1.0.0",
-                        }
-                    },
-                    "results": [],  # Converted results
-                }
-            ],
-        }
+        findings: List[Dict[str, Any]] = []
+        for result in semgrep_data.get("results", []):
+            start = result.get("start", {})
+            extra = result.get("extra", {})
+            findings.append({
+                "rule_id": result.get("check_id", ""),
+                "severity": extra.get("severity", "warning"),
+                "file": result.get("path", ""),
+                "line": start.get("line", 0),
+                "column": start.get("col", 0),
+                "message": extra.get("message") or result.get("message", ""),
+            })
+        return self._findings_to_sarif("Semgrep", findings)
     
     def _bandit_to_sarif(self, bandit_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Bandit output to SARIF."""
-        # Implementation to convert Bandit JSON to SARIF
+        findings: List[Dict[str, Any]] = []
+        for result in bandit_data.get("results", []):
+            findings.append({
+                "rule_id": result.get("test_id", ""),
+                "severity": result.get("issue_severity", "warning"),
+                "file": result.get("filename", ""),
+                "line": result.get("line_number", 0),
+                "column": result.get("col_offset", 0),
+                "message": result.get("issue_text", ""),
+            })
+        return self._findings_to_sarif("Bandit", findings)
+
+    def _findings_to_sarif(
+        self,
+        tool_name: str,
+        findings: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Normalize FixOps findings into SARIF 2.1."""
         return {
             "version": "2.1.0",
             "runs": [
                 {
                     "tool": {
                         "driver": {
-                            "name": "Bandit",
+                            "name": tool_name,
                             "version": "1.0.0",
                         }
                     },
-                    "results": [],  # Converted results
+                    "results": [
+                        {
+                            "ruleId": finding.get("rule_id", ""),
+                            "level": finding.get("severity", "warning"),
+                            "message": {"text": finding.get("message", "")},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {
+                                            "uri": finding.get("file", "")
+                                        },
+                                        "region": {
+                                            "startLine": finding.get("line", 0),
+                                            "startColumn": finding.get("column", 0),
+                                        },
+                                    }
+                                }
+                            ],
+                        }
+                        for finding in findings
+                    ],
                 }
             ],
         }

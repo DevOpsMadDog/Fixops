@@ -429,7 +429,7 @@
 | **With Ecosystem** | 90% | 24 months |
 | **With Complete Execution** | **95%** | **12-18 months** |
 
-**See `/workspace/analysis/PATH_TO_95_PERCENT_WIN.md` for detailed 95% winning strategy.**
+**See `analysis/PATH_TO_95_PERCENT_WIN.md` for the detailed 95% winning strategy.**
 
 ---
 

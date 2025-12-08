@@ -52,19 +52,48 @@ class AgentOrchestrator:
         self, design_data: Dict[str, Any], runtime_data: Dict[str, Any], rule: Dict[str, Any]
     ) -> bool:
         """Check if data matches correlation rule."""
-        # Simple matching logic (can be enhanced)
         design_fields = rule.get("design_fields", [])
         runtime_fields = rule.get("runtime_fields", [])
+        field_pairs = rule.get("field_pairs", [])
         
-        for df in design_fields:
-            if df not in design_data:
+        if field_pairs:
+            for pair in field_pairs:
+                design_value = self._get_field_value(design_data, pair.get("design"))
+                runtime_value = self._get_field_value(runtime_data, pair.get("runtime"))
+                if design_value is None or runtime_value is None:
+                    return False
+                if design_value != runtime_value:
+                    return False
+            return True
+        
+        # Default behavior: compare same-named fields across data sets
+        comparable_fields = set(design_fields).intersection(runtime_fields) or set(design_fields)
+        for field in comparable_fields:
+            design_value = self._get_field_value(design_data, field)
+            runtime_value = self._get_field_value(runtime_data, field)
+            if design_value is None or runtime_value is None:
+                return False
+            if design_value != runtime_value:
                 return False
         
+        # Ensure required runtime-only fields exist even if not compared
         for rf in runtime_fields:
-            if rf not in runtime_data:
+            if self._get_field_value(runtime_data, rf) is None:
                 return False
         
-        return True
+        return bool(comparable_fields or runtime_fields)
+
+    def _get_field_value(self, payload: Dict[str, Any], field_path: Optional[str]) -> Any:
+        """Safely fetch nested field values using dotted notation."""
+        if not field_path:
+            return None
+        value: Any = payload
+        for part in field_path.split("."):
+            if isinstance(value, dict) and part in value:
+                value = value[part]
+            else:
+                return None
+        return value
     
     def get_agents_by_type(self, agent_type: AgentType) -> List[BaseAgent]:
         """Get all agents of a specific type."""
