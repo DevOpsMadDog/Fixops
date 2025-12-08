@@ -1,0 +1,171 @@
+# OSS Tools Configuration
+# Configure OSS tools for fallback analysis
+
+oss_tools:
+  # CodeQL (GitHub)
+  codeql:
+    enabled: true
+    path: /usr/local/bin/codeql
+    database_path: /tmp/codeql-databases
+    timeout: 600
+    languages:
+      - java
+      - javascript
+      - python
+      - cpp
+  
+  # Semgrep
+  semgrep:
+    enabled: true
+    path: /usr/local/bin/semgrep
+    config_path: /etc/semgrep/rules
+    timeout: 300
+    languages:
+      - python
+      - javascript
+      - typescript
+      - java
+      - go
+      - rust
+      - ruby
+      - php
+      - cpp
+  
+  # Bandit (Python)
+  bandit:
+    enabled: true
+    path: /usr/local/bin/bandit
+    timeout: 180
+    languages:
+      - python
+  
+  # ESLint (JavaScript)
+  eslint:
+    enabled: true
+    path: /usr/local/bin/eslint
+    timeout: 180
+    languages:
+      - javascript
+      - typescript
+  
+  # Checkov (IaC)
+  checkov:
+    enabled: true
+    path: /usr/local/bin/checkov
+    timeout: 300
+    iac_formats:
+      - terraform
+      - cloudformation
+      - kubernetes
+      - dockerfile
+  
+  # Terrascan (IaC)
+  terrascan:
+    enabled: true
+    path: /usr/local/bin/terrascan
+    timeout: 300
+    iac_formats:
+      - terraform
+      - cloudformation
+  
+  # Kube-score (Kubernetes)
+  kube-score:
+    enabled: true
+    path: /usr/local/bin/kube-score
+    timeout: 180
+    iac_formats:
+      - kubernetes
+  
+  # Hadolint (Dockerfile)
+  hadolint:
+    enabled: true
+    path: /usr/local/bin/hadolint
+    timeout: 180
+    iac_formats:
+      - dockerfile
+  
+  # Trivy (Container scanning)
+  trivy:
+    enabled: true
+    path: /usr/local/bin/trivy
+    timeout: 600
+    formats:
+      - container
+      - filesystem
+  
+  # Clair (Container scanning)
+  clair:
+    enabled: true
+    path: /usr/local/bin/clair
+    timeout: 600
+    formats:
+      - container
+  
+  # Grype (Container scanning)
+  grype:
+    enabled: true
+    path: /usr/local/bin/grype
+    timeout: 600
+    formats:
+      - container
+  
+  # Prowler (Cloud security)
+  prowler:
+    enabled: true
+    path: /usr/local/bin/prowler
+    timeout: 1800
+    cloud_providers:
+      - aws
+      - azure
+      - gcp
+  
+  # Scout Suite (Cloud security)
+  scout-suite:
+    enabled: true
+    path: /usr/local/bin/scout
+    timeout: 1800
+    cloud_providers:
+      - aws
+      - azure
+      - gcp
+  
+  # OWASP ZAP (API security)
+  owasp-zap:
+    enabled: true
+    path: /usr/local/bin/zap-cli
+    timeout: 600
+    formats:
+      - api
+  
+  # MobSF (Mobile security)
+  mobsf:
+    enabled: true
+    path: /usr/local/bin/mobsf
+    timeout: 600
+    platforms:
+      - ios
+      - android
+  
+  # SQLMap (Database security)
+  sqlmap:
+    enabled: true
+    path: /usr/local/bin/sqlmap
+    timeout: 300
+    formats:
+      - database
+  
+  # Nmap (Network security)
+  nmap:
+    enabled: true
+    path: /usr/local/bin/nmap
+    timeout: 300
+    formats:
+      - network
+  
+  # OpenSCAP (Compliance)
+  openscap:
+    enabled: true
+    path: /usr/local/bin/oscap
+    timeout: 600
+    formats:
+      - compliance

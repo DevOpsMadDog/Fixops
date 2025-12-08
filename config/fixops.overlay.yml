@@ -1,4 +1,170 @@
 mode: enterprise
+
+# Analysis engines configuration with OSS fallback
+analysis_engines:
+  # Strategy: proprietary_first, oss_first, proprietary_only, oss_only
+  strategy: proprietary_first
+  
+  # Result combination: merge, replace, best_of
+  result_combination: merge
+  
+  # Language support with OSS fallback
+  languages:
+    python:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, bandit]
+        priority: 1
+    javascript:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, eslint]
+        priority: 1
+    typescript:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, eslint]
+        priority: 1
+    java:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [codeql, semgrep]
+        priority: 1
+    cpp:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [codeql, semgrep, cppcheck]
+        priority: 1
+    rust:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, clippy]
+        priority: 1
+    go:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, gosec]
+        priority: 1
+    ruby:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, brakeman]
+        priority: 1
+    php:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, phpstan]
+        priority: 1
+    dotnet:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [semgrep, sonarqube]
+        priority: 1
+  
+  # IaC analysis with OSS fallback
+  iac:
+    terraform:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [checkov, terrascan, tflint]
+        priority: 1
+    cloudformation:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [checkov, cfn-lint]
+        priority: 1
+    kubernetes:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [kube-score, polaris, kubeaudit]
+        priority: 1
+    dockerfile:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [hadolint, docker-bench]
+        priority: 1
+  
+  # Container security with OSS fallback
+  container:
+    image_scanning:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [trivy, clair, grype]
+        priority: 1
+    runtime_security:
+      proprietary: enabled
+      oss_fallback:
+        enabled: false  # No OSS fallback for runtime
+  
+  # Cloud security with OSS fallback
+  cloud:
+    cspm:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools:
+          aws: [prowler, scout-suite, cloudsploit]
+          azure: [prowler, azsk]
+          gcp: [prowler, forseti]
+        priority: 1
+    runtime_security:
+      proprietary: enabled
+      oss_fallback:
+        enabled: false  # No OSS fallback for runtime
+  
+  # API security with OSS fallback
+  api:
+    security_testing:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [owasp-zap, burp-suite]
+        priority: 1
+  
+  # Remediation with OSS fallback
+  remediation:
+    code_fixes:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [github-copilot, codex]
+        priority: 1
+    dependency_updates:
+      proprietary: enabled
+      oss_fallback:
+        enabled: true
+        tools: [dependabot, renovate]
+        priority: 1
+
+# OSS tools configuration (see config/oss_tools.yml for details)
+oss_tools_config_path: config/oss_tools.yml
+
+# Fallback behavior
+fallback:
+  triggers:
+    - proprietary_failed
+    - proprietary_timeout
+    - proprietary_error
+    - overlay_override
+  result_priority:
+    proprietary: 1
+    oss: 2
+
 jira:
   url: https://jira.example.com
   project_key: SEC
