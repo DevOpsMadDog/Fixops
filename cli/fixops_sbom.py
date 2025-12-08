@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Iterable
 
@@ -72,20 +73,49 @@ def build_parser() -> argparse.ArgumentParser:
 def _handle_normalize(
     inputs: Iterable[str], output: str, strict_schema: bool = False
 ) -> int:
-    normalized = write_normalized_sbom(inputs, output, strict_schema=strict_schema)
-    print(f"Normalized {len(normalized.get('components', []))} components to {output}")
-    if strict_schema:
-        print("Strict schema validation: PASSED")
-    return 0
+    """Normalize SBOM files into a single canonical document."""
+    try:
+        normalized = write_normalized_sbom(inputs, output, strict_schema=strict_schema)
+        component_count = len(normalized.get('components', []))
+        print(f"Normalized {component_count} components to {output}")
+        if strict_schema:
+            print("Strict schema validation: PASSED")
+        validation_errors = normalized.get('metadata', {}).get('validation_errors', [])
+        if validation_errors:
+            print(f"Warning: {len(validation_errors)} components have validation errors", file=sys.stderr)
+        return 0
+    except FileNotFoundError as e:
+        print(f"Error: Input file not found: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Unexpected error during normalization: {e}", file=sys.stderr)
+        return 1
 
 
 def _handle_quality(normalized_path: str, html_path: str, json_path: str) -> int:
-    path = Path(normalized_path)
-    with path.open("r", encoding="utf-8") as handle:
-        normalized = json.load(handle)
-    build_and_write_quality_outputs(normalized, json_path, html_path)
-    print(f"Wrote quality report to {json_path} and HTML to {html_path}")
-    return 0
+    """Generate SBOM quality metrics and HTML report."""
+    try:
+        path = Path(normalized_path)
+        if not path.exists():
+            print(f"Error: Normalized SBOM file not found: {normalized_path}", file=sys.stderr)
+            return 1
+        with path.open("r", encoding="utf-8") as handle:
+            normalized = json.load(handle)
+        build_and_write_quality_outputs(normalized, json_path, html_path)
+        print(f"Wrote quality report to {json_path} and HTML to {html_path}")
+        return 0
+    except FileNotFoundError:
+        print(f"Error: File not found: {normalized_path}", file=sys.stderr)
+        return 1
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in {normalized_path}: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Unexpected error during quality report generation: {e}", file=sys.stderr)
+        return 1
 
 
 def main(argv: Iterable[str] | None = None) -> int:

@@ -54,10 +54,18 @@ class NormalizedComponent:
 
 
 def _load_document(path: Path) -> Mapping[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
+    """Load and parse an SBOM document from the given path."""
+    if not path.exists():
+        raise FileNotFoundError(f"SBOM file not found: {path}")
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in SBOM file {path}: {e}") from e
+    except OSError as e:
+        raise IOError(f"Error reading SBOM file {path}: {e}") from e
     if not isinstance(data, Mapping):
-        raise ValueError(f"Unsupported SBOM structure in {path}")
+        raise ValueError(f"Unsupported SBOM structure in {path}: expected JSON object")
     return data
 
 
@@ -259,6 +267,23 @@ def _identity_for(
 
 
 def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
+    """
+    Normalize multiple SBOM files into a single canonical document.
+    
+    Args:
+        paths: Iterable of file paths (strings or Path objects) to SBOM files
+        
+    Returns:
+        Dictionary containing:
+        - metadata: Generation info, component counts, validation errors
+        - components: List of normalized component dictionaries
+        - sources: List of source file information
+        
+    Raises:
+        FileNotFoundError: If any input file doesn't exist
+        ValueError: If any file contains invalid JSON or unsupported structure
+        IOError: If there's an error reading any file
+    """
     aggregated: Dict[Tuple[str, str, str], NormalizedComponent] = {}
     generator_components: Dict[str, set[Tuple[str, str, str]]] = defaultdict(set)
     total_components = 0
@@ -367,6 +392,23 @@ def normalize_sboms(paths: Iterable[str | Path]) -> Dict[str, Any]:
 def write_normalized_sbom(
     paths: Iterable[str | Path], destination: str | Path, strict_schema: bool = False
 ) -> Dict[str, Any]:
+    """
+    Normalize SBOM files and write the result to a JSON file.
+    
+    Args:
+        paths: Iterable of file paths to SBOM files
+        destination: Path where the normalized SBOM JSON will be written
+        strict_schema: If True, raise ValueError if any components have missing required fields
+        
+    Returns:
+        Dictionary containing the normalized SBOM data
+        
+    Raises:
+        FileNotFoundError: If any input file doesn't exist
+        ValueError: If strict_schema is True and validation errors are found,
+                   or if any file contains invalid JSON
+        IOError: If there's an error reading or writing files
+    """
     normalized = normalize_sboms(paths)
     if strict_schema:
         validation_errors = normalized.get("metadata", {}).get("validation_errors", [])
@@ -398,6 +440,27 @@ def _safe_percentage(numerator: int, denominator: int) -> float:
 
 
 def build_quality_report(normalized: Mapping[str, Any]) -> Dict[str, Any]:
+    """
+    Build a quality report from a normalized SBOM.
+    
+    Calculates metrics including:
+    - Component coverage (unique vs total)
+    - License coverage percentage
+    - Resolvability (components with purl or hashes)
+    - Generator variance (agreement between different SBOM generators)
+    
+    Args:
+        normalized: Normalized SBOM dictionary (from normalize_sboms or write_normalized_sbom)
+        
+    Returns:
+        Dictionary containing:
+        - generated_at: ISO timestamp
+        - unique_components: Count of unique components
+        - total_components: Total component observations
+        - metrics: Dictionary of quality metrics
+        - policy_status: "pass" or "warn" based on coverage thresholds
+        - warnings: List of warning messages
+    """
     metadata = normalized.get("metadata", {})
     total_components = metadata.get("total_components")
     unique_components = metadata.get("unique_components")
@@ -540,6 +603,20 @@ def build_and_write_quality_outputs(
     json_destination: str | Path,
     html_destination: str | Path,
 ) -> Dict[str, Any]:
+    """
+    Build quality report and write both JSON and HTML outputs.
+    
+    Args:
+        normalized: Normalized SBOM dictionary
+        json_destination: Path for JSON quality report
+        html_destination: Path for HTML quality report
+        
+    Returns:
+        Dictionary containing the quality report data
+        
+    Raises:
+        IOError: If there's an error writing the output files
+    """
     report = write_quality_report(normalized, json_destination)
     render_html_report(report, html_destination)
     return report
