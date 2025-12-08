@@ -1,7 +1,45 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CytoscapeComponent from 'react-cytoscapejs'
-import { X, Filter, AlertCircle, Shield, Globe, Database, List, CheckCircle, FileKey, Scale, Users, GitBranch, TrendingUp, Target } from 'lucide-react'
+import { X, Filter, AlertCircle, Shield, Globe, Database, List, CheckCircle, FileKey, Scale, Users, Target } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
+
+const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
+
+const SEVERITY_ORDER = { low: 0, medium: 1, high: 2, critical: 3 }
+
+const BASE_LAYOUT = {
+  name: 'cose',
+  animationDuration: 500,
+  nodeRepulsion: 8000,
+  idealEdgeLength: 100,
+  edgeElasticity: 100,
+  nestingFactor: 1.2,
+  gravity: 1,
+  numIter: 1000,
+  initialTemp: 200,
+  coolingFactor: 0.95,
+  minTemp: 1.0,
+}
+
+const GraphCanvasFallback = () => (
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '12px',
+      background: '#0F172A',
+      color: '#94A3B8',
+      fontFamily: 'Inter, sans-serif',
+    }}
+  >
+    <LoadingSpinner size="lg" />
+    <span>Loading graph workspace…</span>
+  </div>
+)
 
 const RiskGraph = () => {
   const navigate = useNavigate()
@@ -93,99 +131,112 @@ const RiskGraph = () => {
     return 35
   }
 
-  const filterNodes = (nodes) => {
-    return nodes.filter(node => {
+  const filteredNodes = useMemo(() => {
+    const nodes = graphData?.nodes || []
+    return nodes.filter((node) => {
       if (filters.kevOnly && !node.kev) return false
       if (filters.internetFacingOnly && !node.internet_facing) return false
       if (node.epss < filters.minEpss) return false
-      
+
       if (node.type === 'finding' && !filters.showFindings) return false
       if (node.type === 'cve' && !filters.showCves) return false
-      
+
       if (node.severity) {
-        const severityOrder = { low: 0, medium: 1, high: 2, critical: 3 }
-        const minLevel = severityOrder[filters.minSeverity] || 0
-        const nodeLevel = severityOrder[node.severity] || 0
+        const minLevel = SEVERITY_ORDER[filters.minSeverity] ?? 0
+        const nodeLevel = SEVERITY_ORDER[node.severity] ?? 0
         if (nodeLevel < minLevel) return false
       }
-      
+
       return true
     })
-  }
+  }, [graphData?.nodes, filters])
 
-  const filteredNodes = filterNodes(graphData.nodes || [])
-  const filteredNodeIds = new Set(filteredNodes.map(n => n.id))
-  const filteredEdges = (graphData.edges || []).filter(
-    edge => filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
-  )
+  const filteredEdges = useMemo(() => {
+    const edges = graphData?.edges || []
+    if (!edges.length || !filteredNodes.length) {
+      return []
+    }
 
-  const elements = [
-    ...filteredNodes.map(node => ({
+    const filteredIds = new Set(filteredNodes.map((node) => node.id))
+    return edges.filter(
+      (edge) => filteredIds.has(edge.source) && filteredIds.has(edge.target)
+    )
+  }, [graphData?.edges, filteredNodes])
+
+  const elements = useMemo(() => {
+    const nodeElements = filteredNodes.map((node) => ({
       data: {
         id: node.id,
         label: node.label,
-        ...node
+        ...node,
       },
       style: {
         'background-color': getNodeColor(node),
-        'width': getNodeSize(node),
-        'height': getNodeSize(node),
-        'label': node.label,
-        'color': '#FFFFFF',
+        width: getNodeSize(node),
+        height: getNodeSize(node),
+        label: node.label,
+        color: '#FFFFFF',
         'text-valign': 'center',
         'text-halign': 'center',
         'font-size': '10px',
         'border-width': node.kev ? 3 : 1,
         'border-color': node.kev ? '#FCD34D' : '#FFFFFF',
-        'border-opacity': node.kev ? 1 : 0.3
-      }
-    })),
-    ...filteredEdges.map(edge => ({
+        'border-opacity': node.kev ? 1 : 0.3,
+      },
+    }))
+
+    const edgeElements = filteredEdges.map((edge) => ({
       data: {
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: edge.type
+        type: edge.type,
       },
       style: {
-        'width': 2,
+        width: 2,
         'line-color': '#374151',
         'target-arrow-color': '#374151',
         'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
-        'opacity': 0.6
-      }
+        opacity: 0.6,
+      },
     }))
-  ]
 
-  const layout = {
-    name: 'cose',
-    animate: true,
-    animationDuration: 500,
-    nodeRepulsion: 8000,
-    idealEdgeLength: 100,
-    edgeElasticity: 100,
-    nestingFactor: 1.2,
-    gravity: 1,
-    numIter: 1000,
-    initialTemp: 200,
-    coolingFactor: 0.95,
-    minTemp: 1.0
-  }
+    return [...nodeElements, ...edgeElements]
+  }, [filteredNodes, filteredEdges])
 
-  const handleNodeClick = (event) => {
-    const node = event.target.data()
-    setSelectedNode(node)
-  }
+  const layout = useMemo(
+    () => ({
+      ...BASE_LAYOUT,
+      animate: filteredNodes.length <= 150,
+    }),
+    [filteredNodes.length]
+  )
+
+  const handleNodeClick = useCallback((event) => {
+    setSelectedNode(event.target.data())
+  }, [])
+
+  const registerCyInstance = useCallback(
+    (cy) => {
+      if (!cy) {
+        return
+      }
+      cyRef.current = cy
+      cy.off('tap', 'node', handleNodeClick)
+      cy.on('tap', 'node', handleNodeClick)
+    },
+    [handleNodeClick]
+  )
 
   useEffect(() => {
-    if (cyRef.current) {
-      cyRef.current.on('tap', 'node', handleNodeClick)
-      return () => {
-        cyRef.current.removeAllListeners()
+    return () => {
+      if (cyRef.current) {
+        cyRef.current.off('tap', 'node', handleNodeClick)
+        cyRef.current = null
       }
     }
-  }, [cyRef.current])
+  }, [handleNodeClick])
 
   if (loading) {
     return (
@@ -361,37 +412,39 @@ const RiskGraph = () => {
           </div>
         </div>
 
-        <CytoscapeComponent
-          elements={elements}
-          layout={layout}
-          style={{ width: '100%', height: '100%' }}
-          cy={(cy) => { cyRef.current = cy }}
-          stylesheet={[
-            {
-              selector: 'node',
-              style: {
-                'label': 'data(label)',
-                'text-valign': 'center',
-                'text-halign': 'center',
-                'font-size': '10px',
-                'color': '#FFFFFF',
-                'text-outline-width': 2,
-                'text-outline-color': '#0F172A'
-              }
-            },
-            {
-              selector: 'edge',
-              style: {
-                'width': 2,
-                'line-color': '#374151',
-                'target-arrow-color': '#374151',
-                'target-arrow-shape': 'triangle',
-                'curve-style': 'bezier',
-                'opacity': 0.6
-              }
-            }
-          ]}
-        />
+        <Suspense fallback={<GraphCanvasFallback />}>
+          <CytoscapeComponent
+            elements={elements}
+            layout={layout}
+            style={{ width: '100%', height: '100%' }}
+            cy={registerCyInstance}
+            stylesheet={[
+              {
+                selector: 'node',
+                style: {
+                  label: 'data(label)',
+                  'text-valign': 'center',
+                  'text-halign': 'center',
+                  'font-size': '10px',
+                  color: '#FFFFFF',
+                  'text-outline-width': 2,
+                  'text-outline-color': '#0F172A',
+                },
+              },
+              {
+                selector: 'edge',
+                style: {
+                  width: 2,
+                  'line-color': '#374151',
+                  'target-arrow-color': '#374151',
+                  'target-arrow-shape': 'triangle',
+                  'curve-style': 'bezier',
+                  opacity: 0.6,
+                },
+              },
+            ]}
+          />
+        </Suspense>
       </div>
 
       {selectedNode && (

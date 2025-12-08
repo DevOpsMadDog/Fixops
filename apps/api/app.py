@@ -40,6 +40,13 @@ from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
+
+# Enterprise reachability analysis
+try:
+    from risk.reachability.api import router as reachability_router
+except ImportError:
+    reachability_router = None
+    logger.warning("Reachability analysis API not available")
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -158,6 +165,7 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 
 
 def create_app() -> FastAPI:
+    """Create and configure FastAPI application."""
     """Create the FastAPI application with file-upload ingestion endpoints."""
 
     try:
@@ -179,6 +187,9 @@ def create_app() -> FastAPI:
 
     configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
 
+    # Import health router
+    from apps.api.health_router import router as health_router
+    
     app = FastAPI(
         title=f"{branding['product_name']} Ingestion Demo API",
         description=f"Security decision engine by {branding['org_name']}",
@@ -373,6 +384,9 @@ def create_app() -> FastAPI:
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
+    # Enterprise reachability analysis API
+    if reachability_router:
+        app.include_router(reachability_router, dependencies=[Depends(_verify_api_key)])
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
 

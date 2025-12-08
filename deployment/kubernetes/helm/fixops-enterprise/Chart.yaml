@@ -1,0 +1,22 @@
+apiVersion: v2
+name: fixops-enterprise
+description: FixOps Enterprise - Gartner Magic Quadrant #1 Ready Platform
+type: application
+version: 1.0.0
+appVersion: "enterprise-latest"
+keywords:
+  - security
+  - vulnerability-management
+  - application-security
+  - sast
+  - sca
+  - reachability-analysis
+home: https://fixops.com
+sources:
+  - https://github.com/fixops/fixops
+maintainers:
+  - name: FixOps Team
+    email: enterprise@fixops.com
+annotations:
+  category: Security
+  licenses: Proprietary

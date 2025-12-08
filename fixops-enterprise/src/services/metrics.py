@@ -8,6 +8,7 @@ from typing import MutableMapping
 class FixOpsMetrics:
     _rate_limit_triggers: int = 0
     _hot_path_latency: MutableMapping[str, float] = {}
+    _key_rotation_events: list[tuple[str, float, bool]] = []
 
     @classmethod
     def request_started(cls, endpoint: str) -> None:  # pragma: no cover - noop
@@ -30,3 +31,9 @@ class FixOpsMetrics:
     @classmethod
     def get_rate_limit_triggers(cls) -> int:
         return cls._rate_limit_triggers
+
+    @classmethod
+    def record_key_rotation(cls, provider: str, age_days: float, healthy: bool) -> None:
+        """Track key rotation health checks for observability."""
+
+        cls._key_rotation_events.append((provider, age_days, healthy))
