@@ -46,11 +46,13 @@ def ingest_pentest_findings(
     metadata["integration_type"] = "penetration_test"
 
     # Use enhanced decision engine to analyze findings
-    analysis_result = service.analyse_payload({
-        "findings": findings,
-        "context": context,
-        "metadata": metadata,
-    })
+    analysis_result = service.analyse_payload(
+        {
+            "findings": findings,
+            "context": context,
+            "metadata": metadata,
+        }
+    )
 
     return {
         "status": "success",
@@ -97,11 +99,13 @@ def ingest_pentest_report(
     }
 
     # Analyze findings through enhanced decision engine
-    analysis_result = service.analyse_payload({
-        "findings": findings,
-        "context": context,
-        "metadata": metadata,
-    })
+    analysis_result = service.analyse_payload(
+        {
+            "findings": findings,
+            "context": context,
+            "metadata": metadata,
+        }
+    )
 
     # Calculate aggregate metrics
     severity_counts = {}

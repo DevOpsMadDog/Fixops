@@ -152,9 +152,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
             logger.error(f"Developer decision failed: {e}")
             return self._fallback_decision(AIRole.DEVELOPER, vulnerability)
 
-    async def get_lead_decision(
-        self, context: Dict, vulnerability: Dict
-    ) -> AIDecision:
+    async def get_lead_decision(self, context: Dict, vulnerability: Dict) -> AIDecision:
         """Get decision from GPT as Team Lead."""
         prompt = f"""You are a Security Team Lead reviewing a vulnerability for testing.
 
@@ -492,9 +490,7 @@ class AdvancedPentagiClient:
             }
 
         # Execute the pentest based on execution plan
-        result = await self._execute_consensus_plan(
-            consensus, vulnerability, context
-        )
+        result = await self._execute_consensus_plan(consensus, vulnerability, context)
 
         return {
             "status": "completed",
@@ -599,7 +595,10 @@ class AdvancedPentagiClient:
 
         try:
             async with self.session.post(
-                url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds)
+                url,
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds),
             ) as response:
                 response.raise_for_status()
                 result = await response.json()
@@ -710,9 +709,7 @@ class AdvancedPentagiClient:
         completed_tests = sum(
             1 for r in all_requests if r.status == PenTestStatus.COMPLETED
         )
-        failed_tests = sum(
-            1 for r in all_requests if r.status == PenTestStatus.FAILED
-        )
+        failed_tests = sum(1 for r in all_requests if r.status == PenTestStatus.FAILED)
 
         confirmed_exploitable = sum(
             1

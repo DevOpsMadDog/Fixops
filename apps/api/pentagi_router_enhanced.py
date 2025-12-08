@@ -179,7 +179,9 @@ async def create_pen_test_request(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create pen test: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create pen test: {str(e)}"
+        )
 
 
 @router.get("/requests/{request_id}")
@@ -480,15 +482,21 @@ def get_finding_exploitability(finding_id: str):
         if service:
             exploitability = service.get_exploitability_for_finding(finding_id)
             if exploitability:
-                return {"finding_id": finding_id, "exploitability": exploitability.value}
-        
+                return {
+                    "finding_id": finding_id,
+                    "exploitability": exploitability.value,
+                }
+
         # Check database directly if service not available
         requests = db.list_requests(finding_id=finding_id, limit=1)
         if requests:
             result = db.get_result_by_request(requests[0].id)
             if result:
-                return {"finding_id": finding_id, "exploitability": result.exploitability.value}
-        
+                return {
+                    "finding_id": finding_id,
+                    "exploitability": result.exploitability.value,
+                }
+
         return {
             "finding_id": finding_id,
             "exploitability": "not_tested",

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from sqlalchemy import Column, DateTime, Integer, String
-
 from src.models.base_sqlite import Base
 
 

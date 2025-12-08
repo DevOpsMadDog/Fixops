@@ -180,7 +180,9 @@ class DecisionEngine:
         store = GoldenRegressionStore.get_instance()
         cve_ids: List[str] = []
         for finding in context.security_findings:
-            cve_value = finding.get("cve") or finding.get("cve_id") or finding.get("cveId")
+            cve_value = (
+                finding.get("cve") or finding.get("cve_id") or finding.get("cveId")
+            )
             if cve_value:
                 cve_ids.append(str(cve_value))
 
@@ -190,7 +192,9 @@ class DecisionEngine:
 
         coverage_map = {
             "service": lookup.get("service_matches", 0) > 0,
-            "cves": {cve: lookup.get("cve_matches", {}).get(cve, 0) > 0 for cve in cve_ids},
+            "cves": {
+                cve: lookup.get("cve_matches", {}).get(cve, 0) > 0 for cve in cve_ids
+            },
         }
 
         if total_matches == 0:

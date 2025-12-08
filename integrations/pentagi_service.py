@@ -184,9 +184,9 @@ class AdvancedPentagiService:
 
             exploitability = self._determine_exploitability(highest_finding)
             exploit_successful = highest_finding.exploit_successful or (
-                highest_finding.verified and highest_finding.severity in [
-                    PentagiSeverity.CRITICAL, PentagiSeverity.HIGH
-                ]
+                highest_finding.verified
+                and highest_finding.severity
+                in [PentagiSeverity.CRITICAL, PentagiSeverity.HIGH]
             )
 
             evidence = self._format_evidence(highest_finding, results.findings)
@@ -452,9 +452,7 @@ class AdvancedPentagiService:
                 requests.append(request)
 
                 # Start monitoring
-                asyncio.create_task(
-                    self._monitor_test(request.id, test_id)
-                )
+                asyncio.create_task(self._monitor_test(request.id, test_id))
 
             except Exception as e:
                 logger.error(f"Failed to create {scan_type.value} scan: {e}")
