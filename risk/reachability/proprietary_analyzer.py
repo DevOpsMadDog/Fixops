@@ -9,8 +9,8 @@ from __future__ import annotations
 import ast
 import logging
 import re
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
+from collections import deque
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
@@ -895,7 +895,8 @@ class ProprietaryReachabilityAnalyzer:
 
             if func_name and func_name in graph:
                 func_info = graph[func_name]
-                callers = func_info.get("callers", [])
+                # Note: callers available for future caller analysis
+                _ = func_info.get("callers", [])
 
                 # Check if function is reachable from entry points
                 is_reachable = self._is_reachable_from_entries(

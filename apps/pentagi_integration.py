@@ -1,39 +1,21 @@
 """PentAGI integration API for FixOps."""
 
-import asyncio
 import logging
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from core.auth_models import User
-from core.continuous_validation import (
-    ContinuousValidationEngine,
-    SecurityPosture,
-    ValidationJob,
-    ValidationStatus,
-    ValidationTrigger,
-)
-from core.exploit_generator import (
-    ExploitChain,
-    ExploitPayload,
-    IntelligentExploitGenerator,
-    PayloadComplexity,
-)
+from core.continuous_validation import ContinuousValidationEngine, ValidationTrigger
+from core.exploit_generator import IntelligentExploitGenerator, PayloadComplexity
 from core.llm_providers import LLMProviderManager
-from core.pentagi_advanced import (
-    AdvancedPentagiClient,
-    ConsensusDecision,
-    MultiAIOrchestrator,
-)
+from core.pentagi_advanced import AdvancedPentagiClient, MultiAIOrchestrator
 from core.pentagi_db import PentagiDB
 from core.pentagi_models import (
     ExploitabilityLevel,
     PenTestConfig,
     PenTestPriority,
     PenTestRequest,
-    PenTestResult,
     PenTestStatus,
 )
 

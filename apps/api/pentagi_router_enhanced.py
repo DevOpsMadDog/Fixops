@@ -1,6 +1,6 @@
 """Enhanced API router for advanced Pentagi pen testing integration."""
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field

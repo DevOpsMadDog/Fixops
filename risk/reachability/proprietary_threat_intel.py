@@ -11,8 +11,8 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Set
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Mapping, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -159,8 +159,8 @@ class ProprietaryThreatIntelligenceEngine:
     def _extract_cve_id(self, entry: Mapping[str, Any]) -> Optional[str]:
         """Proprietary CVE ID extraction."""
         # Try multiple fields
-        for field in ["cve_id", "cveId", "CVE", "cve", "id"]:
-            value = entry.get(field)
+        for field_name in ["cve_id", "cveId", "CVE", "cve", "id"]:
+            value = entry.get(field_name)
             if isinstance(value, str) and value.upper().startswith("CVE-"):
                 return value.upper()
 

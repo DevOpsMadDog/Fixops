@@ -124,7 +124,6 @@ class RiskModel(ABC):
         ModelPrediction
             Risk prediction with score, verdict, and explanation.
         """
-        pass
 
     @abstractmethod
     def is_available(self) -> bool:
@@ -135,7 +134,6 @@ class RiskModel(ABC):
         bool
             True if model can be used, False otherwise.
         """
-        pass
 
     def get_metadata(self) -> ModelMetadata:
         """Get model metadata."""

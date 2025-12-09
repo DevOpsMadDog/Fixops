@@ -6,11 +6,9 @@ without requiring all dependencies to be installed.
 """
 
 import ast
-import importlib.util
-import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict
 
 WORKSPACE_ROOT = Path(__file__).parent.parent
 
@@ -50,9 +48,13 @@ class CodeValidator:
         try:
             with open(path, "r") as f:
                 return len(
-                    [l for l in f if l.strip() and not l.strip().startswith("#")]
+                    [
+                        line
+                        for line in f
+                        if line.strip() and not line.strip().startswith("#")
+                    ]
                 )
-        except:
+        except Exception:
             return 0
 
     def analyze_code_quality(self, path: Path) -> Dict[str, any]:
@@ -95,7 +97,9 @@ class CodeValidator:
                 "has_type_hints": has_type_hints,
                 "has_docstrings": has_docstrings,
                 "lines": len(content.split("\n")),
-                "non_empty_lines": len([l for l in content.split("\n") if l.strip()]),
+                "non_empty_lines": len(
+                    [line for line in content.split("\n") if line.strip()]
+                ),
             }
         except Exception as e:
             return {"error": str(e)}
@@ -179,13 +183,13 @@ def main():
 
     quality_results = validator.validate_implementation_quality()
 
-    print(f"\nCode Metrics:")
+    print("\nCode Metrics:")
     print(f"  Total Lines: {quality_results['total_lines']:,}")
     print(f"  Total Classes: {quality_results['total_classes']}")
     print(f"  Total Functions: {quality_results['total_functions']}")
 
     # Show top modules by size
-    print(f"\nTop Modules by Size:")
+    print("\nTop Modules by Size:")
     sorted_modules = sorted(
         quality_results["modules"].items(),
         key=lambda x: x[1].get("lines", 0),
@@ -222,7 +226,7 @@ def main():
                         if any(kw in content for kw in keywords):
                             found = True
                             break
-                except:
+                except Exception:
                     pass
 
         if found:
@@ -254,13 +258,13 @@ def main():
     print(f"✅ Passed: {validator.passed}")
     print(f"❌ Failed: {validator.failed}")
 
-    print(f"\nCode Quality Metrics:")
+    print("\nCode Quality Metrics:")
     print(f"  Total Production Code: {quality_results['total_lines']:,} lines")
     print(f"  Classes: {quality_results['total_classes']}")
     print(f"  Functions: {quality_results['total_functions']}")
     print(f"  Test Files: {len(test_files)}")
 
-    print(f"\nFindings:")
+    print("\nFindings:")
     for finding in validator.findings[:20]:  # Show first 20
         print(f"  {finding}")
 

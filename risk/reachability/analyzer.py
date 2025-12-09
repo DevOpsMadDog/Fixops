@@ -7,12 +7,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from risk.reachability.call_graph import CallGraphBuilder
 from risk.reachability.code_analysis import (
     AnalysisResult,
-    AnalysisTool,
     CodeAnalyzer,
     VulnerablePattern,
 )
@@ -22,10 +21,7 @@ from risk.reachability.git_integration import (
     GitRepositoryAnalyzer,
     RepositoryMetadata,
 )
-from risk.reachability.proprietary_analyzer import (
-    ProprietaryPatternMatcher,
-    ProprietaryReachabilityAnalyzer,
-)
+from risk.reachability.proprietary_analyzer import ProprietaryReachabilityAnalyzer
 from risk.reachability.proprietary_consensus import ProprietaryConsensusEngine
 from risk.reachability.proprietary_scoring import ProprietaryScoringEngine
 from risk.reachability.proprietary_threat_intel import (

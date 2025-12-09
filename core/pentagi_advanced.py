@@ -3,14 +3,12 @@
 import asyncio
 import json
 import logging
-import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import aiohttp
-import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.llm_providers import LLMProviderManager
@@ -292,7 +290,6 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
         avg_confidence = (
             architect.confidence + developer.confidence + lead.confidence
         ) / 3
-        avg_priority = (architect.priority + developer.priority + lead.priority) / 3
 
         return ConsensusDecision(
             action="execute_pentest_with_caution",

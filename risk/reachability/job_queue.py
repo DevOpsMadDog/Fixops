@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
 import uuid
@@ -240,7 +239,7 @@ class JobQueue:
                 # Get job from queue (blocking with timeout)
                 try:
                     priority, job_id = self.priority_queue.get(timeout=1)
-                except:
+                except Exception:
                     continue
 
                 if job_id not in self.jobs:

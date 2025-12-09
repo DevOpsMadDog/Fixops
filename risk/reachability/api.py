@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from risk.reachability.analyzer import ReachabilityAnalyzer, VulnerabilityReachability
+from risk.reachability.analyzer import ReachabilityAnalyzer
 from risk.reachability.git_integration import GitRepository
 from risk.reachability.job_queue import JobQueue, ReachabilityJob
 from risk.reachability.storage import ReachabilityStorage

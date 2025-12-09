@@ -1,0 +1,8 @@
+{
+  "id": "778bcac4dcf04d6f8eb476ca8332090f",
+  "stage": "sarif",
+  "stored_at": "2025-12-09T13:50:58.225278Z",
+  "original_filename": "scan.sarif",
+  "raw_path": "/home/ubuntu/repos/Fixops/data/archive/demo/sarif/2025-12-09T135058.225278Z-778bcac4dcf04d6f8eb476ca8332090f.raw",
+  "normalized_path": "/home/ubuntu/repos/Fixops/data/archive/demo/sarif/2025-12-09T135058.225278Z-778bcac4dcf04d6f8eb476ca8332090f.json"
+}

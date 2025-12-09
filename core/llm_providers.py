@@ -69,8 +69,6 @@ class BaseLLMProvider:
 class DeterministicLLMProvider(BaseLLMProvider):
     """Provider that always echoes the heuristic defaults."""
 
-    pass
-
 
 class OpenAIChatProvider(BaseLLMProvider):
     """Adapter for OpenAI chat completion models."""

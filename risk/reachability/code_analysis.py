@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +211,8 @@ class CodeAnalyzer:
         language: str,
     ) -> AnalysisResult:
         """Analyze with CodeQL."""
-        config = self.tool_configs[AnalysisTool.CODEQL]
+        # Note: config available for future tool configuration
+        _ = self.tool_configs[AnalysisTool.CODEQL]
         database_path = repo_path / ".codeql" / "database"
 
         # Create CodeQL database if needed
@@ -338,7 +339,8 @@ class CodeAnalyzer:
         language: str,
     ) -> AnalysisResult:
         """Analyze with Semgrep."""
-        config = self.tool_configs[AnalysisTool.SEMGREP]
+        # Note: config available for future tool configuration
+        _ = self.tool_configs[AnalysisTool.SEMGREP]
         output_file = repo_path / ".semgrep_results.json"
 
         # Build Semgrep rules from vulnerable patterns

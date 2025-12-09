@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,6 @@ class IASTInstrumentation:
         # Create instrumented wrapper
         def instrumented_wrapper(*args, **kwargs):
             """Instrumented function wrapper."""
-            start_time = time.time()
             request_id = self._get_request_id()
 
             try:

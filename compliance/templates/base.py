@@ -41,7 +41,6 @@ class ComplianceTemplate(ABC):
     @abstractmethod
     def assess_compliance(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Assess compliance against framework."""
-        pass
 
     def get_rules(self) -> List[ComplianceRule]:
         """Get all compliance rules."""

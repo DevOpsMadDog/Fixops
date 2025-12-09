@@ -9,10 +9,8 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Dict, Mapping, Optional
 from urllib.parse import urlparse
-
-import requests
 
 logger = logging.getLogger(__name__)
 

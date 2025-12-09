@@ -1,11 +1,12 @@
 """Automated remediation suggestion and verification system."""
 
 import asyncio
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from core.llm_providers import LLMProviderManager
 from core.pentagi_advanced import AdvancedPentagiClient

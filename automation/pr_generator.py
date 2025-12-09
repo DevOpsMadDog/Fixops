@@ -182,7 +182,6 @@ class PRGenerator:
         base: str = "main",
     ) -> PRResult:
         """Generate PR for dependency updates."""
-        from automation.dependency_updater import DependencyUpdate
 
         # Generate title and description
         security_count = sum(1 for u in updates if u.has_security_vulnerability)

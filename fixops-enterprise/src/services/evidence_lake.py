@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import structlog
 from src.db.session import DatabaseManager

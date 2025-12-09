@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from core.pentagi_db import PentagiDB
 from core.pentagi_models import (
     ExploitabilityLevel,
-    PenTestConfig,
     PenTestPriority,
     PenTestRequest,
     PenTestResult,

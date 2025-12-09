@@ -692,11 +692,7 @@ def _coerce_datetime(value: Any) -> Optional[datetime]:
     return None
 
 
-import json  # noqa: E402  - placed after helper definitions for clarity
-
-
 def _load_public_key_from_bundle(bundle: Mapping[str, Any]) -> rsa.RSAPublicKey:
-    properties = _extract_bundle_properties(bundle)
     public_key_pem = bundle.get("public_key_pem")
     if isinstance(public_key_pem, str):
         return serialization.load_pem_public_key(public_key_pem.encode())

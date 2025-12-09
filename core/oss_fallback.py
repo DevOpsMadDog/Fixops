@@ -354,8 +354,8 @@ class OSSFallbackEngine:
                     seen.add(key)
                     unique_findings.append(finding)
 
-            # Use first successful result as base
-            base_result = next((r for r in results if r.success), results[0])
+            # Note: base_result could be used for additional metadata in future
+            _ = next((r for r in results if r.success), results[0])
 
             combined_success = any(r.success for r in results)
             combined_error = None

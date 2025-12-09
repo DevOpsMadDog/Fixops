@@ -20,7 +20,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -218,7 +218,6 @@ class ControlFlowAnalyzer:
     def build_cfg(self, function_name: str, ast_node: ast.FunctionDef) -> None:
         """Build control flow graph from AST."""
         # Advanced CFG construction
-        nodes = []
 
         class CFGVisitor(ast.NodeVisitor):
             def __init__(self, cfg_builder):

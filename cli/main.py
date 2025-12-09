@@ -138,7 +138,6 @@ def monitor(ctx, watch: bool, api_url: Optional[str]):
 @cli.group()
 def auth():
     """Authentication commands."""
-    pass
 
 
 @auth.command()
@@ -177,7 +176,6 @@ def logout(ctx):
 @cli.group()
 def config():
     """Configuration commands."""
-    pass
 
 
 @config.command()

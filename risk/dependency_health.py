@@ -6,8 +6,9 @@ Proprietary dependency health tracking, age monitoring, and maintenance status.
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 

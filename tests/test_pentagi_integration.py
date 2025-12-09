@@ -1,8 +1,5 @@
 """Tests for PentAGI integration."""
 
-import asyncio
-import json
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -15,7 +12,6 @@ from core.automated_remediation import (
 )
 from core.continuous_validation import (
     ContinuousValidationEngine,
-    ValidationJob,
     ValidationStatus,
     ValidationTrigger,
 )
@@ -31,13 +27,7 @@ from core.pentagi_advanced import (
     AIRole,
     MultiAIOrchestrator,
 )
-from core.pentagi_models import (
-    ExploitabilityLevel,
-    PenTestConfig,
-    PenTestPriority,
-    PenTestRequest,
-    PenTestStatus,
-)
+from core.pentagi_models import PenTestConfig, PenTestPriority, PenTestRequest
 
 
 @pytest.fixture

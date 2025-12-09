@@ -58,7 +58,6 @@ class EvidenceValidator:
 
     def __init__(self):
         """Initialize EvidenceValidator."""
-        pass
 
     def find_bundles(self, evidence_dir: Path) -> list[Path]:
         """
