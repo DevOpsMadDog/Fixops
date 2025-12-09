@@ -6,15 +6,9 @@ Language-specific agent for Python codebases.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, Optional
 
-from agents.core.agent_framework import (
-    BaseAgent,
-    AgentConfig,
-    AgentType,
-    AgentData,
-)
+from agents.core.agent_framework import AgentConfig, AgentType
 from agents.design_time.code_repo_agent import CodeRepoAgent
 
 logger = logging.getLogger(__name__)
@@ -22,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class PythonAgent(CodeRepoAgent):
     """Python-specific code repository agent."""
-    
+
     def __init__(
         self,
         config: AgentConfig,
@@ -35,16 +29,16 @@ class PythonAgent(CodeRepoAgent):
         super().__init__(config, fixops_api_url, fixops_api_key, repo_url, repo_branch)
         self.language = "python"
         self.config.agent_type = AgentType.LANGUAGE
-    
+
     async def _collect_sarif(self) -> Optional[Dict[str, Any]]:
         """Collect SARIF data using Python-specific scanners."""
         try:
             # Use proprietary Python analyzer
             from risk.reachability.languages.python import PythonAnalyzer
-            
+
             analyzer = PythonAnalyzer()
             findings = analyzer.analyze_codebase(self.repo_path)
-            
+
             # Convert to SARIF format
             sarif = {
                 "version": "2.1.0",
@@ -80,20 +74,20 @@ class PythonAgent(CodeRepoAgent):
                     }
                 ],
             }
-            
+
             return sarif
-        
+
         except Exception as e:
             logger.error(f"Error collecting Python SARIF: {e}")
             # Fallback to OSS tools
             return await self._collect_sarif_oss_fallback()
-    
+
     async def _collect_sarif_oss_fallback(self) -> Optional[Dict[str, Any]]:
         """Collect SARIF using OSS tools as fallback."""
         try:
-            import subprocess
             import json
-            
+            import subprocess
+
             # Try Semgrep
             result = subprocess.run(
                 ["semgrep", "--config", "p/python", "--json", self.repo_path],
@@ -101,12 +95,12 @@ class PythonAgent(CodeRepoAgent):
                 text=True,
                 timeout=300,
             )
-            
+
             if result.returncode == 0:
                 semgrep_data = json.loads(result.stdout)
                 # Convert Semgrep to SARIF
                 return self._semgrep_to_sarif(semgrep_data)
-            
+
             # Try Bandit
             result = subprocess.run(
                 ["bandit", "-r", self.repo_path, "-f", "json"],
@@ -114,17 +108,17 @@ class PythonAgent(CodeRepoAgent):
                 text=True,
                 timeout=180,
             )
-            
+
             if result.returncode == 0:
                 bandit_data = json.loads(result.stdout)
                 # Convert Bandit to SARIF
                 return self._bandit_to_sarif(bandit_data)
-        
+
         except Exception as e:
             logger.error(f"Error in OSS fallback: {e}")
-        
+
         return None
-    
+
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
         # Implementation to convert Semgrep JSON to SARIF
@@ -142,7 +136,7 @@ class PythonAgent(CodeRepoAgent):
                 }
             ],
         }
-    
+
     def _bandit_to_sarif(self, bandit_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Bandit output to SARIF."""
         # Implementation to convert Bandit JSON to SARIF
@@ -160,27 +154,28 @@ class PythonAgent(CodeRepoAgent):
                 }
             ],
         }
-    
+
     async def _collect_sbom(self) -> Optional[Dict[str, Any]]:
         """Collect SBOM using Python-specific generator."""
         try:
-            from risk.sbom.generator import SBOMGenerator, SBOMFormat
             from pathlib import Path
-            
+
+            from risk.sbom.generator import SBOMFormat, SBOMGenerator
+
             generator = SBOMGenerator()
-            
+
             # Python-specific SBOM generation
             sbom = generator.generate_from_codebase(
                 Path(self.repo_path), SBOMFormat.CYCLONEDX
             )
-            
+
             # Python-specific enhancements
             # - Parse requirements.txt, setup.py, pyproject.toml
             # - Include Python version
             # - Include virtual environment info
-            
+
             return sbom
-        
+
         except Exception as e:
             logger.error(f"Error collecting Python SBOM: {e}")
             return None
