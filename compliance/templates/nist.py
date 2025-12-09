@@ -3,17 +3,19 @@
 Pre-built rules for NIST Secure Software Development Framework (SSDF).
 """
 
-from compliance.templates.base import ComplianceTemplate, ComplianceRule
+from typing import Any, Dict, List
+
+from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 
 class NISTTemplate(ComplianceTemplate):
     """NIST SSDF compliance template."""
-    
+
     def __init__(self):
         """Initialize NIST template."""
         super().__init__("NIST SSDF", "1.1")
         self.rules = self._build_nist_rules()
-    
+
     def _build_nist_rules(self) -> List[ComplianceRule]:
         """Build NIST SSDF rules."""
         # NIST SSDF has 4 practices: PO, PS, PW, RV
@@ -63,7 +65,7 @@ class NISTTemplate(ComplianceTemplate):
                 ],
             ),
         ]
-    
+
     def assess_compliance(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Assess NIST SSDF compliance."""
         # Simplified assessment

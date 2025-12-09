@@ -46,7 +46,7 @@ try:
     from risk.reachability.api import router as reachability_router
 except ImportError:
     reachability_router = None
-    logger.warning("Reachability analysis API not available")
+    logging.getLogger(__name__).warning("Reachability analysis API not available")
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -61,7 +61,6 @@ if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
 
-from .health import router as health_router
 from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware
 from .normalizers import (
     InputNormalizer,
@@ -189,7 +188,7 @@ def create_app() -> FastAPI:
 
     # Import health router
     from apps.api.health_router import router as health_router
-    
+
     app = FastAPI(
         title=f"{branding['product_name']} Ingestion Demo API",
         description=f"Security decision engine by {branding['org_name']}",
