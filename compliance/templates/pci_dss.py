@@ -1,5 +1,7 @@
 """PCI DSS Compliance Template."""
 
+from typing import Any, Dict, List
+
 from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 
