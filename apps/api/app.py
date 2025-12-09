@@ -29,7 +29,7 @@ from apps.api.iac_router import router as iac_router
 from apps.api.ide_router import router as ide_router
 from apps.api.integrations_router import router as integrations_router
 from apps.api.inventory_router import router as inventory_router
-from apps.api.pentagi_router import router as pentagi_router
+from apps.api.pentagi_router_enhanced import router as pentagi_router
 from apps.api.policies_router import router as policies_router
 from apps.api.reports_router import router as reports_router
 from apps.api.secrets_router import router as secrets_router
