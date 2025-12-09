@@ -51,7 +51,7 @@ _CACHE_MISSES = _METER.create_counter(
 @dataclass
 class AnalysisMetrics:
     """Metrics for a single analysis."""
-    
+
     cve_id: str
     component_name: str
     analysis_duration: float
@@ -64,10 +64,10 @@ class AnalysisMetrics:
 
 class ReachabilityMonitor:
     """Enterprise monitoring for reachability analysis."""
-    
+
     def __init__(self, config: Optional[Mapping[str, Any]] = None):
         """Initialize monitor.
-        
+
         Parameters
         ----------
         config
@@ -76,20 +76,20 @@ class ReachabilityMonitor:
         self.config = config or {}
         self.enable_tracing = self.config.get("enable_tracing", True)
         self.enable_metrics = self.config.get("enable_metrics", True)
-    
+
     @contextmanager
     def track_analysis(
         self, cve_id: str, component_name: str
     ) -> Iterator[AnalysisMetrics]:
         """Track an analysis operation.
-        
+
         Parameters
         ----------
         cve_id
             CVE identifier.
         component_name
             Component name.
-        
+
         Yields
         ------
         AnalysisMetrics
@@ -103,7 +103,7 @@ class ReachabilityMonitor:
             is_reachable=False,
             confidence="unknown",
         )
-        
+
         span = None
         if self.enable_tracing:
             span = _TRACER.start_as_current_span(
@@ -113,10 +113,10 @@ class ReachabilityMonitor:
                     "fixops.reachability.component": component_name,
                 },
             )
-        
+
         try:
             yield metrics
-            
+
             # Record success
             if self.enable_metrics:
                 _ANALYSIS_COUNTER.add(
@@ -128,32 +128,32 @@ class ReachabilityMonitor:
                         "confidence": metrics.confidence,
                     },
                 )
-            
+
             if span:
                 span.set_attribute(
                     "fixops.reachability.is_reachable", metrics.is_reachable
                 )
-                span.set_attribute(
-                    "fixops.reachability.confidence", metrics.confidence
-                )
+                span.set_attribute("fixops.reachability.confidence", metrics.confidence)
                 span.set_status("ok")
-        
+
         except Exception as e:
             # Record error
             metrics.error = str(e)
-            
+
             if self.enable_metrics:
-                _ANALYSIS_ERRORS.add(1, {"cve_id": cve_id, "error_type": type(e).__name__})
-            
+                _ANALYSIS_ERRORS.add(
+                    1, {"cve_id": cve_id, "error_type": type(e).__name__}
+                )
+
             if span:
                 span.set_status("error", str(e))
                 span.record_exception(e)
-            
+
             raise
-        
+
         finally:
             metrics.analysis_duration = time.time() - start_time
-            
+
             if self.enable_metrics:
                 _ANALYSIS_DURATION.record(
                     metrics.analysis_duration,
@@ -162,59 +162,59 @@ class ReachabilityMonitor:
                         "component": component_name,
                     },
                 )
-            
+
             if span:
                 span.end()
-    
+
     @contextmanager
     def track_repo_clone(self, repo_url: str) -> Iterator[None]:
         """Track repository cloning operation.
-        
+
         Parameters
         ----------
         repo_url
             Repository URL.
         """
         start_time = time.time()
-        
+
         span = None
         if self.enable_tracing:
             span = _TRACER.start_as_current_span(
                 "reachability.clone_repo",
                 attributes={"fixops.reachability.repo_url": repo_url},
             )
-        
+
         try:
             yield
-            
+
             if span:
                 span.set_status("ok")
-        
+
         except Exception as e:
             if span:
                 span.set_status("error", str(e))
                 span.record_exception(e)
             raise
-        
+
         finally:
             duration = time.time() - start_time
-            
+
             if self.enable_metrics:
                 _REPO_CLONE_DURATION.record(duration, {"repo_url": repo_url})
-            
+
             if span:
                 span.end()
-    
+
     def record_cache_hit(self, cve_id: str) -> None:
         """Record cache hit."""
         if self.enable_metrics:
             _CACHE_HITS.add(1, {"cve_id": cve_id})
-    
+
     def record_cache_miss(self, cve_id: str) -> None:
         """Record cache miss."""
         if self.enable_metrics:
             _CACHE_MISSES.add(1, {"cve_id": cve_id})
-    
+
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get metrics summary."""
         # This would query the metrics backend

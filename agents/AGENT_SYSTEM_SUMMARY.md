@@ -173,7 +173,7 @@ await framework.start_all()
 1. ✅ **Automatic Data Push**: No manual uploads
 2. ✅ **Real-Time Monitoring**: Continuous monitoring
 3. ✅ **Design-to-Runtime Correlation**: Links design-time to runtime
-4. ✅ **All Languages Supported**: Language-specific agents
+4. ✅ **Multi-Language Foundation**: Production agents for Python, JavaScript, Java, and Go with roadmap to add the remaining languages
 5. ✅ **OSS Fallback**: Uses OSS tools if proprietary fails
 6. ✅ **Scalable**: Can monitor hundreds of systems
 7. ✅ **Configurable**: Via overlay configuration
@@ -195,9 +195,9 @@ await framework.start_all()
 
 **Agent system built** for automatic data push from design-time to runtime.
 
-**Core framework complete** with design-time, runtime, and language agents.
+**Core framework complete** with design-time, runtime, and first wave of language agents (Python, JavaScript, Java, Go).
 
-**Supports all languages** via language-specific agents with OSS fallback.
+**Language coverage expanding** with OSS fallback and a published plan for Rust, C/C++, Ruby, PHP, .NET, Swift, and Kotlin.
 
 **Ready to extend** with additional agents and features.
 

@@ -1,16 +1,16 @@
 """PCI DSS Compliance Template."""
 
-from compliance.templates.base import ComplianceTemplate, ComplianceRule
+from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 
 class PCIDSSTemplate(ComplianceTemplate):
     """PCI DSS compliance template."""
-    
+
     def __init__(self):
         """Initialize PCI DSS template."""
         super().__init__("PCI DSS", "4.0")
         self.rules = self._build_pci_rules()
-    
+
     def _build_pci_rules(self) -> List[ComplianceRule]:
         """Build PCI DSS rules."""
         return [
@@ -39,7 +39,7 @@ class PCIDSSTemplate(ComplianceTemplate):
                 severity="critical",
             ),
         ]
-    
+
     def assess_compliance(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Assess PCI DSS compliance."""
         return {

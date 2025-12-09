@@ -23,19 +23,21 @@ from risk.reachability.git_integration import (
     RepositoryMetadata,
 )
 from risk.reachability.proprietary_analyzer import (
-    ProprietaryReachabilityAnalyzer,
     ProprietaryPatternMatcher,
+    ProprietaryReachabilityAnalyzer,
 )
-from risk.reachability.proprietary_scoring import ProprietaryScoringEngine
-from risk.reachability.proprietary_threat_intel import ProprietaryThreatIntelligenceEngine
 from risk.reachability.proprietary_consensus import ProprietaryConsensusEngine
+from risk.reachability.proprietary_scoring import ProprietaryScoringEngine
+from risk.reachability.proprietary_threat_intel import (
+    ProprietaryThreatIntelligenceEngine,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ReachabilityConfidence(Enum):
     """Confidence levels for reachability analysis."""
-    
+
     HIGH = "high"  # >80% confidence
     MEDIUM = "medium"  # 50-80% confidence
     LOW = "low"  # <50% confidence
@@ -45,7 +47,7 @@ class ReachabilityConfidence(Enum):
 @dataclass
 class CodePath:
     """Represents a code path in the application."""
-    
+
     file_path: str
     function_name: Optional[str] = None
     line_number: Optional[int] = None
@@ -60,7 +62,7 @@ class CodePath:
 @dataclass
 class VulnerabilityReachability:
     """Comprehensive reachability analysis result for a vulnerability."""
-    
+
     cve_id: str
     component_name: str
     component_version: str
@@ -76,7 +78,7 @@ class VulnerabilityReachability:
     discrepancy_detected: bool = False
     discrepancy_details: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -110,7 +112,7 @@ class VulnerabilityReachability:
 
 class ReachabilityAnalyzer:
     """Enterprise-grade reachability analyzer combining design-time and runtime analysis.
-    
+
     This analyzer exceeds Endor Labs by:
     1. Combining design-time analysis (like Apiiro) with runtime verification
     2. Multi-tool static analysis (CodeQL, Semgrep, Bandit, etc.)
@@ -118,7 +120,7 @@ class ReachabilityAnalyzer:
     4. Discrepancy detection between design and runtime
     5. Git repository integration for any codebase
     """
-    
+
     def __init__(
         self,
         config: Optional[Mapping[str, Any]] = None,
@@ -126,7 +128,7 @@ class ReachabilityAnalyzer:
         code_analyzer: Optional[CodeAnalyzer] = None,
     ):
         """Initialize reachability analyzer.
-        
+
         Parameters
         ----------
         config
@@ -143,7 +145,7 @@ class ReachabilityAnalyzer:
         self.code_analyzer = code_analyzer or CodeAnalyzer(
             config=self.config.get("code_analysis", {})
         )
-        
+
         # Initialize sub-analyzers
         self.call_graph_builder = CallGraphBuilder(
             config=self.config.get("call_graph", {})
@@ -151,7 +153,7 @@ class ReachabilityAnalyzer:
         self.data_flow_analyzer = DataFlowAnalyzer(
             config=self.config.get("data_flow", {})
         )
-        
+
         # Proprietary analyzers (no OSS dependencies)
         self.proprietary_analyzer = ProprietaryReachabilityAnalyzer(
             config=self.config.get("proprietary", {})
@@ -165,20 +167,18 @@ class ReachabilityAnalyzer:
         self.proprietary_consensus = ProprietaryConsensusEngine(
             config=self.config.get("proprietary_consensus", {})
         )
-        
+
         # Use proprietary by default
         self.use_proprietary = self.config.get("use_proprietary", True)
-        
+
         # Analysis settings
         self.enable_design_time = self.config.get("enable_design_time", True)
         self.enable_runtime = self.config.get("enable_runtime", True)
         self.enable_discrepancy_detection = self.config.get(
             "enable_discrepancy_detection", True
         )
-        self.min_confidence_threshold = self.config.get(
-            "min_confidence_threshold", 0.5
-        )
-    
+        self.min_confidence_threshold = self.config.get("min_confidence_threshold", 0.5)
+
     def analyze_vulnerability_from_repo(
         self,
         repository: GitRepository,
@@ -189,11 +189,11 @@ class ReachabilityAnalyzer:
         force_refresh: bool = False,
     ) -> VulnerabilityReachability:
         """Analyze vulnerability reachability from Git repository.
-        
+
         This is the main entry point for enterprise reachability analysis.
         It clones the repository, performs comprehensive analysis, and returns
         detailed reachability results.
-        
+
         Parameters
         ----------
         repository
@@ -208,7 +208,7 @@ class ReachabilityAnalyzer:
             Vulnerability details including CWE, description, etc.
         force_refresh
             If True, re-clone repository even if cached.
-        
+
         Returns
         -------
         VulnerabilityReachability
@@ -218,21 +218,21 @@ class ReachabilityAnalyzer:
             f"Analyzing reachability for {cve_id} in {component_name}@{component_version} "
             f"from repository: {repository.url}"
         )
-        
+
         # Clone repository
         repo_path = self.git_analyzer.clone_repository(
             repository, force_refresh=force_refresh
         )
-        
+
         try:
             # Get repository metadata
             repo_metadata = self.git_analyzer.get_repository_metadata(repo_path)
-            
+
             # Extract vulnerable patterns from CVE
             vulnerable_patterns = self._extract_vulnerable_patterns(
                 cve_id, vulnerability_details
             )
-            
+
             if not vulnerable_patterns:
                 logger.warning(
                     f"No vulnerable patterns extracted for {cve_id}, "
@@ -241,7 +241,7 @@ class ReachabilityAnalyzer:
                 return self._create_unknown_result(
                     cve_id, component_name, component_version
                 )
-            
+
             # Initialize result variables
             proprietary_result = None
             design_time_result = None
@@ -249,7 +249,7 @@ class ReachabilityAnalyzer:
             call_graph = {}
             data_flow_result = None
             reachable_paths = []
-            
+
             # Use proprietary analyzer if enabled
             if self.use_proprietary:
                 # Proprietary analysis (no OSS tools)
@@ -260,10 +260,13 @@ class ReachabilityAnalyzer:
                 )
                 proprietary_result = self.proprietary_analyzer.analyze_repository(
                     repo_path,
-                    [{"cve_id": cve_id, **vulnerability_details} for _ in vulnerable_patterns],
+                    [
+                        {"cve_id": cve_id, **vulnerability_details}
+                        for _ in vulnerable_patterns
+                    ],
                     primary_language.lower(),
                 )
-                
+
                 # Extract from proprietary result
                 call_graph = proprietary_result.get("call_graph", {}).get("graph", {})
                 data_flow_result = None  # Included in proprietary result
@@ -274,29 +277,29 @@ class ReachabilityAnalyzer:
                     design_time_result = self._analyze_design_time(
                         repo_path, vulnerable_patterns, repo_metadata
                     )
-                
+
                 # Perform runtime analysis (OSS tools)
                 if self.enable_runtime:
                     runtime_result = self._analyze_runtime(
                         repo_path, vulnerable_patterns, repo_metadata
                     )
-                
+
                 # Build call graph (OSS)
                 call_graph = self.call_graph_builder.build_call_graph(
                     repo_path, repo_metadata.language_distribution
                 )
-                
+
                 # Perform data-flow analysis
                 if vulnerable_patterns:
                     data_flow_result = self.data_flow_analyzer.analyze_data_flow(
                         repo_path, vulnerable_patterns[0], call_graph
                     )
-                
+
                 # Check reachability
                 reachable_paths = self._check_pattern_reachability(
                     vulnerable_patterns, call_graph, repo_path, data_flow_result
                 )
-            
+
             # Determine confidence (proprietary or standard)
             if self.use_proprietary and proprietary_result:
                 confidence_score = self._calculate_proprietary_confidence(
@@ -311,9 +314,9 @@ class ReachabilityAnalyzer:
                     runtime_result,
                     data_flow_result,
                 )
-            
+
             confidence = self._confidence_level(confidence_score)
-            
+
             # Detect discrepancies
             discrepancy_detected = False
             discrepancy_details = None
@@ -322,10 +325,10 @@ class ReachabilityAnalyzer:
                 and design_time_result
                 and runtime_result
             ):
-                discrepancy_detected, discrepancy_details = (
-                    self._detect_discrepancy(design_time_result, runtime_result)
+                discrepancy_detected, discrepancy_details = self._detect_discrepancy(
+                    design_time_result, runtime_result
                 )
-            
+
             # Build result
             result = VulnerabilityReachability(
                 cve_id=cve_id,
@@ -336,21 +339,18 @@ class ReachabilityAnalyzer:
                 confidence_score=confidence_score,
                 code_paths=reachable_paths,
                 call_graph_depth=self._max_call_depth(reachable_paths),
-                data_flow_depth=(
-                    data_flow_result.max_depth if data_flow_result else 0
-                ),
+                data_flow_depth=(data_flow_result.max_depth if data_flow_result else 0),
                 analysis_method=(
-                    "proprietary" if self.use_proprietary and proprietary_result
-                    else self._determine_analysis_method(design_time_result, runtime_result)
+                    "proprietary"
+                    if self.use_proprietary and proprietary_result
+                    else self._determine_analysis_method(
+                        design_time_result, runtime_result
+                    )
                 ),
                 design_time_analysis=(
-                    design_time_result.to_dict()
-                    if design_time_result
-                    else None
+                    design_time_result.to_dict() if design_time_result else None
                 ),
-                runtime_analysis=(
-                    runtime_result.to_dict() if runtime_result else None
-                ),
+                runtime_analysis=(runtime_result.to_dict() if runtime_result else None),
                 discrepancy_detected=discrepancy_detected,
                 discrepancy_details=discrepancy_details,
                 metadata={
@@ -361,38 +361,40 @@ class ReachabilityAnalyzer:
                     "file_count": repo_metadata.file_count,
                     "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
                     "proprietary_analysis": self.use_proprietary,
-                    "proprietary_result": proprietary_result if self.use_proprietary else None,
+                    "proprietary_result": proprietary_result
+                    if self.use_proprietary
+                    else None,
                 },
             )
-            
+
             logger.info(
                 f"Reachability analysis complete for {cve_id}: "
                 f"reachable={result.is_reachable}, confidence={confidence.value}"
             )
-            
+
             return result
-            
+
         finally:
             # Cleanup if configured
             if self.config.get("cleanup_after_analysis", False):
                 self.git_analyzer.cleanup_repository(repository)
-    
+
     def _extract_vulnerable_patterns(
         self, cve_id: str, vulnerability_details: Mapping[str, Any]
     ) -> List[VulnerablePattern]:
         """Extract vulnerable code patterns from CVE details."""
         patterns = []
-        
+
         cwe_ids = vulnerability_details.get("cwe_ids", [])
         if isinstance(cwe_ids, str):
             cwe_ids = [cwe_ids]
-        
+
         description = vulnerability_details.get("description", "")
-        
+
         # Map CWE to vulnerable patterns
         for cwe_id in cwe_ids:
             cwe_id_str = str(cwe_id).upper()
-            
+
             if "CWE-89" in cwe_id_str:  # SQL Injection
                 patterns.append(
                     VulnerablePattern(
@@ -445,7 +447,7 @@ class ReachabilityAnalyzer:
                     )
                 )
             # Add more CWE mappings...
-        
+
         # If no patterns found, create generic pattern
         if not patterns:
             patterns.append(
@@ -457,9 +459,9 @@ class ReachabilityAnalyzer:
                     severity=vulnerability_details.get("severity", "medium"),
                 )
             )
-        
+
         return patterns
-    
+
     def _analyze_design_time(
         self,
         repo_path: Path,
@@ -468,13 +470,13 @@ class ReachabilityAnalyzer:
     ) -> Optional[AnalysisResult]:
         """Perform design-time analysis (like Apiiro)."""
         logger.info("Performing design-time analysis...")
-        
+
         try:
             # Use code analyzer for design-time analysis
             results = self.code_analyzer.analyze_repository(
                 repo_path, patterns, metadata.language_distribution.get("Python")
             )
-            
+
             # Combine results from all tools
             if results:
                 # Use the most comprehensive result
@@ -485,9 +487,9 @@ class ReachabilityAnalyzer:
                 return best_result
         except Exception as e:
             logger.error(f"Design-time analysis failed: {e}")
-        
+
         return None
-    
+
     def _analyze_runtime(
         self,
         repo_path: Path,
@@ -496,22 +498,22 @@ class ReachabilityAnalyzer:
     ) -> Optional[AnalysisResult]:
         """Perform runtime analysis (like Endor Labs)."""
         logger.info("Performing runtime analysis...")
-        
+
         # Runtime analysis focuses on actual code execution paths
         # This would integrate with runtime monitoring tools if available
         # For now, we use static analysis with runtime-aware heuristics
-        
+
         try:
             # Use code analyzer with runtime-aware configuration
             runtime_config = self.config.get("runtime_analysis", {})
             runtime_analyzer = CodeAnalyzer(
                 config={**self.config.get("code_analysis", {}), **runtime_config}
             )
-            
+
             results = runtime_analyzer.analyze_repository(
                 repo_path, patterns, metadata.language_distribution.get("Python")
             )
-            
+
             if results:
                 best_result = max(
                     results.values(),
@@ -520,9 +522,9 @@ class ReachabilityAnalyzer:
                 return best_result
         except Exception as e:
             logger.error(f"Runtime analysis failed: {e}")
-        
+
         return None
-    
+
     def _check_pattern_reachability(
         self,
         patterns: List[VulnerablePattern],
@@ -532,7 +534,7 @@ class ReachabilityAnalyzer:
     ) -> List[CodePath]:
         """Check if vulnerable patterns are reachable."""
         reachable_paths = []
-        
+
         for pattern in patterns:
             # Search for vulnerable functions in call graph
             for func_name in pattern.vulnerable_functions:
@@ -540,7 +542,7 @@ class ReachabilityAnalyzer:
                     # Function exists, check if it's called
                     func_info = call_graph[func_name]
                     callers = func_info.get("callers", [])
-                    
+
                     if callers:
                         # Function is invoked
                         for caller in callers:
@@ -548,12 +550,12 @@ class ReachabilityAnalyzer:
                             call_chain = self._build_call_chain(
                                 caller, call_graph, func_name
                             )
-                            
+
                             # Get entry points
                             entry_points = self._find_entry_points(
                                 call_chain, call_graph
                             )
-                            
+
                             path = CodePath(
                                 file_path=caller.get("file", ""),
                                 function_name=func_name,
@@ -563,69 +565,73 @@ class ReachabilityAnalyzer:
                                 call_chain=call_chain,
                                 entry_points=entry_points,
                             )
-                            
+
                             # Add data flow path if available
                             if data_flow_result:
                                 path.data_flow_path = (
                                     data_flow_result.get_path_for_function(func_name)
                                 )
-                            
+
                             reachable_paths.append(path)
-        
+
         return reachable_paths
-    
+
     def _build_call_chain(
         self, start_node: Dict[str, Any], call_graph: Dict[str, Any], target_func: str
     ) -> List[str]:
         """Build call chain from entry point to vulnerable function."""
         chain = [target_func]
         current = start_node
-        
+
         visited = set()
         max_depth = 20  # Prevent infinite loops
-        
+
         depth = 0
         while current and depth < max_depth:
             func_name = current.get("function")
             if func_name and func_name not in visited:
                 chain.insert(0, func_name)
                 visited.add(func_name)
-            
+
             # Traverse up the call graph
             parent = current.get("parent")
             if parent and parent in call_graph:
-                current = call_graph[parent].get("callers", [{}])[0] if call_graph[parent].get("callers") else None
+                current = (
+                    call_graph[parent].get("callers", [{}])[0]
+                    if call_graph[parent].get("callers")
+                    else None
+                )
             else:
                 break
-            
+
             depth += 1
-        
+
         return chain
-    
+
     def _find_entry_points(
         self, call_chain: List[str], call_graph: Dict[str, Any]
     ) -> List[str]:
         """Find entry points (public APIs, main functions) for a call chain."""
         entry_points = []
-        
+
         if not call_chain:
             return entry_points
-        
+
         first_func = call_chain[0]
-        
+
         # Check if it's a public API
         func_info = call_graph.get(first_func, {})
         if func_info.get("is_public") or func_info.get("is_exported"):
             entry_points.append(first_func)
-        
+
         # Check for common entry points
         entry_patterns = ["main", "handler", "route", "endpoint", "api"]
         for pattern in entry_patterns:
             if pattern.lower() in first_func.lower():
                 entry_points.append(first_func)
-        
+
         return entry_points
-    
+
     def _calculate_confidence(
         self,
         reachable_paths: List[CodePath],
@@ -638,13 +644,13 @@ class ReachabilityAnalyzer:
         """Calculate confidence score for reachability analysis."""
         if not reachable_paths:
             return 0.0
-        
+
         if not call_graph:
             return 0.3  # Low confidence without call graph
-        
+
         # Base confidence from path count
         path_count_factor = min(len(reachable_paths) / 5.0, 1.0)
-        
+
         # Depth factor (shorter paths = higher confidence)
         avg_depth = (
             sum(len(p.call_chain) for p in reachable_paths) / len(reachable_paths)
@@ -652,26 +658,26 @@ class ReachabilityAnalyzer:
             else 0
         )
         depth_factor = max(0.0, 1.0 - (avg_depth / 10.0))
-        
+
         # Entry point factor (public APIs = higher confidence)
         entry_point_count = sum(len(p.entry_points) for p in reachable_paths)
         entry_point_factor = min(entry_point_count / len(reachable_paths), 1.0)
-        
+
         # Design-time analysis factor
         design_factor = 0.0
         if design_time_result and design_time_result.success:
             design_factor = min(len(design_time_result.findings) / 10.0, 0.3)
-        
+
         # Runtime analysis factor
         runtime_factor = 0.0
         if runtime_result and runtime_result.success:
             runtime_factor = min(len(runtime_result.findings) / 10.0, 0.3)
-        
+
         # Data flow factor
         data_flow_factor = 0.0
         if data_flow_result and data_flow_result.has_path:
             data_flow_factor = 0.2
-        
+
         # Combine factors
         confidence = (
             path_count_factor * 0.2
@@ -681,9 +687,9 @@ class ReachabilityAnalyzer:
             + runtime_factor
             + data_flow_factor
         )
-        
+
         return min(1.0, max(0.0, confidence))
-    
+
     def _confidence_level(self, score: float) -> ReachabilityConfidence:
         """Convert confidence score to confidence level."""
         if score >= 0.8:
@@ -694,14 +700,14 @@ class ReachabilityAnalyzer:
             return ReachabilityConfidence.LOW
         else:
             return ReachabilityConfidence.UNKNOWN
-    
+
     def _detect_discrepancy(
         self, design_result: AnalysisResult, runtime_result: AnalysisResult
     ) -> Tuple[bool, Optional[str]]:
         """Detect discrepancies between design-time and runtime analysis."""
         design_findings = len(design_result.findings) if design_result.success else 0
         runtime_findings = len(runtime_result.findings) if runtime_result.success else 0
-        
+
         # Significant discrepancy if findings differ by >50%
         if design_findings > 0 and runtime_findings > 0:
             diff_ratio = abs(design_findings - runtime_findings) / max(
@@ -714,9 +720,9 @@ class ReachabilityAnalyzer:
                     f"runtime found {runtime_findings} issues "
                     f"(difference: {diff_ratio:.1%})",
                 )
-        
+
         return False, None
-    
+
     def _determine_analysis_method(
         self,
         design_result: Optional[AnalysisResult],
@@ -731,22 +737,22 @@ class ReachabilityAnalyzer:
             return "runtime"
         else:
             return "static"
-    
+
     def _max_call_depth(self, paths: List[CodePath]) -> int:
         """Calculate maximum call graph depth."""
         if not paths:
             return 0
         return max(len(p.call_chain) for p in paths if p.call_chain)
-    
+
     def _extract_proprietary_paths(
         self, proprietary_result: Dict[str, Any]
     ) -> List[CodePath]:
         """Extract code paths from proprietary analysis result."""
         paths = []
-        
+
         reachability = proprietary_result.get("reachability", {})
         reachable_matches = reachability.get("reachable_matches", [])
-        
+
         for match in reachable_matches:
             file_path, line_num = match.get("location", ("", 0))
             paths.append(
@@ -757,9 +763,9 @@ class ReachabilityAnalyzer:
                     call_chain=[],
                 )
             )
-        
+
         return paths
-    
+
     def _calculate_proprietary_confidence(
         self, proprietary_result: Dict[str, Any], reachable_paths: List[CodePath]
     ) -> float:
@@ -768,10 +774,10 @@ class ReachabilityAnalyzer:
         reachable_count = reachability.get("reachable_count", 0)
         unreachable_count = reachability.get("unreachable_count", 0)
         total = reachable_count + unreachable_count
-        
+
         if total == 0:
             return 0.0
-        
+
         # Proprietary confidence calculation
         if reachable_count > 0:
             # High confidence if we found reachable paths
@@ -782,9 +788,9 @@ class ReachabilityAnalyzer:
         else:
             # Lower confidence if nothing reachable
             base_confidence = 0.5
-        
+
         return min(1.0, max(0.0, base_confidence))
-    
+
     def _create_unknown_result(
         self, cve_id: str, component_name: str, component_version: str
     ) -> VulnerabilityReachability:

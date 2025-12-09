@@ -23,15 +23,17 @@ def test_api_server_realistic():
     print("=" * 80)
     print("REALISTIC SECURITY ARCHITECT VALIDATION")
     print("=" * 80)
-    
+
     # Start server
     print("\n1. Starting API Server...")
     env = os.environ.copy()
-    env.update({
-        "FIXOPS_API_TOKEN": API_KEY,
-        "DATABASE_URL": "sqlite:///./fixops_test.db",
-    })
-    
+    env.update(
+        {
+            "FIXOPS_API_TOKEN": API_KEY,
+            "DATABASE_URL": "sqlite:///./fixops_test.db",
+        }
+    )
+
     server = subprocess.Popen(
         [
             sys.executable,
@@ -49,7 +51,7 @@ def test_api_server_realistic():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    
+
     # Wait for server
     print("2. Waiting for server to start...")
     for i in range(20):
@@ -65,9 +67,9 @@ def test_api_server_realistic():
         print("   ❌ Server failed to start")
         server.terminate()
         return False
-    
+
     results = {"passed": [], "failed": [], "warnings": []}
-    
+
     # Test 1: Health
     print("\n3. Testing Health Endpoint...")
     try:
@@ -81,7 +83,7 @@ def test_api_server_realistic():
     except Exception as e:
         print(f"   ❌ Health failed: {e}")
         results["failed"].append(f"Health endpoint: {e}")
-    
+
     # Test 2: Authentication
     print("\n4. Testing Authentication...")
     try:
@@ -92,7 +94,7 @@ def test_api_server_realistic():
         else:
             print(f"   ⚠️  Expected 401, got {r.status_code}")
             results["warnings"].append(f"Auth check: got {r.status_code}")
-        
+
         # With key
         headers = {"X-API-Key": API_KEY}
         r = requests.get(f"{API_BASE_URL}/api/v1/status", headers=headers, timeout=5)
@@ -105,7 +107,7 @@ def test_api_server_realistic():
     except Exception as e:
         print(f"   ⚠️  Auth test: {e}")
         results["warnings"].append(f"Authentication: {e}")
-    
+
     # Test 3: SARIF Upload
     print("\n5. Testing SARIF Upload...")
     try:
@@ -113,16 +115,15 @@ def test_api_server_realistic():
         test_sarif = {
             "version": "2.1.0",
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
-            "runs": [{
-                "tool": {"driver": {"name": "test", "version": "1.0"}},
-                "results": []
-            }]
+            "runs": [
+                {"tool": {"driver": {"name": "test", "version": "1.0"}}, "results": []}
+            ],
         }
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".sarif", delete=False) as f:
             json.dump(test_sarif, f)
             temp_path = f.name
-        
+
         try:
             with open(temp_path, "rb") as f:
                 files = {"file": ("test.sarif", f, "application/json")}
@@ -132,7 +133,7 @@ def test_api_server_realistic():
                     files=files,
                     timeout=10,
                 )
-            
+
             if r.status_code in [200, 201]:
                 print("   ✅ SARIF upload works")
                 results["passed"].append("SARIF upload")
@@ -144,7 +145,7 @@ def test_api_server_realistic():
     except Exception as e:
         print(f"   ⚠️  SARIF test: {e}")
         results["warnings"].append(f"SARIF upload: {e}")
-    
+
     # Test 4: Module Validation
     print("\n6. Validating Core Modules...")
     modules_to_check = [
@@ -155,7 +156,7 @@ def test_api_server_realistic():
         "cli/main.py",
         "automation/dependency_updater.py",
     ]
-    
+
     for module in modules_to_check:
         path = WORKSPACE_ROOT / module
         if path.exists():
@@ -164,7 +165,7 @@ def test_api_server_realistic():
         else:
             print(f"   ❌ {module} missing")
             results["failed"].append(f"Missing: {module}")
-    
+
     # Summary
     print("\n" + "=" * 80)
     print("VALIDATION SUMMARY")
@@ -172,17 +173,17 @@ def test_api_server_realistic():
     print(f"✅ Passed: {len(results['passed'])}")
     print(f"⚠️  Warnings: {len(results['warnings'])}")
     print(f"❌ Failed: {len(results['failed'])}")
-    
+
     if results["failed"]:
         print("\n❌ Critical Issues:")
         for issue in results["failed"]:
             print(f"   - {issue}")
-    
+
     if results["warnings"]:
         print("\n⚠️  Warnings:")
         for warning in results["warnings"]:
             print(f"   - {warning}")
-    
+
     # Cleanup
     print("\n7. Stopping server...")
     server.terminate()
@@ -191,7 +192,7 @@ def test_api_server_realistic():
     except:
         server.kill()
     print("   ✅ Server stopped")
-    
+
     return len(results["failed"]) == 0
 
 

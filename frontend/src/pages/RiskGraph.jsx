@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Filter, AlertCircle, Shield, Globe, Database, List, CheckCircle, FileKey, Scale, Users, Target } from 'lucide-react'
+import { X, Filter, AlertCircle, Shield, Globe, Database, List, CheckCircle, FileKey, Scale, Users, Target, Zap, Loader2 } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import api from '../utils/api'
 
 const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
 
@@ -45,6 +46,10 @@ const RiskGraph = () => {
   const navigate = useNavigate()
   const [graphData, setGraphData] = useState({ nodes: [], edges: [] })
   const [selectedNode, setSelectedNode] = useState(null)
+  const [selectedCves, setSelectedCves] = useState(new Set()) // Multi-select CVEs
+  const [contextMenu, setContextMenu] = useState(null) // Context menu state
+  const [runningPentest, setRunningPentest] = useState(false)
+  const [pentestStatus, setPentestStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [dataSource, setDataSource] = useState('demo') // 'demo' or 'live'
   const [activeTab, setActiveTab] = useState('overview') // overview, attack-paths, evidence, compliance, ownership
@@ -59,6 +64,7 @@ const RiskGraph = () => {
     perspective: 'security' // security, devops, owner
   })
   const cyRef = useRef(null)
+  const contextMenuRef = useRef(null)
 
   useEffect(() => {
     loadGraphData()
@@ -179,9 +185,9 @@ const RiskGraph = () => {
         'text-valign': 'center',
         'text-halign': 'center',
         'font-size': '10px',
-        'border-width': node.kev ? 3 : 1,
-        'border-color': node.kev ? '#FCD34D' : '#FFFFFF',
-        'border-opacity': node.kev ? 1 : 0.3,
+        'border-width': node.kev ? 3 : selectedCves.has(node.id) ? 4 : 1,
+        'border-color': node.kev ? '#FCD34D' : selectedCves.has(node.id) ? '#6B5AED' : '#FFFFFF',
+        'border-opacity': node.kev ? 1 : selectedCves.has(node.id) ? 1 : 0.3,
       },
     }))
 
@@ -203,7 +209,7 @@ const RiskGraph = () => {
     }))
 
     return [...nodeElements, ...edgeElements]
-  }, [filteredNodes, filteredEdges])
+  }, [filteredNodes, filteredEdges, selectedCves])
 
   const layout = useMemo(
     () => ({
@@ -214,8 +220,125 @@ const RiskGraph = () => {
   )
 
   const handleNodeClick = useCallback((event) => {
-    setSelectedNode(event.target.data())
+    const nodeData = event.target.data()
+    setSelectedNode(nodeData)
+    
+    // Handle multi-select for CVEs (Ctrl/Cmd + Click)
+    if (nodeData.type === 'cve') {
+      if (event.originalEvent?.ctrlKey || event.originalEvent?.metaKey) {
+        setSelectedCves(prev => {
+          const newSet = new Set(prev)
+          if (newSet.has(nodeData.id)) {
+            newSet.delete(nodeData.id)
+          } else {
+            newSet.add(nodeData.id)
+          }
+          return newSet
+        })
+      } else {
+        // Single click - clear other selections
+        setSelectedCves(new Set([nodeData.id]))
+      }
+    }
   }, [])
+
+  const handleRightClick = useCallback((event) => {
+    const nodeData = event.target.data()
+    // Check if it's a CVE node and we have selections
+    if (nodeData && nodeData.type === 'cve' && selectedCves.size > 0) {
+      // Use original browser event coordinates for fixed positioning
+      const originalEvent = event.originalEvent || event.cy?.originalEvent
+      if (originalEvent) {
+        setContextMenu({
+          x: originalEvent.clientX,
+          y: originalEvent.clientY,
+        })
+      }
+    }
+  }, [selectedCves])
+
+  const handleRunMicroPentest = useCallback(async () => {
+    if (selectedCves.size === 0) {
+      alert('Please select at least one CVE')
+      return
+    }
+
+    setRunningPentest(true)
+    setContextMenu(null)
+
+    try {
+      // Get target URLs from selected CVEs' connected services/components
+      const cveIds = Array.from(selectedCves)
+      const targetUrls = []
+      
+      // Find connected services/components for selected CVEs
+      const edges = graphData?.edges || []
+      cveIds.forEach(cveId => {
+        edges.forEach(edge => {
+          if (edge.source === cveId || edge.target === cveId) {
+            const connectedNodeId = edge.source === cveId ? edge.target : edge.source
+            const connectedNode = graphData?.nodes?.find(n => n.id === connectedNodeId)
+            if (connectedNode && (connectedNode.type === 'service' || connectedNode.type === 'component')) {
+              // Extract URL from node data if available
+              if (connectedNode.url) {
+                targetUrls.push(connectedNode.url)
+              } else if (connectedNode.label) {
+                // Try to construct URL from label
+                const url = `https://${connectedNode.label.toLowerCase().replace(/\s+/g, '-')}.example.com`
+                targetUrls.push(url)
+              }
+            }
+          }
+        })
+      })
+
+      // If no URLs found, use default
+      if (targetUrls.length === 0) {
+        targetUrls.push('https://example.com')
+      }
+
+      const response = await api.post('/micro-pentest/run', {
+        cve_ids: cveIds,
+        target_urls: [...new Set(targetUrls)], // Remove duplicates
+        context: {
+          source: 'risk_graph',
+          selected_count: cveIds.length,
+        },
+      })
+
+      setPentestStatus({
+        flow_id: response.data.flow_id,
+        status: 'started',
+        message: response.data.message,
+      })
+
+      // Poll for status updates
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await api.get(`/micro-pentest/status/${response.data.flow_id}`)
+          setPentestStatus(statusResponse.data)
+          
+          if (statusResponse.data.status === 'completed' || statusResponse.data.status === 'failed') {
+            clearInterval(pollInterval)
+            setRunningPentest(false)
+          }
+        } catch (error) {
+          console.error('Failed to get pentest status:', error)
+        }
+      }, 5000)
+
+      // Clear interval after 5 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval)
+        setRunningPentest(false)
+      }, 300000)
+
+    } catch (error) {
+      console.error('Failed to run micro pentest:', error)
+      alert(`Failed to start micro penetration test: ${error.message}`)
+      setRunningPentest(false)
+    }
+  }, [selectedCves, graphData])
 
   const registerCyInstance = useCallback(
     (cy) => {
@@ -224,19 +347,44 @@ const RiskGraph = () => {
       }
       cyRef.current = cy
       cy.off('tap', 'node', handleNodeClick)
+      cy.off('cxttapstart', 'node', handleRightClick)
       cy.on('tap', 'node', handleNodeClick)
+      cy.on('cxttapstart', 'node', handleRightClick)
+      
+      // Also handle right-click on background to close menu
+      cy.on('cxttapstart', (e) => {
+        if (e.target === cy) {
+          setContextMenu(null)
+        }
+      })
     },
-    [handleNodeClick]
+    [handleNodeClick, handleRightClick]
   )
 
   useEffect(() => {
     return () => {
       if (cyRef.current) {
         cyRef.current.off('tap', 'node', handleNodeClick)
+        cyRef.current.off('cxttapstart', 'node', handleRightClick)
+        cyRef.current.off('cxttapstart')
         cyRef.current = null
       }
     }
-  }, [handleNodeClick])
+  }, [handleNodeClick, handleRightClick])
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target)) {
+        setContextMenu(null)
+      }
+    }
+
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [contextMenu])
 
   if (loading) {
     return (
@@ -409,8 +557,110 @@ const RiskGraph = () => {
             <div><strong>{filteredNodes.filter(n => n.type === 'component').length}</strong> Components</div>
             <div><strong>{filteredNodes.filter(n => n.type === 'cve' || n.type === 'finding').length}</strong> Issues</div>
             <div><strong>{filteredNodes.filter(n => n.kev).length}</strong> KEV</div>
+            {selectedCves.size > 0 && (
+              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #334155', color: '#6B5AED', fontWeight: '600' }}>
+                <strong>{selectedCves.size}</strong> CVE{selectedCves.size > 1 ? 's' : ''} selected
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Context Menu */}
+        {contextMenu && selectedCves.size > 0 && (
+          <div
+            ref={contextMenuRef}
+            style={{
+              position: 'absolute',
+              left: `${contextMenu.x}px`,
+              top: `${contextMenu.y}px`,
+              zIndex: 1000,
+              background: '#1E293B',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              padding: '8px',
+              minWidth: '200px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <button
+              onClick={handleRunMicroPentest}
+              disabled={runningPentest}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: runningPentest ? '#334155' : '#6B5AED',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: runningPentest ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                if (!runningPentest) e.target.style.background = '#7C3AED'
+              }}
+              onMouseLeave={(e) => {
+                if (!runningPentest) e.target.style.background = '#6B5AED'
+              }}
+            >
+              {runningPentest ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Zap size={16} />
+                  Run Micro Pen Tests
+                </>
+              )}
+            </button>
+            <div style={{ fontSize: '11px', color: '#64748B', marginTop: '6px', padding: '0 4px' }}>
+              {selectedCves.size} CVE{selectedCves.size > 1 ? 's' : ''} selected
+            </div>
+          </div>
+        )}
+
+        {/* Pentest Status Notification */}
+        {pentestStatus && (
+          <div style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+            background: '#1E293B',
+            border: '1px solid #334155',
+            borderRadius: '8px',
+            padding: '16px',
+            minWidth: '300px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#E2E8F0' }}>Micro Pen Test Status</div>
+              <button
+                onClick={() => setPentestStatus(null)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '4px' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '4px' }}>
+              Flow ID: {pentestStatus.flow_id}
+            </div>
+            <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '4px' }}>
+              Status: <span style={{ color: pentestStatus.status === 'completed' ? '#10B981' : '#6B5AED' }}>{pentestStatus.status}</span>
+            </div>
+            {pentestStatus.message && (
+              <div style={{ fontSize: '12px', color: '#64748B', marginTop: '8px' }}>
+                {pentestStatus.message}
+              </div>
+            )}
+          </div>
+        )}
 
         <Suspense fallback={<GraphCanvasFallback />}>
           <CytoscapeComponent

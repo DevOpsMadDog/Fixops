@@ -14,16 +14,18 @@ EVENT = {
     "payload": {
         "offer_id": "OFF-%d" % int(time.time()),
         "price": 199.0,
-        "currency": "USD"
+        "currency": "USD",
     },
-    "occurred_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    "occurred_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
 }
 
 
 def sign(event: dict) -> Tuple[str, str]:
     body = json.dumps(event, separators=(",", ":")).encode()
     timestamp = str(int(time.time()))
-    signature = hmac.new(SECRET.encode(), timestamp.encode() + b"." + body, hashlib.sha256).hexdigest()
+    signature = hmac.new(
+        SECRET.encode(), timestamp.encode() + b"." + body, hashlib.sha256
+    ).hexdigest()
     return timestamp, signature
 
 

@@ -1,0 +1,303 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview:",
+      "purpose": "Introduce the FixOps platform, its purpose as a DevSecOps Decision & Verification Engine, and high-level architecture overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Key Concepts",
+      "purpose": "Define core terminology: CVE, KEV, EPSS, SARIF, SBOM, VEX, SSVC, Multi-LLM Consensus, and FixOps-specific concepts",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "System Architecture",
+      "purpose": "Present the overall system architecture with major components and their interactions, including data flow diagrams",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Quickstart and Demo",
+      "purpose": "Guide users through initial setup using setup-wizard.sh and running demo mode",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Vulnerability Intelligence System",
+      "purpose": "Document the system for ingesting, processing, and enriching vulnerability data from external feeds",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "KEV and EPSS Feeds",
+      "purpose": "Explain how CISA KEV catalog and FIRST EPSS scores are fetched, cached, and integrated into the system",
+      "parent": "Vulnerability Intelligence System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Threat Intelligence Orchestration",
+      "purpose": "Document the ThreatIntelligenceOrchestrator and integration with multiple vulnerability feeds (NVD, OSV, GitHub, ExploitDB, ecosystem feeds)",
+      "parent": "Vulnerability Intelligence System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Severity Promotion Engine",
+      "purpose": "Explain how CVE severities are dynamically escalated based on KEV listings and high EPSS scores",
+      "parent": "Vulnerability Intelligence System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Exploit Signal Detection",
+      "purpose": "Detail the ExploitSignalEvaluator and how exploit signals (KEV, EPSS, ExploitDB) are processed",
+      "parent": "Vulnerability Intelligence System",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Data Ingestion Layer",
+      "purpose": "Describe the FastAPI application that receives security artifacts and normalizes them for processing",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "FastAPI Application Structure",
+      "purpose": "Document the create_app factory pattern, router organization, middleware stack, and state management",
+      "parent": "Data Ingestion Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Upload Endpoints",
+      "purpose": "Detail the /inputs/* endpoints for uploading design, SBOM, SARIF, CVE, VEX, and CNAPP data",
+      "parent": "Data Ingestion Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Chunked Upload System",
+      "purpose": "Explain the ChunkUploadManager for handling large file uploads with resumability",
+      "parent": "Data Ingestion Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Input Normalization",
+      "purpose": "Document the InputNormalizer class and parsers for SBOM (CycloneDX, SPDX, Syft), SARIF, CVE feeds, VEX, CNAPP, and business context",
+      "parent": "Data Ingestion Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Crosswalk Correlation Engine",
+      "purpose": "Explain how design context, SBOM components, SARIF findings, and CVE records are correlated into unified crosswalk entries",
+      "parent": "Data Ingestion Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Decision Engine",
+      "purpose": "Document the core decision-making system that produces Allow/Review/Block verdicts with confidence scores",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Multi-LLM Consensus Engine",
+      "purpose": "Explain how multiple LLM providers (OpenAI, Anthropic, Gemini, Sentinel) are queried and weighted consensus is achieved",
+      "parent": "Decision Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Decision Policy Engine",
+      "purpose": "Detail the policy override rules that can block or escalate decisions based on critical vulnerability combinations",
+      "parent": "Decision Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Risk-Based Profiling",
+      "purpose": "Explain risk score computation using EPSS, Bayesian priors, Markov projections, and exposure multipliers",
+      "parent": "Decision Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Enhanced Decision Service",
+      "purpose": "Document the enhanced decision API endpoints that provide LLM analysis, consensus results, and MITRE TTP mappings",
+      "parent": "Decision Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Deterministic Fallback Mode",
+      "purpose": "Explain how the system operates without LLM providers using risk-based heuristics",
+      "parent": "Decision Engine",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Processing Layer",
+      "purpose": "Document the advanced analytics engine that applies probabilistic models and graph analysis to vulnerability data",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Bayesian and Markov Models",
+      "purpose": "Explain the Bayesian network inference and Markov chain state projection implementations",
+      "parent": "Processing Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "BN-LR Hybrid Risk Model",
+      "purpose": "Detail the Bayesian Network + Logistic Regression hybrid model for exploitation probability prediction",
+      "parent": "Processing Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Processing Layer Internals",
+      "purpose": "Document the ProcessingLayer.evaluate method and integration with 166 vulnerability data sources",
+      "parent": "Processing Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Knowledge Graph Construction",
+      "purpose": "Explain how components, vulnerabilities, and dependencies are modeled as a graph using NetworkX",
+      "parent": "Processing Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Probabilistic Forecasting",
+      "purpose": "Document the probabilistic forecasting models and confidence metrics for risk predictions",
+      "parent": "Processing Layer",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Pipeline Orchestration",
+      "purpose": "Document the PipelineOrchestrator that coordinates all processing stages from input to output",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Overlay Configuration System",
+      "purpose": "Explain the fixops.overlay.yml structure, profiles (demo/enterprise), and configuration hierarchies",
+      "parent": "Pipeline Orchestration",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Pipeline Orchestrator",
+      "purpose": "Detail the PipelineOrchestrator.run method and the sequential processing stages",
+      "parent": "Pipeline Orchestration",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}

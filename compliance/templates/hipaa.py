@@ -1,16 +1,16 @@
 """HIPAA Compliance Template."""
 
-from compliance.templates.base import ComplianceTemplate, ComplianceRule
+from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 
 class HIPAATemplate(ComplianceTemplate):
     """HIPAA compliance template."""
-    
+
     def __init__(self):
         """Initialize HIPAA template."""
         super().__init__("HIPAA", "2023")
         self.rules = self._build_hipaa_rules()
-    
+
     def _build_hipaa_rules(self) -> List[ComplianceRule]:
         """Build HIPAA rules."""
         return [
@@ -33,7 +33,7 @@ class HIPAATemplate(ComplianceTemplate):
                 severity="high",
             ),
         ]
-    
+
     def assess_compliance(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Assess HIPAA compliance."""
         return {

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class DataClassification(Enum):
     """Data classification levels."""
-    
+
     PUBLIC = "public"
     INTERNAL = "internal"
     CONFIDENTIAL = "confidential"
@@ -26,7 +26,7 @@ class DataClassification(Enum):
 
 class BusinessCriticality(Enum):
     """Business criticality levels."""
-    
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -37,7 +37,7 @@ class BusinessCriticality(Enum):
 @dataclass
 class DataClassificationResult:
     """Data classification result."""
-    
+
     classification: DataClassification
     confidence: float
     indicators: List[str] = field(default_factory=list)
@@ -47,7 +47,7 @@ class DataClassificationResult:
 @dataclass
 class BusinessCriticalityResult:
     """Business criticality result."""
-    
+
     criticality: BusinessCriticality
     score: float  # 0.0 to 1.0
     factors: Dict[str, float] = field(default_factory=dict)
@@ -57,7 +57,7 @@ class BusinessCriticalityResult:
 @dataclass
 class ExposureAnalysis:
     """Exposure analysis result."""
-    
+
     exposure_level: str  # internet, public, partner, internal, controlled
     exposure_score: float  # 0.0 to 1.0
     exposure_vectors: List[str] = field(default_factory=list)
@@ -66,12 +66,14 @@ class ExposureAnalysis:
 
 class DataClassificationEngine:
     """Proprietary data classification engine."""
-    
+
     def __init__(self):
         """Initialize data classification engine."""
         self.patterns = self._build_classification_patterns()
-    
-    def _build_classification_patterns(self) -> Dict[DataClassification, List[Dict[str, Any]]]:
+
+    def _build_classification_patterns(
+        self,
+    ) -> Dict[DataClassification, List[Dict[str, Any]]]:
         """Build proprietary classification patterns."""
         return {
             DataClassification.TOP_SECRET: [
@@ -117,34 +119,34 @@ class DataClassificationEngine:
                 },
             ],
         }
-    
+
     def classify_data(
         self, content: str, metadata: Optional[Dict[str, Any]] = None
     ) -> DataClassificationResult:
         """Classify data automatically."""
         scores = {dc: 0.0 for dc in DataClassification}
         indicators = []
-        
+
         content_lower = content.lower()
-        
+
         for classification, patterns in self.patterns.items():
             for pattern_config in patterns:
                 weight = pattern_config.get("weight", 0.5)
-                
+
                 # Check keywords
                 if "keywords" in pattern_config:
                     for keyword in pattern_config["keywords"]:
                         if keyword in content_lower:
                             scores[classification] += weight
                             indicators.append(f"{classification.value}: {keyword}")
-                
+
                 # Check regex patterns
                 if "patterns" in pattern_config:
                     for pattern in pattern_config["patterns"]:
                         if re.search(pattern, content, re.IGNORECASE):
                             scores[classification] += weight
                             indicators.append(f"{classification.value}: pattern match")
-        
+
         # Determine classification
         max_score = max(scores.values())
         if max_score == 0:
@@ -153,7 +155,7 @@ class DataClassificationEngine:
         else:
             classification = max(scores.items(), key=lambda x: x[1])[0]
             confidence = min(1.0, max_score / 2.0)  # Normalize
-        
+
         return DataClassificationResult(
             classification=classification,
             confidence=confidence,
@@ -164,11 +166,11 @@ class DataClassificationEngine:
 
 class BusinessCriticalityEngine:
     """Proprietary business criticality scoring engine."""
-    
+
     def __init__(self):
         """Initialize business criticality engine."""
         self.factors = self._build_criticality_factors()
-    
+
     def _build_criticality_factors(self) -> Dict[str, Dict[str, float]]:
         """Build criticality scoring factors."""
         return {
@@ -200,7 +202,7 @@ class BusinessCriticalityEngine:
                 "none": 0.1,
             },
         }
-    
+
     def calculate_criticality(
         self,
         component_data: Dict[str, Any],
@@ -209,7 +211,7 @@ class BusinessCriticalityEngine:
         """Calculate business criticality."""
         factors = {}
         total_score = 0.0
-        
+
         # Data classification factor
         if data_classification:
             classification_score = self.factors["data_classification"].get(
@@ -217,7 +219,7 @@ class BusinessCriticalityEngine:
             )
             factors["data_classification"] = classification_score
             total_score += classification_score * 0.3
-        
+
         # User count factor
         user_count = component_data.get("user_count", "unknown")
         if isinstance(user_count, str):
@@ -234,21 +236,21 @@ class BusinessCriticalityEngine:
                 user_count_score = 0.4
             else:
                 user_count_score = 0.2
-        
+
         factors["user_count"] = user_count_score
         total_score += user_count_score * 0.25
-        
+
         # Revenue impact factor
         revenue_impact = component_data.get("revenue_impact", "medium")
         revenue_score = self.factors["revenue_impact"].get(revenue_impact, 0.5)
         factors["revenue_impact"] = revenue_score
         total_score += revenue_score * 0.25
-        
+
         # Compliance factor
         compliance = component_data.get("compliance_requirements", [])
         if isinstance(compliance, str):
             compliance = [compliance]
-        
+
         max_compliance_score = max(
             (
                 self.factors["compliance_requirements"].get(c.lower(), 0.1)
@@ -258,7 +260,7 @@ class BusinessCriticalityEngine:
         )
         factors["compliance"] = max_compliance_score
         total_score += max_compliance_score * 0.2
-        
+
         # Determine criticality level
         if total_score >= 0.9:
             criticality = BusinessCriticality.MISSION_CRITICAL
@@ -270,7 +272,7 @@ class BusinessCriticalityEngine:
             criticality = BusinessCriticality.MEDIUM
         else:
             criticality = BusinessCriticality.LOW
-        
+
         return BusinessCriticalityResult(
             criticality=criticality,
             score=total_score,
@@ -281,39 +283,43 @@ class BusinessCriticalityEngine:
 
 class ExposureAnalyzer:
     """Proprietary exposure analysis engine."""
-    
+
     def analyze_exposure(
-        self, component_data: Dict[str, Any], network_config: Optional[Dict[str, Any]] = None
+        self,
+        component_data: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]] = None,
     ) -> ExposureAnalysis:
         """Analyze component exposure."""
         exposure_vectors = []
         exposure_score = 0.0
-        
+
         # Check network exposure
         if network_config:
             if network_config.get("public_ip"):
                 exposure_vectors.append("Public IP address")
                 exposure_score += 0.4
-            
+
             if network_config.get("open_ports"):
                 open_ports = network_config["open_ports"]
-                exposure_vectors.append(f"Open ports: {', '.join(map(str, open_ports))}")
+                exposure_vectors.append(
+                    f"Open ports: {', '.join(map(str, open_ports))}"
+                )
                 exposure_score += 0.2 * len(open_ports)
-            
+
             if network_config.get("internet_facing"):
                 exposure_vectors.append("Internet-facing")
                 exposure_score += 0.3
-        
+
         # Check authentication
         if not component_data.get("requires_authentication", True):
             exposure_vectors.append("No authentication required")
             exposure_score += 0.3
-        
+
         # Check data exposure
         if component_data.get("exposes_sensitive_data", False):
             exposure_vectors.append("Exposes sensitive data")
             exposure_score += 0.2
-        
+
         # Determine exposure level
         if exposure_score >= 0.8:
             exposure_level = "internet"
@@ -325,7 +331,7 @@ class ExposureAnalyzer:
             exposure_level = "internal"
         else:
             exposure_level = "controlled"
-        
+
         # Generate recommendations
         recommendations = []
         if exposure_score >= 0.6:
@@ -333,7 +339,7 @@ class ExposureAnalyzer:
             recommendations.append("Implement authentication")
         if exposure_vectors:
             recommendations.append("Review exposure vectors")
-        
+
         return ExposureAnalysis(
             exposure_level=exposure_level,
             exposure_score=min(1.0, exposure_score),
@@ -344,13 +350,13 @@ class ExposureAnalyzer:
 
 class BusinessContextEngine:
     """FixOps Business Context Engine - Proprietary business context integration."""
-    
+
     def __init__(self):
         """Initialize business context engine."""
         self.data_classifier = DataClassificationEngine()
         self.criticality_engine = BusinessCriticalityEngine()
         self.exposure_analyzer = ExposureAnalyzer()
-    
+
     def analyze_component(
         self,
         component_data: Dict[str, Any],
@@ -363,20 +369,22 @@ class BusinessContextEngine:
         if code_content:
             classification_result = self.data_classifier.classify_data(code_content)
             data_classification = classification_result.classification
-        
+
         # Business criticality
         criticality_result = self.criticality_engine.calculate_criticality(
             component_data, data_classification
         )
-        
+
         # Exposure analysis
         exposure_result = self.exposure_analyzer.analyze_exposure(
             component_data, network_config
         )
-        
+
         return {
             "data_classification": {
-                "level": data_classification.value if data_classification else "unknown",
+                "level": data_classification.value
+                if data_classification
+                else "unknown",
                 "confidence": classification_result.confidence if code_content else 0.0,
             },
             "business_criticality": {
@@ -393,16 +401,19 @@ class BusinessContextEngine:
                 criticality_result, exposure_result
             ),
         }
-    
+
     def _calculate_risk_adjustment(
         self, criticality: BusinessCriticalityResult, exposure: ExposureAnalysis
     ) -> float:
         """Calculate risk adjustment factor."""
         # Higher criticality + higher exposure = higher risk
         base_risk = criticality.score * 0.6 + exposure.exposure_score * 0.4
-        
+
         # Adjust for critical combinations
-        if criticality.criticality == BusinessCriticality.MISSION_CRITICAL and exposure.exposure_level == "internet":
+        if (
+            criticality.criticality == BusinessCriticality.MISSION_CRITICAL
+            and exposure.exposure_level == "internet"
+        ):
             return min(2.0, base_risk * 1.5)  # 50% boost
-        
+
         return base_risk

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class TerraformIssueType(Enum):
     """Terraform security issue types."""
-    
+
     PUBLIC_ACCESS = "public_access"
     UNENCRYPTED_STORAGE = "unencrypted_storage"
     WEAK_ENCRYPTION = "weak_encryption"
@@ -31,7 +31,7 @@ class TerraformIssueType(Enum):
 @dataclass
 class TerraformFinding:
     """Terraform security finding."""
-    
+
     issue_type: TerraformIssueType
     severity: str  # critical, high, medium, low
     resource_type: str
@@ -47,7 +47,7 @@ class TerraformFinding:
 @dataclass
 class TerraformResult:
     """Terraform analysis result."""
-    
+
     findings: List[TerraformFinding]
     total_findings: int
     findings_by_type: Dict[str, int]
@@ -58,36 +58,36 @@ class TerraformResult:
 
 class TerraformAnalyzer:
     """FixOps Terraform Analyzer - Proprietary IaC security analysis."""
-    
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize Terraform analyzer."""
         self.config = config or {}
         self.security_patterns = self._build_security_patterns()
-    
+
     def _build_security_patterns(self) -> Dict[str, List[Dict[str, Any]]]:
         """Build proprietary security patterns for Terraform."""
         return {
             "s3_public_access": [
                 {
-                    "pattern": r'aws_s3_bucket\s+\w+\s*\{[^}]*block_public_acls\s*=\s*false',
+                    "pattern": r"aws_s3_bucket\s+\w+\s*\{[^}]*block_public_acls\s*=\s*false",
                     "severity": "critical",
                     "issue_type": TerraformIssueType.PUBLIC_ACCESS,
                 },
                 {
-                    "pattern": r'aws_s3_bucket\s+\w+\s*\{[^}]*block_public_policy\s*=\s*false',
+                    "pattern": r"aws_s3_bucket\s+\w+\s*\{[^}]*block_public_policy\s*=\s*false",
                     "severity": "critical",
                     "issue_type": TerraformIssueType.PUBLIC_ACCESS,
                 },
             ],
             "unencrypted_storage": [
                 {
-                    "pattern": r'aws_s3_bucket\s+\w+\s*\{[^}]*server_side_encryption_configuration\s*\{[^}]*\}',
+                    "pattern": r"aws_s3_bucket\s+\w+\s*\{[^}]*server_side_encryption_configuration\s*\{[^}]*\}",
                     "negate": True,  # Missing encryption
                     "severity": "high",
                     "issue_type": TerraformIssueType.UNENCRYPTED_STORAGE,
                 },
                 {
-                    "pattern": r'aws_ebs_volume\s+\w+\s*\{[^}]*encrypted\s*=\s*false',
+                    "pattern": r"aws_ebs_volume\s+\w+\s*\{[^}]*encrypted\s*=\s*false",
                     "severity": "high",
                     "issue_type": TerraformIssueType.UNENCRYPTED_STORAGE,
                 },
@@ -119,34 +119,34 @@ class TerraformAnalyzer:
                 },
             ],
         }
-    
+
     def analyze(self, terraform_path: Path) -> TerraformResult:
         """Analyze Terraform files for security issues."""
         findings = []
         files_analyzed = 0
-        
+
         # Find all .tf files
         tf_files = list(terraform_path.rglob("*.tf"))
-        
+
         for tf_file in tf_files:
             try:
                 with open(tf_file, "r", encoding="utf-8") as f:
                     content = f.read()
-                
+
                 file_findings = self._analyze_file(tf_file, content)
                 findings.extend(file_findings)
                 files_analyzed += 1
-            
+
             except Exception as e:
                 logger.warning(f"Failed to analyze {tf_file}: {e}")
-        
+
         return self._build_result(findings, files_analyzed)
-    
+
     def _analyze_file(self, file_path: Path, content: str) -> List[TerraformFinding]:
         """Analyze a single Terraform file."""
         findings = []
         lines = content.split("\n")
-        
+
         # Check each security pattern
         for category, patterns in self.security_patterns.items():
             for pattern_config in patterns:
@@ -154,22 +154,22 @@ class TerraformAnalyzer:
                 severity = pattern_config["severity"]
                 issue_type = pattern_config["issue_type"]
                 negate = pattern_config.get("negate", False)
-                
+
                 matches = re.finditer(pattern, content, re.MULTILINE | re.DOTALL)
-                
+
                 for match in matches:
                     # Check if this is a negative pattern (missing something)
                     if negate:
                         # For negative patterns, we want to flag if pattern is NOT found
                         # This is handled differently - we check for absence
                         continue
-                    
+
                     # Find line number
                     line_number = content[: match.start()].count("\n") + 1
-                    
+
                     # Extract resource name
                     resource_name = self._extract_resource_name(match.group(0))
-                    
+
                     finding = TerraformFinding(
                         issue_type=issue_type,
                         severity=severity,
@@ -179,18 +179,18 @@ class TerraformAnalyzer:
                         line_number=line_number,
                         description=self._get_description(issue_type),
                         recommendation=self._get_recommendation(issue_type),
-                        code_snippet=lines[line_number - 1] if line_number <= len(lines) else "",
+                        code_snippet=lines[line_number - 1]
+                        if line_number <= len(lines)
+                        else "",
                     )
-                    
+
                     findings.append(finding)
-        
+
         # Check for missing encryption (negative patterns)
         if "aws_s3_bucket" in content:
             if "server_side_encryption_configuration" not in content:
                 # Find S3 bucket resources
-                bucket_matches = re.finditer(
-                    r'aws_s3_bucket\s+(\w+)', content
-                )
+                bucket_matches = re.finditer(r"aws_s3_bucket\s+(\w+)", content)
                 for match in bucket_matches:
                     line_number = content[: match.start()].count("\n") + 1
                     finding = TerraformFinding(
@@ -204,19 +204,19 @@ class TerraformAnalyzer:
                         recommendation="Add server_side_encryption_configuration block",
                     )
                     findings.append(finding)
-        
+
         return findings
-    
+
     def _extract_resource_name(self, code: str) -> str:
         """Extract resource name from Terraform code."""
         match = re.search(r'(?:resource|data)\s+"[^"]+"\s+"([^"]+)"', code)
         return match.group(1) if match else "unknown"
-    
+
     def _extract_resource_type(self, code: str) -> str:
         """Extract resource type from Terraform code."""
         match = re.search(r'(?:resource|data)\s+"([^"]+)"', code)
         return match.group(1) if match else "unknown"
-    
+
     def _get_description(self, issue_type: TerraformIssueType) -> str:
         """Get description for issue type."""
         descriptions = {
@@ -227,7 +227,7 @@ class TerraformAnalyzer:
             TerraformIssueType.INSECURE_NETWORK: "Network security group allows insecure access",
         }
         return descriptions.get(issue_type, "Security issue detected")
-    
+
     def _get_recommendation(self, issue_type: TerraformIssueType) -> str:
         """Get recommendation for issue type."""
         recommendations = {
@@ -238,21 +238,21 @@ class TerraformAnalyzer:
             TerraformIssueType.INSECURE_NETWORK: "Restrict CIDR blocks to specific IP ranges",
         }
         return recommendations.get(issue_type, "Review and fix security configuration")
-    
+
     def _build_result(
         self, findings: List[TerraformFinding], files_analyzed: int
     ) -> TerraformResult:
         """Build Terraform analysis result."""
         findings_by_type: Dict[str, int] = {}
         findings_by_severity: Dict[str, int] = {}
-        
+
         for finding in findings:
             issue_type = finding.issue_type.value
             findings_by_type[issue_type] = findings_by_type.get(issue_type, 0) + 1
-            
+
             severity = finding.severity
             findings_by_severity[severity] = findings_by_severity.get(severity, 0) + 1
-        
+
         return TerraformResult(
             findings=findings,
             total_findings=len(findings),
