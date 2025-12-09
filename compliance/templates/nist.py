@@ -3,6 +3,8 @@
 Pre-built rules for NIST Secure Software Development Framework (SSDF).
 """
 
+from typing import Any, Dict, List
+
 from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 

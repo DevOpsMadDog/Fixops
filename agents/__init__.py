@@ -24,3 +24,8 @@ __all__ = [
     "JavaAgent",
     "GoAgent",
 ]
+
+# TODO: Add these agents when implemented:
+# - CICDAgent, DesignToolAgent (design_time)
+# - CloudAgent, APIAgent (runtime)
+# - RustAgent, CppAgent, RubyAgent, PhpAgent, DotNetAgent, SwiftAgent, KotlinAgent (language)

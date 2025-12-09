@@ -9,7 +9,7 @@ import logging
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class OSSTool:
     enabled: bool
     path: str
     config_path: Optional[str] = None
-    args: List[str] = None
+    args: Optional[List[str]] = None
     timeout: int = 300  # seconds
 
 
@@ -49,7 +49,7 @@ class AnalysisResult:
 
     source: str  # "proprietary" or "oss"
     tool_name: Optional[str] = None
-    findings: List[Dict[str, Any]] = None
+    findings: Optional[List[Dict[str, Any]]] = None
     success: bool = True
     error: Optional[str] = None
     execution_time: float = 0.0
@@ -87,7 +87,7 @@ class OSSFallbackEngine:
         self,
         language: str,
         codebase_path: str,
-        proprietary_analyzer: callable,
+        proprietary_analyzer: Callable[[str, Dict[str, Any]], List[Dict[str, Any]]],
         proprietary_config: Optional[Dict[str, Any]] = None,
     ) -> AnalysisResult:
         """Analyze with proprietary-first, OSS fallback."""
@@ -103,63 +103,86 @@ class OSSFallbackEngine:
             "enabled", False
         )
 
-        results: List[AnalysisResult] = []
-        plan = {
-            FallbackStrategy.PROPRIETARY_FIRST: ["proprietary", "oss"],
-            FallbackStrategy.OSS_FIRST: ["oss", "proprietary"],
-            FallbackStrategy.PROPRIETARY_ONLY: ["proprietary"],
-            FallbackStrategy.OSS_ONLY: ["oss"],
-        }[self.strategy]
+        results = []
 
-        oss_tools = language_config.get("oss_fallback", {}).get("tools", [])
-
-        for step in plan:
-            if step == "proprietary":
-                if not proprietary_enabled:
-                    continue
-                try:
-                    proprietary_result = self._run_proprietary(
-                        proprietary_analyzer, codebase_path, proprietary_config
+        # Try proprietary first (if enabled and strategy allows)
+        if proprietary_enabled and self.strategy in [
+            FallbackStrategy.PROPRIETARY_FIRST,
+            FallbackStrategy.PROPRIETARY_ONLY,
+        ]:
+            try:
+                proprietary_result = self._run_proprietary(
+                    proprietary_analyzer, codebase_path, proprietary_config
+                )
+                if proprietary_result.success:
+                    results.append(proprietary_result)
+                    # If proprietary succeeded and strategy is proprietary_only, return
+                    if self.strategy == FallbackStrategy.PROPRIETARY_ONLY:
+                        return self._combine_results(results)
+                else:
+                    # Log the actual error for troubleshooting
+                    logger.error(
+                        f"Proprietary analysis failed: {proprietary_result.error}"
                     )
-                except Exception as e:
-                    logger.warning(f"Proprietary analysis failed: {e}")
-                    proprietary_result = AnalysisResult(
-                        source="proprietary",
-                        findings=[],
-                        success=False,
-                        error=str(e),
-                    )
-                results.append(proprietary_result)
+            except Exception as e:
+                logger.warning(f"Proprietary analysis failed: {e}")
                 if self.strategy == FallbackStrategy.PROPRIETARY_ONLY:
-                    return self._combine_results(results)
+                    # Propagate the actual error for troubleshooting
+                    return AnalysisResult(
+                        source="proprietary",
+                        success=False,
+                        error=f"Proprietary analysis failed: {str(e)}",
+                        findings=[],
+                    )
 
-            elif step == "oss":
-                if not oss_fallback_enabled:
-                    continue
-                for tool_name in oss_tools:
-                    tool = self.oss_tools.get(tool_name)
-                    if not tool or not tool.enabled:
-                        continue
-                    try:
-                        oss_result = self._run_oss_tool(tool, language, codebase_path)
-                    except Exception as e:
-                        logger.warning(f"OSS tool {tool_name} failed: {e}")
-                        oss_result = AnalysisResult(
-                            source="oss",
-                            tool_name=tool_name,
-                            findings=[],
-                            success=False,
-                            error=str(e),
-                        )
-                    results.append(oss_result)
-                if self.strategy == FallbackStrategy.OSS_ONLY:
-                    return self._combine_results(results)
+        # Try OSS (if enabled and strategy allows)
+        if oss_fallback_enabled and self.strategy in [
+            FallbackStrategy.PROPRIETARY_FIRST,
+            FallbackStrategy.OSS_FIRST,
+            FallbackStrategy.OSS_ONLY,
+        ]:
+            oss_tools = language_config.get("oss_fallback", {}).get("tools", [])
+
+            for tool_name in oss_tools:
+                if tool_name in self.oss_tools:
+                    tool = self.oss_tools[tool_name]
+                    if tool.enabled:
+                        try:
+                            oss_result = self._run_oss_tool(
+                                tool, language, codebase_path
+                            )
+                            if oss_result.success:
+                                results.append(oss_result)
+                                # If OSS succeeded and strategy is oss_only, return
+                                if self.strategy == FallbackStrategy.OSS_ONLY:
+                                    return self._combine_results(results)
+                        except Exception as e:
+                            logger.warning(f"OSS tool {tool_name} failed: {e}")
+                            continue
+
+        # For OSS_FIRST strategy, if OSS succeeded, we may still try proprietary as fallback
+        if (
+            self.strategy == FallbackStrategy.OSS_FIRST
+            and proprietary_enabled
+            and not results
+        ):
+            try:
+                proprietary_result = self._run_proprietary(
+                    proprietary_analyzer, codebase_path, proprietary_config
+                )
+                if proprietary_result.success:
+                    results.append(proprietary_result)
+            except Exception as e:
+                logger.warning(f"Proprietary fallback failed: {e}")
 
         # Combine results
         return self._combine_results(results)
 
     def _run_proprietary(
-        self, analyzer: callable, codebase_path: str, config: Optional[Dict[str, Any]]
+        self,
+        analyzer: Callable[[str, Dict[str, Any]], List[Dict[str, Any]]],
+        codebase_path: str,
+        config: Optional[Dict[str, Any]],
     ) -> AnalysisResult:
         """Run proprietary analyzer."""
         import time
@@ -242,7 +265,7 @@ class OSSFallbackEngine:
                     tool_name=tool.name,
                     findings=[],
                     success=False,
-                    error=result.stderr or result.stdout,
+                    error=result.stderr,
                     execution_time=execution_time,
                 )
 
@@ -354,21 +377,9 @@ class OSSFallbackEngine:
                     seen.add(key)
                     unique_findings.append(finding)
 
-            # Use first successful result as base
-            base_result = next((r for r in results if r.success), results[0])
-
-            combined_success = any(r.success for r in results)
-            combined_error = None
-            if not combined_success:
-                combined_error = next(
-                    (r.error for r in results if r.error),
-                    "Analysis completed but no successful results",
-                )
-
             return AnalysisResult(
                 source="combined",
                 findings=unique_findings,
-                success=combined_success,
+                success=any(r.success for r in results),
                 execution_time=sum(r.execution_time for r in results),
-                error=combined_error,
             )

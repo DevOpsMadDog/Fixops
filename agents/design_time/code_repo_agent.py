@@ -5,18 +5,11 @@ Monitors code repositories and pushes SARIF, SBOM, and design context data.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from agents.core.agent_framework import (
-    AgentConfig,
-    AgentData,
-    AgentStatus,
-    AgentType,
-    BaseAgent,
-)
+from agents.core.agent_framework import AgentConfig, AgentData, BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +44,7 @@ class CodeRepoAgent(BaseAgent):
             try:
                 repo = git.Repo(self.repo_path)
                 repo.remotes.origin.pull()
-            except:
+            except Exception:
                 repo = git.Repo.clone_from(self.repo_url, self.repo_path)
 
             repo.git.checkout(self.repo_branch)
@@ -149,11 +142,6 @@ class CodeRepoAgent(BaseAgent):
         """Collect SARIF data by running security scan."""
         try:
             # Use proprietary analyzer or OSS fallback
-            from risk.reachability.analyzer import VulnerabilityReachabilityAnalyzer
-
-            analyzer = VulnerabilityReachabilityAnalyzer(config={})
-
-            # Run scan (simplified - would run actual scan)
             # In real implementation, would run proprietary or OSS scanner
             return {
                 "version": "2.1.0",

@@ -6,10 +6,9 @@ Language-specific agent for Python codebases.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from agents.core.agent_framework import AgentConfig, AgentData, AgentType, BaseAgent
+from agents.core.agent_framework import AgentConfig, AgentType
 from agents.design_time.code_repo_agent import CodeRepoAgent
 
 logger = logging.getLogger(__name__)
@@ -41,7 +40,42 @@ class PythonAgent(CodeRepoAgent):
             findings = analyzer.analyze_codebase(self.repo_path)
 
             # Convert to SARIF format
-            return self._findings_to_sarif("FixOps Python Analyzer", findings)
+            sarif = {
+                "version": "2.1.0",
+                "runs": [
+                    {
+                        "tool": {
+                            "driver": {
+                                "name": "FixOps Python Analyzer",
+                                "version": "1.0.0",
+                            }
+                        },
+                        "results": [
+                            {
+                                "ruleId": f.get("rule_id", ""),
+                                "level": f.get("severity", "warning"),
+                                "message": {"text": f.get("message", "")},
+                                "locations": [
+                                    {
+                                        "physicalLocation": {
+                                            "artifactLocation": {
+                                                "uri": f.get("file", "")
+                                            },
+                                            "region": {
+                                                "startLine": f.get("line", 0),
+                                                "startColumn": f.get("column", 0),
+                                            },
+                                        }
+                                    }
+                                ],
+                            }
+                            for f in findings
+                        ],
+                    }
+                ],
+            }
+
+            return sarif
 
         except Exception as e:
             logger.error(f"Error collecting Python SARIF: {e}")
@@ -87,75 +121,108 @@ class PythonAgent(CodeRepoAgent):
 
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        findings: List[Dict[str, Any]] = []
-        for result in semgrep_data.get("results", []):
-            start = result.get("start", {})
-            extra = result.get("extra", {})
-            findings.append(
+        results = []
+        for finding in semgrep_data.get("results", []):
+            results.append(
                 {
-                    "rule_id": result.get("check_id", ""),
-                    "severity": extra.get("severity", "warning"),
-                    "file": result.get("path", ""),
-                    "line": start.get("line", 0),
-                    "column": start.get("col", 0),
-                    "message": extra.get("message") or result.get("message", ""),
+                    "ruleId": finding.get("check_id", ""),
+                    "level": self._map_severity(
+                        finding.get("extra", {}).get("severity", "warning")
+                    ),
+                    "message": {
+                        "text": finding.get("extra", {}).get(
+                            "message", finding.get("check_id", "")
+                        )
+                    },
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": finding.get("path", "")},
+                                "region": {
+                                    "startLine": finding.get("start", {}).get(
+                                        "line", 0
+                                    ),
+                                    "startColumn": finding.get("start", {}).get(
+                                        "col", 0
+                                    ),
+                                },
+                            }
+                        }
+                    ],
                 }
             )
-        return self._findings_to_sarif("Semgrep", findings)
 
-    def _bandit_to_sarif(self, bandit_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert Bandit output to SARIF."""
-        findings: List[Dict[str, Any]] = []
-        for result in bandit_data.get("results", []):
-            findings.append(
-                {
-                    "rule_id": result.get("test_id", ""),
-                    "severity": result.get("issue_severity", "warning"),
-                    "file": result.get("filename", ""),
-                    "line": result.get("line_number", 0),
-                    "column": result.get("col_offset", 0),
-                    "message": result.get("issue_text", ""),
-                }
-            )
-        return self._findings_to_sarif("Bandit", findings)
-
-    def _findings_to_sarif(
-        self,
-        tool_name: str,
-        findings: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        """Normalize FixOps findings into SARIF 2.1."""
         return {
             "version": "2.1.0",
             "runs": [
                 {
                     "tool": {
                         "driver": {
-                            "name": tool_name,
+                            "name": "Semgrep",
                             "version": "1.0.0",
                         }
                     },
-                    "results": [
+                    "results": results,
+                }
+            ],
+        }
+
+    def _map_severity(self, severity: str) -> str:
+        """Map tool severity to SARIF level."""
+        severity_map = {
+            "error": "error",
+            "warning": "warning",
+            "info": "note",
+            "note": "note",
+        }
+        return severity_map.get(severity.lower(), "warning")
+
+    def _bandit_to_sarif(self, bandit_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert Bandit output to SARIF."""
+        results = []
+        for finding in bandit_data.get("results", []):
+            # Map Bandit severity to SARIF level
+            severity = finding.get("issue_severity", "MEDIUM").upper()
+            level = (
+                "error"
+                if severity == "HIGH"
+                else "warning"
+                if severity == "MEDIUM"
+                else "note"
+            )
+
+            results.append(
+                {
+                    "ruleId": finding.get("test_id", ""),
+                    "level": level,
+                    "message": {"text": finding.get("issue_text", "")},
+                    "locations": [
                         {
-                            "ruleId": finding.get("rule_id", ""),
-                            "level": finding.get("severity", "warning"),
-                            "message": {"text": finding.get("message", "")},
-                            "locations": [
-                                {
-                                    "physicalLocation": {
-                                        "artifactLocation": {
-                                            "uri": finding.get("file", "")
-                                        },
-                                        "region": {
-                                            "startLine": finding.get("line", 0),
-                                            "startColumn": finding.get("column", 0),
-                                        },
-                                    }
-                                }
-                            ],
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uri": finding.get("filename", "")
+                                },
+                                "region": {
+                                    "startLine": finding.get("line_number", 0),
+                                    "startColumn": 1,
+                                },
+                            }
                         }
-                        for finding in findings
                     ],
+                }
+            )
+
+        return {
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "Bandit",
+                            "version": "1.0.0",
+                        }
+                    },
+                    "results": results,
                 }
             ],
         }

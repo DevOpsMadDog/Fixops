@@ -8,7 +8,6 @@ services:
   # FixOps API Server
   fixops-api:
     image: fixops/api:enterprise-latest
-    container_name: fixops-api
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -45,7 +44,6 @@ services:
   # FixOps Reachability Analyzer (Proprietary)
   fixops-reachability:
     image: fixops/reachability:proprietary-latest
-    container_name: fixops-reachability
     restart: unless-stopped
     environment:
       - REDIS_URL=redis://redis:6379/1
@@ -79,7 +77,6 @@ services:
   # FixOps Threat Intelligence Engine (Proprietary)
   fixops-threat-intel:
     image: fixops/threat-intel:proprietary-latest
-    container_name: fixops-threat-intel
     restart: unless-stopped
     environment:
       - POSTGRES_URL=postgresql://fixops:${POSTGRES_PASSWORD}@postgres:5432/fixops
