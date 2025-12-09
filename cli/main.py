@@ -52,16 +52,29 @@ def cli(ctx, verbose: bool, api_url: str):
     type=click.Choice(["critical", "high", "medium", "low"]),
 )
 @click.option("--exclude", multiple=True, help="Paths to exclude")
+@click.option(
+    "--api-url",
+    default=None,
+    help="FixOps API URL (overrides group-level setting)",
+)
 @click.pass_context
 def scan(
-    ctx, path: str, format: str, output: Optional[str], severity: tuple, exclude: tuple
+    ctx,
+    path: str,
+    format: str,
+    output: Optional[str],
+    severity: tuple,
+    exclude: tuple,
+    api_url: Optional[str],
 ):
     """Scan codebase for vulnerabilities."""
     from cli.scanner import CodeScanner
 
     click.echo(f"🔍 Scanning {path}...")
 
-    scanner = CodeScanner(ctx.obj["api_url"])
+    # Use command-level api_url if provided, otherwise use group-level
+    effective_api_url = api_url if api_url else ctx.obj["api_url"]
+    scanner = CodeScanner(effective_api_url)
     results = scanner.scan(
         path=path,
         format=format,
@@ -100,18 +113,25 @@ def test(ctx, path: str, test_type: str):
 
 @cli.command()
 @click.option("--watch", "-w", is_flag=True, help="Watch for changes")
+@click.option(
+    "--api-url",
+    default=None,
+    help="FixOps API URL (overrides group-level setting)",
+)
 @click.pass_context
-def monitor(ctx, watch: bool):
+def monitor(ctx, watch: bool, api_url: Optional[str]):
     """Monitor application runtime for security issues."""
     from cli.monitor import RuntimeMonitor
 
     click.echo("🛡️  Starting runtime monitoring...")
 
-    monitor = RuntimeMonitor(ctx.obj["api_url"])
+    # Use command-level api_url if provided, otherwise use group-level
+    effective_api_url = api_url if api_url else ctx.obj["api_url"]
+    monitor_instance = RuntimeMonitor(effective_api_url)
     if watch:
-        monitor.watch()
+        monitor_instance.watch()
     else:
-        results = monitor.analyze()
+        results = monitor_instance.analyze()
         click.echo(results)
 
 

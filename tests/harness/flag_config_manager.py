@@ -85,6 +85,36 @@ class FlagConfigManager:
                 os.environ.pop(key, None)
         self.original_env.clear()
 
+    def create_config(
+        self,
+        feature_flags: Optional[dict[str, Any]] = None,
+        modules: Optional[dict[str, bool]] = None,
+        dest: Optional[Path] = None,
+    ) -> Path:
+        """
+        Create a custom overlay configuration.
+
+        This is a convenience wrapper around create_overlay_config that provides
+        sensible defaults if no feature_flags are specified.
+
+        Args:
+            feature_flags: Feature flag values (defaults to demo config if None)
+            modules: Module enablement settings
+            dest: Destination path
+
+        Returns:
+            Path to created config file
+        """
+        if feature_flags is None:
+            # Use demo config defaults
+            return self.create_demo_config(dest=dest)
+
+        return self.create_overlay_config(
+            feature_flags=feature_flags,
+            modules=modules,
+            dest=dest,
+        )
+
     def create_demo_config(self, dest: Optional[Path] = None) -> Path:
         """
         Create a demo overlay configuration.
