@@ -3,8 +3,9 @@
 Language-specific agent for Java codebases.
 """
 
+import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from agents.core.agent_framework import AgentConfig, AgentType
 from agents.design_time.code_repo_agent import CodeRepoAgent
@@ -46,49 +47,33 @@ class JavaAgent(CodeRepoAgent):
     async def _collect_sarif_oss_fallback(self) -> Optional[Dict[str, Any]]:
         """Collect SARIF using OSS tools (CodeQL, Semgrep, SpotBugs)."""
         try:
-            import asyncio
             import json
 
-            # Try CodeQL (using async subprocess)
-            try:
-                process = await asyncio.create_subprocess_exec(
-                    "codeql",
-                    "database",
-                    "analyze",
-                    "--format=sarif",
-                    self.repo_path,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=600
-                )
+            # Try CodeQL
+            codeql_cmd = [
+                "codeql",
+                "database",
+                "analyze",
+                "--format=sarif",
+                self.repo_path,
+            ]
+            returncode, stdout, _ = await self._run_subprocess_async(
+                codeql_cmd,
+                timeout=600,
+            )
 
-                if process.returncode == 0 and stdout:
-                    return json.loads(stdout.decode())
-            except (asyncio.TimeoutError, FileNotFoundError) as e:
-                logger.warning(f"CodeQL failed: {e}")
+            if returncode == 0:
+                return json.loads(stdout)
 
-            # Try Semgrep (using async subprocess)
-            try:
-                process = await asyncio.create_subprocess_exec(
-                    "semgrep",
-                    "--config",
-                    "p/java",
-                    "--json",
-                    self.repo_path,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=300
-                )
+            # Try Semgrep
+            semgrep_cmd = ["semgrep", "--config", "p/java", "--json", self.repo_path]
+            returncode, stdout, _ = await self._run_subprocess_async(
+                semgrep_cmd,
+                timeout=300,
+            )
 
-                # Semgrep returns 0 for no matches, 1 for matches found
-                if process.returncode in [0, 1] and stdout:
-                    return self._semgrep_to_sarif(json.loads(stdout.decode()))
-            except (asyncio.TimeoutError, FileNotFoundError) as e:
-                logger.warning(f"Semgrep failed: {e}")
+            if returncode in (0, 1):
+                return self._semgrep_to_sarif(json.loads(stdout))
 
         except Exception as e:
             logger.error(f"Error in OSS fallback: {e}")
@@ -127,19 +112,40 @@ class JavaAgent(CodeRepoAgent):
 
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        # Normalize Semgrep findings before conversion
         findings = []
         for result in semgrep_data.get("results", []):
+            start = result.get("start", {})
+            extra = result.get("extra", {})
             findings.append(
                 {
                     "rule_id": result.get("check_id", ""),
-                    "severity": result.get("extra", {}).get("severity", "warning"),
+                    "severity": extra.get("severity", "warning"),
                     "file": result.get("path", ""),
-                    "line": result.get("start", {}).get("line", 0),
-                    "column": result.get("start", {}).get("col", 0),
-                    "message": result.get("extra", {}).get(
-                        "message", result.get("check_id", "")
-                    ),
+                    "line": start.get("line", 0),
+                    "column": start.get("col", 0),
+                    "message": extra.get("message") or result.get("message", ""),
                 }
             )
         return self._findings_to_sarif(findings, "Semgrep")
+
+    async def _run_subprocess_async(
+        self,
+        cmd: List[str],
+        cwd: Optional[str] = None,
+        timeout: Optional[int] = None,
+    ) -> Tuple[int, str, str]:
+        """Run subprocess without blocking the event loop."""
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=cwd,
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout)
+        except asyncio.TimeoutError:
+            process.kill()
+            stdout, stderr = await process.communicate()
+            raise RuntimeError(f"Command timed out: {' '.join(cmd)}")
+
+        return process.returncode, stdout.decode(), stderr.decode()

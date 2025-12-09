@@ -49,7 +49,7 @@ class GoAgent(CodeRepoAgent):
             import json
             import subprocess
 
-            # Try Semgrep (exit code 1 when matches are found)
+            # Try Semgrep
             result = subprocess.run(
                 ["semgrep", "--config", "p/go", "--json", self.repo_path],
                 capture_output=True,
@@ -57,14 +57,10 @@ class GoAgent(CodeRepoAgent):
                 timeout=300,
             )
 
-            # Semgrep returns 0 for no matches, 1 for matches found
-            if result.returncode in [0, 1] and result.stdout:
-                try:
-                    return self._semgrep_to_sarif(json.loads(result.stdout))
-                except json.JSONDecodeError:
-                    logger.warning("Failed to parse Semgrep output")
+            if result.returncode == 0:
+                return self._semgrep_to_sarif(json.loads(result.stdout))
 
-            # Try Gosec (exit code 1 when vulnerabilities are found)
+            # Try Gosec
             result = subprocess.run(
                 ["gosec", "-fmt", "json", "./..."],
                 cwd=self.repo_path,
@@ -73,12 +69,8 @@ class GoAgent(CodeRepoAgent):
                 timeout=180,
             )
 
-            # Gosec returns 0 for no issues, 1 when vulnerabilities are found
-            if result.returncode in [0, 1] and result.stdout:
-                try:
-                    return self._gosec_to_sarif(json.loads(result.stdout))
-                except json.JSONDecodeError:
-                    logger.warning("Failed to parse Gosec output")
+            if result.returncode in (0, 1):
+                return self._gosec_to_sarif(json.loads(result.stdout))
 
         except Exception as e:
             logger.error(f"Error in OSS fallback: {e}")
@@ -117,22 +109,7 @@ class GoAgent(CodeRepoAgent):
 
     def _semgrep_to_sarif(self, semgrep_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Semgrep output to SARIF."""
-        # Normalize Semgrep findings before conversion
-        findings = []
-        for result in semgrep_data.get("results", []):
-            findings.append(
-                {
-                    "rule_id": result.get("check_id", ""),
-                    "severity": result.get("extra", {}).get("severity", "warning"),
-                    "file": result.get("path", ""),
-                    "line": result.get("start", {}).get("line", 0),
-                    "column": result.get("start", {}).get("col", 0),
-                    "message": result.get("extra", {}).get(
-                        "message", result.get("check_id", "")
-                    ),
-                }
-            )
-        return self._findings_to_sarif(findings, "Semgrep")
+        return self._findings_to_sarif(semgrep_data.get("results", []), "Semgrep")
 
     def _gosec_to_sarif(self, gosec_data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert Gosec output to SARIF."""

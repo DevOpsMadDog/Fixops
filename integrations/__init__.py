@@ -1,1 +1,1 @@
-"""External system integrations used by FixOps."""
+"""Integration modules for FixOps."""

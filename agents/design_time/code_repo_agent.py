@@ -142,6 +142,11 @@ class CodeRepoAgent(BaseAgent):
         """Collect SARIF data by running security scan."""
         try:
             # Use proprietary analyzer or OSS fallback
+            from risk.reachability.analyzer import VulnerabilityReachabilityAnalyzer
+
+            _analyzer = VulnerabilityReachabilityAnalyzer(config={})  # noqa: F841
+
+            # Run scan (simplified - would run actual scan)
             # In real implementation, would run proprietary or OSS scanner
             return {
                 "version": "2.1.0",
