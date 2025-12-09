@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class SecretType(Enum):
     """Secret types."""
-    
+
     API_KEY = "api_key"
     PASSWORD = "password"
     ACCESS_TOKEN = "access_token"
@@ -31,7 +31,7 @@ class SecretType(Enum):
 @dataclass
 class SecretFinding:
     """Secret finding."""
-    
+
     secret_type: SecretType
     severity: str  # critical, high, medium, low
     file_path: str
@@ -45,7 +45,7 @@ class SecretFinding:
 @dataclass
 class SecretsDetectionResult:
     """Secrets detection result."""
-    
+
     findings: List[SecretFinding]
     total_findings: int
     findings_by_type: Dict[str, int]
@@ -55,7 +55,7 @@ class SecretsDetectionResult:
 
 class SecretsDetector:
     """FixOps Secrets Detector - Proprietary secrets scanning."""
-    
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize secrets detector."""
         self.config = config or {}
@@ -64,7 +64,7 @@ class SecretsDetector:
             "exclude_paths",
             [".git", "node_modules", "venv", "__pycache__", ".venv"],
         )
-    
+
     def _build_secret_patterns(self) -> Dict[SecretType, List[Dict[str, Any]]]:
         """Build proprietary secret detection patterns."""
         return {
@@ -74,7 +74,7 @@ class SecretsDetector:
                     "severity": "high",
                 },
                 {
-                    "pattern": r'(?:api[_-]?key|apikey)\s*[=:]\s*([A-Za-z0-9_\-]{20,})',
+                    "pattern": r"(?:api[_-]?key|apikey)\s*[=:]\s*([A-Za-z0-9_\-]{20,})",
                     "severity": "high",
                 },
             ],
@@ -92,7 +92,7 @@ class SecretsDetector:
             ],
             SecretType.PRIVATE_KEY: [
                 {
-                    "pattern": r'-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----',
+                    "pattern": r"-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----",
                     "severity": "critical",
                 },
             ],
@@ -108,7 +108,7 @@ class SecretsDetector:
             ],
             SecretType.GCP_CREDENTIAL: [
                 {
-                    "pattern": r'type:\s*service_account',
+                    "pattern": r"type:\s*service_account",
                     "severity": "high",
                 },
                 {
@@ -123,12 +123,12 @@ class SecretsDetector:
                 },
             ],
         }
-    
+
     def scan(self, path: Path) -> SecretsDetectionResult:
         """Scan codebase for secrets."""
         findings = []
         files_scanned = 0
-        
+
         # Find all code files
         code_extensions = {
             ".py",
@@ -146,45 +146,47 @@ class SecretsDetector:
             ".conf",
             ".config",
         }
-        
+
         for file_path in path.rglob("*"):
             if file_path.is_file() and file_path.suffix in code_extensions:
                 # Check if excluded
                 if any(exclude in str(file_path) for exclude in self.exclude_paths):
                     continue
-                
+
                 try:
                     file_findings = self._scan_file(file_path)
                     findings.extend(file_findings)
                     files_scanned += 1
                 except Exception as e:
                     logger.warning(f"Failed to scan {file_path}: {e}")
-        
+
         return self._build_result(findings, files_scanned)
-    
+
     def _scan_file(self, file_path: Path) -> List[SecretFinding]:
         """Scan a single file for secrets."""
         findings = []
-        
+
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")
             lines = content.split("\n")
-            
+
             for secret_type, patterns in self.patterns.items():
                 for pattern_config in patterns:
                     pattern = pattern_config["pattern"]
                     severity = pattern_config["severity"]
-                    
-                    matches = re.finditer(pattern, content, re.IGNORECASE | re.MULTILINE)
-                    
+
+                    matches = re.finditer(
+                        pattern, content, re.IGNORECASE | re.MULTILINE
+                    )
+
                     for match in matches:
                         line_number = content[: match.start()].count("\n") + 1
-                        
+
                         # Get context (3 lines before and after)
                         context_start = max(0, line_number - 4)
                         context_end = min(len(lines), line_number + 2)
                         context = "\n".join(lines[context_start:context_end])
-                        
+
                         finding = SecretFinding(
                             secret_type=secret_type,
                             severity=severity,
@@ -194,14 +196,14 @@ class SecretsDetector:
                             context=context,
                             recommendation=self._get_recommendation(secret_type),
                         )
-                        
+
                         findings.append(finding)
-        
+
         except Exception as e:
             logger.warning(f"Failed to scan file {file_path}: {e}")
-        
+
         return findings
-    
+
     def _get_recommendation(self, secret_type: SecretType) -> str:
         """Get recommendation for secret type."""
         recommendations = {
@@ -213,18 +215,20 @@ class SecretsDetector:
             SecretType.GCP_CREDENTIAL: "Use service account keys stored securely",
             SecretType.GITHUB_TOKEN: "Use GitHub secrets or environment variables",
         }
-        return recommendations.get(secret_type, "Remove hardcoded secrets and use secure storage")
-    
+        return recommendations.get(
+            secret_type, "Remove hardcoded secrets and use secure storage"
+        )
+
     def _build_result(
         self, findings: List[SecretFinding], files_scanned: int
     ) -> SecretsDetectionResult:
         """Build secrets detection result."""
         findings_by_type: Dict[str, int] = {}
-        
+
         for finding in findings:
             secret_type = finding.secret_type.value
             findings_by_type[secret_type] = findings_by_type.get(secret_type, 0) + 1
-        
+
         return SecretsDetectionResult(
             findings=findings,
             total_findings=len(findings),

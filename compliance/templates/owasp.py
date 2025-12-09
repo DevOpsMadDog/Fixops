@@ -8,25 +8,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from compliance.templates.base import ComplianceTemplate, ComplianceRule
+from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 
 @dataclass
 class OWASPRule(ComplianceRule):
     """OWASP compliance rule."""
-    
+
     owasp_category: str  # A01, A02, etc.
     cwe_ids: List[str] = None
 
 
 class OWASPTemplate(ComplianceTemplate):
     """OWASP Top 10 compliance template."""
-    
+
     def __init__(self):
         """Initialize OWASP template."""
         super().__init__("OWASP Top 10", "2021")
         self.rules = self._build_owasp_rules()
-    
+
     def _build_owasp_rules(self) -> List[OWASPRule]:
         """Build OWASP Top 10 rules."""
         return [
@@ -165,36 +165,41 @@ class OWASPTemplate(ComplianceTemplate):
                 ],
             ),
         ]
-    
+
     def get_rules_by_category(self, category: str) -> List[OWASPRule]:
         """Get rules for specific OWASP category."""
         return [r for r in self.rules if r.owasp_category == category]
-    
+
     def assess_compliance(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Assess OWASP Top 10 compliance."""
         compliance_by_category = {}
-        
+
         for rule in self.rules:
             category = rule.owasp_category
             category_findings = [
-                f for f in findings
+                f
+                for f in findings
                 if any(cwe in f.get("cwe_ids", []) for cwe in rule.cwe_ids)
             ]
-            
+
             compliance_by_category[category] = {
                 "name": rule.name,
                 "compliant": len(category_findings) == 0,
                 "findings_count": len(category_findings),
                 "severity": rule.severity,
             }
-        
+
         total_categories = len(compliance_by_category)
         compliant_categories = sum(
             1 for c in compliance_by_category.values() if c["compliant"]
         )
-        
-        compliance_score = (compliant_categories / total_categories * 100) if total_categories > 0 else 0
-        
+
+        compliance_score = (
+            (compliant_categories / total_categories * 100)
+            if total_categories > 0
+            else 0
+        )
+
         return {
             "framework": "OWASP Top 10",
             "version": "2021",

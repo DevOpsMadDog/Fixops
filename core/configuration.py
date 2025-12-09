@@ -129,6 +129,9 @@ _ALLOWED_OVERLAY_KEYS = {
     "telemetry_bridge",
     "profiles",
     "feature_flags",
+    "analysis_engines",
+    "oss_tools_config_path",
+    "fallback",
 }
 
 
@@ -615,6 +618,9 @@ class _OverlayDocument(BaseModel):
     telemetry_bridge: Optional[Dict[str, Any]] = None
     profiles: Optional[Dict[str, Dict[str, Any]]] = None
     feature_flags: Optional[Dict[str, Any]] = None
+    analysis_engines: Optional[Dict[str, Any]] = None
+    oss_tools_config_path: Optional[str] = None
+    fallback: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -679,7 +685,11 @@ class OverlayConfig:
     tenancy: Dict[str, Any] = field(default_factory=dict)
     performance: Dict[str, Any] = field(default_factory=dict)
     enhanced_decision: Dict[str, Any] = field(default_factory=dict)
+    decision_tree: Dict[str, Any] = field(default_factory=dict)
     telemetry_bridge: Dict[str, Any] = field(default_factory=dict)
+    analysis_engines: Dict[str, Any] = field(default_factory=dict)
+    oss_tools_config_path: Optional[str] = None
+    fallback: Dict[str, Any] = field(default_factory=dict)
     allowed_data_roots: tuple[Path, ...] = field(
         default_factory=lambda: (_DEFAULT_DATA_ROOT,)
     )
@@ -1353,6 +1363,9 @@ def load_overlay(
         "enhanced_decision": document.enhanced_decision or {},
         "decision_tree": document.decision_tree or {},
         "telemetry_bridge": document.telemetry_bridge or {},
+        "analysis_engines": document.analysis_engines or {},
+        "oss_tools_config_path": document.oss_tools_config_path,
+        "fallback": document.fallback or {},
     }
 
     selected_mode = str(base["mode"]).lower()

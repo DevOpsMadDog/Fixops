@@ -298,69 +298,77 @@ from agents.design_time.code_repo_agent import CodeRepoAgent
 from agents.runtime.container_agent import ContainerAgent
 from agents.language.python_agent import PythonAgent
 
-# Initialize framework
-framework = AgentFramework(
-    fixops_api_url="https://api.fixops.com",
-    fixops_api_key="your-api-key"
-)
+import asyncio
 
-# Create design-time agent
-code_repo_config = AgentConfig(
-    agent_id="github-main-repo",
-    agent_type=AgentType.DESIGN_TIME,
-    name="GitHub Main Repository",
-    enabled=True,
-    polling_interval=60,
-)
 
-code_repo_agent = CodeRepoAgent(
-    config=code_repo_config,
-    fixops_api_url="https://api.fixops.com",
-    fixops_api_key="your-api-key",
-    repo_url="https://github.com/org/repo",
-    repo_branch="main",
-)
+async def main():
+    # Initialize framework
+    framework = AgentFramework(
+        fixops_api_url="https://api.fixops.com",
+        fixops_api_key="your-api-key"
+    )
 
-# Create runtime agent
-container_config = AgentConfig(
-    agent_id="docker-runtime",
-    agent_type=AgentType.RUNTIME,
-    name="Docker Runtime",
-    enabled=True,
-    polling_interval=60,
-)
+    # Create design-time agent
+    code_repo_config = AgentConfig(
+        agent_id="github-main-repo",
+        agent_type=AgentType.DESIGN_TIME,
+        name="GitHub Main Repository",
+        enabled=True,
+        polling_interval=60,
+    )
 
-container_agent = ContainerAgent(
-    config=container_config,
-    fixops_api_url="https://api.fixops.com",
-    fixops_api_key="your-api-key",
-    container_runtime="docker",
-)
+    code_repo_agent = CodeRepoAgent(
+        config=code_repo_config,
+        fixops_api_url="https://api.fixops.com",
+        fixops_api_key="your-api-key",
+        repo_url="https://github.com/org/repo",
+        repo_branch="main",
+    )
 
-# Create language-specific agent
-python_config = AgentConfig(
-    agent_id="python-main-repo",
-    agent_type=AgentType.LANGUAGE,
-    name="Python Main Repository",
-    enabled=True,
-    polling_interval=60,
-)
+    # Create runtime agent
+    container_config = AgentConfig(
+        agent_id="docker-runtime",
+        agent_type=AgentType.RUNTIME,
+        name="Docker Runtime",
+        enabled=True,
+        polling_interval=60,
+    )
 
-python_agent = PythonAgent(
-    config=python_config,
-    fixops_api_url="https://api.fixops.com",
-    fixops_api_key="your-api-key",
-    repo_url="https://github.com/org/python-repo",
-    repo_branch="main",
-)
+    container_agent = ContainerAgent(
+        config=container_config,
+        fixops_api_url="https://api.fixops.com",
+        fixops_api_key="your-api-key",
+        container_runtime="docker",
+    )
 
-# Register agents
-framework.register_agent(code_repo_agent)
-framework.register_agent(container_agent)
-framework.register_agent(python_agent)
+    # Create language-specific agent
+    python_config = AgentConfig(
+        agent_id="python-main-repo",
+        agent_type=AgentType.LANGUAGE,
+        name="Python Main Repository",
+        enabled=True,
+        polling_interval=60,
+    )
 
-# Start all agents
-await framework.start_all()
+    python_agent = PythonAgent(
+        config=python_config,
+        fixops_api_url="https://api.fixops.com",
+        fixops_api_key="your-api-key",
+        repo_url="https://github.com/org/python-repo",
+        repo_branch="main",
+    )
+
+    # Register agents
+    framework.register_agent(code_repo_agent)
+    framework.register_agent(container_agent)
+    framework.register_agent(python_agent)
+
+    # Start all agents
+    await framework.start_all()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ---
@@ -370,7 +378,7 @@ await framework.start_all()
 1. **Automatic Data Push**: No manual uploads needed
 2. **Real-Time Monitoring**: Continuous monitoring of systems
 3. **Design-to-Runtime Correlation**: Links design-time to runtime
-4. **Language Support**: All languages supported via language agents
+4. **Language Support**: Production agents for Python, JavaScript, Java, and Go today; additional languages queued on roadmap
 5. **OSS Fallback**: Uses OSS tools if proprietary fails
 6. **Scalable**: Can monitor hundreds of systems
 7. **Flexible**: Configurable via overlay
@@ -391,7 +399,7 @@ await framework.start_all()
 
 **Agent system built** for automatic data push from design-time to runtime.
 
-**Supports all languages** via language-specific agents.
+**Supports key languages today** (Python, JavaScript, Java, Go) with clear path to broaden coverage.
 
 **Configurable via overlay** for flexible deployment.
 

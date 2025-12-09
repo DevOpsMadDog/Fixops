@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GitRepository:
     """Represents a Git repository for analysis."""
-    
+
     url: str
     branch: str = "main"
     commit: Optional[str] = None
@@ -28,12 +28,12 @@ class GitRepository:
     auth_token: Optional[str] = None
     auth_username: Optional[str] = None
     auth_password: Optional[str] = None
-    
+
     def __post_init__(self):
         """Validate repository URL."""
         if not self.url:
             raise ValueError("Repository URL is required")
-        
+
         # Normalize URL
         if not self.url.startswith(("http://", "https://", "git@", "git://")):
             # Assume it's a GitHub-style URL
@@ -46,7 +46,7 @@ class GitRepository:
 @dataclass
 class RepositoryMetadata:
     """Metadata about a cloned repository."""
-    
+
     url: str
     branch: str
     commit: str
@@ -60,7 +60,7 @@ class RepositoryMetadata:
 
 class GitRepositoryAnalyzer:
     """Enterprise-grade Git repository analyzer for reachability analysis."""
-    
+
     def __init__(
         self,
         workspace_dir: Optional[Path] = None,
@@ -68,7 +68,7 @@ class GitRepositoryAnalyzer:
         config: Optional[Mapping[str, Any]] = None,
     ):
         """Initialize Git repository analyzer.
-        
+
         Parameters
         ----------
         workspace_dir
@@ -79,33 +79,35 @@ class GitRepositoryAnalyzer:
             Configuration options for Git operations.
         """
         self.config = config or {}
-        self.workspace_dir = workspace_dir or Path(tempfile.gettempdir()) / "fixops_repos"
+        self.workspace_dir = (
+            workspace_dir or Path(tempfile.gettempdir()) / "fixops_repos"
+        )
         self.cache_dir = cache_dir or self.workspace_dir / "cache"
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.max_repo_size_mb = self.config.get("max_repo_size_mb", 500)
         self.clone_timeout_seconds = self.config.get("clone_timeout_seconds", 300)
         self.cleanup_after_analysis = self.config.get("cleanup_after_analysis", False)
         self.enable_caching = self.config.get("enable_caching", True)
-        
+
         # Track cloned repositories
         self._cloned_repos: Dict[str, Path] = {}
-    
+
     def clone_repository(
         self,
         repository: GitRepository,
         force_refresh: bool = False,
     ) -> Path:
         """Clone a Git repository for analysis.
-        
+
         Parameters
         ----------
         repository
             Repository configuration.
         force_refresh
             If True, re-clone even if cached.
-        
+
         Returns
         -------
         Path
@@ -114,7 +116,7 @@ class GitRepositoryAnalyzer:
         # Generate cache key
         cache_key = self._generate_cache_key(repository)
         cached_path = self.cache_dir / cache_key
-        
+
         # Check cache
         if (
             self.enable_caching
@@ -125,26 +127,30 @@ class GitRepositoryAnalyzer:
             logger.info(f"Using cached repository: {cached_path}")
             self._cloned_repos[repository.url] = cached_path
             return cached_path
-        
+
         # Clone to temporary location first
         temp_path = self.workspace_dir / f"temp_{cache_key}"
-        
+
         try:
             # Prepare clone command
             clone_url = self._prepare_clone_url(repository)
-            
+
             # Clone repository
-            logger.info(f"Cloning repository: {repository.url} (branch: {repository.branch})")
-            
+            logger.info(
+                f"Cloning repository: {repository.url} (branch: {repository.branch})"
+            )
+
             clone_cmd = [
                 "git",
                 "clone",
-                "--depth", "1",  # Shallow clone for speed
-                "--branch", repository.branch,
+                "--depth",
+                "1",  # Shallow clone for speed
+                "--branch",
+                repository.branch,
                 clone_url,
                 str(temp_path),
             ]
-            
+
             # Add authentication if provided
             env = os.environ.copy()
             if repository.auth_token:
@@ -152,7 +158,7 @@ class GitRepositoryAnalyzer:
                     clone_cmd[2] = f"https://{repository.auth_token}@github.com"
                 elif "gitlab.com" in repository.url:
                     clone_cmd[2] = f"https://oauth2:{repository.auth_token}@gitlab.com"
-            
+
             # Execute clone
             result = subprocess.run(
                 clone_cmd,
@@ -161,12 +167,12 @@ class GitRepositoryAnalyzer:
                 timeout=self.clone_timeout_seconds,
                 env=env,
             )
-            
+
             if result.returncode != 0:
                 raise RuntimeError(
                     f"Git clone failed: {result.stderr}\nCommand: {' '.join(clone_cmd)}"
                 )
-            
+
             # Check repository size
             repo_size_mb = self._get_directory_size(temp_path) / (1024 * 1024)
             if repo_size_mb > self.max_repo_size_mb:
@@ -174,7 +180,7 @@ class GitRepositoryAnalyzer:
                     f"Repository size ({repo_size_mb:.1f} MB) exceeds limit "
                     f"({self.max_repo_size_mb} MB)"
                 )
-            
+
             # Checkout specific commit if provided
             if repository.commit:
                 logger.info(f"Checking out commit: {repository.commit}")
@@ -184,7 +190,7 @@ class GitRepositoryAnalyzer:
                     check=True,
                     capture_output=True,
                 )
-            
+
             # Move to cache if enabled
             if self.enable_caching:
                 if cached_path.exists():
@@ -193,30 +199,32 @@ class GitRepositoryAnalyzer:
                 final_path = cached_path
             else:
                 final_path = temp_path
-            
+
             self._cloned_repos[repository.url] = final_path
             logger.info(f"Repository cloned successfully: {final_path}")
-            
+
             return final_path
-            
+
         except subprocess.TimeoutExpired:
             if temp_path.exists():
                 shutil.rmtree(temp_path, ignore_errors=True)
-            raise RuntimeError(f"Git clone timed out after {self.clone_timeout_seconds} seconds")
+            raise RuntimeError(
+                f"Git clone timed out after {self.clone_timeout_seconds} seconds"
+            )
         except Exception as e:
             if temp_path.exists():
                 shutil.rmtree(temp_path, ignore_errors=True)
             logger.error(f"Failed to clone repository: {e}")
             raise
-    
+
     def get_repository_metadata(self, repo_path: Path) -> RepositoryMetadata:
         """Extract metadata from a cloned repository.
-        
+
         Parameters
         ----------
         repo_path
             Path to cloned repository.
-        
+
         Returns
         -------
         RepositoryMetadata
@@ -224,7 +232,7 @@ class GitRepositoryAnalyzer:
         """
         if not (repo_path / ".git").exists():
             raise ValueError(f"Not a Git repository: {repo_path}")
-        
+
         # Get commit info
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -233,7 +241,7 @@ class GitRepositoryAnalyzer:
             text=True,
             check=True,
         ).stdout.strip()
-        
+
         commit_message = subprocess.run(
             ["git", "log", "-1", "--pretty=%s"],
             cwd=repo_path,
@@ -241,7 +249,7 @@ class GitRepositoryAnalyzer:
             text=True,
             check=True,
         ).stdout.strip()
-        
+
         commit_author = subprocess.run(
             ["git", "log", "-1", "--pretty=%an"],
             cwd=repo_path,
@@ -249,7 +257,7 @@ class GitRepositoryAnalyzer:
             text=True,
             check=True,
         ).stdout.strip()
-        
+
         commit_date = subprocess.run(
             ["git", "log", "-1", "--pretty=%ai"],
             cwd=repo_path,
@@ -257,7 +265,7 @@ class GitRepositoryAnalyzer:
             text=True,
             check=True,
         ).stdout.strip()
-        
+
         # Get branch
         branch = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -266,7 +274,7 @@ class GitRepositoryAnalyzer:
             text=True,
             check=True,
         ).stdout.strip()
-        
+
         # Get remote URL
         try:
             remote_url = subprocess.run(
@@ -278,10 +286,12 @@ class GitRepositoryAnalyzer:
             ).stdout.strip()
         except subprocess.CalledProcessError:
             remote_url = "unknown"
-        
+
         # Analyze file distribution
-        file_count, language_dist, total_lines = self._analyze_repository_structure(repo_path)
-        
+        file_count, language_dist, total_lines = self._analyze_repository_structure(
+            repo_path
+        )
+
         return RepositoryMetadata(
             url=remote_url,
             branch=branch,
@@ -293,7 +303,7 @@ class GitRepositoryAnalyzer:
             language_distribution=language_dist,
             total_lines=total_lines,
         )
-    
+
     def _analyze_repository_structure(
         self, repo_path: Path
     ) -> tuple[int, Dict[str, int], int]:
@@ -301,7 +311,7 @@ class GitRepositoryAnalyzer:
         file_count = 0
         language_dist: Dict[str, int] = {}
         total_lines = 0
-        
+
         # Language extensions mapping
         lang_extensions = {
             ".py": "Python",
@@ -319,7 +329,7 @@ class GitRepositoryAnalyzer:
             ".kt": "Kotlin",
             ".scala": "Scala",
         }
-        
+
         # Ignore patterns
         ignore_patterns = {
             ".git",
@@ -333,26 +343,26 @@ class GitRepositoryAnalyzer:
             "dist",
             ".gradle",
         }
-        
+
         for root, dirs, files in os.walk(repo_path):
             # Filter ignored directories
             dirs[:] = [d for d in dirs if d not in ignore_patterns]
-            
+
             for file in files:
                 file_path = Path(root) / file
                 rel_path = file_path.relative_to(repo_path)
-                
+
                 # Skip ignored files
                 if any(part in ignore_patterns for part in rel_path.parts):
                     continue
-                
+
                 file_count += 1
                 ext = file_path.suffix.lower()
-                
+
                 if ext in lang_extensions:
                     lang = lang_extensions[ext]
                     language_dist[lang] = language_dist.get(lang, 0) + 1
-                
+
                 # Count lines (for supported languages)
                 if ext in lang_extensions:
                     try:
@@ -361,13 +371,13 @@ class GitRepositoryAnalyzer:
                             total_lines += lines
                     except Exception:
                         pass
-        
+
         return file_count, language_dist, total_lines
-    
+
     def _generate_cache_key(self, repository: GitRepository) -> str:
         """Generate cache key for repository."""
         import hashlib
-        
+
         key_parts = [
             repository.url,
             repository.branch,
@@ -375,25 +385,27 @@ class GitRepositoryAnalyzer:
         ]
         key_string = "|".join(key_parts)
         return hashlib.sha256(key_string.encode()).hexdigest()[:16]
-    
+
     def _prepare_clone_url(self, repository: GitRepository) -> str:
         """Prepare clone URL with authentication if needed."""
         url = repository.url
-        
+
         # Handle authentication
         if repository.auth_token:
             parsed = urlparse(url)
             if "github.com" in parsed.netloc:
                 url = url.replace("https://", f"https://{repository.auth_token}@")
             elif "gitlab.com" in parsed.netloc:
-                url = url.replace("https://", f"https://oauth2:{repository.auth_token}@")
+                url = url.replace(
+                    "https://", f"https://oauth2:{repository.auth_token}@"
+                )
         elif repository.auth_username and repository.auth_password:
             parsed = urlparse(url)
             auth_string = f"{repository.auth_username}:{repository.auth_password}@"
             url = url.replace(f"{parsed.scheme}://", f"{parsed.scheme}://{auth_string}")
-        
+
         return url
-    
+
     def _get_directory_size(self, path: Path) -> int:
         """Calculate total size of directory in bytes."""
         total = 0
@@ -406,20 +418,20 @@ class GitRepositoryAnalyzer:
         except (OSError, PermissionError):
             pass
         return total
-    
+
     def cleanup_repository(self, repository: GitRepository) -> None:
         """Clean up cloned repository."""
         if repository.url in self._cloned_repos:
             repo_path = self._cloned_repos[repository.url]
-            
+
             # Only cleanup if not cached or if cleanup is forced
             if not self.enable_caching or self.cleanup_after_analysis:
                 if repo_path.exists():
                     logger.info(f"Cleaning up repository: {repo_path}")
                     shutil.rmtree(repo_path, ignore_errors=True)
-            
+
             del self._cloned_repos[repository.url]
-    
+
     def cleanup_all(self) -> None:
         """Clean up all cloned repositories."""
         for repo_url in list(self._cloned_repos.keys()):
@@ -427,7 +439,7 @@ class GitRepositoryAnalyzer:
             if repo_path.exists() and not self.enable_caching:
                 shutil.rmtree(repo_path, ignore_errors=True)
         self._cloned_repos.clear()
-    
+
     def get_cloned_path(self, repository: GitRepository) -> Optional[Path]:
         """Get path to cloned repository if already cloned."""
         return self._cloned_repos.get(repository.url)

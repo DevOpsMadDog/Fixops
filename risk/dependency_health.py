@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class MaintenanceStatus(Enum):
     """Maintenance status of dependency."""
-    
+
     ACTIVE = "active"  # Recent updates
     SLOW = "slow"  # Infrequent updates
     STALE = "stale"  # No updates in 1+ year
@@ -26,7 +26,7 @@ class MaintenanceStatus(Enum):
 
 class SecurityPosture(Enum):
     """Security posture of dependency."""
-    
+
     SECURE = "secure"  # No known vulnerabilities
     VULNERABLE = "vulnerable"  # Has vulnerabilities
     CRITICAL = "critical"  # Has critical vulnerabilities
@@ -36,7 +36,7 @@ class SecurityPosture(Enum):
 @dataclass
 class DependencyHealth:
     """Dependency health information."""
-    
+
     name: str
     version: str
     package_manager: str
@@ -53,7 +53,7 @@ class DependencyHealth:
 @dataclass
 class DependencyHealthReport:
     """Dependency health report."""
-    
+
     dependencies: List[DependencyHealth]
     total_dependencies: int
     healthy_count: int
@@ -65,13 +65,13 @@ class DependencyHealthReport:
 
 class DependencyHealthMonitor:
     """FixOps Dependency Health Monitor - Proprietary health tracking."""
-    
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize dependency health monitor."""
         self.config = config or {}
         self.update_history: Dict[str, List[datetime]] = defaultdict(list)
         self.vulnerability_data: Dict[str, List[Dict[str, Any]]] = {}
-    
+
     def monitor_dependency(
         self,
         name: str,
@@ -86,27 +86,27 @@ class DependencyHealthMonitor:
             age_days = (datetime.now(timezone.utc) - last_update_date).days
         else:
             age_days = 999  # Unknown age
-        
+
         # Determine maintenance status
         maintenance_status = self._determine_maintenance_status(age_days)
-        
+
         # Determine security posture
         vulnerabilities = vulnerabilities or []
         critical_vulns = [v for v in vulnerabilities if v.get("severity") == "critical"]
         security_posture = self._determine_security_posture(
             len(vulnerabilities), len(critical_vulns)
         )
-        
+
         # Calculate health score
         health_score = self._calculate_health_score(
             age_days, maintenance_status, security_posture, len(vulnerabilities)
         )
-        
+
         # Generate recommendations
         recommendations = self._generate_recommendations(
             maintenance_status, security_posture, age_days, len(vulnerabilities)
         )
-        
+
         return DependencyHealth(
             name=name,
             version=version,
@@ -120,13 +120,13 @@ class DependencyHealthMonitor:
             health_score=health_score,
             recommendations=recommendations,
         )
-    
+
     def monitor_all_dependencies(
         self, dependencies: List[Dict[str, Any]]
     ) -> DependencyHealthReport:
         """Monitor all dependencies."""
         health_data = []
-        
+
         for dep in dependencies:
             health = self.monitor_dependency(
                 name=dep.get("name", "unknown"),
@@ -136,18 +136,18 @@ class DependencyHealthMonitor:
                 vulnerabilities=dep.get("vulnerabilities", []),
             )
             health_data.append(health)
-        
+
         # Calculate statistics
         healthy_count = sum(1 for h in health_data if h.health_score >= 70)
         at_risk_count = sum(1 for h in health_data if 50 <= h.health_score < 70)
         critical_count = sum(1 for h in health_data if h.health_score < 50)
-        
+
         avg_score = (
             sum(h.health_score for h in health_data) / len(health_data)
             if health_data
             else 0.0
         )
-        
+
         return DependencyHealthReport(
             dependencies=health_data,
             total_dependencies=len(health_data),
@@ -156,7 +156,7 @@ class DependencyHealthMonitor:
             critical_count=critical_count,
             average_health_score=round(avg_score, 2),
         )
-    
+
     def _determine_maintenance_status(self, age_days: int) -> MaintenanceStatus:
         """Determine maintenance status based on age."""
         if age_days < 30:
@@ -169,7 +169,7 @@ class DependencyHealthMonitor:
             return MaintenanceStatus.ABANDONED
         else:
             return MaintenanceStatus.UNKNOWN
-    
+
     def _determine_security_posture(
         self, vuln_count: int, critical_vuln_count: int
     ) -> SecurityPosture:
@@ -180,7 +180,7 @@ class DependencyHealthMonitor:
             return SecurityPosture.VULNERABLE
         else:
             return SecurityPosture.SECURE
-    
+
     def _calculate_health_score(
         self,
         age_days: int,
@@ -190,7 +190,7 @@ class DependencyHealthMonitor:
     ) -> float:
         """Calculate dependency health score (0-100)."""
         score = 100.0
-        
+
         # Age penalty
         if age_days < 30:
             score -= 0  # No penalty
@@ -200,7 +200,7 @@ class DependencyHealthMonitor:
             score -= 15
         else:
             score -= 30
-        
+
         # Maintenance status penalty
         status_penalties = {
             MaintenanceStatus.ACTIVE: 0,
@@ -210,7 +210,7 @@ class DependencyHealthMonitor:
             MaintenanceStatus.UNKNOWN: 10,
         }
         score -= status_penalties.get(maintenance_status, 10)
-        
+
         # Security posture penalty
         posture_penalties = {
             SecurityPosture.SECURE: 0,
@@ -219,12 +219,12 @@ class DependencyHealthMonitor:
             SecurityPosture.UNKNOWN: 5,
         }
         score -= posture_penalties.get(security_posture, 5)
-        
+
         # Vulnerability count penalty
         score -= min(20, vuln_count * 2)  # Max 20 point penalty
-        
+
         return max(0.0, min(100.0, score))
-    
+
     def _generate_recommendations(
         self,
         maintenance_status: MaintenanceStatus,
@@ -234,21 +234,27 @@ class DependencyHealthMonitor:
     ) -> List[str]:
         """Generate health recommendations."""
         recommendations = []
-        
+
         if maintenance_status == MaintenanceStatus.ABANDONED:
-            recommendations.append("Consider replacing with actively maintained alternative")
+            recommendations.append(
+                "Consider replacing with actively maintained alternative"
+            )
         elif maintenance_status == MaintenanceStatus.STALE:
             recommendations.append("Monitor for updates or consider alternatives")
-        
+
         if security_posture == SecurityPosture.CRITICAL:
-            recommendations.append("URGENT: Update or replace due to critical vulnerabilities")
+            recommendations.append(
+                "URGENT: Update or replace due to critical vulnerabilities"
+            )
         elif security_posture == SecurityPosture.VULNERABLE:
             recommendations.append("Update to latest version to fix vulnerabilities")
-        
+
         if age_days > 365:
             recommendations.append("Package has not been updated in over a year")
-        
+
         if vuln_count > 5:
-            recommendations.append("Multiple vulnerabilities detected - consider alternative")
-        
+            recommendations.append(
+                "Multiple vulnerabilities detected - consider alternative"
+            )
+
         return recommendations

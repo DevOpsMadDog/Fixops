@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class AnalysisConfidence(Enum):
     """Confidence levels for proprietary analysis."""
-    
+
     VERY_HIGH = "very_high"  # >90%
     HIGH = "high"  # 70-90%
     MEDIUM = "medium"  # 50-70%
@@ -31,7 +31,7 @@ class AnalysisConfidence(Enum):
 @dataclass
 class ProprietaryCodePath:
     """Proprietary code path representation."""
-    
+
     source_file: str
     start_line: int
     end_line: int
@@ -47,7 +47,7 @@ class ProprietaryCodePath:
 @dataclass
 class ProprietaryVulnerabilityMatch:
     """Proprietary vulnerability pattern match."""
-    
+
     cve_id: str
     pattern_type: str
     matched_location: Tuple[str, int]  # (file, line)
@@ -59,7 +59,7 @@ class ProprietaryVulnerabilityMatch:
 
 class ProprietaryPatternMatcher:
     """Proprietary pattern matching engine - no regex, custom algorithms."""
-    
+
     def __init__(self):
         """Initialize proprietary pattern matcher."""
         # Proprietary pattern database (not OSS)
@@ -68,7 +68,7 @@ class ProprietaryPatternMatcher:
         self._xss_patterns = self._build_xss_patterns()
         self._path_traversal_patterns = self._build_path_patterns()
         self._deserialization_patterns = self._build_deserialization_patterns()
-    
+
     def _build_sql_patterns(self) -> List[Dict[str, Any]]:
         """Build proprietary SQL injection patterns."""
         return [
@@ -91,7 +91,7 @@ class ProprietaryPatternMatcher:
                 "indicators": ["%", "format"],
             },
         ]
-    
+
     def _build_command_patterns(self) -> List[Dict[str, Any]]:
         """Build proprietary command injection patterns."""
         return [
@@ -108,7 +108,7 @@ class ProprietaryPatternMatcher:
                 "indicators": ["user_input", "request", "param"],
             },
         ]
-    
+
     def _build_xss_patterns(self) -> List[Dict[str, Any]]:
         """Build proprietary XSS patterns."""
         return [
@@ -125,7 +125,7 @@ class ProprietaryPatternMatcher:
                 "indicators": ["|safe", "|raw", "autoescape=False"],
             },
         ]
-    
+
     def _build_path_patterns(self) -> List[Dict[str, Any]]:
         """Build proprietary path traversal patterns."""
         return [
@@ -142,7 +142,7 @@ class ProprietaryPatternMatcher:
                 "indicators": ["user_input", "request.path"],
             },
         ]
-    
+
     def _build_deserialization_patterns(self) -> List[Dict[str, Any]]:
         """Build proprietary deserialization patterns."""
         return [
@@ -165,28 +165,28 @@ class ProprietaryPatternMatcher:
                 "indicators": ["object_hook", "custom_decoder"],
             },
         ]
-    
+
     def match_patterns(
         self, code_content: str, language: str, file_path: str
     ) -> List[ProprietaryVulnerabilityMatch]:
         """Proprietary pattern matching algorithm."""
         matches = []
-        
+
         if language == "python":
             matches.extend(self._match_python_patterns(code_content, file_path))
         elif language in ("javascript", "typescript"):
             matches.extend(self._match_javascript_patterns(code_content, file_path))
         elif language == "java":
             matches.extend(self._match_java_patterns(code_content, file_path))
-        
+
         return matches
-    
+
     def _match_python_patterns(
         self, code: str, file_path: str
     ) -> List[ProprietaryVulnerabilityMatch]:
         """Proprietary Python pattern matching."""
         matches = []
-        
+
         try:
             tree = ast.parse(code, filename=file_path)
             visitor = ProprietaryPythonVisitor(self, file_path)
@@ -194,24 +194,28 @@ class ProprietaryPatternMatcher:
             matches.extend(visitor.matches)
         except SyntaxError:
             logger.warning(f"Failed to parse Python file: {file_path}")
-        
+
         return matches
-    
+
     def _match_javascript_patterns(
         self, code: str, file_path: str
     ) -> List[ProprietaryVulnerabilityMatch]:
         """Proprietary JavaScript pattern matching."""
         matches = []
-        
+
         # Proprietary JavaScript AST parsing (simplified for now)
         # In production, this would use custom parser
-        
+
         # Pattern: dangerous function calls
         dangerous_functions = [
-            "eval", "Function", "setTimeout", "setInterval",
-            "innerHTML", "document.write",
+            "eval",
+            "Function",
+            "setTimeout",
+            "setInterval",
+            "innerHTML",
+            "document.write",
         ]
-        
+
         for func in dangerous_functions:
             pattern = rf"\b{func}\s*\("
             for match in re.finditer(pattern, code):
@@ -227,21 +231,21 @@ class ProprietaryPatternMatcher:
                         exploitability_score=0.6,
                     )
                 )
-        
+
         return matches
-    
+
     def _match_java_patterns(
         self, code: str, file_path: str
     ) -> List[ProprietaryVulnerabilityMatch]:
         """Proprietary Java pattern matching."""
         matches = []
-        
+
         # Proprietary Java pattern matching
         sql_patterns = [
             r"Statement\s*\.\s*execute\s*\(",
             r"PreparedStatement\s*\.\s*executeQuery\s*\(",
         ]
-        
+
         for pattern in sql_patterns:
             for match in re.finditer(pattern, code):
                 line_num = code[: match.start()].count("\n") + 1
@@ -256,13 +260,13 @@ class ProprietaryPatternMatcher:
                         exploitability_score=0.7,
                     )
                 )
-        
+
         return matches
 
 
 class ProprietaryPythonVisitor(ast.NodeVisitor):
     """Proprietary AST visitor for Python code analysis."""
-    
+
     def __init__(self, matcher: ProprietaryPatternMatcher, file_path: str):
         """Initialize visitor."""
         self.matcher = matcher
@@ -271,29 +275,29 @@ class ProprietaryPythonVisitor(ast.NodeVisitor):
         self.current_function: Optional[str] = None
         self.current_class: Optional[str] = None
         self.variable_sources: Dict[str, str] = {}  # Track variable sources
-    
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Visit function definition."""
         old_function = self.current_function
         self.current_function = node.name
         self.generic_visit(node)
         self.current_function = old_function
-    
+
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Visit class definition."""
         old_class = self.current_class
         self.current_class = node.name
         self.generic_visit(node)
         self.current_class = old_class
-    
+
     def visit_Call(self, node: ast.Call) -> None:
         """Visit function call - proprietary vulnerability detection."""
         func_name = self._extract_function_name(node.func)
-        
+
         if not func_name:
             self.generic_visit(node)
             return
-        
+
         # Check against proprietary pattern database
         for pattern_set in [
             self.matcher._sql_injection_patterns,
@@ -306,7 +310,7 @@ class ProprietaryPythonVisitor(ast.NodeVisitor):
                 if func_name in pattern.get("functions", []):
                     # Check if user input flows to this function
                     has_user_input = self._check_user_input_flow(node)
-                    
+
                     if has_user_input:
                         match = ProprietaryVulnerabilityMatch(
                             cve_id="CUSTOM-DETECTED",
@@ -325,9 +329,9 @@ class ProprietaryPythonVisitor(ast.NodeVisitor):
                             exploitability_score=0.8 if has_user_input else 0.4,
                         )
                         self.matches.append(match)
-        
+
         self.generic_visit(node)
-    
+
     def _extract_function_name(self, node: ast.AST) -> Optional[str]:
         """Extract function name from AST node."""
         if isinstance(node, ast.Name):
@@ -337,7 +341,7 @@ class ProprietaryPythonVisitor(ast.NodeVisitor):
         elif isinstance(node, ast.Call):
             return self._extract_function_name(node.func)
         return None
-    
+
     def _check_user_input_flow(self, node: ast.Call) -> bool:
         """Proprietary algorithm to check if user input flows to function."""
         # Check arguments for user input indicators
@@ -352,34 +356,32 @@ class ProprietaryPythonVisitor(ast.NodeVisitor):
             "kwargs",
             "data",
         ]
-        
+
         for arg in node.args:
             if isinstance(arg, ast.Name):
                 var_name = arg.id.lower()
                 if any(indicator in var_name for indicator in user_input_indicators):
                     return True
-        
+
         # Check keyword arguments
         for keyword in node.keywords:
             if isinstance(keyword.value, ast.Name):
                 var_name = keyword.value.id.lower()
                 if any(indicator in var_name for indicator in user_input_indicators):
                     return True
-        
+
         return False
 
 
 class ProprietaryCallGraphBuilder:
     """Proprietary call graph builder - no NetworkX dependency."""
-    
+
     def __init__(self):
         """Initialize proprietary call graph builder."""
         self.graph: Dict[str, Dict[str, Any]] = {}
         self.entry_points: Set[str] = set()
-    
-    def build_from_repository(
-        self, repo_path: Path, language: str
-    ) -> Dict[str, Any]:
+
+    def build_from_repository(self, repo_path: Path, language: str) -> Dict[str, Any]:
         """Build proprietary call graph from repository."""
         if language == "python":
             return self._build_python_graph(repo_path)
@@ -389,26 +391,26 @@ class ProprietaryCallGraphBuilder:
             return self._build_java_graph(repo_path)
         else:
             return {}
-    
+
     def _build_python_graph(self, repo_path: Path) -> Dict[str, Any]:
         """Build proprietary Python call graph."""
         graph = {}
-        
+
         python_files = list(repo_path.rglob("*.py"))
         ignore_dirs = {".git", "node_modules", "venv", "__pycache__", "vendor"}
         python_files = [
             f for f in python_files if not any(part in ignore_dirs for part in f.parts)
         ]
-        
+
         for py_file in python_files:
             try:
                 with open(py_file, "r", encoding="utf-8") as f:
                     content = f.read()
-                
+
                 tree = ast.parse(content, filename=str(py_file))
                 builder = ProprietaryCallGraphBuilderVisitor(str(py_file))
                 builder.visit(tree)
-                
+
                 # Merge into main graph
                 for func_name, func_info in builder.graph.items():
                     if func_name not in graph:
@@ -423,36 +425,36 @@ class ProprietaryCallGraphBuilder:
                         graph[func_name]["callees"] = list(
                             set(graph[func_name]["callees"])
                         )
-                
+
                 # Track entry points
                 self.entry_points.update(builder.entry_points)
-            
+
             except Exception as e:
                 logger.warning(f"Failed to build graph for {py_file}: {e}")
-        
+
         return {
             "graph": graph,
             "entry_points": list(self.entry_points),
             "total_functions": len(graph),
         }
-    
+
     def _build_javascript_graph(self, repo_path: Path) -> Dict[str, Any]:
         """Build proprietary JavaScript call graph."""
         # Proprietary JavaScript call graph building
         graph = {}
-        
+
         js_files = list(repo_path.rglob("*.js")) + list(repo_path.rglob("*.ts"))
         ignore_dirs = {".git", "node_modules", "vendor", "dist", "build"}
         js_files = [
             f for f in js_files if not any(part in ignore_dirs for part in f.parts)
         ]
-        
+
         # Proprietary JavaScript parser (simplified)
         for js_file in js_files:
             try:
                 with open(js_file, "r", encoding="utf-8") as f:
                     content = f.read()
-                
+
                 # Proprietary pattern matching for function definitions
                 function_pattern = r"function\s+(\w+)\s*\("
                 for match in re.finditer(function_pattern, content):
@@ -465,31 +467,31 @@ class ProprietaryCallGraphBuilder:
                             "callees": [],
                             "is_exported": "export" in content[: match.start()],
                         }
-            
+
             except Exception as e:
                 logger.warning(f"Failed to build graph for {js_file}: {e}")
-        
+
         return {
             "graph": graph,
             "entry_points": [f for f, info in graph.items() if info.get("is_exported")],
             "total_functions": len(graph),
         }
-    
+
     def _build_java_graph(self, repo_path: Path) -> Dict[str, Any]:
         """Build proprietary Java call graph."""
         graph = {}
-        
+
         java_files = list(repo_path.rglob("*.java"))
         ignore_dirs = {".git", "target", "build", "out"}
         java_files = [
             f for f in java_files if not any(part in ignore_dirs for part in f.parts)
         ]
-        
+
         for java_file in java_files:
             try:
                 with open(java_file, "r", encoding="utf-8") as f:
                     content = f.read()
-                
+
                 # Proprietary Java method detection
                 method_pattern = r"(public|private|protected)?\s*\w+\s+(\w+)\s*\("
                 for match in re.finditer(method_pattern, content):
@@ -502,10 +504,10 @@ class ProprietaryCallGraphBuilder:
                             "callees": [],
                             "is_public": "public" in match.group(0),
                         }
-            
+
             except Exception as e:
                 logger.warning(f"Failed to build graph for {java_file}: {e}")
-        
+
         return {
             "graph": graph,
             "entry_points": [f for f, info in graph.items() if info.get("is_public")],
@@ -515,7 +517,7 @@ class ProprietaryCallGraphBuilder:
 
 class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):
     """Proprietary AST visitor for call graph construction."""
-    
+
     def __init__(self, file_path: str):
         """Initialize visitor."""
         self.file_path = file_path
@@ -523,20 +525,18 @@ class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):
         self.entry_points: Set[str] = set()
         self.current_function: Optional[str] = None
         self.current_class: Optional[str] = None
-    
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Visit function definition."""
         func_name = node.name
         full_name = (
-            f"{self.current_class}.{func_name}"
-            if self.current_class
-            else func_name
+            f"{self.current_class}.{func_name}" if self.current_class else func_name
         )
-        
+
         # Check if it's an entry point
         if not func_name.startswith("_") or func_name == "__main__":
             self.entry_points.add(full_name)
-        
+
         if full_name not in self.graph:
             self.graph[full_name] = {
                 "file": self.file_path,
@@ -545,25 +545,25 @@ class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):
                 "callees": [],
                 "is_public": not func_name.startswith("_"),
             }
-        
+
         old_function = self.current_function
         self.current_function = full_name
         self.generic_visit(node)
         self.current_function = old_function
-    
+
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Visit class definition."""
         old_class = self.current_class
         self.current_class = node.name
         self.generic_visit(node)
         self.current_class = old_class
-    
+
     def visit_Call(self, node: ast.Call) -> None:
         """Visit function call."""
         if not self.current_function:
             self.generic_visit(node)
             return
-        
+
         called_func = self._extract_function_name(node.func)
         if called_func:
             # Add to callees
@@ -575,12 +575,12 @@ class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):
                     "callees": [],
                     "is_public": True,
                 }
-            
+
             # Add relationship
             if self.current_function in self.graph:
                 if called_func not in self.graph[self.current_function]["callees"]:
                     self.graph[self.current_function]["callees"].append(called_func)
-            
+
             if called_func in self.graph:
                 caller_info = {
                     "function": self.current_function,
@@ -589,9 +589,9 @@ class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):
                 }
                 if caller_info not in self.graph[called_func]["callers"]:
                     self.graph[called_func]["callers"].append(caller_info)
-        
+
         self.generic_visit(node)
-    
+
     def _extract_function_name(self, node: ast.AST) -> Optional[str]:
         """Extract function name."""
         if isinstance(node, ast.Name):
@@ -603,7 +603,7 @@ class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):
 
 class ProprietaryDataFlowAnalyzer:
     """Proprietary data flow analyzer - custom taint analysis."""
-    
+
     def __init__(self):
         """Initialize proprietary data flow analyzer."""
         self.taint_sources = {
@@ -636,7 +636,7 @@ class ProprietaryDataFlowAnalyzer:
             "filter",
             "encode",
         }
-    
+
     def analyze_taint_flow(
         self, code_content: str, language: str, file_path: str
     ) -> List[Dict[str, Any]]:
@@ -647,13 +647,11 @@ class ProprietaryDataFlowAnalyzer:
             return self._analyze_javascript_taint(code_content, file_path)
         else:
             return []
-    
-    def _analyze_python_taint(
-        self, code: str, file_path: str
-    ) -> List[Dict[str, Any]]:
+
+    def _analyze_python_taint(self, code: str, file_path: str) -> List[Dict[str, Any]]:
         """Proprietary Python taint analysis."""
         flows = []
-        
+
         try:
             tree = ast.parse(code, filename=file_path)
             analyzer = ProprietaryTaintAnalyzer(self, file_path)
@@ -661,19 +659,19 @@ class ProprietaryDataFlowAnalyzer:
             flows.extend(analyzer.taint_flows)
         except SyntaxError:
             logger.warning(f"Failed to parse Python for taint analysis: {file_path}")
-        
+
         return flows
-    
+
     def _analyze_javascript_taint(
         self, code: str, file_path: str
     ) -> List[Dict[str, Any]]:
         """Proprietary JavaScript taint analysis."""
         flows = []
-        
+
         # Proprietary JavaScript taint tracking
         lines = code.split("\n")
         tainted_vars = set()
-        
+
         for line_num, line in enumerate(lines, 1):
             # Detect taint sources
             for source in self.taint_sources:
@@ -682,7 +680,7 @@ class ProprietaryDataFlowAnalyzer:
                     var_match = re.search(rf"(\w+)\s*=\s*.*{source}", line)
                     if var_match:
                         tainted_vars.add(var_match.group(1))
-            
+
             # Detect taint sinks
             for sink in self.taint_sinks:
                 if sink in line.lower():
@@ -698,7 +696,7 @@ class ProprietaryDataFlowAnalyzer:
                                     "is_sanitized": False,
                                 }
                             )
-            
+
             # Detect sanitizers
             for sanitizer in self.sanitizers:
                 if sanitizer in line.lower():
@@ -706,13 +704,13 @@ class ProprietaryDataFlowAnalyzer:
                     var_match = re.search(rf"(\w+)\s*=\s*.*{sanitizer}", line)
                     if var_match:
                         tainted_vars.discard(var_match.group(1))
-        
+
         return flows
 
 
 class ProprietaryTaintAnalyzer(ast.NodeVisitor):
     """Proprietary taint analyzer for Python."""
-    
+
     def __init__(self, analyzer: ProprietaryDataFlowAnalyzer, file_path: str):
         """Initialize taint analyzer."""
         self.analyzer = analyzer
@@ -720,7 +718,7 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
         self.tainted_vars: Set[str] = set()
         self.taint_flows: List[Dict[str, Any]] = []
         self.current_function: Optional[str] = None
-    
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Visit function definition."""
         old_function = self.current_function
@@ -731,7 +729,7 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
         self.current_function = old_function
         self.tainted_vars = old_tainted
-    
+
     def visit_Assign(self, node: ast.Assign) -> None:
         """Visit assignment - track taint propagation."""
         # Check if right side is a taint source
@@ -742,19 +740,19 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         self.tainted_vars.add(target.id)
-        
+
         # Check if right side uses tainted variable
         if self._uses_tainted_variable(node.value):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     self.tainted_vars.add(target.id)
-        
+
         self.generic_visit(node)
-    
+
     def visit_Call(self, node: ast.Call) -> None:
         """Visit function call - detect taint sinks."""
         func_name = self._extract_function_name(node.func)
-        
+
         if func_name and func_name.lower() in self.analyzer.taint_sinks:
             # Check if tainted variable flows to sink
             if self._uses_tainted_variable(node):
@@ -767,9 +765,9 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
                         "is_sanitized": False,
                     }
                 )
-        
+
         self.generic_visit(node)
-    
+
     def _extract_function_name(self, node: ast.AST) -> Optional[str]:
         """Extract function name."""
         if isinstance(node, ast.Name):
@@ -777,7 +775,7 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
         elif isinstance(node, ast.Attribute):
             return node.attr
         return None
-    
+
     def _uses_tainted_variable(self, node: ast.AST) -> bool:
         """Check if node uses tainted variable."""
         if isinstance(node, ast.Name):
@@ -796,14 +794,14 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
 
 class ProprietaryReachabilityAnalyzer:
     """Proprietary reachability analyzer - completely custom, no OSS."""
-    
+
     def __init__(self, config: Optional[Mapping[str, Any]] = None):
         """Initialize proprietary analyzer."""
         self.config = config or {}
         self.pattern_matcher = ProprietaryPatternMatcher()
         self.call_graph_builder = ProprietaryCallGraphBuilder()
         self.data_flow_analyzer = ProprietaryDataFlowAnalyzer()
-    
+
     def analyze_repository(
         self,
         repo_path: Path,
@@ -817,43 +815,43 @@ class ProprietaryReachabilityAnalyzer:
             "data_flows": [],
             "reachability": {},
         }
-        
+
         # Build proprietary call graph
         call_graph_data = self.call_graph_builder.build_from_repository(
             repo_path, language
         )
         results["call_graph"] = call_graph_data
-        
+
         # Analyze each file
         code_files = self._get_code_files(repo_path, language)
-        
+
         for code_file in code_files:
             try:
                 with open(code_file, "r", encoding="utf-8") as f:
                     content = f.read()
-                
+
                 # Proprietary pattern matching
                 matches = self.pattern_matcher.match_patterns(
                     content, language, str(code_file)
                 )
                 results["matches"].extend(matches)
-                
+
                 # Proprietary data flow analysis
                 flows = self.data_flow_analyzer.analyze_taint_flow(
                     content, language, str(code_file)
                 )
                 results["data_flows"].extend(flows)
-            
+
             except Exception as e:
                 logger.warning(f"Failed to analyze {code_file}: {e}")
-        
+
         # Determine reachability
         results["reachability"] = self._determine_reachability(
             results["matches"], call_graph_data, results["data_flows"]
         )
-        
+
         return results
-    
+
     def _get_code_files(self, repo_path: Path, language: str) -> List[Path]:
         """Get code files for language."""
         extensions = {
@@ -862,14 +860,22 @@ class ProprietaryReachabilityAnalyzer:
             "typescript": ["*.ts", "*.tsx"],
             "java": ["*.java"],
         }
-        
+
         files = []
         for ext in extensions.get(language, []):
             files.extend(repo_path.rglob(ext))
-        
-        ignore_dirs = {".git", "node_modules", "venv", "__pycache__", "vendor", "target", "build"}
+
+        ignore_dirs = {
+            ".git",
+            "node_modules",
+            "venv",
+            "__pycache__",
+            "vendor",
+            "target",
+            "build",
+        }
         return [f for f in files if not any(part in ignore_dirs for part in f.parts)]
-    
+
     def _determine_reachability(
         self,
         matches: List[ProprietaryVulnerabilityMatch],
@@ -879,28 +885,28 @@ class ProprietaryReachabilityAnalyzer:
         """Proprietary reachability determination algorithm."""
         reachable_matches = []
         unreachable_matches = []
-        
+
         graph = call_graph.get("graph", {})
         entry_points = call_graph.get("entry_points", [])
-        
+
         for match in matches:
             file_path, line_num = match.matched_location
             func_name = match.context.get("function")
-            
+
             if func_name and func_name in graph:
                 func_info = graph[func_name]
                 callers = func_info.get("callers", [])
-                
+
                 # Check if function is reachable from entry points
                 is_reachable = self._is_reachable_from_entries(
                     func_name, entry_points, graph
                 )
-                
+
                 # Check data flow
                 has_data_flow = any(
                     flow.get("sink") == func_name for flow in data_flows
                 )
-                
+
                 if is_reachable or has_data_flow:
                     reachable_matches.append(match)
                 else:
@@ -908,7 +914,7 @@ class ProprietaryReachabilityAnalyzer:
             else:
                 # Unknown function - assume reachable for safety
                 reachable_matches.append(match)
-        
+
         return {
             "reachable_count": len(reachable_matches),
             "unreachable_count": len(unreachable_matches),
@@ -930,7 +936,7 @@ class ProprietaryReachabilityAnalyzer:
                 for m in unreachable_matches
             ],
         }
-    
+
     def _is_reachable_from_entries(
         self, func_name: str, entry_points: List[str], graph: Dict[str, Any]
     ) -> bool:
@@ -938,18 +944,18 @@ class ProprietaryReachabilityAnalyzer:
         # BFS from entry points
         visited = set()
         queue = deque(entry_points)
-        
+
         while queue:
             current = queue.popleft()
             if current in visited:
                 continue
             visited.add(current)
-            
+
             if current == func_name:
                 return True
-            
+
             if current in graph:
                 callees = graph[current].get("callees", [])
                 queue.extend(callees)
-        
+
         return False

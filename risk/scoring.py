@@ -248,12 +248,12 @@ def _score_vulnerability(
     reachability_factor = 1.0
     reachability_confidence = 0.0
     is_reachable = None
-    
+
     if reachability_result:
         is_reachable = reachability_result.get("is_reachable", False)
         confidence = reachability_result.get("confidence_score", 0.0)
         reachability_confidence = confidence
-        
+
         # Adjust score based on reachability with high confidence
         if not is_reachable and confidence >= 0.8:
             # High confidence NOT reachable - reduce score significantly
@@ -286,11 +286,12 @@ def _score_vulnerability(
 
     total_weight = sum(enhanced_weights.values())
     weighted_score = sum(
-        contributions[key] * enhanced_weights.get(key, 0.0) 
-        for key in contributions if key in enhanced_weights
+        contributions[key] * enhanced_weights.get(key, 0.0)
+        for key in contributions
+        if key in enhanced_weights
     )
     normalized_score = weighted_score / total_weight if total_weight else 0.0
-    
+
     # Apply reachability factor
     final_score = round(normalized_score * 100 * reachability_factor, 2)
     final_score = min(100.0, max(0.0, final_score))  # Clamp to 0-100
@@ -305,7 +306,9 @@ def _score_vulnerability(
             "is_reachable": is_reachable,
             "confidence": round(reachability_confidence, 3),
             "factor_applied": round(reachability_factor, 2),
-        } if reachability_result else None,
+        }
+        if reachability_result
+        else None,
         "risk_breakdown": {
             "weights": enhanced_weights,
             "contributions": contributions,
@@ -314,7 +317,7 @@ def _score_vulnerability(
         },
         "fixops_risk": final_score,
     }
-    
+
     return result
 
 
@@ -366,10 +369,14 @@ def compute_risk_profile(
                 reachability = None
                 if reachability_results and isinstance(cve_id_for_lookup, str):
                     reachability = reachability_results.get(cve_id_for_lookup.upper())
-                
+
                 scored = _score_vulnerability(
-                    component, vulnerability, epss_scores, kev_entries, weights,
-                    reachability_result=reachability
+                    component,
+                    vulnerability,
+                    epss_scores,
+                    kev_entries,
+                    weights,
+                    reachability_result=reachability,
                 )
                 if not scored:
                     continue
