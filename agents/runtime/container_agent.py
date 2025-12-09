@@ -5,12 +5,11 @@ Monitors container runtime and pushes container scan and runtime metrics.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from agents.core.agent_framework import AgentConfig, AgentData, AgentType, BaseAgent
+from agents.core.agent_framework import AgentConfig, AgentData, BaseAgent
 
 logger = logging.getLogger(__name__)
 
