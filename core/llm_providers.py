@@ -606,11 +606,53 @@ def _response_from_payload(
     )
 
 
+class LLMProviderManager:
+    """Manager class for LLM providers."""
+
+    def __init__(self) -> None:
+        """Initialize the LLM provider manager with default providers."""
+        self.providers: Dict[str, BaseLLMProvider] = {
+            "openai": OpenAIChatProvider("openai"),
+            "anthropic": AnthropicMessagesProvider("anthropic"),
+            "gemini": GeminiProvider("gemini"),
+            "sentinel": SentinelCyberProvider("sentinel"),
+        }
+
+    def get_provider(self, name: str) -> BaseLLMProvider:
+        """Get a provider by name."""
+        if name not in self.providers:
+            return DeterministicLLMProvider(name)
+        return self.providers[name]
+
+    def analyse(
+        self,
+        provider_name: str,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str = "review",
+        default_confidence: float = 0.5,
+        default_reasoning: str = "Default analysis",
+        mitigation_hints: Mapping[str, Any] | None = None,
+    ) -> LLMResponse:
+        """Analyse using a specific provider."""
+        provider = self.get_provider(provider_name)
+        return provider.analyse(
+            prompt=prompt,
+            context=context,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+        )
+
+
 __all__ = [
     "AnthropicMessagesProvider",
     "BaseLLMProvider",
     "DeterministicLLMProvider",
     "GeminiProvider",
+    "LLMProviderManager",
     "LLMResponse",
     "OpenAIChatProvider",
     "SentinelCyberProvider",
