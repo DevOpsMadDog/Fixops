@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Key, Search, Filter, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff, Calendar, GitBranch, FileText, Shield } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
+// Demo data for UI demonstration - uses generic placeholders to avoid false positive security alerts
 const DEMO_SECRETS = [
   {
     id: '1',
     type: 'aws_access_key',
-    value_preview: 'AKIA****************',
+    value_preview: '[redacted - ends with ...X7Q9]',
     file: 'terraform/main.tf',
     line: 89,
     repository: 'infrastructure',
@@ -23,7 +24,7 @@ const DEMO_SECRETS = [
   {
     id: '2',
     type: 'github_token',
-    value_preview: 'ghp_****************',
+    value_preview: '[redacted - ends with ...K2M8]',
     file: '.github/workflows/deploy.yml',
     line: 45,
     repository: 'payment-api',
@@ -38,7 +39,7 @@ const DEMO_SECRETS = [
   {
     id: '3',
     type: 'slack_webhook',
-    value_preview: 'https://hooks.slack.com/services/T****/B****/****',
+    value_preview: '[redacted - webhook URL]',
     file: 'config/notifications.json',
     line: 12,
     repository: 'notification-service',
@@ -53,7 +54,7 @@ const DEMO_SECRETS = [
   {
     id: '4',
     type: 'database_password',
-    value_preview: 'postgres://user:****@localhost:5432/db',
+    value_preview: '[redacted - connection string]',
     file: 'config/database.yml',
     line: 8,
     repository: 'user-service',
@@ -68,7 +69,7 @@ const DEMO_SECRETS = [
   {
     id: '5',
     type: 'api_key',
-    value_preview: 'sk_live_****************',
+    value_preview: '[redacted - ends with ...P4R6]',
     file: 'src/services/payment.ts',
     line: 23,
     repository: 'payment-api',
@@ -83,7 +84,7 @@ const DEMO_SECRETS = [
   {
     id: '6',
     type: 'private_key',
-    value_preview: '-----BEGIN RSA PRIVATE KEY-----\nMIIE****',
+    value_preview: '[redacted - RSA key file]',
     file: 'certs/server.key',
     line: 1,
     repository: 'api-gateway',
@@ -98,7 +99,7 @@ const DEMO_SECRETS = [
   {
     id: '7',
     type: 'jwt_secret',
-    value_preview: 'HS256_****************',
+    value_preview: '[redacted - JWT signing key]',
     file: 'config/auth.js',
     line: 15,
     repository: 'auth-service',
@@ -113,7 +114,7 @@ const DEMO_SECRETS = [
   {
     id: '8',
     type: 'oauth_token',
-    value_preview: 'ya29.****************',
+    value_preview: '[redacted - OAuth token]',
     file: 'src/integrations/google.ts',
     line: 67,
     repository: 'analytics-engine',
