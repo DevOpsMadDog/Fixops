@@ -82,13 +82,14 @@ async def upload_business_context(
         )
 
     except ValueError as e:
+        logger.warning(f"Context processing error: {e}")
         raise HTTPException(
-            status_code=400, detail=f"Context processing error: {str(e)}"
+            status_code=400, detail="Context processing error"
         )
     except Exception as e:
-        logger.error(f"Business context upload failed: {str(e)}")
+        logger.error(f"Business context upload failed: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Upload processing failed: {str(e)}"
+            status_code=500, detail="Upload processing failed"
         )
 
 
@@ -129,8 +130,8 @@ async def get_sample_context(format_type: str, service_name: str = "payment-serv
         )
 
     except Exception as e:
-        logger.error(f"Sample generation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Sample generation failed: {e}")
+        raise HTTPException(status_code=500, detail="Sample generation failed")
 
 
 @router.get("/formats")
@@ -231,11 +232,12 @@ async def validate_business_context(
         }
 
     except ValueError as e:
+        logger.warning(f"Context validation error: {e}")
         return {
             "status": "invalid",
-            "error": str(e),
+            "error": "Validation failed",
             "validation_results": {"format": format_type, "valid": False},
         }
     except Exception as e:
-        logger.error(f"Context validation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Context validation failed: {e}")
+        raise HTTPException(status_code=500, detail="Context validation failed")
