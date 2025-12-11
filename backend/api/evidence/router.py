@@ -48,22 +48,36 @@ def _sanitize_path_component(name: str) -> str:
     return safe_name
 
 
+def _validate_path_within_base(path: Path, base: Path) -> Path:
+    """Validate that a resolved path is within the expected base directory."""
+    resolved_path = path.resolve()
+    resolved_base = base.resolve()
+    if not resolved_path.is_relative_to(resolved_base):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    return resolved_path
+
+
 @router.get("/{release}")
 async def evidence_manifest(release: str, request: Request) -> dict[str, Any]:
     manifest_dir, bundle_dir = _resolve_directories(request)
+    resolved_manifest_dir = manifest_dir.resolve()
+    resolved_bundle_dir = bundle_dir.resolve()
     # Sanitize release name to prevent path traversal
     safe_release = _sanitize_path_component(release)
-    manifest_path = manifest_dir / f"{safe_release}.yaml"
-    # Verify the resolved path is still within the manifest directory
-    if not manifest_path.resolve().is_relative_to(manifest_dir.resolve()):
-        raise HTTPException(status_code=400, detail="Invalid release path")
+    # Construct and validate manifest path
+    manifest_path = _validate_path_within_base(
+        manifest_dir / f"{safe_release}.yaml", resolved_manifest_dir
+    )
     if not manifest_path.is_file():
         raise HTTPException(status_code=404, detail="Evidence manifest not found")
     with manifest_path.open("r", encoding="utf-8") as handle:
         payload = yaml.safe_load(handle) or {}
     if not isinstance(payload, dict):
         raise HTTPException(status_code=500, detail="Malformed evidence manifest")
-    bundle_path = bundle_dir / f"{safe_release}.zip"
+    # Construct and validate bundle path
+    bundle_path = _validate_path_within_base(
+        bundle_dir / f"{safe_release}.zip", resolved_bundle_dir
+    )
     return {
         "tag": safe_release,
         "manifest": payload,

@@ -48,13 +48,23 @@ def _sanitize_upload_id(upload_id: str) -> str:
     return safe_id
 
 
-def _validate_path_within_base(path: Path, base: Path) -> Path:
-    """Validate that a path is within the expected base directory."""
-    resolved_path = path.resolve()
-    resolved_base = base.resolve()
-    if not resolved_path.is_relative_to(resolved_base):
-        raise HTTPException(status_code=400, detail="Invalid path")
-    return resolved_path
+def _get_safe_upload_dir(upload_id: str) -> Path:
+    """Get a safe upload directory path for the given upload_id.
+    
+    This function ensures the path is within UPLOAD_DIR by:
+    1. Sanitizing the upload_id first
+    2. Constructing the path from the sanitized component only
+    3. Verifying the resolved path is within the base directory
+    """
+    safe_id = _sanitize_upload_id(upload_id)
+    # Construct path from sanitized component
+    upload_dir = UPLOAD_DIR / safe_id
+    # Verify the path is within UPLOAD_DIR (defense in depth)
+    resolved_upload_dir = upload_dir.resolve()
+    resolved_base = UPLOAD_DIR.resolve()
+    if not resolved_upload_dir.is_relative_to(resolved_base):
+        raise HTTPException(status_code=400, detail="Invalid upload path")
+    return resolved_upload_dir
 
 
 @router.post("/upload")
@@ -243,11 +253,8 @@ async def upload_chunk(
 ):
     """Upload a chunk"""
     try:
-        # Sanitize upload_id to prevent path traversal
-        safe_upload_id = _sanitize_upload_id(upload_id)
-        upload_dir = UPLOAD_DIR / safe_upload_id
-        # Validate path is within UPLOAD_DIR
-        _validate_path_within_base(upload_dir, UPLOAD_DIR)
+        # Get safe upload directory (sanitizes upload_id and validates path)
+        upload_dir = _get_safe_upload_dir(upload_id)
         
         if not upload_dir.exists():
             raise HTTPException(status_code=404, detail="Upload session not found")
@@ -256,8 +263,8 @@ async def upload_chunk(
         if chunk_index < 0 or chunk_index >= total_chunks:
             raise HTTPException(status_code=400, detail="Invalid chunk index")
         chunk_content = await chunk.read()
+        # Chunk filename is constructed from validated integer, safe by design
         chunk_path = upload_dir / f"chunk_{chunk_index}"
-        _validate_path_within_base(chunk_path, upload_dir)
 
         with open(chunk_path, "wb") as f:
             f.write(chunk_content)
@@ -267,7 +274,7 @@ async def upload_chunk(
             content={
                 "status": "success",
                 "data": {
-                    "upload_id": safe_upload_id,
+                    "upload_id": upload_dir.name,
                     "chunk_index": chunk_index,
                     "message": f"Chunk {chunk_index} received",
                 },
@@ -285,18 +292,14 @@ async def upload_chunk(
 async def complete_chunked_upload(upload_id: str = Form(...)):
     """Complete chunked upload and process file"""
     try:
-        # Sanitize upload_id to prevent path traversal
-        safe_upload_id = _sanitize_upload_id(upload_id)
-        upload_dir = UPLOAD_DIR / safe_upload_id
-        # Validate path is within UPLOAD_DIR
-        _validate_path_within_base(upload_dir, UPLOAD_DIR)
+        # Get safe upload directory (sanitizes upload_id and validates path)
+        upload_dir = _get_safe_upload_dir(upload_id)
         
         if not upload_dir.exists():
             raise HTTPException(status_code=404, detail="Upload session not found")
 
-        # Load metadata with path validation
+        # Load metadata - filename is hardcoded, safe by design
         metadata_path = upload_dir / "metadata.json"
-        _validate_path_within_base(metadata_path, upload_dir)
         with open(metadata_path, "r") as f:
             metadata = json.load(f)
 
