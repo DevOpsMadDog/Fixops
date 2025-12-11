@@ -143,10 +143,10 @@ def get_job_queue() -> JobQueue:
 @router.post("/analyze", response_model=ReachabilityAnalysisResponse)
 async def analyze_reachability(
     request: ReachabilityAnalysisRequest,
+    background_tasks: BackgroundTasks,
     analyzer: ReachabilityAnalyzer = Depends(get_analyzer),
     storage: ReachabilityStorage = Depends(get_storage),
     job_queue: JobQueue = Depends(get_job_queue),
-    background_tasks: Optional[BackgroundTasks] = None,
 ):
     """Analyze vulnerability reachability in a Git repository.
 
