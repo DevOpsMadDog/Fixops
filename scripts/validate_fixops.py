@@ -8,7 +8,7 @@ without requiring all dependencies to be installed.
 import ast
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 WORKSPACE_ROOT = Path(__file__).parent.parent
 
@@ -57,7 +57,7 @@ class CodeValidator:
         except Exception:
             return 0
 
-    def analyze_code_quality(self, path: Path) -> Dict[str, any]:
+    def analyze_code_quality(self, path: Path) -> Dict[str, Any]:
         """Analyze code quality metrics."""
         try:
             with open(path, "r") as f:
@@ -104,10 +104,11 @@ class CodeValidator:
         except Exception as e:
             return {"error": str(e)}
 
-    def validate_implementation_quality(self) -> Dict[str, any]:
+    def validate_implementation_quality(self) -> Dict[str, Any]:
         """Validate implementation quality across all modules."""
-        results = {
-            "modules": {},
+        modules: Dict[str, Any] = {}
+        results: Dict[str, Any] = {
+            "modules": modules,
             "total_lines": 0,
             "total_classes": 0,
             "total_functions": 0,

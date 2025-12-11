@@ -189,7 +189,8 @@ class FixOpsBenchmark:
         meets_loc_target = loc_in_5min >= target_loc_per_5min
         meets_latency_target = metrics.api_latency_p99_ms <= target_api_latency_p99_ms
 
-        report = {
+        recommendations: List[str] = []
+        report: Dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "metrics": {
                 "total_lines_of_code": metrics.total_lines_of_code,
@@ -217,7 +218,7 @@ class FixOpsBenchmark:
                 if (meets_loc_target and meets_latency_target)
                 else "FAIL",
             },
-            "recommendations": [],
+            "recommendations": recommendations,
         }
 
         if not meets_loc_target:

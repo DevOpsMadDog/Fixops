@@ -462,7 +462,7 @@ If no regressions are likely, return empty array.
             all_suggestions.extend(suggestions)
 
         # Group by priority
-        by_priority = {
+        by_priority: Dict[RemediationPriority, List[RemediationSuggestion]] = {
             RemediationPriority.CRITICAL: [],
             RemediationPriority.HIGH: [],
             RemediationPriority.MEDIUM: [],
@@ -555,7 +555,7 @@ If no regressions are likely, return empty array.
 
     def _calculate_total_effort(self, suggestions: List[RemediationSuggestion]) -> str:
         """Calculate total effort estimate."""
-        total_hours = 0
+        total_hours: float = 0.0
 
         for suggestion in suggestions:
             # Parse effort estimate (e.g., "2-4 hours", "1 day")

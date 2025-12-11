@@ -809,7 +809,7 @@ class ProprietaryReachabilityAnalyzer:
         language: str,
     ) -> Dict[str, Any]:
         """Proprietary repository analysis."""
-        results = {
+        results: Dict[str, Any] = {
             "matches": [],
             "call_graph": {},
             "data_flows": [],
@@ -861,7 +861,7 @@ class ProprietaryReachabilityAnalyzer:
             "java": ["*.java"],
         }
 
-        files = []
+        files: List[Path] = []
         for ext in extensions.get(language, []):
             files.extend(repo_path.rglob(ext))
 

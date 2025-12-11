@@ -7,6 +7,11 @@ pytest-asyncio>=0.21.0
 pytest-mock>=3.11.0
 pytest-benchmark>=4.0.0
 pytest-xdist>=3.3.0  # Parallel test execution
+pytest-timeout>=2.2.0  # Test timeout support
+
+# Additional dependencies for tests
+aiohttp>=3.9.0  # Async HTTP client for pentagi tests
+sqlalchemy>=2.0.0  # Database ORM for policy tests
 
 # Code Quality
 pylint>=3.0.0

@@ -318,7 +318,7 @@ class ProprietaryThreatIntelligenceEngine:
 
         # Aggregate signal types
         signal_types = [s.signal_type for s in signals]
-        signal_type_counts = defaultdict(int)
+        signal_type_counts: Dict[str, int] = defaultdict(int)
         for st in signal_types:
             signal_type_counts[st] += 1
 
