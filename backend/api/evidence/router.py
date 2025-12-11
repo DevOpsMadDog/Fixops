@@ -35,19 +35,37 @@ async def list_evidence(request: Request) -> dict[str, Any]:
     return {"count": len(releases), "releases": releases}
 
 
+def _sanitize_path_component(name: str) -> str:
+    """Sanitize a path component to prevent directory traversal attacks.
+
+    Removes any path separators and parent directory references.
+    """
+    # Get just the filename, stripping any directory components
+    safe_name = Path(name).name
+    # Reject if it contains path traversal attempts
+    if ".." in safe_name or "/" in safe_name or "\\" in safe_name:
+        raise HTTPException(status_code=400, detail="Invalid path component")
+    return safe_name
+
+
 @router.get("/{release}")
 async def evidence_manifest(release: str, request: Request) -> dict[str, Any]:
     manifest_dir, bundle_dir = _resolve_directories(request)
-    manifest_path = manifest_dir / f"{release}.yaml"
+    # Sanitize release name to prevent path traversal
+    safe_release = _sanitize_path_component(release)
+    manifest_path = manifest_dir / f"{safe_release}.yaml"
+    # Verify the resolved path is still within the manifest directory
+    if not manifest_path.resolve().is_relative_to(manifest_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid release path")
     if not manifest_path.is_file():
         raise HTTPException(status_code=404, detail="Evidence manifest not found")
     with manifest_path.open("r", encoding="utf-8") as handle:
         payload = yaml.safe_load(handle) or {}
     if not isinstance(payload, dict):
         raise HTTPException(status_code=500, detail="Malformed evidence manifest")
-    bundle_path = bundle_dir / f"{release}.zip"
+    bundle_path = bundle_dir / f"{safe_release}.zip"
     return {
-        "tag": release,
+        "tag": safe_release,
         "manifest": payload,
         "bundle_available": bundle_path.is_file(),
         "bundle_path": str(bundle_path) if bundle_path.is_file() else None,
@@ -57,15 +75,19 @@ async def evidence_manifest(release: str, request: Request) -> dict[str, Any]:
 @router.get("/bundles/{bundle_id}/download")
 async def download_evidence_bundle(bundle_id: str, request: Request):
     """Download evidence bundle by ID."""
-    evidence_base = Path("data/data/evidence")
+    # Sanitize bundle_id to prevent path traversal
+    safe_bundle_id = _sanitize_path_component(bundle_id)
+    evidence_base = Path("data/data/evidence").resolve()
 
     bundle_path = None
     for run_dir in evidence_base.glob("*"):
         if run_dir.is_dir():
             potential_bundle = run_dir / "fixops-demo-run-bundle.json.gz"
             if potential_bundle.exists():
-                bundle_path = potential_bundle
-                break
+                # Verify the bundle path is within the evidence base directory
+                if potential_bundle.resolve().is_relative_to(evidence_base):
+                    bundle_path = potential_bundle
+                    break
 
     if not bundle_path or not bundle_path.exists():
         raise HTTPException(status_code=404, detail="Evidence bundle not found")
@@ -73,9 +95,9 @@ async def download_evidence_bundle(bundle_id: str, request: Request):
     return FileResponse(
         path=str(bundle_path),
         media_type="application/gzip",
-        filename=f"fixops-evidence-{bundle_id}.json.gz",
+        filename=f"fixops-evidence-{safe_bundle_id}.json.gz",
         headers={
-            "Content-Disposition": f'attachment; filename="fixops-evidence-{bundle_id}.json.gz"',
+            "Content-Disposition": f'attachment; filename="fixops-evidence-{safe_bundle_id}.json.gz"',
             "Access-Control-Expose-Headers": "Content-Disposition",
         },
     )

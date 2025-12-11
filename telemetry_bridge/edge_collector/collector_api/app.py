@@ -234,9 +234,21 @@ def sanitize_filename(filename: str) -> str:
 
     Removes any path separators and keeps only alphanumeric, dash, dot, and underscore.
     """
-    safe_filename = re.sub(r"[^a-zA-Z0-9._-]", "_", filename)
+    # First strip any directory components
+    safe_filename = Path(filename).name
+    # Then remove any remaining unsafe characters
+    safe_filename = re.sub(r"[^a-zA-Z0-9._-]", "_", safe_filename)
     safe_filename = safe_filename.replace("..", "_")
     return safe_filename
+
+
+def _validate_path_within_base(path: Path, base: Path) -> Path:
+    """Validate that a path is within the expected base directory."""
+    resolved_path = path.resolve()
+    resolved_base = base.resolve()
+    if not resolved_path.is_relative_to(resolved_base):
+        raise ValueError(f"Path {path} is outside base directory {base}")
+    return resolved_path
 
 
 def upload_evidence_bundle(
@@ -260,11 +272,16 @@ def upload_evidence_bundle(
     elif cloud_provider == "gcp":
         return upload_to_gcs(compressed_data, filename, metadata)
     else:
-        local_path = Path("/app/evidence") / filename
-        local_path.parent.mkdir(parents=True, exist_ok=True)
+        evidence_base = Path("/app/evidence").resolve()
+        evidence_base.mkdir(parents=True, exist_ok=True)
+        # Sanitize filename and validate path is within evidence directory
+        safe_filename = sanitize_filename(filename)
+        local_path = evidence_base / safe_filename
+        _validate_path_within_base(local_path, evidence_base)
         local_path.write_bytes(compressed_data)
 
         metadata_path = local_path.with_suffix(".json")
+        _validate_path_within_base(metadata_path, evidence_base)
         metadata_path.write_text(json.dumps(metadata, indent=2))
 
         logger.info("Successfully saved evidence bundle locally")

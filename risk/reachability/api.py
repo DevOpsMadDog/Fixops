@@ -428,7 +428,7 @@ async def health_check(
         return {
             "status": "unhealthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "error": str(e),
+            "error": "Health check failed",
         }
 
 
@@ -451,5 +451,5 @@ async def get_metrics(
         logger.error(f"Failed to get metrics: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get metrics: {str(e)}",
+            detail="Failed to get metrics",
         )

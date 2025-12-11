@@ -1211,9 +1211,44 @@ def _handle_teams(args: argparse.Namespace) -> int:
     return 0
 
 
+def _hash_password(password: str) -> str:
+    """Hash password using PBKDF2 with SHA-256 (secure password hashing).
+
+    Uses 600,000 iterations as recommended by OWASP for PBKDF2-SHA256.
+    Returns format: salt$iterations$hash
+    """
+    import hashlib
+    import os
+
+    salt = os.urandom(32)
+    iterations = 600000
+    hash_bytes = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, iterations
+    )
+    return f"{salt.hex()}${iterations}${hash_bytes.hex()}"
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """Verify password against stored PBKDF2 hash."""
+    import hashlib
+
+    try:
+        salt_hex, iterations_str, hash_hex = stored_hash.split("$")
+        salt = bytes.fromhex(salt_hex)
+        iterations = int(iterations_str)
+        expected_hash = bytes.fromhex(hash_hex)
+
+        actual_hash = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), salt, iterations
+        )
+        # Use constant-time comparison to prevent timing attacks
+        return actual_hash == expected_hash
+    except (ValueError, AttributeError):
+        return False
+
+
 def _handle_users(args: argparse.Namespace) -> int:
     """Handle user management commands."""
-    import hashlib
     import json
     import os
     import sqlite3
@@ -1264,7 +1299,7 @@ def _handle_users(args: argparse.Namespace) -> int:
     elif args.users_command == "create":
         user_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
-        password_hash = hashlib.sha256(args.password.encode()).hexdigest()
+        password_hash = _hash_password(args.password)
         cursor.execute(
             "INSERT INTO users (id, email, password_hash, first_name, last_name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (

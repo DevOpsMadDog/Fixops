@@ -264,8 +264,8 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
         # Return error status but don't fail completely
         return {
             "status": "error",
-            "error": str(e),
-            "data": {"system_info": {"mode": "error", "error_details": str(e)}},
+            "error": "Failed to get core components status",
+            "data": {"system_info": {"mode": "error"}},
         }
 
 

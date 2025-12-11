@@ -30,7 +30,7 @@ async def feeds_status():
         }
     except Exception as e:
         logger.error(f"feeds_status failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get feeds status")
 
 
 @router.post("/epss/refresh")
@@ -42,7 +42,7 @@ async def epss_refresh():
         return res
     except Exception as e:
         logger.error(f"epss_refresh failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to refresh EPSS feed")
 
 
 @router.post("/kev/refresh")
@@ -54,7 +54,7 @@ async def kev_refresh():
         return res
     except Exception as e:
         logger.error(f"kev_refresh failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to refresh KEV feed")
 
 
 @router.get("/download/{feed}")

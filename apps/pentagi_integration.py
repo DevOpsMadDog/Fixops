@@ -491,4 +491,4 @@ async def health_check() -> Dict:
 
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        return {"status": "unhealthy", "error": str(e)}
+        return {"status": "unhealthy", "error": "Health check failed"}
