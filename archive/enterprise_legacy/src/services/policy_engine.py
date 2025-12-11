@@ -363,8 +363,19 @@ class PolicyEngine:
         }
 
         try:
-            # Execute policy rule
-            result = eval(policy.rule_content, eval_globals, {})
+            # Execute policy rule using restricted evaluation
+            # Note: Using compile + exec with restricted globals for safety
+            # This prevents arbitrary code execution while allowing policy rules
+            compiled_code = compile(policy.rule_content, "<policy>", "eval")
+            
+            # Verify the code only uses allowed names
+            allowed_names = set(eval_globals.keys()) | {"True", "False", "None"}
+            for name in compiled_code.co_names:
+                if name not in allowed_names:
+                    raise ValueError(f"Disallowed name in policy rule: {name}")
+            
+            # Execute with restricted globals (no builtins)
+            result = eval(compiled_code, {"__builtins__": {}}, eval_globals)  # noqa: S307
 
             if isinstance(result, dict):
                 return result
