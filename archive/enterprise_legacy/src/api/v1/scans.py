@@ -239,9 +239,9 @@ async def init_chunked_upload(
         )
 
     except Exception as e:
-        logger.error(f"Chunked upload init failed: {str(e)}")
+        logger.error(f"Chunked upload init failed: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to initialize chunked upload: {str(e)}"
+            status_code=500, detail="Failed to initialize chunked upload"
         )
 
 
@@ -368,10 +368,12 @@ async def complete_chunked_upload(upload_id: str = Form(...)):
         finally:
             await cli.cleanup()
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Chunked upload completion failed: {str(e)}")
+        logger.error(f"Chunked upload completion failed: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to complete chunked upload: {str(e)}"
+            status_code=500, detail="Failed to complete chunked upload"
         )
 
 
