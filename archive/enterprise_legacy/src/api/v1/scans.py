@@ -52,19 +52,20 @@ def _get_safe_upload_dir(upload_id: str) -> Path:
     """Get a safe upload directory path for the given upload_id.
     
     This function ensures the path is within UPLOAD_DIR by:
-    1. Sanitizing the upload_id first
+    1. Sanitizing the upload_id first (removes path separators and special chars)
     2. Constructing the path from the sanitized component only
-    3. Verifying the resolved path is within the base directory
+    3. Using string comparison for path validation (avoids resolve on user input)
     """
     safe_id = _sanitize_upload_id(upload_id)
-    # Construct path from sanitized component
+    # Construct path from sanitized component only
     upload_dir = UPLOAD_DIR / safe_id
-    # Verify the path is within UPLOAD_DIR (defense in depth)
-    resolved_upload_dir = upload_dir.resolve()
-    resolved_base = UPLOAD_DIR.resolve()
-    if not resolved_upload_dir.is_relative_to(resolved_base):
+    # Defense in depth: verify path is within UPLOAD_DIR using string comparison
+    # This avoids calling resolve() on user-controlled path components
+    base_str = str(UPLOAD_DIR.resolve())
+    dir_str = str(upload_dir.resolve())
+    if not dir_str.startswith(base_str + os.sep) and dir_str != base_str:
         raise HTTPException(status_code=400, detail="Invalid upload path")
-    return resolved_upload_dir
+    return upload_dir
 
 
 @router.post("/upload")

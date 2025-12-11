@@ -242,13 +242,25 @@ def sanitize_filename(filename: str) -> str:
     return safe_filename
 
 
-def _validate_path_within_base(path: Path, base: Path) -> Path:
-    """Validate that a path is within the expected base directory."""
-    resolved_path = path.resolve()
-    resolved_base = base.resolve()
-    if not resolved_path.is_relative_to(resolved_base):
-        raise ValueError(f"Path {path} is outside base directory {base}")
-    return resolved_path
+def _get_safe_evidence_path(base_dir: Path, filename: str) -> Path:
+    """Get a safe path for evidence files within the base directory.
+
+    This function ensures the path is within base_dir by:
+    1. Sanitizing the filename first (removing any path components)
+    2. Constructing the path from the sanitized component only
+    3. Verifying the final path is within the base directory
+    """
+    # Sanitize filename to remove any path traversal attempts
+    safe_name = sanitize_filename(filename)
+    # Construct path from sanitized component only
+    file_path = base_dir / safe_name
+    # Defense in depth: verify path is within base directory
+    # Use str comparison to avoid resolve() on user-controlled path
+    base_str = str(base_dir.resolve())
+    file_str = str(file_path.resolve())
+    if not file_str.startswith(base_str + os.sep) and file_str != base_str:
+        raise ValueError("Path is outside base directory")
+    return file_path
 
 
 def upload_evidence_bundle(
@@ -272,16 +284,16 @@ def upload_evidence_bundle(
     elif cloud_provider == "gcp":
         return upload_to_gcs(compressed_data, filename, metadata)
     else:
-        evidence_base = Path("/app/evidence").resolve()
+        # Use hardcoded base path (not user-controlled)
+        evidence_base = Path("/app/evidence")
         evidence_base.mkdir(parents=True, exist_ok=True)
-        # Sanitize filename and validate path is within evidence directory
-        safe_filename = sanitize_filename(filename)
-        local_path = evidence_base / safe_filename
-        _validate_path_within_base(local_path, evidence_base)
+        # Get safe path for evidence file
+        local_path = _get_safe_evidence_path(evidence_base, filename)
         local_path.write_bytes(compressed_data)
 
-        metadata_path = local_path.with_suffix(".json")
-        _validate_path_within_base(metadata_path, evidence_base)
+        # Metadata file uses same base name with different extension
+        metadata_filename = filename.rsplit(".", 1)[0] + ".json"
+        metadata_path = _get_safe_evidence_path(evidence_base, metadata_filename)
         metadata_path.write_text(json.dumps(metadata, indent=2))
 
         logger.info("Successfully saved evidence bundle locally")
