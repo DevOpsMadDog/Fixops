@@ -84,12 +84,11 @@ _JWT_SECRET_FILE = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data")) / ".jwt_se
 
 def _load_or_generate_jwt_secret() -> str:
     """
-    Load JWT secret from environment or file, or generate and persist a new one.
+    Load JWT secret from environment or generate an ephemeral one for demo mode.
 
     Priority:
-    1. FIXOPS_JWT_SECRET environment variable
-    2. Persisted secret file
-    3. Generate new secret and persist to file (demo mode only)
+    1. FIXOPS_JWT_SECRET environment variable (required for production)
+    2. Generate ephemeral secret for demo mode only (tokens won't survive restarts)
 
     Returns:
         str: The JWT secret key
@@ -97,41 +96,23 @@ def _load_or_generate_jwt_secret() -> str:
     Raises:
         ValueError: If no secret is available in non-demo mode
     """
-    # Priority 1: Environment variable
+    # Priority 1: Environment variable (required for production)
     env_secret = os.getenv("FIXOPS_JWT_SECRET")
     if env_secret:
         logger.info("Using JWT signing key from environment variable")
         return env_secret
 
-    # Priority 2: Persisted file
-    try:
-        _JWT_SECRET_FILE.parent.mkdir(parents=True, exist_ok=True)
-        if _JWT_SECRET_FILE.exists():
-            secret = _JWT_SECRET_FILE.read_text().strip()
-            if secret:
-                logger.info("Loaded persisted JWT signing key from file")
-                return secret
-    except Exception as e:
-        logger.warning(f"Failed to read JWT signing key file: {e}")
-
-    # Priority 3: Generate and persist (demo mode only)
+    # Priority 2: Generate ephemeral secret (demo mode only)
+    # Note: We intentionally do NOT persist secrets to disk to avoid clear-text storage
     mode = os.getenv("FIXOPS_MODE", "").lower()
     if mode == "demo":
         secret = secrets.token_hex(32)
-        try:
-            _JWT_SECRET_FILE.write_text(secret)
-            _JWT_SECRET_FILE.chmod(0o600)  # Secure permissions
-            logger.warning(
-                f"Generated and persisted new JWT signing key to {_JWT_SECRET_FILE}. "
-                "For production, set JWT signing key via environment variable."
-            )
-            return secret
-        except Exception as e:
-            logger.error(f"Failed to persist JWT signing key: {e}")
-            logger.warning(
-                "Using non-persisted signing key. Tokens will be invalid after restart."
-            )
-            return secret
+        logger.warning(
+            "Generated ephemeral JWT signing key for demo mode. "
+            "Tokens will be invalid after restart. "
+            "For production, set FIXOPS_JWT_SECRET environment variable."
+        )
+        return secret
     else:
         raise ValueError(
             "FIXOPS_JWT_SECRET environment variable must be set in non-demo mode. "

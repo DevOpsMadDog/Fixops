@@ -179,9 +179,10 @@ async def create_pen_test_request(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create pen test: {str(e)}"
-        )
+        import logging
+
+        logging.getLogger(__name__).error(f"Failed to create pen test: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create pen test")
 
 
 @router.get("/requests/{request_id}")
@@ -405,9 +406,10 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to verify vulnerability: {str(e)}"
-        )
+        import logging
+
+        logging.getLogger(__name__).error(f"Failed to verify vulnerability: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify vulnerability")
 
 
 @router.post("/monitoring", status_code=201)
@@ -432,9 +434,10 @@ async def setup_continuous_monitoring(data: ContinuousMonitoringModel):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to setup monitoring: {str(e)}"
-        )
+        import logging
+
+        logging.getLogger(__name__).error(f"Failed to setup monitoring: {e}")
+        raise HTTPException(status_code=500, detail="Failed to setup monitoring")
 
 
 @router.post("/scan/comprehensive", status_code=201)
@@ -469,8 +472,11 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).error(f"Failed to start comprehensive scan: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to start comprehensive scan: {str(e)}"
+            status_code=500, detail="Failed to start comprehensive scan"
         )
 
 
@@ -505,9 +511,12 @@ def get_finding_exploitability(finding_id: str):
     except HTTPException:
         raise
     except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).error(f"Failed to get exploitability: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to get exploitability: {str(e)}",
+            detail="Failed to get exploitability",
         )
 
 
