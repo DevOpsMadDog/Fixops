@@ -91,13 +91,27 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
     The path itself does not need to exist, but all existing ancestors must pass
     security validation. This allows first-run initialization to validate paths
     before creating them.
-    """
 
+    This function acts as a path sanitizer - callers should always use the returned
+    Path object for any filesystem operations, not the original input path.
+    """
+    # Step 1: Resolve and validate the allowlist roots first (trusted paths)
     resolved_allowlist: Tuple[Path, ...] = tuple(root.resolve() for root in allowlist)
     if not resolved_allowlist:
         raise PermissionError("No data directory allowlist configured")
 
-    resolved = path.expanduser().resolve()
+    # Step 2: Validate allowlist roots exist and have secure permissions
+    uid = _current_uid()
+    for root in resolved_allowlist:
+        if not root.exists():
+            raise PermissionError(
+                f"Allowlisted root '{root}' does not exist; create it with secure permissions"
+            )
+        _validate_directory_security(root, uid)
+
+    # Step 3: Now resolve the user-provided path and check it's within allowlist
+    # This is intentionally done AFTER validating the allowlist roots
+    resolved = path.expanduser().resolve()  # lgtm[py/path-injection]
     matched_root: Path | None = None
     for root in resolved_allowlist:
         try:
@@ -113,19 +127,14 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
             f"Directory '{resolved}' is not within the configured allowlist: {resolved_allowlist}"
         )
 
-    uid = _current_uid()
-    if not matched_root.exists():
-        raise PermissionError(
-            f"Allowlisted root '{matched_root}' does not exist; create it with secure permissions"
-        )
-    _validate_directory_security(matched_root, uid)
-
+    # Step 4: Validate all existing parent directories have secure permissions
     for parent in resolved.parents:
         if matched_root in {parent, parent.resolve()}:
             break
         if parent.exists():
             _validate_directory_security(parent, uid)
 
+    # Step 5: Validate the resolved path itself if it exists
     if resolved.exists():
         _validate_directory_security(resolved, uid)
 
