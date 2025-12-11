@@ -176,10 +176,10 @@ async def ingest_telemetry(payload: TelemetryPayload):
 
     except requests.RequestException as e:
         logger.error(f"Failed to forward telemetry: {e}")
-        raise HTTPException(status_code=502, detail=f"Failed to forward telemetry: {e}")
+        raise HTTPException(status_code=502, detail="Failed to forward telemetry")
     except Exception as e:
         logger.error(f"Error processing telemetry: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error processing telemetry")
 
 
 @app.get("/evidence")
@@ -225,7 +225,7 @@ async def generate_evidence(
 
     except Exception as e:
         logger.error(f"Error generating evidence: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error generating evidence")
 
 
 def sanitize_filename(filename: str) -> str:
