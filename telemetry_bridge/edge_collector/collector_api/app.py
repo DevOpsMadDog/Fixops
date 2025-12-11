@@ -17,6 +17,8 @@ import requests
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
+from core.paths import verify_allowlisted_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -263,26 +265,25 @@ def upload_evidence_bundle(
     elif cloud_provider == "gcp":
         return upload_to_gcs(compressed_data, filename, metadata)
     else:
-        # Inline path validation pattern (CodeQL-friendly)
-        # Step 1: Resolve base directory first (before any user input)
+        # Local file storage with path validation
         evidence_base = Path("/app/evidence")
         evidence_base.mkdir(parents=True, exist_ok=True)
-        base = evidence_base.resolve()
 
-        # Step 2: Sanitize filename - already done by sanitize_filename above
+        # Sanitize filename
         safe_filename = sanitize_filename(filename)
         if ".." in safe_filename or "/" in safe_filename or "\\" in safe_filename:
             raise ValueError("Invalid filename")
 
-        # Step 3: Construct candidate path from base + sanitized component
-        local_candidate = (base / safe_filename).resolve()
-
-        # Step 4: Validate candidate is within base directory
-        if not local_candidate.is_relative_to(base):
+        # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
+        try:
+            local_path = verify_allowlisted_path(
+                evidence_base / safe_filename, [evidence_base]
+            )
+        except PermissionError:
             raise ValueError("Path is outside base directory")
 
-        # Step 5: Now safe to use the validated path
-        local_candidate.write_bytes(compressed_data)
+        # Now safe to use the validated path
+        local_path.write_bytes(compressed_data)
 
         # Metadata file uses same base name with different extension
         metadata_filename = safe_filename.rsplit(".", 1)[0] + ".json"
@@ -294,17 +295,20 @@ def upload_evidence_bundle(
         ):
             raise ValueError("Invalid metadata filename")
 
-        metadata_candidate = (base / safe_metadata_filename).resolve()
-        if not metadata_candidate.is_relative_to(base):
+        try:
+            metadata_path = verify_allowlisted_path(
+                evidence_base / safe_metadata_filename, [evidence_base]
+            )
+        except PermissionError:
             raise ValueError("Metadata path is outside base directory")
 
-        metadata_candidate.write_text(json.dumps(metadata, indent=2))
+        metadata_path.write_text(json.dumps(metadata, indent=2))
 
         logger.info("Successfully saved evidence bundle locally")
         return {
             "provider": "local",
-            "path": str(local_candidate),
-            "metadata_path": str(metadata_candidate),
+            "path": str(local_path),
+            "metadata_path": str(metadata_path),
         }
 
 

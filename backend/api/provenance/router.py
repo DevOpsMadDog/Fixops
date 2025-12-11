@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 
+from core.paths import verify_allowlisted_path
 from services.provenance import load_attestation
 
 router = APIRouter(prefix="/provenance", tags=["provenance"])
@@ -30,26 +31,21 @@ async def list_attestations(request: Request) -> list[str]:
 async def fetch_attestation(artifact_name: str, request: Request) -> dict:
     directory = _resolve_directory(request)
 
-    # Inline path validation pattern (CodeQL-friendly)
-    # Step 1: Resolve base directory first (before any user input)
-    base = directory.resolve()
-
-    # Step 2: Sanitize user input - extract just the filename component
+    # Sanitize user input - extract just the filename component
     safe_name = Path(artifact_name).name
     if ".." in safe_name or "/" in safe_name or "\\" in safe_name:
         raise HTTPException(status_code=400, detail="Invalid artifact name")
     if not safe_name.endswith(".json"):
         safe_name = f"{safe_name}.json"
 
-    # Step 3: Construct candidate path from base + sanitized component
-    candidate = (base / safe_name).resolve()
+    # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
+    try:
+        attestation_path = verify_allowlisted_path(directory / safe_name, [directory])
+    except PermissionError:
+        raise HTTPException(status_code=400, detail="Invalid path")
 
-    # Step 4: Validate candidate is within base directory
-    if not candidate.is_relative_to(base):
-        raise HTTPException(status_code=400, detail="Invalid attestation path")
-
-    # Step 5: Now safe to use the validated path
-    if not candidate.is_file():
+    # Now safe to use the validated path
+    if not attestation_path.is_file():
         raise HTTPException(status_code=404, detail="Attestation not found")
-    statement = load_attestation(candidate)
+    statement = load_attestation(attestation_path)
     return statement.to_dict()

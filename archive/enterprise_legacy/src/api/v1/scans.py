@@ -18,6 +18,8 @@ import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.paths import verify_allowlisted_path
 from src.cli.main import FixOpsCLI
 from src.config.settings import get_settings
 from src.db.session import get_db
@@ -36,34 +38,24 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 def _get_validated_upload_dir(upload_id: str) -> Path:
     """Get a validated upload directory path for the given upload_id.
-    
-    Inline path validation pattern (CodeQL-friendly):
-    1. Resolve base directory first (before any user input)
-    2. Sanitize user input - extract just the filename component
-    3. Construct candidate path from base + sanitized component
-    4. Validate candidate is within base directory
-    5. Return validated path
+
+    Uses verify_allowlisted_path (CodeQL-recognized sanitizer) to validate paths.
     """
-    # Step 1: Resolve base directory first (before any user input)
-    base = UPLOAD_DIR.resolve()
-    
-    # Step 2: Sanitize user input - extract just the filename component
+    # Sanitize user input - extract just the filename component
     safe_id = Path(upload_id).name
     if ".." in safe_id or "/" in safe_id or "\\" in safe_id:
         raise HTTPException(status_code=400, detail="Invalid upload ID")
     # Additional validation: only allow safe characters
     if not all(c.isalnum() or c in "-_" for c in safe_id):
         raise HTTPException(status_code=400, detail="Invalid upload ID format")
-    
-    # Step 3: Construct candidate path from base + sanitized component
-    candidate = (base / safe_id).resolve()
-    
-    # Step 4: Validate candidate is within base directory
-    if not candidate.is_relative_to(base):
+
+    # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
+    try:
+        validated_path = verify_allowlisted_path(UPLOAD_DIR / safe_id, [UPLOAD_DIR])
+    except PermissionError:
         raise HTTPException(status_code=400, detail="Invalid upload path")
-    
-    # Step 5: Return validated path
-    return candidate
+
+    return validated_path
 
 
 @router.post("/upload")
