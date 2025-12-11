@@ -94,13 +94,16 @@ class QRadarIntegration(SIEMIntegration):
     def __init__(self, config: IntegrationConfig):
         """Initialize QRadar integration."""
         self.config = config
-        self.url = config.config.get("url")
-        self.token = config.credentials.get("token")
+        self.url: str = config.config.get("url", "")
+        self.token: str = config.credentials.get("token", "")
 
     async def send_alert(
         self, severity: str, message: str, metadata: Dict[str, Any]
     ) -> bool:
         """Send alert to QRadar."""
+        if not self.token:
+            logger.error("QRadar token not configured")
+            return False
         try:
             async with aiohttp.ClientSession() as session:
                 payload = {
@@ -142,15 +145,18 @@ class JiraIntegration(TicketingIntegration):
     def __init__(self, config: IntegrationConfig):
         """Initialize Jira integration."""
         self.config = config
-        self.url = config.config.get("url")
-        self.email = config.credentials.get("email")
-        self.api_token = config.credentials.get("api_token")
+        self.url: str = config.config.get("url", "")
+        self.email: str = config.credentials.get("email", "")
+        self.api_token: str = config.credentials.get("api_token", "")
         self.project_key = config.config.get("project_key")
 
     async def create_ticket(
         self, title: str, description: str, priority: str, metadata: Dict[str, Any]
     ) -> Optional[str]:
         """Create Jira ticket."""
+        if not self.email or not self.api_token:
+            logger.error("Jira credentials not configured")
+            return None
         try:
             auth = aiohttp.BasicAuth(self.email, self.api_token)
 
@@ -179,6 +185,9 @@ class JiraIntegration(TicketingIntegration):
 
     async def update_ticket(self, ticket_id: str, status: str, comment: str) -> bool:
         """Update Jira ticket."""
+        if not self.email or not self.api_token:
+            logger.error("Jira credentials not configured")
+            return False
         try:
             auth = aiohttp.BasicAuth(self.email, self.api_token)
 
@@ -223,15 +232,18 @@ class ServiceNowIntegration(TicketingIntegration):
     def __init__(self, config: IntegrationConfig):
         """Initialize ServiceNow integration."""
         self.config = config
-        self.url = config.config.get("url")
-        self.username = config.credentials.get("username")
-        self.password = config.credentials.get("password")
+        self.url: str = config.config.get("url", "")
+        self.username: str = config.credentials.get("username", "")
+        self.password: str = config.credentials.get("password", "")
         self.table = config.config.get("table", "incident")
 
     async def create_ticket(
         self, title: str, description: str, priority: str, metadata: Dict[str, Any]
     ) -> Optional[str]:
         """Create ServiceNow ticket."""
+        if not self.username or not self.password:
+            logger.error("ServiceNow credentials not configured")
+            return None
         try:
             auth = aiohttp.BasicAuth(self.username, self.password)
 
@@ -257,6 +269,9 @@ class ServiceNowIntegration(TicketingIntegration):
 
     async def update_ticket(self, ticket_id: str, status: str, comment: str) -> bool:
         """Update ServiceNow ticket."""
+        if not self.username or not self.password:
+            logger.error("ServiceNow credentials not configured")
+            return False
         try:
             auth = aiohttp.BasicAuth(self.username, self.password)
 
