@@ -69,6 +69,9 @@ class ServerManager:
 
             env["FIXOPS_API_TOKEN"] = secrets.token_hex(32)
 
+        # Store the actual token used by the server for upload_files method
+        self._server_api_token = env["FIXOPS_API_TOKEN"]
+
         if "FIXOPS_MODE" not in env:
             env["FIXOPS_MODE"] = "demo"
 
@@ -204,8 +207,15 @@ class ServerManager:
 
         Returns:
             Response from pipeline/run endpoint
+
+        Raises:
+            requests.HTTPError: If any upload or pipeline request fails
         """
-        headers = {"X-API-Key": self.env.get("FIXOPS_API_TOKEN", "")}
+        # Use the server's actual API token (generated in start() if not provided)
+        api_token = getattr(self, "_server_api_token", None) or self.env.get(
+            "FIXOPS_API_TOKEN", ""
+        )
+        headers = {"X-API-Key": api_token}
 
         # Upload each file to its respective endpoint
         file_mappings = {
@@ -225,34 +235,37 @@ class ServerManager:
                         else "text/csv"
                     )
                     files = {"file": (Path(file_path).name, content, content_type)}
-                    requests.post(
+                    resp = requests.post(
                         f"{self.base_url}/inputs/{endpoint}",
                         files=files,
                         headers=headers,
                         timeout=30,
                     )
+                    resp.raise_for_status()
 
         # Upload CNAPP data if provided (cloud exposure information)
         if cnapp:
             with open(cnapp, "r") as f:
                 cnapp_data = f.read()
-            requests.post(
+            resp = requests.post(
                 f"{self.base_url}/api/v1/context/cnapp",
                 data=cnapp_data,
                 headers={**headers, "Content-Type": "application/json"},
                 timeout=30,
             )
+            resp.raise_for_status()
 
         # Upload context data if provided
         if context:
             with open(context, "r") as f:
                 context_data = f.read()
-            requests.post(
+            resp = requests.post(
                 f"{self.base_url}/api/v1/context",
                 data=context_data,
                 headers={**headers, "Content-Type": "application/json"},
                 timeout=30,
             )
+            resp.raise_for_status()
 
         # Trigger pipeline execution and return response
         response = requests.get(
