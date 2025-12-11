@@ -424,8 +424,8 @@ async def health_check(
 
         return health_status
 
-    except Exception as e:
-        logger.error(f"Health check failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Health check failed")
         return {
             "status": "unhealthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),

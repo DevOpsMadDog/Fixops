@@ -28,8 +28,8 @@ async def feeds_status():
                 "kev_count": st.kev_count,
             },
         }
-    except Exception as e:
-        logger.error(f"feeds_status failed: {e}")
+    except Exception:
+        logger.exception("feeds_status failed")
         raise HTTPException(status_code=500, detail="Failed to get feeds status")
 
 
@@ -40,8 +40,8 @@ async def epss_refresh():
             return {"status": "disabled", "message": "EPSS integration disabled"}
         res = await FeedsService.refresh_epss()
         return res
-    except Exception as e:
-        logger.error(f"epss_refresh failed: {e}")
+    except Exception:
+        logger.exception("epss_refresh failed")
         raise HTTPException(status_code=500, detail="EPSS refresh failed")
 
 
@@ -52,8 +52,8 @@ async def kev_refresh():
             return {"status": "disabled", "message": "KEV integration disabled"}
         res = await FeedsService.refresh_kev()
         return res
-    except Exception as e:
-        logger.error(f"kev_refresh failed: {e}")
+    except Exception:
+        logger.exception("kev_refresh failed")
         raise HTTPException(status_code=500, detail="Failed to refresh KEV feed")
 
 
@@ -70,6 +70,6 @@ async def download_feed(feed: str):
         return Response(content=content, media_type="application/json")
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"download_feed failed: {e}")
+    except Exception:
+        logger.exception("download_feed failed")
         raise HTTPException(status_code=500, detail="Failed to download feed")
