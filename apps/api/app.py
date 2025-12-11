@@ -17,7 +17,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, Mapping, Optional, Tuple
 
 import jwt
-from fastapi import Body, Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
@@ -42,10 +42,10 @@ from backend.api.provenance import router as provenance_router
 from backend.api.risk import router as risk_router
 
 # Enterprise reachability analysis
+reachability_router: Optional[APIRouter] = None
 try:
     from risk.reachability.api import router as reachability_router
 except ImportError:
-    reachability_router = None
     logging.getLogger(__name__).warning("Reachability analysis API not available")
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay

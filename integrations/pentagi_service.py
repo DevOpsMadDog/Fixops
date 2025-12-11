@@ -463,9 +463,8 @@ class AdvancedPentagiService:
         finding_id: str,
     ) -> Optional[ExploitabilityLevel]:
         """Get exploitability level for a finding."""
-        result = self.db.get_result_by_request(
-            self.db.list_requests(finding_id=finding_id)[0].id
-            if self.db.list_requests(finding_id=finding_id)
-            else None
-        )
+        requests = self.db.list_requests(finding_id=finding_id)
+        if not requests or requests[0].id is None:
+            return None
+        result = self.db.get_result_by_request(requests[0].id)
         return result.exploitability if result else None

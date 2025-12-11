@@ -776,8 +776,10 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
             return node.attr
         return None
 
-    def _uses_tainted_variable(self, node: ast.AST) -> bool:
+    def _uses_tainted_variable(self, node: Optional[ast.AST]) -> bool:
         """Check if node uses tainted variable."""
+        if node is None:
+            return False
         if isinstance(node, ast.Name):
             return node.id in self.tainted_vars
         elif isinstance(node, ast.Call):

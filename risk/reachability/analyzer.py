@@ -469,9 +469,8 @@ class ReachabilityAnalyzer:
 
         try:
             # Use code analyzer for design-time analysis
-            results = self.code_analyzer.analyze_repository(
-                repo_path, patterns, metadata.language_distribution.get("Python")
-            )
+            # Pass None to let the analyzer auto-detect the primary language
+            results = self.code_analyzer.analyze_repository(repo_path, patterns, None)
 
             # Combine results from all tools
             if results:
@@ -506,9 +505,8 @@ class ReachabilityAnalyzer:
                 config={**self.config.get("code_analysis", {}), **runtime_config}
             )
 
-            results = runtime_analyzer.analyze_repository(
-                repo_path, patterns, metadata.language_distribution.get("Python")
-            )
+            # Pass None to let the analyzer auto-detect the primary language
+            results = runtime_analyzer.analyze_repository(repo_path, patterns, None)
 
             if results:
                 best_result = max(
@@ -608,7 +606,7 @@ class ReachabilityAnalyzer:
         self, call_chain: List[str], call_graph: Dict[str, Any]
     ) -> List[str]:
         """Find entry points (public APIs, main functions) for a call chain."""
-        entry_points = []
+        entry_points: List[str] = []
 
         if not call_chain:
             return entry_points

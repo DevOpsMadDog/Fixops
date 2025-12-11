@@ -167,6 +167,7 @@ async def analyze_reachability(
         if cached_result and not request.force_refresh:
             logger.info(f"Returning cached result for {request.vulnerability.cve_id}")
             return ReachabilityAnalysisResponse(
+                job_id=None,
                 status="completed",
                 result=cached_result.to_dict(),
                 message="Result retrieved from cache",
@@ -208,6 +209,7 @@ async def analyze_reachability(
             return ReachabilityAnalysisResponse(
                 job_id=job_id,
                 status="queued",
+                result=None,
                 message=f"Analysis queued with job ID: {job_id}",
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
@@ -230,6 +232,7 @@ async def analyze_reachability(
             storage.save_result(result, git_repo.url, git_repo.commit)
 
             return ReachabilityAnalysisResponse(
+                job_id=None,
                 status="completed",
                 result=result.to_dict(),
                 message="Analysis completed successfully",

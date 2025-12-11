@@ -64,6 +64,19 @@ class AnalysisResult:
     warnings: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "tool": self.tool.value,
+            "success": self.success,
+            "findings": self.findings,
+            "call_graph": self.call_graph,
+            "data_flow": self.data_flow,
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "metadata": self.metadata,
+        }
+
 
 class CodeAnalyzer:
     """Enterprise code analyzer supporting multiple tools."""
@@ -358,7 +371,7 @@ class CodeAnalyzer:
         import tempfile
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             yaml.dump({"rules": rules}, f)
             rules_file = Path(f.name)
