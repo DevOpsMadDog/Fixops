@@ -231,7 +231,7 @@ class JobQueue:
         from risk.reachability.analyzer import ReachabilityAnalyzer
 
         overlay = load_overlay()
-        config = overlay.get("reachability_analysis", {})
+        config = overlay.raw_config.get("reachability_analysis", {})
         analyzer = ReachabilityAnalyzer(config=config)
 
         while self.running:

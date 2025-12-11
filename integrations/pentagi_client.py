@@ -212,7 +212,7 @@ class PentagiClient:
 
     async def _extract_findings(self, subtask: Dict[str, Any]) -> List[PentagiFinding]:
         """Extract findings from subtask data."""
-        findings = []
+        findings: List[PentagiFinding] = []
         result = subtask.get("result", {})
         if isinstance(result, str):
             try:
