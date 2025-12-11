@@ -420,7 +420,7 @@ class ModelRegistry:
         if not self._ab_test_config.get("enabled"):
             return self._default_model_id or "", False
 
-        hash_value = int(hashlib.md5(hash_input.encode()).hexdigest(), 16)
+        hash_value = int(hashlib.sha256(hash_input.encode()).hexdigest(), 16)
         bucket = (hash_value % 100) / 100.0
 
         traffic_split = self._ab_test_config["traffic_split"]

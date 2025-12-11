@@ -596,7 +596,7 @@ class AdvancedIASTAnalyzer:
         for finding in findings:
             # Create hash of finding content
             content = f"{finding.vulnerability_type.value}:{finding.source_file}:{finding.line_number}:{finding.function_name}"
-            content_hash = hashlib.md5(content.encode()).hexdigest()
+            content_hash = hashlib.sha256(content.encode()).hexdigest()
 
             if content_hash not in seen:
                 seen.add(content_hash)

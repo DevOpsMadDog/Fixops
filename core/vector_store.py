@@ -84,7 +84,7 @@ class InMemoryVectorStore(BaseVectorStore):
         if not tokens:
             return vector
         for token in tokens:
-            digest = hashlib.sha1(token.encode("utf-8")).digest()
+            digest = hashlib.sha256(token.encode("utf-8")).digest()
             for index in range(self.dimensions):
                 vector[index] += digest[index % len(digest)] / 255.0  # type: ignore[arg-type]
         norm = math.sqrt(sum(value * value for value in vector))  # type: ignore[arg-type]
