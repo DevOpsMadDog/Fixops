@@ -34,38 +34,36 @@ UPLOAD_DIR = Path("/app/data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _sanitize_upload_id(upload_id: str) -> str:
-    """Sanitize upload_id to prevent path traversal attacks.
+def _get_validated_upload_dir(upload_id: str) -> Path:
+    """Get a validated upload directory path for the given upload_id.
     
-    Only allows alphanumeric characters, hyphens, and underscores.
+    Inline path validation pattern (CodeQL-friendly):
+    1. Resolve base directory first (before any user input)
+    2. Sanitize user input - extract just the filename component
+    3. Construct candidate path from base + sanitized component
+    4. Validate candidate is within base directory
+    5. Return validated path
     """
+    # Step 1: Resolve base directory first (before any user input)
+    base = UPLOAD_DIR.resolve()
+    
+    # Step 2: Sanitize user input - extract just the filename component
     safe_id = Path(upload_id).name
     if ".." in safe_id or "/" in safe_id or "\\" in safe_id:
         raise HTTPException(status_code=400, detail="Invalid upload ID")
     # Additional validation: only allow safe characters
     if not all(c.isalnum() or c in "-_" for c in safe_id):
         raise HTTPException(status_code=400, detail="Invalid upload ID format")
-    return safe_id
-
-
-def _get_safe_upload_dir(upload_id: str) -> Path:
-    """Get a safe upload directory path for the given upload_id.
     
-    This function ensures the path is within UPLOAD_DIR by:
-    1. Sanitizing the upload_id first (removes path separators and special chars)
-    2. Constructing the path from the sanitized component only
-    3. Using string comparison for path validation (avoids resolve on user input)
-    """
-    safe_id = _sanitize_upload_id(upload_id)
-    # Construct path from sanitized component only
-    upload_dir = UPLOAD_DIR / safe_id
-    # Defense in depth: verify path is within UPLOAD_DIR using string comparison
-    # This avoids calling resolve() on user-controlled path components
-    base_str = str(UPLOAD_DIR.resolve())
-    dir_str = str(upload_dir.resolve())
-    if not dir_str.startswith(base_str + os.sep) and dir_str != base_str:
+    # Step 3: Construct candidate path from base + sanitized component
+    candidate = (base / safe_id).resolve()
+    
+    # Step 4: Validate candidate is within base directory
+    if not candidate.is_relative_to(base):
         raise HTTPException(status_code=400, detail="Invalid upload path")
-    return upload_dir
+    
+    # Step 5: Return validated path
+    return candidate
 
 
 @router.post("/upload")
@@ -254,8 +252,8 @@ async def upload_chunk(
 ):
     """Upload a chunk"""
     try:
-        # Get safe upload directory (sanitizes upload_id and validates path)
-        upload_dir = _get_safe_upload_dir(upload_id)
+        # Get validated upload directory (sanitizes upload_id and validates path)
+        upload_dir = _get_validated_upload_dir(upload_id)
         
         if not upload_dir.exists():
             raise HTTPException(status_code=404, detail="Upload session not found")
@@ -293,8 +291,8 @@ async def upload_chunk(
 async def complete_chunked_upload(upload_id: str = Form(...)):
     """Complete chunked upload and process file"""
     try:
-        # Get safe upload directory (sanitizes upload_id and validates path)
-        upload_dir = _get_safe_upload_dir(upload_id)
+        # Get validated upload directory (sanitizes upload_id and validates path)
+        upload_dir = _get_validated_upload_dir(upload_id)
         
         if not upload_dir.exists():
             raise HTTPException(status_code=404, detail="Upload session not found")

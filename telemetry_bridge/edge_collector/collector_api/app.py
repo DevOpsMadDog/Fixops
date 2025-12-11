@@ -242,27 +242,6 @@ def sanitize_filename(filename: str) -> str:
     return safe_filename
 
 
-def _get_safe_evidence_path(base_dir: Path, filename: str) -> Path:
-    """Get a safe path for evidence files within the base directory.
-
-    This function ensures the path is within base_dir by:
-    1. Sanitizing the filename first (removing any path components)
-    2. Constructing the path from the sanitized component only
-    3. Verifying the final path is within the base directory
-    """
-    # Sanitize filename to remove any path traversal attempts
-    safe_name = sanitize_filename(filename)
-    # Construct path from sanitized component only
-    file_path = base_dir / safe_name
-    # Defense in depth: verify path is within base directory
-    # Use str comparison to avoid resolve() on user-controlled path
-    base_str = str(base_dir.resolve())
-    file_str = str(file_path.resolve())
-    if not file_str.startswith(base_str + os.sep) and file_str != base_str:
-        raise ValueError("Path is outside base directory")
-    return file_path
-
-
 def upload_evidence_bundle(
     compressed_data: bytes, metadata: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -284,23 +263,48 @@ def upload_evidence_bundle(
     elif cloud_provider == "gcp":
         return upload_to_gcs(compressed_data, filename, metadata)
     else:
-        # Use hardcoded base path (not user-controlled)
+        # Inline path validation pattern (CodeQL-friendly)
+        # Step 1: Resolve base directory first (before any user input)
         evidence_base = Path("/app/evidence")
         evidence_base.mkdir(parents=True, exist_ok=True)
-        # Get safe path for evidence file
-        local_path = _get_safe_evidence_path(evidence_base, filename)
-        local_path.write_bytes(compressed_data)
+        base = evidence_base.resolve()
+
+        # Step 2: Sanitize filename - already done by sanitize_filename above
+        safe_filename = sanitize_filename(filename)
+        if ".." in safe_filename or "/" in safe_filename or "\\" in safe_filename:
+            raise ValueError("Invalid filename")
+
+        # Step 3: Construct candidate path from base + sanitized component
+        local_candidate = (base / safe_filename).resolve()
+
+        # Step 4: Validate candidate is within base directory
+        if not local_candidate.is_relative_to(base):
+            raise ValueError("Path is outside base directory")
+
+        # Step 5: Now safe to use the validated path
+        local_candidate.write_bytes(compressed_data)
 
         # Metadata file uses same base name with different extension
-        metadata_filename = filename.rsplit(".", 1)[0] + ".json"
-        metadata_path = _get_safe_evidence_path(evidence_base, metadata_filename)
-        metadata_path.write_text(json.dumps(metadata, indent=2))
+        metadata_filename = safe_filename.rsplit(".", 1)[0] + ".json"
+        safe_metadata_filename = sanitize_filename(metadata_filename)
+        if (
+            ".." in safe_metadata_filename
+            or "/" in safe_metadata_filename
+            or "\\" in safe_metadata_filename
+        ):
+            raise ValueError("Invalid metadata filename")
+
+        metadata_candidate = (base / safe_metadata_filename).resolve()
+        if not metadata_candidate.is_relative_to(base):
+            raise ValueError("Metadata path is outside base directory")
+
+        metadata_candidate.write_text(json.dumps(metadata, indent=2))
 
         logger.info("Successfully saved evidence bundle locally")
         return {
             "provider": "local",
-            "path": str(local_path),
-            "metadata_path": str(metadata_path),
+            "path": str(local_candidate),
+            "metadata_path": str(metadata_candidate),
         }
 
 
