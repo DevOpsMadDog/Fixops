@@ -239,14 +239,14 @@ async def analyze_reachability(
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
 
-    except ValueError as e:
-        logger.warning(f"Invalid request parameters: {e}")
+    except ValueError:
+        logger.exception("Invalid request parameters")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid request parameters",
         )
-    except Exception as e:
-        logger.error(f"Reachability analysis failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Reachability analysis failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Analysis failed",
@@ -302,8 +302,8 @@ async def analyze_bulk(
             created_at=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception as e:
-        logger.error(f"Bulk analysis failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Bulk analysis failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Bulk analysis failed",
@@ -329,8 +329,8 @@ async def get_job_status(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Failed to get job status: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to get job status")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get job status",
@@ -366,8 +366,8 @@ async def get_result(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Failed to get result: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to get result")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get result",
@@ -395,8 +395,8 @@ async def delete_result(
 
         return {"message": "Result deleted successfully"}
 
-    except Exception as e:
-        logger.error(f"Failed to delete result: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to delete result")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete result",
