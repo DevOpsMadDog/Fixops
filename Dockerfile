@@ -57,6 +57,12 @@ COPY data/ ./data/
 COPY backend/ ./backend/
 COPY agents/ ./agents/
 COPY scripts/ ./scripts/
+COPY services/ ./services/
+COPY telemetry/ ./telemetry/
+COPY fixops/ ./fixops/
+COPY domain/ ./domain/
+COPY new_apps/ ./new_apps/
+COPY new_backend/ ./new_backend/
 COPY *.py ./
 COPY *.txt ./
 COPY *.yml ./

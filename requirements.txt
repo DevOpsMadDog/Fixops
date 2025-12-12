@@ -17,3 +17,4 @@ opentelemetry-instrumentation-fastapi>=0.46b0,<1.0
 scikit-learn>=1.3.0,<2.0
 bcrypt>=4.0.0
 tenacity>=8.2.0,<9.0
+ssvc>=1.2.0,<2.0
