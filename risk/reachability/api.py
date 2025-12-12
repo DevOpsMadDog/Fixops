@@ -448,8 +448,8 @@ async def get_metrics(
 
         return metrics
 
-    except Exception as e:
-        logger.error(f"Failed to get metrics: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to get metrics")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get metrics",
