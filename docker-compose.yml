@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Main FixOps API
   fixops:
     image: devopsaico/fixops:latest
     container_name: fixops-api
@@ -20,6 +21,38 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+
+  # Interactive Demo Sidecar - runs animated security assessment demo
+  fixops-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-demo
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    profiles:
+      - demo
+    # Run full demo by default, or override with: docker compose run fixops-demo python demo_sidecar.py run-scenario --cve CVE-2021-44228
+
+  # Smoke Test Sidecar - runs automated API tests
+  fixops-smoke:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-smoke
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    command: ["pytest", "-v", "-s", "tests/sidecar/"]
+    profiles:
+      - test
 
 volumes:
   fixops-data:
