@@ -1,11 +1,12 @@
 """Automated remediation suggestion and verification system."""
 
 import asyncio
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from core.llm_providers import LLMProviderManager
 from core.pentagi_advanced import AdvancedPentagiClient
@@ -461,7 +462,7 @@ If no regressions are likely, return empty array.
             all_suggestions.extend(suggestions)
 
         # Group by priority
-        by_priority = {
+        by_priority: Dict[RemediationPriority, List[RemediationSuggestion]] = {
             RemediationPriority.CRITICAL: [],
             RemediationPriority.HIGH: [],
             RemediationPriority.MEDIUM: [],
@@ -554,7 +555,7 @@ If no regressions are likely, return empty array.
 
     def _calculate_total_effort(self, suggestions: List[RemediationSuggestion]) -> str:
         """Calculate total effort estimate."""
-        total_hours = 0
+        total_hours: float = 0.0
 
         for suggestion in suggestions:
             # Parse effort estimate (e.g., "2-4 hours", "1 day")

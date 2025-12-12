@@ -5,7 +5,6 @@ Validates code structure, imports, and core logic.
 """
 
 import ast
-import importlib.util
 import sys
 from pathlib import Path
 

@@ -6,13 +6,12 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 import httpx
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +150,7 @@ class PentagiClient:
                 if e.response.status_code < 500 or attempt == self.max_retries - 1:
                     raise
                 await asyncio.sleep(2**attempt)
-            except Exception as e:
+            except Exception:
                 if attempt == self.max_retries - 1:
                     raise
                 await asyncio.sleep(2**attempt)
@@ -213,7 +212,7 @@ class PentagiClient:
 
     async def _extract_findings(self, subtask: Dict[str, Any]) -> List[PentagiFinding]:
         """Extract findings from subtask data."""
-        findings = []
+        findings: List[PentagiFinding] = []
         result = subtask.get("result", {})
         if isinstance(result, str):
             try:

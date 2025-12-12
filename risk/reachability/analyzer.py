@@ -7,12 +7,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from risk.reachability.call_graph import CallGraphBuilder
 from risk.reachability.code_analysis import (
     AnalysisResult,
-    AnalysisTool,
     CodeAnalyzer,
     VulnerablePattern,
 )
@@ -22,10 +21,7 @@ from risk.reachability.git_integration import (
     GitRepositoryAnalyzer,
     RepositoryMetadata,
 )
-from risk.reachability.proprietary_analyzer import (
-    ProprietaryPatternMatcher,
-    ProprietaryReachabilityAnalyzer,
-)
+from risk.reachability.proprietary_analyzer import ProprietaryReachabilityAnalyzer
 from risk.reachability.proprietary_consensus import ProprietaryConsensusEngine
 from risk.reachability.proprietary_scoring import ProprietaryScoringEngine
 from risk.reachability.proprietary_threat_intel import (
@@ -473,9 +469,8 @@ class ReachabilityAnalyzer:
 
         try:
             # Use code analyzer for design-time analysis
-            results = self.code_analyzer.analyze_repository(
-                repo_path, patterns, metadata.language_distribution.get("Python")
-            )
+            # Pass None to let the analyzer auto-detect the primary language
+            results = self.code_analyzer.analyze_repository(repo_path, patterns, None)
 
             # Combine results from all tools
             if results:
@@ -510,9 +505,8 @@ class ReachabilityAnalyzer:
                 config={**self.config.get("code_analysis", {}), **runtime_config}
             )
 
-            results = runtime_analyzer.analyze_repository(
-                repo_path, patterns, metadata.language_distribution.get("Python")
-            )
+            # Pass None to let the analyzer auto-detect the primary language
+            results = runtime_analyzer.analyze_repository(repo_path, patterns, None)
 
             if results:
                 best_result = max(
@@ -612,7 +606,7 @@ class ReachabilityAnalyzer:
         self, call_chain: List[str], call_graph: Dict[str, Any]
     ) -> List[str]:
         """Find entry points (public APIs, main functions) for a call chain."""
-        entry_points = []
+        entry_points: List[str] = []
 
         if not call_chain:
             return entry_points

@@ -86,7 +86,6 @@ class FeatureFlagProvider(ABC):
         bool
             Flag value
         """
-        pass
 
     @abstractmethod
     def string(
@@ -111,7 +110,6 @@ class FeatureFlagProvider(ABC):
         str
             Flag value
         """
-        pass
 
     @abstractmethod
     def number(
@@ -136,7 +134,6 @@ class FeatureFlagProvider(ABC):
         float
             Flag value
         """
-        pass
 
     @abstractmethod
     def json(
@@ -161,7 +158,6 @@ class FeatureFlagProvider(ABC):
         Dict[str, Any]
             Flag value
         """
-        pass
 
     @abstractmethod
     def variant(
@@ -186,7 +182,6 @@ class FeatureFlagProvider(ABC):
         str
             Variant name (e.g., "control", "treatment", "variant_a")
         """
-        pass
 
 
 __all__ = [

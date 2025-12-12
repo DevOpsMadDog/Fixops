@@ -8,7 +8,7 @@ import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,19 @@ class AnalysisResult:
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "tool": self.tool.value,
+            "success": self.success,
+            "findings": self.findings,
+            "call_graph": self.call_graph,
+            "data_flow": self.data_flow,
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "metadata": self.metadata,
+        }
 
 
 class CodeAnalyzer:
@@ -211,7 +224,8 @@ class CodeAnalyzer:
         language: str,
     ) -> AnalysisResult:
         """Analyze with CodeQL."""
-        config = self.tool_configs[AnalysisTool.CODEQL]
+        # Note: config available for future tool configuration
+        _ = self.tool_configs[AnalysisTool.CODEQL]
         database_path = repo_path / ".codeql" / "database"
 
         # Create CodeQL database if needed
@@ -338,7 +352,8 @@ class CodeAnalyzer:
         language: str,
     ) -> AnalysisResult:
         """Analyze with Semgrep."""
-        config = self.tool_configs[AnalysisTool.SEMGREP]
+        # Note: config available for future tool configuration
+        _ = self.tool_configs[AnalysisTool.SEMGREP]
         output_file = repo_path / ".semgrep_results.json"
 
         # Build Semgrep rules from vulnerable patterns
@@ -356,7 +371,7 @@ class CodeAnalyzer:
         import tempfile
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             yaml.dump({"rules": rules}, f)
             rules_file = Path(f.name)

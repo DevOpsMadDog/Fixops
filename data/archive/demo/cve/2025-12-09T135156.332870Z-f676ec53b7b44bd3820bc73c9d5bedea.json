@@ -1,0 +1,24 @@
+{
+  "records": [
+    {
+      "cve_id": "CVE-2024-0001",
+      "title": null,
+      "severity": "high",
+      "exploited": true,
+      "raw": {
+        "cveID": "CVE-2024-0001",
+        "title": "Example vulnerability in payment-service",
+        "knownExploited": true,
+        "severity": "high"
+      }
+    }
+  ],
+  "errors": [
+    "Schema validation against /home/ubuntu/repos/Fixops/.venv/lib/python3.12/site-packages/cvelib/schemas/CVE_JSON_cnaPublishedContainer_5.1.1.json failed:\n'affected' is a required property\n'cveID', 'knownExploited', 'severity' do not match any of the regexes: '^x_[^.]*$'\n'descriptions' is a required property\n'providerMetadata' is a required property\n'references' is a required property"
+  ],
+  "metadata": {
+    "record_count": 1,
+    "duplicates_removed": 0,
+    "validation_errors": 1
+  }
+}

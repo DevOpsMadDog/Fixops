@@ -1136,6 +1136,211 @@ def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_teams(args: argparse.Namespace) -> int:
+    """Handle team management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("USER_DB_PATH", ".fixops_data/users.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS teams (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    if args.teams_command == "list":
+        cursor.execute("SELECT * FROM teams ORDER BY name")
+        teams = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(teams, indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Description':<40}")
+            print("-" * 110)
+            for team in teams:
+                print(
+                    f"{team['id']:<40} {team['name']:<30} {(team['description'] or '')[:40]:<40}"
+                )
+
+    elif args.teams_command == "create":
+        team_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        cursor.execute(
+            "INSERT INTO teams (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (team_id, args.name, getattr(args, "description", None), now, now),
+        )
+        conn.commit()
+        print(f"Created team: {team_id}")
+
+    elif args.teams_command == "get":
+        cursor.execute("SELECT * FROM teams WHERE id = ?", (args.id,))
+        team = cursor.fetchone()
+        if team:
+            print(json.dumps(dict(team), indent=2))
+        else:
+            print(f"Team not found: {args.id}")
+            return 1
+
+    elif args.teams_command == "delete":
+        cursor.execute("DELETE FROM teams WHERE id = ?", (args.id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            print(f"Deleted team: {args.id}")
+        else:
+            print(f"Team not found: {args.id}")
+            return 1
+
+    conn.close()
+    return 0
+
+
+def _hash_password(password: str) -> str:
+    """Hash password using PBKDF2 with SHA-256 (secure password hashing).
+
+    Uses 600,000 iterations as recommended by OWASP for PBKDF2-SHA256.
+    Returns format: salt$iterations$hash
+    """
+    import hashlib
+    import os
+
+    salt = os.urandom(32)
+    iterations = 600000
+    hash_bytes = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, iterations
+    )
+    return f"{salt.hex()}${iterations}${hash_bytes.hex()}"
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """Verify password against stored PBKDF2 hash."""
+    import hashlib
+
+    try:
+        salt_hex, iterations_str, hash_hex = stored_hash.split("$")
+        salt = bytes.fromhex(salt_hex)
+        iterations = int(iterations_str)
+        expected_hash = bytes.fromhex(hash_hex)
+
+        actual_hash = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), salt, iterations
+        )
+        # Use constant-time comparison to prevent timing attacks
+        return actual_hash == expected_hash
+    except (ValueError, AttributeError):
+        return False
+
+
+def _handle_users(args: argparse.Namespace) -> int:
+    """Handle user management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("USER_DB_PATH", ".fixops_data/users.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            first_name TEXT,
+            last_name TEXT,
+            role TEXT NOT NULL DEFAULT 'viewer',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    if args.users_command == "list":
+        cursor.execute(
+            "SELECT id, email, first_name, last_name, role, created_at, updated_at FROM users ORDER BY email"
+        )
+        users = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(users, indent=2))
+        else:
+            print(f"{'ID':<40} {'Email':<30} {'Name':<30} {'Role':<10}")
+            print("-" * 110)
+            for user in users:
+                name = f"{user.get('first_name', '') or ''} {user.get('last_name', '') or ''}".strip()
+                print(
+                    f"{user['id']:<40} {user['email']:<30} {name:<30} {user['role']:<10}"
+                )
+
+    elif args.users_command == "create":
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        password_hash = _hash_password(args.password)
+        cursor.execute(
+            "INSERT INTO users (id, email, password_hash, first_name, last_name, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                user_id,
+                args.email,
+                password_hash,
+                getattr(args, "first_name", None),
+                getattr(args, "last_name", None),
+                getattr(args, "role", "viewer"),
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        print(f"Created user: {user_id}")
+
+    elif args.users_command == "get":
+        cursor.execute(
+            "SELECT id, email, first_name, last_name, role, created_at, updated_at FROM users WHERE id = ?",
+            (args.id,),
+        )
+        user = cursor.fetchone()
+        if user:
+            print(json.dumps(dict(user), indent=2))
+        else:
+            print(f"User not found: {args.id}")
+            return 1
+
+    elif args.users_command == "delete":
+        cursor.execute("DELETE FROM users WHERE id = ?", (args.id,))
+        conn.commit()
+        if cursor.rowcount > 0:
+            print(f"Deleted user: {args.id}")
+        else:
+            print(f"User not found: {args.id}")
+            return 1
+
+    conn.close()
+    return 0
+
+
 def _handle_pentagi(args):
     """Handle Pentagi pen testing commands."""
     import json
@@ -1629,6 +1834,52 @@ def build_parser() -> argparse.ArgumentParser:
         help="Suppress backtest summary",
     )
     backtest_bn_lr_parser.set_defaults(func=_handle_backtest_bn_lr)
+
+    # Teams management commands
+    teams_parser = subparsers.add_parser("teams", help="Manage teams")
+    teams_subparsers = teams_parser.add_subparsers(dest="teams_command")
+
+    teams_list = teams_subparsers.add_parser("list", help="List all teams")
+    teams_list.add_argument("--format", choices=["json", "table"], default="json")
+
+    teams_create = teams_subparsers.add_parser("create", help="Create a new team")
+    teams_create.add_argument("--name", required=True, help="Team name")
+    teams_create.add_argument("--description", help="Team description")
+
+    teams_get = teams_subparsers.add_parser("get", help="Get team details")
+    teams_get.add_argument("id", help="Team ID")
+
+    teams_delete = teams_subparsers.add_parser("delete", help="Delete a team")
+    teams_delete.add_argument("id", help="Team ID")
+
+    teams_parser.set_defaults(func=_handle_teams)
+
+    # Users management commands
+    users_parser = subparsers.add_parser("users", help="Manage users")
+    users_subparsers = users_parser.add_subparsers(dest="users_command")
+
+    users_list = users_subparsers.add_parser("list", help="List all users")
+    users_list.add_argument("--format", choices=["json", "table"], default="json")
+
+    users_create = users_subparsers.add_parser("create", help="Create a new user")
+    users_create.add_argument("--email", required=True, help="User email")
+    users_create.add_argument("--password", required=True, help="User password")
+    users_create.add_argument("--first-name", dest="first_name", help="First name")
+    users_create.add_argument("--last-name", dest="last_name", help="Last name")
+    users_create.add_argument(
+        "--role",
+        default="viewer",
+        choices=["admin", "editor", "viewer"],
+        help="User role",
+    )
+
+    users_get = users_subparsers.add_parser("get", help="Get user details")
+    users_get.add_argument("id", help="User ID")
+
+    users_delete = users_subparsers.add_parser("delete", help="Delete a user")
+    users_delete.add_argument("id", help="User ID")
+
+    users_parser.set_defaults(func=_handle_users)
 
     pentagi_parser = subparsers.add_parser("pentagi", help="Manage Pentagi pen testing")
     pentagi_subparsers = pentagi_parser.add_subparsers(dest="pentagi_command")

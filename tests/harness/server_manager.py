@@ -69,6 +69,9 @@ class ServerManager:
 
             env["FIXOPS_API_TOKEN"] = secrets.token_hex(32)
 
+        # Store the actual token used by the server for upload_files method
+        self._server_api_token = env["FIXOPS_API_TOKEN"]
+
         if "FIXOPS_MODE" not in env:
             env["FIXOPS_MODE"] = "demo"
 
@@ -181,6 +184,97 @@ class ServerManager:
                 pass
 
         return stdout, stderr
+
+    def upload_files(
+        self,
+        sast: Optional[str] = None,
+        sbom: Optional[str] = None,
+        cve: Optional[str] = None,
+        design: Optional[str] = None,
+        cnapp: Optional[str] = None,
+        context: Optional[str] = None,
+    ) -> requests.Response:
+        """
+        Upload files to the API and trigger pipeline execution.
+
+        Args:
+            sast: Path to SAST/SARIF file
+            sbom: Path to SBOM JSON file
+            cve: Path to CVE JSON file
+            design: Path to design CSV file
+            cnapp: Path to CNAPP JSON file (cloud exposure data)
+            context: Path to context JSON file
+
+        Returns:
+            Response from pipeline/run endpoint
+
+        Raises:
+            requests.HTTPError: If any upload or pipeline request fails
+        """
+        # Use the server's actual API token (generated in start() if not provided)
+        api_token = getattr(self, "_server_api_token", None) or self.env.get(
+            "FIXOPS_API_TOKEN", ""
+        )
+        headers = {"X-API-Key": api_token}
+
+        # Upload each file to its respective endpoint
+        file_mappings = {
+            "sarif": sast,
+            "sbom": sbom,
+            "cve": cve,
+            "design": design,
+        }
+
+        for endpoint, file_path in file_mappings.items():
+            if file_path:
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                    content_type = (
+                        "application/json"
+                        if file_path.endswith(".json")
+                        else "text/csv"
+                    )
+                    files = {"file": (Path(file_path).name, content, content_type)}
+                    resp = requests.post(
+                        f"{self.base_url}/inputs/{endpoint}",
+                        files=files,
+                        headers=headers,
+                        timeout=30,
+                    )
+                    resp.raise_for_status()
+
+        # Upload CNAPP data if provided (cloud exposure information)
+        if cnapp:
+            with open(cnapp, "r") as f:
+                cnapp_data = f.read()
+            resp = requests.post(
+                f"{self.base_url}/api/v1/context/cnapp",
+                data=cnapp_data,
+                headers={**headers, "Content-Type": "application/json"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+
+        # Upload context data if provided
+        if context:
+            with open(context, "r") as f:
+                context_data = f.read()
+            resp = requests.post(
+                f"{self.base_url}/api/v1/context",
+                data=context_data,
+                headers={**headers, "Content-Type": "application/json"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+
+        # Trigger pipeline execution and return response
+        response = requests.get(
+            f"{self.base_url}/pipeline/run",
+            headers=headers,
+            timeout=60,
+        )
+
+        return response
 
     def __enter__(self):
         """Context manager entry."""

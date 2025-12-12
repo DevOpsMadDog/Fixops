@@ -9,7 +9,7 @@ import logging
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class OSSTool:
     enabled: bool
     path: str
     config_path: Optional[str] = None
-    args: List[str] = None
+    args: Optional[List[str]] = None
     timeout: int = 300  # seconds
 
 
@@ -49,7 +49,7 @@ class AnalysisResult:
 
     source: str  # "proprietary" or "oss"
     tool_name: Optional[str] = None
-    findings: List[Dict[str, Any]] = None
+    findings: Optional[List[Dict[str, Any]]] = None
     success: bool = True
     error: Optional[str] = None
     execution_time: float = 0.0
@@ -87,7 +87,7 @@ class OSSFallbackEngine:
         self,
         language: str,
         codebase_path: str,
-        proprietary_analyzer: callable,
+        proprietary_analyzer: Callable[..., Any],
         proprietary_config: Optional[Dict[str, Any]] = None,
     ) -> AnalysisResult:
         """Analyze with proprietary-first, OSS fallback."""
@@ -159,7 +159,10 @@ class OSSFallbackEngine:
         return self._combine_results(results)
 
     def _run_proprietary(
-        self, analyzer: callable, codebase_path: str, config: Optional[Dict[str, Any]]
+        self,
+        analyzer: Callable[..., Any],
+        codebase_path: str,
+        config: Optional[Dict[str, Any]],
     ) -> AnalysisResult:
         """Run proprietary analyzer."""
         import time
@@ -354,8 +357,8 @@ class OSSFallbackEngine:
                     seen.add(key)
                     unique_findings.append(finding)
 
-            # Use first successful result as base
-            base_result = next((r for r in results if r.success), results[0])
+            # Note: base_result could be used for additional metadata in future
+            _ = next((r for r in results if r.success), results[0])
 
             combined_success = any(r.success for r in results)
             combined_error = None

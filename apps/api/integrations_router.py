@@ -199,10 +199,15 @@ async def test_integration(id: str):
             }
 
     except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).error(
+            f"Connection test failed for integration {id}: {e}"
+        )
         return {
             "integration_id": id,
             "success": False,
-            "message": f"Connection test failed: {str(e)}",
+            "message": "Connection test failed",
         }
 
 

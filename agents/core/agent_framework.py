@@ -84,17 +84,14 @@ class BaseAgent(ABC):
     @abstractmethod
     async def connect(self) -> bool:
         """Connect to target system."""
-        pass
 
     @abstractmethod
     async def disconnect(self):
         """Disconnect from target system."""
-        pass
 
     @abstractmethod
     async def collect_data(self) -> List[AgentData]:
         """Collect data from target system."""
-        pass
 
     async def push_data(self, data: List[AgentData]) -> bool:
         """Push data to FixOps API."""

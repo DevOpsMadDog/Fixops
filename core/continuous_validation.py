@@ -1,14 +1,15 @@
 """Continuous security validation and monitoring system."""
 
 import asyncio
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 from core.pentagi_advanced import AdvancedPentagiClient, MultiAIOrchestrator
-from core.pentagi_models import PenTestPriority, PenTestRequest, PenTestStatus
+from core.pentagi_models import PenTestPriority
 
 logger = logging.getLogger(__name__)
 
@@ -320,7 +321,6 @@ class ContinuousValidationEngine:
 
         # This would fetch targets and vulnerabilities from a configuration
         # For now, this is a placeholder
-        pass
 
     async def _assess_security_posture(self) -> SecurityPosture:
         """Assess current security posture."""

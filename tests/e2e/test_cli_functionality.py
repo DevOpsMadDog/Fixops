@@ -166,7 +166,6 @@ class TestCLIWithRealAPI:
             pytest.skip("API server not running")
 
         # Run monitor for a short time
-        import signal
 
         process = subprocess.Popen(
             [

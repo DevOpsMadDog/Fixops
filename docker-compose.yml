@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  fixops:
+    image: devopsaico/fixops:latest
+    container_name: fixops-api
+    ports:
+      - "8000:8000"
+    environment:
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+      - FIXOPS_DISABLE_TELEMETRY=1
+      - FIXOPS_MODE=demo
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  fixops-data:

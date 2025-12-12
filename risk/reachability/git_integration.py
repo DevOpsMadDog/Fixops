@@ -9,10 +9,8 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Set
-from urllib.parse import urlparse
-
-import requests
+from typing import Any, Dict, Mapping, Optional
+from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
 
@@ -154,10 +152,21 @@ class GitRepositoryAnalyzer:
             # Add authentication if provided
             env = os.environ.copy()
             if repository.auth_token:
-                if "github.com" in repository.url:
-                    clone_cmd[2] = f"https://{repository.auth_token}@github.com"
-                elif "gitlab.com" in repository.url:
-                    clone_cmd[2] = f"https://oauth2:{repository.auth_token}@gitlab.com"
+                parsed_url = urlparse(repository.url)
+                hostname = parsed_url.hostname or ""
+                # Use exact hostname matching to prevent URL injection attacks
+                if hostname == "github.com" or hostname.endswith(".github.com"):
+                    creds = repository.auth_token
+                elif hostname == "gitlab.com" or hostname.endswith(".gitlab.com"):
+                    creds = f"oauth2:{repository.auth_token}"
+                else:
+                    # For unsupported hosts, don't inject credentials
+                    creds = None
+
+                if creds:
+                    # Reconstruct URL with credentials while preserving path
+                    new_netloc = f"{creds}@{parsed_url.netloc}"
+                    clone_cmd[6] = urlunparse(parsed_url._replace(netloc=new_netloc))
 
             # Execute clone
             result = subprocess.run(
@@ -387,24 +396,37 @@ class GitRepositoryAnalyzer:
         return hashlib.sha256(key_string.encode()).hexdigest()[:16]
 
     def _prepare_clone_url(self, repository: GitRepository) -> str:
-        """Prepare clone URL with authentication if needed."""
-        url = repository.url
+        """Prepare clone URL with authentication if needed.
 
-        # Handle authentication
+        Uses proper URL parsing to prevent injection attacks and preserve
+        the full URL path, query string, and fragment.
+        """
+        parsed = urlparse(repository.url)
+        hostname = parsed.hostname or ""
+
+        # Handle token-based authentication
         if repository.auth_token:
-            parsed = urlparse(url)
-            if "github.com" in parsed.netloc:
-                url = url.replace("https://", f"https://{repository.auth_token}@")
-            elif "gitlab.com" in parsed.netloc:
-                url = url.replace(
-                    "https://", f"https://oauth2:{repository.auth_token}@"
-                )
-        elif repository.auth_username and repository.auth_password:
-            parsed = urlparse(url)
-            auth_string = f"{repository.auth_username}:{repository.auth_password}@"
-            url = url.replace(f"{parsed.scheme}://", f"{parsed.scheme}://{auth_string}")
+            # Use exact hostname matching to prevent URL injection attacks
+            if hostname == "github.com" or hostname.endswith(".github.com"):
+                creds = repository.auth_token
+            elif hostname == "gitlab.com" or hostname.endswith(".gitlab.com"):
+                creds = f"oauth2:{repository.auth_token}"
+            else:
+                # For unsupported hosts, return URL without credentials
+                return repository.url
 
-        return url
+            # Reconstruct URL with credentials while preserving path
+            new_netloc = f"{creds}@{parsed.netloc}"
+            return urlunparse(parsed._replace(netloc=new_netloc))
+
+        # Handle username/password authentication
+        elif repository.auth_username and repository.auth_password:
+            # Reconstruct URL with credentials while preserving path
+            auth_string = f"{repository.auth_username}:{repository.auth_password}"
+            new_netloc = f"{auth_string}@{parsed.netloc}"
+            return urlunparse(parsed._replace(netloc=new_netloc))
+
+        return repository.url
 
     def _get_directory_size(self, path: Path) -> int:
         """Calculate total size of directory in bytes."""

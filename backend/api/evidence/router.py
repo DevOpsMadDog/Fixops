@@ -5,6 +5,8 @@ import yaml  # type: ignore[import]
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
+from core.paths import verify_allowlisted_path
+
 router = APIRouter(prefix="/evidence", tags=["evidence"])
 
 
@@ -38,16 +40,33 @@ async def list_evidence(request: Request) -> dict[str, Any]:
 @router.get("/{release}")
 async def evidence_manifest(release: str, request: Request) -> dict[str, Any]:
     manifest_dir, bundle_dir = _resolve_directories(request)
-    manifest_path = manifest_dir / f"{release}.yaml"
+
+    # Sanitize user input - extract just the filename component
+    safe_release = Path(release).name
+    if ".." in safe_release or "/" in safe_release or "\\" in safe_release:
+        raise HTTPException(status_code=400, detail="Invalid release name")
+
+    # Use verify_allowlisted_path to validate paths (CodeQL-recognized sanitizer)
+    try:
+        manifest_path = verify_allowlisted_path(
+            manifest_dir / f"{safe_release}.yaml", [manifest_dir]
+        )
+        bundle_path = verify_allowlisted_path(
+            bundle_dir / f"{safe_release}.zip", [bundle_dir]
+        )
+    except PermissionError:
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    # Now safe to use the validated paths
     if not manifest_path.is_file():
         raise HTTPException(status_code=404, detail="Evidence manifest not found")
     with manifest_path.open("r", encoding="utf-8") as handle:
         payload = yaml.safe_load(handle) or {}
     if not isinstance(payload, dict):
         raise HTTPException(status_code=500, detail="Malformed evidence manifest")
-    bundle_path = bundle_dir / f"{release}.zip"
+
     return {
-        "tag": release,
+        "tag": safe_release,
         "manifest": payload,
         "bundle_available": bundle_path.is_file(),
         "bundle_path": str(bundle_path) if bundle_path.is_file() else None,
@@ -57,15 +76,32 @@ async def evidence_manifest(release: str, request: Request) -> dict[str, Any]:
 @router.get("/bundles/{bundle_id}/download")
 async def download_evidence_bundle(bundle_id: str, request: Request):
     """Download evidence bundle by ID."""
-    evidence_base = Path("data/data/evidence")
+    # Sanitize user input - extract just the filename component
+    safe_bundle_id = Path(bundle_id).name
+    if ".." in safe_bundle_id or "/" in safe_bundle_id or "\\" in safe_bundle_id:
+        raise HTTPException(status_code=400, detail="Invalid bundle ID")
 
+    # Use evidence base from app state or default
+    evidence_base = Path("data/data/evidence")
+    evidence_base.mkdir(parents=True, exist_ok=True)
+
+    # Search for bundle in evidence directories
+    # Note: We only use hardcoded filenames here, not user input
     bundle_path = None
     for run_dir in evidence_base.glob("*"):
         if run_dir.is_dir():
+            # Hardcoded filename - safe by design
             potential_bundle = run_dir / "fixops-demo-run-bundle.json.gz"
             if potential_bundle.exists():
-                bundle_path = potential_bundle
-                break
+                # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
+                try:
+                    validated_bundle = verify_allowlisted_path(
+                        potential_bundle, [evidence_base]
+                    )
+                    bundle_path = validated_bundle
+                    break
+                except PermissionError:
+                    continue
 
     if not bundle_path or not bundle_path.exists():
         raise HTTPException(status_code=404, detail="Evidence bundle not found")
@@ -73,9 +109,9 @@ async def download_evidence_bundle(bundle_id: str, request: Request):
     return FileResponse(
         path=str(bundle_path),
         media_type="application/gzip",
-        filename=f"fixops-evidence-{bundle_id}.json.gz",
+        filename=f"fixops-evidence-{safe_bundle_id}.json.gz",
         headers={
-            "Content-Disposition": f'attachment; filename="fixops-evidence-{bundle_id}.json.gz"',
+            "Content-Disposition": f'attachment; filename="fixops-evidence-{safe_bundle_id}.json.gz"',
             "Access-Control-Expose-Headers": "Content-Disposition",
         },
     )

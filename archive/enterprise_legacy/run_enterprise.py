@@ -6,6 +6,7 @@ Comprehensive startup script for the entire platform
 
 import asyncio
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -21,7 +22,7 @@ def run_command(cmd, description):
     print(f"🔧 {description}...")
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, cwd=project_root
+            shlex.split(cmd), shell=False, capture_output=True, text=True, cwd=project_root
         )
         if result.returncode == 0:
             print(f"✅ {description} completed successfully")
@@ -102,14 +103,14 @@ def start_services():
         cmd = f"supervisord -c {supervisor_config}"
         print(f"🔧 Starting services with: {cmd}")
 
-        result = subprocess.Popen(cmd, shell=True, cwd=project_root)
+        result = subprocess.Popen(shlex.split(cmd), shell=False, cwd=project_root)
 
         # Wait a bit for services to start
         time.sleep(5)
 
         # Check service status
         status_result = subprocess.run(
-            "supervisorctl status", shell=True, capture_output=True, text=True
+            ["supervisorctl", "status"], shell=False, capture_output=True, text=True
         )
         if status_result.returncode == 0:
             print("📋 Service Status:")

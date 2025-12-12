@@ -3,8 +3,10 @@ FixOps Policy Engine - High-performance policy evaluation with OPA/Rego support
 Enterprise-grade decision automation with 299μs hot path performance and AI-powered insights
 """
 
+import ast
 import asyncio
 import json
+import operator
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -342,29 +344,139 @@ class PolicyEngine:
             logger.error(f"Policy evaluation failed for {policy.name}: {str(e)}")
             return None
 
+    def _safe_eval_expr(
+        self, node: ast.AST, context: PolicyContext
+    ) -> Any:
+        """
+        Safely evaluate an AST node without using eval().
+        Only allows a restricted set of operations for policy rules.
+        """
+        # Allowed binary operators
+        bin_ops = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+            ast.Mod: operator.mod,
+            ast.Eq: operator.eq,
+            ast.NotEq: operator.ne,
+            ast.Lt: operator.lt,
+            ast.LtE: operator.le,
+            ast.Gt: operator.gt,
+            ast.GtE: operator.ge,
+            ast.In: lambda a, b: a in b,
+            ast.NotIn: lambda a, b: a not in b,
+            ast.Is: operator.is_,
+            ast.IsNot: operator.is_not,
+        }
+        
+        # Allowed unary operators
+        unary_ops = {
+            ast.UAdd: operator.pos,
+            ast.USub: operator.neg,
+            ast.Not: operator.not_,
+        }
+        
+        # Allowed safe functions
+        safe_funcs = {
+            "len": len,
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "abs": abs,
+            "min": min,
+            "max": max,
+        }
+        
+        if isinstance(node, ast.Constant):
+            return node.value
+        elif isinstance(node, ast.Name):
+            if node.id == "context":
+                return context
+            elif node.id == "PolicyDecision":
+                return PolicyDecision
+            elif node.id in ("True", "False", "None"):
+                return {"True": True, "False": False, "None": None}[node.id]
+            else:
+                raise ValueError(f"Disallowed name: {node.id}")
+        elif isinstance(node, ast.Attribute):
+            value = self._safe_eval_expr(node.value, context)
+            return getattr(value, node.attr)
+        elif isinstance(node, ast.BinOp):
+            left = self._safe_eval_expr(node.left, context)
+            right = self._safe_eval_expr(node.right, context)
+            op_type = type(node.op)
+            if op_type in bin_ops:
+                return bin_ops[op_type](left, right)
+            raise ValueError(f"Disallowed binary operator: {op_type.__name__}")
+        elif isinstance(node, ast.UnaryOp):
+            operand = self._safe_eval_expr(node.operand, context)
+            op_type = type(node.op)
+            if op_type in unary_ops:
+                return unary_ops[op_type](operand)
+            raise ValueError(f"Disallowed unary operator: {op_type.__name__}")
+        elif isinstance(node, ast.Compare):
+            left = self._safe_eval_expr(node.left, context)
+            for op, comparator in zip(node.ops, node.comparators):
+                right = self._safe_eval_expr(comparator, context)
+                op_type = type(op)
+                if op_type not in bin_ops:
+                    raise ValueError(f"Disallowed comparison: {op_type.__name__}")
+                if not bin_ops[op_type](left, right):
+                    return False
+                left = right
+            return True
+        elif isinstance(node, ast.BoolOp):
+            if isinstance(node.op, ast.And):
+                return all(self._safe_eval_expr(v, context) for v in node.values)
+            elif isinstance(node.op, ast.Or):
+                return any(self._safe_eval_expr(v, context) for v in node.values)
+            raise ValueError(f"Disallowed boolean operator: {type(node.op).__name__}")
+        elif isinstance(node, ast.IfExp):
+            test = self._safe_eval_expr(node.test, context)
+            if test:
+                return self._safe_eval_expr(node.body, context)
+            return self._safe_eval_expr(node.orelse, context)
+        elif isinstance(node, ast.Call):
+            func = self._safe_eval_expr(node.func, context)
+            if isinstance(node.func, ast.Name) and node.func.id in safe_funcs:
+                args = [self._safe_eval_expr(arg, context) for arg in node.args]
+                return safe_funcs[node.func.id](*args)
+            elif isinstance(func, type) and func == PolicyDecision:
+                # Allow PolicyDecision enum access
+                if node.args:
+                    arg = self._safe_eval_expr(node.args[0], context)
+                    return PolicyDecision(arg)
+            raise ValueError(f"Disallowed function call: {node.func}")
+        elif isinstance(node, ast.List):
+            return [self._safe_eval_expr(elt, context) for elt in node.elts]
+        elif isinstance(node, ast.Tuple):
+            return tuple(self._safe_eval_expr(elt, context) for elt in node.elts)
+        elif isinstance(node, ast.Dict):
+            return {
+                self._safe_eval_expr(k, context): self._safe_eval_expr(v, context)
+                for k, v in zip(node.keys, node.values)
+                if k is not None
+            }
+        elif isinstance(node, ast.Subscript):
+            value = self._safe_eval_expr(node.value, context)
+            slice_val = self._safe_eval_expr(node.slice, context)
+            return value[slice_val]
+        else:
+            raise ValueError(f"Disallowed AST node type: {type(node).__name__}")
+
     async def _evaluate_python_rule(
         self, policy: PolicyRule, context: PolicyContext
     ) -> Dict[str, Any]:
-        """Evaluate Python-based policy rule"""
-
-        # Build safe evaluation environment
-        eval_globals = {
-            "__builtins__": {},
-            "context": context,
-            "PolicyDecision": PolicyDecision,
-            "and": lambda a, b: a and b,
-            "or": lambda a, b: a or b,
-            "not": lambda a: not a,
-            "in": lambda a, b: a in b,
-            "len": len,
-            "str": str,
-            "float": float,
-            "int": int,
-        }
+        """Evaluate Python-based policy rule using safe AST evaluation"""
 
         try:
-            # Execute policy rule
-            result = eval(policy.rule_content, eval_globals, {})
+            # Parse the rule content into an AST
+            tree = ast.parse(policy.rule_content, mode="eval")
+            
+            # Safely evaluate the AST without using eval()
+            result = self._safe_eval_expr(tree.body, context)
 
             if isinstance(result, dict):
                 return result

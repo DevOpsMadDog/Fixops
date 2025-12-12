@@ -177,8 +177,8 @@ async def evaluate_gate(request: GateRequest, db: AsyncSession) -> GateResponse:
     if service_name:
         stmt = stmt.where(
             or_(
-                KevWaiver.service_name == None, KevWaiver.service_name == service_name
-            )  # noqa: E711
+                KevWaiver.service_name.is_(None), KevWaiver.service_name == service_name
+            )
         )
 
     result = await db.execute(stmt)

@@ -93,7 +93,7 @@ class LocalOverlayProvider(FeatureFlagProvider):
         if not hash_input:
             return default
 
-        hash_value = int(hashlib.md5(str(hash_input).encode()).hexdigest(), 16)
+        hash_value = int(hashlib.sha256(str(hash_input).encode()).hexdigest(), 16)
         bucket = hash_value % 100
 
         if bucket < percentage:
@@ -143,7 +143,7 @@ class LocalOverlayProvider(FeatureFlagProvider):
         if not hash_input:
             return default
 
-        hash_value = int(hashlib.md5(str(hash_input).encode()).hexdigest(), 16)
+        hash_value = int(hashlib.sha256(str(hash_input).encode()).hexdigest(), 16)
         bucket = hash_value % 100
 
         cumulative = 0

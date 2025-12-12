@@ -17,6 +17,8 @@ import requests
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
+from core.paths import verify_allowlisted_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -176,10 +178,10 @@ async def ingest_telemetry(payload: TelemetryPayload):
 
     except requests.RequestException as e:
         logger.error(f"Failed to forward telemetry: {e}")
-        raise HTTPException(status_code=502, detail=f"Failed to forward telemetry: {e}")
+        raise HTTPException(status_code=502, detail="Failed to forward telemetry")
     except Exception as e:
         logger.error(f"Error processing telemetry: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error processing telemetry")
 
 
 @app.get("/evidence")
@@ -225,7 +227,7 @@ async def generate_evidence(
 
     except Exception as e:
         logger.error(f"Error generating evidence: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error generating evidence")
 
 
 def sanitize_filename(filename: str) -> str:
@@ -234,7 +236,10 @@ def sanitize_filename(filename: str) -> str:
 
     Removes any path separators and keeps only alphanumeric, dash, dot, and underscore.
     """
-    safe_filename = re.sub(r"[^a-zA-Z0-9._-]", "_", filename)
+    # First strip any directory components
+    safe_filename = Path(filename).name
+    # Then remove any remaining unsafe characters
+    safe_filename = re.sub(r"[^a-zA-Z0-9._-]", "_", safe_filename)
     safe_filename = safe_filename.replace("..", "_")
     return safe_filename
 
@@ -260,11 +265,43 @@ def upload_evidence_bundle(
     elif cloud_provider == "gcp":
         return upload_to_gcs(compressed_data, filename, metadata)
     else:
-        local_path = Path("/app/evidence") / filename
-        local_path.parent.mkdir(parents=True, exist_ok=True)
+        # Local file storage with path validation
+        evidence_base = Path("/app/evidence")
+        evidence_base.mkdir(parents=True, exist_ok=True)
+
+        # Sanitize filename
+        safe_filename = sanitize_filename(filename)
+        if ".." in safe_filename or "/" in safe_filename or "\\" in safe_filename:
+            raise ValueError("Invalid filename")
+
+        # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
+        try:
+            local_path = verify_allowlisted_path(
+                evidence_base / safe_filename, [evidence_base]
+            )
+        except PermissionError:
+            raise ValueError("Path is outside base directory")
+
+        # Now safe to use the validated path
         local_path.write_bytes(compressed_data)
 
-        metadata_path = local_path.with_suffix(".json")
+        # Metadata file uses same base name with different extension
+        metadata_filename = safe_filename.rsplit(".", 1)[0] + ".json"
+        safe_metadata_filename = sanitize_filename(metadata_filename)
+        if (
+            ".." in safe_metadata_filename
+            or "/" in safe_metadata_filename
+            or "\\" in safe_metadata_filename
+        ):
+            raise ValueError("Invalid metadata filename")
+
+        try:
+            metadata_path = verify_allowlisted_path(
+                evidence_base / safe_metadata_filename, [evidence_base]
+            )
+        except PermissionError:
+            raise ValueError("Metadata path is outside base directory")
+
         metadata_path.write_text(json.dumps(metadata, indent=2))
 
         logger.info("Successfully saved evidence bundle locally")

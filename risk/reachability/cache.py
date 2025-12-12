@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+from typing import Optional
 
 from risk.reachability.analyzer import VulnerabilityReachability
 

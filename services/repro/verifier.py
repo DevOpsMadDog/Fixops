@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -141,10 +142,10 @@ def _run_steps(
             continue
         if isinstance(command, str):
             subprocess.run(
-                command,
+                shlex.split(command),
                 cwd=workspace,
                 env=base_env,
-                shell=True,
+                shell=False,
                 check=True,
             )
         else:

@@ -7,7 +7,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
 
 from packaging.version import InvalidVersion, Version
 

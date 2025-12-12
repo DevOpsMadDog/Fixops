@@ -60,7 +60,7 @@ def test_api_server_realistic():
             if r.status_code == 200:
                 print("   ✅ Server is running")
                 break
-        except:
+        except Exception:
             pass
         time.sleep(0.5)
     else:
@@ -189,7 +189,7 @@ def test_api_server_realistic():
     server.terminate()
     try:
         server.wait(timeout=5)
-    except:
+    except Exception:
         server.kill()
     print("   ✅ Server stopped")
 

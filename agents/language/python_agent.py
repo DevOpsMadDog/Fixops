@@ -6,10 +6,9 @@ Language-specific agent for Python codebases.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from agents.core.agent_framework import AgentConfig, AgentData, AgentType, BaseAgent
+from agents.core.agent_framework import AgentConfig, AgentType
 from agents.design_time.code_repo_agent import CodeRepoAgent
 
 logger = logging.getLogger(__name__)

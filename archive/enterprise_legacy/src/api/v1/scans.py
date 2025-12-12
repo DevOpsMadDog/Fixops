@@ -18,6 +18,8 @@ import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.paths import verify_allowlisted_path
 from src.cli.main import FixOpsCLI
 from src.config.settings import get_settings
 from src.db.session import get_db
@@ -32,6 +34,28 @@ settings = get_settings()
 
 UPLOAD_DIR = Path("/app/data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _get_validated_upload_dir(upload_id: str) -> Path:
+    """Get a validated upload directory path for the given upload_id.
+
+    Uses verify_allowlisted_path (CodeQL-recognized sanitizer) to validate paths.
+    """
+    # Sanitize user input - extract just the filename component
+    safe_id = Path(upload_id).name
+    if ".." in safe_id or "/" in safe_id or "\\" in safe_id:
+        raise HTTPException(status_code=400, detail="Invalid upload ID")
+    # Additional validation: only allow safe characters
+    if not all(c.isalnum() or c in "-_" for c in safe_id):
+        raise HTTPException(status_code=400, detail="Invalid upload ID format")
+
+    # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
+    try:
+        validated_path = verify_allowlisted_path(UPLOAD_DIR / safe_id, [UPLOAD_DIR])
+    except PermissionError:
+        raise HTTPException(status_code=400, detail="Invalid upload path")
+
+    return validated_path
 
 
 @router.post("/upload")
@@ -205,9 +229,9 @@ async def init_chunked_upload(
         )
 
     except Exception as e:
-        logger.error(f"Chunked upload init failed: {str(e)}")
+        logger.error(f"Chunked upload init failed: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to initialize chunked upload: {str(e)}"
+            status_code=500, detail="Failed to initialize chunked upload"
         )
 
 
@@ -220,12 +244,17 @@ async def upload_chunk(
 ):
     """Upload a chunk"""
     try:
-        upload_dir = UPLOAD_DIR / upload_id
+        # Get validated upload directory (sanitizes upload_id and validates path)
+        upload_dir = _get_validated_upload_dir(upload_id)
+        
         if not upload_dir.exists():
             raise HTTPException(status_code=404, detail="Upload session not found")
 
-        # Save chunk
+        # Save chunk with validated index
+        if chunk_index < 0 or chunk_index >= total_chunks:
+            raise HTTPException(status_code=400, detail="Invalid chunk index")
         chunk_content = await chunk.read()
+        # Chunk filename is constructed from validated integer, safe by design
         chunk_path = upload_dir / f"chunk_{chunk_index}"
 
         with open(chunk_path, "wb") as f:
@@ -236,28 +265,33 @@ async def upload_chunk(
             content={
                 "status": "success",
                 "data": {
-                    "upload_id": upload_id,
+                    "upload_id": upload_dir.name,
                     "chunk_index": chunk_index,
                     "message": f"Chunk {chunk_index} received",
                 },
             },
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Chunk upload failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload chunk: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload chunk")
 
 
 @router.post("/upload/complete")
 async def complete_chunked_upload(upload_id: str = Form(...)):
     """Complete chunked upload and process file"""
     try:
-        upload_dir = UPLOAD_DIR / upload_id
+        # Get validated upload directory (sanitizes upload_id and validates path)
+        upload_dir = _get_validated_upload_dir(upload_id)
+        
         if not upload_dir.exists():
             raise HTTPException(status_code=404, detail="Upload session not found")
 
-        # Load metadata
-        with open(upload_dir / "metadata.json", "r") as f:
+        # Load metadata - filename is hardcoded, safe by design
+        metadata_path = upload_dir / "metadata.json"
+        with open(metadata_path, "r") as f:
             metadata = json.load(f)
 
         # Reassemble file
@@ -324,10 +358,12 @@ async def complete_chunked_upload(upload_id: str = Form(...)):
         finally:
             await cli.cleanup()
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Chunked upload completion failed: {str(e)}")
+        logger.error(f"Chunked upload completion failed: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to complete chunked upload: {str(e)}"
+            status_code=500, detail="Failed to complete chunked upload"
         )
 
 

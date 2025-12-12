@@ -85,12 +85,48 @@ class FlagConfigManager:
                 os.environ.pop(key, None)
         self.original_env.clear()
 
-    def create_demo_config(self, dest: Optional[Path] = None) -> Path:
+    def create_config(
+        self,
+        feature_flags: Optional[dict[str, Any]] = None,
+        modules: Optional[dict[str, bool]] = None,
+        dest: Optional[Path] = None,
+    ) -> Path:
+        """
+        Create a custom overlay configuration.
+
+        This is a convenience wrapper around create_overlay_config that provides
+        sensible defaults if no feature_flags are specified.
+
+        Args:
+            feature_flags: Feature flag values (defaults to demo config if None)
+            modules: Module enablement settings (merged with demo defaults if
+                     feature_flags is None)
+            dest: Destination path
+
+        Returns:
+            Path to created config file
+        """
+        if feature_flags is None:
+            # Use demo config defaults, but allow custom modules to override
+            return self.create_demo_config(dest=dest, modules_override=modules)
+
+        return self.create_overlay_config(
+            feature_flags=feature_flags,
+            modules=modules,
+            dest=dest,
+        )
+
+    def create_demo_config(
+        self,
+        dest: Optional[Path] = None,
+        modules_override: Optional[dict[str, bool]] = None,
+    ) -> Path:
         """
         Create a demo overlay configuration.
 
         Args:
             dest: Destination path
+            modules_override: Optional module settings to override demo defaults
 
         Returns:
             Path to created config file
@@ -125,6 +161,10 @@ class FlagConfigManager:
             "iac_posture": False,
             "analytics": False,
         }
+
+        # Apply any module overrides
+        if modules_override:
+            modules.update(modules_override)
 
         return self.create_overlay_config(
             feature_flags=feature_flags,

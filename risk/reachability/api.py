@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from risk.reachability.analyzer import ReachabilityAnalyzer, VulnerabilityReachability
+from risk.reachability.analyzer import ReachabilityAnalyzer
 from risk.reachability.git_integration import GitRepository
 from risk.reachability.job_queue import JobQueue, ReachabilityJob
 from risk.reachability.storage import ReachabilityStorage
@@ -107,7 +107,7 @@ def get_analyzer() -> ReachabilityAnalyzer:
     from core.configuration import load_overlay
 
     overlay = load_overlay()
-    config = overlay.get("reachability_analysis", {})
+    config = overlay.raw_config.get("reachability_analysis", {})
     return ReachabilityAnalyzer(config=config)
 
 
@@ -116,7 +116,12 @@ def get_storage() -> ReachabilityStorage:
     from core.configuration import load_overlay
 
     overlay = load_overlay()
-    config = overlay.get("reachability_analysis", {}).get("storage", {})
+    reachability_config = overlay.raw_config.get("reachability_analysis", {})
+    config = (
+        reachability_config.get("storage", {})
+        if isinstance(reachability_config, dict)
+        else {}
+    )
     return ReachabilityStorage(config=config)
 
 
@@ -125,7 +130,12 @@ def get_job_queue() -> JobQueue:
     from core.configuration import load_overlay
 
     overlay = load_overlay()
-    config = overlay.get("reachability_analysis", {}).get("job_queue", {})
+    reachability_config = overlay.raw_config.get("reachability_analysis", {})
+    config = (
+        reachability_config.get("job_queue", {})
+        if isinstance(reachability_config, dict)
+        else {}
+    )
     return JobQueue(config=config)
 
 
@@ -133,10 +143,10 @@ def get_job_queue() -> JobQueue:
 @router.post("/analyze", response_model=ReachabilityAnalysisResponse)
 async def analyze_reachability(
     request: ReachabilityAnalysisRequest,
+    background_tasks: BackgroundTasks,
     analyzer: ReachabilityAnalyzer = Depends(get_analyzer),
     storage: ReachabilityStorage = Depends(get_storage),
     job_queue: JobQueue = Depends(get_job_queue),
-    background_tasks: BackgroundTasks = None,
 ):
     """Analyze vulnerability reachability in a Git repository.
 
@@ -157,6 +167,7 @@ async def analyze_reachability(
         if cached_result and not request.force_refresh:
             logger.info(f"Returning cached result for {request.vulnerability.cve_id}")
             return ReachabilityAnalysisResponse(
+                job_id=None,
                 status="completed",
                 result=cached_result.to_dict(),
                 message="Result retrieved from cache",
@@ -198,6 +209,7 @@ async def analyze_reachability(
             return ReachabilityAnalysisResponse(
                 job_id=job_id,
                 status="queued",
+                result=None,
                 message=f"Analysis queued with job ID: {job_id}",
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
@@ -220,22 +232,24 @@ async def analyze_reachability(
             storage.save_result(result, git_repo.url, git_repo.commit)
 
             return ReachabilityAnalysisResponse(
+                job_id=None,
                 status="completed",
                 result=result.to_dict(),
                 message="Analysis completed successfully",
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
 
-    except ValueError as e:
+    except ValueError:
+        logger.exception("Invalid request parameters")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid request parameters",
         )
-    except Exception as e:
-        logger.error(f"Reachability analysis failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Reachability analysis failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Analysis failed: {str(e)}",
+            detail="Analysis failed",
         )
 
 
@@ -288,11 +302,11 @@ async def analyze_bulk(
             created_at=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception as e:
-        logger.error(f"Bulk analysis failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Bulk analysis failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Bulk analysis failed: {str(e)}",
+            detail="Bulk analysis failed",
         )
 
 
@@ -315,11 +329,11 @@ async def get_job_status(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Failed to get job status: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to get job status")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get job status: {str(e)}",
+            detail="Failed to get job status",
         )
 
 
@@ -352,11 +366,11 @@ async def get_result(
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Failed to get result: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to get result")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get result: {str(e)}",
+            detail="Failed to get result",
         )
 
 
@@ -381,11 +395,11 @@ async def delete_result(
 
         return {"message": "Result deleted successfully"}
 
-    except Exception as e:
-        logger.error(f"Failed to delete result: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to delete result")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete result: {str(e)}",
+            detail="Failed to delete result",
         )
 
 
@@ -410,12 +424,12 @@ async def health_check(
 
         return health_status
 
-    except Exception as e:
-        logger.error(f"Health check failed: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Health check failed")
         return {
             "status": "unhealthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "error": str(e),
+            "error": "Health check failed",
         }
 
 
@@ -434,9 +448,9 @@ async def get_metrics(
 
         return metrics
 
-    except Exception as e:
-        logger.error(f"Failed to get metrics: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Failed to get metrics")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get metrics: {str(e)}",
+            detail="Failed to get metrics",
         )

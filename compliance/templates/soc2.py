@@ -1,5 +1,7 @@
 """SOC 2 Compliance Template."""
 
+from typing import Any, Dict, List
+
 from compliance.templates.base import ComplianceRule, ComplianceTemplate
 
 

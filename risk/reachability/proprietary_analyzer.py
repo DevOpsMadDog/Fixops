@@ -9,8 +9,8 @@ from __future__ import annotations
 import ast
 import logging
 import re
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
+from collections import deque
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
@@ -776,8 +776,10 @@ class ProprietaryTaintAnalyzer(ast.NodeVisitor):
             return node.attr
         return None
 
-    def _uses_tainted_variable(self, node: ast.AST) -> bool:
+    def _uses_tainted_variable(self, node: Optional[ast.AST]) -> bool:
         """Check if node uses tainted variable."""
+        if node is None:
+            return False
         if isinstance(node, ast.Name):
             return node.id in self.tainted_vars
         elif isinstance(node, ast.Call):
@@ -809,7 +811,7 @@ class ProprietaryReachabilityAnalyzer:
         language: str,
     ) -> Dict[str, Any]:
         """Proprietary repository analysis."""
-        results = {
+        results: Dict[str, Any] = {
             "matches": [],
             "call_graph": {},
             "data_flows": [],
@@ -861,7 +863,7 @@ class ProprietaryReachabilityAnalyzer:
             "java": ["*.java"],
         }
 
-        files = []
+        files: List[Path] = []
         for ext in extensions.get(language, []):
             files.extend(repo_path.rglob(ext))
 
@@ -895,7 +897,8 @@ class ProprietaryReachabilityAnalyzer:
 
             if func_name and func_name in graph:
                 func_info = graph[func_name]
-                callers = func_info.get("callers", [])
+                # Note: callers available for future caller analysis
+                _ = func_info.get("callers", [])
 
                 # Check if function is reachable from entry points
                 is_reachable = self._is_reachable_from_entries(

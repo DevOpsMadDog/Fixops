@@ -20,7 +20,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -218,7 +218,6 @@ class ControlFlowAnalyzer:
     def build_cfg(self, function_name: str, ast_node: ast.FunctionDef) -> None:
         """Build control flow graph from AST."""
         # Advanced CFG construction
-        nodes = []
 
         class CFGVisitor(ast.NodeVisitor):
             def __init__(self, cfg_builder):
@@ -597,7 +596,7 @@ class AdvancedIASTAnalyzer:
         for finding in findings:
             # Create hash of finding content
             content = f"{finding.vulnerability_type.value}:{finding.source_file}:{finding.line_number}:{finding.function_name}"
-            content_hash = hashlib.md5(content.encode()).hexdigest()
+            content_hash = hashlib.sha256(content.encode()).hexdigest()
 
             if content_hash not in seen:
                 seen.add(content_hash)

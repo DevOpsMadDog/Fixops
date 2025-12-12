@@ -8,7 +8,7 @@ import logging
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from risk.reachability.analyzer import VulnerabilityReachability
 
@@ -57,13 +57,23 @@ class ReachabilityStorage:
                 repo_commit TEXT,
                 result_json TEXT NOT NULL,
                 created_at TIMESTAMP NOT NULL,
-                expires_at TIMESTAMP,
-                INDEX idx_cve (cve_id),
-                INDEX idx_component (component_name, component_version),
-                INDEX idx_repo (repo_url, repo_commit),
-                INDEX idx_expires (expires_at)
+                expires_at TIMESTAMP
             )
             """
+        )
+
+        # Create indexes for results table
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cve ON reachability_results (cve_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_component ON reachability_results (component_name, component_version)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_repo ON reachability_results (repo_url, repo_commit)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_expires ON reachability_results (expires_at)"
         )
 
         # Metrics table
@@ -74,10 +84,14 @@ class ReachabilityStorage:
                 metric_name TEXT NOT NULL,
                 metric_value REAL NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
-                metadata TEXT,
-                INDEX idx_metric (metric_name, timestamp)
+                metadata TEXT
             )
             """
+        )
+
+        # Create index for metrics table
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_metric ON reachability_metrics (metric_name, timestamp)"
         )
 
         conn.commit()

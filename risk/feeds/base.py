@@ -114,19 +114,16 @@ class ThreatIntelligenceFeed(ABC):
     @abstractmethod
     def feed_name(self) -> str:
         """Return the feed name."""
-        pass
 
     @property
     @abstractmethod
     def feed_url(self) -> str:
         """Return the feed URL."""
-        pass
 
     @property
     @abstractmethod
     def cache_filename(self) -> str:
         """Return the cache filename."""
-        pass
 
     @abstractmethod
     def parse_feed(self, data: bytes) -> List[VulnerabilityRecord]:
@@ -142,7 +139,6 @@ class ThreatIntelligenceFeed(ABC):
         List[VulnerabilityRecord]
             List of parsed vulnerability records.
         """
-        pass
 
     def update_feed(self, url: Optional[str] = None) -> Path:
         """Fetch and cache the feed.

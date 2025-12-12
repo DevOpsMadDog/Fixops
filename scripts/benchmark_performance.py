@@ -11,7 +11,6 @@ import statistics
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List
 
 import aiohttp
@@ -118,7 +117,7 @@ class FixOpsBenchmark:
         total_lines = 0
 
         async def analyze_repo(repo: Dict[str, str]) -> None:
-            nonlocal latencies, errors, total_lines
+            nonlocal errors, total_lines
 
             req_start = time.time()
             try:
@@ -190,7 +189,8 @@ class FixOpsBenchmark:
         meets_loc_target = loc_in_5min >= target_loc_per_5min
         meets_latency_target = metrics.api_latency_p99_ms <= target_api_latency_p99_ms
 
-        report = {
+        recommendations: List[str] = []
+        report: Dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "metrics": {
                 "total_lines_of_code": metrics.total_lines_of_code,
@@ -218,7 +218,7 @@ class FixOpsBenchmark:
                 if (meets_loc_target and meets_latency_target)
                 else "FAIL",
             },
-            "recommendations": [],
+            "recommendations": recommendations,
         }
 
         if not meets_loc_target:
@@ -239,7 +239,8 @@ async def main():
     benchmark = FixOpsBenchmark()
 
     # Test repositories (would be real repos in production)
-    test_repos = [
+    # Note: test_repos defined for future bulk analysis benchmarks
+    _ = [
         {"url": "https://github.com/test/repo1", "cve_id": "CVE-2024-0001"},
         {"url": "https://github.com/test/repo2", "cve_id": "CVE-2024-0002"},
     ]
@@ -255,16 +256,16 @@ async def main():
     print("FIXOPS PERFORMANCE BENCHMARK REPORT")
     print("=" * 80)
     print(f"\nTimestamp: {report['timestamp']}")
-    print(f"\nMetrics:")
+    print("\nMetrics:")
     print(f"  Total LOC Analyzed: {report['metrics']['total_lines_of_code']:,}")
     print(f"  Analysis Duration: {report['metrics']['analysis_duration_seconds']:.2f}s")
     print(f"  Lines/Second: {report['metrics']['lines_per_second']:,.0f}")
     print(f"  Lines in 5 Minutes: {report['metrics']['lines_in_5_minutes']:,.0f}")
-    print(f"\nAPI Latency:")
+    print("\nAPI Latency:")
     print(f"  p50: {report['metrics']['api_latency']['p50_ms']:.2f}ms")
     print(f"  p95: {report['metrics']['api_latency']['p95_ms']:.2f}ms")
     print(f"  p99: {report['metrics']['api_latency']['p99_ms']:.2f}ms")
-    print(f"\nGartner Targets:")
+    print("\nGartner Targets:")
     print(
         f"  LOC Target (10M in 5min): {'✅ PASS' if report['gartner_targets']['meets_loc_target'] else '❌ FAIL'}"
     )
@@ -274,7 +275,7 @@ async def main():
     print(f"  Overall Status: {report['gartner_targets']['overall_status']}")
 
     if report["recommendations"]:
-        print(f"\nRecommendations:")
+        print("\nRecommendations:")
         for rec in report["recommendations"]:
             print(f"  - {rec}")
 

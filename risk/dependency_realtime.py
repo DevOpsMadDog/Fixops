@@ -154,12 +154,10 @@ class RealTimeDependencyScanner:
         # 3. Check for vulnerabilities in new version
 
         # Simulated implementation
-        package_name = dep_info["package_name"]
-        package_manager = dep_info["package_manager"]
-        current_version = dep_info["current_version"]
-
-        # This would be a real API call
+        # Note: dep_info contains package_name, package_manager, current_version
+        # This would be a real API call to check for updates
         # For now, return None (no updates)
+        _ = dep_info  # Acknowledge parameter for future implementation
         return None
 
     async def _check_for_vulnerabilities(

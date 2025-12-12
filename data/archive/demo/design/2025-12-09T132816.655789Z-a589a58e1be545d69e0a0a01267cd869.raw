@@ -1,0 +1,3 @@
+component,owner,criticality,notes
+payment-service,app-team,high,Handles card processing
+notification-service,platform,medium,Sends emails

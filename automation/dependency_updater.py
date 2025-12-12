@@ -162,7 +162,6 @@ class DependencyUpdater:
 
                 for package, info in outdated.items():
                     current = info.get("current", "")
-                    wanted = info.get("wanted", "")
                     latest = info.get("latest", "")
 
                     # Determine update type
@@ -270,14 +269,12 @@ class DependencyUpdater:
     ) -> None:
         """Update Maven dependency."""
         # In production, would update pom.xml
-        pass
 
     def _update_gradle_package(
         self, project_path: Path, update: DependencyUpdate
     ) -> None:
         """Update Gradle dependency."""
         # In production, would update build.gradle
-        pass
 
     def _determine_update_type(self, current: str, new: str) -> str:
         """Determine update type (patch, minor, major)."""

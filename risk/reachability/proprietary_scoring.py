@@ -11,8 +11,8 @@ import logging
 import math
 import statistics
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, Mapping, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class ProprietaryScoringEngine:
         # Proprietary decay functions
         self.decay_functions = self._build_decay_functions()
 
-    def _build_decay_functions(self) -> Dict[str, callable]:
+    def _build_decay_functions(self) -> Dict[str, Any]:
         """Build proprietary decay functions for temporal factors."""
         return {
             "exponential": lambda x, rate: math.exp(-rate * x),
