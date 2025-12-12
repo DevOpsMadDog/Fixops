@@ -111,7 +111,7 @@ def verify_allowlisted_path(path: Path, allowlist: Iterable[Path]) -> Path:
 
     # Step 3: Now resolve the user-provided path and check it's within allowlist
     # This is intentionally done AFTER validating the allowlist roots
-    resolved = path.expanduser().resolve()  # lgtm[py/path-injection]
+    resolved = path.expanduser().resolve()  # codeql[py/path-injection]
     matched_root: Path | None = None
     for root in resolved_allowlist:
         try:

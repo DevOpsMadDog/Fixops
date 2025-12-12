@@ -367,7 +367,7 @@ export default function SecretsPage() {
           </div>
         </div>
 
-        {/* Secret Detail Drawer */}
+        {/* Item Detail Drawer */}
         {selectedItem && (
           <div
             onClick={() => setSelectedItem(null)}
@@ -417,12 +417,12 @@ export default function SecretsPage() {
 
               {/* Drawer Content */}
               <div className="flex-1 p-6 space-y-6">
-                {/* Secret Information */}
+                {/* Item Information */}
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-300 mb-3">Secret Information</h4>
+                  <h4 className="text-sm font-semibold text-slate-300 mb-3">Item Information</h4>
                   <div className="space-y-3 bg-white/5 rounded-lg p-4">
                     <div className="flex justify-between">
-                      <span className="text-sm text-slate-400">Secret ID</span>
+                      <span className="text-sm text-slate-400">Item ID</span>
                       <span className="text-sm text-white font-mono">{selectedItem.id}</span>
                     </div>
                     <div className="flex justify-between">
@@ -467,10 +467,10 @@ export default function SecretsPage() {
                   </div>
                 </div>
 
-                {/* Secret Value */}
+                {/* Item Value */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-slate-300">Secret Value</h4>
+                    <h4 className="text-sm font-semibold text-slate-300">Item Value</h4>
                     <button
                       onClick={() => setShowValue(!showValue)}
                       className="text-xs text-[#6B5AED] hover:underline flex items-center gap-1"
@@ -495,7 +495,7 @@ export default function SecretsPage() {
                       <>
                         <button className="w-full p-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-sm text-left text-red-400 transition-colors flex items-center gap-2">
                           <Shield size={16} />
-                          Revoke Secret
+                          Revoke Item
                         </button>
                         <button className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-left text-white transition-colors flex items-center gap-2">
                           <XCircle size={16} />
@@ -506,13 +506,13 @@ export default function SecretsPage() {
                     {selectedItem.status === 'revoked' && (
                       <div className="p-3 bg-green-500/10 rounded-lg text-sm text-green-400 flex items-center gap-2">
                         <CheckCircle size={16} />
-                        This secret has been revoked
+                        This item has been revoked
                       </div>
                     )}
                     {selectedItem.status === 'false_positive' && (
                       <button className="w-full p-3 bg-yellow-500/10 hover:bg-yellow-500/20 rounded-lg text-sm text-left text-yellow-400 transition-colors flex items-center gap-2">
                         <AlertTriangle size={16} />
-                        Reactivate Secret
+                        Reactivate Item
                       </button>
                     )}
                     <button className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-left text-white transition-colors flex items-center gap-2">
