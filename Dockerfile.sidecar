@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir \
 # Copy demo scripts
 COPY scripts/demo_sidecar.py ./demo_sidecar.py
 COPY scripts/feed_sidecar.py ./scripts/feed_sidecar.py
+COPY scripts/micropentest_sidecar.py ./scripts/micropentest_sidecar.py
 COPY tests/sidecar/ ./tests/sidecar/
 
 # Copy demo data if available

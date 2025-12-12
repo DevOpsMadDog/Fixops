@@ -70,6 +70,22 @@ services:
     profiles:
       - feeds
 
+  # Micro Penetration Test Sidecar - animated security testing
+  fixops-micropentest:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-micropentest
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    command: ["python", "scripts/micropentest_sidecar.py", "demo"]
+    profiles:
+      - pentest
+
   # Risk Graph UI - React/Next.js visualization app
   risk-graph-ui:
     build:
