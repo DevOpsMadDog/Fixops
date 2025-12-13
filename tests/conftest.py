@@ -37,6 +37,8 @@ collect_ignore = [
     "test_secure_defaults.py",  # expects RuntimeError but CI skips security checks
     # E2E API tests - covered by Postman and fixops-ci.yml
     "test_all_137_endpoints_e2e.py",  # covered by Postman with real API calls
+    # CLI tests - covered by fixops-ci.yml with real CLI execution
+    "test_analytics_cli.py",  # subprocess calls 'python' which doesn't exist in Docker
 ]
 
 # Import scripts.graph_worker to satisfy coverage requirements
