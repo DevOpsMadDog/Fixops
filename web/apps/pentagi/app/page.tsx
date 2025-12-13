@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usePentagiData } from './hooks/usePentagiData'
 import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
@@ -111,8 +112,16 @@ const DEMO_FINDINGS = [
 ]
 
 export default function PentagiPage() {
-  const [requests, setRequests] = useState(DEMO_PENTEST_REQUESTS)
-  const [filteredRequests, setFilteredRequests] = useState(DEMO_PENTEST_REQUESTS)
+  // Use real-time data from API with fallback to demo data
+  const { requests: apiRequests, findings: apiFindings, stats, isLoading, error, isLiveData, lastUpdated, refresh } = usePentagiData(30000)
+  const [requests, setRequests] = useState(apiRequests)
+  const [filteredRequests, setFilteredRequests] = useState(apiRequests)
+  
+  // Sync API data with component state when it changes
+  useEffect(() => {
+    setRequests(apiRequests)
+    setFilteredRequests(apiRequests)
+  }, [apiRequests])
   const [selectedRequest, setSelectedRequest] = useState<typeof DEMO_PENTEST_REQUESTS[0] | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')

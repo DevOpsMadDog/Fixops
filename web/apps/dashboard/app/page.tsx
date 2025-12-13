@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap, Users, Filter, Calendar, Download, RefreshCw } from 'lucide-react'
+import { useDashboardData } from './hooks/useDashboardData'
+import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap, Users, Filter, Calendar, Download, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import EnterpriseShell from './components/EnterpriseShell'
 
@@ -51,12 +52,6 @@ const RESOLUTION_TREND_DATA = [
   { week: 'W10', avgDays: 4.2, target: 4.0 },
 ]
 
-const SEVERITY_DISTRIBUTION = [
-  { name: 'Critical', value: SUMMARY_STATS.critical, color: '#dc2626' },
-  { name: 'High', value: SUMMARY_STATS.high, color: '#f97316' },
-  { name: 'Medium', value: SUMMARY_STATS.medium, color: '#f59e0b' },
-  { name: 'Low', value: SUMMARY_STATS.low, color: '#3b82f6' },
-]
 
 const COMPLIANCE_TREND_DATA = [
   { month: 'Jan', score: 78 },
@@ -130,6 +125,16 @@ const MTTR_MTTD_DATA = [
 ]
 
 export default function DashboardPage() {
+  // Use real-time data from API with fallback to demo data
+  const { summary: SUMMARY_STATS, trends: TRENDS, topServices: TOP_SERVICES, isLoading, error, isLiveData, lastUpdated, refresh } = useDashboardData(30000)
+  
+  // Compute severity distribution from dynamic data
+  const SEVERITY_DISTRIBUTION = [
+    { name: 'Critical', value: SUMMARY_STATS.critical, color: '#dc2626' },
+    { name: 'High', value: SUMMARY_STATS.high, color: '#f97316' },
+    { name: 'Medium', value: SUMMARY_STATS.medium, color: '#f59e0b' },
+    { name: 'Low', value: SUMMARY_STATS.low, color: '#3b82f6' },
+  ]
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('7d')
   const [showDeltaMode, setShowDeltaMode] = useState(false)
