@@ -12,19 +12,20 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: devopsaico/fixops:latest
-      options: --user root
     env:
       RUN_FIXOPS_INTEGRATION_TESTS: ${{ github.event_name == 'push' && '1' || '0' }}
-      FIXOPS_DISABLE_TELEMETRY: '1'
-      FIXOPS_API_TOKEN: 'demo-token'
     steps:
       - uses: actions/checkout@v4
-      - name: Install PR code and test dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
         run: |
-          pip install -e .
-          pip install -r requirements-test.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
           pip install black==23.7.0 isort==5.12.0 flake8 pytest pytest-cov
       - name: Run format check
         run: |

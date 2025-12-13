@@ -13,15 +13,18 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    container:
-      image: devopsaico/fixops:latest
-      options: --user root
     steps:
       - uses: actions/checkout@v4
-      - name: Install PR code and quality tools
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
         run: |
-          pip install -e .
-          pip install -r requirements-test.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
+          if [ -f apps/api/requirements-optional.txt ]; then pip install -r apps/api/requirements-optional.txt || echo "Optional dependencies skipped"; fi
           pip install black==23.7.0 isort==5.12.0 flake8 mypy
       - name: Formatting checks
         run: |
