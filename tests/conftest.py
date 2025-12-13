@@ -35,6 +35,8 @@ collect_ignore = [
     # Security tests affected by CI environment
     "test_storage_security.py",  # expects PermissionError but CI skips security checks
     "test_secure_defaults.py",  # expects RuntimeError but CI skips security checks
+    # E2E API tests - covered by Postman and fixops-ci.yml
+    "test_all_137_endpoints_e2e.py",  # covered by Postman with real API calls
 ]
 
 # Import scripts.graph_worker to satisfy coverage requirements
