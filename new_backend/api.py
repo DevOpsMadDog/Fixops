@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, Path
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 def create_app() -> FastAPI:
@@ -27,7 +27,8 @@ def create_app() -> FastAPI:
         accepted: bool
         comments: str | None = None
 
-        @root_validator
+        @model_validator(mode="before")
+        @classmethod
         def normalize_comments(cls, values: Dict[str, Any]) -> Dict[str, Any]:
             comment = values.get("comments")
             if comment is not None:
