@@ -11,6 +11,7 @@ pytest-timeout>=2.2.0  # Test timeout support
 
 # Additional dependencies for tests
 aiohttp>=3.9.0  # Async HTTP client for pentagi tests
+aiosqlite>=0.19.0  # Async SQLite for policy tests
 sqlalchemy>=2.0.0  # Database ORM for policy tests
 
 # Code Quality
