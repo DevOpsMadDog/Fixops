@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: devopsaico/fixops:latest
-      credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
       options: --user root
     env:
       RUN_FIXOPS_INTEGRATION_TESTS: ${{ github.event_name == 'push' && '1' || '0' }}

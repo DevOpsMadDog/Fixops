@@ -12,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: devopsaico/fixops:latest
-      credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
       options: --user root
     steps:
       - uses: actions/checkout@v4
