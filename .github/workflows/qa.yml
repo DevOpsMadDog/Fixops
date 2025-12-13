@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Adjust workspace ownership for FixOps security checks
         run: |
-          chown -R root:root "$GITHUB_WORKSPACE" || chown -R root:root .
+          chown -R root:root "$(dirname "$GITHUB_WORKSPACE")" || chown -R root:root /__w/Fixops || chown -R root:root .
       - name: Install dependencies
         run: |
           pip install -r requirements-test.txt
