@@ -2,114 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { usePentagiData } from './hooks/usePentagiData'
+import { PentestRequest } from './lib/apiClient'
 import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
-const DEMO_PENTEST_REQUESTS = [
-  {
-    id: '1',
-    name: 'Payment API Security Assessment',
-    target: 'payment-api.fixops.com',
-    type: 'web_application',
-    scope: 'Full API endpoints, authentication, authorization',
-    status: 'completed',
-    severity_found: 'high',
-    findings_count: 12,
-    created_at: '2024-11-15T10:00:00Z',
-    started_at: '2024-11-16T09:00:00Z',
-    completed_at: '2024-11-18T17:00:00Z',
-    requested_by: 'sarah.chen@fixops.io',
-  },
-  {
-    id: '2',
-    name: 'Infrastructure Penetration Test',
-    target: 'prod.fixops.com',
-    type: 'infrastructure',
-    scope: 'Network perimeter, cloud infrastructure, VPN access',
-    status: 'in_progress',
-    severity_found: null,
-    findings_count: 0,
-    created_at: '2024-11-20T08:00:00Z',
-    started_at: '2024-11-21T10:00:00Z',
-    completed_at: null,
-    requested_by: 'john.doe@fixops.io',
-  },
-  {
-    id: '3',
-    name: 'Mobile App Security Review',
-    target: 'FixOps Mobile App v2.1',
-    type: 'mobile_application',
-    scope: 'iOS and Android apps, API communication, data storage',
-    status: 'pending',
-    severity_found: null,
-    findings_count: 0,
-    created_at: '2024-11-22T07:00:00Z',
-    started_at: null,
-    completed_at: null,
-    requested_by: 'emily.rodriguez@fixops.io',
-  },
-  {
-    id: '4',
-    name: 'Admin Panel Security Audit',
-    target: 'admin.fixops.com',
-    type: 'web_application',
-    scope: 'Authentication, RBAC, sensitive operations',
-    status: 'completed',
-    severity_found: 'critical',
-    findings_count: 8,
-    created_at: '2024-11-10T14:00:00Z',
-    started_at: '2024-11-11T09:00:00Z',
-    completed_at: '2024-11-13T16:00:00Z',
-    requested_by: 'michael.kim@fixops.io',
-  },
-  {
-    id: '5',
-    name: 'API Gateway Security Test',
-    target: 'api.fixops.com',
-    type: 'api',
-    scope: 'Rate limiting, authentication, input validation',
-    status: 'cancelled',
-    severity_found: null,
-    findings_count: 0,
-    created_at: '2024-11-08T11:00:00Z',
-    started_at: null,
-    completed_at: null,
-    requested_by: 'anna.patel@fixops.io',
-  },
-]
-
-const DEMO_FINDINGS = [
-  {
-    id: 'f1',
-    request_id: '1',
-    title: 'SQL Injection in Payment Endpoint',
-    severity: 'critical',
-    cvss_score: 9.8,
-    description: 'SQL injection vulnerability in /api/payments endpoint allows unauthorized data access',
-    remediation: 'Use parameterized queries and input validation',
-    status: 'open',
-  },
-  {
-    id: 'f2',
-    request_id: '1',
-    title: 'Broken Authentication',
-    severity: 'high',
-    cvss_score: 8.1,
-    description: 'JWT tokens do not expire and can be reused indefinitely',
-    remediation: 'Implement token expiration and refresh mechanism',
-    status: 'open',
-  },
-  {
-    id: 'f3',
-    request_id: '4',
-    title: 'Privilege Escalation',
-    severity: 'critical',
-    cvss_score: 9.1,
-    description: 'Regular users can escalate privileges to admin through API manipulation',
-    remediation: 'Implement proper authorization checks on all admin endpoints',
-    status: 'resolved',
-  },
-]
 
 export default function PentagiPage() {
   // Use real-time data from API with fallback to demo data
@@ -122,7 +18,7 @@ export default function PentagiPage() {
     setRequests(apiRequests)
     setFilteredRequests(apiRequests)
   }, [apiRequests])
-  const [selectedRequest, setSelectedRequest] = useState<typeof DEMO_PENTEST_REQUESTS[0] | null>(null)
+  const [selectedRequest, setSelectedRequest] = useState<PentestRequest | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -210,7 +106,7 @@ export default function PentagiPage() {
   }
 
   const requestTypes = Array.from(new Set(requests.map(r => r.type)))
-  const requestFindings = DEMO_FINDINGS.filter(f => f.request_id === selectedRequest?.id)
+  const requestFindings = apiFindings.filter(f => f.request_id === selectedRequest?.id)
 
   return (
     <EnterpriseShell>
@@ -318,7 +214,24 @@ export default function PentagiPage() {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Loading and Error States */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B5AED]"></div>
+              <span className="ml-3 text-slate-400">Loading pentest data...</span>
+            </div>
+          )}
+          {error && (
+            <div className="m-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertTriangle size={18} />
+                <span className="font-medium">Error loading data</span>
+              </div>
+              <p className="mt-1 text-sm text-red-300">{error}</p>
+              <button onClick={refresh} className="mt-2 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 rounded text-sm text-red-300">Retry</button>
+            </div>
+          )}
+          {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
           <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">

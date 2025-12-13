@@ -125,3 +125,76 @@ export async function getFeedsStatus(): Promise<FeedsStatus> {
 export async function getHealth(): Promise<{ status: string }> {
   return apiFetch<{ status: string }>('/health');
 }
+
+// MTTR/MTTD metrics
+export interface MTTRMetrics {
+  mttr: number;
+  mttd: number;
+  mttr_trend: Array<{ week: string; mttr: number; mttd: number }>;
+}
+
+export async function getMTTRMetrics(): Promise<MTTRMetrics> {
+  return apiFetch<MTTRMetrics>('/api/v1/analytics/mttr');
+}
+
+// Teams data
+export interface TeamData {
+  name: string;
+  issues: number;
+  critical: number;
+  resolved_7d: number;
+  avg_resolution: number;
+}
+
+export async function getTeams(): Promise<TeamData[]> {
+  return apiFetch<TeamData[]>('/api/v1/teams');
+}
+
+// Issue trends
+export interface IssueTrendPoint {
+  day: string;
+  total: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export async function getIssueTrends(days: number = 10): Promise<IssueTrendPoint[]> {
+  return apiFetch<IssueTrendPoint[]>(`/api/v1/analytics/issue-trends?days=${days}`);
+}
+
+// Resolution trends
+export interface ResolutionTrendPoint {
+  week: string;
+  avgDays: number;
+  target: number;
+}
+
+export async function getResolutionTrends(): Promise<ResolutionTrendPoint[]> {
+  return apiFetch<ResolutionTrendPoint[]>('/api/v1/analytics/resolution-trends');
+}
+
+// Compliance trends
+export interface ComplianceTrendPoint {
+  month: string;
+  score: number;
+}
+
+export async function getComplianceTrends(): Promise<ComplianceTrendPoint[]> {
+  return apiFetch<ComplianceTrendPoint[]>('/api/v1/analytics/compliance-trends');
+}
+
+// Recent findings
+export interface RecentFinding {
+  id: string;
+  title: string;
+  severity: string;
+  service: string;
+  age: string;
+  kev: boolean;
+}
+
+export async function getRecentFindings(limit: number = 10): Promise<RecentFinding[]> {
+  return apiFetch<RecentFinding[]>(`/api/v1/analytics/findings/recent?limit=${limit}`);
+}
