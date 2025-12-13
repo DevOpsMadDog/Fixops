@@ -18,9 +18,8 @@ jobs:
       options: --user root
     steps:
       - uses: actions/checkout@v4
-      - name: Install PR code and quality tools
+      - name: Install dependencies
         run: |
-          pip install -e .
           pip install -r requirements-test.txt
           pip install black==23.7.0 isort==5.12.0 flake8 mypy
       - name: Formatting checks

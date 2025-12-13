@@ -15,9 +15,8 @@ jobs:
       options: --user root
     steps:
       - uses: actions/checkout@v4
-      - name: Install PR code in editable mode
+      - name: Install test dependencies
         run: |
-          pip install -e .
           pip install -r requirements-test.txt
       - name: Lint & Compile
         run: |

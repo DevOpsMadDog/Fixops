@@ -21,9 +21,8 @@ jobs:
       FIXOPS_API_TOKEN: 'demo-token'
     steps:
       - uses: actions/checkout@v4
-      - name: Install PR code and test dependencies
+      - name: Install dependencies
         run: |
-          pip install -e .
           pip install -r requirements-test.txt
           pip install black==23.7.0 isort==5.12.0 flake8 pytest pytest-cov
       - name: Run format check
