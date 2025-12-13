@@ -15,6 +15,9 @@ jobs:
       options: --user root
     steps:
       - uses: actions/checkout@v4
+      - name: Adjust workspace ownership for FixOps security checks
+        run: |
+          chown -R root:root "$GITHUB_WORKSPACE" || chown -R root:root .
       - name: Install test dependencies
         run: |
           pip install -r requirements-test.txt
