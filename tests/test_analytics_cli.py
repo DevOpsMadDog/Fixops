@@ -2,7 +2,9 @@
 Tests for analytics CLI commands.
 """
 import json
+import os
 import subprocess
+import sys
 import tempfile
 
 import pytest
@@ -15,8 +17,6 @@ from core.analytics_models import Finding, FindingSeverity, FindingStatus
 def temp_db():
     """Create temporary database for testing."""
     fd, path = tempfile.mkstemp(suffix=".db")
-    import os
-
     os.close(fd)
     db = AnalyticsDB(db_path=path)
     yield db, path
@@ -28,7 +28,7 @@ def test_analytics_dashboard_command(temp_db):
     db, db_path = temp_db
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "dashboard"],
+        [sys.executable, "-m", "core.cli", "analytics", "dashboard"],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -58,7 +58,7 @@ def test_analytics_findings_list_json(temp_db):
     db.create_finding(finding)
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "findings", "--format", "json"],
+        [sys.executable, "-m", "core.cli", "analytics", "findings", "--format", "json"],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -88,7 +88,15 @@ def test_analytics_findings_list_table(temp_db):
     db.create_finding(finding)
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "findings", "--format", "table"],
+        [
+            sys.executable,
+            "-m",
+            "core.cli",
+            "analytics",
+            "findings",
+            "--format",
+            "table",
+        ],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -131,7 +139,7 @@ def test_analytics_findings_filter_severity(temp_db):
 
     result = subprocess.run(
         [
-            "python",
+            sys.executable,
             "-m",
             "core.cli",
             "analytics",
@@ -157,7 +165,15 @@ def test_analytics_decisions_list(temp_db):
     db, db_path = temp_db
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "decisions", "--format", "json"],
+        [
+            sys.executable,
+            "-m",
+            "core.cli",
+            "analytics",
+            "decisions",
+            "--format",
+            "json",
+        ],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -188,7 +204,7 @@ def test_analytics_top_risks(temp_db):
         db.create_finding(finding)
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "top-risks", "--limit", "3"],
+        [sys.executable, "-m", "core.cli", "analytics", "top-risks", "--limit", "3"],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -204,7 +220,7 @@ def test_analytics_mttr(temp_db):
     db, db_path = temp_db
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "mttr"],
+        [sys.executable, "-m", "core.cli", "analytics", "mttr"],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -222,7 +238,7 @@ def test_analytics_roi(temp_db):
     db, db_path = temp_db
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "roi"],
+        [sys.executable, "-m", "core.cli", "analytics", "roi"],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -252,7 +268,15 @@ def test_analytics_export_findings(temp_db):
     db.create_finding(finding)
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "export", "--data-type", "findings"],
+        [
+            sys.executable,
+            "-m",
+            "core.cli",
+            "analytics",
+            "export",
+            "--data-type",
+            "findings",
+        ],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -269,7 +293,15 @@ def test_analytics_export_decisions(temp_db):
     db, db_path = temp_db
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "export", "--data-type", "decisions"],
+        [
+            sys.executable,
+            "-m",
+            "core.cli",
+            "analytics",
+            "export",
+            "--data-type",
+            "decisions",
+        ],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},
@@ -285,7 +317,15 @@ def test_analytics_export_invalid_type(temp_db):
     db, db_path = temp_db
 
     result = subprocess.run(
-        ["python", "-m", "core.cli", "analytics", "export", "--data-type", "invalid"],
+        [
+            sys.executable,
+            "-m",
+            "core.cli",
+            "analytics",
+            "export",
+            "--data-type",
+            "invalid",
+        ],
         capture_output=True,
         text=True,
         env={"ANALYTICS_DB_PATH": db_path},

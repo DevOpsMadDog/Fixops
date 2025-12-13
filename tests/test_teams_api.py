@@ -1,18 +1,35 @@
 """
 Tests for team management API endpoints.
 """
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from apps.api.app import create_app
 from core.user_db import UserDB
 
+# Use shared API token from conftest.py
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+
 
 @pytest.fixture
-def client():
-    """Create test client."""
+def client(monkeypatch):
+    """Create authenticated test client."""
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     app = create_app()
-    return TestClient(app)
+    client = TestClient(app)
+
+    # Wrap request method to always include auth header
+    orig_request = client.request
+
+    def _request(method, url, **kwargs):
+        headers = kwargs.pop("headers", {}) or {}
+        headers.setdefault("X-API-Key", API_TOKEN)
+        return orig_request(method, url, headers=headers, **kwargs)
+
+    client.request = _request  # type: ignore[method-assign]
+    return client
 
 
 @pytest.fixture
@@ -102,16 +119,24 @@ def test_delete_team(client, db, monkeypatch):
 
 def test_add_team_member(client, db, monkeypatch):
     """Test adding member to team."""
-    monkeypatch.setattr("apps.api.teams_router.db", db)
+    import uuid
 
+    monkeypatch.setattr("apps.api.teams_router.db", db)
+    monkeypatch.setattr("apps.api.users_router.db", db)  # Also patch users router
+
+    # Use unique email to avoid 409 Conflict from previous test runs
+    unique_email = f"test-{uuid.uuid4().hex[:8]}@example.com"
     user_data = {
-        "email": "test@example.com",
+        "email": unique_email,
         "password": "SecurePass123!",
         "first_name": "Test",
         "last_name": "User",
         "role": "viewer",
     }
     user_response = client.post("/api/v1/users", json=user_data)
+    assert (
+        user_response.status_code == 201
+    ), f"User creation failed: {user_response.text}"
     user_id = user_response.json()["id"]
 
     team_data = {"name": "Engineering Team", "description": "Core engineering team"}

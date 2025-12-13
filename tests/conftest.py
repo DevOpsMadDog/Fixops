@@ -4,42 +4,138 @@ from pathlib import Path
 
 import pytest
 
-# Skip tests that import missing enterprise modules or are redundant with Postman tests
+# Skip tests that import missing enterprise modules
 # These modules exist only in archive/enterprise_legacy and are not in the Python path
-# API tests are covered by Postman collections with real API calls
 collect_ignore = [
-    # Missing enterprise modules
+    # Missing enterprise modules - these import from src.services or src.core which don't exist
     "test_risk_adjustment.py",  # imports src.services.risk_scorer
     "test_rl_controller.py",  # imports src.services.rl_controller
     "test_tenant_rbac.py",  # imports src.core.security
-    # API tests - covered by Postman collections with real API calls
-    "test_users_api.py",  # covered by Postman
-    "test_teams_api.py",  # covered by Postman
-    "test_secrets_api.py",  # covered by Postman
-    "test_workflows_api.py",  # covered by Postman
-    "test_policies_api.py",  # covered by Postman
-    "test_analytics_api.py",  # covered by Postman
-    "test_integrations_api.py",  # covered by Postman
-    "test_reports_api.py",  # covered by Postman
-    "test_audit_api.py",  # covered by Postman
-    "test_inventory_api.py",  # covered by Postman
-    "test_iac_api.py",  # covered by Postman
-    "test_bulk_api.py",  # covered by Postman
-    "test_ide_api.py",  # covered by Postman
-    "test_auth_api.py",  # covered by Postman
-    "test_pentagi_api.py",  # covered by Postman
-    # Tests with implementation mismatches
-    "test_ruthless_bug_hunting.py",  # PortfolioSearchEngine signature mismatch
-    "test_run_registry.py",  # RunContext missing methods
-    "test_vex_ingestion.py",  # _VEX_CACHE attribute missing
-    # Security tests affected by CI environment
-    "test_storage_security.py",  # expects PermissionError but CI skips security checks
-    "test_secure_defaults.py",  # expects RuntimeError but CI skips security checks
-    # E2E API tests - covered by Postman and fixops-ci.yml
-    "test_all_137_endpoints_e2e.py",  # covered by Postman with real API calls
-    # CLI tests - covered by fixops-ci.yml with real CLI execution
-    "test_analytics_cli.py",  # subprocess calls 'python' which doesn't exist in Docker
 ]
+
+import os
+from unittest.mock import MagicMock, patch
+
+# Use enterprise mode for real API testing (not demo mode)
+# Set proper secrets instead of relying on demo mode shortcuts
+if "FIXOPS_MODE" not in os.environ:
+    os.environ["FIXOPS_MODE"] = "enterprise"
+
+# Set JWT secret for non-demo mode (required for app initialization)
+if "FIXOPS_JWT_SECRET" not in os.environ:
+    os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing"
+
+# Shared API token for tests - uses env var or default
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-api-token")
+
+# Ensure API token is set in environment
+if "FIXOPS_API_TOKEN" not in os.environ:
+    os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
+
+
+@pytest.fixture(scope="session")
+def api_token() -> str:
+    """Return the API token for authenticated requests."""
+    return API_TOKEN
+
+
+@pytest.fixture(scope="session")
+def auth_headers() -> dict:
+    """Return headers with API key for authenticated requests."""
+    return {"X-API-Key": API_TOKEN}
+
+
+@pytest.fixture
+def mock_slack_connector():
+    """Mock Slack connector to simulate Teams/Slack integration without real network calls."""
+    with patch("core.connectors.SlackConnector") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.default_webhook = "https://hooks.slack.com/test-webhook"
+        mock_instance.post_message.return_value = MagicMock(
+            status="sent", details={"webhook": "https://hooks.slack.com/test-webhook"}
+        )
+        mock_class.return_value = mock_instance
+        yield mock_instance
+
+
+@pytest.fixture
+def mock_jira_connector():
+    """Mock Jira connector to simulate Jira integration without real network calls."""
+    with patch("core.connectors.JiraConnector") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.configured = True
+        mock_instance.base_url = "https://test.atlassian.net"
+        mock_instance.project_key = "TEST"
+        mock_instance.create_issue.return_value = MagicMock(
+            status="sent",
+            details={
+                "endpoint": "https://test.atlassian.net/rest/api/3/issue",
+                "issue_key": "TEST-123",
+                "project": "TEST",
+            },
+        )
+        mock_class.return_value = mock_instance
+        yield mock_instance
+
+
+@pytest.fixture
+def mock_confluence_connector():
+    """Mock Confluence connector to simulate Confluence integration without real network calls."""
+    with patch("core.connectors.ConfluenceConnector") as mock_class:
+        mock_instance = MagicMock()
+        mock_instance.configured = True
+        mock_instance.base_url = "https://test.atlassian.net/wiki"
+        mock_instance.space_key = "TEST"
+        mock_instance.create_page.return_value = MagicMock(
+            status="sent",
+            details={
+                "endpoint": "https://test.atlassian.net/wiki/rest/api/content",
+                "page_id": "12345",
+                "space": "TEST",
+            },
+        )
+        mock_class.return_value = mock_instance
+        yield mock_instance
+
+
+@pytest.fixture
+def mock_all_connectors(
+    mock_slack_connector, mock_jira_connector, mock_confluence_connector
+):
+    """Mock all external connectors for integration tests."""
+    return {
+        "slack": mock_slack_connector,
+        "jira": mock_jira_connector,
+        "confluence": mock_confluence_connector,
+    }
+
+
+@pytest.fixture
+def authenticated_client(monkeypatch):
+    """Create an authenticated test client for API tests."""
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
+
+    try:
+        from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
+
+        app = create_app()
+        client = TestClient(app)
+
+        # Wrap request method to always include auth header
+        orig_request = client.request
+
+        def _request(method, url, **kwargs):
+            headers = kwargs.pop("headers", {}) or {}
+            headers.setdefault("X-API-Key", API_TOKEN)
+            return orig_request(method, url, headers=headers, **kwargs)
+
+        client.request = _request  # type: ignore[method-assign]
+        return client
+    except ImportError:
+        pytest.skip("FastAPI not available")
+
 
 # Import scripts.graph_worker to satisfy coverage requirements
 # This module is included in --cov but needs to be imported during tests
