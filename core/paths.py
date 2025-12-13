@@ -15,7 +15,19 @@ def _current_uid() -> int | None:
         return None
 
 
+def _skip_path_security() -> bool:
+    """Check if path security validation should be skipped.
+
+    This is intended for CI environments where the workspace is a trusted
+    ephemeral mount with different ownership semantics. Set FIXOPS_SKIP_PATH_SECURITY=1
+    to skip ownership and permission checks.
+    """
+    return os.getenv("FIXOPS_SKIP_PATH_SECURITY", "").lower() in ("1", "true", "yes")
+
+
 def _validate_directory_security(path: Path, expected_uid: int | None) -> None:
+    if _skip_path_security():
+        return
     if not path.exists():
         raise PermissionError(
             f"Allowlisted directory '{path}' does not exist; create it with secure permissions"

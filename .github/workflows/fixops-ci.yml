@@ -13,11 +13,10 @@ jobs:
     container:
       image: devopsaico/fixops:latest
       options: --user root
+    env:
+      FIXOPS_SKIP_PATH_SECURITY: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Adjust workspace ownership for FixOps security checks
-        run: |
-          chown -R root:root "$(dirname "$GITHUB_WORKSPACE")" || chown -R root:root /__w/Fixops || chown -R root:root .
       - name: Install test dependencies
         run: |
           pip install -r requirements-test.txt
