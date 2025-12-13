@@ -139,7 +139,7 @@ class EnvKeyProvider:
             )
             return True
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("RSA signature verification failed", error=str(exc))
+            logger.error("RSA signature verification failed", exc_info=exc)
             return False
 
     def rotate(self) -> str:
@@ -336,7 +336,7 @@ class AzureKeyVaultProvider:
             )
             return True
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Azure RSA verification failed", error=str(exc))
+            logger.error("Azure RSA verification failed", exc_info=exc)
             return False
 
     def rotate(self) -> str:

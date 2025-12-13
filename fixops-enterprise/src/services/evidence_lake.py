@@ -68,7 +68,7 @@ class EvidenceLake:
                         logger.error(
                             "Failed to verify evidence signature",
                             evidence_id=evidence_id,
-                            error=str(exc),
+                            exc_info=exc,
                         )
 
                 evidence_record["integrity_verified"] = integrity_ok
@@ -79,6 +79,6 @@ class EvidenceLake:
             logger.error(
                 "Failed to retrieve evidence",
                 evidence_id=evidence_id,
-                error=str(exc),
+                exc_info=exc,
             )
             return None
