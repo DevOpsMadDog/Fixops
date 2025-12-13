@@ -1,12 +1,17 @@
 """
 Tests for workflow orchestration API endpoints.
 """
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from apps.api.app import create_app
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
+
+# Use the API token from environment or default
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-api-token")
 
 
 @pytest.fixture
@@ -34,7 +39,7 @@ def cleanup_db(db):
 
 def test_list_workflows_empty(client):
     """Test listing workflows when none exist."""
-    response = client.get("/api/v1/workflows", headers={"X-API-Key": "test-key"})
+    response = client.get("/api/v1/workflows", headers={"X-API-Key": API_TOKEN})
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -45,7 +50,7 @@ def test_create_workflow(client):
     """Test creating a new workflow."""
     response = client.post(
         "/api/v1/workflows",
-        headers={"X-API-Key": "test-key"},
+        headers={"X-API-Key": API_TOKEN},
         json={
             "name": "Security Scan Workflow",
             "description": "Automated security scanning workflow",
@@ -77,7 +82,7 @@ def test_get_workflow(client, db):
     created = db.create_workflow(workflow)
 
     response = client.get(
-        f"/api/v1/workflows/{created.id}", headers={"X-API-Key": "test-key"}
+        f"/api/v1/workflows/{created.id}", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 200
     data = response.json()
@@ -88,7 +93,7 @@ def test_get_workflow(client, db):
 def test_get_workflow_not_found(client):
     """Test getting non-existent workflow."""
     response = client.get(
-        "/api/v1/workflows/nonexistent", headers={"X-API-Key": "test-key"}
+        "/api/v1/workflows/nonexistent", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 404
 
@@ -107,7 +112,7 @@ def test_update_workflow(client, db):
 
     response = client.put(
         f"/api/v1/workflows/{created.id}",
-        headers={"X-API-Key": "test-key"},
+        headers={"X-API-Key": API_TOKEN},
         json={
             "name": "Updated Workflow",
             "description": "Updated description",
@@ -125,7 +130,7 @@ def test_update_workflow_not_found(client):
     """Test updating non-existent workflow."""
     response = client.put(
         "/api/v1/workflows/nonexistent",
-        headers={"X-API-Key": "test-key"},
+        headers={"X-API-Key": API_TOKEN},
         json={"name": "Updated"},
     )
     assert response.status_code == 404
@@ -144,7 +149,7 @@ def test_delete_workflow(client, db):
     created = db.create_workflow(workflow)
 
     response = client.delete(
-        f"/api/v1/workflows/{created.id}", headers={"X-API-Key": "test-key"}
+        f"/api/v1/workflows/{created.id}", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 204
 
@@ -152,7 +157,7 @@ def test_delete_workflow(client, db):
 def test_delete_workflow_not_found(client):
     """Test deleting non-existent workflow."""
     response = client.delete(
-        "/api/v1/workflows/nonexistent", headers={"X-API-Key": "test-key"}
+        "/api/v1/workflows/nonexistent", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 404
 
@@ -171,7 +176,7 @@ def test_execute_workflow(client, db):
 
     response = client.post(
         f"/api/v1/workflows/{created.id}/execute",
-        headers={"X-API-Key": "test-key"},
+        headers={"X-API-Key": API_TOKEN},
         json={"input_param": "value"},
     )
     assert response.status_code == 200
@@ -193,7 +198,7 @@ def test_execute_disabled_workflow(client, db):
     created = db.create_workflow(workflow)
 
     response = client.post(
-        f"/api/v1/workflows/{created.id}/execute", headers={"X-API-Key": "test-key"}
+        f"/api/v1/workflows/{created.id}/execute", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 400
 
@@ -201,7 +206,7 @@ def test_execute_disabled_workflow(client, db):
 def test_execute_workflow_not_found(client):
     """Test executing non-existent workflow."""
     response = client.post(
-        "/api/v1/workflows/nonexistent/execute", headers={"X-API-Key": "test-key"}
+        "/api/v1/workflows/nonexistent/execute", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 404
 
@@ -229,7 +234,7 @@ def test_get_workflow_history(client, db):
 
     response = client.get(
         f"/api/v1/workflows/{created_workflow.id}/history",
-        headers={"X-API-Key": "test-key"},
+        headers={"X-API-Key": API_TOKEN},
     )
     assert response.status_code == 200
     data = response.json()
@@ -241,7 +246,7 @@ def test_get_workflow_history(client, db):
 def test_get_workflow_history_not_found(client):
     """Test getting history for non-existent workflow."""
     response = client.get(
-        "/api/v1/workflows/nonexistent/history", headers={"X-API-Key": "test-key"}
+        "/api/v1/workflows/nonexistent/history", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 404
 
@@ -249,7 +254,7 @@ def test_get_workflow_history_not_found(client):
 def test_list_workflows_pagination(client):
     """Test workflow list pagination."""
     response = client.get(
-        "/api/v1/workflows?limit=10&offset=0", headers={"X-API-Key": "test-key"}
+        "/api/v1/workflows?limit=10&offset=0", headers={"X-API-Key": API_TOKEN}
     )
     assert response.status_code == 200
     data = response.json()
@@ -271,7 +276,7 @@ def test_workflow_history_pagination(client, db):
 
     response = client.get(
         f"/api/v1/workflows/{created.id}/history?limit=5&offset=0",
-        headers={"X-API-Key": "test-key"},
+        headers={"X-API-Key": API_TOKEN},
     )
     assert response.status_code == 200
     data = response.json()

@@ -8,12 +8,21 @@ from fastapi.testclient import TestClient
 from apps.api.app import create_app
 from core.secrets_db import SecretsDB
 
+# Use the API token from environment or default
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-api-token")
+
 
 @pytest.fixture
 def client():
     """Create test client."""
     app = create_app()
     return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers():
+    """Return headers with API key for authenticated requests."""
+    return {"X-API-Key": API_TOKEN}
 
 
 @pytest.fixture
@@ -28,11 +37,11 @@ def db():
     os.unlink(path)
 
 
-def test_list_secret_findings(client, db, monkeypatch):
+def test_list_secret_findings(client, db, monkeypatch, auth_headers):
     """Test listing secret findings."""
     monkeypatch.setattr("apps.api.secrets_router.db", db)
 
-    response = client.get("/api/v1/secrets")
+    response = client.get("/api/v1/secrets", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -40,12 +49,13 @@ def test_list_secret_findings(client, db, monkeypatch):
     assert isinstance(data["items"], list)
 
 
-def test_create_secret_finding(client, db, monkeypatch):
+def test_create_secret_finding(client, db, monkeypatch, auth_headers):
     """Test creating secret finding."""
     monkeypatch.setattr("apps.api.secrets_router.db", db)
 
     response = client.post(
         "/api/v1/secrets",
+        headers=auth_headers,
         json={
             "secret_type": "api_key",
             "file_path": "config/secrets.yml",
@@ -61,12 +71,13 @@ def test_create_secret_finding(client, db, monkeypatch):
     assert data["status"] == "active"
 
 
-def test_get_secret_finding(client, db, monkeypatch):
+def test_get_secret_finding(client, db, monkeypatch, auth_headers):
     """Test getting secret finding."""
     monkeypatch.setattr("apps.api.secrets_router.db", db)
 
     create_response = client.post(
         "/api/v1/secrets",
+        headers=auth_headers,
         json={
             "secret_type": "password",
             "file_path": "app.py",
@@ -77,17 +88,18 @@ def test_get_secret_finding(client, db, monkeypatch):
     )
     finding_id = create_response.json()["id"]
 
-    response = client.get(f"/api/v1/secrets/{finding_id}")
+    response = client.get(f"/api/v1/secrets/{finding_id}", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["id"] == finding_id
 
 
-def test_resolve_secret_finding(client, db, monkeypatch):
+def test_resolve_secret_finding(client, db, monkeypatch, auth_headers):
     """Test resolving secret finding."""
     monkeypatch.setattr("apps.api.secrets_router.db", db)
 
     create_response = client.post(
         "/api/v1/secrets",
+        headers=auth_headers,
         json={
             "secret_type": "token",
             "file_path": "config.py",
@@ -98,17 +110,20 @@ def test_resolve_secret_finding(client, db, monkeypatch):
     )
     finding_id = create_response.json()["id"]
 
-    response = client.post(f"/api/v1/secrets/{finding_id}/resolve")
+    response = client.post(
+        f"/api/v1/secrets/{finding_id}/resolve", headers=auth_headers
+    )
     assert response.status_code == 200
     assert response.json()["status"] == "resolved"
 
 
-def test_scan_repository(client, db, monkeypatch):
+def test_scan_repository(client, db, monkeypatch, auth_headers):
     """Test triggering repository scan."""
     monkeypatch.setattr("apps.api.secrets_router.db", db)
 
     response = client.post(
         "/api/v1/secrets/scan",
+        headers=auth_headers,
         params={"repository": "myapp", "branch": "main"},
     )
     assert response.status_code == 200
