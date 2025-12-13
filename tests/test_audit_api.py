@@ -1,6 +1,8 @@
 """
 Tests for audit and compliance API endpoints.
 """
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -14,12 +16,21 @@ from core.audit_models import (
     ComplianceFramework,
 )
 
+# Use the API token from environment or default
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-api-token")
+
 
 @pytest.fixture
 def client():
     """Create test client."""
     app = create_app()
     return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers():
+    """Return headers with API key for authenticated requests."""
+    return {"X-API-Key": API_TOKEN}
 
 
 @pytest.fixture
@@ -38,16 +49,16 @@ def cleanup_db(db):
         os.remove("data/test_audit.db")
 
 
-def test_list_audit_logs_empty(client):
+def test_list_audit_logs_empty(client, auth_headers):
     """Test listing audit logs when none exist."""
-    response = client.get("/api/v1/audit/logs", headers={"X-API-Key": "test-key"})
+    response = client.get("/api/v1/audit/logs", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
     assert isinstance(data["items"], list)
 
 
-def test_list_audit_logs_with_filter(client, db):
+def test_list_audit_logs_with_filter(client, db, auth_headers):
     """Test listing audit logs with event type filter."""
     log1 = AuditLog(
         id="",
@@ -67,7 +78,7 @@ def test_list_audit_logs_with_filter(client, db):
     db.create_audit_log(log2)
 
     response = client.get(
-        "/api/v1/audit/logs?event_type=user_login", headers={"X-API-Key": "test-key"}
+        "/api/v1/audit/logs?event_type=user_login", headers=auth_headers
     )
     assert response.status_code == 200
     data = response.json()
@@ -75,7 +86,7 @@ def test_list_audit_logs_with_filter(client, db):
     assert all(item["event_type"] == "user_login" for item in data["items"])
 
 
-def test_get_audit_log(client, db):
+def test_get_audit_log(client, db, auth_headers):
     """Test getting audit log entry."""
     log = AuditLog(
         id="",
@@ -85,23 +96,19 @@ def test_get_audit_log(client, db):
     )
     created = db.create_audit_log(log)
 
-    response = client.get(
-        f"/api/v1/audit/logs/{created.id}", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get(f"/api/v1/audit/logs/{created.id}", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == created.id
 
 
-def test_get_audit_log_not_found(client):
+def test_get_audit_log_not_found(client, auth_headers):
     """Test getting non-existent audit log."""
-    response = client.get(
-        "/api/v1/audit/logs/nonexistent", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/audit/logs/nonexistent", headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_get_user_activity(client, db):
+def test_get_user_activity(client, db, auth_headers):
     """Test getting user activity logs."""
     log = AuditLog(
         id="",
@@ -114,7 +121,7 @@ def test_get_user_activity(client, db):
 
     response = client.get(
         "/api/v1/audit/user-activity?user_id=test-user",
-        headers={"X-API-Key": "test-key"},
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = response.json()
@@ -122,27 +129,23 @@ def test_get_user_activity(client, db):
     assert "activities" in data
 
 
-def test_get_policy_changes(client):
+def test_get_policy_changes(client, auth_headers):
     """Test getting policy change history."""
-    response = client.get(
-        "/api/v1/audit/policy-changes", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/audit/policy-changes", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "changes" in data
 
 
-def test_get_decision_trail(client):
+def test_get_decision_trail(client, auth_headers):
     """Test getting decision audit trail."""
-    response = client.get(
-        "/api/v1/audit/decision-trail", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/audit/decision-trail", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "decisions" in data
 
 
-def test_list_frameworks(client, db):
+def test_list_frameworks(client, db, auth_headers):
     """Test listing compliance frameworks."""
     framework = ComplianceFramework(
         id="",
@@ -153,15 +156,13 @@ def test_list_frameworks(client, db):
     )
     db.create_framework(framework)
 
-    response = client.get(
-        "/api/v1/audit/compliance/frameworks", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/audit/compliance/frameworks", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) >= 1
 
 
-def test_get_framework_status(client, db):
+def test_get_framework_status(client, db, auth_headers):
     """Test getting framework compliance status."""
     framework = ComplianceFramework(
         id="",
@@ -174,7 +175,7 @@ def test_get_framework_status(client, db):
 
     response = client.get(
         f"/api/v1/audit/compliance/frameworks/{created.id}/status",
-        headers={"X-API-Key": "test-key"},
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = response.json()
@@ -182,16 +183,16 @@ def test_get_framework_status(client, db):
     assert "compliance_percentage" in data
 
 
-def test_get_framework_status_not_found(client):
+def test_get_framework_status_not_found(client, auth_headers):
     """Test getting status for non-existent framework."""
     response = client.get(
         "/api/v1/audit/compliance/frameworks/nonexistent/status",
-        headers={"X-API-Key": "test-key"},
+        headers=auth_headers,
     )
     assert response.status_code == 404
 
 
-def test_get_compliance_gaps(client, db):
+def test_get_compliance_gaps(client, db, auth_headers):
     """Test getting compliance gaps."""
     framework = ComplianceFramework(
         id="",
@@ -204,7 +205,7 @@ def test_get_compliance_gaps(client, db):
 
     response = client.get(
         f"/api/v1/audit/compliance/frameworks/{created.id}/gaps",
-        headers={"X-API-Key": "test-key"},
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = response.json()
@@ -212,7 +213,7 @@ def test_get_compliance_gaps(client, db):
     assert "gaps" in data
 
 
-def test_generate_compliance_report(client, db):
+def test_generate_compliance_report(client, db, auth_headers):
     """Test generating compliance report."""
     framework = ComplianceFramework(
         id="",
@@ -225,7 +226,7 @@ def test_generate_compliance_report(client, db):
 
     response = client.post(
         f"/api/v1/audit/compliance/frameworks/{created.id}/report",
-        headers={"X-API-Key": "test-key"},
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = response.json()
@@ -233,7 +234,7 @@ def test_generate_compliance_report(client, db):
     assert "report_id" in data
 
 
-def test_list_controls(client, db):
+def test_list_controls(client, db, auth_headers):
     """Test listing compliance controls."""
     framework = ComplianceFramework(
         id="",
@@ -254,15 +255,13 @@ def test_list_controls(client, db):
     )
     db.create_control(control)
 
-    response = client.get(
-        "/api/v1/audit/compliance/controls", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/audit/compliance/controls", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) >= 1
 
 
-def test_list_controls_with_framework_filter(client, db):
+def test_list_controls_with_framework_filter(client, db, auth_headers):
     """Test listing controls filtered by framework."""
     framework = ComplianceFramework(
         id="",
@@ -275,18 +274,16 @@ def test_list_controls_with_framework_filter(client, db):
 
     response = client.get(
         f"/api/v1/audit/compliance/controls?framework_id={created_framework.id}",
-        headers={"X-API-Key": "test-key"},
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
 
 
-def test_audit_logs_pagination(client):
+def test_audit_logs_pagination(client, auth_headers):
     """Test audit log pagination."""
-    response = client.get(
-        "/api/v1/audit/logs?limit=10&offset=0", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/audit/logs?limit=10&offset=0", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["limit"] == 10
