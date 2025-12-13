@@ -1,135 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap, Users, Filter, Calendar, Download, RefreshCw } from 'lucide-react'
+import { useDashboardData } from './hooks/useDashboardData'
+import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap, Users, Filter, Calendar, Download, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import EnterpriseShell from './components/EnterpriseShell'
 
-const SUMMARY_STATS = {
-  total_issues: 789,
-  critical: 45,
-  high: 123,
-  medium: 298,
-  low: 323,
-  new_7d: 87,
-  resolved_7d: 52,
-  kev_count: 12,
-  internet_facing: 234,
-  avg_age_days: 23,
-}
-
-const TRENDS = {
-  total_issues: { value: 789, change: -5.2, direction: 'down' },
-  critical: { value: 45, change: 12.5, direction: 'up' },
-  avg_resolution_time: { value: 4.2, change: -8.3, direction: 'down', unit: 'days' },
-  compliance_score: { value: 85, change: 3.1, direction: 'up', unit: '%' },
-}
-
-const ISSUE_TREND_DATA = [
-  { day: 'Day 1', total: 823, critical: 38, high: 115, medium: 312, low: 358 },
-  { day: 'Day 2', total: 819, critical: 39, high: 117, medium: 310, low: 353 },
-  { day: 'Day 3', total: 815, critical: 40, high: 118, medium: 308, low: 349 },
-  { day: 'Day 4', total: 811, critical: 41, high: 119, medium: 306, low: 345 },
-  { day: 'Day 5', total: 807, critical: 42, high: 120, medium: 304, low: 341 },
-  { day: 'Day 6', total: 803, critical: 43, high: 121, medium: 302, low: 337 },
-  { day: 'Day 7', total: 799, critical: 44, high: 122, medium: 300, low: 333 },
-  { day: 'Day 8', total: 795, critical: 45, high: 123, medium: 298, low: 329 },
-  { day: 'Day 9', total: 791, critical: 46, high: 124, medium: 296, low: 325 },
-  { day: 'Day 10', total: 789, critical: 45, high: 123, medium: 298, low: 323 },
-]
-
-const RESOLUTION_TREND_DATA = [
-  { week: 'W1', avgDays: 5.2, target: 4.0 },
-  { week: 'W2', avgDays: 5.0, target: 4.0 },
-  { week: 'W3', avgDays: 4.8, target: 4.0 },
-  { week: 'W4', avgDays: 4.9, target: 4.0 },
-  { week: 'W5', avgDays: 4.7, target: 4.0 },
-  { week: 'W6', avgDays: 4.5, target: 4.0 },
-  { week: 'W7', avgDays: 4.4, target: 4.0 },
-  { week: 'W8', avgDays: 4.3, target: 4.0 },
-  { week: 'W9', avgDays: 4.2, target: 4.0 },
-  { week: 'W10', avgDays: 4.2, target: 4.0 },
-]
-
-const SEVERITY_DISTRIBUTION = [
-  { name: 'Critical', value: SUMMARY_STATS.critical, color: '#dc2626' },
-  { name: 'High', value: SUMMARY_STATS.high, color: '#f97316' },
-  { name: 'Medium', value: SUMMARY_STATS.medium, color: '#f59e0b' },
-  { name: 'Low', value: SUMMARY_STATS.low, color: '#3b82f6' },
-]
-
-const COMPLIANCE_TREND_DATA = [
-  { month: 'Jan', score: 78 },
-  { month: 'Feb', score: 79 },
-  { month: 'Mar', score: 80 },
-  { month: 'Apr', score: 81 },
-  { month: 'May', score: 82 },
-  { month: 'Jun', score: 82 },
-  { month: 'Jul', score: 83 },
-  { month: 'Aug', score: 83 },
-  { month: 'Sep', score: 84 },
-  { month: 'Oct', score: 84 },
-  { month: 'Nov', score: 85 },
-  { month: 'Dec', score: 85 },
-]
-
-const RECENT_FINDINGS = [
-  {
-    id: '1',
-    title: 'Apache Struts RCE (CVE-2023-50164)',
-    severity: 'critical',
-    service: 'payment-api',
-    age: '2 hours ago',
-    kev: true,
-  },
-  {
-    id: '3',
-    title: 'Exposed AWS Credentials',
-    severity: 'critical',
-    service: 'config-service',
-    age: '5 hours ago',
-    kev: false,
-  },
-  {
-    id: '9',
-    title: 'Log4j RCE (CVE-2021-44228)',
-    severity: 'critical',
-    service: 'logging-service',
-    age: '1 day ago',
-    kev: true,
-  },
-]
-
-const TOP_SERVICES = [
-  { name: 'payment-api', issues: 45, critical: 8, high: 15 },
-  { name: 'user-service', issues: 38, critical: 5, high: 12 },
-  { name: 'auth-service', issues: 32, critical: 4, high: 10 },
-  { name: 'logging-service', issues: 28, critical: 6, high: 8 },
-  { name: 'api-gateway', issues: 24, critical: 3, high: 9 },
-]
-
-const TEAM_DATA = [
-  { name: 'Security Team', issues: 234, critical: 18, resolved_7d: 23, avg_resolution: 3.2 },
-  { name: 'Platform Team', issues: 189, critical: 12, resolved_7d: 19, avg_resolution: 4.1 },
-  { name: 'Backend Team', issues: 156, critical: 8, resolved_7d: 15, avg_resolution: 4.8 },
-  { name: 'Frontend Team', issues: 123, critical: 5, resolved_7d: 12, avg_resolution: 5.2 },
-  { name: 'DevOps Team', issues: 87, critical: 2, resolved_7d: 8, avg_resolution: 3.9 },
-]
-
-const MTTR_MTTD_DATA = [
-  { week: 'W1', mttr: 5.2, mttd: 2.1 },
-  { week: 'W2', mttr: 5.0, mttd: 2.0 },
-  { week: 'W3', mttr: 4.8, mttd: 1.9 },
-  { week: 'W4', mttr: 4.9, mttd: 2.0 },
-  { week: 'W5', mttr: 4.7, mttd: 1.8 },
-  { week: 'W6', mttr: 4.5, mttd: 1.7 },
-  { week: 'W7', mttr: 4.4, mttd: 1.8 },
-  { week: 'W8', mttr: 4.3, mttd: 1.6 },
-  { week: 'W9', mttr: 4.2, mttd: 1.5 },
-  { week: 'W10', mttr: 4.2, mttd: 1.5 },
-]
 
 export default function DashboardPage() {
+  // Use real-time data from API with fallback to demo data
+  const { summary: SUMMARY_STATS, trends: TRENDS, topServices: TOP_SERVICES, mttrMetrics, teams: TEAM_DATA, issueTrends: ISSUE_TREND_DATA, resolutionTrends: RESOLUTION_TREND_DATA, complianceTrends: COMPLIANCE_TREND_DATA, recentFindings: RECENT_FINDINGS, isLoading, error, lastUpdated, refresh } = useDashboardData(30000)
+  
+  // Use MTTR trend data from API
+  const MTTR_MTTD_DATA = mttrMetrics.mttr_trend
+  
+  // Compute severity distribution from dynamic data
+  const SEVERITY_DISTRIBUTION = [
+    { name: 'Critical', value: SUMMARY_STATS.critical, color: '#dc2626' },
+    { name: 'High', value: SUMMARY_STATS.high, color: '#f97316' },
+    { name: 'Medium', value: SUMMARY_STATS.medium, color: '#f59e0b' },
+    { name: 'Low', value: SUMMARY_STATS.low, color: '#3b82f6' },
+  ]
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('7d')
   const [showDeltaMode, setShowDeltaMode] = useState(false)
@@ -204,7 +95,25 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Loading and Error States */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B5AED]"></div>
+            <span className="ml-3 text-slate-400">Loading dashboard data...</span>
+          </div>
+        )}
+        {error && (
+          <div className="mx-6 mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <div className="flex items-center gap-2 text-red-400">
+              <AlertTriangle size={18} />
+              <span className="font-medium">Error loading data</span>
+            </div>
+            <p className="mt-1 text-sm text-red-300">{error}</p>
+            <button onClick={refresh} className="mt-2 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 rounded text-sm text-red-300">Retry</button>
+          </div>
+        )}
+        {/* Main Content - hidden during initial loading or error */}
+      {!isLoading && !error && (
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Key Metrics Grid */}
@@ -289,7 +198,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-sm text-slate-400 mb-1">Mean Time to Resolve (MTTR)</div>
-                  <div className="text-3xl font-bold text-white">4.2 <span className="text-lg text-slate-400">days</span></div>
+                  <div className="text-3xl font-bold text-white">{mttrMetrics.mttr} <span className="text-lg text-slate-400">days</span></div>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg">
                   <Clock size={24} className="text-blue-400" />
@@ -308,7 +217,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-sm text-slate-400 mb-1">Mean Time to Detect (MTTD)</div>
-                  <div className="text-3xl font-bold text-white">1.5 <span className="text-lg text-slate-400">days</span></div>
+                  <div className="text-3xl font-bold text-white">{mttrMetrics.mttd} <span className="text-lg text-slate-400">days</span></div>
                 </div>
                 <div className="p-3 bg-purple-500/10 rounded-lg">
                   <Activity size={24} className="text-purple-400" />
@@ -643,6 +552,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
     </EnterpriseShell>
   )

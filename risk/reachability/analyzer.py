@@ -575,9 +575,9 @@ class ReachabilityAnalyzer:
     ) -> List[str]:
         """Build call chain from entry point to vulnerable function."""
         chain = [target_func]
-        current = start_node
+        current: Dict[str, Any] | None = start_node
 
-        visited = set()
+        visited: set[str] = set()
         max_depth = 20  # Prevent infinite loops
 
         depth = 0
@@ -590,11 +590,11 @@ class ReachabilityAnalyzer:
             # Traverse up the call graph
             parent = current.get("parent")
             if parent and parent in call_graph:
-                current = (
-                    call_graph[parent].get("callers", [{}])[0]
-                    if call_graph[parent].get("callers")
-                    else None
-                )
+                callers = call_graph[parent].get("callers")
+                if callers and len(callers) > 0:
+                    current = callers[0]
+                else:
+                    current = None
             else:
                 break
 

@@ -61,10 +61,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         logger.info(
             "request.started",
-            method=request.method,
-            path=request.url.path,
-            query_params=dict(request.query_params),
-            client_host=request.client.host if request.client else None,
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "query_params": dict(request.query_params),
+                "client_host": request.client.host if request.client else None,
+            },
         )
 
         try:
@@ -74,10 +76,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
             logger.info(
                 "request.completed",
-                method=request.method,
-                path=request.url.path,
-                status_code=response.status_code,
-                duration_ms=round(duration_ms, 2),
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": round(duration_ms, 2),
+                },
             )
 
             response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
@@ -87,11 +91,13 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             duration_ms = (time.perf_counter() - start_time) * 1000
             logger.error(
                 "request.failed",
-                method=request.method,
-                path=request.url.path,
-                duration_ms=round(duration_ms, 2),
-                error=str(exc),
-                error_type=type(exc).__name__,
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "duration_ms": round(duration_ms, 2),
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                },
             )
             raise
 

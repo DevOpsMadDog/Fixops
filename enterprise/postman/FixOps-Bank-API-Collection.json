@@ -1,0 +1,280 @@
+{
+  "info": {
+    "_postman_id": "fixops-bank-api-collection",
+    "name": "FixOps Bank API Collection",
+    "description": "Comprehensive API collection for FixOps Bank integration testing. Covers health monitoring, security assessments, and compliance validation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "apiToken",
+      "value": "demo-token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Monitoring",
+      "item": [
+        {
+          "name": "Health Check (Liveness Probe)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness Check (K8s Probe)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ready"
+          },
+          "response": []
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/metrics"
+          },
+          "response": []
+        },
+        {
+          "name": "API Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/status"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Security Assessment",
+      "item": [
+        {
+          "name": "Get Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/dashboard/overview"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Risks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/dashboard/top-risks"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Compliance Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/dashboard/compliance-status"
+          },
+          "response": []
+        },
+        {
+          "name": "Get MTTR Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/mttr"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vulnerability Management",
+      "item": [
+        {
+          "name": "List Findings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/findings"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Finding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"SQL Injection in Payment API\",\n  \"severity\": \"critical\",\n  \"cvss_score\": 9.8,\n  \"cve_id\": \"CVE-2024-12345\",\n  \"description\": \"SQL injection vulnerability in /api/payments endpoint\",\n  \"remediation\": \"Use parameterized queries\",\n  \"affected_component\": \"payment-service\",\n  \"status\": \"open\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/analytics/findings"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Finding by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/findings/1"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Decision Engine",
+      "item": [
+        {
+          "name": "List Decisions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/analytics/decisions"
+          },
+          "response": []
+        },
+        {
+          "name": "Make Decision",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service_name\": \"payment-service\",\n  \"environment\": \"production\",\n  \"findings\": [\n    {\n      \"cve_id\": \"CVE-2024-12345\",\n      \"severity\": \"critical\",\n      \"cvss_score\": 9.8\n    }\n  ],\n  \"business_context\": {\n    \"criticality\": \"high\",\n    \"data_classification\": \"pci-dss\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/decisions/make-decision"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Penetration Testing",
+      "item": [
+        {
+          "name": "List Pentest Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/pentagi/requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Pentest Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bank Payment API Security Assessment\",\n  \"target\": \"payment-api.bank.internal\",\n  \"type\": \"web_application\",\n  \"scope\": \"Full API endpoints, authentication, authorization, data validation\",\n  \"requested_by\": \"security-team@bank.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/pentagi/requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pentest Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/pentagi/stats"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

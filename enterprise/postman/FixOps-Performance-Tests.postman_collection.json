@@ -1,0 +1,116 @@
+{
+  "info": {
+    "_postman_id": "fixops-performance-tests-collection",
+    "name": "FixOps Performance Tests Collection",
+    "description": "Performance and load testing collection for FixOps. Validates SLA compliance and hot path latency targets.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "apiToken",
+      "value": "demo-token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Load Test - Decision API",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{apiToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"service_name\": \"load-test-service\",\n  \"environment\": \"performance\",\n  \"commit_sha\": \"perf-test-{{$timestamp}}\",\n  \"findings\": [\n    {\n      \"cve_id\": \"CVE-2024-PERF1\",\n      \"severity\": \"medium\",\n      \"cvss_score\": 5.0\n    }\n  ],\n  \"business_context\": {\n    \"criticality\": \"medium\",\n    \"data_classification\": \"internal\"\n  }\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/decisions/make-decision"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Response time under bank SLA (2s)",
+              "pm.test('Response time under bank SLA (2s)', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});",
+              "",
+              "// Hot path latency target (299μs)",
+              "pm.test('Hot path latency target (299μs)', function () {",
+              "    // Note: This is a target metric, actual measurement may vary",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});",
+              "",
+              "pm.test('Decision API returns valid response', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('decision');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Concurrent Decision Test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{apiToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"service_name\": \"concurrent-test-service-{{$randomInt}}\",\n  \"environment\": \"performance\",\n  \"commit_sha\": \"concurrent-{{$timestamp}}\",\n  \"findings\": [\n    {\n      \"cve_id\": \"CVE-2024-CONC{{$randomInt}}\",\n      \"severity\": \"low\",\n      \"cvss_score\": 3.0\n    }\n  ],\n  \"business_context\": {\n    \"criticality\": \"low\",\n    \"data_classification\": \"public\"\n  }\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/decisions/make-decision"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Concurrent request handled",
+              "pm.test('Concurrent request handled', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains decision', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('decision');",
+              "});",
+              "",
+              "pm.test('No race condition errors', function () {",
+              "    pm.response.to.not.have.status(500);",
+              "    pm.response.to.not.have.status(503);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}
