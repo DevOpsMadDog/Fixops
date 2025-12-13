@@ -67,6 +67,7 @@ services:
       - FIXOPS_BASE_URL=http://fixops:8000
       - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
     command: ["python", "scripts/feed_sidecar.py", "continuous", "--interval", "3600"]
+    restart: on-failure
     profiles:
       - feeds
 
@@ -89,13 +90,15 @@ services:
   # Risk Graph UI - React/Next.js visualization app
   risk-graph-ui:
     build:
-      context: ./web/apps/risk-graph
-      dockerfile: ../../../Dockerfile.risk-graph
+      context: .
+      dockerfile: Dockerfile.risk-graph
+      args:
+        # NEXT_PUBLIC_* vars are embedded at build time in Next.js
+        NEXT_PUBLIC_FIXOPS_API_URL: http://fixops:8000
+        NEXT_PUBLIC_FIXOPS_API_TOKEN: ${FIXOPS_API_TOKEN:-demo-token}
     container_name: risk-graph-ui
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_FIXOPS_API_URL=http://fixops:8000
     depends_on:
       fixops:
         condition: service_healthy

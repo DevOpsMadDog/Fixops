@@ -112,7 +112,8 @@ export default function DashboardPage() {
             <button onClick={refresh} className="mt-2 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 rounded text-sm text-red-300">Retry</button>
           </div>
         )}
-        {/* Main Content */}
+        {/* Main Content - hidden during initial loading or error */}
+      {!isLoading && !error && (
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Key Metrics Grid */}
@@ -551,6 +552,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
     </EnterpriseShell>
   )

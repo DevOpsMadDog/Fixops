@@ -124,5 +124,5 @@ def get_legacy_router_status():
     return {
         "loaded_routers": list(_legacy_routers.keys()),
         "total_loaded": len(_legacy_routers),
-        "expected_routers": 12,
+        "expected_routers": 6,  # Only 6 legacy modules are bridged (see legacy_modules list)
     }

@@ -12,18 +12,33 @@ export default function PentagiPage() {
   const { requests: apiRequests, findings: apiFindings, stats, isLoading, error, isLiveData, lastUpdated, refresh } = usePentagiData(30000)
   const [requests, setRequests] = useState(apiRequests)
   const [filteredRequests, setFilteredRequests] = useState(apiRequests)
-  
-  // Sync API data with component state when it changes
-  useEffect(() => {
-    setRequests(apiRequests)
-    setFilteredRequests(apiRequests)
-  }, [apiRequests])
   const [selectedRequest, setSelectedRequest] = useState<PentestRequest | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFindings, setShowFindings] = useState(false)
+
+  // Sync API data with component state when it changes, preserving filters
+  useEffect(() => {
+    setRequests(apiRequests)
+    // Re-apply current filters to new data instead of resetting
+    let filtered = [...apiRequests]
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(request =>
+        request.name.toLowerCase().includes(query) ||
+        request.target.toLowerCase().includes(query)
+      )
+    }
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(request => request.type === typeFilter)
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(request => request.status === statusFilter)
+    }
+    setFilteredRequests(filtered)
+  }, [apiRequests, searchQuery, typeFilter, statusFilter])
 
   const getStatusColor = (status: string) => {
     const colors = {

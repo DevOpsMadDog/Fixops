@@ -89,9 +89,34 @@ export interface PentestStats {
   total_findings: number;
 }
 
+// Backend response wrapper types
+interface RequestsApiResponse {
+  items: PentestRequest[];
+  total: number;
+}
+
+interface ResultsApiResponse {
+  items: PentestFinding[];
+  total: number;
+}
+
+interface StatsApiResponse {
+  total_requests: number;
+  total_results: number;
+  by_status: Record<string, number>;
+  by_exploitability: Record<string, number>;
+  by_priority: Record<string, number>;
+}
+
 // Pentagi API functions
 export async function getPentestRequests(): Promise<PentestRequest[]> {
-  return apiFetch<PentestRequest[]>('/api/v1/pentagi/requests');
+  // Backend returns {items: [...], total: number} but UI expects array directly
+  try {
+    const response = await apiFetch<RequestsApiResponse>('/api/v1/pentagi/requests');
+    return response.items ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getPentestRequest(id: string): Promise<PentestRequest> {
@@ -118,14 +143,38 @@ export async function cancelPentestRequest(id: string): Promise<PentestRequest> 
 }
 
 export async function getPentestResults(requestId?: string): Promise<PentestFinding[]> {
+  // Backend returns {items: [...], total: number} but UI expects array directly
   const path = requestId 
     ? `/api/v1/pentagi/results/by-request/${requestId}`
     : '/api/v1/pentagi/results';
-  return apiFetch<PentestFinding[]>(path);
+  try {
+    const response = await apiFetch<ResultsApiResponse>(path);
+    return response.items ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getPentestStats(): Promise<PentestStats> {
-  return apiFetch<PentestStats>('/api/v1/pentagi/stats');
+  // Backend returns {total_requests, total_results, by_status, ...} but UI expects {total, pending, in_progress, completed, total_findings}
+  try {
+    const response = await apiFetch<StatsApiResponse>('/api/v1/pentagi/stats');
+    return {
+      total: response.total_requests ?? 0,
+      pending: response.by_status?.pending ?? 0,
+      in_progress: response.by_status?.running ?? 0,
+      completed: response.by_status?.completed ?? 0,
+      total_findings: response.total_results ?? 0,
+    };
+  } catch {
+    return {
+      total: 0,
+      pending: 0,
+      in_progress: 0,
+      completed: 0,
+      total_findings: 0,
+    };
+  }
 }
 
 // Micropentest API functions

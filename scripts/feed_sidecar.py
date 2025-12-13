@@ -14,11 +14,16 @@ Usage:
     python feed_sidecar.py continuous --interval 3600
 """
 
+import logging
 import os
 import sys
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 try:
     import httpx
@@ -88,8 +93,8 @@ def wait_for_api(timeout: int = 120) -> bool:
                 if r.status_code == 200:
                     console.print("[green]Connected to FixOps API[/green]")
                     return True
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug(f"Health check failed: {exc}")
             time.sleep(2)
             remaining = int(deadline - time.time())
             status.update(f"[bold cyan]Connecting... ({remaining}s remaining)")
@@ -176,7 +181,8 @@ def push_to_fixops(client: httpx.Client, cves: List[Dict[str, Any]]) -> Dict[str
                     results["skipped"] += 1
                 else:
                     results["failed"] += 1
-            except Exception:
+            except Exception as exc:
+                logger.warning(f"Failed to push CVE {cve_id}: {exc}")
                 results["failed"] += 1
 
             progress.advance(task)

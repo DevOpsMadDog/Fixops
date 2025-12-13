@@ -43,8 +43,11 @@ export function usePentagiData(pollInterval: number = 30000): PentagiData {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (isBackgroundPoll: boolean = false) => {
+    // Only show loading spinner on initial load, not on background polls
+    if (!isBackgroundPoll) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -64,7 +67,9 @@ export function usePentagiData(pollInterval: number = 30000): PentagiData {
       console.error('Failed to fetch pentagi data:', apiError.detail || apiError.message);
       setError(apiError.detail || apiError.message || 'Failed to connect to API. Please ensure the FixOps API server is running.');
     } finally {
-      setIsLoading(false);
+      if (!isBackgroundPoll) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -73,11 +78,11 @@ export function usePentagiData(pollInterval: number = 30000): PentagiData {
     fetchData();
   }, [fetchData]);
 
-  // Polling for real-time updates
+  // Polling for real-time updates (background polls don't show loading spinner)
   useEffect(() => {
     if (pollInterval <= 0) return;
 
-    const interval = setInterval(fetchData, pollInterval);
+    const interval = setInterval(() => fetchData(true), pollInterval);
     return () => clearInterval(interval);
   }, [fetchData, pollInterval]);
 
