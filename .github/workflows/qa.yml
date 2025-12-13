@@ -15,22 +15,25 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: devopsaico/fixops:latest
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
       options: --user root
     steps:
       - uses: actions/checkout@v4
       - name: Install PR code and quality tools
         run: |
-          pip install -e . || true
-          pip install -r requirements-test.txt || true
-          pip install black==23.7.0 isort==5.12.0 flake8 mypy || true
+          pip install -e .
+          pip install -r requirements-test.txt
+          pip install black==23.7.0 isort==5.12.0 flake8 mypy
       - name: Formatting checks
         run: |
-          black --check . --exclude archive/ || true
-          isort --check-only . --skip archive || true
+          black --check . --exclude archive/
+          isort --check-only . --skip archive
       - name: Lint
-        run: flake8 || true
+        run: flake8
       - name: Type check
-        run: mypy --explicit-package-bases core apps scripts || true
+        run: mypy --explicit-package-bases core apps scripts
       - name: Tests with coverage
         env:
           PYTHONPATH: .

@@ -12,16 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: devopsaico/fixops:latest
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
       options: --user root
     steps:
       - uses: actions/checkout@v4
       - name: Install PR code in editable mode
         run: |
-          pip install -e . || true
-          pip install -r requirements-test.txt || true
+          pip install -e .
+          pip install -r requirements-test.txt
       - name: Lint & Compile
         run: |
-          python -m compileall backend fixops simulations tests || true
+          python -m compileall backend fixops simulations tests
       - name: API push-ingestion regression
         env:
           FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
@@ -54,7 +57,7 @@ jobs:
             --design artefacts/design.csv --sbom artefacts/sbom.cdx.json \
             --sarif artefacts/snyk.sarif --cve artefacts/cve.json \
             --vex artefacts/vex.cdx.json --cnapp artefacts/cnapp.json \
-            --evidence-dir out/evidence --output out/pipeline-enterprise.json --pretty || true
+            --evidence-dir out/evidence --output out/pipeline-enterprise.json --pretty
       - name: Operations steady-state
         env:
           FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
@@ -65,9 +68,9 @@ jobs:
             --design artefacts/design.csv --sbom artefacts/sbom.cdx.json \
             --sarif artefacts/snyk.sarif --cve artefacts/cve.json \
             --vex artefacts/vex.cdx.json --cnapp artefacts/cnapp.json \
-            --output out/ops.json --pretty || true
+            --output out/ops.json --pretty
       - name: Tests
         env:
           FIXOPS_DISABLE_TELEMETRY: '1'
           FIXOPS_API_TOKEN: 'demo-token'
-        run: pytest -q || true
+        run: pytest -q
