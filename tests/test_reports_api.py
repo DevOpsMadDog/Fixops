@@ -2,18 +2,15 @@
 Tests for report management API endpoints.
 """
 import pytest
-from fastapi.testclient import TestClient
 
-from apps.api.app import create_app
 from core.report_db import ReportDB
 from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    app = create_app()
-    return TestClient(app)
+def client(authenticated_client):
+    """Create test client using shared authenticated_client fixture."""
+    return authenticated_client
 
 
 @pytest.fixture
@@ -34,7 +31,7 @@ def cleanup_db(db):
 
 def test_list_reports_empty(client):
     """Test listing reports when none exist."""
-    response = client.get("/api/v1/reports", headers={"X-API-Key": "test-key"})
+    response = client.get("/api/v1/reports")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -45,7 +42,6 @@ def test_generate_report(client):
     """Test generating a new report."""
     response = client.post(
         "/api/v1/reports",
-        headers={"X-API-Key": "test-key"},
         json={
             "name": "Security Summary Report",
             "report_type": "security_summary",
@@ -72,9 +68,7 @@ def test_get_report(client, db):
     )
     created = db.create_report(report)
 
-    response = client.get(
-        f"/api/v1/reports/{created.id}", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get(f"/api/v1/reports/{created.id}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == created.id
@@ -83,9 +77,7 @@ def test_get_report(client, db):
 
 def test_get_report_not_found(client):
     """Test getting non-existent report."""
-    response = client.get(
-        "/api/v1/reports/nonexistent", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/reports/nonexistent")
     assert response.status_code == 404
 
 
@@ -102,9 +94,7 @@ def test_download_report(client, db):
     )
     created = db.create_report(report)
 
-    response = client.get(
-        f"/api/v1/reports/{created.id}/download", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get(f"/api/v1/reports/{created.id}/download")
     assert response.status_code == 200
     data = response.json()
     assert "download_url" in data
@@ -122,9 +112,7 @@ def test_download_report_not_ready(client, db):
     )
     created = db.create_report(report)
 
-    response = client.get(
-        f"/api/v1/reports/{created.id}/download", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get(f"/api/v1/reports/{created.id}/download")
     assert response.status_code == 400
 
 
@@ -132,7 +120,6 @@ def test_schedule_report(client):
     """Test scheduling a recurring report."""
     response = client.post(
         "/api/v1/reports/schedule",
-        headers={"X-API-Key": "test-key"},
         json={
             "report_type": "security_summary",
             "format": "pdf",
@@ -148,9 +135,7 @@ def test_schedule_report(client):
 
 def test_list_schedules(client):
     """Test listing scheduled reports."""
-    response = client.get(
-        "/api/v1/reports/schedules/list", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/reports/schedules/list")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -158,9 +143,7 @@ def test_list_schedules(client):
 
 def test_list_templates(client):
     """Test listing report templates."""
-    response = client.get(
-        "/api/v1/reports/templates/list", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/reports/templates/list")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -168,9 +151,7 @@ def test_list_templates(client):
 
 def test_export_sarif(client):
     """Test exporting findings as SARIF."""
-    response = client.post(
-        "/api/v1/reports/export/sarif", headers={"X-API-Key": "test-key"}
-    )
+    response = client.post("/api/v1/reports/export/sarif")
     assert response.status_code == 200
     data = response.json()
     assert data["format"] == "sarif"
@@ -179,9 +160,7 @@ def test_export_sarif(client):
 
 def test_export_csv(client):
     """Test exporting findings as CSV."""
-    response = client.post(
-        "/api/v1/reports/export/csv", headers={"X-API-Key": "test-key"}
-    )
+    response = client.post("/api/v1/reports/export/csv")
     assert response.status_code == 200
     data = response.json()
     assert data["format"] == "csv"
@@ -206,10 +185,7 @@ def test_list_reports_with_filter(client, db):
     db.create_report(report1)
     db.create_report(report2)
 
-    response = client.get(
-        "/api/v1/reports?report_type=security_summary",
-        headers={"X-API-Key": "test-key"},
-    )
+    response = client.get("/api/v1/reports?report_type=security_summary")
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) >= 1
@@ -218,9 +194,7 @@ def test_list_reports_with_filter(client, db):
 
 def test_list_reports_pagination(client):
     """Test report list pagination."""
-    response = client.get(
-        "/api/v1/reports?limit=10&offset=0", headers={"X-API-Key": "test-key"}
-    )
+    response = client.get("/api/v1/reports?limit=10&offset=0")
     assert response.status_code == 200
     data = response.json()
     assert data["limit"] == 10

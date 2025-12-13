@@ -3,17 +3,14 @@ import os
 import tempfile
 
 import pytest
-from fastapi.testclient import TestClient
 
-from apps.api.app import create_app
 from core.pentagi_db import PentagiDB
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    app = create_app()
-    return TestClient(app)
+def client(authenticated_client):
+    """Create test client using shared authenticated_client fixture."""
+    return authenticated_client
 
 
 @pytest.fixture
