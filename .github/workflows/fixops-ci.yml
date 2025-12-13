@@ -10,21 +10,17 @@ permissions:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    container:
+      image: devopsaico/fixops:latest
+      options: --user root
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install
+      - name: Install PR code in editable mode
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
-          pip install -r dev-requirements.txt
-          pip install -r backend/requirements-optional.txt || true
+          pip install -e .
+          pip install -r requirements-test.txt
       - name: Lint & Compile
         run: |
-          source .venv/bin/activate
           python -m compileall backend fixops simulations tests
       - name: API push-ingestion regression
         env:
@@ -33,10 +29,9 @@ jobs:
           FIXOPS_MODE: demo
           FIXOPS_DISABLE_TELEMETRY: '1'
         run: |
-          source .venv/bin/activate
-          uvicorn apps.api.app:create_app --factory --reload &
+          uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000 &
           API_PID=$!
-          sleep 10
+          sleep 15
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/design.csv;type=text/csv" http://127.0.0.1:8000/inputs/design
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/sbom.cdx.json;type=application/json" http://127.0.0.1:8000/inputs/sbom
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/cve.json;type=application/json" http://127.0.0.1:8000/inputs/cve
@@ -45,7 +40,7 @@ jobs:
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/snyk.sarif;type=application/json" http://127.0.0.1:8000/inputs/sarif
           mkdir -p out
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/pipeline/run | jq > out/api-run.json
-          kill $API_PID
+          kill $API_PID || true
       - name: CLI enterprise
         env:
           FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
@@ -53,7 +48,6 @@ jobs:
           FIXOPS_JIRA_TOKEN: ${{ secrets.FIXOPS_JIRA_TOKEN || 'demo-jira-token' }}
           FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
         run: |
-          source .venv/bin/activate
           python -m fixops.cli run \
             --overlay config/fixops.overlay.yml \
             --enable policy_automation --enable compliance --enable ssdlc --enable iac \
@@ -66,7 +60,6 @@ jobs:
           FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
           FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
         run: |
-          source .venv/bin/activate
           python -m fixops.cli run \
             --enable exploit_signals --enable probabilistic \
             --design artefacts/design.csv --sbom artefacts/sbom.cdx.json \
@@ -74,6 +67,7 @@ jobs:
             --vex artefacts/vex.cdx.json --cnapp artefacts/cnapp.json \
             --output out/ops.json --pretty
       - name: Tests
-        run: |
-          source .venv/bin/activate
-          pytest -q
+        env:
+          FIXOPS_DISABLE_TELEMETRY: '1'
+          FIXOPS_API_TOKEN: 'demo-token'
+        run: pytest -q
