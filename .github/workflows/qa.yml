@@ -50,8 +50,7 @@ jobs:
             -v --override-ini testpaths='' \
             --override-ini "addopts=--cov=apps --cov=services.provenance --cov=services.graph --cov=services.repro --cov=lib4sbom --cov=risk --cov=evidence --cov=telemetry --cov=scripts.graph_worker --cov=core --cov=fixops --cov-report=term-missing --cov-report=xml:reports/coverage/coverage.xml --cov-fail-under=20" \
             --ignore=tests/sidecar/ \
-            --ignore=tests/e2e/ \
-            -x
+            --ignore=tests/e2e/
       - name: Coverage summary
         run: |
           python - <<'PY'
