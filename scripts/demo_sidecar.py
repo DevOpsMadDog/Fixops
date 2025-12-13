@@ -195,18 +195,19 @@ def show_cve_info(cve_id: str):
     table.add_column("Property", style="cyan")
     table.add_column("Value", style="white")
 
+    severity = str(cve["severity"])
     severity_color = {
         "CRITICAL": "red",
         "HIGH": "orange1",
         "MEDIUM": "yellow",
         "LOW": "green",
-    }.get(cve["severity"], "white")
+    }.get(severity, "white")
 
-    table.add_row("Name", cve["name"])
-    table.add_row("Severity", f"[{severity_color}]{cve['severity']}[/{severity_color}]")
+    table.add_row("Name", str(cve["name"]))
+    table.add_row("Severity", f"[{severity_color}]{severity}[/{severity_color}]")
     table.add_row("CVSS Score", f"[bold]{cve['cvss']}[/bold]")
-    table.add_row("Component", cve["component"])
-    table.add_row("Version", cve["version"])
+    table.add_row("Component", str(cve["component"]))
+    table.add_row("Version", str(cve["version"]))
     table.add_row(
         "Exploit Available",
         "[red]YES[/red]" if cve["exploit_available"] else "[green]NO[/green]",
@@ -214,7 +215,8 @@ def show_cve_info(cve_id: str):
     table.add_row(
         "In KEV Catalog", "[red]YES[/red]" if cve["in_kev"] else "[green]NO[/green]"
     )
-    table.add_row("Description", cve["description"][:80] + "...")
+    description = str(cve["description"])
+    table.add_row("Description", description[:80] + "...")
 
     console.print(table)
 
@@ -397,7 +399,7 @@ def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
     cve_info = DEMO_CVES.get(cve_id, {"severity": "HIGH", "cvss": 7.5})
 
     # CVE Assessment
-    severity = cve_info.get("severity", "HIGH")
+    severity = str(cve_info.get("severity", "HIGH"))
     severity_color = {
         "CRITICAL": "red",
         "HIGH": "orange1",
@@ -540,7 +542,7 @@ def run_scenario(
 
     # Phase 4: Reachability Analysis
     phase_header("4", "Analyzing Code Reachability")
-    reachability = analyze_reachability(client, cve_id)
+    reachability = analyze_reachability(client, cve_id) or {}
     console.print("[green]Reachability analysis complete[/green]")
     console.print(f"  Job ID: {reachability.get('job_id', 'N/A')}")
     console.print(f"  Status: {reachability.get('status', 'completed')}")
@@ -548,7 +550,7 @@ def run_scenario(
 
     # Phase 5: PentAGI Assessment
     phase_header("5", "Running PentAGI Security Assessment")
-    pentagi = run_pentagi_assessment(client, cve_id)
+    pentagi = run_pentagi_assessment(client, cve_id) or {}
     console.print("[green]PentAGI assessment complete[/green]")
     time.sleep(1)
 
@@ -596,8 +598,8 @@ def full_demo():
         console.print(f"[bold cyan]{'='*60}[/bold cyan]")
 
         show_cve_info(cve_id)
-        reachability = analyze_reachability(client, cve_id)
-        pentagi = run_pentagi_assessment(client, cve_id)
+        reachability = analyze_reachability(client, cve_id) or {}
+        pentagi = run_pentagi_assessment(client, cve_id) or {}
         show_assessment_summary(cve_id, reachability, pentagi)
 
         time.sleep(2)
