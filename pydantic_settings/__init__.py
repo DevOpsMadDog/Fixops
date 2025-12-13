@@ -6,7 +6,7 @@ import os
 import types
 from typing import Any, Dict, Iterable, Tuple, Type, Union, get_args, get_origin
 
-from pydantic import FieldInfo
+from pydantic.fields import FieldInfo
 
 
 class BaseSettings:
