@@ -40,7 +40,7 @@ jobs:
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/cnapp.json;type=application/json" http://127.0.0.1:8000/inputs/cnapp
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/snyk.sarif;type=application/json" http://127.0.0.1:8000/inputs/sarif
           mkdir -p out
-          curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/pipeline/run | jq > out/api-run.json
+          curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/pipeline/run -o out/api-run.json
           kill $API_PID || true
       - name: CLI enterprise
         env:
