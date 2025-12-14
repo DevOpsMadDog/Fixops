@@ -1,8 +1,20 @@
 import json
+import os
+
+import pytest
 
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import load_overlay
+
+
+@pytest.fixture(autouse=True)
+def set_env_vars(monkeypatch):
+    """Set required environment variables for overlay loading."""
+    monkeypatch.setenv(
+        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+    )
+    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "demo"))
 
 
 def test_pipeline_emits_compliance_results(tmp_path):
