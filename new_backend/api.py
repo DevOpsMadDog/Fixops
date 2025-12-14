@@ -8,32 +8,35 @@ from fastapi import FastAPI, HTTPException, Path
 from pydantic import BaseModel, Field, model_validator
 
 
+class DecisionRequest(BaseModel):
+    service_name: str = Field(min_length=1)
+    environment: str = Field(min_length=1)
+    risk_score: float = Field(ge=0.0, le=1.0)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DecisionResponse(BaseModel):
+    decision: str
+    decision_id: str
+    confidence: float
+
+
+class FeedbackRequest(BaseModel):
+    decision_id: str = Field(min_length=1)
+    accepted: bool
+    comments: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_comments(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        comment = values.get("comments")
+        if comment is not None:
+            values["comments"] = comment.strip()
+        return values
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="FixOps Backend API", version="0.1.0")
-
-    class DecisionRequest(BaseModel):
-        service_name: str = Field(min_length=1)
-        environment: str = Field(min_length=1)
-        risk_score: float = Field(ge=0.0, le=1.0)
-        metadata: Dict[str, Any] = Field(default_factory=dict)
-
-    class DecisionResponse(BaseModel):
-        decision: str
-        decision_id: str
-        confidence: float
-
-    class FeedbackRequest(BaseModel):
-        decision_id: str = Field(min_length=1)
-        accepted: bool
-        comments: str | None = None
-
-        @model_validator(mode="before")
-        @classmethod
-        def normalize_comments(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-            comment = values.get("comments")
-            if comment is not None:
-                values["comments"] = comment.strip()
-            return values
 
     @app.post("/decisions", response_model=DecisionResponse)
     def make_decision(request: DecisionRequest) -> DecisionResponse:
@@ -53,7 +56,7 @@ def create_app() -> FastAPI:
     @app.post("/decisions/{decision_id}/feedback")
     def submit_feedback(
         decision_id: str = Path(..., min_length=1),
-        request: FeedbackRequest | None = None,
+        request: FeedbackRequest = None,
     ) -> Dict[str, Any]:
         if request is None:
             raise HTTPException(status_code=400, detail="Feedback payload required")
