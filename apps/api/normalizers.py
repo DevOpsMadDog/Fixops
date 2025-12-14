@@ -846,6 +846,19 @@ class InputNormalizer:
         except Exception as e:
             logger.warning(f"Failed to extract component-level vulnerabilities: {e}")
 
+        # Deduplicate vulnerabilities by ID
+        seen_vuln_ids: set[str] = set()
+        deduplicated_vulns: list[dict[str, Any]] = []
+        for vuln in vulnerabilities:
+            vuln_id = vuln.get("id") if isinstance(vuln, dict) else None
+            if vuln_id:
+                if vuln_id not in seen_vuln_ids:
+                    seen_vuln_ids.add(vuln_id)
+                    deduplicated_vulns.append(vuln)
+            else:
+                deduplicated_vulns.append(vuln)
+        vulnerabilities = deduplicated_vulns
+
         metadata = {
             "component_count": len(components),
             "relationship_count": len(relationships),
@@ -961,6 +974,19 @@ class InputNormalizer:
         doc_vulnerabilities = document.get("vulnerabilities", [])
         if isinstance(doc_vulnerabilities, list):
             all_vulnerabilities.extend(doc_vulnerabilities)
+
+        # Deduplicate vulnerabilities by ID
+        seen_vuln_ids: set[str] = set()
+        deduplicated_vulns: list[dict[str, Any]] = []
+        for vuln in all_vulnerabilities:
+            vuln_id = vuln.get("id") if isinstance(vuln, dict) else None
+            if vuln_id:
+                if vuln_id not in seen_vuln_ids:
+                    seen_vuln_ids.add(vuln_id)
+                    deduplicated_vulns.append(vuln)
+            else:
+                deduplicated_vulns.append(vuln)
+        all_vulnerabilities = deduplicated_vulns
 
         metadata = {
             "component_count": len(components),
