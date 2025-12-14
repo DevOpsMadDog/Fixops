@@ -902,6 +902,9 @@ class PipelineOrchestrator:
         if context is not None:
             result["business_context"] = context.to_dict()
 
+        # Initialize context_summary before overlay block to avoid UnboundLocalError
+        context_summary: Optional[Dict[str, Any]] = None
+
         if vex is not None:
             result["vex_summary"] = vex.to_dict()
             if noise_reduction is not None:
@@ -939,7 +942,7 @@ class PipelineOrchestrator:
             if automation_requirements:
                 result["automation_requirements"] = automation_requirements
 
-            context_summary: Optional[Dict[str, Any]] = None
+            # context_summary is initialized before this block
             compliance_status: Optional[Dict[str, Any]] = None
             compliance_results: Optional[List[Dict[str, Any]]] = None
             policy_summary: Optional[Dict[str, Any]] = None
