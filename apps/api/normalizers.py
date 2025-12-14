@@ -514,6 +514,7 @@ class SarifFinding:
     file: Optional[str]
     line: Optional[int]
     raw: dict[str, Any]
+    tool_name: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -1413,6 +1414,12 @@ class InputNormalizer:
                     raise ValueError("SARIF result failed validation") from exc
 
                 validated_findings.append(validated)
+                # Get the tool name for this run (if available)
+                current_tool_name = (
+                    tool_name
+                    if isinstance(tool_name, str) and tool_name.strip()
+                    else None
+                )
                 findings.append(
                     SarifFinding(
                         rule_id=validated.rule_id,
@@ -1421,6 +1428,7 @@ class InputNormalizer:
                         file=validated.file,
                         line=validated.line,
                         raw=result,
+                        tool_name=current_tool_name,
                     )
                 )
 
