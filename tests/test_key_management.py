@@ -73,6 +73,28 @@ class StubKMSClient:
         )
         return {"Signature": signature, "KeyId": resolved}
 
+    def verify(
+        self,
+        KeyId: str,
+        Message: bytes,
+        Signature: bytes,
+        MessageType: str,
+        SigningAlgorithm: str,
+    ):  # noqa: N802
+        """Verify signature using the public key for the given KeyId."""
+        resolved = self._resolve(KeyId)
+        public_key = self._keys[resolved].public_key()
+        try:
+            public_key.verify(
+                Signature,
+                Message,
+                padding.PKCS1v15(),
+                hashes.SHA256(),
+            )
+            return {"SignatureValid": True, "KeyId": resolved}
+        except Exception:
+            return {"SignatureValid": False, "KeyId": resolved}
+
     def rotate_key(self, KeyId: str):  # noqa: N802
         alias = KeyId if KeyId.startswith("alias/") else None
         new_key_id = self._create_key(age_days=0)
@@ -153,7 +175,10 @@ class StubAzureCryptoClient:
     def __init__(self, key_client: StubAzureKeyClient) -> None:
         self._key_client = key_client
 
-    def sign(self, payload: bytes):  # pragma: no cover - exercised via provider
+    def sign(
+        self, algorithm: str, payload: bytes
+    ):  # pragma: no cover - exercised via provider
+        """Sign payload with the given algorithm (algorithm is ignored in stub)."""
         signature = self._key_client.private_key().sign(
             payload,
             padding.PKCS1v15(),
