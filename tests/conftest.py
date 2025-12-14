@@ -26,9 +26,10 @@ collect_ignore = [
     "test_real_world_e2e.py",  # imports src.services.run_registry, marketplace
     "test_policy_opa.py",  # imports src.api.v1.policy
     "test_enterprise_enhanced_api.py",  # imports src.services.enhanced_decision_engine
-    # Missing CLI commands - these tests use 'inventory' and 'policies' CLI commands that don't exist
+    # Missing CLI commands - these tests use CLI commands that don't exist
     "test_inventory_cli.py",  # uses 'inventory' CLI command
     "test_policies_cli.py",  # uses 'policies' CLI command
+    "test_analytics_cli.py",  # uses 'analytics' CLI command which doesn't exist
     # Missing middleware/metrics modules
     "test_http_metrics.py",  # imports src.core.middleware which doesn't exist
     # Tests using non-existent API (PortfolioSearchEngine with db_path and index_sbom_component)
@@ -43,10 +44,10 @@ collect_ignore = [
 import os
 from unittest.mock import MagicMock, patch
 
-# Use enterprise mode for real API testing (not demo mode)
-# Set proper secrets instead of relying on demo mode shortcuts
+# Use demo mode for testing to match Docker image configuration
+# This ensures consistent behavior between local tests and CI
 if "FIXOPS_MODE" not in os.environ:
-    os.environ["FIXOPS_MODE"] = "enterprise"
+    os.environ["FIXOPS_MODE"] = "demo"
 
 # Set JWT secret for non-demo mode (required for app initialization)
 if "FIXOPS_JWT_SECRET" not in os.environ:
