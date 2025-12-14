@@ -585,12 +585,33 @@ class InputNormalizer:
         )
 
     @staticmethod
+    def _check_nan_infinity(obj: Any, path: str = "") -> None:
+        """Recursively check for NaN/Infinity values in a data structure."""
+        import math
+
+        if isinstance(obj, float):
+            if math.isnan(obj) or math.isinf(obj):
+                raise ValueError(
+                    f"NaN/Infinity values are not allowed in JSON documents (found at {path or 'root'})"
+                )
+        elif isinstance(obj, dict):
+            for key, value in obj.items():
+                InputNormalizer._check_nan_infinity(
+                    value, f"{path}.{key}" if path else key
+                )
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                InputNormalizer._check_nan_infinity(item, f"{path}[{i}]")
+
+    @staticmethod
     def _ensure_bytes(content: Any) -> bytes:
         if isinstance(content, (bytes, bytearray)):
             return bytes(content)
         if isinstance(content, memoryview):
             return content.tobytes()
         if isinstance(content, (dict, list)):
+            # Check for NaN/Infinity values before serializing
+            InputNormalizer._check_nan_infinity(content)
             return json.dumps(content).encode("utf-8")
         if hasattr(content, "read"):
             handle = content  # type: ignore[assignment]
