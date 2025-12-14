@@ -175,7 +175,8 @@ def create_app() -> FastAPI:
 
     configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
 
-    # Import health router
+    # Import health routers - both the simple one and the full one with /api/v1 prefix
+    from apps.api.health import router as health_v1_router
     from apps.api.health_router import router as health_router
 
     app = FastAPI(
@@ -355,6 +356,7 @@ def create_app() -> FastAPI:
     app.state.upload_manager = upload_manager
 
     app.include_router(health_router)
+    app.include_router(health_v1_router)  # Full health endpoints with /api/v1 prefix
 
     @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
     async def authenticated_status() -> Dict[str, Any]:
