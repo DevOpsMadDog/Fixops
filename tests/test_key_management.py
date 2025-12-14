@@ -73,6 +73,28 @@ class StubKMSClient:
         )
         return {"Signature": signature, "KeyId": resolved}
 
+    def verify(
+        self,
+        KeyId: str,
+        Message: bytes,
+        Signature: bytes,
+        MessageType: str,
+        SigningAlgorithm: str,
+    ):  # noqa: N802
+        """Verify signature using the public key for the given KeyId."""
+        resolved = self._resolve(KeyId)
+        public_key = self._keys[resolved].public_key()
+        try:
+            public_key.verify(
+                Signature,
+                Message,
+                padding.PKCS1v15(),
+                hashes.SHA256(),
+            )
+            return {"SignatureValid": True, "KeyId": resolved}
+        except Exception:
+            return {"SignatureValid": False, "KeyId": resolved}
+
     def rotate_key(self, KeyId: str):  # noqa: N802
         alias = KeyId if KeyId.startswith("alias/") else None
         new_key_id = self._create_key(age_days=0)
@@ -107,20 +129,24 @@ class StubAzureKeyClient:
         self._rotated[version] = rotated
         return version
 
-    def get_key(self, key_name: str):
+    def get_key(self, key_name: str, *, version: str | None = None):
         if key_name != self.key_name:
             raise ValueError("unknown key requested")
-        private = self._versions[self.current_version]
+        # Use specified version or current version
+        target_version = version if version else self.current_version
+        if target_version not in self._versions:
+            raise ValueError(f"unknown version: {target_version}")
+        private = self._versions[target_version]
         numbers = private.public_key().public_numbers()
         jwk = {
             "kty": "RSA",
             "n": _encode_b64url(numbers.n),
             "e": _encode_b64url(numbers.e),
         }
-        identifier = f"{self.vault_url}/keys/{self.key_name}/{self.current_version}"
+        identifier = f"{self.vault_url}/keys/{self.key_name}/{target_version}"
         properties = SimpleNamespace(
-            version=self.current_version,
-            updated_on=self._rotated[self.current_version],
+            version=target_version,
+            updated_on=self._rotated[target_version],
             vault_url=self.vault_url,
             id=identifier,
         )
@@ -153,7 +179,10 @@ class StubAzureCryptoClient:
     def __init__(self, key_client: StubAzureKeyClient) -> None:
         self._key_client = key_client
 
-    def sign(self, payload: bytes):  # pragma: no cover - exercised via provider
+    def sign(
+        self, algorithm: str, payload: bytes
+    ):  # pragma: no cover - exercised via provider
+        """Sign payload with the given algorithm (algorithm is ignored in stub)."""
         signature = self._key_client.private_key().sign(
             payload,
             padding.PKCS1v15(),

@@ -1,10 +1,11 @@
 """
 Tests for analytics API endpoints.
 """
-import pytest
-from fastapi.testclient import TestClient
+import os
+import tempfile
 
-from apps.api.app import create_app
+import pytest
+
 from core.analytics_db import AnalyticsDB
 from core.analytics_models import (
     Decision,
@@ -16,18 +17,17 @@ from core.analytics_models import (
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    app = create_app()
-    return TestClient(app)
+def client(authenticated_client):
+    """Create test client using shared authenticated_client fixture.
+
+    This ensures all requests include the X-API-Key header for authentication.
+    """
+    return authenticated_client
 
 
 @pytest.fixture
 def db():
     """Create test database."""
-    import os
-    import tempfile
-
     fd, path = tempfile.mkstemp(suffix=".db")
     os.close(fd)
 

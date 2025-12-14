@@ -36,6 +36,14 @@ from apps.api.secrets_router import router as secrets_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
 from apps.api.workflows_router import router as workflows_router
+
+# Legacy API bridge router - imports legacy APIs from archive/enterprise_legacy
+legacy_bridge_router: Optional[APIRouter] = None
+try:
+    from apps.api.legacy_bridge_router import router as legacy_bridge_router
+except ImportError:
+    logging.getLogger(__name__).warning("Legacy bridge router not available")
+
 from backend.api.evidence import router as evidence_router
 from backend.api.graph import router as graph_router
 from backend.api.provenance import router as provenance_router
@@ -167,7 +175,8 @@ def create_app() -> FastAPI:
 
     configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
 
-    # Import health router
+    # Import health routers - both the simple one and the full one with /api/v1 prefix
+    from apps.api.health import router as health_v1_router
     from apps.api.health_router import router as health_router
 
     app = FastAPI(
@@ -347,6 +356,7 @@ def create_app() -> FastAPI:
     app.state.upload_manager = upload_manager
 
     app.include_router(health_router)
+    app.include_router(health_v1_router)  # Full health endpoints with /api/v1 prefix
 
     @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
     async def authenticated_status() -> Dict[str, Any]:
@@ -388,6 +398,12 @@ def create_app() -> FastAPI:
     app.include_router(ide_router, dependencies=[Depends(_verify_api_key)])
 
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
+
+    # Legacy API bridge - exposes legacy APIs from archive/enterprise_legacy
+    if legacy_bridge_router:
+        app.include_router(
+            legacy_bridge_router, dependencies=[Depends(_verify_api_key)]
+        )
 
     _CHUNK_SIZE = 1024 * 1024
     _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024

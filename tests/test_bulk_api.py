@@ -1,4 +1,6 @@
 """Tests for bulk operations API endpoints."""
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -6,8 +8,12 @@ from apps.api.app import create_app
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
+def client(monkeypatch):
+    """Create test client with proper environment variables."""
+    monkeypatch.setenv(
+        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+    )
+    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "demo"))
     app = create_app()
     return TestClient(app)
 

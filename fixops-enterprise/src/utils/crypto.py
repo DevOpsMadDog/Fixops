@@ -139,7 +139,7 @@ class EnvKeyProvider:
             )
             return True
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("RSA signature verification failed", error=str(exc))
+            logger.error("RSA signature verification failed", exc_info=exc)
             return False
 
     def rotate(self) -> str:
@@ -152,7 +152,7 @@ class EnvKeyProvider:
         self._fingerprint = _fingerprint_public_key(self._public_key)
         self._register_public_key(self._fingerprint, self._public_key)
         self._last_rotated = datetime.now(timezone.utc)
-        logger.info("Ephemeral RSA key rotated", fingerprint=self._fingerprint)
+        logger.info("Ephemeral RSA key rotated: fingerprint=%s", self._fingerprint)
         return self._fingerprint
 
     def fingerprint(self) -> str:
@@ -336,7 +336,7 @@ class AzureKeyVaultProvider:
             )
             return True
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Azure RSA verification failed", error=str(exc))
+            logger.error("Azure RSA verification failed", exc_info=exc)
             return False
 
     def rotate(self) -> str:
@@ -362,6 +362,7 @@ class AzureKeyVaultProvider:
         return {
             "provider": "azure_key_vault",
             "fingerprint": self._fingerprint,
+            "key_version": self._fingerprint,
             "rotation_sla_days": self.rotation_sla_days,
             "vault_url": self.vault_url,
             "last_rotated_at": self._last_rotated.isoformat()

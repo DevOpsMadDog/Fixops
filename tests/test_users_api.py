@@ -1,18 +1,35 @@
 """
 Tests for user management API endpoints.
 """
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from apps.api.app import create_app
 from core.user_db import UserDB
 
+# Use shared API token from conftest.py
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+
 
 @pytest.fixture
-def client():
-    """Create test client."""
+def client(monkeypatch):
+    """Create authenticated test client."""
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     app = create_app()
-    return TestClient(app)
+    client = TestClient(app)
+
+    # Wrap request method to always include auth header
+    orig_request = client.request
+
+    def _request(method, url, **kwargs):
+        headers = kwargs.pop("headers", {}) or {}
+        headers.setdefault("X-API-Key", API_TOKEN)
+        return orig_request(method, url, headers=headers, **kwargs)
+
+    client.request = _request  # type: ignore[method-assign]
+    return client
 
 
 @pytest.fixture

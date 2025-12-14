@@ -176,7 +176,7 @@ class GoldenRegressionStore:
         try:
             raw = json.loads(self.dataset_path.read_text(encoding="utf-8"))
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Failed to load golden regression dataset", error=str(exc))
+            logger.error("Failed to load golden regression dataset", exc_info=exc)
             return
 
         cases_payload = raw.get("cases") if isinstance(raw, dict) else raw

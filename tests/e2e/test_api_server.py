@@ -181,9 +181,11 @@ class TestAPIServer:
                 "url": "https://github.com/test/repo",
                 "branch": "main",
             },
-            "cve_id": "CVE-2024-0001",
-            "component_name": "test-component",
-            "component_version": "1.0.0",
+            "vulnerability": {
+                "cve_id": "CVE-2024-0001",
+                "component_name": "test-component",
+                "component_version": "1.0.0",
+            },
         }
 
         response = requests.post(
@@ -333,9 +335,11 @@ class TestEndToEndWorkflows:
                 "url": "https://github.com/test/repo",
                 "branch": "main",
             },
-            "cve_id": "CVE-2024-0001",
-            "component_name": "test-component",
-            "component_version": "1.0.0",
+            "vulnerability": {
+                "cve_id": "CVE-2024-0001",
+                "component_name": "test-component",
+                "component_version": "1.0.0",
+            },
         }
 
         response = requests.post(

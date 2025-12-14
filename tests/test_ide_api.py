@@ -1,15 +1,14 @@
 """Tests for IDE extension support API endpoints."""
 import pytest
-from fastapi.testclient import TestClient
-
-from apps.api.app import create_app
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    app = create_app()
-    return TestClient(app)
+def client(authenticated_client):
+    """Create test client using shared authenticated_client fixture.
+
+    This ensures all requests include the X-API-Key header for authentication.
+    """
+    return authenticated_client
 
 
 def test_get_ide_config(client):

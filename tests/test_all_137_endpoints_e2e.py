@@ -9,9 +9,11 @@ import os
 import pytest
 
 # Set environment variables BEFORE importing create_app
-os.environ["FIXOPS_API_TOKEN"] = "test-token-e2e"
+# Use the same token as the Docker image (demo-token-12345) for consistency
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
-os.environ["FIXOPS_MODE"] = "demo"
+os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "demo")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-e2e-do-not-use-in-production"
 
 from fastapi.testclient import TestClient
@@ -30,7 +32,7 @@ def api_client():
 @pytest.fixture(scope="module")
 def auth_headers():
     """Standard authentication headers."""
-    return {"X-API-Key": "test-token-e2e"}
+    return {"X-API-Key": API_TOKEN}
 
 
 class TestPhase1InventoryEndpoints:

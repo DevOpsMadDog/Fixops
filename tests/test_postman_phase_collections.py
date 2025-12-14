@@ -16,7 +16,7 @@ def test_phase_one_health_collection_targets_core_probes() -> None:
     collection = _load_json("enterprise/postman/FixOps-Bank-API-Collection.json")
     folders = collection.get("item", [])
     health_folder = next(
-        (item for item in folders if item.get("name") == "🏥 Health & Monitoring"),
+        (item for item in folders if "Health & Monitoring" in item.get("name", "")),
         None,
     )
     assert health_folder is not None, "Health folder missing from bank API collection"

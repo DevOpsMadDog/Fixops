@@ -26,7 +26,19 @@ _CANONICAL_OUTPUTS: set[str] = {
 }
 
 
-@dataclass(slots=True)
+_CANONICAL_OUTPUTS_SET: set[str] = {
+    "requirements.json",
+    "design.manifest.json",
+    "build.report.json",
+    "test.report.json",
+    "deploy.manifest.json",
+    "operate.snapshot.json",
+    "decision.json",
+    "manifest.json",
+}
+
+
+@dataclass(slots=False)
 class RunContext:
     """Represents a materialised run folder for an application."""
 
@@ -54,6 +66,78 @@ class RunContext:
     @property
     def transparency_index(self) -> Path:
         return resolve_within_root(self.outputs_dir, "transparency.index")
+
+    def save_input(
+        self,
+        filename: str,
+        payload: bytes | bytearray | Mapping[str, Any] | Iterable[Any] | str,
+    ) -> Path:
+        """Persist an input payload beneath the run's inputs directory."""
+        target = resolve_within_root(self.inputs_dir, filename)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(payload, (bytes, bytearray)):
+            target.write_bytes(bytes(payload))
+        elif isinstance(payload, Mapping) or (
+            isinstance(payload, Iterable)
+            and not isinstance(payload, (str, bytes, bytearray))
+        ):
+            target.write_text(
+                json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False)
+            )
+        else:
+            target.write_text(str(payload))
+        return target
+
+    def write_output(
+        self,
+        name: str,
+        document: Mapping[str, Any] | Iterable[Any],
+    ) -> Path:
+        """Persist *document* to the outputs directory and return the file path."""
+        if name not in _CANONICAL_OUTPUTS_SET:
+            raise ValueError(f"Unsupported output name: {name}")
+        target = resolve_within_root(self.outputs_dir, name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        text = json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False)
+        target.write_text(text, encoding="utf-8")
+
+        # Sign the output if configured
+        if self.sign_outputs:
+            try:
+                from src.services import signing
+
+                envelope = signing.sign_manifest(document)
+                signed_path = self.signed_outputs_dir / f"{name}.manifest.json"
+                signed_path.parent.mkdir(parents=True, exist_ok=True)
+                signed_path.write_text(
+                    json.dumps(envelope, indent=2, sort_keys=True, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                # Append to transparency index
+                digest = envelope.get("digest", "unknown")
+                kid = envelope.get("kid")
+                self._append_transparency_index(name, digest, kid)
+            except (ImportError, Exception):
+                pass
+
+        return target
+
+    def _append_transparency_index(
+        self, canonical: str, digest: str, kid: str | None
+    ) -> Path:
+        """Append an entry to the transparency index."""
+        import datetime as _dt
+
+        self.transparency_index.parent.mkdir(parents=True, exist_ok=True)
+        timestamp = (
+            _dt.datetime.now(_dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        )
+        line = (
+            f"TS={timestamp} FILE={canonical} SHA256={digest} KID={kid or 'unknown'}\n"
+        )
+        with self.transparency_index.open("a", encoding="utf-8") as handle:
+            handle.write(line)
+        return self.transparency_index
 
 
 class RunRegistry:

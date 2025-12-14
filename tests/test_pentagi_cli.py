@@ -24,7 +24,8 @@ def db():
 
 def test_list_requests_command(db, monkeypatch, capsys):
     """Test pentagi list-requests command."""
-    monkeypatch.setattr("core.cli.PentagiDB", lambda: db)
+    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
+    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
 
     request = PenTestRequest(
         id="",
@@ -49,7 +50,8 @@ def test_list_requests_command(db, monkeypatch, capsys):
 
 def test_create_request_command(db, monkeypatch, capsys):
     """Test pentagi create-request command."""
-    monkeypatch.setattr("core.cli.PentagiDB", lambda: db)
+    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
+    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
 
     parser = build_parser()
     args = parser.parse_args(
@@ -77,7 +79,8 @@ def test_create_request_command(db, monkeypatch, capsys):
 
 def test_list_results_command(db, monkeypatch, capsys):
     """Test pentagi list-results command."""
-    monkeypatch.setattr("core.cli.PentagiDB", lambda: db)
+    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
+    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
 
     parser = build_parser()
     args = parser.parse_args(["pentagi", "list-results", "--format", "json"])
@@ -91,7 +94,8 @@ def test_list_results_command(db, monkeypatch, capsys):
 
 def test_list_configs_command(db, monkeypatch, capsys):
     """Test pentagi list-configs command."""
-    monkeypatch.setattr("core.cli.PentagiDB", lambda: db)
+    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
+    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
 
     config = PenTestConfig(
         id="", name="Test Config", pentagi_url="https://pentagi.test.com"
@@ -111,7 +115,8 @@ def test_list_configs_command(db, monkeypatch, capsys):
 
 def test_create_config_command(db, monkeypatch, capsys):
     """Test pentagi create-config command."""
-    monkeypatch.setattr("core.cli.PentagiDB", lambda: db)
+    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
+    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
 
     parser = build_parser()
     args = parser.parse_args(
