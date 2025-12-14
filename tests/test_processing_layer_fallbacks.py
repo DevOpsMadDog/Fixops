@@ -10,7 +10,9 @@ import pytest
 
 
 def test_bayesian_mapping_fallback_returns_distribution() -> None:
-    module = importlib.import_module("src.services.processing_layer")
+    module = importlib.import_module(
+        "archive.enterprise_legacy.src.services.processing_layer"
+    )
     importlib.reload(module)
 
     mapper = module.BayesianPriorMapping()
@@ -32,7 +34,9 @@ def test_bayesian_mapping_fallback_returns_distribution() -> None:
 
 
 def test_markov_builder_fallback_uses_epss_and_kev_bias() -> None:
-    module = importlib.import_module("src.services.processing_layer")
+    module = importlib.import_module(
+        "archive.enterprise_legacy.src.services.processing_layer"
+    )
     importlib.reload(module)
 
     builder = module.MarkovTransitionMatrixBuilder()
