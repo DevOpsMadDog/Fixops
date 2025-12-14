@@ -3,22 +3,17 @@ import os
 import tempfile
 
 import pytest
-from fastapi.testclient import TestClient
 
-from apps.api.app import create_app
 from core.iac_db import IaCDB
 
 
 @pytest.fixture
-def client(monkeypatch):
-    """Create test client with proper environment variables."""
-    # Ensure API token is set before creating the app
-    monkeypatch.setenv(
-        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
-    )
-    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "demo"))
-    app = create_app()
-    return TestClient(app)
+def client(authenticated_client):
+    """Create test client using shared authenticated_client fixture.
+
+    This ensures all requests include the X-API-Key header for authentication.
+    """
+    return authenticated_client
 
 
 @pytest.fixture
