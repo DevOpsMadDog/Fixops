@@ -15,21 +15,26 @@ API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
 
 
 @pytest.fixture
-def client(monkeypatch):
-    """Create test client with proper environment variables."""
+def db():
+    """Create test database using the same path as the API router."""
+    # Use the same database path as the API router (data/workflows.db)
+    # This must be created BEFORE the client fixture to ensure tables exist
+    return WorkflowDB(db_path="data/workflows.db")
+
+
+@pytest.fixture
+def client(monkeypatch, db):
+    """Create test client with proper environment variables.
+
+    Note: db fixture is a dependency to ensure database tables are created
+    before the app is created and the workflows router is imported.
+    """
     monkeypatch.setenv(
         "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
     )
     monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "demo"))
     app = create_app()
     return TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Create test database using the same path as the API router."""
-    # Use the same database path as the API router (data/workflows.db)
-    return WorkflowDB(db_path="data/workflows.db")
 
 
 @pytest.fixture(autouse=True)

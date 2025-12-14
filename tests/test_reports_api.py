@@ -8,16 +8,21 @@ from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
 
 @pytest.fixture
-def client(authenticated_client):
-    """Create test client using shared authenticated_client fixture."""
-    return authenticated_client
-
-
-@pytest.fixture
 def db():
     """Create test database using the same path as the API router."""
     # Use the same database path as the API router (data/reports.db)
+    # This must be created BEFORE the client fixture to ensure tables exist
     return ReportDB(db_path="data/reports.db")
+
+
+@pytest.fixture
+def client(authenticated_client, db):
+    """Create test client using shared authenticated_client fixture.
+
+    Note: db fixture is a dependency to ensure database tables are created
+    before the app is created and the reports router is imported.
+    """
+    return authenticated_client
 
 
 @pytest.fixture(autouse=True)
