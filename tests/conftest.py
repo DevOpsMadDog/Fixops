@@ -3,6 +3,26 @@ import sys
 from pathlib import Path
 
 import pytest
+import structlog
+
+# Configure structlog to handle keyword arguments properly in tests
+# This ensures that logging calls with keyword arguments (e.g., logger.info("msg", key=value))
+# work correctly regardless of whether structlog is fully configured
+structlog.configure(
+    processors=[
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.dev.ConsoleRenderer(),
+    ],
+    wrapper_class=structlog.stdlib.BoundLogger,
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=False,
+)
 
 # Skip tests that import missing enterprise modules or use missing CLI commands
 # These modules exist only in archive/enterprise_legacy and are not in the Python path

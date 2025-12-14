@@ -152,7 +152,7 @@ class EnvKeyProvider:
         self._fingerprint = _fingerprint_public_key(self._public_key)
         self._register_public_key(self._fingerprint, self._public_key)
         self._last_rotated = datetime.now(timezone.utc)
-        logger.info("Ephemeral RSA key rotated", fingerprint=self._fingerprint)
+        logger.info("Ephemeral RSA key rotated: fingerprint=%s", self._fingerprint)
         return self._fingerprint
 
     def fingerprint(self) -> str:
