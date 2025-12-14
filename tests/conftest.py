@@ -138,6 +138,24 @@ def mock_all_connectors(
 
 
 @pytest.fixture
+def demo_client(monkeypatch):
+    """Create a test client in demo mode for health endpoint tests."""
+    monkeypatch.setenv("FIXOPS_MODE", "demo")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
+    monkeypatch.setenv("FIXOPS_DISABLE_TELEMETRY", "1")
+
+    try:
+        from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
+
+        app = create_app()
+        return TestClient(app)
+    except ImportError:
+        pytest.skip("FastAPI not available")
+
+
+@pytest.fixture
 def authenticated_client(monkeypatch):
     """Create an authenticated test client for API tests."""
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
