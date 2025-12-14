@@ -1,6 +1,9 @@
 """
 FixOps API Smoke Tests - Sidecar Container
 Tests all key API endpoints against a running FixOps instance.
+
+These tests are designed to run in a Docker environment with a 'fixops' hostname.
+They are skipped when FIXOPS_BASE_URL is not explicitly set (indicating local dev).
 """
 import os
 import time
@@ -11,6 +14,13 @@ import pytest
 BASE_URL = os.getenv("FIXOPS_BASE_URL", "http://fixops:8000")
 API_KEY = os.getenv("FIXOPS_API_TOKEN", "demo-token")
 TIMEOUT = 30.0
+
+# Skip all tests in this module if FIXOPS_BASE_URL is not explicitly set
+# (default value indicates Docker environment which may not be available)
+pytestmark = pytest.mark.skipif(
+    os.getenv("FIXOPS_BASE_URL") is None,
+    reason="Sidecar smoke tests require FIXOPS_BASE_URL to be set (Docker environment)",
+)
 
 
 def wait_for_health(timeout=120):
