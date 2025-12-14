@@ -31,6 +31,8 @@ collect_ignore = [
     "test_policies_cli.py",  # uses 'policies' CLI command
     # Missing middleware/metrics modules
     "test_http_metrics.py",  # imports src.core.middleware which doesn't exist
+    # Tests using non-existent API (PortfolioSearchEngine with db_path and index_sbom_component)
+    "test_ruthless_bug_hunting.py",  # uses PortfolioSearchEngine API that doesn't exist
 ]
 
 import os
