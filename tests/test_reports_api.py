@@ -15,18 +15,20 @@ def client(authenticated_client):
 
 @pytest.fixture
 def db():
-    """Create test database."""
-    return ReportDB(db_path="data/test_reports.db")
+    """Create test database using the same path as the API router."""
+    # Use the same database path as the API router (data/reports.db)
+    return ReportDB(db_path="data/reports.db")
 
 
 @pytest.fixture(autouse=True)
-def cleanup_db(db):
+def cleanup_db():
     """Clean up test database after each test."""
     yield
     import os
 
-    if os.path.exists("data/test_reports.db"):
-        os.remove("data/test_reports.db")
+    # Clean up the reports database used by both tests and API
+    if os.path.exists("data/reports.db"):
+        os.remove("data/reports.db")
 
 
 def test_list_reports_empty(client):

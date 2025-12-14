@@ -27,18 +27,18 @@ def client(monkeypatch):
 
 @pytest.fixture
 def db():
-    """Create test database."""
-    return WorkflowDB(db_path="data/test_workflows.db")
+    """Create test database using the same path as the API router."""
+    # Use the same database path as the API router (data/workflows.db)
+    return WorkflowDB(db_path="data/workflows.db")
 
 
 @pytest.fixture(autouse=True)
-def cleanup_db(db):
+def cleanup_db():
     """Clean up test database after each test."""
     yield
-    import os
-
-    if os.path.exists("data/test_workflows.db"):
-        os.remove("data/test_workflows.db")
+    # Clean up the workflows database used by both tests and API
+    if os.path.exists("data/workflows.db"):
+        os.remove("data/workflows.db")
 
 
 def test_list_workflows_empty(client):
