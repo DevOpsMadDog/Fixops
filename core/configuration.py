@@ -1373,7 +1373,7 @@ def load_overlay(
         profiles.get(selected_mode) if isinstance(profiles, Mapping) else None
     )
     if isinstance(profile_overrides, Mapping):
-        _deep_merge(base, dict(profile_overrides))
+        base = _deep_merge(base, dict(profile_overrides))
 
     try:
         compliance_raw = base.get("compliance")
