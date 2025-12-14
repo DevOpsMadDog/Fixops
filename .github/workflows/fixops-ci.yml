@@ -70,7 +70,8 @@ jobs:
       - name: Tests
         env:
           FIXOPS_DISABLE_TELEMETRY: '1'
-          FIXOPS_API_TOKEN: 'test-api-token'
+          FIXOPS_API_TOKEN: 'demo-token-12345'
           FIXOPS_JWT_SECRET: 'test-jwt-secret-for-ci-testing'
           FIXOPS_MODE: 'enterprise'
+          FIXOPS_EVIDENCE_KEY: 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE='
         run: pytest -q

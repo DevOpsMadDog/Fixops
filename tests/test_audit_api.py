@@ -16,8 +16,8 @@ from core.audit_models import (
     ComplianceFramework,
 )
 
-# Use the API token from environment or default
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-api-token")
+# Use the API token from environment or default (matches Docker image default)
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
 
 
 @pytest.fixture
@@ -64,15 +64,19 @@ def test_list_audit_logs_with_filter(client, db, auth_headers):
         id="",
         event_type=AuditEventType.USER_LOGIN,
         severity=AuditSeverity.INFO,
-        action="User logged in",
         user_id="user1",
+        resource_type="user",
+        resource_id="user1",
+        action="User logged in",
     )
     log2 = AuditLog(
         id="",
         event_type=AuditEventType.POLICY_UPDATED,
         severity=AuditSeverity.WARNING,
-        action="Policy updated",
         user_id="user2",
+        resource_type="policy",
+        resource_id="policy1",
+        action="Policy updated",
     )
     db.create_audit_log(log1)
     db.create_audit_log(log2)
@@ -92,6 +96,9 @@ def test_get_audit_log(client, db, auth_headers):
         id="",
         event_type=AuditEventType.USER_LOGIN,
         severity=AuditSeverity.INFO,
+        user_id="test-user",
+        resource_type="user",
+        resource_id="test-user",
         action="User logged in",
     )
     created = db.create_audit_log(log)
@@ -114,8 +121,10 @@ def test_get_user_activity(client, db, auth_headers):
         id="",
         event_type=AuditEventType.USER_LOGIN,
         severity=AuditSeverity.INFO,
-        action="User logged in",
         user_id="test-user",
+        resource_type="user",
+        resource_id="test-user",
+        action="User logged in",
     )
     db.create_audit_log(log)
 
