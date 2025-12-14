@@ -42,6 +42,22 @@ class FixOpsMetrics:
         cls._key_rotation_events.append((provider, age_days, healthy))
 
     @classmethod
+    def get_key_rotation_health(cls, provider: str) -> Optional[bool]:
+        """Get the most recent key rotation health status for a provider."""
+        for p, _, healthy in reversed(cls._key_rotation_events):
+            if p == provider:
+                return healthy
+        return None
+
+    @classmethod
+    def get_key_rotation_age(cls, provider: str) -> Optional[float]:
+        """Get the most recent key rotation age in days for a provider."""
+        for p, age_days, _ in reversed(cls._key_rotation_events):
+            if p == provider:
+                return age_days
+        return None
+
+    @classmethod
     def reset_runtime_stats(cls) -> None:
         """Reset all runtime statistics for testing."""
         cls._rate_limit_triggers = 0

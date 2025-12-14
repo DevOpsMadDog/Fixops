@@ -129,20 +129,24 @@ class StubAzureKeyClient:
         self._rotated[version] = rotated
         return version
 
-    def get_key(self, key_name: str):
+    def get_key(self, key_name: str, *, version: str | None = None):
         if key_name != self.key_name:
             raise ValueError("unknown key requested")
-        private = self._versions[self.current_version]
+        # Use specified version or current version
+        target_version = version if version else self.current_version
+        if target_version not in self._versions:
+            raise ValueError(f"unknown version: {target_version}")
+        private = self._versions[target_version]
         numbers = private.public_key().public_numbers()
         jwk = {
             "kty": "RSA",
             "n": _encode_b64url(numbers.n),
             "e": _encode_b64url(numbers.e),
         }
-        identifier = f"{self.vault_url}/keys/{self.key_name}/{self.current_version}"
+        identifier = f"{self.vault_url}/keys/{self.key_name}/{target_version}"
         properties = SimpleNamespace(
-            version=self.current_version,
-            updated_on=self._rotated[self.current_version],
+            version=target_version,
+            updated_on=self._rotated[target_version],
             vault_url=self.vault_url,
             id=identifier,
         )

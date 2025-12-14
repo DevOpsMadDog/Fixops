@@ -362,6 +362,7 @@ class AzureKeyVaultProvider:
         return {
             "provider": "azure_key_vault",
             "fingerprint": self._fingerprint,
+            "key_version": self._fingerprint,
             "rotation_sla_days": self.rotation_sla_days,
             "vault_url": self.vault_url,
             "last_rotated_at": self._last_rotated.isoformat()
