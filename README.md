@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DevOpsMadDog/Fixops)
+
 # FixOps
 
 Security decision automation platform with multi-LLM consensus, advanced risk forecasting, and compliance frameworks.
