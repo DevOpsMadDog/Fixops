@@ -56,7 +56,7 @@ interface AppUrls {
 }
 
 export default function EnterpriseShell({ children }: EnterpriseShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false) // Default to closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -108,7 +108,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         setCommandPaletteOpen(false)
         setNotificationsOpen(false)
         setUserMenuOpen(false)
-        // Close sidebar on Escape if open on mobile
         if (sidebarOpen && !isDesktop) {
           setSidebarOpen(false)
         }
@@ -119,7 +118,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [sidebarOpen, isDesktop])
 
-  // Body scroll lock when sidebar is open on mobile
   useEffect(() => {
     if (sidebarOpen && !isDesktop) {
       document.body.style.overflow = 'hidden'
@@ -175,10 +173,8 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
 
   return (
     <div className="min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Top Navigation Bar */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-[#0f172a]/95 backdrop-blur-sm border-b border-white/10 z-50">
         <div className="flex items-center justify-between h-full px-4">
-          {/* Left: Logo + Sidebar Toggle */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -192,7 +188,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
             </div>
           </div>
 
-          {/* Center: Global Search - Hidden on mobile */}
           <div className="hidden md:flex flex-1 max-w-2xl mx-8">
             <button
               onClick={() => setCommandPaletteOpen(true)}
@@ -209,9 +204,7 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
             </button>
           </div>
 
-          {/* Right: Notifications + User Menu */}
           <div className="flex items-center gap-3">
-            {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
@@ -255,7 +248,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
               )}
             </div>
 
-            {/* User Menu */}
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -296,7 +288,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         </div>
       </div>
 
-      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -304,7 +295,6 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         />
       )}
 
-      {/* Sidebar */}
       <div
         className="fixed top-16 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-all duration-200 z-40"
         style={{
@@ -338,14 +328,12 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
         </div>
       </div>
 
-      {/* Main Content */}
       <div
         className="pt-16 pl-0 md:pl-64 transition-all duration-200"
       >
         {children}
       </div>
 
-      {/* Command Palette Modal */}
       {commandPaletteOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-32">
           <div className="w-full max-w-2xl bg-[#1e293b] border border-white/10 rounded-lg shadow-2xl">
