@@ -165,7 +165,7 @@ class MarketplaceService:
                     for key, value in raw_contributors.items()
                 }
         except Exception as e:
-            logger.error("Failed to load marketplace data", error=str(e))
+            logger.error(f"Failed to load marketplace data: {e}")
 
     def _persist(self):
         try:
@@ -187,7 +187,7 @@ class MarketplaceService:
                 encoding="utf-8",
             )
         except Exception as e:
-            logger.error("Failed to persist marketplace data", error=str(e))
+            logger.error(f"Failed to persist marketplace data: {e}")
 
     def _serialize_item(self, item: MarketplaceItem) -> Dict[str, Any]:
         data = asdict(item)
