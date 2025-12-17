@@ -65,6 +65,7 @@ COPY domain/ ./domain/
 COPY new_apps/ ./new_apps/
 COPY new_backend/ ./new_backend/
 COPY postman/ ./postman/
+COPY docs/ ./docs/
 COPY *.py ./
 COPY *.txt ./
 COPY *.yml ./
