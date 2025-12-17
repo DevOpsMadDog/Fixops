@@ -34,10 +34,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only runtime dependencies
+# Install runtime dependencies including jq
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    jq \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -63,6 +64,7 @@ COPY fixops/ ./fixops/
 COPY domain/ ./domain/
 COPY new_apps/ ./new_apps/
 COPY new_backend/ ./new_backend/
+COPY postman/ ./postman/
 COPY *.py ./
 COPY *.txt ./
 COPY *.yml ./
@@ -78,7 +80,7 @@ EXPOSE 8000
 # Set environment variables
 ENV FIXOPS_MODE=demo
 ENV FIXOPS_DATA_DIR=/app/.fixops_data
-ENV FIXOPS_API_TOKEN=demo-token-12345
+ENV FIXOPS_API_TOKEN=demo-token
 ENV PYTHONUNBUFFERED=1
 ENV FIXOPS_DISABLE_TELEMETRY=1
 
