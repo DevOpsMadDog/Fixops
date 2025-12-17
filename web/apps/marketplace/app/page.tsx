@@ -390,7 +390,7 @@ export default function MarketplacePage() {
                             key={framework}
                             className="px-2 py-0.5 bg-[#6B5AED]/10 text-[#6B5AED] rounded text-[10px] font-medium uppercase"
                           >
-                            {framework.replace('_', ' ')}
+                            {framework.replaceAll('_', ' ')}
                           </span>
                         ))}
                         {item.compliance_frameworks.length > 2 && (
@@ -638,7 +638,7 @@ export default function MarketplacePage() {
                         key={framework}
                         className="px-3 py-1 bg-[#6B5AED]/10 text-[#6B5AED] rounded text-xs font-medium uppercase"
                       >
-                        {framework.replace('_', ' ')}
+                        {framework.replaceAll('_', ' ')}
                       </span>
                     ))}
                   </div>

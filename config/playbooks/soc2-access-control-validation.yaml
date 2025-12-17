@@ -252,7 +252,9 @@ spec:
     remediation_tickets:
       type: array
       description: "List of created Jira tickets for remediation"
-      from: "variables.created_tickets"
+      from:
+        - "steps.create-mfa-ticket.output"
+        - "steps.create-rbac-ticket.output"
     
     evidence_bundle:
       type: evidence_bundle

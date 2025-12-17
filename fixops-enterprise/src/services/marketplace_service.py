@@ -114,9 +114,13 @@ class MarketplaceService:
         self._items: List[MarketplaceItem] = []
         self._purchases: Dict[str, Dict[str, Any]] = {}
         self._contributors: Dict[str, ContributorProfile] = {}
-        self._secret = (
-            secret or os.environ.get("FIXOPS_SECRET_KEY", "fixops-secret")
-        ).encode("utf-8")
+        secret_key = secret or os.environ.get("FIXOPS_SECRET_KEY")
+        if not secret_key:
+            raise ValueError(
+                "FIXOPS_SECRET_KEY environment variable must be set for secure "
+                "token signing. Do not use a hardcoded fallback in production."
+            )
+        self._secret = secret_key.encode("utf-8")
         self._data_dir = _get_data_dir()
         self._items_file = self._data_dir / "items.json"
         self._purchases_file = self._data_dir / "purchases.json"
@@ -164,8 +168,19 @@ class MarketplaceService:
                     key: ContributorProfile.from_dict(value)
                     for key, value in raw_contributors.items()
                 }
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse marketplace data (corrupted JSON): {e}")
+            raise RuntimeError(
+                f"Marketplace data files are corrupted. Please check JSON syntax: {e}"
+            ) from e
+        except PermissionError as e:
+            logger.error(f"Permission denied accessing marketplace data: {e}")
+            raise RuntimeError(
+                f"Cannot access marketplace data files due to permissions: {e}"
+            ) from e
         except Exception as e:
             logger.error(f"Failed to load marketplace data: {e}")
+            raise RuntimeError(f"Failed to load marketplace data: {e}") from e
 
     def _persist(self):
         try:
@@ -535,7 +550,7 @@ class MarketplaceService:
                 "author": author,
                 "organization": organization,
             },
-            rating=4.7,
+            rating=0.0,  # No ratings yet - will be calculated from actual reviews
             downloads=0,
             rating_count=0,
             version=content.get("version", "1.0.0"),

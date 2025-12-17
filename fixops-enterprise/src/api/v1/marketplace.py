@@ -78,8 +78,20 @@ async def browse_marketplace(
 ) -> Dict[str, Any]:
     """Browse and search marketplace items with optional filters."""
     service = get_marketplace_service()
-    ct = ContentType(content_type) if content_type else None
-    pm = PricingModel(pricing_model) if pricing_model else None
+    try:
+        ct = ContentType(content_type) if content_type else None
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid content_type: {content_type}. Valid values: {[e.value for e in ContentType]}",
+        )
+    try:
+        pm = PricingModel(pricing_model) if pricing_model else None
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid pricing_model: {pricing_model}. Valid values: {[e.value for e in PricingModel]}",
+        )
     frameworks = [compliance_framework] if compliance_framework else None
     stages = [ssdlc_stage] if ssdlc_stage else None
 
