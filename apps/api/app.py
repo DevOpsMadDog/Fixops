@@ -55,6 +55,17 @@ try:
     from risk.reachability.api import router as reachability_router
 except ImportError:
     logging.getLogger(__name__).warning("Reachability analysis API not available")
+
+# Enterprise marketplace router
+marketplace_router: Optional[APIRouter] = None
+try:
+    from apps.api.marketplace_router import router as marketplace_router
+
+    logging.getLogger(__name__).info("Loaded enterprise marketplace router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Enterprise marketplace router not available: {e}"
+    )
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -403,6 +414,14 @@ def create_app() -> FastAPI:
     if legacy_bridge_router:
         app.include_router(
             legacy_bridge_router, dependencies=[Depends(_verify_api_key)]
+        )
+
+    # Enterprise marketplace API
+    if marketplace_router:
+        app.include_router(
+            marketplace_router,
+            prefix="/api/v1/marketplace",
+            dependencies=[Depends(_verify_api_key)],
         )
 
     _CHUNK_SIZE = 1024 * 1024

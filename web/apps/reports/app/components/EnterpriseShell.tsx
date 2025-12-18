@@ -21,7 +21,8 @@ import {
   Cloud,
   Key,
   Workflow,
-  Package
+  Package,
+  Store
 } from 'lucide-react'
 
 interface EnterpriseShellProps {
@@ -51,6 +52,7 @@ interface AppUrls {
   iac: string
   bulk: string
   pentagi: string
+  marketplace: string
 }
 
 export default function EnterpriseShell({ children }: EnterpriseShellProps) {
@@ -152,6 +154,7 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
     { name: 'IaC Scanning', key: 'iac', icon: Cloud },
     { name: 'Bulk Operations', key: 'bulk', icon: Layers },
     { name: 'Pentagi', key: 'pentagi', icon: Shield },
+    { name: 'Marketplace', key: 'marketplace', icon: Store },
     { name: 'Settings', key: 'settings', icon: Settings },
   ]
 
