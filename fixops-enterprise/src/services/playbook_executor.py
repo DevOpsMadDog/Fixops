@@ -392,31 +392,135 @@ class PlaybookExecutor:
     def _check_conditions(
         self, conditions: Dict[str, Any], context: PlaybookExecutionContext
     ) -> bool:
-        """Check if global conditions are met."""
+        """Check if global conditions are met.
+
+        Conditions are evaluated against the execution context inputs.
+        If any condition is not met, the playbook execution is skipped.
+        """
         if not conditions:
             return True
 
+        severity_order = ["low", "medium", "high", "critical"]
+
         # Check severity conditions
         if "min_severity" in conditions:
-            # Implementation would check actual findings
-            pass
+            min_severity = conditions["min_severity"]
+            findings = context.inputs.get("findings", {})
+
+            # Extract severity from findings (SARIF format or list of findings)
+            max_finding_severity = None
+            if isinstance(findings, dict):
+                runs = findings.get("runs", [])
+                for run in runs:
+                    for result in run.get("results", []):
+                        level = result.get("level", "warning")
+                        severity = self._sarif_level_to_severity(level)
+                        if max_finding_severity is None or severity_order.index(
+                            severity
+                        ) > severity_order.index(max_finding_severity):
+                            max_finding_severity = severity
+            elif isinstance(findings, list):
+                for finding in findings:
+                    severity = finding.get("severity", "low").lower()
+                    if severity in severity_order:
+                        if max_finding_severity is None or severity_order.index(
+                            severity
+                        ) > severity_order.index(max_finding_severity):
+                            max_finding_severity = severity
+
+            # If no findings or max severity below threshold, skip playbook
+            if max_finding_severity is None:
+                logger.info(
+                    f"No findings found, min_severity condition ({min_severity}) not met"
+                )
+                return False
+
+            min_idx = severity_order.index(min_severity.lower())
+            max_idx = severity_order.index(max_finding_severity)
+            if max_idx < min_idx:
+                logger.info(
+                    f"Max finding severity ({max_finding_severity}) below "
+                    f"min_severity threshold ({min_severity})"
+                )
+                return False
 
         # Check framework conditions
         if "frameworks" in conditions:
-            # Implementation would check actual frameworks
-            pass
+            required_frameworks = conditions["frameworks"]
+            playbook_frameworks = context.playbook.metadata.compliance_frameworks
+
+            # Check if playbook declares at least one of the required frameworks
+            if not any(fw in playbook_frameworks for fw in required_frameworks):
+                logger.info(
+                    f"Playbook frameworks {playbook_frameworks} do not match "
+                    f"required frameworks {required_frameworks}"
+                )
+                return False
 
         # Check KEV condition
         if "has_kev" in conditions:
-            # Implementation would check for KEV findings
-            pass
+            requires_kev = conditions["has_kev"]
+            findings = context.inputs.get("findings", {})
+
+            has_kev_finding = False
+            if isinstance(findings, dict):
+                runs = findings.get("runs", [])
+                for run in runs:
+                    for result in run.get("results", []):
+                        props = result.get("properties", {})
+                        if props.get("kev", False) or props.get("is_kev", False):
+                            has_kev_finding = True
+                            break
+            elif isinstance(findings, list):
+                for finding in findings:
+                    if finding.get("kev", False) or finding.get("is_kev", False):
+                        has_kev_finding = True
+                        break
+
+            if requires_kev and not has_kev_finding:
+                logger.info("has_kev condition requires KEV findings but none found")
+                return False
+            if not requires_kev and has_kev_finding:
+                logger.info("has_kev=false condition not met, KEV findings present")
+                return False
 
         # Check EPSS threshold
         if "epss_threshold" in conditions:
-            # Implementation would check EPSS scores
-            pass
+            threshold = float(conditions["epss_threshold"])
+            findings = context.inputs.get("findings", {})
+
+            max_epss = 0.0
+            if isinstance(findings, dict):
+                runs = findings.get("runs", [])
+                for run in runs:
+                    for result in run.get("results", []):
+                        props = result.get("properties", {})
+                        epss = props.get("epss", 0.0)
+                        if isinstance(epss, (int, float)) and epss > max_epss:
+                            max_epss = epss
+            elif isinstance(findings, list):
+                for finding in findings:
+                    epss = finding.get("epss", 0.0)
+                    if isinstance(epss, (int, float)) and epss > max_epss:
+                        max_epss = epss
+
+            if max_epss < threshold:
+                logger.info(
+                    f"Max EPSS score ({max_epss}) below threshold ({threshold})"
+                )
+                return False
 
         return True
+
+    def _sarif_level_to_severity(self, level: str) -> str:
+        """Convert SARIF level to severity string."""
+        level_map = {
+            "error": "critical",
+            "warning": "high",
+            "note": "medium",
+            "none": "low",
+        }
+        return level_map.get(level.lower(), "medium")
 
     async def _execute_step(
         self, step: PlaybookStep, context: PlaybookExecutionContext
