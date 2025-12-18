@@ -2,7 +2,16 @@
 
 from fastapi import APIRouter
 
-from . import artefacts, cicd, enhanced, evidence, marketplace, micro_pentest, pentagi
+from . import (
+    artefacts,
+    automated_pentest,
+    cicd,
+    enhanced,
+    evidence,
+    marketplace,
+    micro_pentest,
+    pentagi,
+)
 
 router = APIRouter()
 router.include_router(cicd.router, prefix="/cicd")
@@ -12,5 +21,6 @@ router.include_router(enhanced.router, prefix="/enhanced")
 router.include_router(marketplace.router, prefix="/marketplace")
 router.include_router(pentagi.router, prefix="/pentagi")
 router.include_router(micro_pentest.router, prefix="/micro-pentest")
+router.include_router(automated_pentest.router, prefix="/automated-pentest")
 
 __all__ = ["router"]
