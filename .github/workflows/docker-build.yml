@@ -103,164 +103,108 @@ jobs:
       - name: Test all 66 CLI commands in container
         run: |
           IMAGE="fixops-test:${{ github.sha }}"
-          ENV_VARS="-e FIXOPS_DISABLE_TELEMETRY=1 -e FIXOPS_API_TOKEN=test-token"
+          
+          # Create shared data directory for database persistence across container runs
+          mkdir -p ${{ runner.temp }}/fixops-data
+          chmod 777 ${{ runner.temp }}/fixops-data
+          
+          # Common docker run options with shared volume for database state
+          DOCKER_OPTS="--rm -v ${{ runner.temp }}/fixops-data:/app/.fixops_data -e FIXOPS_DISABLE_TELEMETRY=1 -e FIXOPS_API_TOKEN=test-token"
           
           echo "=== Testing CLI Help ==="
           docker run --rm $IMAGE python -m core.cli --help
           
           echo "=== Testing Core Pipeline Commands (10) ==="
-          # 1. run --help
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli run --help
-          # 2. make-decision --help
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli make-decision --help
-          # 3. ingest --help
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli ingest --help
-          # 4. analyze --help
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli analyze --help
-          # 5-9. stage-run for each stage
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli stage-run --help
-          # 10. get-evidence --help
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli get-evidence --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli run --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli make-decision --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli ingest --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analyze --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli stage-run --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli get-evidence --help
           
           echo "=== Testing Compliance Commands (4) ==="
-          # 12. compliance frameworks
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli compliance frameworks --format json
-          # 13. compliance status
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli compliance status SOC2
-          # 14. compliance gaps
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli compliance gaps SOC2
-          # 15. compliance report
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli compliance report SOC2 --output /tmp/report.json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance frameworks --format json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance status SOC2
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance gaps SOC2
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance report SOC2 --output /tmp/report.json
           
           echo "=== Testing Reports Commands (4) ==="
-          # 16. reports list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reports list
-          # 17. reports generate
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reports generate --type executive
-          # 18. reports export
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reports export 1 --output /tmp/report.pdf
-          # 19. reports schedules
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reports schedules
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports generate --type executive
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports export 1 --output /tmp/report.pdf
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports schedules
           
           echo "=== Testing Inventory Commands (5) ==="
-          # 20. inventory apps
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli inventory apps
-          # 21. inventory add
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli inventory add --name test-app --type service --criticality high
-          # 22. inventory get
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli inventory get 1
-          # 23. inventory services
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli inventory services
-          # 24. inventory search
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli inventory search --query test
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory apps
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory add --name test-app --type service --criticality high
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory get 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory services
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory search --query test
           
           echo "=== Testing Policies Commands (5) ==="
-          # 25. policies list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli policies list
-          # 26. policies get
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli policies get 1
-          # 27. policies create
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli policies create --name test-policy --type security
-          # 28. policies validate
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli policies validate 1
-          # 29. policies test
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli policies test 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies get 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies create --name test-policy --type security
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies validate 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies test 1
           
           echo "=== Testing Integrations Commands (4) ==="
-          # 30. integrations list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli integrations list --format json
-          # 31. integrations configure
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli integrations configure --name test-jira --type ticketing --url https://test.atlassian.net
-          # 32. integrations test
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli integrations test jira
-          # 33. integrations sync
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli integrations sync jira
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations list --format json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations configure --name test-jira --type ticketing --url https://test.atlassian.net
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations test jira
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations sync jira
           
           echo "=== Testing Analytics Commands (5) ==="
-          # 34. analytics dashboard
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli analytics dashboard --period 30d
-          # 35. analytics mttr
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli analytics mttr
-          # 36. analytics coverage
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli analytics coverage
-          # 37. analytics roi
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli analytics roi
-          # 38. analytics export
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli analytics export --output /tmp/analytics.json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics dashboard --period 30d
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics mttr
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics coverage
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics roi
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics export --output /tmp/analytics.json
           
           echo "=== Testing Audit Commands (3) ==="
-          # 39. audit logs
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli audit logs --limit 10
-          # 40. audit decisions
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli audit decisions --limit 10
-          # 41. audit export
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli audit export --output /tmp/audit.json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli audit logs --limit 10
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli audit decisions --limit 10
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli audit export --output /tmp/audit.json
           
           echo "=== Testing Workflows Commands (5) ==="
-          # 42. workflows list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli workflows list
-          # 43. workflows get
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli workflows get 1
-          # 44. workflows create
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli workflows create --name test-workflow --trigger manual
-          # 45. workflows execute
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli workflows execute 1
-          # 46. workflows history
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli workflows history 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows get 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows create --name test-workflow --trigger manual
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows execute 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows history 1
           
           echo "=== Testing Advanced Pen Testing Commands (6) ==="
-          # 47. advanced-pentest run
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli advanced-pentest run --target test-service --cves CVE-2024-1234
-          # 48. advanced-pentest threat-intel
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli advanced-pentest threat-intel CVE-2024-1234
-          # 49. advanced-pentest business-impact
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli advanced-pentest business-impact --cve CVE-2024-1234
-          # 50. advanced-pentest simulate
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli advanced-pentest simulate --target test-service
-          # 51. advanced-pentest remediation
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli advanced-pentest remediation CVE-2024-1234
-          # 52. advanced-pentest capabilities
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli advanced-pentest capabilities
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest run --target test-service --cves CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest threat-intel CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest business-impact --cve CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest simulate --target test-service
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest remediation CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest capabilities
           
           echo "=== Testing Reachability Commands (3) ==="
-          # 53. reachability analyze
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reachability analyze CVE-2024-1234
-          # 54. reachability bulk
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reachability bulk CVE-2024-1234,CVE-2024-5678
-          # 55. reachability status
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli reachability status job-123
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability analyze CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability bulk CVE-2024-1234,CVE-2024-5678
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability status job-123
           
           echo "=== Testing Teams Commands (3) ==="
-          # 56. teams list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli teams list
-          # 57. teams get
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli teams get 1
-          # 58. teams create
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli teams create --name test-team
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli teams list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli teams get 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli teams create --name test-team
           
           echo "=== Testing Users Commands (4) ==="
-          # 59. users list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli users list
-          # 60. users get
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli users get 1
-          # 61. users create
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli users create --email test@example.com --name "Test User"
-          # 62. users reset-password
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli users reset-password 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users get 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --name "Test User"
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users reset-password 1
           
           echo "=== Testing PentAGI Commands (3) ==="
-          # 63. pentagi list
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli pentagi list
-          # 64. pentagi create
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli pentagi create --target test-service --cve CVE-2024-1234
-          # 65. pentagi status
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli pentagi status 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi create --target test-service --cve CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi status 1
           
-          echo "=== Testing Utility Commands (5) ==="
-          # 66. health
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli health
-          # 67. show-overlay
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli show-overlay
+          echo "=== Testing Utility Commands (2) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli health
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli show-overlay
           
           echo "=== All 66 CLI commands tested successfully ==="
 
