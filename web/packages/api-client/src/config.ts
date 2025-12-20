@@ -36,7 +36,7 @@ export function getApiBaseUrl(): string {
     
     // For deployed apps, use the configured API URL
     // This should be set in the app's environment
-    if (process.env.NEXT_PUBLIC_FIXOPS_API_URL) {
+    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIXOPS_API_URL) {
       return process.env.NEXT_PUBLIC_FIXOPS_API_URL;
     }
   }
