@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePentagiData } from './hooks/usePentagiData'
 import { PentestRequest } from './lib/apiClient'
-import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings } from 'lucide-react'
+import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useSystemMode } from '@fixops/api-client'
 
 
 export default function PentagiPage() {
   // Use real-time data from API with fallback to demo data
-  const { requests: apiRequests, findings: apiFindings, stats, isLoading, error, isLiveData, lastUpdated, refresh } = usePentagiData(30000)
+  const { requests: apiRequests, findings: apiFindings, stats, isLoading, error, lastUpdated, refresh } = usePentagiData(30000)
+  const { mode, toggleMode, loading: modeLoading } = useSystemMode()
   const [requests, setRequests] = useState(apiRequests)
   const [filteredRequests, setFilteredRequests] = useState(apiRequests)
   const [selectedRequest, setSelectedRequest] = useState<PentestRequest | null>(null)
@@ -18,6 +20,16 @@ export default function PentagiPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFindings, setShowFindings] = useState(false)
+
+  // Refresh data when mode changes - using ref to track if this is initial mount
+  const isInitialMount = useRef(true)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return // Skip initial mount since usePentagiData already fetches on mount
+    }
+    refresh()
+  }, [mode, refresh])
 
   // Sync API data with component state when it changes, preserving filters
   useEffect(() => {
@@ -86,7 +98,8 @@ export default function PentagiPage() {
     return `${diffDays} day${diffDays !== 1 ? 's' : ''}`
   }
 
-  const applyFilters = () => {
+  // Use useEffect to apply filters whenever filter state changes
+  useEffect(() => {
     let filtered = [...requests]
 
     if (searchQuery) {
@@ -106,11 +119,7 @@ export default function PentagiPage() {
     }
 
     setFilteredRequests(filtered)
-  }
-
-  useState(() => {
-    applyFilters()
-  })
+  }, [requests, searchQuery, typeFilter, statusFilter])
 
   const summary = {
     total: requests.length,
@@ -130,11 +139,43 @@ export default function PentagiPage() {
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3 mb-4">
-              <Shield size={24} className="text-[#6B5AED]" />
-              <h2 className="text-lg font-semibold">Pentagi Integration</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Shield size={24} className="text-[#6B5AED]" />
+                <h2 className="text-lg font-semibold">Pentagi Integration</h2>
+              </div>
+              <button
+                onClick={() => refresh()}
+                disabled={isLoading}
+                className="p-2 hover:bg-white/10 rounded-md transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              </button>
             </div>
-            <p className="text-xs text-slate-500">Penetration testing requests</p>
+            <p className="text-xs text-slate-500 mb-3">Penetration testing requests</p>
+            
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between p-2 bg-white/5 rounded-md">
+              <span className="text-xs text-slate-400">Mode:</span>
+              <button
+                onClick={toggleMode}
+                disabled={modeLoading}
+                className="flex items-center gap-2 text-xs font-medium"
+              >
+                {mode === 'demo' ? (
+                  <>
+                    <ToggleLeft size={18} className="text-orange-400" />
+                    <span className="text-orange-400">Demo</span>
+                  </>
+                ) : (
+                  <>
+                    <ToggleRight size={18} className="text-green-400" />
+                    <span className="text-green-400">Enterprise</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Summary Stats */}
@@ -170,7 +211,7 @@ export default function PentagiPage() {
                 {['all', 'pending', 'in_progress', 'completed', 'cancelled'].map((status) => (
                   <button
                     key={status}
-                    onClick={() => { setStatusFilter(status); applyFilters(); }}
+                    onClick={() => setStatusFilter(status)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       statusFilter === status
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -198,7 +239,7 @@ export default function PentagiPage() {
               </div>
               <div className="space-y-2">
                 <button
-                  onClick={() => { setTypeFilter('all'); applyFilters(); }}
+                  onClick={() => setTypeFilter('all')}
                   className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                     typeFilter === 'all'
                       ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -211,7 +252,7 @@ export default function PentagiPage() {
                 {requestTypes.map((type) => (
                   <button
                     key={type}
-                    onClick={() => { setTypeFilter(type); applyFilters(); }}
+                    onClick={() => setTypeFilter(type)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       typeFilter === type
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -273,7 +314,7 @@ export default function PentagiPage() {
                 type="text"
                 placeholder="Search by name or target..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); applyFilters(); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6B5AED]/50"
               />
             </div>

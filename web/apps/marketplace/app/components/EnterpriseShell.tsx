@@ -65,20 +65,50 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
   const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
-    fetch('/app-urls.json')
-      .then(res => res.json())
-      .then((urls: AppUrls) => {
+    const CENTRAL_URL = 'https://raw.githubusercontent.com/DevOpsMadDog/Fixops/main/web/app-urls.json'
+    const LOCAL_URL = '/app-urls.json'
+    
+    const loadUrls = async () => {
+      let urls: AppUrls | null = null
+      
+      try {
+        const res = await fetch(CENTRAL_URL)
+        if (res.ok) {
+          urls = await res.json()
+        }
+      } catch (err) {
+        console.warn('Failed to fetch central app-urls.json, trying local fallback:', err)
+      }
+      
+      if (!urls) {
+        try {
+          const res = await fetch(LOCAL_URL)
+          if (res.ok) {
+            urls = await res.json()
+          }
+        } catch (err) {
+          console.error('Failed to load app URLs from both central and local:', err)
+        }
+      }
+      
+      if (urls) {
         setAppUrls(urls)
         
         const origin = window.location.origin
         const currentAppEntry = Object.entries(urls).find(([_, url]) => url === origin)
         if (currentAppEntry) {
           setCurrentApp(currentAppEntry[0])
+        } else {
+          // Fallback: use APP_KEY from build-time env if origin doesn't match
+          const appKey = process.env.NEXT_PUBLIC_APP_KEY
+          if (appKey && appKey in urls) {
+            setCurrentApp(appKey)
+          }
         }
-      })
-      .catch(err => {
-        console.error('Failed to load app URLs:', err)
-      })
+      }
+    }
+    
+    loadUrls()
   }, [])
 
   useEffect(() => {

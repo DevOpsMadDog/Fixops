@@ -2,9 +2,11 @@
 Report management API endpoints.
 """
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from core.report_db import ReportDB
@@ -129,6 +131,69 @@ async def download_report(id: str):
         "file_size": report.file_size,
         "format": report.format.value,
     }
+
+
+@router.get("/{id}/file")
+async def get_report_file(id: str):
+    """Get the actual report file for download."""
+    report = db.get_report(id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    if report.status != ReportStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Report is not ready for download (status: {report.status.value})",
+        )
+
+    if not report.file_path:
+        raise HTTPException(status_code=404, detail="Report file not found")
+
+    file_path = Path(report.file_path)
+    if not file_path.exists():
+        # Generate demo file on-the-fly if it doesn't exist
+        from apps.api.demo_data import (
+            generate_demo_csv_report,
+            generate_demo_json_report,
+            generate_demo_pdf_report,
+            generate_demo_sarif_report,
+        )
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if report.format == ReportFormat.PDF:
+            content = generate_demo_pdf_report(report.name, report.report_type.value)
+        elif report.format == ReportFormat.JSON:
+            content = generate_demo_json_report(report.name, report.report_type.value)
+        elif report.format == ReportFormat.CSV:
+            content = generate_demo_csv_report(report.name, report.report_type.value)
+        elif report.format == ReportFormat.SARIF:
+            content = generate_demo_sarif_report(report.name, report.report_type.value)
+        elif report.format == ReportFormat.HTML:
+            raise HTTPException(
+                status_code=501,
+                detail="HTML report generation is not yet supported",
+            )
+        else:
+            content = generate_demo_json_report(report.name, report.report_type.value)
+
+        file_path.write_bytes(content)
+
+    # Determine media type
+    media_types = {
+        ReportFormat.PDF: "application/pdf",
+        ReportFormat.JSON: "application/json",
+        ReportFormat.CSV: "text/csv",
+        ReportFormat.SARIF: "application/json",
+        ReportFormat.HTML: "text/html",
+    }
+    media_type = media_types.get(report.format, "application/octet-stream")
+
+    return FileResponse(
+        path=str(file_path),
+        filename=f"{report.name.replace(' ', '_')}.{report.format.value}",
+        media_type=media_type,
+    )
 
 
 @router.post("/schedule", status_code=201)
