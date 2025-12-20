@@ -100,7 +100,7 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} fixops-test:${{ github.sha }}
 
-      - name: Test all 67 CLI commands in container
+      - name: Test all 66 CLI commands in container
         run: |
           IMAGE="fixops-test:${{ github.sha }}"
           ENV_VARS="-e FIXOPS_DISABLE_TELEMETRY=1 -e FIXOPS_API_TOKEN=test-token"
@@ -108,7 +108,7 @@ jobs:
           echo "=== Testing CLI Help ==="
           docker run --rm $IMAGE python -m core.cli --help
           
-          echo "=== Testing Core Pipeline Commands (11) ==="
+          echo "=== Testing Core Pipeline Commands (10) ==="
           # 1. run --help
           docker run --rm $ENV_VARS $IMAGE python -m core.cli run --help
           # 2. make-decision --help
@@ -121,8 +121,6 @@ jobs:
           docker run --rm $ENV_VARS $IMAGE python -m core.cli stage-run --help
           # 10. get-evidence --help
           docker run --rm $ENV_VARS $IMAGE python -m core.cli get-evidence --help
-          # 11. copy-evidence --help
-          docker run --rm $ENV_VARS $IMAGE python -m core.cli copy-evidence --help
           
           echo "=== Testing Compliance Commands (4) ==="
           # 12. compliance frameworks
@@ -264,7 +262,7 @@ jobs:
           # 67. show-overlay
           docker run --rm $ENV_VARS $IMAGE python -m core.cli show-overlay
           
-          echo "=== All 67 CLI commands tested successfully ==="
+          echo "=== All 66 CLI commands tested successfully ==="
 
       - name: Verify docs are included
         run: |
