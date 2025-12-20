@@ -88,7 +88,8 @@ export default function PentagiPage() {
     return `${diffDays} day${diffDays !== 1 ? 's' : ''}`
   }
 
-  const applyFilters = () => {
+  // Use useEffect to apply filters whenever filter state changes
+  useEffect(() => {
     let filtered = [...requests]
 
     if (searchQuery) {
@@ -108,11 +109,7 @@ export default function PentagiPage() {
     }
 
     setFilteredRequests(filtered)
-  }
-
-  useState(() => {
-    applyFilters()
-  })
+  }, [requests, searchQuery, typeFilter, statusFilter])
 
   const summary = {
     total: requests.length,
@@ -307,7 +304,7 @@ export default function PentagiPage() {
                 type="text"
                 placeholder="Search by name or target..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); applyFilters(); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6B5AED]/50"
               />
             </div>

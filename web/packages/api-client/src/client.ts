@@ -134,6 +134,7 @@ export async function downloadFile(
 
 /**
  * API client class for more complex operations.
+ * Uses instance properties for baseUrl and apiKey to allow custom configuration.
  */
 export class FixOpsApiClient {
   private baseUrl: string;
@@ -143,13 +144,99 @@ export class FixOpsApiClient {
     this.baseUrl = baseUrl || getApiBaseUrl();
     this.apiKey = apiKey || getApiKey();
   }
+
+  /**
+   * Internal fetch method that uses instance properties.
+   */
+  private async fetchWithConfig<T>(
+    path: string,
+    options: FetchOptions = {}
+  ): Promise<T> {
+    const { params, ...fetchOptions } = options;
+    const url = buildUrl(this.baseUrl, path, params);
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
+      ...options.headers,
+    };
+    
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `API Error: ${response.status}`;
+      let detail: string | undefined;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.detail || errorMessage;
+        detail = errorData.detail;
+      } catch {
+        // Ignore JSON parse errors
+      }
+      
+      const error: ApiError = {
+        status: response.status,
+        message: errorMessage,
+        detail,
+      };
+      
+      throw error;
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return {} as T;
+    }
+    
+    return response.json();
+  }
+
+  /**
+   * Internal download method that uses instance properties.
+   */
+  private async downloadWithConfig(
+    path: string,
+    filename: string,
+    options: FetchOptions = {}
+  ): Promise<void> {
+    const { params, ...fetchOptions } = options;
+    const url = buildUrl(this.baseUrl, path, params);
+    
+    const headers: HeadersInit = {
+      ...(this.apiKey ? { 'X-API-Key': this.apiKey } : {}),
+      ...options.headers,
+    };
+    
+    const response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  }
   
   async get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return fetchApi<T>(path, { method: 'GET', params });
+    return this.fetchWithConfig<T>(path, { method: 'GET', params });
   }
   
   async post<T>(path: string, body?: unknown, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return fetchApi<T>(path, {
+    return this.fetchWithConfig<T>(path, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
       params,
@@ -157,7 +244,7 @@ export class FixOpsApiClient {
   }
   
   async put<T>(path: string, body?: unknown, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return fetchApi<T>(path, {
+    return this.fetchWithConfig<T>(path, {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
       params,
@@ -165,11 +252,11 @@ export class FixOpsApiClient {
   }
   
   async delete<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return fetchApi<T>(path, { method: 'DELETE', params });
+    return this.fetchWithConfig<T>(path, { method: 'DELETE', params });
   }
   
   async download(path: string, filename: string, params?: Record<string, string | number | boolean | undefined>): Promise<void> {
-    return downloadFile(path, filename, { params });
+    return this.downloadWithConfig(path, filename, { params });
   }
   
   /**

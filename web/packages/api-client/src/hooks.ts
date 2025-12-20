@@ -23,32 +23,37 @@ export function useApi<T>(
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(!options?.skip);
 
+  // Stringify params to create a stable dependency value and prevent infinite loops
+  const paramsKey = options?.params ? JSON.stringify(options.params) : '';
+  const skip = options?.skip;
+
   const fetchData = useCallback(async () => {
-    if (options?.skip) return;
+    if (skip) return;
     
     setLoading(true);
     setError(null);
     
     try {
-      const result = await fetchApi<T>(path, { params: options?.params });
+      const params = paramsKey ? JSON.parse(paramsKey) : undefined;
+      const result = await fetchApi<T>(path, { params });
       setData(result);
     } catch (err) {
       setError(err as ApiError);
     } finally {
       setLoading(false);
     }
-  }, [path, options?.params, options?.skip]);
+  }, [path, paramsKey, skip]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   useEffect(() => {
-    if (options?.refreshInterval && !options?.skip) {
+    if (options?.refreshInterval && !skip) {
       const interval = setInterval(fetchData, options.refreshInterval);
       return () => clearInterval(interval);
     }
-  }, [fetchData, options?.refreshInterval, options?.skip]);
+  }, [fetchData, options?.refreshInterval, skip]);
 
   return { data, error, loading, refetch: fetchData };
 }

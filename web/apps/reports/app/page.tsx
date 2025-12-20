@@ -214,7 +214,8 @@ export default function ReportsPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const applyFilters = () => {
+  // Use useEffect to apply filters whenever filter state changes
+  useEffect(() => {
     let filtered = [...reports]
 
     if (searchQuery) {
@@ -238,11 +239,7 @@ export default function ReportsPage() {
     }
 
     setFilteredReports(filtered)
-  }
-
-  useState(() => {
-    applyFilters()
-  })
+  }, [reports, searchQuery, typeFilter, formatFilter, scheduleFilter])
 
   const summary = {
     total: reports.length,
@@ -336,7 +333,7 @@ export default function ReportsPage() {
                 {['all', 'security', 'compliance', 'executive', 'operational', 'integration'].map((type) => (
                   <button
                     key={type}
-                    onClick={() => { setTypeFilter(type); applyFilters(); }}
+                    onClick={() => setTypeFilter(type)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       typeFilter === type
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -366,7 +363,7 @@ export default function ReportsPage() {
                 {['all', 'PDF', 'HTML', 'JSON', 'CSV', 'SARIF'].map((format) => (
                   <button
                     key={format}
-                    onClick={() => { setFormatFilter(format); applyFilters(); }}
+                    onClick={() => setFormatFilter(format)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       formatFilter === format
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -396,7 +393,7 @@ export default function ReportsPage() {
                 {['all', 'daily', 'weekly', 'monthly', 'on_demand'].map((schedule) => (
                   <button
                     key={schedule}
-                    onClick={() => { setScheduleFilter(schedule); applyFilters(); }}
+                    onClick={() => setScheduleFilter(schedule)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       scheduleFilter === schedule
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -446,7 +443,7 @@ export default function ReportsPage() {
                 type="text"
                 placeholder="Search by name or description..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); applyFilters(); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6B5AED]/50"
               />
             </div>

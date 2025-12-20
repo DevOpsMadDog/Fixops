@@ -169,6 +169,11 @@ async def get_report_file(id: str):
             content = generate_demo_csv_report(report.name, report.report_type.value)
         elif report.format == ReportFormat.SARIF:
             content = generate_demo_sarif_report(report.name, report.report_type.value)
+        elif report.format == ReportFormat.HTML:
+            raise HTTPException(
+                status_code=501,
+                detail="HTML report generation is not yet supported",
+            )
         else:
             content = generate_demo_json_report(report.name, report.report_type.value)
 
