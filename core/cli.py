@@ -1538,7 +1538,7 @@ def _handle_compliance(args: argparse.Namespace) -> int:
                 ),
             ]
             now = datetime.now(timezone.utc).isoformat()
-            for name, version, desc, controls in default_frameworks:
+            for name, version, desc, control_count in default_frameworks:
                 framework_id = str(uuid.uuid4())
                 cursor.execute(
                     "INSERT INTO compliance_frameworks (id, name, version, description, total_controls, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1547,7 +1547,7 @@ def _handle_compliance(args: argparse.Namespace) -> int:
                         name,
                         version,
                         desc,
-                        controls,
+                        control_count,
                         "not_started",
                         now,
                         now,
@@ -2195,9 +2195,9 @@ def _handle_policies(args: argparse.Namespace) -> int:
     elif args.policies_command == "create":
         policy_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
-        rules = getattr(args, "rules", None)
-        if rules:
-            rules = json.dumps(json.loads(rules))
+        rules_json: str | None = getattr(args, "rules", None)
+        if rules_json:
+            rules_json = json.dumps(json.loads(rules_json))
         cursor.execute(
             "INSERT INTO policies (id, name, description, policy_type, severity, enabled, rules, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
@@ -2207,7 +2207,7 @@ def _handle_policies(args: argparse.Namespace) -> int:
                 args.type,
                 getattr(args, "severity", "medium"),
                 1,
-                rules,
+                rules_json,
                 now,
                 now,
             ),
@@ -2346,20 +2346,20 @@ def _handle_integrations(args: argparse.Namespace) -> int:
         cursor.execute("SELECT * FROM integrations WHERE name = ?", (args.name,))
         integration = cursor.fetchone()
         now = datetime.now(timezone.utc).isoformat()
-        config = {}
+        config_dict: dict[str, object] = {}
         if getattr(args, "url", None):
-            config["url"] = args.url
+            config_dict["url"] = args.url
         if getattr(args, "token", None):
-            config["token"] = "***configured***"
+            config_dict["token"] = "***configured***"
         if getattr(args, "project", None):
-            config["project"] = args.project
+            config_dict["project"] = args.project
         if getattr(args, "channel", None):
-            config["channel"] = args.channel
+            config_dict["channel"] = args.channel
 
         if integration:
             cursor.execute(
                 "UPDATE integrations SET config = ?, enabled = 1, status = 'configured', updated_at = ? WHERE name = ?",
-                (json.dumps(config), now, args.name),
+                (json.dumps(config_dict), now, args.name),
             )
         else:
             integration_id = str(uuid.uuid4())
@@ -2369,7 +2369,7 @@ def _handle_integrations(args: argparse.Namespace) -> int:
                     integration_id,
                     args.name,
                     args.type,
-                    json.dumps(config),
+                    json.dumps(config_dict),
                     1,
                     "configured",
                     now,
@@ -2515,7 +2515,7 @@ def _handle_analytics(args: argparse.Namespace) -> int:
         print(json.dumps(roi_data, indent=2))
 
     elif args.analytics_command == "export":
-        export_data = {
+        export_data: dict[str, object] = {
             "export_type": "analytics",
             "format": getattr(args, "output_format", "json"),
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -2837,7 +2837,7 @@ def _handle_workflows(args: argparse.Namespace) -> int:
         workflow_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         trigger_config = getattr(args, "trigger_config", None)
-        actions = getattr(args, "actions", None)
+        actions_json: str | None = getattr(args, "actions", None)
         cursor.execute(
             "INSERT INTO workflows (id, name, description, trigger_type, trigger_config, actions, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
@@ -2846,7 +2846,7 @@ def _handle_workflows(args: argparse.Namespace) -> int:
                 getattr(args, "description", None),
                 args.trigger,
                 trigger_config,
-                actions,
+                actions_json,
                 1,
                 now,
                 now,
