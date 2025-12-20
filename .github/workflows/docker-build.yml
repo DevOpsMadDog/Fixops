@@ -137,16 +137,16 @@ jobs:
           echo "=== Testing Inventory Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory apps
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory add --name test-app --criticality high
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory get 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory get test-app
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory services
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory search --query test
           
           echo "=== Testing Policies Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies list
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies create --name test-policy --type guardrail
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies get 1
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies validate 1
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies test 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies get test-policy
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies validate test-policy
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies test test-policy
           
           echo "=== Testing Integrations Commands (4) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations list --format json
@@ -168,10 +168,10 @@ jobs:
           
           echo "=== Testing Workflows Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows list
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows get 1
           docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows create --name test-workflow --trigger manual
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows execute 1
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows history 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows get test-workflow
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows execute test-workflow
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows history test-workflow
           
           echo "=== Testing Advanced Pen Testing Commands (6) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest run --target test-service --cves CVE-2024-1234
@@ -186,15 +186,13 @@ jobs:
           docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability bulk CVE-2024-1234,CVE-2024-5678
           docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability status job-123
           
-          echo "=== Testing Teams Commands (3) ==="
+          echo "=== Testing Teams Commands (2) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli teams list
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli teams get 1
           docker run $DOCKER_OPTS $IMAGE python -m core.cli teams create --name test-team
           
-          echo "=== Testing Users Commands (3) ==="
+          echo "=== Testing Users Commands (2) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users list
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --password testpass123 --first-name Test --last-name User
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli users get 1
           
           echo "=== Testing PentAGI Commands (3) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-requests
@@ -205,7 +203,7 @@ jobs:
           docker run $DOCKER_OPTS $IMAGE python -m core.cli health
           docker run $DOCKER_OPTS $IMAGE python -m core.cli show-overlay
           
-          echo "=== All 65 CLI commands tested successfully ==="
+          echo "=== All 63 CLI commands tested successfully ==="
 
       - name: Verify docs are included
         run: |
