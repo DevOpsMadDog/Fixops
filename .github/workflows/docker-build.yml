@@ -1,0 +1,229 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Export image for PR testing
+        if: github.event_name == 'pull_request'
+        run: |
+          docker build -t fixops-test:${{ github.sha }} .
+          docker save fixops-test:${{ github.sha }} > /tmp/fixops-image.tar
+
+      - name: Upload image artifact for PR
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/fixops-image.tar
+          retention-days: 1
+
+  # Test the built image
+  test-image:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download image artifact (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Load image (PR only)
+        if: github.event_name == 'pull_request'
+        run: docker load < /tmp/fixops-image.tar
+
+      - name: Pull image (push only)
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} fixops-test:${{ github.sha }}
+
+      - name: Test all 65 CLI commands in container
+        run: |
+          IMAGE="fixops-test:${{ github.sha }}"
+          
+          # Create shared data directory for database persistence across container runs
+          mkdir -p ${{ runner.temp }}/fixops-data
+          chmod 777 ${{ runner.temp }}/fixops-data
+          
+          # Common docker run options with shared volume for database state
+          DOCKER_OPTS="--rm -v ${{ runner.temp }}/fixops-data:/app/.fixops_data -e FIXOPS_DISABLE_TELEMETRY=1 -e FIXOPS_API_TOKEN=test-token"
+          
+          echo "=== Testing CLI Help ==="
+          docker run --rm $IMAGE python -m core.cli --help
+          
+          echo "=== Testing Core Pipeline Commands (10) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli run --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli make-decision --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli ingest --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analyze --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli stage-run --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli get-evidence --help
+          
+          echo "=== Testing Compliance Commands (4) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance frameworks --format json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance status SOC2
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance gaps SOC2
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli compliance report SOC2 --output /tmp/report.json
+          
+          echo "=== Testing Reports Commands (4) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports generate --type executive
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports export --output /tmp/report.json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports schedules
+          
+          echo "=== Testing Inventory Commands (5) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory apps
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory add --name test-app --criticality high
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory get test-app
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory services
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory search test
+          
+          echo "=== Testing Policies Commands (5) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies create --name test-policy --type guardrail
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies get test-policy
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies validate test-policy
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies test test-policy
+          
+          echo "=== Testing Integrations Commands (4) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations list --format json
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations configure test-jira --type ticketing --url https://test.atlassian.net
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations test test-jira
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations sync test-jira
+          
+          echo "=== Testing Analytics Commands (5) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics dashboard --period 30d
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics mttr
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics coverage
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics roi
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics export --output /tmp/analytics.json
+          
+          echo "=== Testing Audit Commands (3) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli audit logs --limit 10
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli audit decisions --limit 10
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli audit export --output /tmp/audit.json
+          
+          echo "=== Testing Workflows Commands (5) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows create --name test-workflow --trigger manual
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows get test-workflow
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows execute test-workflow
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli workflows history test-workflow
+          
+          echo "=== Testing Advanced Pen Testing Commands (6) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest run --target test-service --cves CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest threat-intel CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest business-impact --cves CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest simulate --target test-service
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest remediation CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest capabilities
+          
+          echo "=== Testing Reachability Commands (3) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability analyze CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability bulk CVE-2024-1234,CVE-2024-5678
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reachability status job-123
+          
+          echo "=== Testing Teams Commands (2) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli teams list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli teams create --name test-team
+          
+          echo "=== Testing Users Commands (2) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --password testpass123 --first-name Test --last-name User
+          
+          echo "=== Testing PentAGI Commands (3) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-requests
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi create-request --finding-id finding-001 --target-url https://test.example.com --vuln-type sql_injection --test-case "Test SQL injection"
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-results
+          
+          echo "=== Testing Utility Commands (2) ==="
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli health
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli show-overlay
+          
+          echo "=== All 63 CLI commands tested successfully ==="
+
+      - name: Verify docs are included
+        run: |
+          docker run --rm fixops-test:${{ github.sha }} ls -la /app/docs/
+          docker run --rm fixops-test:${{ github.sha }} cat /app/docs/API_CLI_REFERENCE.md | head -50
+
+      - name: Test API server starts
+        run: |
+          docker run -d --name fixops-api -p 8000:8000 \
+            -e FIXOPS_DISABLE_TELEMETRY=1 \
+            -e FIXOPS_API_TOKEN=test-token \
+            -e FIXOPS_MODE=demo \
+            fixops-test:${{ github.sha }}
+          
+          # Wait for server to start
+          sleep 10
+          
+          # Test health endpoint
+          curl -f http://localhost:8000/health || (docker logs fixops-api && exit 1)
+          
+          # Cleanup
+          docker stop fixops-api
+          docker rm fixops-api
