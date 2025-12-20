@@ -139,7 +139,7 @@ jobs:
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory add --name test-app --criticality high
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory get test-app
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory services
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory search --query test
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory search test
           
           echo "=== Testing Policies Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies list
