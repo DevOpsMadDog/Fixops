@@ -136,15 +136,15 @@ jobs:
           
           echo "=== Testing Inventory Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory apps
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory add --name test-app --type service --criticality high
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory add --name test-app --criticality high
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory get 1
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory services
           docker run $DOCKER_OPTS $IMAGE python -m core.cli inventory search --query test
           
           echo "=== Testing Policies Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies list
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies create --name test-policy --type guardrail
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies get 1
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli policies create --name test-policy --type security
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies validate 1
           docker run $DOCKER_OPTS $IMAGE python -m core.cli policies test 1
           
@@ -193,12 +193,12 @@ jobs:
           
           echo "=== Testing Users Commands (3) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users list
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --name "Test User"
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --password testpass123 --first-name Test --last-name User
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users get 1
           
           echo "=== Testing PentAGI Commands (3) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-requests
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi create-request --target test-service --cve CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi create-request --finding-id finding-001 --target-url https://test.example.com --vuln-type sql_injection --test-case "Test SQL injection"
           docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-results
           
           echo "=== Testing Utility Commands (2) ==="
