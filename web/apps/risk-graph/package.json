@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@fixops/api-client": "1.0.0",
+    "@fixops/api-client": "*",
     "@types/cytoscape": "^3.21.9",
     "cytoscape": "^3.33.1",
     "next": "16.0.3",

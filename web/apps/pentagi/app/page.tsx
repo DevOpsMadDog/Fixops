@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePentagiData } from './hooks/usePentagiData'
 import { PentestRequest } from './lib/apiClient'
 import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react'
@@ -22,14 +22,14 @@ export default function PentagiPage() {
   const [showFindings, setShowFindings] = useState(false)
 
   // Refresh data when mode changes - using ref to track if this is initial mount
-  const isInitialMount = useMemo(() => ({ current: true }), [])
+  const isInitialMount = useRef(true)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
       return // Skip initial mount since usePentagiData already fetches on mount
     }
     refresh()
-  }, [mode, refresh, isInitialMount])
+  }, [mode, refresh])
 
   // Sync API data with component state when it changes, preserving filters
   useEffect(() => {

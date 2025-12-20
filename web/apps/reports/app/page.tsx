@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { FileText, Search, Plus, Download, Calendar, Clock, Filter, Play, Edit2, Trash2, CheckCircle, XCircle, RefreshCw, Settings, ToggleLeft, ToggleRight } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 import { useReports, useSystemMode, useReportDownload } from '@fixops/api-client'
@@ -167,14 +167,14 @@ export default function ReportsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
 
   // Refresh data when mode changes - using ref to track if this is initial mount
-  const isInitialMount = useMemo(() => ({ current: true }), [])
+  const isInitialMount = useRef(true)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
       return // Skip initial mount since useApi already fetches on mount
     }
     refetch()
-  }, [mode, refetch, isInitialMount])
+  }, [mode, refetch])
 
   // Sync filtered reports when API data changes
   useEffect(() => {
@@ -182,9 +182,10 @@ export default function ReportsPage() {
   }, [reports])
 
   // Handle report download
-  const handleDownload = async (reportId: string, reportName: string) => {
+  const handleDownload = async (reportId: string, reportName: string, reportFormat: string) => {
     try {
-      await download(reportId, `${reportName.replace(/\s+/g, '_')}.pdf`)
+      const extension = reportFormat.toLowerCase()
+      await download(reportId, `${reportName.replace(/\s+/g, '_')}.${extension}`)
     } catch (err) {
       console.error('Download failed:', err)
       alert('Download failed. Please try again.')
@@ -661,7 +662,7 @@ export default function ReportsPage() {
                       Generate Now
                     </button>
                     <button 
-                      onClick={() => handleDownload(selectedReport.id, selectedReport.name)}
+                      onClick={() => handleDownload(selectedReport.id, selectedReport.name, selectedReport.format)}
                       disabled={downloading}
                       className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-left text-white transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
