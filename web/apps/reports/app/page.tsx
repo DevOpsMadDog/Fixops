@@ -191,7 +191,7 @@ export default function ReportsPage() {
     }
   }
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type: string | undefined) => {
     const colors = {
       security: '#dc2626',
       compliance: '#10b981',
@@ -199,10 +199,10 @@ export default function ReportsPage() {
       operational: '#3b82f6',
       integration: '#6b7280',
     }
-    return colors[type as keyof typeof colors] || colors.integration
+    return colors[(type || 'integration') as keyof typeof colors] || colors.integration
   }
 
-  const getFormatColor = (format: string) => {
+  const getFormatColor = (format: string | undefined) => {
     const colors = {
       PDF: '#dc2626',
       HTML: '#f97316',
@@ -210,10 +210,10 @@ export default function ReportsPage() {
       CSV: '#10b981',
       SARIF: '#8b5cf6',
     }
-    return colors[format as keyof typeof colors] || colors.JSON
+    return colors[(format || 'JSON') as keyof typeof colors] || colors.JSON
   }
 
-  const formatDate = (isoString: string | null) => {
+  const formatDate = (isoString: string | null | undefined) => {
     if (!isoString) return 'N/A'
     const date = new Date(isoString)
     const now = new Date()
@@ -235,7 +235,7 @@ export default function ReportsPage() {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(report =>
         report.name.toLowerCase().includes(query) ||
-        report.description.toLowerCase().includes(query)
+        (report.description?.toLowerCase().includes(query) ?? false)
       )
     }
 
@@ -479,7 +479,7 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-semibold text-white">{report.name}</h3>
-                        <p className="text-xs text-slate-400">{report.schedule.replace('_', ' ')}</p>
+                        <p className="text-xs text-slate-400">{(report.schedule || 'on_demand').replace('_', ' ')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -503,11 +503,11 @@ export default function ReportsPage() {
                     <span
                       className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium"
                       style={{ 
-                        backgroundColor: `${getTypeColor(report.type)}20`,
-                        color: getTypeColor(report.type)
+                        backgroundColor: `${getTypeColor(report.type || 'compliance')}20`,
+                        color: getTypeColor(report.type || 'compliance')
                       }}
                     >
-                      {report.type}
+                      {report.type || 'compliance'}
                     </span>
                   </div>
 
