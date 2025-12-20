@@ -270,6 +270,71 @@ export default function MarketplacePage() {
     return `$${item.price}/mo`
   }
 
+  // Handle download - generates a demo pack file for the item
+  const handleDownload = useCallback((item: MarketplaceItem) => {
+    // Generate demo pack content based on item type
+    const packContent = {
+      metadata: {
+        name: item.name,
+        version: item.version,
+        description: item.description,
+        author: item.author,
+        organization: item.organization,
+        content_type: item.content_type,
+        compliance_frameworks: item.compliance_frameworks,
+        ssdlc_stages: item.ssdlc_stages,
+        tags: item.tags,
+        created_at: item.created_at,
+        downloaded_at: new Date().toISOString(),
+      },
+      content: {
+        // Demo content based on type
+        ...(item.content_type === 'policy_template' && {
+          policies: [
+            { id: 'policy-001', name: 'Data Encryption Policy', rego: 'package example\ndefault allow = false\nallow { input.encrypted == true }' },
+            { id: 'policy-002', name: 'Access Control Policy', rego: 'package example\ndefault allow = false\nallow { input.role == "admin" }' },
+          ]
+        }),
+        ...(item.content_type === 'compliance_testset' && {
+          tests: [
+            { id: 'test-001', name: 'Encryption Validation', description: 'Validates data encryption requirements', expected: 'pass' },
+            { id: 'test-002', name: 'Access Control Check', description: 'Validates access control policies', expected: 'pass' },
+          ]
+        }),
+        ...(item.content_type === 'mitigation_playbook' && {
+          steps: [
+            { id: 'step-001', name: 'Identify Gap', description: 'Identify compliance gap from findings' },
+            { id: 'step-002', name: 'Remediate', description: 'Apply remediation steps' },
+            { id: 'step-003', name: 'Validate', description: 'Validate remediation was successful' },
+          ]
+        }),
+        ...(item.content_type === 'attack_scenario' && {
+          scenarios: [
+            { id: 'scenario-001', name: 'Initial Access', mitre_id: 'T1190', description: 'Exploit public-facing application' },
+            { id: 'scenario-002', name: 'Privilege Escalation', mitre_id: 'T1068', description: 'Exploit vulnerability for privilege escalation' },
+          ]
+        }),
+        ...(item.content_type === 'pipeline_gate' && {
+          gates: [
+            { id: 'gate-001', name: 'Security Scan Gate', condition: 'no_critical_vulnerabilities', action: 'block' },
+            { id: 'gate-002', name: 'Compliance Gate', condition: 'compliance_score >= 80', action: 'warn' },
+          ]
+        }),
+      }
+    }
+
+    // Create and download the file
+    const blob = new Blob([JSON.stringify(packContent, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${item.name.toLowerCase().replace(/\s+/g, '-')}-v${item.version}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [])
+
   const stats = {
     total_items: items.length,
     total_downloads: items.reduce((sum, item) => sum + item.downloads, 0),
@@ -773,7 +838,10 @@ export default function MarketplacePage() {
                       <div className="text-xs text-slate-400">per month</div>
                     )}
                   </div>
-                  <button className="px-6 py-3 bg-[#6B5AED] text-white rounded-md text-sm font-medium hover:bg-[#5B4ADD] transition-all flex items-center gap-2">
+                  <button 
+                    onClick={() => selectedItem.pricing_model === 'free' ? handleDownload(selectedItem) : alert('Purchase functionality coming soon!')}
+                    className="px-6 py-3 bg-[#6B5AED] text-white rounded-md text-sm font-medium hover:bg-[#5B4ADD] transition-all flex items-center gap-2"
+                  >
                     {selectedItem.pricing_model === 'free' ? (
                       <>
                         <Download size={16} />
