@@ -134,7 +134,7 @@ export default function ReportsPage() {
   // API hooks
   const { data: apiReports, loading: apiLoading, error: apiError, refetch } = useReports()
   const { mode, toggleMode, loading: modeLoading } = useSystemMode()
-  const { download, downloading } = useReportDownload()
+  const { downloadReport: download, downloading } = useReportDownload()
 
   // Transform API data to match UI format
   const transformReport = useCallback((r: Record<string, unknown>): Report => ({
