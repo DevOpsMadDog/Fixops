@@ -151,8 +151,8 @@ jobs:
           echo "=== Testing Integrations Commands (4) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations list --format json
           docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations configure test-jira --type ticketing --url https://test.atlassian.net
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations test jira
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations sync jira
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations test test-jira
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations sync test-jira
           
           echo "=== Testing Analytics Commands (5) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli analytics dashboard --period 30d
@@ -176,7 +176,7 @@ jobs:
           echo "=== Testing Advanced Pen Testing Commands (6) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest run --target test-service --cves CVE-2024-1234
           docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest threat-intel CVE-2024-1234
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest business-impact --cve CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest business-impact --cves CVE-2024-1234
           docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest simulate --target test-service
           docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest remediation CVE-2024-1234
           docker run $DOCKER_OPTS $IMAGE python -m core.cli advanced-pentest capabilities
