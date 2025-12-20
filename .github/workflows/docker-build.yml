@@ -150,7 +150,7 @@ jobs:
           
           echo "=== Testing Integrations Commands (4) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations list --format json
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations configure --name test-jira --type ticketing --url https://test.atlassian.net
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations configure test-jira --type ticketing --url https://test.atlassian.net
           docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations test jira
           docker run $DOCKER_OPTS $IMAGE python -m core.cli integrations sync jira
           
