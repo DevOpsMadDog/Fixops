@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Search, 
   Filter, 
@@ -19,9 +19,13 @@ import {
   Clock,
   Users,
   TrendingUp,
-  Award
+  Award,
+  RefreshCw,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useMarketplaceBrowse, useMarketplaceStats, useSystemMode } from '@fixops/api-client'
 
 type ContentType = 'policy_template' | 'compliance_testset' | 'mitigation_playbook' | 'attack_scenario' | 'pipeline_gate'
 type PricingModel = 'free' | 'one_time' | 'subscription'
@@ -197,6 +201,11 @@ const CONTENT_TYPE_ICONS: Record<ContentType, typeof Shield> = {
 }
 
 export default function MarketplacePage() {
+  // API hooks
+  const { data: apiItems, loading: apiLoading, error: apiError, refetch } = useMarketplaceBrowse()
+  const { data: apiStats, loading: statsLoading } = useMarketplaceStats()
+  const { mode, toggleMode, loading: modeLoading } = useSystemMode()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedContentType, setSelectedContentType] = useState<ContentType | ''>('')
   const [selectedFramework, setSelectedFramework] = useState('')
@@ -204,7 +213,31 @@ export default function MarketplacePage() {
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null)
   const [activeTab, setActiveTab] = useState<'browse' | 'contributors' | 'stats'>('browse')
 
-  const filteredItems = DEMO_ITEMS.filter(item => {
+  // Transform API data to match UI format
+  const transformItem = useCallback((item: Record<string, unknown>): MarketplaceItem => ({
+    id: String(item.id || ''),
+    name: String(item.name || ''),
+    description: String(item.description || ''),
+    content_type: (item.content_type as ContentType) || 'policy_template',
+    compliance_frameworks: Array.isArray(item.compliance_frameworks) ? item.compliance_frameworks.map(String) : [],
+    ssdlc_stages: Array.isArray(item.ssdlc_stages) ? item.ssdlc_stages.map(String) : [],
+    pricing_model: (item.pricing_model as PricingModel) || 'free',
+    price: typeof item.price === 'number' ? item.price : 0,
+    tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
+    rating: typeof item.rating === 'number' ? item.rating : 0,
+    rating_count: typeof item.rating_count === 'number' ? item.rating_count : 0,
+    downloads: typeof item.downloads === 'number' ? item.downloads : 0,
+    version: String(item.version || '1.0.0'),
+    qa_status: (item.qa_status as QAStatus) || 'passed',
+    author: String(item.author || 'Unknown'),
+    organization: String(item.organization || 'Unknown'),
+    created_at: String(item.created_at || new Date().toISOString()),
+  }), [])
+
+  // Use API data if available, otherwise use fallback
+  const items = apiItems?.items?.map(transformItem) || DEMO_ITEMS
+
+  const filteredItems = items.filter((item: MarketplaceItem) => {
     if (searchQuery && !item.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
         !item.description.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) {
@@ -238,17 +271,17 @@ export default function MarketplacePage() {
   }
 
   const stats = {
-    total_items: DEMO_ITEMS.length,
-    total_downloads: DEMO_ITEMS.reduce((sum, item) => sum + item.downloads, 0),
-    average_rating: (DEMO_ITEMS.reduce((sum, item) => sum + item.rating, 0) / DEMO_ITEMS.length).toFixed(1),
+    total_items: items.length,
+    total_downloads: items.reduce((sum, item) => sum + item.downloads, 0),
+    average_rating: items.length > 0 ? (items.reduce((sum, item) => sum + item.rating, 0) / items.length).toFixed(1) : '0.0',
     content_types: Object.entries(
-      DEMO_ITEMS.reduce((acc, item) => {
+      items.reduce((acc, item) => {
         acc[item.content_type] = (acc[item.content_type] || 0) + 1
         return acc
       }, {} as Record<string, number>)
     ),
     frameworks: Object.entries(
-      DEMO_ITEMS.reduce((acc, item) => {
+      items.reduce((acc, item) => {
         item.compliance_frameworks.forEach(f => {
           acc[f] = (acc[f] || 0) + 1
         })
@@ -268,11 +301,47 @@ export default function MarketplacePage() {
                 Browse, contribute, and purchase compliance packs, policy templates, and security content
               </p>
             </div>
-            <button className="px-4 py-2 bg-[#6B5AED] text-white rounded-md text-sm font-medium hover:bg-[#5B4ADD] transition-all flex items-center gap-2">
-              <Package size={16} />
-              Contribute Content
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Mode Toggle */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-md">
+                <span className="text-xs text-slate-400">Mode:</span>
+                <button
+                  onClick={toggleMode}
+                  disabled={modeLoading}
+                  className="flex items-center gap-2 text-xs font-medium"
+                >
+                  {mode === 'demo' ? (
+                    <>
+                      <ToggleLeft size={18} className="text-orange-400" />
+                      <span className="text-orange-400">Demo</span>
+                    </>
+                  ) : (
+                    <>
+                      <ToggleRight size={18} className="text-green-400" />
+                      <span className="text-green-400">Enterprise</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <button
+                onClick={() => refetch()}
+                disabled={apiLoading}
+                className="p-2 hover:bg-white/10 rounded-md transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+              </button>
+              <button className="px-4 py-2 bg-[#6B5AED] text-white rounded-md text-sm font-medium hover:bg-[#5B4ADD] transition-all flex items-center gap-2">
+                <Package size={16} />
+                Contribute Content
+              </button>
+            </div>
           </div>
+          {apiError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md text-sm text-red-400">
+              API unavailable - showing demo data
+            </div>
+          )}
 
           <div className="flex gap-2 mb-6 border-b border-white/10">
             <button

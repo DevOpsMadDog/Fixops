@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react'
 import { usePentagiData } from './hooks/usePentagiData'
 import { PentestRequest } from './lib/apiClient'
-import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings } from 'lucide-react'
+import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useSystemMode } from '@fixops/api-client'
 
 
 export default function PentagiPage() {
   // Use real-time data from API with fallback to demo data
-  const { requests: apiRequests, findings: apiFindings, stats, isLoading, error, isLiveData, lastUpdated, refresh } = usePentagiData(30000)
+  const { requests: apiRequests, findings: apiFindings, stats, isLoading, error, lastUpdated, refresh } = usePentagiData(30000)
+  const { mode, toggleMode, loading: modeLoading } = useSystemMode()
   const [requests, setRequests] = useState(apiRequests)
   const [filteredRequests, setFilteredRequests] = useState(apiRequests)
   const [selectedRequest, setSelectedRequest] = useState<PentestRequest | null>(null)
@@ -130,11 +132,43 @@ export default function PentagiPage() {
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3 mb-4">
-              <Shield size={24} className="text-[#6B5AED]" />
-              <h2 className="text-lg font-semibold">Pentagi Integration</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Shield size={24} className="text-[#6B5AED]" />
+                <h2 className="text-lg font-semibold">Pentagi Integration</h2>
+              </div>
+              <button
+                onClick={() => refresh()}
+                disabled={isLoading}
+                className="p-2 hover:bg-white/10 rounded-md transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              </button>
             </div>
-            <p className="text-xs text-slate-500">Penetration testing requests</p>
+            <p className="text-xs text-slate-500 mb-3">Penetration testing requests</p>
+            
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between p-2 bg-white/5 rounded-md">
+              <span className="text-xs text-slate-400">Mode:</span>
+              <button
+                onClick={toggleMode}
+                disabled={modeLoading}
+                className="flex items-center gap-2 text-xs font-medium"
+              >
+                {mode === 'demo' ? (
+                  <>
+                    <ToggleLeft size={18} className="text-orange-400" />
+                    <span className="text-orange-400">Demo</span>
+                  </>
+                ) : (
+                  <>
+                    <ToggleRight size={18} className="text-green-400" />
+                    <span className="text-green-400">Enterprise</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Summary Stats */}
