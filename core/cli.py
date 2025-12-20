@@ -2362,13 +2362,23 @@ def _handle_integrations(args: argparse.Namespace) -> int:
                 (json.dumps(config_dict), now, args.name),
             )
         else:
+            integration_type = getattr(args, "type", None)
+            if not integration_type:
+                print(
+                    f"Error: --type is required when creating a new integration '{args.name}'"
+                )
+                print(
+                    "Available types: ticketing, messaging, scm, monitoring, notification, ci_cd"
+                )
+                conn.close()
+                return 1
             integration_id = str(uuid.uuid4())
             cursor.execute(
                 "INSERT INTO integrations (id, name, integration_type, config, enabled, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     integration_id,
                     args.name,
-                    args.type,
+                    integration_type,
                     json.dumps(config_dict),
                     1,
                     "configured",
