@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { FileText, Search, Plus, Download, Calendar, Clock, Filter, Play, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { FileText, Search, Plus, Download, Calendar, Clock, Filter, Play, Edit2, Trash2, CheckCircle, XCircle, RefreshCw, Settings, ToggleLeft, ToggleRight } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useReports, useSystemMode, useReportDownload } from '@fixops/api-client'
 
-const DEMO_REPORTS = [
+// Fallback demo data for when API is unavailable
+const FALLBACK_REPORTS = [
   {
-    id: '1',
+    id: 'demo-1',
     name: 'Weekly Security Summary',
     description: 'Weekly summary of security findings and remediation progress',
     type: 'security',
@@ -19,7 +21,7 @@ const DEMO_REPORTS = [
     created_at: '2024-01-15T10:00:00Z',
   },
   {
-    id: '2',
+    id: 'demo-2',
     name: 'Compliance Audit Report',
     description: 'SOC2 and ISO27001 compliance status and gaps',
     type: 'compliance',
@@ -32,7 +34,7 @@ const DEMO_REPORTS = [
     created_at: '2024-02-01T14:30:00Z',
   },
   {
-    id: '3',
+    id: 'demo-3',
     name: 'Critical Vulnerabilities Report',
     description: 'All critical and high severity vulnerabilities with KEV status',
     type: 'security',
@@ -45,7 +47,7 @@ const DEMO_REPORTS = [
     created_at: '2024-03-10T09:00:00Z',
   },
   {
-    id: '4',
+    id: 'demo-4',
     name: 'SARIF Export for CI/CD',
     description: 'SARIF format export for integration with CI/CD pipelines',
     type: 'integration',
@@ -58,7 +60,7 @@ const DEMO_REPORTS = [
     created_at: '2024-04-05T11:20:00Z',
   },
   {
-    id: '5',
+    id: 'demo-5',
     name: 'Executive Dashboard',
     description: 'High-level metrics and trends for executive leadership',
     type: 'executive',
@@ -71,7 +73,7 @@ const DEMO_REPORTS = [
     created_at: '2024-05-12T13:45:00Z',
   },
   {
-    id: '6',
+    id: 'demo-6',
     name: 'Team Performance Report',
     description: 'Team-level metrics for remediation velocity and SLA compliance',
     type: 'operational',
@@ -84,7 +86,7 @@ const DEMO_REPORTS = [
     created_at: '2024-06-18T15:10:00Z',
   },
   {
-    id: '7',
+    id: 'demo-7',
     name: 'Secrets Detection Report',
     description: 'All detected secrets and credentials in code repositories',
     type: 'security',
@@ -97,7 +99,7 @@ const DEMO_REPORTS = [
     created_at: '2024-07-22T08:30:00Z',
   },
   {
-    id: '8',
+    id: 'demo-8',
     name: 'IaC Security Findings',
     description: 'Infrastructure as Code security misconfigurations',
     type: 'security',
@@ -111,17 +113,86 @@ const DEMO_REPORTS = [
   },
 ]
 
+interface Report {
+  id: string
+  name: string
+  description?: string
+  type?: string
+  report_type?: string
+  format: string
+  schedule?: string
+  recipients?: string[]
+  last_generated?: string
+  next_scheduled?: string | null
+  status: string
+  created_at: string
+  file_path?: string
+  file_size?: number
+}
+
 export default function ReportsPage() {
-  const [reports, setReports] = useState(DEMO_REPORTS)
-  const [filteredReports, setFilteredReports] = useState(DEMO_REPORTS)
-  const [selectedReport, setSelectedReport] = useState<typeof DEMO_REPORTS[0] | null>(null)
+  // API hooks
+  const { data: apiReports, loading: apiLoading, error: apiError, refetch } = useReports()
+  const { mode, toggleMode, loading: modeLoading } = useSystemMode()
+  const { downloadReport: download, downloading } = useReportDownload()
+
+  // Transform API data to match UI format
+  const transformReport = useCallback((r: Record<string, unknown>): Report => ({
+    id: String(r.id || ''),
+    name: String(r.name || ''),
+    description: String(r.description || `${r.report_type || r.type || 'General'} report`),
+    type: String(r.report_type || r.type || 'security'),
+    format: String(r.format || 'PDF').toUpperCase(),
+    schedule: String(r.schedule || 'on_demand'),
+    recipients: Array.isArray(r.recipients) ? r.recipients.map(String) : [],
+    last_generated: r.completed_at ? String(r.completed_at) : r.last_generated ? String(r.last_generated) : undefined,
+    next_scheduled: r.next_scheduled ? String(r.next_scheduled) : null,
+    status: String(r.status || 'active'),
+    created_at: String(r.created_at || new Date().toISOString()),
+    file_path: r.file_path ? String(r.file_path) : undefined,
+    file_size: typeof r.file_size === 'number' ? r.file_size : undefined,
+  }), [])
+
+  // Use API data if available, otherwise use fallback - memoized to prevent unnecessary re-renders
+  const reports = useMemo(() => 
+    apiReports?.items?.map(transformReport) || FALLBACK_REPORTS,
+    [apiReports?.items, transformReport]
+  )
+  const [filteredReports, setFilteredReports] = useState<Report[]>(reports)
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [formatFilter, setFormatFilter] = useState<string>('all')
   const [scheduleFilter, setScheduleFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const getTypeColor = (type: string) => {
+  // Refresh data when mode changes - using ref to track if this is initial mount
+  const isInitialMount = useRef(true)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return // Skip initial mount since useApi already fetches on mount
+    }
+    refetch()
+  }, [mode, refetch])
+
+  // Sync filtered reports when API data changes
+  useEffect(() => {
+    setFilteredReports(reports)
+  }, [reports])
+
+  // Handle report download
+  const handleDownload = async (reportId: string, reportName: string, reportFormat: string) => {
+    try {
+      const extension = reportFormat.toLowerCase()
+      await download(reportId, `${reportName.replace(/\s+/g, '_')}.${extension}`)
+    } catch (err) {
+      console.error('Download failed:', err)
+      alert('Download failed. Please try again.')
+    }
+  }
+
+  const getTypeColor = (type: string | undefined) => {
     const colors = {
       security: '#dc2626',
       compliance: '#10b981',
@@ -129,10 +200,10 @@ export default function ReportsPage() {
       operational: '#3b82f6',
       integration: '#6b7280',
     }
-    return colors[type as keyof typeof colors] || colors.integration
+    return colors[(type || 'integration') as keyof typeof colors] || colors.integration
   }
 
-  const getFormatColor = (format: string) => {
+  const getFormatColor = (format: string | undefined) => {
     const colors = {
       PDF: '#dc2626',
       HTML: '#f97316',
@@ -140,10 +211,10 @@ export default function ReportsPage() {
       CSV: '#10b981',
       SARIF: '#8b5cf6',
     }
-    return colors[format as keyof typeof colors] || colors.JSON
+    return colors[(format || 'JSON') as keyof typeof colors] || colors.JSON
   }
 
-  const formatDate = (isoString: string | null) => {
+  const formatDate = (isoString: string | null | undefined) => {
     if (!isoString) return 'N/A'
     const date = new Date(isoString)
     const now = new Date()
@@ -157,14 +228,15 @@ export default function ReportsPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const applyFilters = () => {
+  // Use useEffect to apply filters whenever filter state changes
+  useEffect(() => {
     let filtered = [...reports]
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(report =>
         report.name.toLowerCase().includes(query) ||
-        report.description.toLowerCase().includes(query)
+        (report.description?.toLowerCase().includes(query) ?? false)
       )
     }
 
@@ -181,11 +253,7 @@ export default function ReportsPage() {
     }
 
     setFilteredReports(filtered)
-  }
-
-  useState(() => {
-    applyFilters()
-  })
+  }, [reports, searchQuery, typeFilter, formatFilter, scheduleFilter])
 
   const summary = {
     total: reports.length,
@@ -202,11 +270,48 @@ export default function ReportsPage() {
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3 mb-4">
-              <FileText size={24} className="text-[#6B5AED]" />
-              <h2 className="text-lg font-semibold">Reports</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <FileText size={24} className="text-[#6B5AED]" />
+                <h2 className="text-lg font-semibold">Reports</h2>
+              </div>
+              <button
+                onClick={refetch}
+                disabled={apiLoading}
+                className="p-2 hover:bg-white/10 rounded-md transition-colors"
+                title="Refresh reports"
+              >
+                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+              </button>
             </div>
-            <p className="text-xs text-slate-500">Generate and schedule reports</p>
+            <p className="text-xs text-slate-500 mb-3">Generate and schedule reports</p>
+            
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between p-2 bg-white/5 rounded-md">
+              <span className="text-xs text-slate-400">Mode:</span>
+              <button
+                onClick={toggleMode}
+                disabled={modeLoading}
+                className="flex items-center gap-2 text-xs font-medium"
+              >
+                {mode === 'demo' ? (
+                  <>
+                    <ToggleLeft size={18} className="text-orange-400" />
+                    <span className="text-orange-400">Demo</span>
+                  </>
+                ) : (
+                  <>
+                    <ToggleRight size={18} className="text-green-400" />
+                    <span className="text-green-400">Enterprise</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {apiError && (
+              <div className="mt-2 p-2 bg-red-500/10 rounded-md text-xs text-red-400">
+                API unavailable - showing demo data
+              </div>
+            )}
           </div>
 
           {/* Summary Stats */}
@@ -242,7 +347,7 @@ export default function ReportsPage() {
                 {['all', 'security', 'compliance', 'executive', 'operational', 'integration'].map((type) => (
                   <button
                     key={type}
-                    onClick={() => { setTypeFilter(type); applyFilters(); }}
+                    onClick={() => setTypeFilter(type)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       typeFilter === type
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -272,7 +377,7 @@ export default function ReportsPage() {
                 {['all', 'PDF', 'HTML', 'JSON', 'CSV', 'SARIF'].map((format) => (
                   <button
                     key={format}
-                    onClick={() => { setFormatFilter(format); applyFilters(); }}
+                    onClick={() => setFormatFilter(format)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       formatFilter === format
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -302,7 +407,7 @@ export default function ReportsPage() {
                 {['all', 'daily', 'weekly', 'monthly', 'on_demand'].map((schedule) => (
                   <button
                     key={schedule}
-                    onClick={() => { setScheduleFilter(schedule); applyFilters(); }}
+                    onClick={() => setScheduleFilter(schedule)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       scheduleFilter === schedule
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -352,7 +457,7 @@ export default function ReportsPage() {
                 type="text"
                 placeholder="Search by name or description..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); applyFilters(); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6B5AED]/50"
               />
             </div>
@@ -375,7 +480,7 @@ export default function ReportsPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-semibold text-white">{report.name}</h3>
-                        <p className="text-xs text-slate-400">{report.schedule.replace('_', ' ')}</p>
+                        <p className="text-xs text-slate-400">{(report.schedule || 'on_demand').replace('_', ' ')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -399,11 +504,11 @@ export default function ReportsPage() {
                     <span
                       className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium"
                       style={{ 
-                        backgroundColor: `${getTypeColor(report.type)}20`,
-                        color: getTypeColor(report.type)
+                        backgroundColor: `${getTypeColor(report.type || 'compliance')}20`,
+                        color: getTypeColor(report.type || 'compliance')
                       }}
                     >
-                      {report.type}
+                      {report.type || 'compliance'}
                     </span>
                   </div>
 
@@ -507,7 +612,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-400">Schedule</span>
-                      <span className="text-sm text-white capitalize">{selectedReport.schedule.replace('_', ' ')}</span>
+                      <span className="text-sm text-white capitalize">{(selectedReport.schedule || 'on_demand').replace('_', ' ')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-400">Last Generated</span>
@@ -527,9 +632,9 @@ export default function ReportsPage() {
                 {/* Recipients */}
                 <div>
                   <h4 className="text-sm font-semibold text-slate-300 mb-3">Recipients</h4>
-                  {selectedReport.recipients.length > 0 ? (
+                  {(selectedReport.recipients?.length || 0) > 0 ? (
                     <div className="space-y-2">
-                      {selectedReport.recipients.map((recipient, idx) => (
+                      {(selectedReport.recipients || []).map((recipient, idx) => (
                         <div key={idx} className="p-3 bg-white/5 rounded-lg flex items-center justify-between">
                           <span className="text-sm text-white">{recipient}</span>
                           <button className="text-xs text-slate-400 hover:text-white transition-colors">
@@ -556,9 +661,13 @@ export default function ReportsPage() {
                       <Play size={16} />
                       Generate Now
                     </button>
-                    <button className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-left text-white transition-colors flex items-center gap-2">
-                      <Download size={16} />
-                      Download Last Report
+                    <button 
+                      onClick={() => handleDownload(selectedReport.id, selectedReport.name, selectedReport.format)}
+                      disabled={downloading}
+                      className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-left text-white transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Download size={16} className={downloading ? 'animate-pulse' : ''} />
+                      {downloading ? 'Downloading...' : 'Download Last Report'}
                     </button>
                     <button className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-left text-white transition-colors flex items-center gap-2">
                       <Edit2 size={16} />

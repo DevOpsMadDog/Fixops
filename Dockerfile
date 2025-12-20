@@ -68,6 +68,10 @@ COPY *.txt ./
 COPY *.yml ./
 COPY *.yaml ./
 COPY *.md ./
+COPY docs/ ./docs/
+COPY cli/ ./cli/
+COPY evidence/ ./evidence/
+COPY lib4sbom/ ./lib4sbom/
 
 # Create data directory
 RUN mkdir -p /app/.fixops_data
