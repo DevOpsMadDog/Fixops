@@ -65,7 +65,7 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
   const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
-    const CENTRAL_URL = 'https://raw.githubusercontent.com/DevOpsMadDog/Fixops/main/web/app-urls.json'
+    const CENTRAL_URL = 'https://raw.githubusercontent.com/DevOpsMadDog/Fixops/devin/1766214953-frontend-api-wiring/web/app-urls.json'
     const LOCAL_URL = '/app-urls.json'
     
     const loadUrls = async () => {
