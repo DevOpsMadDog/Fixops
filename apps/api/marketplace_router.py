@@ -18,6 +18,7 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
 # Load the marketplace service module directly using importlib to avoid path conflicts
+# This is optional - if enterprise modules aren't present, we use stub implementations
 _service_path = (
     Path(__file__).parent.parent.parent
     / "fixops-enterprise"
@@ -26,21 +27,68 @@ _service_path = (
     / "marketplace_service.py"
 )
 
-_spec = importlib.util.spec_from_file_location(
-    "marketplace_service_module", str(_service_path)
-)
-if _spec is None or _spec.loader is None:
-    raise ImportError(f"Could not load marketplace service from {_service_path}")
 
-_marketplace_service_module = importlib.util.module_from_spec(_spec)
-sys.modules["marketplace_service_module"] = _marketplace_service_module
-_spec.loader.exec_module(_marketplace_service_module)
+def _load_enterprise_marketplace():
+    """Attempt to load enterprise marketplace module, return stub implementations if unavailable."""
+    from enum import Enum
 
-# Import the classes and functions from the loaded module
-ContentType = _marketplace_service_module.ContentType
-PricingModel = _marketplace_service_module.PricingModel
-MarketplaceService = _marketplace_service_module.MarketplaceService
-get_marketplace_service = _marketplace_service_module.get_marketplace_service
+    # Stub implementations for when enterprise modules aren't available
+    class _StubContentType(Enum):
+        REMEDIATION_PACK = "remediation_pack"
+        POLICY_TEMPLATE = "policy_template"
+        INTEGRATION = "integration"
+        REPORT_TEMPLATE = "report_template"
+
+    class _StubPricingModel(Enum):
+        FREE = "free"
+        PAID = "paid"
+        SUBSCRIPTION = "subscription"
+
+    def _stub_get_marketplace_service():
+        return None
+
+    if not _service_path.exists():
+        return _StubContentType, _StubPricingModel, _stub_get_marketplace_service, False
+
+    try:
+        _spec = importlib.util.spec_from_file_location(
+            "marketplace_service_module", str(_service_path)
+        )
+        if _spec is not None and _spec.loader is not None:
+            _marketplace_service_module = importlib.util.module_from_spec(_spec)
+            sys.modules["marketplace_service_module"] = _marketplace_service_module
+            _spec.loader.exec_module(_marketplace_service_module)
+
+            return (
+                _marketplace_service_module.ContentType,
+                _marketplace_service_module.PricingModel,
+                _marketplace_service_module.get_marketplace_service,
+                True,
+            )
+    except (ImportError, FileNotFoundError) as e:
+        print(f"Enterprise marketplace module not available: {e}")
+
+    return _StubContentType, _StubPricingModel, _stub_get_marketplace_service, False
+
+
+(
+    ContentType,
+    PricingModel,
+    get_marketplace_service,
+    _ENTERPRISE_AVAILABLE,
+) = _load_enterprise_marketplace()
+
+
+def _require_enterprise_service():
+    """Helper to check if enterprise marketplace service is available."""
+    service = get_marketplace_service()
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Marketplace service requires enterprise modules. The /packs endpoint is available for basic remediation packs.",
+        )
+    return service
+
 
 router = APIRouter(tags=["marketplace"])
 
@@ -162,7 +210,7 @@ async def browse_marketplace(
     query: Optional[str] = Query(None, description="Search query"),
 ) -> Dict[str, Any]:
     """Browse and search marketplace items with optional filters."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     ct = ContentType(content_type) if content_type else None
     pm = PricingModel(pricing_model) if pricing_model else None
     frameworks = [compliance_framework] if compliance_framework else None
@@ -209,7 +257,7 @@ async def get_recommendations(
     ),
 ) -> Dict[str, Any]:
     """Get recommended marketplace content based on organization profile."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     requirements = [r.strip() for r in compliance_requirements.split(",") if r.strip()]
     items = await service.get_recommended_content(
         organization_type=organization_type,
@@ -236,7 +284,7 @@ async def get_recommendations(
 @router.get("/items/{item_id}")
 async def get_item(item_id: str) -> Dict[str, Any]:
     """Get details of a specific marketplace item."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     item = await service.get_item(item_id)
     if not item:
         raise HTTPException(
@@ -272,7 +320,7 @@ async def contribute_content(
     organization: str = Query(..., description="Organization name"),
 ) -> Dict[str, Any]:
     """Submit new content to the marketplace."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     try:
         item_id = await service.contribute_content(
             content=request.model_dump(),
@@ -292,7 +340,7 @@ async def update_item(
     request: UpdateRequest,
 ) -> Dict[str, Any]:
     """Update an existing marketplace item."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     try:
         patch = {k: v for k, v in request.model_dump().items() if v is not None}
         updated = await service.update_content(item_id, patch)
@@ -310,7 +358,7 @@ async def rate_item(
     reviewer: str = Query(..., description="Reviewer name"),
 ) -> Dict[str, Any]:
     """Rate a marketplace item."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     try:
         result = await service.rate_content(item_id, request.rating, reviewer)
         return result
@@ -327,7 +375,7 @@ async def purchase_item(
     purchaser: str = Query(..., description="Purchaser name"),
 ) -> Dict[str, Any]:
     """Purchase a marketplace item and get download token."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     try:
         result = await service.purchase_content(
             item_id, purchaser, request.organization
@@ -342,7 +390,7 @@ async def purchase_item(
 @router.get("/download/{token}")
 async def download_content(token: str) -> Dict[str, Any]:
     """Download purchased content using a valid token."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     try:
         result = await service.download_by_token(token)
         return result
@@ -358,7 +406,7 @@ async def get_contributors(
     organization: Optional[str] = Query(None, description="Filter by organization"),
 ) -> Dict[str, Any]:
     """Get contributor leaderboard and metrics."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     contributors = await service.get_contributor_metrics(author, organization)
     return {"contributors": contributors, "total": len(contributors)}
 
@@ -369,7 +417,7 @@ async def get_compliance_content(
     frameworks: str = Query(..., description="Comma-separated compliance frameworks"),
 ) -> Dict[str, Any]:
     """Get marketplace content for a specific SSDLC stage and frameworks."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     framework_list = [f.strip() for f in frameworks.split(",") if f.strip()]
     result = await service.get_compliance_content_for_stage(stage, framework_list)
     return result
@@ -378,7 +426,7 @@ async def get_compliance_content(
 @router.get("/stats")
 async def get_marketplace_stats() -> Dict[str, Any]:
     """Get marketplace statistics and quality summary."""
-    service = get_marketplace_service()
+    service = _require_enterprise_service()
     stats = await service.get_stats()
     return stats
 

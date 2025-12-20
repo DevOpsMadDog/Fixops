@@ -215,6 +215,7 @@ jobs:
           docker run -d --name fixops-api -p 8000:8000 \
             -e FIXOPS_DISABLE_TELEMETRY=1 \
             -e FIXOPS_API_TOKEN=test-token \
+            -e FIXOPS_MODE=demo \
             fixops-test:${{ github.sha }}
           
           # Wait for server to start
