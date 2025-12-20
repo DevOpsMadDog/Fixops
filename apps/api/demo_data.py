@@ -205,22 +205,12 @@ DEMO_MARKETPLACE_ITEMS = [
 
 
 def generate_demo_pdf_report(report_name: str, report_type: str) -> bytes:
-    """Generate a realistic demo PDF report."""
-    # Simple PDF structure (minimal valid PDF)
-    pdf_content = f"""%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length 200 >>
-stream
-BT
+    """Generate a realistic demo PDF report with properly calculated offsets."""
+    # Build PDF objects with dynamic content
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    # Build the stream content first to calculate its length
+    stream_content = f"""BT
 /F1 24 Tf
 50 700 Td
 (FixOps {report_type.title()} Report) Tj
@@ -228,28 +218,58 @@ BT
 /F1 14 Tf
 ({report_name}) Tj
 0 -30 Td
-(Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}) Tj
+(Generated: {timestamp}) Tj
 0 -50 Td
 (This is a demo report for testing purposes.) Tj
 ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 6
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000266 00000 n
-0000000518 00000 n
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-595
-%%EOF"""
+"""
+    stream_length = len(stream_content)
+
+    # Build PDF objects and track byte offsets
+    objects = []
+
+    # Object 1: Catalog
+    obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+    objects.append(obj1)
+
+    # Object 2: Pages
+    obj2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+    objects.append(obj2)
+
+    # Object 3: Page
+    obj3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n"
+    objects.append(obj3)
+
+    # Object 4: Content stream with calculated length
+    obj4 = f"4 0 obj\n<< /Length {stream_length} >>\nstream\n{stream_content}endstream\nendobj\n"
+    objects.append(obj4)
+
+    # Object 5: Font
+    obj5 = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+    objects.append(obj5)
+
+    # Build the body and calculate xref offsets
+    header = "%PDF-1.4\n"
+    body = "".join(objects)
+
+    # Calculate byte offsets for each object
+    offsets = []
+    current_offset = len(header)
+    for obj in objects:
+        offsets.append(current_offset)
+        current_offset += len(obj)
+
+    # Build xref table with calculated offsets
+    xref_offset = len(header) + len(body)
+    xref = "xref\n0 6\n"
+    xref += "0000000000 65535 f \n"
+    for offset in offsets:
+        xref += f"{offset:010d} 00000 n \n"
+
+    # Build trailer
+    trailer = f"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF"
+
+    pdf_content = header + body + xref + trailer
     return pdf_content.encode("latin-1")
 
 

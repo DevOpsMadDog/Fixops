@@ -33,12 +33,6 @@ export function getApiBaseUrl(): string {
     if (runtimeConfig?.apiUrl) {
       return runtimeConfig.apiUrl;
     }
-    
-    // For deployed apps, use the configured API URL
-    // This should be set in the app's environment
-    if (process.env.NEXT_PUBLIC_FIXOPS_API_URL) {
-      return process.env.NEXT_PUBLIC_FIXOPS_API_URL;
-    }
   }
   
   // Default to localhost for development
