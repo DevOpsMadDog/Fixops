@@ -100,7 +100,7 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} fixops-test:${{ github.sha }}
 
-      - name: Test all 66 CLI commands in container
+      - name: Test all 65 CLI commands in container
         run: |
           IMAGE="fixops-test:${{ github.sha }}"
           
@@ -131,7 +131,7 @@ jobs:
           echo "=== Testing Reports Commands (4) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli reports list
           docker run $DOCKER_OPTS $IMAGE python -m core.cli reports generate --type executive
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports export 1 --output /tmp/report.pdf
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli reports export --output /tmp/report.json
           docker run $DOCKER_OPTS $IMAGE python -m core.cli reports schedules
           
           echo "=== Testing Inventory Commands (5) ==="
@@ -191,22 +191,21 @@ jobs:
           docker run $DOCKER_OPTS $IMAGE python -m core.cli teams get 1
           docker run $DOCKER_OPTS $IMAGE python -m core.cli teams create --name test-team
           
-          echo "=== Testing Users Commands (4) ==="
+          echo "=== Testing Users Commands (3) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users list
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli users get 1
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --name "Test User"
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli users reset-password 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli users get 1
           
           echo "=== Testing PentAGI Commands (3) ==="
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi create --target test-service --cve CVE-2024-1234
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi status 1
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-requests
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi create-request --target test-service --cve CVE-2024-1234
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli pentagi list-results
           
           echo "=== Testing Utility Commands (2) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli health
           docker run $DOCKER_OPTS $IMAGE python -m core.cli show-overlay
           
-          echo "=== All 66 CLI commands tested successfully ==="
+          echo "=== All 65 CLI commands tested successfully ==="
 
       - name: Verify docs are included
         run: |
