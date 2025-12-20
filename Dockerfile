@@ -72,7 +72,6 @@ COPY docs/ ./docs/
 COPY cli/ ./cli/
 COPY evidence/ ./evidence/
 COPY lib4sbom/ ./lib4sbom/
-COPY tests/ ./tests/
 
 # Create data directory
 RUN mkdir -p /app/.fixops_data

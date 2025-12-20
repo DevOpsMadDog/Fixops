@@ -66,7 +66,12 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
 
   useEffect(() => {
     fetch('/app-urls.json')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        return res.json()
+      })
       .then((urls: AppUrls) => {
         setAppUrls(urls)
         
@@ -308,8 +313,9 @@ export default function EnterpriseShell({ children }: EnterpriseShellProps) {
       <div
         className="fixed top-16 left-0 bottom-0 w-64 bg-[#0f172a]/95 backdrop-blur-sm border-r border-white/10 transition-all duration-200 z-40"
         style={{
-          display: isDesktop || sidebarOpen ? 'block' : 'none',
-          transform: isDesktop || sidebarOpen ? 'translateX(0)' : 'translateX(-100%)'
+          transform: isDesktop || sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+          opacity: isDesktop || sidebarOpen ? 1 : 0,
+          pointerEvents: isDesktop || sidebarOpen ? 'auto' : 'none'
         }}
       >
         <div className="p-4 space-y-1 overflow-y-auto h-full">

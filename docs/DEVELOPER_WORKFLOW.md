@@ -332,7 +332,7 @@ jobs:
       
       # Run security scanners
       - name: Run SAST
-        run: semgrep --config auto --json > scan.sarif
+        run: semgrep --config auto --sarif > scan.sarif
       
       # FixOps decision gate
       - name: FixOps Release Gate
