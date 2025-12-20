@@ -21,6 +21,11 @@ export default function PentagiPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFindings, setShowFindings] = useState(false)
 
+  // Refresh data when mode changes
+  useEffect(() => {
+    refresh()
+  }, [mode])
+
   // Sync API data with component state when it changes, preserving filters
   useEffect(() => {
     setRequests(apiRequests)

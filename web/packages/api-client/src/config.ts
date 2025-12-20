@@ -70,9 +70,12 @@ export function getApiKey(): string | undefined {
  * Get the current system mode.
  */
 export function getSystemMode(): SystemMode {
-  // Check for environment variable
+  // Check for environment variable with validation
   if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_FIXOPS_MODE) {
-    return process.env.NEXT_PUBLIC_FIXOPS_MODE as SystemMode;
+    const envMode = process.env.NEXT_PUBLIC_FIXOPS_MODE;
+    if (envMode === 'demo' || envMode === 'enterprise') {
+      return envMode;
+    }
   }
   
   // Check for stored mode in localStorage

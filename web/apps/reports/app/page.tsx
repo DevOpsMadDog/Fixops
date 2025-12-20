@@ -163,6 +163,11 @@ export default function ReportsPage() {
   const [scheduleFilter, setScheduleFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
 
+  // Refresh data when mode changes
+  useEffect(() => {
+    refetch()
+  }, [mode])
+
   // Sync filtered reports when API data changes
   useEffect(() => {
     setFilteredReports(reports)
