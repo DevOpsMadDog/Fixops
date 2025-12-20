@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { usePentagiData } from './hooks/usePentagiData'
 import { PentestRequest } from './lib/apiClient'
 import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react'
@@ -21,10 +21,15 @@ export default function PentagiPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFindings, setShowFindings] = useState(false)
 
-  // Refresh data when mode changes
+  // Refresh data when mode changes - using ref to track if this is initial mount
+  const isInitialMount = useMemo(() => ({ current: true }), [])
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return // Skip initial mount since usePentagiData already fetches on mount
+    }
     refresh()
-  }, [mode])
+  }, [mode, refresh, isInitialMount])
 
   // Sync API data with component state when it changes, preserving filters
   useEffect(() => {
@@ -206,7 +211,7 @@ export default function PentagiPage() {
                 {['all', 'pending', 'in_progress', 'completed', 'cancelled'].map((status) => (
                   <button
                     key={status}
-                    onClick={() => { setStatusFilter(status); applyFilters(); }}
+                    onClick={() => setStatusFilter(status)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       statusFilter === status
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -234,7 +239,7 @@ export default function PentagiPage() {
               </div>
               <div className="space-y-2">
                 <button
-                  onClick={() => { setTypeFilter('all'); applyFilters(); }}
+                  onClick={() => setTypeFilter('all')}
                   className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                     typeFilter === 'all'
                       ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
@@ -247,7 +252,7 @@ export default function PentagiPage() {
                 {requestTypes.map((type) => (
                   <button
                     key={type}
-                    onClick={() => { setTypeFilter(type); applyFilters(); }}
+                    onClick={() => setTypeFilter(type)}
                     className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
                       typeFilter === type
                         ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'

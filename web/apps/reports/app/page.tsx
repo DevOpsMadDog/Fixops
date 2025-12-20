@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { FileText, Search, Plus, Download, Calendar, Clock, Filter, Play, Edit2, Trash2, CheckCircle, XCircle, RefreshCw, Settings, ToggleLeft, ToggleRight } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 import { useReports, useSystemMode, useReportDownload } from '@fixops/api-client'
@@ -153,8 +153,11 @@ export default function ReportsPage() {
     file_size: typeof r.file_size === 'number' ? r.file_size : undefined,
   }), [])
 
-  // Use API data if available, otherwise use fallback
-  const reports = apiReports?.items?.map(transformReport) || FALLBACK_REPORTS
+  // Use API data if available, otherwise use fallback - memoized to prevent unnecessary re-renders
+  const reports = useMemo(() => 
+    apiReports?.items?.map(transformReport) || FALLBACK_REPORTS,
+    [apiReports?.items, transformReport]
+  )
   const [filteredReports, setFilteredReports] = useState<Report[]>(reports)
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -163,10 +166,15 @@ export default function ReportsPage() {
   const [scheduleFilter, setScheduleFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  // Refresh data when mode changes
+  // Refresh data when mode changes - using ref to track if this is initial mount
+  const isInitialMount = useMemo(() => ({ current: true }), [])
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return // Skip initial mount since useApi already fetches on mount
+    }
     refetch()
-  }, [mode])
+  }, [mode, refetch, isInitialMount])
 
   // Sync filtered reports when API data changes
   useEffect(() => {
