@@ -2368,7 +2368,7 @@ def _handle_integrations(args: argparse.Namespace) -> int:
                     f"Error: --type is required when creating a new integration '{args.name}'"
                 )
                 print(
-                    "Available types: ticketing, messaging, scm, monitoring, notification, ci_cd"
+                    "Available types: ticketing, notification, documentation, alerting, scm"
                 )
                 conn.close()
                 return 1
