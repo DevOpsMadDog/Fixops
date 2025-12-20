@@ -218,8 +218,15 @@ jobs:
             -e FIXOPS_MODE=demo \
             fixops-test:${{ github.sha }}
           
-          # Wait for server to start
-          sleep 10
+          # Wait for server to start with retry loop
+          for i in {1..30}; do
+            if curl -sf http://localhost:8000/health; then
+              echo "Server is healthy!"
+              break
+            fi
+            echo "Waiting for server... attempt $i/30"
+            sleep 1
+          done
           
           # Test health endpoint
           curl -f http://localhost:8000/health || (docker logs fixops-api && exit 1)

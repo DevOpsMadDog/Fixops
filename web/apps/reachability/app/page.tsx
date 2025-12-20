@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Network, Search, AlertTriangle, CheckCircle, Clock, Filter, RefreshCw, Download, Target, Shield, Activity } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 
@@ -94,7 +94,6 @@ const DEMO_RESULTS: ReachabilityResult[] = [
 
 export default function ReachabilityPage() {
   const [results, setResults] = useState<ReachabilityResult[]>(DEMO_RESULTS)
-  const [filteredResults, setFilteredResults] = useState<ReachabilityResult[]>(DEMO_RESULTS)
   const [selectedResult, setSelectedResult] = useState<ReachabilityResult | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [reachabilityFilter, setReachabilityFilter] = useState<string>('all')
@@ -102,11 +101,8 @@ export default function ReachabilityPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [newCveInput, setNewCveInput] = useState('')
 
-  useEffect(() => {
-    applyFilters()
-  }, [searchQuery, reachabilityFilter, severityFilter, results])
-
-  const applyFilters = () => {
+  // Use useMemo instead of useEffect to derive filtered results
+  const filteredResults = useMemo(() => {
     let filtered = [...results]
 
     if (searchQuery) {
@@ -126,8 +122,8 @@ export default function ReachabilityPage() {
       filtered = filtered.filter(r => r.severity === severityFilter)
     }
 
-    setFilteredResults(filtered)
-  }
+    return filtered
+  }, [searchQuery, reachabilityFilter, severityFilter, results])
 
   const getSeverityColor = (severity: string) => {
     const colors = {

@@ -47,7 +47,7 @@
 | 14 | GET | `/api/v1/triage/export` | API-only (UI) | Decision |
 | 15 | GET | `/api/v1/graph` | API-only (visualization) | Decision |
 
-### 2. Pipeline Execution (apps/api/pipeline.py) - 3 endpoints
+### 2. Pipeline Execution (apps/api/pipeline.py) - 4 endpoints
 
 | # | Method | Endpoint | CLI Command | Workflow Stage |
 |---|--------|----------|-------------|----------------|
@@ -65,7 +65,7 @@
 | 22 | GET | `/api/v1/enhanced/capabilities` | `advanced-pentest capabilities` | Decision |
 | 23 | GET | `/api/v1/enhanced/signals` | API-only | Decision |
 
-### 4. Analytics (apps/api/analytics_router.py) - 14 endpoints
+### 4. Analytics (apps/api/analytics_router.py) - 16 endpoints
 
 | # | Method | Endpoint | CLI Command | Workflow Stage |
 |---|--------|----------|-------------|----------------|
@@ -301,7 +301,7 @@
 | 181 | GET | `/api/v1/auth/sso/{id}` | API-only (OAuth) | Admin |
 | 182 | PUT | `/api/v1/auth/sso/{id}` | API-only (OAuth) | Admin |
 
-### 22. Backend APIs (backend/api/) - 16 endpoints
+### 22. Backend APIs (backend/api/) - 17 endpoints
 
 | # | Method | Endpoint | CLI Command | Workflow Stage |
 |---|--------|----------|-------------|----------------|
@@ -472,7 +472,7 @@
 | `pentagi` | `create` | `POST /api/v1/pentagi/requests` | Create request |
 | `pentagi` | `status {id}` | `GET /api/v1/pentagi/requests/{id}` | Get status |
 
-### Utility Commands (5)
+### Utility Commands (4)
 
 | Command | Subcommand | API Equivalent | Description |
 |---------|------------|----------------|-------------|
