@@ -114,6 +114,7 @@ export default function RiskGraphPage() {
     return { nodes, edges }
   }, [])
 
+  const isUsingDemoData = !graphApiData?.nodes || graphApiData.nodes.length === 0
   const currentGraphData = useMemo(() => {
     if (graphApiData?.nodes && graphApiData.nodes.length > 0) {
       return transformApiData(graphApiData)
@@ -307,11 +308,16 @@ export default function RiskGraphPage() {
             </div>
           )}
           {apiError && !apiLoading && (
-            <div className="mt-2 text-xs text-amber-500">
-              Using demo data
+            <div className="mt-2 text-xs text-red-500">
+              API error - using demo data
             </div>
           )}
-          {graphApiData && !apiLoading && !apiError && (
+          {!apiLoading && !apiError && isUsingDemoData && (
+            <div className="mt-2 text-xs text-amber-500">
+              No pipeline data - using demo data
+            </div>
+          )}
+          {!apiLoading && !apiError && !isUsingDemoData && (
             <div className="mt-2 text-xs text-emerald-500">
               Live data ({mode} mode)
             </div>

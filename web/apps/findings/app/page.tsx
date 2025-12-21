@@ -172,6 +172,7 @@ export default function FindingDetailPage() {
   const { data: apiFinding, loading: apiLoading, error: apiError } = useFindingDetail(findingId)
   const { mode } = useSystemMode()
 
+  const isUsingDemoData = !apiFinding
   const findingData = useMemo((): FindingData => {
     if (apiFinding) {
       return {
@@ -250,11 +251,16 @@ export default function FindingDetailPage() {
                 </div>
               )}
               {apiError && !apiLoading && (
-                <div className="mb-2 text-xs text-amber-500">
-                  Using demo data
+                <div className="mb-2 text-xs text-red-500">
+                  API error - using demo data
                 </div>
               )}
-              {apiFinding && !apiLoading && !apiError && (
+              {!apiLoading && !apiError && isUsingDemoData && (
+                <div className="mb-2 text-xs text-amber-500">
+                  No pipeline data - using demo data
+                </div>
+              )}
+              {!apiLoading && !apiError && !isUsingDemoData && (
                 <div className="mb-2 text-xs text-emerald-500">
                   Live data ({mode} mode)
                 </div>

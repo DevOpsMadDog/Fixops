@@ -231,7 +231,7 @@ const DEMO_ISSUES: Issue[] = [
 ]
 
 export default function TriagePage() {
-  const { data: triageData, loading: apiLoading, error: apiError, refetch } = useTriage()
+  const { data: triageData, loading: apiLoading, error: apiError } = useTriage()
   const { mode } = useSystemMode()
 
   const transformApiData = useCallback((apiRows: NonNullable<typeof triageData>['rows']): Issue[] => {
@@ -257,6 +257,7 @@ export default function TriagePage() {
     }))
   }, [])
 
+  const isUsingDemoData = !triageData?.rows || triageData.rows.length === 0
   const issuesFromApi = useMemo(() => {
     if (triageData?.rows && triageData.rows.length > 0) {
       return transformApiData(triageData.rows)
@@ -769,11 +770,16 @@ export default function TriagePage() {
             </div>
           )}
           {apiError && !apiLoading && (
-            <div className="mt-2 text-xs text-amber-500">
-              Using demo data
+            <div className="mt-2 text-xs text-red-500">
+              API error - using demo data
             </div>
           )}
-          {triageData && !apiLoading && !apiError && (
+          {!apiLoading && !apiError && isUsingDemoData && (
+            <div className="mt-2 text-xs text-amber-500">
+              No pipeline data - using demo data
+            </div>
+          )}
+          {!apiLoading && !apiError && !isUsingDemoData && (
             <div className="mt-2 text-xs text-emerald-500">
               Live data ({mode} mode)
             </div>
