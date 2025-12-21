@@ -1,10 +1,35 @@
 'use client'
 
-import { useState } from 'react'
-import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useCompliance, useSystemMode } from '@fixops/api-client'
 
-const FRAMEWORKS = [
+interface Framework {
+  id: string
+  name: string
+  description: string
+  coverage: number
+  controls_total: number
+  controls_passing: number
+  controls_failing: number
+  last_audit: string
+  next_audit: string
+  status: string
+}
+
+interface ControlGap {
+  id: string
+  framework: string
+  control_id: string
+  control_name: string
+  description: string
+  severity: string
+  affected_services: string[]
+  remediation: string
+}
+
+const DEMO_FRAMEWORKS: Framework[] = [
   {
     id: 'soc2',
     name: 'SOC 2 Type II',
@@ -55,7 +80,7 @@ const FRAMEWORKS = [
   },
 ]
 
-const CONTROL_GAPS = [
+const DEMO_CONTROL_GAPS: ControlGap[] = [
   {
     id: 'gap1',
     framework: 'SOC 2',
@@ -109,8 +134,47 @@ const CONTROL_GAPS = [
 ]
 
 export default function CompliancePage() {
-  const [selectedFramework, setSelectedFramework] = useState<typeof FRAMEWORKS[0] | null>(null)
-  const [selectedGap, setSelectedGap] = useState<typeof CONTROL_GAPS[0] | null>(null)
+  const { data: complianceData, loading: apiLoading, error: apiError } = useCompliance()
+  const { mode } = useSystemMode()
+
+  const transformApiData = useCallback((apiData: NonNullable<typeof complianceData>): { frameworks: Framework[]; gaps: ControlGap[] } => {
+    const frameworksList = apiData.frameworks.map((f, index) => ({
+      id: f.id || `framework-${index}`,
+      name: f.name,
+      description: f.description,
+      coverage: Math.round((f.controls_passed / f.controls_total) * 100) || 0,
+      controls_total: f.controls_total,
+      controls_passing: f.controls_passed,
+      controls_failing: f.controls_failed,
+      last_audit: f.last_assessed || new Date().toISOString().split('T')[0],
+      next_audit: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+      status: 'active',
+    }))
+
+    const gapsList = apiData.gaps.map((g, index) => ({
+      id: `gap-${index}`,
+      framework: g.framework,
+      control_id: g.control_id,
+      control_name: g.description.split(':')[0] || g.description,
+      description: g.description,
+      severity: g.severity,
+      affected_services: ['Affected services'],
+      remediation: g.remediation,
+    }))
+
+    return { frameworks: frameworksList, gaps: gapsList }
+  }, [])
+
+  const { frameworks, controlGaps } = useMemo(() => {
+    if (complianceData?.frameworks && complianceData.frameworks.length > 0) {
+      const data = transformApiData(complianceData)
+      return { frameworks: data.frameworks, controlGaps: data.gaps }
+    }
+    return { frameworks: DEMO_FRAMEWORKS, controlGaps: DEMO_CONTROL_GAPS }
+  }, [complianceData, transformApiData])
+
+  const [selectedFramework, setSelectedFramework] = useState<Framework | null>(null)
+  const [selectedGap, setSelectedGap] = useState<ControlGap | null>(null)
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -146,6 +210,22 @@ export default function CompliancePage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Framework coverage & gaps</p>
+          {apiLoading && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+              <Loader2 size={12} className="animate-spin" />
+              <span>Loading from API...</span>
+            </div>
+          )}
+          {apiError && !apiLoading && (
+            <div className="mt-2 text-xs text-amber-500">
+              Using demo data
+            </div>
+          )}
+          {complianceData && !apiLoading && !apiError && (
+            <div className="mt-2 text-xs text-emerald-500">
+              Live data ({mode} mode)
+            </div>
+          )}
         </div>
 
         {/* Summary Stats */}
@@ -153,23 +233,23 @@ export default function CompliancePage() {
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Frameworks</div>
-              <div className="text-xl font-semibold text-[#6B5AED]">{FRAMEWORKS.length}</div>
+              <div className="text-xl font-semibold text-[#6B5AED]">{frameworks.length}</div>
             </div>
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Avg Coverage</div>
               <div className="text-xl font-semibold text-green-500">
-                {Math.round(FRAMEWORKS.reduce((sum, f) => sum + f.coverage, 0) / FRAMEWORKS.length)}%
+                {frameworks.length > 0 ? Math.round(frameworks.reduce((sum, f) => sum + f.coverage, 0) / frameworks.length) : 0}%
               </div>
             </div>
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Total Controls</div>
               <div className="text-xl font-semibold text-slate-300">
-                {FRAMEWORKS.reduce((sum, f) => sum + f.controls_total, 0)}
+                {frameworks.reduce((sum, f) => sum + f.controls_total, 0)}
               </div>
             </div>
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Control Gaps</div>
-              <div className="text-xl font-semibold text-red-500">{CONTROL_GAPS.length}</div>
+              <div className="text-xl font-semibold text-red-500">{controlGaps.length}</div>
             </div>
           </div>
         </div>
@@ -180,7 +260,7 @@ export default function CompliancePage() {
             Active Frameworks
           </div>
           <div className="space-y-2">
-            {FRAMEWORKS.map((framework) => (
+            {frameworks.map((framework) => (
               <button
                 key={framework.id}
                 onClick={() => setSelectedFramework(framework)}
@@ -251,7 +331,7 @@ export default function CompliancePage() {
           {!selectedFramework ? (
             /* Overview Grid */
             <div className="grid grid-cols-2 gap-6">
-              {FRAMEWORKS.map((framework) => (
+              {frameworks.map((framework) => (
                 <div
                   key={framework.id}
                   onClick={() => setSelectedFramework(framework)}
@@ -378,7 +458,7 @@ export default function CompliancePage() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Control Gaps</h3>
                 <div className="space-y-3">
-                  {CONTROL_GAPS.filter(gap => gap.framework === selectedFramework.name).map((gap) => (
+                  {controlGaps.filter(gap => gap.framework === selectedFramework.name).map((gap) => (
                     <div
                       key={gap.id}
                       onClick={() => setSelectedGap(gap)}

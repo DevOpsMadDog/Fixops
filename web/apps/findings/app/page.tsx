@@ -1,10 +1,92 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ExternalLink, Copy, ArrowLeft } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { ExternalLink, Copy, ArrowLeft, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useFindingDetail, useSystemMode } from '@fixops/api-client'
 
-const FINDING_DETAIL = {
+function useUrlParam(param: string): string | null {
+  const [value] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      return params.get(param)
+    }
+    return null
+  })
+  return value
+}
+
+interface FindingData {
+  id: string
+  title: string
+  severity: string
+  cve_id?: string
+  cvss_score?: number
+  cvss_vector?: string
+  description: string
+  discovered?: string
+  published?: string
+  last_modified?: string
+  age?: number
+  kev?: boolean
+  epss_score?: number
+  exploitability?: {
+    attack_vector: string
+    attack_complexity: string
+    privileges_required: string
+    user_interaction: string
+    scope: string
+  }
+  impact?: {
+    confidentiality: string
+    integrity: string
+    availability: string
+  }
+  affected_services?: Array<{
+    name: string
+    version: string
+    exposure: string
+    criticality: string
+  }>
+  ssvc_decision?: {
+    verdict: string
+    confidence: number
+    outcome: string
+    rationale: string
+    signals: Array<{
+      key: string
+      value: string
+      weight: string
+    }>
+  }
+  evidence_bundle?: {
+    id: string
+    signature: string
+    checksum: string
+    retention: string
+  }
+  compliance_mappings?: Array<{
+    framework: string
+    control_id: string
+    control_name: string
+  }>
+  remediation?: {
+    priority: string
+    effort: string
+    steps: string[]
+    references: Array<{
+      title: string
+      url: string
+    }>
+  }
+  timeline?: Array<{
+    date: string
+    event: string
+    type: string
+  }>
+}
+
+const DEMO_FINDING_DETAIL: FindingData = {
   id: '1',
   title: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
   severity: 'critical',
@@ -85,12 +167,39 @@ const FINDING_DETAIL = {
 
 export default function FindingDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
+  const findingId = useUrlParam('id')
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const id = params.get('id')
-    console.log('Finding ID:', id)
-  }, [])
+  const { data: apiFinding, loading: apiLoading, error: apiError } = useFindingDetail(findingId)
+  const { mode } = useSystemMode()
+
+  const findingData = useMemo((): FindingData => {
+    if (apiFinding) {
+      return {
+        id: apiFinding.id,
+        title: apiFinding.title,
+        severity: apiFinding.severity,
+        cve_id: apiFinding.cve_id,
+        cvss_score: apiFinding.cvss_score,
+        cvss_vector: apiFinding.cvss_vector,
+        description: apiFinding.description,
+        discovered: apiFinding.discovered,
+        published: apiFinding.published,
+        last_modified: apiFinding.last_modified,
+        age: apiFinding.age,
+        kev: apiFinding.kev,
+        epss_score: apiFinding.epss_score,
+        exploitability: apiFinding.exploitability,
+        impact: apiFinding.impact,
+        affected_services: apiFinding.affected_services,
+        ssvc_decision: apiFinding.ssvc_decision,
+        evidence_bundle: apiFinding.evidence_bundle,
+        compliance_mappings: apiFinding.compliance_mappings,
+        remediation: apiFinding.remediation,
+        timeline: apiFinding.timeline,
+      }
+    }
+    return DEMO_FINDING_DETAIL
+  }, [apiFinding])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -134,25 +243,41 @@ export default function FindingDetailPage() {
               <ArrowLeft size={18} />
             </button>
             <div>
+              {apiLoading && (
+                <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
+                  <Loader2 size={12} className="animate-spin" />
+                  <span>Loading from API...</span>
+                </div>
+              )}
+              {apiError && !apiLoading && (
+                <div className="mb-2 text-xs text-amber-500">
+                  Using demo data
+                </div>
+              )}
+              {apiFinding && !apiLoading && !apiError && (
+                <div className="mb-2 text-xs text-emerald-500">
+                  Live data ({mode} mode)
+                </div>
+              )}
               <div className="flex items-center gap-3 mb-2">
                 <div
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: getSeverityColor(FINDING_DETAIL.severity) }}
+                  style={{ backgroundColor: getSeverityColor(findingData.severity) }}
                 ></div>
                 <span
                   className="text-sm font-semibold uppercase tracking-wider"
-                  style={{ color: getSeverityColor(FINDING_DETAIL.severity) }}
+                  style={{ color: getSeverityColor(findingData.severity) }}
                 >
-                  {FINDING_DETAIL.severity}
+                  {findingData.severity}
                 </span>
-                {FINDING_DETAIL.kev && (
+                {findingData.kev && (
                   <span className="px-2 py-1 bg-amber-500/20 border border-amber-500/30 rounded text-xs font-semibold text-amber-300">
                     KEV - Known Exploited
                   </span>
                 )}
-                <span className="text-xs text-slate-500 font-mono">{FINDING_DETAIL.cve_id}</span>
+                <span className="text-xs text-slate-500 font-mono">{findingData.cve_id}</span>
               </div>
-              <h1 className="text-xl font-semibold">{FINDING_DETAIL.title}</h1>
+              <h1 className="text-xl font-semibold">{findingData.title}</h1>
             </div>
           </div>
           <div className="flex gap-2">
@@ -193,20 +318,20 @@ export default function FindingDetailPage() {
               <div className="grid grid-cols-4 gap-4">
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">CVSS Score</div>
-                  <div className="text-2xl font-bold text-red-500">{FINDING_DETAIL.cvss_score}</div>
+                  <div className="text-2xl font-bold text-red-500">{findingData.cvss_score}</div>
                 </div>
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">EPSS Score</div>
-                  <div className="text-2xl font-bold text-amber-500">{(FINDING_DETAIL.epss_score * 100).toFixed(0)}%</div>
+                  <div className="text-2xl font-bold text-amber-500">{(findingData.epss_score * 100).toFixed(0)}%</div>
                 </div>
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">Affected Services</div>
-                  <div className="text-2xl font-bold text-slate-300">{FINDING_DETAIL.affected_services.length}</div>
+                  <div className="text-2xl font-bold text-slate-300">{findingData.affected_services.length}</div>
                 </div>
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">Age</div>
                   <div className="text-2xl font-bold text-slate-300">
-                    {FINDING_DETAIL.age}d
+                    {findingData.age}d
                   </div>
                 </div>
               </div>
@@ -214,7 +339,7 @@ export default function FindingDetailPage() {
               {/* Description */}
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-3">Description</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">{FINDING_DETAIL.description}</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{findingData.description}</p>
               </div>
 
               {/* SSVC Decision */}
@@ -223,28 +348,28 @@ export default function FindingDetailPage() {
                 <div
                   className="p-4 rounded-md border-2 mb-4"
                   style={{
-                    backgroundColor: `${getVerdictColor(FINDING_DETAIL.ssvc_decision.verdict)}10`,
-                    borderColor: `${getVerdictColor(FINDING_DETAIL.ssvc_decision.verdict)}30`,
+                    backgroundColor: `${getVerdictColor(findingData.ssvc_decision.verdict)}10`,
+                    borderColor: `${getVerdictColor(findingData.ssvc_decision.verdict)}30`,
                   }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className="text-lg font-semibold uppercase tracking-wider"
-                      style={{ color: getVerdictColor(FINDING_DETAIL.ssvc_decision.verdict) }}
+                      style={{ color: getVerdictColor(findingData.ssvc_decision.verdict) }}
                     >
-                      {FINDING_DETAIL.ssvc_decision.verdict}
+                      {findingData.ssvc_decision.verdict}
                     </span>
                     <span className="text-sm text-slate-400">
-                      {FINDING_DETAIL.ssvc_decision.confidence}% confidence
+                      {findingData.ssvc_decision.confidence}% confidence
                     </span>
                   </div>
                   <div className="text-sm text-slate-300 mb-3">
-                    SSVC Outcome: <span className="font-semibold">{FINDING_DETAIL.ssvc_decision.outcome}</span>
+                    SSVC Outcome: <span className="font-semibold">{findingData.ssvc_decision.outcome}</span>
                   </div>
-                  <p className="text-sm text-slate-300 leading-relaxed">{FINDING_DETAIL.ssvc_decision.rationale}</p>
+                  <p className="text-sm text-slate-300 leading-relaxed">{findingData.ssvc_decision.rationale}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {FINDING_DETAIL.ssvc_decision.signals.map((signal, idx) => (
+                  {findingData.ssvc_decision.signals.map((signal, idx) => (
                     <span
                       key={idx}
                       className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-md text-xs font-mono text-slate-300"
@@ -259,7 +384,7 @@ export default function FindingDetailPage() {
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Affected Services</h3>
                 <div className="space-y-3">
-                  {FINDING_DETAIL.affected_services.map((service, idx) => (
+                  {findingData.affected_services.map((service, idx) => (
                     <div key={idx} className="p-4 bg-white/5 rounded-md border border-white/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-mono text-white">{service.name}</span>
@@ -292,13 +417,13 @@ export default function FindingDetailPage() {
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">CVSS Vector</h3>
                 <div className="p-3 bg-black/20 rounded-md border border-white/10 mb-4">
-                  <code className="text-sm font-mono text-slate-300">{FINDING_DETAIL.cvss_vector}</code>
+                  <code className="text-sm font-mono text-slate-300">{findingData.cvss_vector}</code>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="text-sm font-semibold text-slate-300 mb-3">Exploitability Metrics</h4>
                     <div className="space-y-2">
-                      {Object.entries(FINDING_DETAIL.exploitability).map(([key, value]) => (
+                      {Object.entries(findingData.exploitability).map(([key, value]) => (
                         <div key={key} className="flex justify-between text-sm">
                           <span className="text-slate-400">{key.replace(/_/g, ' ')}</span>
                           <span className="text-white font-medium">{value}</span>
@@ -309,7 +434,7 @@ export default function FindingDetailPage() {
                   <div>
                     <h4 className="text-sm font-semibold text-slate-300 mb-3">Impact Metrics</h4>
                     <div className="space-y-2">
-                      {Object.entries(FINDING_DETAIL.impact).map(([key, value]) => (
+                      {Object.entries(findingData.impact).map(([key, value]) => (
                         <div key={key} className="flex justify-between text-sm">
                           <span className="text-slate-400">{key}</span>
                           <span className="text-white font-medium">{value}</span>
@@ -328,7 +453,7 @@ export default function FindingDetailPage() {
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Remediation Steps</h3>
                 <div className="space-y-3">
-                  {FINDING_DETAIL.remediation.steps.map((step, idx) => (
+                  {findingData.remediation.steps.map((step, idx) => (
                     <div key={idx} className="flex gap-3">
                       <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#6B5AED]/20 border border-[#6B5AED]/30 flex items-center justify-center text-xs font-semibold text-[#6B5AED]">
                         {idx + 1}
@@ -342,7 +467,7 @@ export default function FindingDetailPage() {
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">References</h3>
                 <div className="space-y-2">
-                  {FINDING_DETAIL.remediation.references.map((ref, idx) => (
+                  {findingData.remediation.references.map((ref, idx) => (
                     <a
                       key={idx}
                       href={ref.url}
@@ -367,27 +492,27 @@ export default function FindingDetailPage() {
                 <div className="space-y-3">
                   <div className="p-3 bg-white/5 rounded-md">
                     <div className="text-xs text-slate-500 mb-1">Bundle ID</div>
-                    <div className="text-sm text-slate-300 font-mono">{FINDING_DETAIL.evidence_bundle.id}</div>
+                    <div className="text-sm text-slate-300 font-mono">{findingData.evidence_bundle.id}</div>
                   </div>
                   <div className="p-3 bg-white/5 rounded-md">
                     <div className="text-xs text-slate-500 mb-1">Signature</div>
-                    <div className="text-sm text-slate-300 font-mono">{FINDING_DETAIL.evidence_bundle.signature}</div>
+                    <div className="text-sm text-slate-300 font-mono">{findingData.evidence_bundle.signature}</div>
                   </div>
                   <div className="p-3 bg-white/5 rounded-md">
                     <div className="flex items-center justify-between mb-1">
                       <div className="text-xs text-slate-500">SHA256 Checksum</div>
                       <button
-                        onClick={() => navigator.clipboard.writeText(FINDING_DETAIL.evidence_bundle.checksum)}
+                        onClick={() => navigator.clipboard.writeText(findingData.evidence_bundle.checksum)}
                         className="text-[#6B5AED] hover:text-[#5B4ADD] transition-colors"
                       >
                         <Copy size={12} />
                       </button>
                     </div>
-                    <div className="text-xs text-slate-300 font-mono break-all">{FINDING_DETAIL.evidence_bundle.checksum}</div>
+                    <div className="text-xs text-slate-300 font-mono break-all">{findingData.evidence_bundle.checksum}</div>
                   </div>
                   <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
                     <div className="text-xs text-slate-500 mb-1">Retention</div>
-                    <div className="text-sm text-amber-300 font-semibold">{FINDING_DETAIL.evidence_bundle.retention}</div>
+                    <div className="text-sm text-amber-300 font-semibold">{findingData.evidence_bundle.retention}</div>
                   </div>
                 </div>
               </div>
@@ -395,7 +520,7 @@ export default function FindingDetailPage() {
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Compliance Mappings</h3>
                 <div className="space-y-2">
-                  {FINDING_DETAIL.compliance_mappings.map((mapping, idx) => (
+                  {findingData.compliance_mappings.map((mapping, idx) => (
                     <div key={idx} className="p-3 bg-white/5 rounded-md border border-white/10">
                       <div className="flex items-center justify-between">
                         <div>
@@ -418,7 +543,7 @@ export default function FindingDetailPage() {
               <div className="relative">
                 <div className="absolute left-4 top-0 bottom-0 w-px bg-white/10"></div>
                 <div className="space-y-4">
-                  {FINDING_DETAIL.timeline.map((event, idx) => (
+                  {findingData.timeline.map((event, idx) => (
                     <div key={idx} className="relative pl-12">
                       <div className="absolute left-2.5 top-2 w-3 h-3 rounded-full bg-[#6B5AED] border-4 border-[#0f172a]"></div>
                       <div className="p-3 bg-white/5 rounded-md">

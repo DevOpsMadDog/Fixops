@@ -1,16 +1,32 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import EnterpriseShell from './components/EnterpriseShell'
-import { AlertCircle, Shield, Code, XCircle, Filter, Search, Layers, ArrowLeft } from 'lucide-react'
+import { AlertCircle, Shield, Code, XCircle, Filter, Search, Layers, ArrowLeft, Loader2 } from 'lucide-react'
+import { useGraph, useSystemMode } from '@fixops/api-client'
 
 const CytoscapeComponent = dynamic(
   () => import('react-cytoscapejs'),
   { ssr: false }
 )
 
-const DEMO_GRAPH_DATA = {
+interface GraphNodeData {
+  id: string
+  label: string
+  type: string
+  severity?: string
+  kev?: boolean
+  epss?: number
+  internet_facing?: boolean
+}
+
+interface GraphEdgeData {
+  source: string
+  target: string
+}
+
+const DEMO_GRAPH_DATA: { nodes: { data: GraphNodeData }[]; edges: { data: GraphEdgeData }[] } = {
   nodes: [
     { data: { id: 's1', label: 'payment-api', type: 'service', severity: 'critical', internet_facing: true } },
     { data: { id: 's2', label: 'user-service', type: 'service', severity: 'high', internet_facing: true } },
@@ -72,6 +88,39 @@ interface SelectedNodeData {
 }
 
 export default function RiskGraphPage() {
+  const { data: graphApiData, loading: apiLoading, error: apiError } = useGraph()
+  const { mode } = useSystemMode()
+
+  const transformApiData = useCallback((apiData: NonNullable<typeof graphApiData>): typeof DEMO_GRAPH_DATA => {
+    const nodes = apiData.nodes.map(node => ({
+      data: {
+        id: node.id,
+        label: node.label,
+        type: node.type,
+        severity: node.severity,
+        kev: node.kev,
+        epss: node.epss,
+        internet_facing: node.internet_facing,
+      }
+    }))
+
+    const edges = apiData.edges.map(edge => ({
+      data: {
+        source: edge.source,
+        target: edge.target,
+      }
+    }))
+
+    return { nodes, edges }
+  }, [])
+
+  const currentGraphData = useMemo(() => {
+    if (graphApiData?.nodes && graphApiData.nodes.length > 0) {
+      return transformApiData(graphApiData)
+    }
+    return DEMO_GRAPH_DATA
+  }, [graphApiData, transformApiData])
+
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null)
   const [filters, setFilters] = useState({
     kev_only: false,
@@ -167,8 +216,8 @@ export default function RiskGraphPage() {
   }
 
   const graphData = useMemo(() => {
-    let filteredNodes = [...DEMO_GRAPH_DATA.nodes]
-    let filteredEdges = [...DEMO_GRAPH_DATA.edges]
+    let filteredNodes = [...currentGraphData.nodes]
+    let filteredEdges = [...currentGraphData.edges]
 
     if (filters.kev_only) {
       const kevNodeIds = filteredNodes
@@ -224,14 +273,14 @@ export default function RiskGraphPage() {
       nodes: filteredNodes,
       edges: filteredEdges,
     }
-  }, [filters, searchQuery])
+  }, [filters, searchQuery, currentGraphData])
 
-  const summary = {
-    services: DEMO_GRAPH_DATA.nodes.filter(n => n.data.type === 'service').length,
-    components: DEMO_GRAPH_DATA.nodes.filter(n => n.data.type === 'component').length,
-    issues: DEMO_GRAPH_DATA.nodes.filter(n => n.data.type === 'cve' || n.data.type === 'sast').length,
-    kev: DEMO_GRAPH_DATA.nodes.filter(n => n.data.kev).length,
-  }
+  const summary = useMemo(() => ({
+    services: currentGraphData.nodes.filter(n => n.data.type === 'service').length,
+    components: currentGraphData.nodes.filter(n => n.data.type === 'component').length,
+    issues: currentGraphData.nodes.filter(n => n.data.type === 'cve' || n.data.type === 'sast').length,
+    kev: currentGraphData.nodes.filter(n => n.data.kev).length,
+  }), [currentGraphData])
 
   return (
     <EnterpriseShell>
@@ -251,6 +300,22 @@ export default function RiskGraphPage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Interactive visualization</p>
+          {apiLoading && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+              <Loader2 size={12} className="animate-spin" />
+              <span>Loading from API...</span>
+            </div>
+          )}
+          {apiError && !apiLoading && (
+            <div className="mt-2 text-xs text-amber-500">
+              Using demo data
+            </div>
+          )}
+          {graphApiData && !apiLoading && !apiError && (
+            <div className="mt-2 text-xs text-emerald-500">
+              Live data ({mode} mode)
+            </div>
+          )}
         </div>
 
         {/* Summary Stats */}

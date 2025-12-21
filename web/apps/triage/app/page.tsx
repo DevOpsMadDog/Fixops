@@ -1,10 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useTriage, useSystemMode } from '@fixops/api-client'
 
-const DEMO_ISSUES = [
+interface Issue {
+  id: string
+  title: string
+  assignee: string
+  tags: string[]
+  sla_date: string
+  severity: string
+  source: string
+  repo: string
+  location: string
+  exploitability: { kev: boolean; epss: number }
+  internet_facing: boolean
+  age_days: number
+  business_criticality: string
+  description: string
+  remediation: string
+}
+
+const DEMO_ISSUES: Issue[] = [
   {
     id: '1',
     title: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
@@ -212,9 +231,42 @@ const DEMO_ISSUES = [
 ]
 
 export default function TriagePage() {
-  const [issues, setIssues] = useState(DEMO_ISSUES)
-  const [filteredIssues, setFilteredIssues] = useState(DEMO_ISSUES)
-  const [selectedIssue, setSelectedIssue] = useState<typeof DEMO_ISSUES[0] | null>(null)
+  const { data: triageData, loading: apiLoading, error: apiError, refetch } = useTriage()
+  const { mode } = useSystemMode()
+
+  const transformApiData = useCallback((apiRows: NonNullable<typeof triageData>['rows']): Issue[] => {
+    return apiRows.map((row, index) => ({
+      id: row.id || String(index + 1),
+      title: row.title || 'Unknown Issue',
+      assignee: 'security-team',
+      tags: [row.severity, row.source.toLowerCase()].filter(Boolean),
+      sla_date: new Date(Date.now() + (row.age_days > 7 ? 0 : (7 - row.age_days) * 86400000)).toISOString().split('T')[0],
+      severity: row.severity || 'medium',
+      source: row.source || 'Unknown',
+      repo: row.repo || 'unknown',
+      location: row.location || 'unknown',
+      exploitability: {
+        kev: row.exploitability?.kev ?? false,
+        epss: row.exploitability?.epss ?? 0,
+      },
+      internet_facing: row.internet_facing ?? false,
+      age_days: row.age_days ?? 0,
+      business_criticality: row.internet_facing ? 'high' : 'medium',
+      description: row.description || '',
+      remediation: row.remediation || '',
+    }))
+  }, [])
+
+  const issuesFromApi = useMemo(() => {
+    if (triageData?.rows && triageData.rows.length > 0) {
+      return transformApiData(triageData.rows)
+    }
+    return DEMO_ISSUES
+  }, [triageData, transformApiData])
+
+  const [issues, setIssues] = useState<Issue[]>(DEMO_ISSUES)
+  const [filteredIssues, setFilteredIssues] = useState<Issue[]>(DEMO_ISSUES)
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set())
   const [focusedIndex, setFocusedIndex] = useState(0)
   const [feedView, setFeedView] = useState('all')
@@ -352,6 +404,13 @@ export default function TriagePage() {
       setSelectedIssues(new Set(filteredIssues.map(i => i.id)))
     }
   }
+
+  useEffect(() => {
+    if (issuesFromApi !== issues) {
+      setIssues(issuesFromApi)
+      setFilteredIssues(issuesFromApi)
+    }
+  }, [issuesFromApi])
 
   useEffect(() => {
     applyFilters()
@@ -703,6 +762,22 @@ export default function TriagePage() {
         <div className="p-6 border-b border-white/10">
           <h2 className="text-lg font-semibold text-[#6B5AED]">FixOps</h2>
           <p className="text-xs text-slate-500 mt-1">Security Triage</p>
+          {apiLoading && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+              <Loader2 size={12} className="animate-spin" />
+              <span>Loading from API...</span>
+            </div>
+          )}
+          {apiError && !apiLoading && (
+            <div className="mt-2 text-xs text-amber-500">
+              Using demo data
+            </div>
+          )}
+          {triageData && !apiLoading && !apiError && (
+            <div className="mt-2 text-xs text-emerald-500">
+              Live data ({mode} mode)
+            </div>
+          )}
         </div>
 
         {/* Feed Navigation */}

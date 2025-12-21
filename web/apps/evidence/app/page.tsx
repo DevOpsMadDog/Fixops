@@ -1,10 +1,39 @@
 'use client'
 
-import { useState } from 'react'
-import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock } from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
+import { useEvidence, useSystemMode } from '@fixops/api-client'
 
-const EVIDENCE_BUNDLES = [
+interface EvidenceBundle {
+  id: string
+  timestamp: string
+  issue_id: string
+  issue_title: string
+  severity: string
+  decision: {
+    verdict: string
+    confidence: number
+    outcome: string
+  }
+  signature: {
+    algorithm: string
+    public_key_id: string
+    signature_hex: string
+  }
+  retention: {
+    mode: string
+    days: number
+    retained_until: string
+  }
+  checksum: {
+    algorithm: string
+    value: string
+  }
+  size_bytes: number
+}
+
+const DEMO_EVIDENCE_BUNDLES: EvidenceBundle[] = [
   {
     id: 'eb-2024-001-a3f9c8',
     timestamp: '2024-11-21T10:30:00Z',
@@ -143,8 +172,48 @@ const EVIDENCE_BUNDLES = [
 ]
 
 export default function EvidencePage() {
-  const [selectedBundle, setSelectedBundle] = useState<typeof EVIDENCE_BUNDLES[0] | null>(null)
+  const [selectedBundle, setSelectedBundle] = useState<EvidenceBundle | null>(null)
   const [filterSeverity, setFilterSeverity] = useState<string>('all')
+
+  const { data: evidenceData, loading: apiLoading, error: apiError } = useEvidence()
+  const { mode } = useSystemMode()
+
+  const transformApiData = useCallback((apiData: NonNullable<typeof evidenceData>): EvidenceBundle[] => {
+    return apiData.bundles.map((bundle, index) => ({
+      id: bundle.id || `eb-${index}`,
+      timestamp: bundle.timestamp || new Date().toISOString(),
+      issue_id: bundle.issue_id || String(index + 1),
+      issue_title: bundle.issue_title || 'Unknown Issue',
+      severity: bundle.severity || 'medium',
+      decision: {
+        verdict: bundle.decision?.verdict || 'review',
+        confidence: bundle.decision?.confidence ?? 0,
+        outcome: bundle.decision?.outcome || 'scheduled',
+      },
+      signature: {
+        algorithm: bundle.signature?.algorithm || 'RSA-SHA256',
+        public_key_id: bundle.signature?.public_key_id || 'fixops-prod-2024',
+        signature_hex: bundle.signature?.signature_hex || '',
+      },
+      retention: {
+        mode: bundle.retention?.mode || 'demo',
+        days: bundle.retention?.days ?? 90,
+        retained_until: bundle.retention?.retained_until || new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
+      },
+      checksum: {
+        algorithm: bundle.checksum?.algorithm || 'SHA256',
+        value: bundle.checksum?.value || '',
+      },
+      size_bytes: bundle.size_bytes ?? 0,
+    }))
+  }, [])
+
+  const evidenceBundles = useMemo(() => {
+    if (evidenceData?.bundles && evidenceData.bundles.length > 0) {
+      return transformApiData(evidenceData)
+    }
+    return DEMO_EVIDENCE_BUNDLES
+  }, [evidenceData, transformApiData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -182,8 +251,8 @@ export default function EvidencePage() {
   }
 
   const filteredBundles = filterSeverity === 'all' 
-    ? EVIDENCE_BUNDLES 
-    : EVIDENCE_BUNDLES.filter(b => b.severity === filterSeverity)
+    ? evidenceBundles 
+    : evidenceBundles.filter(b => b.severity === filterSeverity)
 
   return (
     <EnterpriseShell>
@@ -203,6 +272,22 @@ export default function EvidencePage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Cryptographically-signed bundles</p>
+          {apiLoading && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+              <Loader2 size={12} className="animate-spin" />
+              <span>Loading from API...</span>
+            </div>
+          )}
+          {apiError && !apiLoading && (
+            <div className="mt-2 text-xs text-amber-500">
+              Using demo data
+            </div>
+          )}
+          {evidenceData && !apiLoading && !apiError && (
+            <div className="mt-2 text-xs text-emerald-500">
+              Live data ({mode} mode)
+            </div>
+          )}
         </div>
 
         {/* Summary Stats */}
@@ -210,7 +295,7 @@ export default function EvidencePage() {
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Total Bundles</div>
-              <div className="text-xl font-semibold text-[#6B5AED]">{EVIDENCE_BUNDLES.length}</div>
+              <div className="text-xl font-semibold text-[#6B5AED]">{evidenceBundles.length}</div>
             </div>
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Retention</div>
@@ -219,13 +304,13 @@ export default function EvidencePage() {
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">Critical</div>
               <div className="text-xl font-semibold text-red-500">
-                {EVIDENCE_BUNDLES.filter(b => b.severity === 'critical').length}
+                {evidenceBundles.filter(b => b.severity === 'critical').length}
               </div>
             </div>
             <div className="p-3 bg-white/5 rounded-md">
               <div className="text-slate-500 mb-1">High</div>
               <div className="text-xl font-semibold text-orange-500">
-                {EVIDENCE_BUNDLES.filter(b => b.severity === 'high').length}
+                {evidenceBundles.filter(b => b.severity === 'high').length}
               </div>
             </div>
           </div>
@@ -250,11 +335,11 @@ export default function EvidencePage() {
                 <span className="capitalize">{severity}</span>
                 {severity !== 'all' && (
                   <span className="ml-2 text-xs">
-                    ({EVIDENCE_BUNDLES.filter(b => b.severity === severity).length})
+                    ({evidenceBundles.filter(b => b.severity === severity).length})
                   </span>
                 )}
                 {severity === 'all' && (
-                  <span className="ml-2 text-xs">({EVIDENCE_BUNDLES.length})</span>
+                  <span className="ml-2 text-xs">({evidenceBundles.length})</span>
                 )}
               </button>
             ))}

@@ -517,3 +517,236 @@ export function useAuditLogs(options?: {
     },
   });
 }
+
+/**
+ * Hook for triage data from pipeline results.
+ */
+export function useTriage() {
+  return useApi<{
+    rows: Array<{
+      id: string;
+      severity: string;
+      title: string;
+      source: string;
+      repo: string;
+      location: string;
+      exploitability: {
+        kev: boolean;
+        epss: number;
+      };
+      age_days: number;
+      internet_facing: boolean;
+      description: string;
+      remediation: string;
+      evidence_bundle: {
+        id: string;
+        signature_algorithm: string;
+        retention_days: number;
+        retained_until: string;
+        sha256: string;
+      };
+      decision: {
+        verdict: string;
+        confidence: number;
+        ssvc_outcome: string;
+        rationale: string;
+        signals: Record<string, unknown>;
+      };
+      compliance_mappings: Array<{
+        framework: string;
+        control: string;
+        description: string;
+      }>;
+    }>;
+    summary: {
+      total: number;
+      new_7d: number;
+      high_critical: number;
+      exploitable: number;
+      internet_facing: number;
+    };
+  }>('/api/v1/triage');
+}
+
+/**
+ * Hook for triage export.
+ */
+export function useTriageExport() {
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportTriage = useCallback(async (format: 'csv' | 'json' = 'csv', filename?: string) => {
+    setExporting(true);
+    setError(null);
+    
+    try {
+      const client = getApiClient();
+      await client.download(
+        `/api/v1/triage/export?format=${format}`,
+        filename || `fixops-triage-export.${format}`
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
+  return { exportTriage, exporting, error };
+}
+
+/**
+ * Hook for risk graph data from pipeline results.
+ */
+export function useGraph() {
+  return useApi<{
+    nodes: Array<{
+      id: string;
+      type: string;
+      label: string;
+      severity?: string;
+      criticality?: string;
+      exposure?: string;
+      internet_facing?: boolean;
+      has_pii?: boolean;
+      message?: string;
+      file?: string;
+      source?: string;
+      kev?: boolean;
+      epss?: number;
+    }>;
+    edges: Array<{
+      id: string;
+      source: string;
+      target: string;
+      type: string;
+    }>;
+    summary: {
+      services: number;
+      components: number;
+      issues: number;
+      kev_count: number;
+    };
+  }>('/api/v1/graph');
+}
+
+/**
+ * Hook for evidence bundles.
+ */
+export function useEvidence(options?: { severity?: string; limit?: number; offset?: number }) {
+  return useApi<{
+    items: Array<{
+      id: string;
+      timestamp: string;
+      issue_id: string;
+      issue_title: string;
+      severity: string;
+      decision: {
+        verdict: string;
+        confidence: number;
+        outcome: string;
+      };
+      signature: {
+        algorithm: string;
+        public_key_id: string;
+        signature_hex: string;
+      };
+      retention: {
+        mode: string;
+        days: number;
+        retained_until: string;
+      };
+      checksum: {
+        algorithm: string;
+        value: string;
+      };
+      size_bytes: number;
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }>('/api/v1/evidence', {
+    params: {
+      severity: options?.severity,
+      limit: options?.limit || 100,
+      offset: options?.offset || 0,
+    },
+  });
+}
+
+/**
+ * Hook for finding detail by ID.
+ */
+export function useFindingDetail(findingId: string | null) {
+  return useApi<{
+    id: string;
+    title: string;
+    severity: string;
+    cve_id?: string;
+    cvss_score?: number;
+    cvss_vector?: string;
+    description: string;
+    discovered?: string;
+    published?: string;
+    last_modified?: string;
+    age?: number;
+    kev?: boolean;
+    epss_score?: number;
+    exploitability?: {
+      attack_vector: string;
+      attack_complexity: string;
+      privileges_required: string;
+      user_interaction: string;
+      scope: string;
+    };
+    impact?: {
+      confidentiality: string;
+      integrity: string;
+      availability: string;
+    };
+    affected_services?: Array<{
+      name: string;
+      version: string;
+      exposure: string;
+      criticality: string;
+    }>;
+    ssvc_decision?: {
+      verdict: string;
+      confidence: number;
+      outcome: string;
+      rationale: string;
+      signals: Array<{
+        key: string;
+        value: string;
+        weight: string;
+      }>;
+    };
+    evidence_bundle?: {
+      id: string;
+      signature: string;
+      checksum: string;
+      retention: string;
+    };
+    compliance_mappings?: Array<{
+      framework: string;
+      control_id: string;
+      control_name: string;
+    }>;
+    remediation?: {
+      priority: string;
+      effort: string;
+      steps: string[];
+      references: Array<{
+        title: string;
+        url: string;
+      }>;
+    };
+    timeline?: Array<{
+      date: string;
+      event: string;
+      type: string;
+    }>;
+  }>(`/api/v1/findings/${findingId}`, {
+    skip: !findingId,
+  });
+}
