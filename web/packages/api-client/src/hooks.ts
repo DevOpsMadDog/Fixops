@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { fetchApi, ApiError, getApiClient } from './client';
-import { getSystemMode, setSystemMode, SystemMode } from './config';
+import { getSystemMode, setSystemMode, SystemMode, isDemoDataEnabled, setDemoDataEnabled } from './config';
 
 /**
  * Hook for fetching data from the API.
@@ -749,4 +749,45 @@ export function useFindingDetail(findingId: string | null) {
   }>(`/api/v1/findings/${findingId}`, {
     skip: !findingId,
   });
+}
+
+/**
+ * Hook for demo data mode management.
+ * Controls whether to show demo data or real API data.
+ * This is an explicit opt-in toggle, not an automatic fallback.
+ */
+export function useDemoMode() {
+  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setDemoEnabled(isDemoDataEnabled());
+    setLoading(false);
+  }, []);
+
+  const toggleDemoMode = useCallback(() => {
+    const newValue = !demoEnabled;
+    setDemoDataEnabled(newValue);
+    setDemoEnabled(newValue);
+  }, [demoEnabled]);
+
+  const enableDemo = useCallback(() => {
+    setDemoDataEnabled(true);
+    setDemoEnabled(true);
+  }, []);
+
+  const disableDemo = useCallback(() => {
+    setDemoDataEnabled(false);
+    setDemoEnabled(false);
+  }, []);
+
+  return { 
+    demoEnabled, 
+    loading, 
+    toggleDemoMode, 
+    enableDemo, 
+    disableDemo,
+    isDemo: demoEnabled,
+    isLive: !demoEnabled,
+  };
 }

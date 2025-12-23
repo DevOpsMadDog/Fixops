@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
-import { useTriage, useSystemMode } from '@fixops/api-client'
+import { useTriage, useSystemMode, useDemoMode } from '@fixops/api-client'
 
 interface Issue {
   id: string
@@ -233,6 +233,7 @@ const DEMO_ISSUES: Issue[] = [
 export default function TriagePage() {
   const { data: triageData, loading: apiLoading, error: apiError } = useTriage()
   const { mode } = useSystemMode()
+  const { demoEnabled, toggleDemoMode } = useDemoMode()
 
   const transformApiData = useCallback((apiRows: NonNullable<typeof triageData>['rows']): Issue[] => {
     return apiRows.map((row, index) => ({
@@ -257,13 +258,18 @@ export default function TriagePage() {
     }))
   }, [])
 
-  const isUsingDemoData = !triageData?.rows || triageData.rows.length === 0
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = triageData?.rows && triageData.rows.length > 0
   const issuesFromApi = useMemo(() => {
-    if (triageData?.rows && triageData.rows.length > 0) {
+    if (demoEnabled) {
+      return DEMO_ISSUES
+    }
+    if (hasApiData) {
       return transformApiData(triageData.rows)
     }
-    return DEMO_ISSUES
-  }, [triageData, transformApiData])
+    return [] // Empty state when no API data and demo mode is OFF
+  }, [triageData, transformApiData, demoEnabled, hasApiData])
 
   const [issues, setIssues] = useState<Issue[]>(DEMO_ISSUES)
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>(DEMO_ISSUES)
@@ -763,23 +769,45 @@ export default function TriagePage() {
         <div className="p-6 border-b border-white/10">
           <h2 className="text-lg font-semibold text-[#6B5AED]">FixOps</h2>
           <p className="text-xs text-slate-500 mt-1">Security Triage</p>
-          {apiLoading && (
+          {/* Demo Mode Toggle */}
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs text-slate-400">Demo Mode</span>
+            <button
+              onClick={toggleDemoMode}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                  demoEnabled ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {/* Status Indicator */}
+          {apiLoading && !demoEnabled && (
             <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
               <Loader2 size={12} className="animate-spin" />
               <span>Loading from API...</span>
             </div>
           )}
-          {apiError && !apiLoading && (
+          {apiError && !apiLoading && !demoEnabled && (
             <div className="mt-2 text-xs text-red-500">
-              API error - using demo data
+              API error - no data available
             </div>
           )}
-          {!apiLoading && !apiError && isUsingDemoData && (
+          {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
             <div className="mt-2 text-xs text-amber-500">
-              No pipeline data - using demo data
+              No pipeline data available
             </div>
           )}
-          {!apiLoading && !apiError && !isUsingDemoData && (
+          {demoEnabled && (
+            <div className="mt-2 text-xs text-[#6B5AED]">
+              Showing demo data
+            </div>
+          )}
+          {!demoEnabled && hasApiData && !apiLoading && !apiError && (
             <div className="mt-2 text-xs text-emerald-500">
               Live data ({mode} mode)
             </div>

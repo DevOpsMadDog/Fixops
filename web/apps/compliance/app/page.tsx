@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
-import { useCompliance, useSystemMode } from '@fixops/api-client'
+import { useCompliance, useSystemMode, useDemoMode } from '@fixops/api-client'
 
 interface Framework {
   id: string
@@ -136,6 +136,7 @@ const DEMO_CONTROL_GAPS: ControlGap[] = [
 export default function CompliancePage() {
   const { data: complianceData, loading: apiLoading, error: apiError } = useCompliance()
   const { mode } = useSystemMode()
+  const { demoEnabled, toggleDemoMode } = useDemoMode()
 
   const transformApiData = useCallback((apiData: NonNullable<typeof complianceData>): { frameworks: Framework[]; gaps: ControlGap[] } => {
     const frameworksList = apiData.frameworks.map((f, index) => ({
@@ -165,14 +166,19 @@ export default function CompliancePage() {
     return { frameworks: frameworksList, gaps: gapsList }
   }, [])
 
-  const isUsingDemoData = !complianceData?.frameworks || complianceData.frameworks.length === 0
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = complianceData?.frameworks && complianceData.frameworks.length > 0
   const { frameworks, controlGaps } = useMemo(() => {
-    if (complianceData?.frameworks && complianceData.frameworks.length > 0) {
+    if (demoEnabled) {
+      return { frameworks: DEMO_FRAMEWORKS, controlGaps: DEMO_CONTROL_GAPS }
+    }
+    if (hasApiData) {
       const data = transformApiData(complianceData)
       return { frameworks: data.frameworks, controlGaps: data.gaps }
     }
-    return { frameworks: DEMO_FRAMEWORKS, controlGaps: DEMO_CONTROL_GAPS }
-  }, [complianceData, transformApiData])
+    return { frameworks: [], controlGaps: [] } // Empty state when no API data and demo mode is OFF
+  }, [complianceData, transformApiData, demoEnabled, hasApiData])
 
   const [selectedFramework, setSelectedFramework] = useState<Framework | null>(null)
   const [selectedGap, setSelectedGap] = useState<ControlGap | null>(null)
@@ -211,23 +217,45 @@ export default function CompliancePage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Framework coverage & gaps</p>
-          {apiLoading && (
+          {/* Demo Mode Toggle */}
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs text-slate-400">Demo Mode</span>
+            <button
+              onClick={toggleDemoMode}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                  demoEnabled ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {/* Status Indicator */}
+          {apiLoading && !demoEnabled && (
             <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
               <Loader2 size={12} className="animate-spin" />
               <span>Loading from API...</span>
             </div>
           )}
-          {apiError && !apiLoading && (
+          {apiError && !apiLoading && !demoEnabled && (
             <div className="mt-2 text-xs text-red-500">
-              API error - using demo data
+              API error - no data available
             </div>
           )}
-          {!apiLoading && !apiError && isUsingDemoData && (
+          {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
             <div className="mt-2 text-xs text-amber-500">
-              No pipeline data - using demo data
+              No pipeline data available
             </div>
           )}
-          {!apiLoading && !apiError && !isUsingDemoData && (
+          {demoEnabled && (
+            <div className="mt-2 text-xs text-[#6B5AED]">
+              Showing demo data
+            </div>
+          )}
+          {!demoEnabled && hasApiData && !apiLoading && !apiError && (
             <div className="mt-2 text-xs text-emerald-500">
               Live data ({mode} mode)
             </div>

@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import EnterpriseShell from './components/EnterpriseShell'
 import { AlertCircle, Shield, Code, XCircle, Filter, Search, Layers, ArrowLeft, Loader2 } from 'lucide-react'
-import { useGraph, useSystemMode } from '@fixops/api-client'
+import { useGraph, useSystemMode, useDemoMode } from '@fixops/api-client'
 
 const CytoscapeComponent = dynamic(
   () => import('react-cytoscapejs'),
@@ -90,6 +90,7 @@ interface SelectedNodeData {
 export default function RiskGraphPage() {
   const { data: graphApiData, loading: apiLoading, error: apiError } = useGraph()
   const { mode } = useSystemMode()
+  const { demoEnabled, toggleDemoMode } = useDemoMode()
 
   const transformApiData = useCallback((apiData: NonNullable<typeof graphApiData>): typeof DEMO_GRAPH_DATA => {
     const nodes = apiData.nodes.map(node => ({
@@ -114,13 +115,18 @@ export default function RiskGraphPage() {
     return { nodes, edges }
   }, [])
 
-  const isUsingDemoData = !graphApiData?.nodes || graphApiData.nodes.length === 0
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = graphApiData?.nodes && graphApiData.nodes.length > 0
   const currentGraphData = useMemo(() => {
-    if (graphApiData?.nodes && graphApiData.nodes.length > 0) {
+    if (demoEnabled) {
+      return DEMO_GRAPH_DATA
+    }
+    if (hasApiData) {
       return transformApiData(graphApiData)
     }
-    return DEMO_GRAPH_DATA
-  }, [graphApiData, transformApiData])
+    return { nodes: [], edges: [] } // Empty state when no API data and demo mode is OFF
+  }, [graphApiData, transformApiData, demoEnabled, hasApiData])
 
   const [selectedNode, setSelectedNode] = useState<SelectedNodeData | null>(null)
   const [filters, setFilters] = useState({
@@ -301,23 +307,45 @@ export default function RiskGraphPage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">Interactive visualization</p>
-          {apiLoading && (
+          {/* Demo Mode Toggle */}
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs text-slate-400">Demo Mode</span>
+            <button
+              onClick={toggleDemoMode}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                  demoEnabled ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {/* Status Indicator */}
+          {apiLoading && !demoEnabled && (
             <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
               <Loader2 size={12} className="animate-spin" />
               <span>Loading from API...</span>
             </div>
           )}
-          {apiError && !apiLoading && (
+          {apiError && !apiLoading && !demoEnabled && (
             <div className="mt-2 text-xs text-red-500">
-              API error - using demo data
+              API error - no data available
             </div>
           )}
-          {!apiLoading && !apiError && isUsingDemoData && (
+          {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
             <div className="mt-2 text-xs text-amber-500">
-              No pipeline data - using demo data
+              No pipeline data available
             </div>
           )}
-          {!apiLoading && !apiError && !isUsingDemoData && (
+          {demoEnabled && (
+            <div className="mt-2 text-xs text-[#6B5AED]">
+              Showing demo data
+            </div>
+          )}
+          {!demoEnabled && hasApiData && !apiLoading && !apiError && (
             <div className="mt-2 text-xs text-emerald-500">
               Live data ({mode} mode)
             </div>

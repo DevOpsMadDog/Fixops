@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { ExternalLink, Copy, ArrowLeft, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
-import { useFindingDetail, useSystemMode } from '@fixops/api-client'
+import { useFindingDetail, useSystemMode, useDemoMode } from '@fixops/api-client'
 
 function useUrlParam(param: string): string | null {
   const [value] = useState<string | null>(() => {
@@ -171,9 +171,15 @@ export default function FindingDetailPage() {
 
   const { data: apiFinding, loading: apiLoading, error: apiError } = useFindingDetail(findingId)
   const { mode } = useSystemMode()
+  const { demoEnabled, toggleDemoMode } = useDemoMode()
 
-  const isUsingDemoData = !apiFinding
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = !!apiFinding
   const findingData = useMemo((): FindingData => {
+    if (demoEnabled) {
+      return DEMO_FINDING_DETAIL
+    }
     if (apiFinding) {
       return {
         id: apiFinding.id,
@@ -200,7 +206,7 @@ export default function FindingDetailPage() {
       }
     }
     return DEMO_FINDING_DETAIL
-  }, [apiFinding])
+  }, [apiFinding, demoEnabled])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -244,27 +250,41 @@ export default function FindingDetailPage() {
               <ArrowLeft size={18} />
             </button>
             <div>
-              {apiLoading && (
-                <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
-                  <Loader2 size={12} className="animate-spin" />
-                  <span>Loading from API...</span>
-                </div>
-              )}
-              {apiError && !apiLoading && (
-                <div className="mb-2 text-xs text-red-500">
-                  API error - using demo data
-                </div>
-              )}
-              {!apiLoading && !apiError && isUsingDemoData && (
-                <div className="mb-2 text-xs text-amber-500">
-                  No pipeline data - using demo data
-                </div>
-              )}
-              {!apiLoading && !apiError && !isUsingDemoData && (
-                <div className="mb-2 text-xs text-emerald-500">
-                  Live data ({mode} mode)
-                </div>
-              )}
+              {/* Demo Mode Toggle */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs text-slate-400">Demo Mode</span>
+                <button
+                  onClick={toggleDemoMode}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      demoEnabled ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                {/* Status Indicator */}
+                {apiLoading && !demoEnabled && (
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <Loader2 size={12} className="animate-spin" />
+                    <span>Loading...</span>
+                  </div>
+                )}
+                {apiError && !apiLoading && !demoEnabled && (
+                  <span className="text-xs text-red-500">API error</span>
+                )}
+                {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
+                  <span className="text-xs text-amber-500">No data</span>
+                )}
+                {demoEnabled && (
+                  <span className="text-xs text-[#6B5AED]">Demo data</span>
+                )}
+                {!demoEnabled && hasApiData && !apiLoading && !apiError && (
+                  <span className="text-xs text-emerald-500">Live ({mode})</span>
+                )}
+              </div>
               <div className="flex items-center gap-3 mb-2">
                 <div
                   className="w-3 h-3 rounded-full"

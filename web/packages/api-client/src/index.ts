@@ -12,6 +12,8 @@ export {
   getSystemMode,
   setSystemMode,
   getApiConfig,
+  isDemoDataEnabled,
+  setDemoDataEnabled,
   type SystemMode,
   type ApiConfig,
 } from './config';
@@ -31,6 +33,7 @@ export {
 export {
   useApi,
   useSystemMode,
+  useDemoMode,
   useReports,
   useReportDownload,
   usePentagiRequests,
