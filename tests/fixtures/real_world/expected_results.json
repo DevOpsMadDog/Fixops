@@ -1,0 +1,95 @@
+{
+  "description": "Expected results for real-world CVE test fixtures",
+  "expected_findings_count": 10,
+  "expected_critical_count": 8,
+  "expected_high_count": 1,
+  "expected_kev_count": 9,
+  "expected_cves": [
+    {
+      "cve_id": "CVE-2021-44228",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "enterprise-security-platform"
+    },
+    {
+      "cve_id": "CVE-2022-22965",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "enterprise-security-platform"
+    },
+    {
+      "cve_id": "CVE-2023-44487",
+      "expected_severity": "high",
+      "expected_kev": true,
+      "expected_epss_above": 0.7,
+      "expected_ssvc_decision": "out-of-cycle",
+      "affected_service": "api-gateway"
+    },
+    {
+      "cve_id": "CVE-2023-34362",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "file-transfer-service"
+    },
+    {
+      "cve_id": "CVE-2024-3094",
+      "expected_severity": "critical",
+      "expected_kev": false,
+      "expected_epss_above": 0.01,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "build-server"
+    },
+    {
+      "cve_id": "CVE-2021-45046",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "logging-service"
+    },
+    {
+      "cve_id": "CVE-2022-26134",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "confluence-server"
+    },
+    {
+      "cve_id": "CVE-2023-22515",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "wiki-service"
+    },
+    {
+      "cve_id": "CVE-2021-26855",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "exchange-server"
+    },
+    {
+      "cve_id": "CVE-2019-11510",
+      "expected_severity": "critical",
+      "expected_kev": true,
+      "expected_epss_above": 0.9,
+      "expected_ssvc_decision": "immediate",
+      "affected_service": "vpn-gateway"
+    }
+  ],
+  "validation_rules": {
+    "all_kev_cves_should_be_immediate": true,
+    "critical_internet_exposed_should_be_immediate": true,
+    "evidence_bundle_should_be_generated": true,
+    "compliance_mappings_should_exist": true
+  }
+}
