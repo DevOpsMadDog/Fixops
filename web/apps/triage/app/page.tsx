@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 import { useTriage, useSystemMode, useDemoMode } from '@fixops/api-client'
+import { Switch, StatusBadge, NavItem, StatCard, Surface } from '@fixops/ui'
 
 interface Issue {
   id: string
@@ -764,115 +765,90 @@ export default function TriagePage() {
     <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Feed Navigation */}
-      <div className="w-60 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+      <div className="w-64 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
         {/* Logo/Title */}
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-lg font-semibold text-[#6B5AED]">FixOps</h2>
-          <p className="text-xs text-slate-500 mt-1">Security Triage</p>
-          {/* Demo Mode Toggle */}
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Demo Mode</span>
-            <button
-              onClick={toggleDemoMode}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  demoEnabled ? 'translate-x-5' : 'translate-x-1'
-                }`}
-              />
-            </button>
+        <div className="p-5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B5AED] to-[#8B7CF7] flex items-center justify-center shadow-[0_0_20px_rgba(107,90,237,0.3)]">
+              <Shield size={16} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-semibold text-white tracking-tight">FixOps</h2>
+              <p className="text-[11px] text-slate-500">Security Triage</p>
+            </div>
           </div>
-          {/* Status Indicator */}
-          {apiLoading && !demoEnabled && (
-            <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
-              <Loader2 size={12} className="animate-spin" />
-              <span>Loading from API...</span>
+          
+          {/* Demo Mode Toggle - Apple-like */}
+          <div className="mt-4 p-3 rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06]">
+            <Switch
+              checked={demoEnabled}
+              onChange={toggleDemoMode}
+              label={demoEnabled ? 'Demo Mode' : 'Live Mode'}
+              size="sm"
+            />
+            {/* Status Badge */}
+            <div className="mt-2">
+              {apiLoading && !demoEnabled && (
+                <StatusBadge status="loading" label="Loading..." />
+              )}
+              {apiError && !apiLoading && !demoEnabled && (
+                <StatusBadge status="error" label="API Error" />
+              )}
+              {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
+                <StatusBadge status="warning" label="No Data" />
+              )}
+              {demoEnabled && (
+                <StatusBadge status="demo" label="Demo Data" />
+              )}
+              {!demoEnabled && hasApiData && !apiLoading && !apiError && (
+                <StatusBadge status="live" label={`Live (${mode})`} />
+              )}
             </div>
-          )}
-          {apiError && !apiLoading && !demoEnabled && (
-            <div className="mt-2 text-xs text-red-500">
-              API error - no data available
-            </div>
-          )}
-          {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
-            <div className="mt-2 text-xs text-amber-500">
-              No pipeline data available
-            </div>
-          )}
-          {demoEnabled && (
-            <div className="mt-2 text-xs text-[#6B5AED]">
-              Showing demo data
-            </div>
-          )}
-          {!demoEnabled && hasApiData && !apiLoading && !apiError && (
-            <div className="mt-2 text-xs text-emerald-500">
-              Live data ({mode} mode)
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Feed Navigation */}
         <div className="p-3 flex-1">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 px-2">
+          <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-3 px-3">
             Feed
           </div>
           
-          {[
-            { id: 'all', label: 'All Issues', icon: AlertCircle, count: summary.total },
-            { id: 'snoozed', label: 'Snoozed', icon: EyeOff, count: summary.snoozed },
-            { id: 'ignored', label: 'Ignored', icon: Archive, count: summary.ignored },
-            { id: 'solved', label: 'Solved', icon: CheckCircle, count: summary.solved },
-          ].map(({ id, label, icon: Icon, count }) => (
-            <button
-              key={id}
-              onClick={() => setFeedView(id)}
-              className={`w-full p-2.5 rounded-md mb-1 text-sm font-medium cursor-pointer flex items-center justify-between transition-all ${
-                feedView === id
-                  ? 'bg-[#6B5AED]/10 text-[#6B5AED]'
-                  : 'text-slate-400 hover:bg-white/5'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Icon size={16} />
-                {label}
-              </span>
-              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                feedView === id
-                  ? 'bg-[#6B5AED]/20'
-                  : 'bg-slate-800'
-              }`}>
-                {count}
-              </span>
-            </button>
-          ))}
+          <div className="space-y-1">
+            {[
+              { id: 'all', label: 'All Issues', icon: AlertCircle, count: summary.total },
+              { id: 'snoozed', label: 'Snoozed', icon: EyeOff, count: summary.snoozed },
+              { id: 'ignored', label: 'Ignored', icon: Archive, count: summary.ignored },
+              { id: 'solved', label: 'Solved', icon: CheckCircle, count: summary.solved },
+            ].map(({ id, label, icon: Icon, count }) => (
+              <NavItem
+                key={id}
+                icon={<Icon size={16} />}
+                label={label}
+                count={count}
+                active={feedView === id}
+                onClick={() => setFeedView(id)}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Bottom Actions */}
-        <div className="p-3 border-t border-white/10 space-y-2">
-          <button
+        <div className="p-3 border-t border-white/[0.06] space-y-1.5">
+          <NavItem
+            icon={<BarChart3 size={16} />}
+            label="Risk Graph"
             onClick={() => window.location.href = '/risk'}
-            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
-          >
-            <BarChart3 size={16} />
-            Risk Graph
-          </button>
-          <button
+          />
+          <NavItem
+            icon={<Settings size={16} />}
+            label="Columns"
             onClick={() => setShowColumnChooser(!showColumnChooser)}
-            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
-          >
-            <Settings size={16} />
-            Columns
-          </button>
-          <button
+          />
+          <NavItem
+            icon={<Keyboard size={16} />}
+            label="Shortcuts"
             onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
-          >
-            <Keyboard size={16} />
-            Shortcuts
-          </button>
+          />
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 import { useCompliance, useSystemMode, useDemoMode } from '@fixops/api-client'
+import { Switch, StatusBadge, StatCard } from '@fixops/ui'
 
 interface Framework {
   id: string
@@ -203,88 +204,72 @@ export default function CompliancePage() {
     <EnterpriseShell>
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Framework List */}
-      <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+      <div className="w-80 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-5 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[#6B5AED]">Compliance</h2>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B5AED] to-[#8B7CF7] flex items-center justify-center shadow-[0_0_20px_rgba(107,90,237,0.3)]">
+                <Shield size={16} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-semibold text-white tracking-tight">Compliance</h2>
+                <p className="text-[11px] text-slate-500">Framework coverage & gaps</p>
+              </div>
+            </div>
             <button
               onClick={() => window.location.href = '/triage'}
-              className="p-2 rounded-md border border-white/10 text-slate-400 hover:bg-white/5 transition-all"
+              className="p-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-slate-400 hover:bg-white/[0.08] hover:text-white transition-all"
               title="Back to Triage"
             >
               <ArrowLeft size={16} />
             </button>
           </div>
-          <p className="text-xs text-slate-500">Framework coverage & gaps</p>
-          {/* Demo Mode Toggle */}
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Demo Mode</span>
-            <button
-              onClick={toggleDemoMode}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  demoEnabled ? 'translate-x-5' : 'translate-x-1'
-                }`}
-              />
-            </button>
+          
+          {/* Demo Mode Toggle - Apple-like */}
+          <div className="mt-4 p-3 rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06]">
+            <Switch
+              checked={demoEnabled}
+              onChange={toggleDemoMode}
+              label={demoEnabled ? 'Demo Mode' : 'Live Mode'}
+              size="sm"
+            />
+            {/* Status Badge */}
+            <div className="mt-2">
+              {apiLoading && !demoEnabled && (
+                <StatusBadge status="loading" label="Loading..." />
+              )}
+              {apiError && !apiLoading && !demoEnabled && (
+                <StatusBadge status="error" label="API Error" />
+              )}
+              {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
+                <StatusBadge status="warning" label="No Data" />
+              )}
+              {demoEnabled && (
+                <StatusBadge status="demo" label="Demo Data" />
+              )}
+              {!demoEnabled && hasApiData && !apiLoading && !apiError && (
+                <StatusBadge status="live" label={`Live (${mode})`} />
+              )}
+            </div>
           </div>
-          {/* Status Indicator */}
-          {apiLoading && !demoEnabled && (
-            <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
-              <Loader2 size={12} className="animate-spin" />
-              <span>Loading from API...</span>
-            </div>
-          )}
-          {apiError && !apiLoading && !demoEnabled && (
-            <div className="mt-2 text-xs text-red-500">
-              API error - no data available
-            </div>
-          )}
-          {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
-            <div className="mt-2 text-xs text-amber-500">
-              No pipeline data available
-            </div>
-          )}
-          {demoEnabled && (
-            <div className="mt-2 text-xs text-[#6B5AED]">
-              Showing demo data
-            </div>
-          )}
-          {!demoEnabled && hasApiData && !apiLoading && !apiError && (
-            <div className="mt-2 text-xs text-emerald-500">
-              Live data ({mode} mode)
-            </div>
-          )}
         </div>
 
         {/* Summary Stats */}
-        <div className="p-4 border-b border-white/10">
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Frameworks</div>
-              <div className="text-xl font-semibold text-[#6B5AED]">{frameworks.length}</div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Avg Coverage</div>
-              <div className="text-xl font-semibold text-green-500">
-                {frameworks.length > 0 ? Math.round(frameworks.reduce((sum, f) => sum + f.coverage, 0) / frameworks.length) : 0}%
-              </div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Total Controls</div>
-              <div className="text-xl font-semibold text-slate-300">
-                {frameworks.reduce((sum, f) => sum + f.controls_total, 0)}
-              </div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Control Gaps</div>
-              <div className="text-xl font-semibold text-red-500">{controlGaps.length}</div>
-            </div>
+        <div className="p-4 border-b border-white/[0.06]">
+          <div className="grid grid-cols-2 gap-2">
+            <StatCard label="Frameworks" value={frameworks.length} color="purple" />
+            <StatCard 
+              label="Avg Coverage" 
+              value={`${frameworks.length > 0 ? Math.round(frameworks.reduce((sum, f) => sum + f.coverage, 0) / frameworks.length) : 0}%`} 
+              color="green" 
+            />
+            <StatCard 
+              label="Total Controls" 
+              value={frameworks.reduce((sum, f) => sum + f.controls_total, 0)} 
+              color="default" 
+            />
+            <StatCard label="Control Gaps" value={controlGaps.length} color="red" />
           </div>
         </div>
 

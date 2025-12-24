@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { ExternalLink, Copy, ArrowLeft, Loader2 } from 'lucide-react'
 import EnterpriseShell from './components/EnterpriseShell'
 import { useFindingDetail, useSystemMode, useDemoMode } from '@fixops/api-client'
+import { Switch, StatusBadge } from '@fixops/ui'
 
 function useUrlParam(param: string): string | null {
   const [value] = useState<string | null>(() => {
@@ -240,49 +241,39 @@ export default function FindingDetailPage() {
     <EnterpriseShell>
     <div className="min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Top Bar */}
-      <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="p-5 border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-xl sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => window.location.href = '/triage'}
-              className="p-2 rounded-md border border-white/10 text-slate-400 hover:bg-white/5 transition-all"
+              className="p-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-slate-400 hover:bg-white/[0.08] hover:text-white transition-all"
             >
               <ArrowLeft size={18} />
             </button>
             <div>
-              {/* Demo Mode Toggle */}
+              {/* Demo Mode Toggle - Apple-like */}
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs text-slate-400">Demo Mode</span>
-                <button
-                  onClick={toggleDemoMode}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    demoEnabled ? 'bg-[#6B5AED]' : 'bg-slate-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                      demoEnabled ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-                {/* Status Indicator */}
+                <Switch
+                  checked={demoEnabled}
+                  onChange={toggleDemoMode}
+                  label={demoEnabled ? 'Demo' : 'Live'}
+                  size="sm"
+                />
+                {/* Status Badge */}
                 {apiLoading && !demoEnabled && (
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Loader2 size={12} className="animate-spin" />
-                    <span>Loading...</span>
-                  </div>
+                  <StatusBadge status="loading" label="Loading..." />
                 )}
                 {apiError && !apiLoading && !demoEnabled && (
-                  <span className="text-xs text-red-500">API error</span>
+                  <StatusBadge status="error" label="API Error" />
                 )}
                 {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
-                  <span className="text-xs text-amber-500">No data</span>
+                  <StatusBadge status="warning" label="No Data" />
                 )}
                 {demoEnabled && (
-                  <span className="text-xs text-[#6B5AED]">Demo data</span>
+                  <StatusBadge status="demo" label="Demo Data" />
                 )}
                 {!demoEnabled && hasApiData && !apiLoading && !apiError && (
-                  <span className="text-xs text-emerald-500">Live ({mode})</span>
+                  <StatusBadge status="live" label={`Live (${mode})`} />
                 )}
               </div>
               <div className="flex items-center gap-3 mb-2">
