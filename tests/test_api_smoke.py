@@ -63,13 +63,6 @@ SKIP_ENDPOINTS = {
     "/api/v1/bulk/delete",
     # Long-running operations
     "/api/v1/pentagi/scan/comprehensive",
-    # Marketplace endpoints with pre-existing 5xx bugs (need separate fix)
-    "/api/v1/marketplace/browse",
-    "/api/v1/marketplace/recommendations",
-    "/api/v1/marketplace/items/{item_id}",
-    "/api/v1/marketplace/download/{token}",
-    "/api/v1/marketplace/contributors",
-    "/api/v1/marketplace/stats",
 }
 
 # Endpoints that are expected to return 4xx (not errors, just validation)
