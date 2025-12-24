@@ -2,9 +2,71 @@
 
 # FixOps
 
-Security decision automation platform with multi-LLM consensus, advanced risk forecasting, and compliance frameworks.
+**Enterprise DevSecOps Decision Automation Platform**
 
-## ⚡ Quick Start (3 Commands)
+FixOps is a comprehensive security decision engine that ingests security artifacts (SBOM, SARIF, CVE feeds, VEX, CNAPP), applies multi-LLM consensus analysis and probabilistic risk models, and produces allow/block/defer decisions with cryptographically-signed evidence bundles.
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-LLM Consensus** | 4 AI providers (OpenAI GPT-4, Anthropic Claude, Google Gemini, Sentinel) with weighted voting for high-confidence decisions |
+| **Probabilistic Risk Models** | Bayesian + Markov forecasting, BN-LR hybrid model, EPSS/KEV/CVSS enrichment |
+| **Evidence Bundles** | Cryptographically-signed audit trails with RSA-SHA256 signatures |
+| **Compliance Frameworks** | SOC2, ISO 27001, PCI-DSS, NIST 800-53, OWASP mappings with gap analysis |
+| **27 MFE Applications** | Micro Frontend architecture with Next.js for triage, risk graph, compliance, reports, and more |
+| **199+ API Endpoints** | FastAPI backend with 22 router modules |
+| **25+ CLI Commands** | Full CLI for pipeline execution, reporting, and administration |
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              FixOps Platform                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Frontend (27 MFEs)          │  Backend API (FastAPI)    │  Core Modules    │
+│  ─────────────────           │  ──────────────────────   │  ────────────    │
+│  • Triage Dashboard          │  • 22 Router Files        │  • CLI (25 cmds) │
+│  • Risk Graph (Cytoscape)    │  • 199+ Endpoints         │  • Pipeline      │
+│  • Compliance Management     │  • Token/JWT Auth         │  • Decision Eng  │
+│  • Evidence Bundles          │  • Rate Limiting          │  • Evidence Hub  │
+│  • Reports & Analytics       │  • CORS Support           │  • Analytics     │
+│  • Pentagi (AI Pentest)      │  • OpenAPI Docs           │  • Compliance    │
+│  • Marketplace               │                           │  • Risk Models   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Shared Packages             │  Storage                  │  Integrations    │
+│  ────────────────            │  ───────                  │  ────────────    │
+│  • @fixops/ui (Design Sys)   │  • SQLite (Policies, etc) │  • Jira          │
+│  • @fixops/api-client        │  • Filesystem (Evidence)  │  • Confluence    │
+│                              │  • In-memory (Pipeline)   │  • Slack/GitHub  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Documentation Index
+
+### Technical Handover Documentation
+
+Comprehensive documentation for development teams is available in [`docs/handover/`](docs/handover/):
+
+| Document | Description |
+|----------|-------------|
+| [**INDEX.md**](docs/handover/INDEX.md) | Main navigation hub with system overview, quick start, and glossary |
+| [Security Triage](docs/handover/domains/security-triage.md) | Triage, findings, risk graph - API endpoints, CLI commands, program flows |
+| [Evidence & Compliance](docs/handover/domains/evidence-compliance.md) | Evidence bundles, compliance frameworks, policies, audit |
+| [Backend API](docs/handover/domains/backend-api.md) | FastAPI routers (22 files), authentication, state management |
+| [Core Modules](docs/handover/domains/core-modules.md) | 85 Python files, CLI commands, key classes |
+| [Frontend Architecture](docs/handover/domains/frontend-architecture.md) | 27 MFE apps, shared packages, development guide |
+| [File-Feature Mapping](docs/handover/appendix/file-feature-mapping.md) | Complete mapping of every file to its feature |
+
+### Additional Resources
+
+| Resource | Description |
+|----------|-------------|
+| [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) | AI-indexed documentation with search |
+| [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
+| [Deployment Packs](deployment-packs/) | Kubernetes, Docker, Terraform |
+
+## Quick Start (3 Commands)
 
 ```bash
 # 1. Run setup wizard
@@ -124,8 +186,18 @@ pytest tests/test_enhanced_decision.py
 pytest --cov=core --cov=apps
 ```
 
-## 📚 Documentation
+## 📚 Full Documentation
 
-- [Configuration Guide](config/fixops.overlay.yml) - Advanced configuration options
+For comprehensive technical documentation, see the [**Handover Documentation**](docs/handover/INDEX.md) which includes:
+
+- System architecture and data flow diagrams
+- Complete API endpoint reference (199+ endpoints)
+- CLI command reference (25+ commands)
+- File-to-feature mapping for all 85 core modules
+- Frontend MFE architecture (27 applications)
+- Program flows for each feature (UI-request and data-production)
+
+Additional resources:
+- [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) - AI-indexed documentation with search
+- [Configuration Guide](config/fixops.overlay.yml) - Overlay configuration options
 - [Deployment Packs](deployment-packs/) - Kubernetes, Docker, Terraform
-- [API Reference](apps/api/app.py) - FastAPI endpoints
