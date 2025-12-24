@@ -339,11 +339,11 @@ export default function FindingDetailPage() {
                 </div>
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">EPSS Score</div>
-                  <div className="text-2xl font-bold text-amber-500">{(findingData.epss_score * 100).toFixed(0)}%</div>
+                  <div className="text-2xl font-bold text-amber-500">{((findingData.epss_score ?? 0) * 100).toFixed(0)}%</div>
                 </div>
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">Affected Services</div>
-                  <div className="text-2xl font-bold text-slate-300">{findingData.affected_services.length}</div>
+                  <div className="text-2xl font-bold text-slate-300">{findingData.affected_services?.length ?? 0}</div>
                 </div>
                 <div className="p-4 bg-white/2 rounded-lg border border-white/5">
                   <div className="text-xs text-slate-500 mb-1">Age</div>
@@ -360,6 +360,7 @@ export default function FindingDetailPage() {
               </div>
 
               {/* SSVC Decision */}
+              {findingData.ssvc_decision && (
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">SSVC Decision</h3>
                 <div
@@ -396,8 +397,10 @@ export default function FindingDetailPage() {
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Affected Services */}
+              {findingData.affected_services && findingData.affected_services.length > 0 && (
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Affected Services</h3>
                 <div className="space-y-3">
@@ -425,6 +428,7 @@ export default function FindingDetailPage() {
                   ))}
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -434,9 +438,10 @@ export default function FindingDetailPage() {
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">CVSS Vector</h3>
                 <div className="p-3 bg-black/20 rounded-md border border-white/10 mb-4">
-                  <code className="text-sm font-mono text-slate-300">{findingData.cvss_vector}</code>
+                  <code className="text-sm font-mono text-slate-300">{findingData.cvss_vector ?? 'N/A'}</code>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  {findingData.exploitability && (
                   <div>
                     <h4 className="text-sm font-semibold text-slate-300 mb-3">Exploitability Metrics</h4>
                     <div className="space-y-2">
@@ -448,6 +453,8 @@ export default function FindingDetailPage() {
                       ))}
                     </div>
                   </div>
+                  )}
+                  {findingData.impact && (
                   <div>
                     <h4 className="text-sm font-semibold text-slate-300 mb-3">Impact Metrics</h4>
                     <div className="space-y-2">
@@ -459,13 +466,14 @@ export default function FindingDetailPage() {
                       ))}
                     </div>
                   </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
           {/* Remediation Tab */}
-          {activeTab === 'remediation' && (
+          {activeTab === 'remediation' && findingData.remediation && (
             <div className="space-y-6">
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Remediation Steps</h3>
@@ -504,6 +512,7 @@ export default function FindingDetailPage() {
           {/* Evidence Tab */}
           {activeTab === 'evidence' && (
             <div className="space-y-6">
+              {findingData.evidence_bundle && (
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Evidence Bundle</h3>
                 <div className="space-y-3">
@@ -519,7 +528,7 @@ export default function FindingDetailPage() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="text-xs text-slate-500">SHA256 Checksum</div>
                       <button
-                        onClick={() => navigator.clipboard.writeText(findingData.evidence_bundle.checksum)}
+                        onClick={() => navigator.clipboard.writeText(findingData.evidence_bundle?.checksum ?? '')}
                         className="text-[#6B5AED] hover:text-[#5B4ADD] transition-colors"
                       >
                         <Copy size={12} />
@@ -533,7 +542,9 @@ export default function FindingDetailPage() {
                   </div>
                 </div>
               </div>
+              )}
 
+              {findingData.compliance_mappings && findingData.compliance_mappings.length > 0 && (
               <div className="p-6 bg-white/2 rounded-lg border border-white/5">
                 <h3 className="text-lg font-semibold mb-4">Compliance Mappings</h3>
                 <div className="space-y-2">
@@ -550,11 +561,12 @@ export default function FindingDetailPage() {
                   ))}
                 </div>
               </div>
+              )}
             </div>
           )}
 
           {/* Timeline Tab */}
-          {activeTab === 'timeline' && (
+          {activeTab === 'timeline' && findingData.timeline && findingData.timeline.length > 0 && (
             <div className="p-6 bg-white/2 rounded-lg border border-white/5">
               <h3 className="text-lg font-semibold mb-4">Event Timeline</h3>
               <div className="relative">
