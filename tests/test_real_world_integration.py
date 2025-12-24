@@ -392,7 +392,8 @@ class TestRealWorldAPIServerIntegration:
         env["FIXOPS_API_TOKEN"] = API_TOKEN
         env["FIXOPS_MODE"] = "demo"
 
-        # Start server
+        # Start server - use DEVNULL to avoid unclosed pipe warnings
+        # (we don't need to capture output for this integration test)
         proc = subprocess.Popen(
             [
                 "uvicorn",
@@ -404,8 +405,8 @@ class TestRealWorldAPIServerIntegration:
                 str(port),
             ],
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
         # Wait for server to start
@@ -413,9 +414,13 @@ class TestRealWorldAPIServerIntegration:
 
         yield f"http://127.0.0.1:{port}"
 
-        # Cleanup
-        proc.terminate()
-        proc.wait(timeout=5)
+        # Cleanup - robust teardown with fallback to kill
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
 
     def test_real_server_health(self, running_server):
         """Test health endpoint on real running server."""
