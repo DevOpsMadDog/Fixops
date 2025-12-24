@@ -2,11 +2,11 @@
 
 # FixOps
 
-**Enterprise DevSecOps Decision & Verification Engine**
+**Enterprise DevSecOps Decision & Verification Platform**
 
-*Automate Trust. Prove Security.*
+FixOps is a DevSecOps decision and verification platform that operationalizes vulnerability management end-to-end. It ingests and normalizes security artifacts (SBOM, SARIF, CVE, VEX, CNAPP, plus business context), correlates them into an application-centric risk model via an interactive **Risk Graph** (linking services → components → CVEs/findings with KEV/EPSS enrichment), and produces release-gate outcomes (Allow/Block/Needs Review) through policy evaluation, multi-LLM consensus, and probabilistic forecasting. Every decision is packaged as exportable, cryptographically verifiable evidence for audit, triage, and long-term retention.
 
-FixOps transforms scanner chaos into auditable decisions. It's the intelligence layer that sits between your security scanners and your CI/CD pipeline, providing automated allow/block/defer verdicts backed by multi-LLM consensus, probabilistic risk models, and cryptographically-signed evidence bundles.
+FixOps exposes this workflow through three first-class interfaces: a **REST API** (243+ endpoints across 23 router modules), a **CLI** (67 commands/subcommands), and a **modular UI** (27 micro-frontends) covering triage, risk graph exploration, compliance reporting, micro-pentest execution, reachability analysis, evidence management, and more—deployable on-prem or air-gapped as needed.
 
 ---
 
@@ -125,6 +125,125 @@ Works with your existing tools - no proprietary connectors:
 - **SaaS** - Managed cloud deployment
 - **On-Premises** - Full functionality in your data center
 - **Air-Gapped** - Complete offline operation for classified environments
+- **Quick Setup** - Target deployment time ~30 minutes with setup wizard
+
+---
+
+## Advanced Capabilities
+
+### Interactive Risk Graph
+Cytoscape.js-powered visualization that maps your entire security posture:
+- **Service → Component → CVE/Finding relationships** with real-time filtering
+- **KEV highlighting** - Known Exploited Vulnerabilities visually distinguished
+- **EPSS enrichment** - Exploit probability scores displayed per node
+- **Internet-facing indicators** - Identify exposed attack surfaces
+- **Multi-select CVEs** for batch micro-pentest execution
+- **Severity-based coloring** with configurable thresholds
+- Filter by KEV-only, internet-facing, severity level, or EPSS score
+
+### Micro-Pentest Engine
+Automated vulnerability verification with multi-AI orchestration:
+- **Targeted exploit validation** - Verify if CVEs are actually exploitable in your environment
+- **Attack vector simulation** - JNDI injection, SQL injection, XSS, buffer overflow, path traversal
+- **Confidence scoring** - Each test returns exploitability confidence (0-100%)
+- **Evidence collection** - Captures proof of exploitability for audit
+- **Risk score calculation** - Combines severity, KEV status, EPSS, and exposure
+- **Remediation prioritization** - Auto-assigns critical/high/medium/low priority
+- **Right-click from Risk Graph** - Select CVEs and launch micro-pentests directly
+
+### Reachability Analysis
+Determine if vulnerabilities are actually reachable from attack surfaces:
+- **Attack path mapping** - Traces Internet → Gateway → Service → Component → CVE
+- **Reachable vs. Not Reachable verdicts** with confidence scores
+- **Business impact assessment** - High/Medium/Low impact classification
+- **Bulk CVE analysis** - Analyze multiple CVEs in a single request
+- **EPSS + KEV correlation** - Combines reachability with exploit intelligence
+
+### YAML-Based Vulnerability Management (Overlay Configuration)
+All platform behavior is controlled via `config/fixops.overlay.yml`:
+```yaml
+risk_models:
+  weighted_scoring_v1:
+    allow_threshold: 0.6      # Below this = Allow
+    block_threshold: 0.85     # Above this = Block
+    criticality_weights:
+      critical: 1.0
+      high: 0.8
+      medium: 0.5
+      low: 0.2
+    data_weights:
+      pii: 1.0
+      financial: 0.9
+      internal: 0.5
+    exposure_weights:
+      internet: 1.0
+      internal: 0.5
+      isolated: 0.2
+```
+
+### Customizable Risk Parameters & Scoring Transparency
+Full control over how risk scores are calculated:
+- **Configurable thresholds** - Set your own allow/block boundaries
+- **Weighted scoring factors** - Adjust weights for criticality, data classification, exposure
+- **Transparent calculations** - Every score shows contributing factors and weights
+- **A/B testing support** - Test different risk models in production
+- **Audit trail** - Full history of scoring parameter changes
+
+### Overlay-Driven Feature Matrix
+Toggle features on/off via configuration without code changes:
+```yaml
+modules:
+  guardrails: true
+  compliance: true
+  ssdlc: true
+  probabilistic: true
+  policy_automation: true
+  reachability: false      # Enterprise feature
+  marketplace: false       # Enterprise feature
+  enhanced_pentagi: false  # Enterprise feature
+```
+
+### Multi-Year Evidence Retention
+Configurable retention policies for compliance requirements:
+- **Retention periods** - Configure days/months/years per evidence type
+- **Compression** - Gzip compression for storage efficiency
+- **Encryption** - Optional Fernet encryption for sensitive bundles
+- **Export formats** - JSON, SARIF for portability
+- **Audit-ready** - Evidence accessible offline for auditors
+
+---
+
+## 27 Micro-Frontend Applications
+
+| Application | Description |
+|-------------|-------------|
+| **dashboard** | Executive overview with key metrics and trends |
+| **triage** | Vulnerability triage workflow with bulk actions |
+| **risk-graph** | Interactive Cytoscape.js dependency visualization |
+| **compliance** | Framework status, gaps, and report generation |
+| **evidence** | Evidence bundle management and verification |
+| **findings** | Detailed finding exploration and remediation |
+| **micro-pentest** | Automated vulnerability verification tests |
+| **pentagi** | AI-powered penetration testing requests |
+| **reachability** | CVE attack path analysis |
+| **policies** | Policy CRUD, validation, and testing |
+| **reports** | Report generation and scheduling |
+| **analytics** | ROI, MTTR, coverage dashboards |
+| **inventory** | Application and service inventory |
+| **integrations** | Jira, Confluence, Slack configuration |
+| **workflows** | Automation workflow builder |
+| **teams** | Team management and permissions |
+| **users** | User management and authentication |
+| **settings** | System configuration |
+| **secrets** | Secrets scanning findings |
+| **iac** | Infrastructure-as-Code findings |
+| **marketplace** | Compliance pack marketplace |
+| **automations** | Automation rule configuration |
+| **bulk** | Bulk operations interface |
+| **saved-views** | Custom view management |
+| **sso** | SSO/OAuth configuration |
+| **audit** | Audit log viewer |
+| **shell** | Admin shell interface |
 
 ---
 
