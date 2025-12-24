@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useDashboardData } from './hooks/useDashboardData'
 import { TrendingUp, TrendingDown, Shield, AlertTriangle, CheckCircle, Clock, ArrowRight, Activity, Target, Zap, Users, Filter, Calendar, Download, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 
 export default function DashboardPage() {
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="dashboard">
       <div className="min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Top Bar */}
         <div className="p-6 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
@@ -554,6 +554,6 @@ export default function DashboardPage() {
       </div>
       )}
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

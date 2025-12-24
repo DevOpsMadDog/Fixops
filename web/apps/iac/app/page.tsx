@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Cloud, Search, Filter, AlertTriangle, CheckCircle, XCircle, FileText, GitBranch, Calendar, Shield, Settings } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 const DEMO_IAC_FINDINGS = [
   {
@@ -259,7 +259,7 @@ export default function IaCPage() {
   const providers = Array.from(new Set(findings.map(f => f.provider)))
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="iac">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -723,6 +723,6 @@ export default function IaCPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

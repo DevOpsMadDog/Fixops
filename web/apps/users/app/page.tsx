@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Users, Search, Plus, Edit2, Trash2, Shield, Mail, Calendar, CheckCircle, XCircle, Clock, Key, UserPlus, Filter, User } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 const DEMO_USERS = [
   {
@@ -179,7 +179,7 @@ export default function UsersPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="users">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -566,6 +566,6 @@ export default function UsersPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

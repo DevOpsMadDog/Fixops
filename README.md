@@ -2,9 +2,57 @@
 
 # FixOps
 
-Security decision automation platform with multi-LLM consensus, advanced risk forecasting, and compliance frameworks.
+**Enterprise DevSecOps Decision Automation Platform**
 
-## ⚡ Quick Start (3 Commands)
+FixOps is a comprehensive security decision engine that ingests security artifacts (SBOM, SARIF, CVE feeds, VEX, CNAPP), applies multi-LLM consensus analysis and probabilistic risk models, and produces allow/block/defer decisions with cryptographically-signed evidence bundles.
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-LLM Consensus** | 4 AI providers (OpenAI GPT-4, Anthropic Claude, Google Gemini, Sentinel) with weighted voting for high-confidence decisions |
+| **Probabilistic Risk Models** | Bayesian + Markov forecasting, BN-LR hybrid model, EPSS/KEV/CVSS enrichment |
+| **Evidence Bundles** | Cryptographically-signed audit trails with RSA-SHA256 signatures |
+| **Compliance Frameworks** | SOC2, ISO 27001, PCI-DSS, NIST 800-53, OWASP mappings with gap analysis |
+| **27 MFE Applications** | Micro Frontend architecture with Next.js for triage, risk graph, compliance, reports, and more |
+| **250+ API Endpoints** | FastAPI backend with 22 router modules (see [API/CLI Reference](docs/API_CLI_REFERENCE.md)) |
+| **25+ CLI Commands** | Full CLI for pipeline execution, reporting, and administration |
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              FixOps Platform                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Frontend (27 MFEs)          │  Backend API (FastAPI)    │  Core Modules    │
+│  ─────────────────           │  ──────────────────────   │  ────────────    │
+│  • Triage Dashboard          │  • 22 Router Files        │  • CLI (25 cmds) │
+│  • Risk Graph (Cytoscape)    │  • 250+ Endpoints         │  • Pipeline      │
+│  • Compliance Management     │  • Token/JWT Auth         │  • Decision Eng  │
+│  • Evidence Bundles          │  • Rate Limiting          │  • Evidence Hub  │
+│  • Reports & Analytics       │  • CORS Support           │  • Analytics     │
+│  • Pentagi (AI Pentest)      │  • OpenAPI Docs           │  • Compliance    │
+│  • Marketplace               │                           │  • Risk Models   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Shared Packages             │  Storage                  │  Integrations    │
+│  ────────────────            │  ───────                  │  ────────────    │
+│  • @fixops/ui (Design Sys)   │  • SQLite (Policies, etc) │  • Jira          │
+│  • @fixops/api-client        │  • Filesystem (Evidence)  │  • Confluence    │
+│                              │  • In-memory (Pipeline)   │  • Slack/GitHub  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [**API/CLI Reference**](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping with 250+ endpoints |
+| [**Complete API Mapping**](docs/COMPLETE_API_CLI_MAPPING.md) | Full API endpoint list organized by router |
+| [**CLI/API Inventory**](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
+| [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) | AI-indexed documentation with search |
+| [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
+
+## Quick Start (3 Commands)
 
 ```bash
 # 1. Run setup wizard
@@ -124,8 +172,12 @@ pytest tests/test_enhanced_decision.py
 pytest --cov=core --cov=apps
 ```
 
-## 📚 Documentation
+## 📚 Full Documentation
 
-- [Configuration Guide](config/fixops.overlay.yml) - Advanced configuration options
-- [Deployment Packs](deployment-packs/) - Kubernetes, Docker, Terraform
-- [API Reference](apps/api/app.py) - FastAPI endpoints
+For comprehensive technical documentation:
+
+- [**API/CLI Reference**](docs/API_CLI_REFERENCE.md) - Complete API to CLI mapping (250+ endpoints)
+- [**Complete API Mapping**](docs/COMPLETE_API_CLI_MAPPING.md) - Full endpoint list by router
+- [**CLI/API Inventory**](CLI_API_INVENTORY.md) - Commands and endpoints inventory
+- [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) - AI-indexed documentation with search
+- [Configuration Guide](config/fixops.overlay.yml) - Overlay configuration options

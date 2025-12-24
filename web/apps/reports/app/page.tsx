@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { FileText, Search, Plus, Download, Calendar, Clock, Filter, Play, Edit2, Trash2, CheckCircle, XCircle, RefreshCw, Settings, ToggleLeft, ToggleRight } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useReports, useSystemMode, useReportDownload } from '@fixops/api-client'
 
 // Fallback demo data for when API is unavailable
@@ -264,7 +264,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="reports">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -699,6 +699,6 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

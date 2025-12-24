@@ -1,10 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText, Loader2 } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useTriage, useSystemMode } from '@fixops/api-client'
 
-const DEMO_ISSUES = [
+interface Issue {
+  id: string
+  title: string
+  assignee: string
+  tags: string[]
+  sla_date: string
+  severity: string
+  source: string
+  repo: string
+  location: string
+  exploitability: { kev: boolean; epss: number }
+  internet_facing: boolean
+  age_days: number
+  business_criticality: string
+  description: string
+  remediation: string
+}
+
+const DEMO_ISSUES: Issue[] = [
   {
     id: '1',
     title: 'Apache Struts Remote Code Execution (CVE-2023-50164)',
@@ -212,9 +231,49 @@ const DEMO_ISSUES = [
 ]
 
 export default function TriagePage() {
-  const [issues, setIssues] = useState(DEMO_ISSUES)
-  const [filteredIssues, setFilteredIssues] = useState(DEMO_ISSUES)
-  const [selectedIssue, setSelectedIssue] = useState<typeof DEMO_ISSUES[0] | null>(null)
+  const { data: triageData, loading: apiLoading, error: apiError } = useTriage()
+  const { mode } = useSystemMode()
+  const { demoEnabled } = useDemoModeContext()
+
+  const transformApiData = useCallback((apiRows: NonNullable<typeof triageData>['rows']): Issue[] => {
+    return apiRows.map((row, index) => ({
+      id: row.id || String(index + 1),
+      title: row.title || 'Unknown Issue',
+      assignee: 'security-team',
+      tags: [row.severity, row.source.toLowerCase()].filter(Boolean),
+      sla_date: new Date(Date.now() + (row.age_days > 7 ? 0 : (7 - row.age_days) * 86400000)).toISOString().split('T')[0],
+      severity: row.severity || 'medium',
+      source: row.source || 'Unknown',
+      repo: row.repo || 'unknown',
+      location: row.location || 'unknown',
+      exploitability: {
+        kev: row.exploitability?.kev ?? false,
+        epss: row.exploitability?.epss ?? 0,
+      },
+      internet_facing: row.internet_facing ?? false,
+      age_days: row.age_days ?? 0,
+      business_criticality: row.internet_facing ? 'high' : 'medium',
+      description: row.description || '',
+      remediation: row.remediation || '',
+    }))
+  }, [])
+
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = triageData?.rows && triageData.rows.length > 0
+  const issuesFromApi = useMemo(() => {
+    if (demoEnabled) {
+      return DEMO_ISSUES
+    }
+    if (hasApiData) {
+      return transformApiData(triageData.rows)
+    }
+    return [] // Empty state when no API data and demo mode is OFF
+  }, [triageData, transformApiData, demoEnabled, hasApiData])
+
+  const [issues, setIssues] = useState<Issue[]>(DEMO_ISSUES)
+  const [filteredIssues, setFilteredIssues] = useState<Issue[]>(DEMO_ISSUES)
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
   const [selectedIssues, setSelectedIssues] = useState<Set<string>>(new Set())
   const [focusedIndex, setFocusedIndex] = useState(0)
   const [feedView, setFeedView] = useState('all')
@@ -352,6 +411,13 @@ export default function TriagePage() {
       setSelectedIssues(new Set(filteredIssues.map(i => i.id)))
     }
   }
+
+  useEffect(() => {
+    if (issuesFromApi !== issues) {
+      setIssues(issuesFromApi)
+      setFilteredIssues(issuesFromApi)
+    }
+  }, [issuesFromApi])
 
   useEffect(() => {
     applyFilters()
@@ -694,210 +760,153 @@ export default function TriagePage() {
     navigator.clipboard.writeText(url)
   }
 
+  // Tabs for the page header
+  const pageTabs = [
+    { id: 'all', label: 'All Issues', count: summary.total },
+    { id: 'snoozed', label: 'Snoozed', count: summary.snoozed },
+    { id: 'ignored', label: 'Ignored', count: summary.ignored },
+    { id: 'solved', label: 'Solved', count: summary.solved },
+  ]
+
+  // Header actions
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setShowColumnChooser(!showColumnChooser)}
+        className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
+      >
+        <Settings size={14} />
+        Columns
+      </button>
+      <button
+        onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+        className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
+      >
+        <Keyboard size={14} />
+        Shortcuts
+      </button>
+    </div>
+  )
+
   return (
-    <EnterpriseShell>
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Feed Navigation */}
-      <div className="w-60 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
-        {/* Logo/Title */}
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-lg font-semibold text-[#6B5AED]">FixOps</h2>
-          <p className="text-xs text-slate-500 mt-1">Security Triage</p>
-        </div>
-
-        {/* Feed Navigation */}
-        <div className="p-3 flex-1">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 px-2">
-            Feed
+    <AppShell 
+      activeApp="triage"
+      title="Security Triage"
+      subtitle={`${filteredIssues.length} open issues`}
+      tabs={pageTabs}
+      activeTab={feedView}
+      onTabChange={setFeedView}
+      headerActions={headerActions}
+    >
+      {/* Toolbar */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        {/* Stats */}
+        <div className="flex items-center gap-4 mr-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-rose-400 font-semibold">{summary.high_critical}</span>
+            <span className="text-xs text-slate-500">Critical</span>
           </div>
-          
-          {[
-            { id: 'all', label: 'All Issues', icon: AlertCircle, count: summary.total },
-            { id: 'snoozed', label: 'Snoozed', icon: EyeOff, count: summary.snoozed },
-            { id: 'ignored', label: 'Ignored', icon: Archive, count: summary.ignored },
-            { id: 'solved', label: 'Solved', icon: CheckCircle, count: summary.solved },
-          ].map(({ id, label, icon: Icon, count }) => (
-            <button
-              key={id}
-              onClick={() => setFeedView(id)}
-              className={`w-full p-2.5 rounded-md mb-1 text-sm font-medium cursor-pointer flex items-center justify-between transition-all ${
-                feedView === id
-                  ? 'bg-[#6B5AED]/10 text-[#6B5AED]'
-                  : 'text-slate-400 hover:bg-white/5'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Icon size={16} />
-                {label}
-              </span>
-              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                feedView === id
-                  ? 'bg-[#6B5AED]/20'
-                  : 'bg-slate-800'
-              }`}>
-                {count}
-              </span>
-            </button>
-          ))}
+          <div className="flex items-center gap-1.5">
+            <span className="text-amber-400 font-semibold">{summary.exploitable}</span>
+            <span className="text-xs text-slate-500">Exploitable</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-indigo-400 font-semibold">{summary.new_7d}</span>
+            <span className="text-xs text-slate-500">New (7d)</span>
+          </div>
         </div>
 
-        {/* Bottom Actions */}
-        <div className="p-3 border-t border-white/10 space-y-2">
+        <div className="h-6 w-px bg-slate-800" />
+
+        {/* Search */}
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search issues..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+          />
+        </div>
+
+        {/* Filter Chips */}
+        {[
+          { key: 'new_7d', label: 'New (7d)' },
+          { key: 'high_critical', label: 'High/Critical' },
+          { key: 'exploitable', label: 'Exploitable' },
+          { key: 'internet_facing', label: 'Internet-facing' },
+        ].map(({ key, label }) => (
           <button
-            onClick={() => window.location.href = '/risk'}
-            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
+            key={key}
+            onClick={() => toggleFilter(key as keyof typeof filters)}
+            className={`h-9 px-3 rounded-lg text-sm font-medium transition-colors ${
+              filters[key as keyof typeof filters]
+                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
           >
-            <BarChart3 size={16} />
-            Risk Graph
+            {label}
+          </button>
+        ))}
+
+        {Object.values(filters).some(v => v) && (
+          <button
+            onClick={() => setFilters({ new_7d: false, high_critical: false, exploitable: false, internet_facing: false })}
+            className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            Clear
+          </button>
+        )}
+
+        {/* View Mode */}
+        <div className="ml-auto flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode('all')}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            All
           </button>
           <button
-            onClick={() => setShowColumnChooser(!showColumnChooser)}
-            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
+            onClick={() => setViewMode('refined')}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'refined' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
           >
-            <Settings size={16} />
-            Columns
-          </button>
-          <button
-            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-            className="w-full p-2.5 rounded-md border border-white/10 text-slate-400 text-sm font-medium cursor-pointer flex items-center gap-2 justify-center hover:bg-white/5 transition-all"
-          >
-            <Keyboard size={16} />
-            Shortcuts
+            Refined
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm sticky top-0 z-10">
-          <div className="p-5">
-            {/* Summary Bar */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-4">
-                <div>
-                  <span className="text-3xl font-semibold">{filteredIssues.length}</span>
-                  <span className="text-sm text-slate-500 ml-2">Open Issues</span>
-                </div>
-                <div className="h-8 w-px bg-white/10"></div>
-                <div className="flex gap-4 text-sm">
-                  <div>
-                    <span className="text-red-500 font-semibold">{summary.high_critical}</span>
-                    <span className="text-slate-500 ml-1">High/Critical</span>
-                  </div>
-                  <div>
-                    <span className="text-amber-500 font-semibold">{summary.exploitable}</span>
-                    <span className="text-slate-500 ml-1">Exploitable</span>
-                  </div>
-                  <div>
-                    <span className="text-[#6B5AED] font-semibold">{summary.new_7d}</span>
-                    <span className="text-slate-500 ml-1">New (7d)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* View Mode Selector */}
-              <div className="flex gap-2 bg-white/5 p-1 rounded-md">
-                <button
-                  onClick={() => setViewMode('all')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                    viewMode === 'all' ? 'bg-[#6B5AED] text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  All Findings
-                </button>
-                <button
-                  onClick={() => setViewMode('refined')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                    viewMode === 'refined' ? 'bg-[#6B5AED] text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  FixOps Refined
-                </button>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="flex gap-3 items-center flex-wrap">
-              {/* Search */}
-              <div className="relative flex-[0_0_300px]">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search issues..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2 pl-10 pr-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#6B5AED]/50"
-                />
-              </div>
-
-              {/* Filter Chips */}
-              {[
-                { key: 'new_7d', label: 'New (7d)', count: summary.new_7d, color: '#6B5AED' },
-                { key: 'high_critical', label: 'High/Critical', count: summary.high_critical, color: '#f97316' },
-                { key: 'exploitable', label: 'Exploitable', count: summary.exploitable, color: '#dc2626' },
-                { key: 'internet_facing', label: 'Internet-facing', count: summary.internet_facing, color: '#6B5AED' },
-              ].map(({ key, label, count, color }) => (
-                <button
-                  key={key}
-                  onClick={() => toggleFilter(key as keyof typeof filters)}
-                  className={`py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                    filters[key as keyof typeof filters]
-                      ? `text-white`
-                      : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
-                  }`}
-                  style={filters[key as keyof typeof filters] ? { backgroundColor: color } : {}}
-                >
-                  {label}
-                  <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
-                    filters[key as keyof typeof filters]
-                      ? 'bg-white/20'
-                      : 'bg-[#6B5AED]/20 text-[#6B5AED]'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              ))}
-
-              {Object.values(filters).some(v => v) && (
-                <button
-                  onClick={() => setFilters({ new_7d: false, high_critical: false, exploitable: false, internet_facing: false })}
-                  className="py-2 px-3 rounded-md border border-white/10 text-slate-400 text-sm font-medium hover:bg-white/5 transition-all"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-
-            {/* Bulk Actions Bar */}
-            {selectedIssues.size > 0 && (
-              <div className="mt-4 p-3 bg-[#6B5AED]/10 border border-[#6B5AED]/30 rounded-md flex items-center justify-between">
-                <div className="text-sm text-slate-300">
-                  <span className="font-semibold text-[#6B5AED]">{selectedIssues.size}</span> issue{selectedIssues.size > 1 ? 's' : ''} selected
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all">
-                    <Users size={14} />
-                    Assign
-                  </button>
-                  <button className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all">
-                    <Ticket size={14} />
-                    Create Ticket
-                  </button>
-                  <button className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all">
-                    <CheckCircle size={14} />
-                    Accept Risk
-                  </button>
-                </div>
-              </div>
-            )}
+      {/* Bulk Actions Bar */}
+      {selectedIssues.size > 0 && (
+        <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex items-center justify-between">
+          <div className="text-sm text-slate-300">
+            <span className="font-semibold text-indigo-400">{selectedIssues.size}</span> issue{selectedIssues.size > 1 ? 's' : ''} selected
+          </div>
+          <div className="flex gap-2">
+            <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <Users size={14} />
+              Assign
+            </button>
+            <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <Ticket size={14} />
+              Create Ticket
+            </button>
+            <button className="px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-sm font-medium text-slate-300 hover:bg-indigo-500/30 transition-colors flex items-center gap-2">
+              <CheckCircle size={14} />
+              Accept Risk
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Issues Table */}
-        <div className="flex-1 overflow-auto p-6">
+      {/* Issues Table */}
+      <div className="overflow-x-auto">
           {filteredIssues.length === 0 ? (
-            <div className="text-center py-16 bg-white/2 rounded-lg border border-white/5">
+            <div className="text-center py-16">
               <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
               <h3 className="text-lg font-semibold mb-2">No issues found</h3>
               <p className="text-sm text-slate-400">
@@ -907,45 +916,48 @@ export default function TriagePage() {
               </p>
             </div>
           ) : (
-            <div className="bg-white/2 rounded-lg border border-white/5 overflow-hidden">
+            <table className="w-full table-fixed text-slate-100">
+              <colgroup>
+                <col style={{ width: '40px' }} />
+                {visibleColumnDefs.map(col => (
+                  <col key={col.id} style={{ width: col.width === '1fr' ? 'auto' : col.width }} />
+                ))}
+              </colgroup>
               {/* Table Header */}
-              <div className="grid gap-3 p-3 bg-black/20 border-b border-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider" style={{ gridTemplateColumns: gridTemplateColumns }}>
-                <div>
-                  <input
-                    type="checkbox"
-                    checked={selectedIssues.size === filteredIssues.length && filteredIssues.length > 0}
-                    onChange={toggleSelectAll}
-                    className="cursor-pointer"
-                  />
-                </div>
-                {visibleColumns.risk_score && <div>Risk Score</div>}
-                {visibleColumns.severity && <div>Severity</div>}
-                {visibleColumns.title && <div>Issue</div>}
-                {visibleColumns.source && <div>Source</div>}
-                {visibleColumns.repo && <div>Repository</div>}
-                {visibleColumns.location && <div>Location</div>}
-                {visibleColumns.exploitability && <div>Exploitability</div>}
-                {visibleColumns.age && <div>Age</div>}
-              </div>
+              <thead className="bg-slate-900/50">
+                <tr className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                  <th className="px-3 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedIssues.size === filteredIssues.length && filteredIssues.length > 0}
+                      onChange={toggleSelectAll}
+                      className="cursor-pointer"
+                    />
+                  </th>
+                  {visibleColumnDefs.map(col => (
+                    <th key={col.id} className="px-3 py-3 text-left">{col.label}</th>
+                  ))}
+                </tr>
+              </thead>
 
               {/* Table Body */}
+              <tbody>
               {filteredIssues.map((issue, index) => {
                 const isSelected = selectedIssues.has(issue.id)
                 const isFocused = index === focusedIndex
                 const { score, breakdown } = calculateRiskScore(issue)
                 return (
-                  <div
+                  <tr
                     key={issue.id}
-                    className={`grid gap-3 p-4 border-b border-white/5 cursor-pointer transition-colors ${
-                      isFocused ? 'bg-[#6B5AED]/10 ring-2 ring-[#6B5AED]/30' : 
-                      isSelected ? 'bg-[#6B5AED]/5' : 'hover:bg-white/2'
+                    className={`cursor-pointer transition-colors border-b border-slate-800/50 ${
+                      isFocused ? 'bg-indigo-500/10' : 
+                      isSelected ? 'bg-indigo-500/5' : 'hover:bg-slate-800/30'
                     }`}
-                    style={{ gridTemplateColumns: gridTemplateColumns }}
                     onClick={() => setSelectedIssue(issue)}
                     onContextMenu={(e) => handleContextMenu(e, issue)}
                   >
                     {/* Checkbox */}
-                    <div className="flex items-center">
+                    <td className="px-3 py-3 align-middle">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -956,70 +968,75 @@ export default function TriagePage() {
                         onClick={(e) => e.stopPropagation()}
                         className="cursor-pointer"
                       />
-                    </div>
+                    </td>
 
                     {/* Risk Score */}
                     {visibleColumns.risk_score && (
-                      <div className="flex items-center group relative">
-                        <div className={`px-2 py-1 rounded text-xs font-bold ${
-                          score >= 70 ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                          score >= 50 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                          'bg-green-500/20 text-green-300 border border-green-500/30'
-                        }`}>
-                          {score}
-                        </div>
-                        {/* Tooltip with breakdown */}
-                        <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-50 bg-[#1e293b] border border-white/10 rounded-md shadow-2xl p-3 min-w-[250px]">
-                          <div className="text-xs font-semibold text-slate-300 mb-2">FixOps Risk Score Breakdown</div>
-                          <div className="space-y-1.5 text-[11px]">
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Severity ({issue.severity}):</span>
-                              <span className="text-white font-medium">{breakdown.severity} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">KEV Status:</span>
-                              <span className="text-white font-medium">{breakdown.kev} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">EPSS ({(issue.exploitability.epss * 100).toFixed(0)}%):</span>
-                              <span className="text-white font-medium">{breakdown.epss} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Internet Exposure:</span>
-                              <span className="text-white font-medium">{breakdown.exposure} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Business Criticality:</span>
-                              <span className="text-white font-medium">{breakdown.criticality} pts</span>
-                            </div>
-                            <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-semibold">
-                              <span className="text-slate-300">Total Score:</span>
-                              <span className="text-[#6B5AED]">{score} / 100</span>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex items-center group relative">
+                          <div className={`px-2 py-1 rounded text-xs font-bold ${
+                            score >= 70 ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                            score >= 50 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                            'bg-green-500/20 text-green-300 border border-green-500/30'
+                          }`}>
+                            {score}
+                          </div>
+                          {/* Tooltip with breakdown */}
+                          <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-50 bg-slate-900 border border-slate-700 rounded-md shadow-2xl p-3 min-w-[250px]">
+                            <div className="text-xs font-semibold text-slate-300 mb-2">FixOps Risk Score Breakdown</div>
+                            <div className="space-y-1.5 text-[11px]">
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Severity ({issue.severity}):</span>
+                                <span className="text-white font-medium">{breakdown.severity} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">KEV Status:</span>
+                                <span className="text-white font-medium">{breakdown.kev} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">EPSS ({(issue.exploitability.epss * 100).toFixed(0)}%):</span>
+                                <span className="text-white font-medium">{breakdown.epss} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Internet Exposure:</span>
+                                <span className="text-white font-medium">{breakdown.exposure} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Business Criticality:</span>
+                                <span className="text-white font-medium">{breakdown.criticality} pts</span>
+                              </div>
+                              <div className="border-t border-slate-700 mt-2 pt-2 flex justify-between font-semibold">
+                                <span className="text-slate-300">Total Score:</span>
+                                <span className="text-indigo-400">{score} / 100</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </td>
                     )}
 
                     {/* Severity */}
                     {visibleColumns.severity && (
-                      <div className="flex items-center">
-                        <div
-                          className="w-2 h-2 rounded-full mr-2"
-                          style={{ backgroundColor: getSeverityColor(issue.severity) }}
-                        ></div>
-                        <span
-                          className="text-xs font-medium capitalize"
-                          style={{ color: getSeverityColor(issue.severity) }}
-                        >
-                          {issue.severity}
-                        </span>
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex items-center">
+                          <div
+                            className="w-2 h-2 rounded-full mr-2"
+                            style={{ backgroundColor: getSeverityColor(issue.severity) }}
+                          ></div>
+                          <span
+                            className="text-xs font-medium capitalize"
+                            style={{ color: getSeverityColor(issue.severity) }}
+                          >
+                            {issue.severity}
+                          </span>
+                        </div>
+                      </td>
                     )}
 
                     {/* Issue */}
                     {visibleColumns.title && (
-                      <div className="text-sm font-medium text-white group/title relative">
+                      <td className="px-3 py-3 align-middle">
+                        <div className="text-sm font-medium text-white group/title relative">
                         {editingCell?.issueId === issue.id && editingCell?.field === 'assignee' ? (
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -1117,56 +1134,71 @@ export default function TriagePage() {
                             </button>
                           </>
                         )}
-                      </div>
+                        </div>
+                      </td>
                     )}
 
                     {/* Source */}
                     {visibleColumns.source && (
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                        {getSourceIcon(issue.source)}
-                        {issue.source}
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          {getSourceIcon(issue.source)}
+                          {issue.source}
+                        </div>
+                      </td>
                     )}
 
                     {/* Repository */}
                     {visibleColumns.repo && (
-                      <div className="text-xs text-slate-400 font-mono">
-                        {issue.repo}
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="text-xs text-slate-400 font-mono">
+                          {issue.repo}
+                        </div>
+                      </td>
                     )}
 
                     {/* Location */}
                     {visibleColumns.location && (
-                      <div className="text-[11px] text-slate-500 font-mono overflow-hidden text-ellipsis whitespace-nowrap">
-                        {issue.location}
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="text-[11px] text-slate-500 font-mono overflow-hidden text-ellipsis whitespace-nowrap">
+                          {issue.location}
+                        </div>
+                      </td>
                     )}
 
                     {/* Exploitability */}
-                    <div className="flex flex-col gap-1">
-                      {issue.exploitability.kev && (
-                        <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 rounded text-[10px] font-semibold text-red-300 text-center">
-                          KEV
-                        </span>
-                      )}
-                      {issue.exploitability.epss > 0 && (
-                        <span className={`text-[11px] ${issue.exploitability.epss >= 0.7 ? 'text-red-300' : 'text-slate-400'}`}>
-                          EPSS: {(issue.exploitability.epss * 100).toFixed(0)}%
-                        </span>
-                      )}
-                    </div>
+                    {visibleColumns.exploitability && (
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex flex-col gap-1">
+                          {issue.exploitability.kev && (
+                            <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 rounded text-[10px] font-semibold text-red-300 text-center">
+                              KEV
+                            </span>
+                          )}
+                          {issue.exploitability.epss > 0 && (
+                            <span className={`text-[11px] ${issue.exploitability.epss >= 0.7 ? 'text-red-300' : 'text-slate-400'}`}>
+                              EPSS: {(issue.exploitability.epss * 100).toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
 
                     {/* Age */}
-                    <div className={`text-xs ${issue.age_days <= 7 ? 'text-[#6B5AED]' : 'text-slate-400'}`}>
-                      {issue.age_days}d
-                    </div>
-                  </div>
+                    {visibleColumns.age && (
+                      <td className="px-3 py-3 align-middle">
+                        <div className={`text-xs ${issue.age_days <= 7 ? 'text-indigo-400' : 'text-slate-400'}`}>
+                          {issue.age_days}d
+                        </div>
+                      </td>
+                    )}
+                  </tr>
                 )
               })}
-            </div>
+              </tbody>
+            </table>
           )}
         </div>
-      </div>
 
       {/* Issue Drawer */}
       {selectedIssue && (
@@ -1708,7 +1740,6 @@ export default function TriagePage() {
           animation: slide-up 0.2s ease-out;
         }
       `}</style>
-    </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

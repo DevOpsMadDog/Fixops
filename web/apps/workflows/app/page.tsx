@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Workflow, Search, Plus, Edit2, Trash2, Play, Pause, Clock, CheckCircle, XCircle, AlertCircle, Filter, Calendar, Activity } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 const DEMO_WORKFLOWS = [
   {
@@ -230,7 +230,7 @@ export default function WorkflowsPage() {
   const triggers = Array.from(new Set(workflows.map(w => w.trigger)))
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="workflows">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 min-h-screen">
@@ -607,6 +607,6 @@ export default function WorkflowsPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

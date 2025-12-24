@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Layers, Search, Filter, CheckSquare, XSquare, UserPlus, Tag, Calendar, Download, Upload, AlertTriangle, CheckCircle } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 const DEMO_FINDINGS = [
   {
@@ -226,7 +226,7 @@ export default function BulkOperationsPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="bulk">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -570,6 +570,6 @@ export default function BulkOperationsPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }
