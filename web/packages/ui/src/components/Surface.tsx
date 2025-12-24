@@ -60,6 +60,7 @@ export function Surface({
   
   return (
     <Component
+      {...(onClick ? { type: 'button' as const } : {})}
       onClick={onClick}
       className={`
         rounded-2xl

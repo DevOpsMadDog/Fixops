@@ -196,9 +196,13 @@ export function AppShell({
   // Load demo mode from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('fixops_demo_mode')
-      if (stored !== null) {
-        setDemoEnabled(stored === 'true')
+      try {
+        const stored = localStorage.getItem('fixops_demo_mode')
+        if (stored !== null) {
+          setDemoEnabled(stored === 'true')
+        }
+      } catch {
+        // localStorage may be unavailable in Safari private browsing
       }
     }
   }, [])
@@ -207,7 +211,11 @@ export function AppShell({
     const newValue = !demoEnabled
     setDemoEnabled(newValue)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('fixops_demo_mode', String(newValue))
+      try {
+        localStorage.setItem('fixops_demo_mode', String(newValue))
+      } catch {
+        // localStorage may be unavailable in Safari private browsing
+      }
     }
   }
 

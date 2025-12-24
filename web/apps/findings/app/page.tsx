@@ -267,7 +267,7 @@ export default function FindingDetailPage() {
                   <StatusBadge status="error" label="API Error" />
                 )}
                 {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
-                  <StatusBadge status="warning" label="No Data" />
+                  <StatusBadge status="warning" label="No pipeline data - using demo" />
                 )}
                 {demoEnabled && (
                   <StatusBadge status="demo" label="Demo Data" />

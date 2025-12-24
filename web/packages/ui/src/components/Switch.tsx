@@ -42,8 +42,8 @@ export function Switch({
 
   const sizes = {
     sm: { track: 'h-5 w-9', knob: 'h-3.5 w-3.5', translate: 'translate-x-4' },
-    md: { track: 'h-6 w-11', knob: 'h-4.5 w-4.5', translate: 'translate-x-5' },
-    lg: { track: 'h-7 w-14', knob: 'h-5.5 w-5.5', translate: 'translate-x-7' },
+    md: { track: 'h-6 w-11', knob: 'h-4 w-4', translate: 'translate-x-5' },
+    lg: { track: 'h-7 w-14', knob: 'h-5 w-5', translate: 'translate-x-7' },
   }
 
   const { track, knob, translate } = sizes[size]
