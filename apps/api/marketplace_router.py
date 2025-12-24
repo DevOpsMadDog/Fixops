@@ -11,7 +11,7 @@ import importlib.util
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import APIKeyHeader
@@ -89,8 +89,36 @@ def _get_enterprise_service_safe():
         return None
 
 
+# TypedDict definitions for demo data to satisfy mypy
+class _DemoMarketplaceItem(TypedDict):
+    id: str
+    name: str
+    description: str
+    content_type: str
+    compliance_frameworks: List[str]
+    ssdlc_stages: List[str]
+    pricing_model: str
+    price: float
+    tags: List[str]
+    rating: float
+    rating_count: int
+    downloads: int
+    version: str
+    qa_status: str
+    created_at: str
+    updated_at: str
+
+
+class _DemoContributor(TypedDict):
+    author: str
+    organization: str
+    contributions: int
+    total_downloads: int
+    average_rating: float
+
+
 # Demo/stub data for marketplace endpoints when enterprise service is unavailable
-_DEMO_MARKETPLACE_ITEMS = [
+_DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
     {
         "id": "demo-remediation-pack-1",
         "name": "SQL Injection Remediation Pack",
@@ -147,7 +175,7 @@ _DEMO_MARKETPLACE_ITEMS = [
     },
 ]
 
-_DEMO_CONTRIBUTORS = [
+_DEMO_CONTRIBUTORS: List[_DemoContributor] = [
     {
         "author": "FixOps Team",
         "organization": "FixOps",
@@ -309,34 +337,40 @@ async def browse_marketplace(
 
     # Return demo data if enterprise service is unavailable
     if service is None:
-        items = _DEMO_MARKETPLACE_ITEMS
+        demo_items = list(_DEMO_MARKETPLACE_ITEMS)
         # Apply basic filtering on demo data
         if content_type:
-            items = [i for i in items if i["content_type"] == content_type]
+            demo_items = [i for i in demo_items if i["content_type"] == content_type]
         if compliance_framework:
-            items = [
-                i for i in items if compliance_framework in i["compliance_frameworks"]
+            demo_items = [
+                i
+                for i in demo_items
+                if compliance_framework in i["compliance_frameworks"]
             ]
         if ssdlc_stage:
-            items = [i for i in items if ssdlc_stage in i["ssdlc_stages"]]
+            demo_items = [i for i in demo_items if ssdlc_stage in i["ssdlc_stages"]]
         if pricing_model:
-            items = [i for i in items if i["pricing_model"] == pricing_model]
+            demo_items = [i for i in demo_items if i["pricing_model"] == pricing_model]
         if query:
             query_lower = query.lower()
-            items = [
+            demo_items = [
                 i
-                for i in items
+                for i in demo_items
                 if query_lower in i["name"].lower()
                 or query_lower in i["description"].lower()
             ]
-        return {"items": items, "total": len(items), "marketplace_mode": "demo"}
+        return {
+            "items": demo_items,
+            "total": len(demo_items),
+            "marketplace_mode": "demo",
+        }
 
     ct = ContentType(content_type) if content_type else None
     pm = PricingModel(pricing_model) if pricing_model else None
     frameworks = [compliance_framework] if compliance_framework else None
     stages = [ssdlc_stage] if ssdlc_stage else None
 
-    items = await service.search_marketplace(
+    enterprise_items = await service.search_marketplace(
         content_type=ct,
         compliance_frameworks=frameworks,
         ssdlc_stages=stages,
@@ -363,9 +397,9 @@ async def browse_marketplace(
                 "created_at": item.created_at,
                 "updated_at": item.updated_at,
             }
-            for item in items
+            for item in enterprise_items
         ],
-        "total": len(items),
+        "total": len(enterprise_items),
     }
 
 
@@ -428,38 +462,38 @@ async def get_item(item_id: str) -> Dict[str, Any]:
 
     # Return demo data if enterprise service is unavailable
     if service is None:
-        for item in _DEMO_MARKETPLACE_ITEMS:
-            if item["id"] == item_id:
-                return {**item, "marketplace_mode": "demo"}
+        for demo_item in _DEMO_MARKETPLACE_ITEMS:
+            if demo_item["id"] == item_id:
+                return {**demo_item, "marketplace_mode": "demo"}
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         )
 
-    item = await service.get_item(item_id)
-    if not item:
+    enterprise_item = await service.get_item(item_id)
+    if not enterprise_item:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         )
     return {
-        "id": item.id,
-        "name": item.name,
-        "description": item.description,
-        "content_type": item.content_type.value,
-        "compliance_frameworks": item.compliance_frameworks,
-        "ssdlc_stages": item.ssdlc_stages,
-        "pricing_model": item.pricing_model.value,
-        "price": item.price,
-        "tags": item.tags,
-        "metadata": item.metadata,
-        "rating": item.rating,
-        "rating_count": item.rating_count,
-        "downloads": item.downloads,
-        "version": item.version,
-        "qa_status": item.qa_status.value,
-        "qa_summary": item.qa_summary,
-        "qa_checks": item.qa_checks,
-        "created_at": item.created_at,
-        "updated_at": item.updated_at,
+        "id": enterprise_item.id,
+        "name": enterprise_item.name,
+        "description": enterprise_item.description,
+        "content_type": enterprise_item.content_type.value,
+        "compliance_frameworks": enterprise_item.compliance_frameworks,
+        "ssdlc_stages": enterprise_item.ssdlc_stages,
+        "pricing_model": enterprise_item.pricing_model.value,
+        "price": enterprise_item.price,
+        "tags": enterprise_item.tags,
+        "metadata": enterprise_item.metadata,
+        "rating": enterprise_item.rating,
+        "rating_count": enterprise_item.rating_count,
+        "downloads": enterprise_item.downloads,
+        "version": enterprise_item.version,
+        "qa_status": enterprise_item.qa_status.value,
+        "qa_summary": enterprise_item.qa_summary,
+        "qa_checks": enterprise_item.qa_checks,
+        "created_at": enterprise_item.created_at,
+        "updated_at": enterprise_item.updated_at,
     }
 
 
