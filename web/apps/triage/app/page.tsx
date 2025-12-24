@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText, Loader2 } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
-import { useTriage, useSystemMode, useDemoMode } from '@fixops/api-client'
-import { Switch, StatusBadge, NavItem, StatCard, Surface } from '@fixops/ui'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useTriage, useSystemMode } from '@fixops/api-client'
 
 interface Issue {
   id: string
@@ -234,7 +233,7 @@ const DEMO_ISSUES: Issue[] = [
 export default function TriagePage() {
   const { data: triageData, loading: apiLoading, error: apiError } = useTriage()
   const { mode } = useSystemMode()
-  const { demoEnabled, toggleDemoMode } = useDemoMode()
+  const { demoEnabled } = useDemoModeContext()
 
   const transformApiData = useCallback((apiRows: NonNullable<typeof triageData>['rows']): Issue[] => {
     return apiRows.map((row, index) => ({
@@ -761,226 +760,151 @@ export default function TriagePage() {
     navigator.clipboard.writeText(url)
   }
 
+  // Tabs for the page header
+  const pageTabs = [
+    { id: 'all', label: 'All Issues', count: summary.total },
+    { id: 'snoozed', label: 'Snoozed', count: summary.snoozed },
+    { id: 'ignored', label: 'Ignored', count: summary.ignored },
+    { id: 'solved', label: 'Solved', count: summary.solved },
+  ]
+
+  // Header actions
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setShowColumnChooser(!showColumnChooser)}
+        className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
+      >
+        <Settings size={14} />
+        Columns
+      </button>
+      <button
+        onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+        className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
+      >
+        <Keyboard size={14} />
+        Shortcuts
+      </button>
+    </div>
+  )
+
   return (
-    <AppShell activeApp="triage">
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Feed Navigation */}
-      <div className="w-64 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
-        {/* Logo/Title */}
-        <div className="p-5 border-b border-white/[0.06]">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B5AED] to-[#8B7CF7] flex items-center justify-center shadow-[0_0_20px_rgba(107,90,237,0.3)]">
-              <Shield size={16} className="text-white" />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-semibold text-white tracking-tight">FixOps</h2>
-              <p className="text-[11px] text-slate-500">Security Triage</p>
-            </div>
+    <AppShell 
+      activeApp="triage"
+      title="Security Triage"
+      subtitle={`${filteredIssues.length} open issues`}
+      tabs={pageTabs}
+      activeTab={feedView}
+      onTabChange={setFeedView}
+      headerActions={headerActions}
+    >
+      {/* Toolbar */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        {/* Stats */}
+        <div className="flex items-center gap-4 mr-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-rose-400 font-semibold">{summary.high_critical}</span>
+            <span className="text-xs text-slate-500">Critical</span>
           </div>
-          
-          {/* Demo Mode Toggle - Apple-like */}
-          <div className="mt-4 p-3 rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06]">
-            <Switch
-              checked={demoEnabled}
-              onChange={toggleDemoMode}
-              label={demoEnabled ? 'Demo Mode' : 'Live Mode'}
-              size="sm"
-            />
-            {/* Status Badge */}
-            <div className="mt-2">
-              {apiLoading && !demoEnabled && (
-                <StatusBadge status="loading" label="Loading..." />
-              )}
-              {apiError && !apiLoading && !demoEnabled && (
-                <StatusBadge status="error" label="API Error" />
-              )}
-              {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
-                <StatusBadge status="warning" label="No Data" />
-              )}
-              {demoEnabled && (
-                <StatusBadge status="demo" label="Demo Data" />
-              )}
-              {!demoEnabled && hasApiData && !apiLoading && !apiError && (
-                <StatusBadge status="live" label={`Live (${mode})`} />
-              )}
-            </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-amber-400 font-semibold">{summary.exploitable}</span>
+            <span className="text-xs text-slate-500">Exploitable</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-indigo-400 font-semibold">{summary.new_7d}</span>
+            <span className="text-xs text-slate-500">New (7d)</span>
           </div>
         </div>
 
-        {/* Feed Navigation */}
-        <div className="p-3 flex-1">
-          <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-3 px-3">
-            Feed
-          </div>
-          
-          <div className="space-y-1">
-            {[
-              { id: 'all', label: 'All Issues', icon: AlertCircle, count: summary.total },
-              { id: 'snoozed', label: 'Snoozed', icon: EyeOff, count: summary.snoozed },
-              { id: 'ignored', label: 'Ignored', icon: Archive, count: summary.ignored },
-              { id: 'solved', label: 'Solved', icon: CheckCircle, count: summary.solved },
-            ].map(({ id, label, icon: Icon, count }) => (
-              <NavItem
-                key={id}
-                icon={<Icon size={16} />}
-                label={label}
-                count={count}
-                active={feedView === id}
-                onClick={() => setFeedView(id)}
-              />
-            ))}
-          </div>
+        <div className="h-6 w-px bg-slate-800" />
+
+        {/* Search */}
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search issues..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-9 pl-9 pr-3 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+          />
         </div>
 
-        {/* Bottom Actions */}
-        <div className="p-3 border-t border-white/[0.06] space-y-1.5">
-          <NavItem
-            icon={<BarChart3 size={16} />}
-            label="Risk Graph"
-            onClick={() => window.location.href = '/risk'}
-          />
-          <NavItem
-            icon={<Settings size={16} />}
-            label="Columns"
-            onClick={() => setShowColumnChooser(!showColumnChooser)}
-          />
-          <NavItem
-            icon={<Keyboard size={16} />}
-            label="Shortcuts"
-            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-          />
+        {/* Filter Chips */}
+        {[
+          { key: 'new_7d', label: 'New (7d)' },
+          { key: 'high_critical', label: 'High/Critical' },
+          { key: 'exploitable', label: 'Exploitable' },
+          { key: 'internet_facing', label: 'Internet-facing' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => toggleFilter(key as keyof typeof filters)}
+            className={`h-9 px-3 rounded-lg text-sm font-medium transition-colors ${
+              filters[key as keyof typeof filters]
+                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+
+        {Object.values(filters).some(v => v) && (
+          <button
+            onClick={() => setFilters({ new_7d: false, high_critical: false, exploitable: false, internet_facing: false })}
+            className="h-9 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            Clear
+          </button>
+        )}
+
+        {/* View Mode */}
+        <div className="ml-auto flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode('all')}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setViewMode('refined')}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'refined' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Refined
+          </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm sticky top-0 z-10">
-          <div className="p-5">
-            {/* Summary Bar */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-4">
-                <div>
-                  <span className="text-3xl font-semibold">{filteredIssues.length}</span>
-                  <span className="text-sm text-slate-500 ml-2">Open Issues</span>
-                </div>
-                <div className="h-8 w-px bg-white/10"></div>
-                <div className="flex gap-4 text-sm">
-                  <div>
-                    <span className="text-red-500 font-semibold">{summary.high_critical}</span>
-                    <span className="text-slate-500 ml-1">High/Critical</span>
-                  </div>
-                  <div>
-                    <span className="text-amber-500 font-semibold">{summary.exploitable}</span>
-                    <span className="text-slate-500 ml-1">Exploitable</span>
-                  </div>
-                  <div>
-                    <span className="text-[#6B5AED] font-semibold">{summary.new_7d}</span>
-                    <span className="text-slate-500 ml-1">New (7d)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* View Mode Selector */}
-              <div className="flex gap-2 bg-white/5 p-1 rounded-md">
-                <button
-                  onClick={() => setViewMode('all')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                    viewMode === 'all' ? 'bg-[#6B5AED] text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  All Findings
-                </button>
-                <button
-                  onClick={() => setViewMode('refined')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                    viewMode === 'refined' ? 'bg-[#6B5AED] text-white' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  FixOps Refined
-                </button>
-              </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="flex gap-3 items-center flex-wrap">
-              {/* Search */}
-              <div className="relative flex-[0_0_300px]">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search issues..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2 pl-10 pr-3 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#6B5AED]/50"
-                />
-              </div>
-
-              {/* Filter Chips */}
-              {[
-                { key: 'new_7d', label: 'New (7d)', count: summary.new_7d, color: '#6B5AED' },
-                { key: 'high_critical', label: 'High/Critical', count: summary.high_critical, color: '#f97316' },
-                { key: 'exploitable', label: 'Exploitable', count: summary.exploitable, color: '#dc2626' },
-                { key: 'internet_facing', label: 'Internet-facing', count: summary.internet_facing, color: '#6B5AED' },
-              ].map(({ key, label, count, color }) => (
-                <button
-                  key={key}
-                  onClick={() => toggleFilter(key as keyof typeof filters)}
-                  className={`py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                    filters[key as keyof typeof filters]
-                      ? `text-white`
-                      : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
-                  }`}
-                  style={filters[key as keyof typeof filters] ? { backgroundColor: color } : {}}
-                >
-                  {label}
-                  <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
-                    filters[key as keyof typeof filters]
-                      ? 'bg-white/20'
-                      : 'bg-[#6B5AED]/20 text-[#6B5AED]'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              ))}
-
-              {Object.values(filters).some(v => v) && (
-                <button
-                  onClick={() => setFilters({ new_7d: false, high_critical: false, exploitable: false, internet_facing: false })}
-                  className="py-2 px-3 rounded-md border border-white/10 text-slate-400 text-sm font-medium hover:bg-white/5 transition-all"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-
-            {/* Bulk Actions Bar */}
-            {selectedIssues.size > 0 && (
-              <div className="mt-4 p-3 bg-[#6B5AED]/10 border border-[#6B5AED]/30 rounded-md flex items-center justify-between">
-                <div className="text-sm text-slate-300">
-                  <span className="font-semibold text-[#6B5AED]">{selectedIssues.size}</span> issue{selectedIssues.size > 1 ? 's' : ''} selected
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all">
-                    <Users size={14} />
-                    Assign
-                  </button>
-                  <button className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all">
-                    <Ticket size={14} />
-                    Create Ticket
-                  </button>
-                  <button className="px-3 py-1.5 bg-[#6B5AED]/20 border border-[#6B5AED]/30 rounded text-sm font-medium flex items-center gap-2 hover:bg-[#6B5AED]/30 transition-all">
-                    <CheckCircle size={14} />
-                    Accept Risk
-                  </button>
-                </div>
-              </div>
-            )}
+      {/* Bulk Actions Bar */}
+      {selectedIssues.size > 0 && (
+        <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex items-center justify-between">
+          <div className="text-sm text-slate-300">
+            <span className="font-semibold text-indigo-400">{selectedIssues.size}</span> issue{selectedIssues.size > 1 ? 's' : ''} selected
+          </div>
+          <div className="flex gap-2">
+            <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <Users size={14} />
+              Assign
+            </button>
+            <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-2">
+              <Ticket size={14} />
+              Create Ticket
+            </button>
+            <button className="px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-sm font-medium text-slate-300 hover:bg-indigo-500/30 transition-colors flex items-center gap-2">
+              <CheckCircle size={14} />
+              Accept Risk
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Issues Table */}
-        <div className="flex-1 overflow-auto p-6">
+      {/* Issues Table */}
+      <div className="overflow-auto rounded-lg border border-slate-800">
           {filteredIssues.length === 0 ? (
             <div className="text-center py-16 bg-white/2 rounded-lg border border-white/5">
               <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
@@ -1251,7 +1175,6 @@ export default function TriagePage() {
             </div>
           )}
         </div>
-      </div>
 
       {/* Issue Drawer */}
       {selectedIssue && (
@@ -1793,7 +1716,6 @@ export default function TriagePage() {
           animation: slide-up 0.2s ease-out;
         }
       `}</style>
-    </div>
     </AppShell>
   )
 }
