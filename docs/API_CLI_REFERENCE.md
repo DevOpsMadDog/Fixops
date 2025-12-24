@@ -20,7 +20,17 @@
 | PentAGI | 8 | 3 | Full |
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
-| **TOTAL** | **~250** | **67** | **~85%** |
+| **CURRENT TOTAL** | **~250** | **67** | **~85%** |
+| | | | |
+| **ENTERPRISE (Planned)** | | | |
+| Correlation Engine | 12 | 6 | Planned |
+| Enterprise Integrations | 14 | 6 | Planned |
+| Remediation Lifecycle | 18 | 8 | Planned |
+| Bulk Operations | 10 | 6 | Planned |
+| Collaboration | 14 | 6 | Planned |
+| **ENTERPRISE TOTAL** | **~68** | **~32** | **Planned** |
+| | | | |
+| **GRAND TOTAL** | **~318** | **~99** | **~95%** |
 
 ---
 
@@ -372,3 +382,137 @@
 - Retention policy management
 
 These API-only features are typically used by the web UI or require interactive visualization that doesn't translate well to CLI.
+
+---
+
+## ENTERPRISE FEATURES (Planned)
+
+The following enterprise features are planned for implementation. See [Enterprise Features Documentation](ENTERPRISE_FEATURES.md) for detailed architectural designs.
+
+### CORRELATION ENGINE (Planned: 12 API → 6 CLI)
+
+| # | API Endpoint | Method | CLI Command | Notes |
+|---|--------------|--------|-------------|-------|
+| 1 | `/api/v1/correlation/analyze` | POST | `correlation analyze` | Analyze findings for correlations |
+| 2 | `/api/v1/correlation/jobs/{job_id}` | GET | `correlation status` | Get async job status |
+| 3 | `/api/v1/correlation/jobs/{job_id}/results` | GET | `correlation status` | Get correlation results |
+| 4 | `/api/v1/groups` | GET | `groups list` | List finding groups |
+| 5 | `/api/v1/groups/{id}` | GET | `groups show` | Get group details |
+| 6 | `/api/v1/groups/{id}/members` | GET | `groups show` | List member findings |
+| 7 | `/api/v1/groups/{id}/merge` | POST | `groups merge` | Merge groups (human-in-loop) |
+| 8 | `/api/v1/groups/{id}/unmerge` | POST | `groups unmerge` | Unmerge with history |
+| 9 | `/api/v1/groups/{id}/history` | GET | `groups show` | Merge/unmerge audit trail |
+| 10 | `/api/v1/correlation/links` | GET | `correlation graph` | List correlation links |
+| 11 | `/api/v1/correlation/graph` | GET | `correlation graph` | Get full correlation graph |
+| 12 | `/api/v1/correlation/links/{id}` | GET | `correlation explain` | Get link with evidence |
+
+### ENTERPRISE INTEGRATIONS (Planned: 14 API → 6 CLI)
+
+| # | API Endpoint | Method | CLI Command | Notes |
+|---|--------------|--------|-------------|-------|
+| 1 | `/api/v1/integrations/{id}/tickets` | POST | `tickets create` | Create ticket for entity |
+| 2 | `/api/v1/integrations/{id}/tickets` | GET | `tickets list` | List tickets |
+| 3 | `/api/v1/integrations/{id}/tickets/{tid}` | PUT | `tickets sync` | Update ticket |
+| 4 | `/api/v1/integrations/{id}/tickets/{tid}/sync` | POST | `tickets sync` | Force sync |
+| 5 | `/api/v1/integrations/mappings` | GET | `mappings list` | List all mappings |
+| 6 | `/api/v1/integrations/mappings/{id}` | GET | `mappings list` | Get mapping details |
+| 7 | `/api/v1/integrations/mappings/{id}` | DELETE | `mappings unlink` | Unlink mapping |
+| 8 | `/api/v1/integrations/webhooks/jira` | POST | - | Jira webhook receiver (API only) |
+| 9 | `/api/v1/integrations/webhooks/servicenow` | POST | - | ServiceNow webhook receiver (API only) |
+| 10 | `/api/v1/integrations/{id}/sync` | POST | `integrations sync` | Trigger full sync |
+| 11 | `/api/v1/integrations/{id}/sync/status` | GET | `integrations sync` | Get sync job status |
+| 12 | `/api/v1/integrations/{id}/sync/history` | GET | - | Sync history (API only) |
+| 13 | `/api/v1/integrations/{id}/test` | POST | `integrations test` | Test connection |
+| 14 | `/api/v1/integrations/{id}/drift` | GET | `mappings list --drift-only` | Detect drift |
+
+### REMEDIATION LIFECYCLE (Planned: 18 API → 8 CLI)
+
+| # | API Endpoint | Method | CLI Command | Notes |
+|---|--------------|--------|-------------|-------|
+| 1 | `/api/v1/remediation/tasks` | GET | `remediation list` | List tasks |
+| 2 | `/api/v1/remediation/tasks` | POST | `remediation create` | Create task for group |
+| 3 | `/api/v1/remediation/tasks/{id}` | GET | `remediation list` | Get task details |
+| 4 | `/api/v1/remediation/tasks/{id}` | PUT | - | Update task (API only) |
+| 5 | `/api/v1/remediation/tasks/{id}/assign` | POST | `remediation assign` | Assign owner |
+| 6 | `/api/v1/remediation/tasks/{id}/start` | POST | `remediation start` | Start work |
+| 7 | `/api/v1/remediation/tasks/{id}/defer` | POST | - | Defer with reason (API only) |
+| 8 | `/api/v1/remediation/tasks/{id}/accept-risk` | POST | `remediation accept-risk` | Accept risk with expiry |
+| 9 | `/api/v1/remediation/tasks/{id}/verify` | POST | `remediation verify` | Submit verification evidence |
+| 10 | `/api/v1/remediation/tasks/{id}/close` | POST | `remediation close` | Close task |
+| 11 | `/api/v1/remediation/tasks/{id}/history` | GET | - | Status history (API only) |
+| 12 | `/api/v1/remediation/tasks/{id}/evidence` | GET | - | Verification evidence (API only) |
+| 13 | `/api/v1/remediation/sla/policies` | GET | - | List SLA policies (API only) |
+| 14 | `/api/v1/remediation/sla/breaches` | GET | - | List SLA breaches (API only) |
+| 15 | `/api/v1/remediation/sla/report` | GET | `remediation sla-report` | SLA compliance report |
+| 16 | `/api/v1/remediation/metrics/mttr` | GET | `remediation mttr` | Mean time to remediate |
+| 17 | `/api/v1/remediation/metrics/mttd` | GET | - | Mean time to detect (API only) |
+| 18 | `/api/v1/remediation/metrics/sla` | GET | `remediation sla-report` | SLA compliance rate |
+
+### BULK OPERATIONS (Planned: 10 API → 6 CLI)
+
+| # | API Endpoint | Method | CLI Command | Notes |
+|---|--------------|--------|-------------|-------|
+| 1 | `/api/v1/bulk/jobs` | POST | `bulk assign`, `bulk accept-risk`, etc. | Submit bulk job |
+| 2 | `/api/v1/bulk/jobs` | GET | `bulk status` | List jobs |
+| 3 | `/api/v1/bulk/jobs/{id}` | GET | `bulk status` | Get job status |
+| 4 | `/api/v1/bulk/jobs/{id}/results` | GET | `bulk results` | Get per-item results |
+| 5 | `/api/v1/bulk/jobs/{id}/download` | GET | `bulk export` | Download export |
+| 6 | `/api/v1/bulk/jobs/{id}/cancel` | POST | `bulk cancel` | Cancel running job |
+| 7 | `/api/v1/bulk/jobs/{id}/retry` | POST | `bulk retry` | Retry failed items |
+| 8 | `/api/v1/bulk/views` | GET | `views list` | List saved views |
+| 9 | `/api/v1/bulk/views` | POST | `views create` | Create saved view |
+| 10 | `/api/v1/bulk/views/{id}/execute` | POST | `views execute` | Execute view as bulk job |
+
+### COLLABORATION (Planned: 14 API → 6 CLI)
+
+| # | API Endpoint | Method | CLI Command | Notes |
+|---|--------------|--------|-------------|-------|
+| 1 | `/api/v1/groups/{id}/comments` | GET | `comments list --group` | List comments on group |
+| 2 | `/api/v1/groups/{id}/comments` | POST | `comments add --group` | Add comment |
+| 3 | `/api/v1/tasks/{id}/comments` | GET | `comments list --task` | List comments on task |
+| 4 | `/api/v1/tasks/{id}/comments` | POST | `comments add --task` | Add comment |
+| 5 | `/api/v1/comments/{id}` | PUT | - | Edit comment (API only) |
+| 6 | `/api/v1/comments/{id}` | DELETE | - | Delete comment (API only) |
+| 7 | `/api/v1/comments/{id}/promote` | POST | - | Promote to evidence (API only) |
+| 8 | `/api/v1/groups/{id}/watchers` | GET | `watchers list --group` | List watchers |
+| 9 | `/api/v1/groups/{id}/watchers` | POST | `watch --group` | Add watcher |
+| 10 | `/api/v1/groups/{id}/watchers/{user_id}` | DELETE | `unwatch --group` | Remove watcher |
+| 11 | `/api/v1/activity` | GET | `activity` | Global activity feed |
+| 12 | `/api/v1/groups/{id}/activity` | GET | `activity --group` | Group activity |
+| 13 | `/api/v1/notifications` | GET | - | User notifications (API only) |
+| 14 | `/api/v1/notifications/read-all` | POST | - | Mark all as read (API only) |
+
+---
+
+## ENTERPRISE CLI COMMAND REFERENCE (Planned)
+
+| Command | Subcommands | Description |
+|---------|-------------|-------------|
+| `correlation` | analyze, status, graph, explain | Deduplication and correlation analysis |
+| `groups` | list, show, merge, unmerge | Finding group management |
+| `tickets` | create, list, sync | External ticket management |
+| `mappings` | list, unlink | Integration mapping management |
+| `remediation` | list, create, assign, start, verify, close, accept-risk, sla-report, mttr | Remediation lifecycle management |
+| `bulk` | assign, accept-risk, create-tickets, export, status, results, cancel, retry | Enterprise bulk operations |
+| `views` | list, create, execute | Saved query views |
+| `comments` | list, add | Collaboration comments |
+| `watch` | - | Add watcher to entity |
+| `unwatch` | - | Remove watcher from entity |
+| `watchers` | list | List watchers on entity |
+| `activity` | - | View activity feed |
+
+---
+
+## ENTERPRISE COVERAGE SUMMARY (Planned)
+
+**After Enterprise Features:**
+- ~135 new API endpoints planned
+- ~32 new CLI commands/subcommands planned
+- Target: 95%+ API surface coverage
+
+**Enterprise Feature Priorities:**
+1. **HIGH**: Correlation Engine (12 endpoints, 6 CLI commands)
+2. **HIGH**: Enterprise Integrations (14 endpoints, 6 CLI commands)
+3. **MEDIUM**: Remediation Lifecycle (18 endpoints, 8 CLI commands)
+4. **MEDIUM**: Bulk Operations (10 endpoints, 6 CLI commands)
+5. **LOW**: Collaboration (14 endpoints, 6 CLI commands)

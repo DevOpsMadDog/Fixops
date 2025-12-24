@@ -42,10 +42,34 @@ FixOps is a comprehensive security decision engine that ingests security artifac
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Enterprise Features Roadmap
+
+FixOps is evolving to become the definitive platform for enterprise vulnerability management. See [Enterprise Features Documentation](docs/ENTERPRISE_FEATURES.md) for detailed architectural designs.
+
+| Feature | Priority | Status | Description |
+|---------|----------|--------|-------------|
+| **Deduplication & Correlation Engine** | HIGH | Planned | Two-layer system separating identity matching from root cause analysis with 35% noise reduction |
+| **Jira/ServiceNow Integration** | HIGH | Planned | Bidirectional sync with outbox/inbox pattern, drift detection, and reliable delivery |
+| **Remediation Lifecycle Management** | MEDIUM | Planned | State machine with SLA tracking, verification evidence, and drift detection |
+| **Enterprise Bulk Operations** | MEDIUM | Planned | Async job framework with partial failure handling and per-item audit trails |
+| **Team Collaboration** | LOW | Planned | Append-only comment threads with evidence promotion and external sync |
+
+### What Makes FixOps Enterprise-Grade
+
+FixOps is **excellent** for prioritization, risk assessment, CI/CD release gates, compliance reporting, and decision support. The enterprise roadmap addresses gaps in remediation tracking, deduplication, historical analysis, and team collaboration.
+
+**Key Architectural Patterns:**
+- Every correlation, status change, and ticket action produces an auditable event with deterministic idempotency
+- Separation of FindingGroup (dedup cluster) from CorrelationLink (graph edge) for precision
+- State machine enforcement for remediation status transitions
+- Job semantics for bulk operations with per-item outcomes
+- Append-only collaboration model with full audit trail
+
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
+| [**Enterprise Features**](docs/ENTERPRISE_FEATURES.md) | World-class enterprise feature designs and roadmap |
 | [**API/CLI Reference**](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping with 250+ endpoints |
 | [**Complete API Mapping**](docs/COMPLETE_API_CLI_MAPPING.md) | Full API endpoint list organized by router |
 | [**CLI/API Inventory**](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
