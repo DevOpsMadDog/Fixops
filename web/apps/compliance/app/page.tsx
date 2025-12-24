@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useCompliance, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge, StatCard } from '@fixops/ui'
 
@@ -201,7 +201,7 @@ export default function CompliancePage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="compliance">
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Framework List */}
       <div className="w-80 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
@@ -623,6 +623,6 @@ export default function CompliancePage() {
         }
       `}</style>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

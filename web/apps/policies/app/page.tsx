@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertTriangle, Play, FileText, Filter } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 const DEMO_POLICIES = [
   {
@@ -219,7 +219,7 @@ export default function PoliciesPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="policies">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -655,6 +655,6 @@ export default function PoliciesPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

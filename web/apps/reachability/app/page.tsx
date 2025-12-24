@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Network, Search, AlertTriangle, CheckCircle, Clock, Filter, RefreshCw, Download, Target, Shield, Activity } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 interface ReachabilityResult {
   id: string
@@ -176,7 +176,7 @@ export default function ReachabilityPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="reachability">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -548,6 +548,6 @@ export default function ReachabilityPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

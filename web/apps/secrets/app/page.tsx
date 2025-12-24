@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Key, Search, Filter, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff, Calendar, GitBranch, FileText, Shield } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 // Demo data for UI demonstration - uses completely generic placeholders
 // All values are intentionally bland to avoid triggering security scanners
@@ -120,7 +120,7 @@ export default function SecretsPage() {
   const itemTypes = Array.from(new Set(items.map(s => s.type)))
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="secrets">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -530,6 +530,6 @@ export default function SecretsPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

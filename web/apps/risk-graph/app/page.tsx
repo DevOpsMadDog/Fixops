@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { AlertCircle, Shield, Code, XCircle, Filter, Search, Layers, ArrowLeft, Loader2 } from 'lucide-react'
 import { useGraph, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge, StatCard, Surface } from '@fixops/ui'
@@ -291,7 +291,7 @@ export default function RiskGraphPage() {
   }), [currentGraphData])
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="risk">
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Filters */}
       <div className="w-72 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
@@ -640,6 +640,6 @@ export default function RiskGraphPage() {
         }
       `}</style>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

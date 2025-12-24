@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertCircle, Shield, Code, Cloud, CheckCircle, XCircle, Copy, Ticket, Search, Users, Archive, Eye, EyeOff, BarChart3, Keyboard, Settings, Pin, PinOff, Edit2, Tag, Calendar, Undo2, Save, X, Activity, Clock, User, FileText, Loader2 } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useTriage, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge, NavItem, StatCard, Surface } from '@fixops/ui'
 
@@ -762,7 +762,7 @@ export default function TriagePage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="triage">
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Feed Navigation */}
       <div className="w-64 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
@@ -1794,6 +1794,6 @@ export default function TriagePage() {
         }
       `}</style>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

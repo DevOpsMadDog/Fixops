@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 export default function ShellPage() {
   useEffect(() => {
@@ -9,7 +9,7 @@ export default function ShellPage() {
   }, [])
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="shell">
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4">
@@ -18,6 +18,6 @@ export default function ShellPage() {
           <p className="text-sm text-slate-400">Loading FixOps...</p>
         </div>
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

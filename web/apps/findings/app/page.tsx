@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { ExternalLink, Copy, ArrowLeft, Loader2 } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useFindingDetail, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge } from '@fixops/ui'
 
@@ -238,7 +238,7 @@ export default function FindingDetailPage() {
   ]
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="findings">
     <div className="min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Top Bar */}
       <div className="p-5 border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-xl sticky top-0 z-10">
@@ -579,6 +579,6 @@ export default function FindingDetailPage() {
         </div>
       </div>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

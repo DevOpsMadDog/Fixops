@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock, Loader2 } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useEvidence, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge, StatCard } from '@fixops/ui'
 
@@ -263,7 +263,7 @@ export default function EvidencePage() {
     : evidenceBundles.filter(b => b.severity === filterSeverity)
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="evidence">
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Filters */}
       <div className="w-72 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
@@ -715,6 +715,6 @@ export default function EvidencePage() {
         }
       `}</style>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }
