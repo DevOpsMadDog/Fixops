@@ -553,7 +553,7 @@ export function AppShell({
         {/* MAIN CONTENT AREA                                               */}
         {/* ================================================================ */}
         <main
-          className={`transition-all duration-200 ${showTopbar ? 'pt-14' : ''} ${
+          className={`min-h-screen bg-slate-950 transition-all duration-200 ${showTopbar ? 'pt-14' : ''} ${
             showSidebar ? (sidebarCollapsed ? 'md:pl-16' : 'md:pl-56') : ''
           }`}
         >

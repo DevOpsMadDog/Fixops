@@ -904,9 +904,9 @@ export default function TriagePage() {
       )}
 
       {/* Issues Table */}
-      <div className="overflow-auto rounded-lg border border-slate-800">
+      <div className="overflow-x-auto">
           {filteredIssues.length === 0 ? (
-            <div className="text-center py-16 bg-white/2 rounded-lg border border-white/5">
+            <div className="text-center py-16">
               <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
               <h3 className="text-lg font-semibold mb-2">No issues found</h3>
               <p className="text-sm text-slate-400">
@@ -916,45 +916,48 @@ export default function TriagePage() {
               </p>
             </div>
           ) : (
-            <div className="bg-white/2 rounded-lg border border-white/5 overflow-hidden">
+            <table className="w-full table-fixed text-slate-100">
+              <colgroup>
+                <col style={{ width: '40px' }} />
+                {visibleColumnDefs.map(col => (
+                  <col key={col.id} style={{ width: col.width === '1fr' ? 'auto' : col.width }} />
+                ))}
+              </colgroup>
               {/* Table Header */}
-              <div className="grid gap-3 p-3 bg-black/20 border-b border-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider" style={{ gridTemplateColumns: gridTemplateColumns }}>
-                <div>
-                  <input
-                    type="checkbox"
-                    checked={selectedIssues.size === filteredIssues.length && filteredIssues.length > 0}
-                    onChange={toggleSelectAll}
-                    className="cursor-pointer"
-                  />
-                </div>
-                {visibleColumns.risk_score && <div>Risk Score</div>}
-                {visibleColumns.severity && <div>Severity</div>}
-                {visibleColumns.title && <div>Issue</div>}
-                {visibleColumns.source && <div>Source</div>}
-                {visibleColumns.repo && <div>Repository</div>}
-                {visibleColumns.location && <div>Location</div>}
-                {visibleColumns.exploitability && <div>Exploitability</div>}
-                {visibleColumns.age && <div>Age</div>}
-              </div>
+              <thead className="bg-slate-900/50">
+                <tr className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                  <th className="px-3 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedIssues.size === filteredIssues.length && filteredIssues.length > 0}
+                      onChange={toggleSelectAll}
+                      className="cursor-pointer"
+                    />
+                  </th>
+                  {visibleColumnDefs.map(col => (
+                    <th key={col.id} className="px-3 py-3 text-left">{col.label}</th>
+                  ))}
+                </tr>
+              </thead>
 
               {/* Table Body */}
+              <tbody>
               {filteredIssues.map((issue, index) => {
                 const isSelected = selectedIssues.has(issue.id)
                 const isFocused = index === focusedIndex
                 const { score, breakdown } = calculateRiskScore(issue)
                 return (
-                  <div
+                  <tr
                     key={issue.id}
-                    className={`grid gap-3 p-4 border-b border-white/5 cursor-pointer transition-colors ${
-                      isFocused ? 'bg-[#6B5AED]/10 ring-2 ring-[#6B5AED]/30' : 
-                      isSelected ? 'bg-[#6B5AED]/5' : 'hover:bg-white/2'
+                    className={`cursor-pointer transition-colors border-b border-slate-800/50 ${
+                      isFocused ? 'bg-indigo-500/10' : 
+                      isSelected ? 'bg-indigo-500/5' : 'hover:bg-slate-800/30'
                     }`}
-                    style={{ gridTemplateColumns: gridTemplateColumns }}
                     onClick={() => setSelectedIssue(issue)}
                     onContextMenu={(e) => handleContextMenu(e, issue)}
                   >
                     {/* Checkbox */}
-                    <div className="flex items-center">
+                    <td className="px-3 py-3 align-middle">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -965,70 +968,75 @@ export default function TriagePage() {
                         onClick={(e) => e.stopPropagation()}
                         className="cursor-pointer"
                       />
-                    </div>
+                    </td>
 
                     {/* Risk Score */}
                     {visibleColumns.risk_score && (
-                      <div className="flex items-center group relative">
-                        <div className={`px-2 py-1 rounded text-xs font-bold ${
-                          score >= 70 ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                          score >= 50 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                          'bg-green-500/20 text-green-300 border border-green-500/30'
-                        }`}>
-                          {score}
-                        </div>
-                        {/* Tooltip with breakdown */}
-                        <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-50 bg-[#1e293b] border border-white/10 rounded-md shadow-2xl p-3 min-w-[250px]">
-                          <div className="text-xs font-semibold text-slate-300 mb-2">FixOps Risk Score Breakdown</div>
-                          <div className="space-y-1.5 text-[11px]">
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Severity ({issue.severity}):</span>
-                              <span className="text-white font-medium">{breakdown.severity} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">KEV Status:</span>
-                              <span className="text-white font-medium">{breakdown.kev} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">EPSS ({(issue.exploitability.epss * 100).toFixed(0)}%):</span>
-                              <span className="text-white font-medium">{breakdown.epss} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Internet Exposure:</span>
-                              <span className="text-white font-medium">{breakdown.exposure} pts</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Business Criticality:</span>
-                              <span className="text-white font-medium">{breakdown.criticality} pts</span>
-                            </div>
-                            <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-semibold">
-                              <span className="text-slate-300">Total Score:</span>
-                              <span className="text-[#6B5AED]">{score} / 100</span>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex items-center group relative">
+                          <div className={`px-2 py-1 rounded text-xs font-bold ${
+                            score >= 70 ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                            score >= 50 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                            'bg-green-500/20 text-green-300 border border-green-500/30'
+                          }`}>
+                            {score}
+                          </div>
+                          {/* Tooltip with breakdown */}
+                          <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-50 bg-slate-900 border border-slate-700 rounded-md shadow-2xl p-3 min-w-[250px]">
+                            <div className="text-xs font-semibold text-slate-300 mb-2">FixOps Risk Score Breakdown</div>
+                            <div className="space-y-1.5 text-[11px]">
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Severity ({issue.severity}):</span>
+                                <span className="text-white font-medium">{breakdown.severity} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">KEV Status:</span>
+                                <span className="text-white font-medium">{breakdown.kev} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">EPSS ({(issue.exploitability.epss * 100).toFixed(0)}%):</span>
+                                <span className="text-white font-medium">{breakdown.epss} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Internet Exposure:</span>
+                                <span className="text-white font-medium">{breakdown.exposure} pts</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Business Criticality:</span>
+                                <span className="text-white font-medium">{breakdown.criticality} pts</span>
+                              </div>
+                              <div className="border-t border-slate-700 mt-2 pt-2 flex justify-between font-semibold">
+                                <span className="text-slate-300">Total Score:</span>
+                                <span className="text-indigo-400">{score} / 100</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </td>
                     )}
 
                     {/* Severity */}
                     {visibleColumns.severity && (
-                      <div className="flex items-center">
-                        <div
-                          className="w-2 h-2 rounded-full mr-2"
-                          style={{ backgroundColor: getSeverityColor(issue.severity) }}
-                        ></div>
-                        <span
-                          className="text-xs font-medium capitalize"
-                          style={{ color: getSeverityColor(issue.severity) }}
-                        >
-                          {issue.severity}
-                        </span>
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex items-center">
+                          <div
+                            className="w-2 h-2 rounded-full mr-2"
+                            style={{ backgroundColor: getSeverityColor(issue.severity) }}
+                          ></div>
+                          <span
+                            className="text-xs font-medium capitalize"
+                            style={{ color: getSeverityColor(issue.severity) }}
+                          >
+                            {issue.severity}
+                          </span>
+                        </div>
+                      </td>
                     )}
 
                     {/* Issue */}
                     {visibleColumns.title && (
-                      <div className="text-sm font-medium text-white group/title relative">
+                      <td className="px-3 py-3 align-middle">
+                        <div className="text-sm font-medium text-white group/title relative">
                         {editingCell?.issueId === issue.id && editingCell?.field === 'assignee' ? (
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -1126,53 +1134,69 @@ export default function TriagePage() {
                             </button>
                           </>
                         )}
-                      </div>
+                        </div>
+                      </td>
                     )}
 
                     {/* Source */}
                     {visibleColumns.source && (
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                        {getSourceIcon(issue.source)}
-                        {issue.source}
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          {getSourceIcon(issue.source)}
+                          {issue.source}
+                        </div>
+                      </td>
                     )}
 
                     {/* Repository */}
                     {visibleColumns.repo && (
-                      <div className="text-xs text-slate-400 font-mono">
-                        {issue.repo}
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="text-xs text-slate-400 font-mono">
+                          {issue.repo}
+                        </div>
+                      </td>
                     )}
 
                     {/* Location */}
                     {visibleColumns.location && (
-                      <div className="text-[11px] text-slate-500 font-mono overflow-hidden text-ellipsis whitespace-nowrap">
-                        {issue.location}
-                      </div>
+                      <td className="px-3 py-3 align-middle">
+                        <div className="text-[11px] text-slate-500 font-mono overflow-hidden text-ellipsis whitespace-nowrap">
+                          {issue.location}
+                        </div>
+                      </td>
                     )}
 
                     {/* Exploitability */}
-                    <div className="flex flex-col gap-1">
-                      {issue.exploitability.kev && (
-                        <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 rounded text-[10px] font-semibold text-red-300 text-center">
-                          KEV
-                        </span>
-                      )}
-                      {issue.exploitability.epss > 0 && (
-                        <span className={`text-[11px] ${issue.exploitability.epss >= 0.7 ? 'text-red-300' : 'text-slate-400'}`}>
-                          EPSS: {(issue.exploitability.epss * 100).toFixed(0)}%
-                        </span>
-                      )}
-                    </div>
+                    {visibleColumns.exploitability && (
+                      <td className="px-3 py-3 align-middle">
+                        <div className="flex flex-col gap-1">
+                          {issue.exploitability.kev && (
+                            <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 rounded text-[10px] font-semibold text-red-300 text-center">
+                              KEV
+                            </span>
+                          )}
+                          {issue.exploitability.epss > 0 && (
+                            <span className={`text-[11px] ${issue.exploitability.epss >= 0.7 ? 'text-red-300' : 'text-slate-400'}`}>
+                              EPSS: {(issue.exploitability.epss * 100).toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
 
                     {/* Age */}
-                    <div className={`text-xs ${issue.age_days <= 7 ? 'text-[#6B5AED]' : 'text-slate-400'}`}>
-                      {issue.age_days}d
-                    </div>
-                  </div>
+                    {visibleColumns.age && (
+                      <td className="px-3 py-3 align-middle">
+                        <div className={`text-xs ${issue.age_days <= 7 ? 'text-indigo-400' : 'text-slate-400'}`}>
+                          {issue.age_days}d
+                        </div>
+                      </td>
+                    )}
+                  </tr>
                 )
               })}
-            </div>
+              </tbody>
+            </table>
           )}
         </div>
 
