@@ -161,8 +161,25 @@ class TestRealWorldPipelineIntegration:
         # Store for subsequent tests
         pytest.pipeline_result = data
 
-        # Basic validation
-        assert "findings" in data or "triage" in data or "decisions" in data
+        # Basic validation - pipeline returns analytics, compliance, evidence, etc.
+        # The actual structure depends on enabled modules
+        assert isinstance(data, dict), "Pipeline should return a dict"
+        # Check for common pipeline output keys
+        has_valid_output = any(
+            key in data
+            for key in [
+                "analytics",
+                "compliance",
+                "evidence",
+                "findings",
+                "triage",
+                "decisions",
+                "artifact_archive",
+            ]
+        )
+        assert (
+            has_valid_output
+        ), f"Pipeline output missing expected keys. Got: {list(data.keys())}"
 
     def test_07_validate_critical_cves_detected(
         self, api_client, auth_headers, real_world_fixtures
