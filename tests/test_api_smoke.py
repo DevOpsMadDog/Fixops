@@ -65,17 +65,6 @@ SKIP_ENDPOINTS = {
     "/api/v1/pentagi/scan/comprehensive",
 }
 
-# Endpoints that are expected to return 4xx (not errors, just validation)
-EXPECTED_4XX_ENDPOINTS = {
-    # These need specific IDs that don't exist
-    "/api/v1/users/{user_id}",
-    "/api/v1/teams/{team_id}",
-    "/api/v1/policies/{policy_id}",
-    "/api/v1/workflows/{workflow_id}",
-    "/api/v1/reports/{report_id}",
-    "/api/v1/audit/{audit_id}",
-}
-
 
 @pytest.fixture(scope="module")
 def app():

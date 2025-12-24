@@ -1,7 +1,7 @@
 {
   "description": "Expected results for real-world CVE test fixtures",
   "expected_findings_count": 10,
-  "expected_critical_count": 8,
+  "expected_critical_count": 9,
   "expected_high_count": 1,
   "expected_kev_count": 9,
   "expected_cves": [

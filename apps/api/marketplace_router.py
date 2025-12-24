@@ -8,10 +8,13 @@ path conflicts with other src directories.
 from __future__ import annotations
 
 import importlib.util
+import logging
 import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import APIKeyHeader
@@ -84,8 +87,9 @@ def _get_enterprise_service_safe():
     try:
         service = get_marketplace_service()
         return service
-    except Exception:
+    except Exception as e:
         # Enterprise service exists but failed to initialize (missing config, DB, etc.)
+        logger.debug("Enterprise marketplace service unavailable: %s", e)
         return None
 
 
