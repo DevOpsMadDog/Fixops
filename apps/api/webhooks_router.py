@@ -6,7 +6,7 @@ import json
 import os
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
@@ -201,7 +201,7 @@ def _detect_drift(
         try:
             cursor = conn.cursor()
             drift_id = str(uuid.uuid4())
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """
@@ -253,7 +253,7 @@ async def receive_jira_webhook(
     payload = JiraWebhookPayload(**payload_dict)
 
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
@@ -345,7 +345,7 @@ async def receive_jira_webhook(
 def receive_servicenow_webhook(payload: ServiceNowWebhookPayload) -> Dict[str, Any]:
     """Receive webhook events from ServiceNow for bidirectional sync."""
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
@@ -432,7 +432,7 @@ def create_integration_mapping(request: CreateMappingRequest) -> Dict[str, Any]:
         cursor = conn.cursor()
 
         mapping_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         cursor.execute(
             """
@@ -541,7 +541,7 @@ def sync_mapping_status(mapping_id: str, fixops_status: str) -> Dict[str, Any]:
             raise HTTPException(status_code=404, detail="Mapping not found")
 
         mapping = dict(row)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         cursor.execute(
             """
@@ -630,7 +630,7 @@ def resolve_drift(drift_id: str, request: DriftResolutionRequest) -> Dict[str, A
             raise HTTPException(status_code=404, detail="Drift event not found")
 
         drift = dict(row)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         cursor.execute(
             """
@@ -728,7 +728,7 @@ def _calculate_next_retry(retry_count: int) -> str:
     delay_seconds = base_delay * (2**retry_count)
     max_delay = 3600
     delay_seconds = min(delay_seconds, max_delay)
-    next_retry = datetime.utcnow() + timedelta(seconds=delay_seconds)
+    next_retry = datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
     return next_retry.isoformat()
 
 
@@ -740,7 +740,7 @@ def queue_outbound_sync(request: OutboxRequest) -> Dict[str, Any]:
         cursor = conn.cursor()
 
         outbox_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         cursor.execute(
             """
@@ -818,7 +818,7 @@ def get_pending_outbox_items(limit: int = 100) -> Dict[str, Any]:
     conn.row_factory = sqlite3.Row
     try:
         cursor = conn.cursor()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         cursor.execute(
             """
@@ -860,7 +860,7 @@ def process_outbox_item(
             raise HTTPException(status_code=404, detail="Outbox item not found")
 
         item = dict(row)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         if success:
             cursor.execute(
@@ -943,7 +943,7 @@ def cancel_outbox_item(outbox_id: str) -> Dict[str, Any]:
                 detail=f"Cannot cancel item with status '{row[0]}'",
             )
 
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         cursor.execute(
             """
             UPDATE outbox
@@ -1123,7 +1123,7 @@ def receive_gitlab_webhook(
             )
 
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
@@ -1256,7 +1256,7 @@ def receive_azure_devops_webhook(payload: AzureDevOpsWebhookPayload) -> Dict[str
     Supports Azure DevOps work item events for ALM integration.
     """
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
@@ -1398,7 +1398,7 @@ def create_alm_work_item(request: CreateWorkItemRequest) -> Dict[str, Any]:
 
         # Queue in outbox for async creation
         outbox_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         payload = {
             "cluster_id": request.cluster_id,
@@ -1480,7 +1480,7 @@ def update_alm_work_item(
 
         # Queue in outbox for async update
         outbox_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         payload = {
             "mapping_id": mapping_id,

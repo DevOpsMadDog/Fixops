@@ -423,7 +423,7 @@ def create_app() -> FastAPI:
     app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(webhooks_router)
+    app.include_router(webhooks_router, dependencies=[Depends(_verify_api_key)])
 
     # Enterprise vulnerability intelligence feeds
     if feeds_router:

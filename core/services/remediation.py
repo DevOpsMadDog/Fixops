@@ -4,7 +4,7 @@ import json
 import logging
 import sqlite3
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -196,7 +196,7 @@ class RemediationService:
             cursor = conn.cursor()
 
             task_id = str(uuid.uuid4())
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             now_str = now.isoformat()
 
             sla_hours = self.sla_policies.get(severity.lower(), 168)
@@ -308,7 +308,7 @@ class RemediationService:
                 query += " AND severity = ?"
                 params.append(severity.lower())
             if overdue_only:
-                now = datetime.utcnow().isoformat()
+                now = datetime.now(timezone.utc).isoformat()
                 query += " AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')"
                 params.append(now)
 
@@ -362,7 +362,7 @@ class RemediationService:
                     f"Valid transitions: {[s.value for s in valid_targets]}"
                 )
 
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             updates = {"status": target_status.value, "updated_at": now}
 
             if target_status == RemediationStatus.RESOLVED:
@@ -420,7 +420,7 @@ class RemediationService:
             if not row:
                 raise ValueError(f"Task {task_id} not found")
 
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             current_status = row["status"]
 
             new_status = current_status
@@ -483,7 +483,7 @@ class RemediationService:
             if not row:
                 raise ValueError(f"Task {task_id} not found")
 
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """
@@ -538,7 +538,7 @@ class RemediationService:
         try:
             cursor = conn.cursor()
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             now_str = now.isoformat()
 
             cursor.execute(
@@ -654,7 +654,7 @@ class RemediationService:
                 else 100.0
             )
 
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
                 f"""
                 SELECT COUNT(*) as overdue {base_query}
@@ -718,7 +718,7 @@ class RemediationService:
         try:
             cursor = conn.cursor()
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             threshold_time = (now + timedelta(hours=hours_threshold)).isoformat()
 
             cursor.execute(
@@ -782,7 +782,7 @@ class RemediationService:
                 raise ValueError(f"Task {task_id} not found")
 
             task = dict(row)
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             updates: Dict[str, Any] = {"updated_at": now}
             escalation_details: Dict[str, Any] = {
@@ -871,7 +871,7 @@ class RemediationService:
             Summary of SLA check results
         """
         results: Dict[str, Any] = {
-            "checked_at": datetime.utcnow().isoformat(),
+            "checked_at": datetime.now(timezone.utc).isoformat(),
             "org_id": org_id,
             "breaches_detected": [],
             "approaching_breach": [],
@@ -1042,7 +1042,7 @@ class SLAScheduler:
             Aggregated results
         """
         results: Dict[str, Any] = {
-            "checked_at": datetime.utcnow().isoformat(),
+            "checked_at": datetime.now(timezone.utc).isoformat(),
             "organizations_checked": len(org_ids),
             "total_breaches": 0,
             "total_escalations": 0,

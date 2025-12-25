@@ -3,7 +3,7 @@
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -174,7 +174,7 @@ class DeduplicationService:
         )
         existing = cursor.fetchone()
 
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         event_id = str(uuid.uuid4())
 
         if existing:
@@ -433,7 +433,7 @@ class DeduplicationService:
                 return False
 
             old_status = row["status"]
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 "UPDATE clusters SET status = ? WHERE cluster_id = ?",
@@ -499,7 +499,7 @@ class DeduplicationService:
             cursor = conn.cursor()
 
             link_id = str(uuid.uuid4())
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """
@@ -911,7 +911,7 @@ class DeduplicationService:
             )
 
             feedback_id = str(uuid.uuid4())
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """

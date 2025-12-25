@@ -108,47 +108,49 @@ class VEXIngestor:
     def _init_db(self) -> None:
         """Initialize database schema for VEX assertions."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vex_assertions (
+                    assertion_id TEXT PRIMARY KEY,
+                    document_id TEXT,
+                    vulnerability_id TEXT NOT NULL,
+                    product_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    justification TEXT,
+                    impact_statement TEXT,
+                    action_statement TEXT,
+                    supplier TEXT,
+                    timestamp TEXT NOT NULL,
+                    metadata TEXT
+                )
             """
-            CREATE TABLE IF NOT EXISTS vex_assertions (
-                assertion_id TEXT PRIMARY KEY,
-                document_id TEXT,
-                vulnerability_id TEXT NOT NULL,
-                product_id TEXT NOT NULL,
-                status TEXT NOT NULL,
-                justification TEXT,
-                impact_statement TEXT,
-                action_statement TEXT,
-                supplier TEXT,
-                timestamp TEXT NOT NULL,
-                metadata TEXT
             )
-        """
-        )
 
-        cursor.execute(
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS suppression_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    finding_id TEXT NOT NULL,
+                    assertion_id TEXT NOT NULL,
+                    suppressed_at TEXT NOT NULL,
+                    reason TEXT
+                )
             """
-            CREATE TABLE IF NOT EXISTS suppression_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                finding_id TEXT NOT NULL,
-                assertion_id TEXT NOT NULL,
-                suppressed_at TEXT NOT NULL,
-                reason TEXT
             )
-        """
-        )
 
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_assertions_vuln ON vex_assertions(vulnerability_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_assertions_product ON vex_assertions(product_id)"
-        )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_assertions_vuln ON vex_assertions(vulnerability_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_assertions_product ON vex_assertions(product_id)"
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
 
     def ingest(self, advisories: Iterable[Mapping[str, Any]]) -> int:
         """Ingest VEX advisories and extract assertions.

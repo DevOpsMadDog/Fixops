@@ -5,7 +5,7 @@ import re
 import smtplib
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from enum import Enum
@@ -202,7 +202,7 @@ class CollaborationService:
             cursor = conn.cursor()
 
             comment_id = str(uuid.uuid4())
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """
@@ -327,7 +327,7 @@ class CollaborationService:
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             try:
                 cursor.execute(
@@ -426,7 +426,7 @@ class CollaborationService:
             cursor = conn.cursor()
 
             activity_id = str(uuid.uuid4())
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """
@@ -525,7 +525,7 @@ class CollaborationService:
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
                 "UPDATE mentions SET acknowledged = 1, acknowledged_at = ? WHERE id = ?",
                 (now, mention_id),
@@ -589,7 +589,7 @@ class CollaborationService:
             )
 
             notification_id = str(uuid.uuid4())
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.execute(
                 """
@@ -680,7 +680,7 @@ class CollaborationService:
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             if error:
                 cursor.execute(
@@ -838,7 +838,7 @@ class CollaborationService:
             )
 
             current = self.get_user_notification_preferences(user_id)
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             new_prefs = {
                 "email_enabled": email_enabled

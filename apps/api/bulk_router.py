@@ -4,7 +4,7 @@ Enterprise Bulk Operations API endpoints with async job support.
 
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -142,7 +142,7 @@ class JobStatusResponse(BaseModel):
 def _create_job(action_type: str, total_items: int, metadata: Dict[str, Any]) -> str:
     """Create a new bulk job."""
     job_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     _jobs[job_id] = {
         "job_id": job_id,
@@ -203,7 +203,7 @@ def _complete_job(job_id: str, status: str):
         return
 
     job["status"] = status
-    job["completed_at"] = datetime.utcnow().isoformat()
+    job["completed_at"] = datetime.now(timezone.utc).isoformat()
 
 
 async def _process_bulk_status(
@@ -638,7 +638,7 @@ async def cancel_job(job_id: str) -> Dict[str, Any]:
 
     if job["status"] == JobStatus.PENDING.value:
         job["status"] = JobStatus.CANCELLED.value
-        job["completed_at"] = datetime.utcnow().isoformat()
+        job["completed_at"] = datetime.now(timezone.utc).isoformat()
 
     return {"status": "cancelled", "job_id": job_id}
 
