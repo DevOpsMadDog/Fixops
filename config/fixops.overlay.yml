@@ -220,7 +220,7 @@ modules:
     top_k: 3
   enhanced_decision: { enabled: true }
   correlation_engine:
-    enabled: false
+    enabled: true
     strategies:
       - fingerprint
       - location
@@ -228,6 +228,52 @@ modules:
       - root_cause
       - vulnerability
     noise_reduction_target: 0.35
+    dedup_window_hours: 24
+    preserve_raw: true
+    cross_stage:
+      enabled: true
+      link_attributes:
+        - cve_id
+        - component
+        - asset_id
+        - repo_path
+        - rule_id
+
+# Integration adapters configuration
+integrations:
+  gitlab:
+    enabled: true
+    url_env: FIXOPS_GITLAB_URL
+    token_env: FIXOPS_GITLAB_TOKEN
+    webhook_secret_env: FIXOPS_GITLAB_WEBHOOK_SECRET
+  azure_devops:
+    enabled: true
+    organization_env: FIXOPS_AZDO_ORG
+    project_env: FIXOPS_AZDO_PROJECT
+    token_env: FIXOPS_AZDO_TOKEN
+  snyk:
+    enabled: true
+    org_id_env: FIXOPS_SNYK_ORG_ID
+    token_env: FIXOPS_SNYK_TOKEN
+    sync_mode: pull
+  defectdojo:
+    enabled: true
+    url_env: FIXOPS_DEFECTDOJO_URL
+    token_env: FIXOPS_DEFECTDOJO_TOKEN
+    product_id_env: FIXOPS_DEFECTDOJO_PRODUCT_ID
+  datadog:
+    enabled: false
+    site: datadoghq.com
+    api_key_env: FIXOPS_DD_API_KEY
+    app_key_env: FIXOPS_DD_APP_KEY
+  pagerduty:
+    enabled: false
+    routing_key_env: FIXOPS_PD_ROUTING_KEY
+    severity_mapping:
+      critical: critical
+      high: error
+      medium: warning
+      low: info
   mitre_mapping:
     enabled: false
     techniques:

@@ -436,6 +436,172 @@ class CorrelationEngine:
             ],
         }
 
+    async def correlate_cross_stage(
+        self,
+        findings_by_stage: Dict[str, List[Dict[str, Any]]],
+        link_attributes: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Correlate findings across SDLC stages.
+
+        Args:
+            findings_by_stage: Dict mapping stage names to findings lists
+                Stages: design, build, deploy, runtime
+            link_attributes: Attributes to use for cross-stage linking
+                Default: cve_id, component, asset_id, repo_path
+
+        Returns:
+            List of correlated issue groups with cross-stage references
+        """
+        if not self.enabled:
+            return []
+
+        if link_attributes is None:
+            link_attributes = ["cve_id", "component", "asset_id", "repo_path", "rule_id"]
+
+        # Build index by link attributes
+        attribute_index: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+        for attr in link_attributes:
+            attribute_index[attr] = {}
+
+        all_findings: List[Dict[str, Any]] = []
+        for stage, findings in findings_by_stage.items():
+            for finding in findings:
+                finding_copy = dict(finding)
+                finding_copy["_source_stage"] = stage
+                all_findings.append(finding_copy)
+
+                # Index by each attribute
+                for attr in link_attributes:
+                    value = finding.get(attr)
+                    if value:
+                        key = str(value).lower().strip()
+                        if key not in attribute_index[attr]:
+                            attribute_index[attr][key] = []
+                        attribute_index[attr][key].append(finding_copy)
+
+        # Build correlated groups
+        correlated_groups: List[Dict[str, Any]] = []
+        processed_ids: set = set()
+
+        for finding in all_findings:
+            finding_id = finding.get("id") or finding.get("finding_id") or id(finding)
+            if finding_id in processed_ids:
+                continue
+
+            # Find related findings across stages
+            related: Dict[str, List[Dict[str, Any]]] = {}
+            link_reasons: List[str] = []
+
+            for attr in link_attributes:
+                value = finding.get(attr)
+                if not value:
+                    continue
+                key = str(value).lower().strip()
+                matches = attribute_index[attr].get(key, [])
+                for match in matches:
+                    match_id = match.get("id") or match.get("finding_id") or id(match)
+                    if match_id == finding_id:
+                        continue
+                    stage = match.get("_source_stage", "unknown")
+                    if stage not in related:
+                        related[stage] = []
+                    if match not in related[stage]:
+                        related[stage].append(match)
+                        if f"{attr}={key}" not in link_reasons:
+                            link_reasons.append(f"{attr}={key}")
+
+            # Create group if we have cross-stage correlations
+            if related:
+                group = {
+                    "primary_finding": finding,
+                    "primary_stage": finding.get("_source_stage", "unknown"),
+                    "correlated_by_stage": related,
+                    "link_reasons": link_reasons,
+                    "total_related": sum(len(v) for v in related.values()),
+                    "stages_involved": [finding.get("_source_stage")] + list(related.keys()),
+                }
+                correlated_groups.append(group)
+
+                # Mark all as processed
+                processed_ids.add(finding_id)
+                for stage_findings in related.values():
+                    for f in stage_findings:
+                        f_id = f.get("id") or f.get("finding_id") or id(f)
+                        processed_ids.add(f_id)
+
+        logger.info(
+            "Cross-stage correlation completed",
+            total_findings=len(all_findings),
+            correlated_groups=len(correlated_groups),
+            stages=list(findings_by_stage.keys()),
+        )
+
+        return correlated_groups
+
+    async def deduplicate_findings(
+        self,
+        findings: List[Dict[str, Any]],
+        window_hours: int = 24,
+    ) -> Dict[str, Any]:
+        """
+        Deduplicate findings based on fingerprint within time window.
+
+        Args:
+            findings: List of findings to deduplicate
+            window_hours: Time window for deduplication
+
+        Returns:
+            Dict with unique findings, duplicates removed, and stats
+        """
+        if not self.enabled:
+            return {
+                "unique": findings,
+                "duplicates_removed": 0,
+                "dedup_ratio": 0.0,
+            }
+
+        seen_fingerprints: Dict[str, Dict[str, Any]] = {}
+        unique: List[Dict[str, Any]] = []
+        duplicates: List[Dict[str, Any]] = []
+
+        for finding in findings:
+            fingerprint = finding.get("fingerprint")
+            if not fingerprint:
+                # Generate fingerprint if missing
+                from hashlib import sha256
+                parts = [
+                    str(finding.get("title", "")),
+                    str(finding.get("rule_id", "")),
+                    str(finding.get("cve_id", "")),
+                    str(finding.get("file_path", "")),
+                ]
+                fingerprint = sha256("|".join(parts).encode()).hexdigest()[:16]
+                finding["fingerprint"] = fingerprint
+
+            if fingerprint in seen_fingerprints:
+                duplicates.append(finding)
+            else:
+                seen_fingerprints[fingerprint] = finding
+                unique.append(finding)
+
+        dedup_ratio = len(duplicates) / len(findings) if findings else 0.0
+
+        logger.info(
+            "Deduplication completed",
+            total=len(findings),
+            unique=len(unique),
+            duplicates=len(duplicates),
+            dedup_ratio=f"{dedup_ratio:.2%}",
+        )
+
+        return {
+            "unique": unique,
+            "duplicates_removed": len(duplicates),
+            "dedup_ratio": dedup_ratio,
+            "duplicates": duplicates,
+        }
+
 
 # Global correlation engine instance (disabled by default)
 _correlation_engine = None
