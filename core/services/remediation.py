@@ -189,86 +189,88 @@ class RemediationService:
     ) -> Dict[str, Any]:
         """Create a new remediation task."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        task_id = str(uuid.uuid4())
-        now = datetime.utcnow()
-        now_str = now.isoformat()
+            task_id = str(uuid.uuid4())
+            now = datetime.utcnow()
+            now_str = now.isoformat()
 
-        # Calculate SLA due date
-        sla_hours = self.sla_policies.get(severity.lower(), 168)
-        due_at = (now + timedelta(hours=sla_hours)).isoformat()
+            sla_hours = self.sla_policies.get(severity.lower(), 168)
+            due_at = (now + timedelta(hours=sla_hours)).isoformat()
 
-        initial_status = (
-            RemediationStatus.ASSIGNED.value
-            if assignee
-            else RemediationStatus.OPEN.value
-        )
+            initial_status = (
+                RemediationStatus.ASSIGNED.value
+                if assignee
+                else RemediationStatus.OPEN.value
+            )
 
-        cursor.execute(
-            """
-            INSERT INTO remediation_tasks (
-                task_id, cluster_id, org_id, app_id, title, description,
-                severity, status, assignee, assignee_email, created_at,
-                updated_at, due_at, sla_hours, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                task_id,
-                cluster_id,
-                org_id,
-                app_id,
-                title,
-                description,
-                severity.lower(),
-                initial_status,
-                assignee,
-                assignee_email,
-                now_str,
-                now_str,
-                due_at,
-                sla_hours,
-                json.dumps(metadata or {}),
-            ),
-        )
+            cursor.execute(
+                """
+                INSERT INTO remediation_tasks (
+                    task_id, cluster_id, org_id, app_id, title, description,
+                    severity, status, assignee, assignee_email, created_at,
+                    updated_at, due_at, sla_hours, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    task_id,
+                    cluster_id,
+                    org_id,
+                    app_id,
+                    title,
+                    description,
+                    severity.lower(),
+                    initial_status,
+                    assignee,
+                    assignee_email,
+                    now_str,
+                    now_str,
+                    due_at,
+                    sla_hours,
+                    json.dumps(metadata or {}),
+                ),
+            )
 
-        # Record initial status
-        cursor.execute(
-            """
-            INSERT INTO task_history (task_id, new_status, reason, timestamp)
-            VALUES (?, ?, ?, ?)
-        """,
-            (task_id, initial_status, "Task created", now_str),
-        )
+            cursor.execute(
+                """
+                INSERT INTO task_history (task_id, new_status, reason, timestamp)
+                VALUES (?, ?, ?, ?)
+            """,
+                (task_id, initial_status, "Task created", now_str),
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
 
-        return {
-            "task_id": task_id,
-            "cluster_id": cluster_id,
-            "status": initial_status,
-            "severity": severity.lower(),
-            "due_at": due_at,
-            "sla_hours": sla_hours,
-            "created_at": now_str,
-        }
+            return {
+                "task_id": task_id,
+                "cluster_id": cluster_id,
+                "status": initial_status,
+                "severity": severity.lower(),
+                "due_at": due_at,
+                "sla_hours": sla_hours,
+                "created_at": now_str,
+            }
+        finally:
+            conn.close()
 
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         """Get task by ID."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM remediation_tasks WHERE task_id = ?", (task_id,))
-        row = cursor.fetchone()
-        conn.close()
-
-        if row:
-            task = dict(row)
-            task["is_overdue"] = self._is_overdue(task)
-            return task
-        return None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM remediation_tasks WHERE task_id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                task = dict(row)
+                task["is_overdue"] = self._is_overdue(task)
+                return task
+            return None
+        finally:
+            conn.close()
 
     def get_tasks(
         self,
@@ -284,42 +286,44 @@ class RemediationService:
         """Get tasks with optional filters."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        query = "SELECT * FROM remediation_tasks WHERE org_id = ?"
-        params: List[Any] = [org_id]
+            query = "SELECT * FROM remediation_tasks WHERE org_id = ?"
+            params: List[Any] = [org_id]
 
-        if app_id:
-            query += " AND app_id = ?"
-            params.append(app_id)
-        if status:
-            query += " AND status = ?"
-            params.append(status)
-        if assignee:
-            query += " AND assignee = ?"
-            params.append(assignee)
-        if severity:
-            query += " AND severity = ?"
-            params.append(severity.lower())
-        if overdue_only:
-            now = datetime.utcnow().isoformat()
-            query += " AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')"
-            params.append(now)
+            if app_id:
+                query += " AND app_id = ?"
+                params.append(app_id)
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            if assignee:
+                query += " AND assignee = ?"
+                params.append(assignee)
+            if severity:
+                query += " AND severity = ?"
+                params.append(severity.lower())
+            if overdue_only:
+                now = datetime.utcnow().isoformat()
+                query += " AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')"
+                params.append(now)
 
-        query += " ORDER BY due_at ASC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+            query += " ORDER BY due_at ASC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
 
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
 
-        tasks = []
-        for row in rows:
-            task = dict(row)
-            task["is_overdue"] = self._is_overdue(task)
-            tasks.append(task)
+            tasks = []
+            for row in rows:
+                task = dict(row)
+                task["is_overdue"] = self._is_overdue(task)
+                tasks.append(task)
 
-        return tasks
+            return tasks
+        finally:
+            conn.close()
 
     def update_status(
         self,
@@ -331,71 +335,67 @@ class RemediationService:
         """Update task status with state machine validation."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        # Get current task
-        cursor.execute("SELECT * FROM remediation_tasks WHERE task_id = ?", (task_id,))
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            raise ValueError(f"Task {task_id} not found")
-
-        current_status = RemediationStatus(row["status"])
         try:
-            target_status = RemediationStatus(new_status)
-        except ValueError:
-            conn.close()
-            valid = [s.value for s in RemediationStatus]
-            raise ValueError(f"Invalid status. Must be one of: {valid}")
+            cursor = conn.cursor()
 
-        # Validate transition
-        valid_targets = VALID_TRANSITIONS.get(current_status, [])
-        if target_status not in valid_targets:
-            conn.close()
-            raise ValueError(
-                f"Invalid transition from {current_status.value} to {target_status.value}. "
-                f"Valid transitions: {[s.value for s in valid_targets]}"
+            cursor.execute(
+                "SELECT * FROM remediation_tasks WHERE task_id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Task {task_id} not found")
+
+            current_status = RemediationStatus(row["status"])
+            try:
+                target_status = RemediationStatus(new_status)
+            except ValueError:
+                valid = [s.value for s in RemediationStatus]
+                raise ValueError(f"Invalid status. Must be one of: {valid}")
+
+            valid_targets = VALID_TRANSITIONS.get(current_status, [])
+            if target_status not in valid_targets:
+                raise ValueError(
+                    f"Invalid transition from {current_status.value} to {target_status.value}. "
+                    f"Valid transitions: {[s.value for s in valid_targets]}"
+                )
+
+            now = datetime.utcnow().isoformat()
+            updates = {"status": target_status.value, "updated_at": now}
+
+            if target_status == RemediationStatus.RESOLVED:
+                updates["resolved_at"] = now
+
+            set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+            cursor.execute(
+                f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",
+                list(updates.values()) + [task_id],
             )
 
-        now = datetime.utcnow().isoformat()
-        updates = {"status": target_status.value, "updated_at": now}
+            cursor.execute(
+                """
+                INSERT INTO task_history (task_id, old_status, new_status, changed_by, reason, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    task_id,
+                    current_status.value,
+                    target_status.value,
+                    changed_by,
+                    reason,
+                    now,
+                ),
+            )
 
-        # Handle resolved status
-        if target_status == RemediationStatus.RESOLVED:
-            updates["resolved_at"] = now
+            conn.commit()
 
-        # Build update query
-        set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
-        cursor.execute(
-            f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",
-            list(updates.values()) + [task_id],
-        )
-
-        # Record history
-        cursor.execute(
-            """
-            INSERT INTO task_history (task_id, old_status, new_status, changed_by, reason, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """,
-            (
-                task_id,
-                current_status.value,
-                target_status.value,
-                changed_by,
-                reason,
-                now,
-            ),
-        )
-
-        conn.commit()
-        conn.close()
-
-        return {
-            "task_id": task_id,
-            "old_status": current_status.value,
-            "new_status": target_status.value,
-            "updated_at": now,
-        }
+            return {
+                "task_id": task_id,
+                "old_status": current_status.value,
+                "new_status": target_status.value,
+                "updated_at": now,
+            }
+        finally:
+            conn.close()
 
     def assign_task(
         self,
@@ -407,58 +407,58 @@ class RemediationService:
         """Assign task to a user."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT status FROM remediation_tasks WHERE task_id = ?", (task_id,)
-        )
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            raise ValueError(f"Task {task_id} not found")
+            cursor.execute(
+                "SELECT status FROM remediation_tasks WHERE task_id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Task {task_id} not found")
 
-        now = datetime.utcnow().isoformat()
-        current_status = row["status"]
+            now = datetime.utcnow().isoformat()
+            current_status = row["status"]
 
-        # Auto-transition to assigned if open
-        new_status = current_status
-        if current_status == RemediationStatus.OPEN.value:
-            new_status = RemediationStatus.ASSIGNED.value
+            new_status = current_status
+            if current_status == RemediationStatus.OPEN.value:
+                new_status = RemediationStatus.ASSIGNED.value
 
-        cursor.execute(
-            """
-            UPDATE remediation_tasks
-            SET assignee = ?, assignee_email = ?, status = ?, updated_at = ?
-            WHERE task_id = ?
-        """,
-            (assignee, assignee_email, new_status, now, task_id),
-        )
-
-        if new_status != current_status:
             cursor.execute(
                 """
-                INSERT INTO task_history (task_id, old_status, new_status, changed_by, reason, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
+                UPDATE remediation_tasks
+                SET assignee = ?, assignee_email = ?, status = ?, updated_at = ?
+                WHERE task_id = ?
             """,
-                (
-                    task_id,
-                    current_status,
-                    new_status,
-                    changed_by,
-                    f"Assigned to {assignee}",
-                    now,
-                ),
+                (assignee, assignee_email, new_status, now, task_id),
             )
 
-        conn.commit()
-        conn.close()
+            if new_status != current_status:
+                cursor.execute(
+                    """
+                    INSERT INTO task_history (task_id, old_status, new_status, changed_by, reason, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        task_id,
+                        current_status,
+                        new_status,
+                        changed_by,
+                        f"Assigned to {assignee}",
+                        now,
+                    ),
+                )
 
-        return {
-            "task_id": task_id,
-            "assignee": assignee,
-            "status": new_status,
-            "updated_at": now,
-        }
+            conn.commit()
+
+            return {
+                "task_id": task_id,
+                "assignee": assignee,
+                "status": new_status,
+                "updated_at": now,
+            }
+        finally:
+            conn.close()
 
     def submit_verification(
         self,
@@ -470,207 +470,207 @@ class RemediationService:
         """Submit verification evidence for a task."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT status FROM remediation_tasks WHERE task_id = ?", (task_id,)
-        )
-        row = cursor.fetchone()
-        if not row:
+            cursor.execute(
+                "SELECT status FROM remediation_tasks WHERE task_id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Task {task_id} not found")
+
+            now = datetime.utcnow().isoformat()
+
+            cursor.execute(
+                """
+                INSERT INTO verification_evidence (
+                    task_id, evidence_type, evidence_data, submitted_by, submitted_at
+                ) VALUES (?, ?, ?, ?, ?)
+            """,
+                (task_id, evidence_type, json.dumps(evidence_data), submitted_by, now),
+            )
+
+            evidence_id = cursor.lastrowid
+
+            current_status = row["status"]
+            if current_status == RemediationStatus.IN_PROGRESS.value:
+                cursor.execute(
+                    """
+                    UPDATE remediation_tasks SET status = ?, updated_at = ?
+                    WHERE task_id = ?
+                """,
+                    (RemediationStatus.VERIFICATION.value, now, task_id),
+                )
+                cursor.execute(
+                    """
+                    INSERT INTO task_history (task_id, old_status, new_status, changed_by, reason, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        task_id,
+                        current_status,
+                        RemediationStatus.VERIFICATION.value,
+                        submitted_by,
+                        "Verification evidence submitted",
+                        now,
+                    ),
+                )
+
+            conn.commit()
+
+            return {
+                "evidence_id": evidence_id,
+                "task_id": task_id,
+                "evidence_type": evidence_type,
+                "submitted_at": now,
+            }
+        finally:
             conn.close()
-            raise ValueError(f"Task {task_id} not found")
-
-        now = datetime.utcnow().isoformat()
-
-        cursor.execute(
-            """
-            INSERT INTO verification_evidence (
-                task_id, evidence_type, evidence_data, submitted_by, submitted_at
-            ) VALUES (?, ?, ?, ?, ?)
-        """,
-            (task_id, evidence_type, json.dumps(evidence_data), submitted_by, now),
-        )
-
-        evidence_id = cursor.lastrowid
-
-        # Auto-transition to verification if in_progress
-        current_status = row["status"]
-        if current_status == RemediationStatus.IN_PROGRESS.value:
-            cursor.execute(
-                """
-                UPDATE remediation_tasks SET status = ?, updated_at = ?
-                WHERE task_id = ?
-            """,
-                (RemediationStatus.VERIFICATION.value, now, task_id),
-            )
-            cursor.execute(
-                """
-                INSERT INTO task_history (task_id, old_status, new_status, changed_by, reason, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    task_id,
-                    current_status,
-                    RemediationStatus.VERIFICATION.value,
-                    submitted_by,
-                    "Verification evidence submitted",
-                    now,
-                ),
-            )
-
-        conn.commit()
-        conn.close()
-
-        return {
-            "evidence_id": evidence_id,
-            "task_id": task_id,
-            "evidence_type": evidence_type,
-            "submitted_at": now,
-        }
 
     def check_sla_breaches(self, org_id: str) -> List[Dict[str, Any]]:
         """Check for SLA breaches and record them."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        now = datetime.utcnow()
-        now_str = now.isoformat()
+            now = datetime.utcnow()
+            now_str = now.isoformat()
 
-        # Find overdue tasks not yet marked as breached
-        cursor.execute(
-            """
-            SELECT * FROM remediation_tasks
-            WHERE org_id = ?
-            AND due_at < ?
-            AND status NOT IN ('resolved', 'wont_fix')
-            AND sla_breached = 0
-        """,
-            (org_id, now_str),
-        )
-
-        breaches = []
-        for row in cursor.fetchall():
-            task = dict(row)
-            created_at = datetime.fromisoformat(task["created_at"])
-            actual_hours = (now - created_at).total_seconds() / 3600
-
-            # Record breach
             cursor.execute(
                 """
-                INSERT INTO sla_breaches (
-                    task_id, breach_type, severity, sla_hours, actual_hours, breached_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                SELECT * FROM remediation_tasks
+                WHERE org_id = ?
+                AND due_at < ?
+                AND status NOT IN ('resolved', 'wont_fix')
+                AND sla_breached = 0
             """,
-                (
-                    task["task_id"],
-                    "resolution_sla",
-                    task["severity"],
-                    task["sla_hours"],
-                    actual_hours,
-                    now_str,
-                ),
+                (org_id, now_str),
             )
 
-            # Mark task as breached
-            cursor.execute(
-                "UPDATE remediation_tasks SET sla_breached = 1 WHERE task_id = ?",
-                (task["task_id"],),
-            )
+            breaches = []
+            for row in cursor.fetchall():
+                task = dict(row)
+                created_at = datetime.fromisoformat(task["created_at"])
+                actual_hours = (now - created_at).total_seconds() / 3600
 
-            breaches.append(
-                {
-                    "task_id": task["task_id"],
-                    "severity": task["severity"],
-                    "sla_hours": task["sla_hours"],
-                    "actual_hours": round(actual_hours, 1),
-                    "overdue_hours": round(actual_hours - task["sla_hours"], 1),
-                }
-            )
+                cursor.execute(
+                    """
+                    INSERT INTO sla_breaches (
+                        task_id, breach_type, severity, sla_hours, actual_hours, breached_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        task["task_id"],
+                        "resolution_sla",
+                        task["severity"],
+                        task["sla_hours"],
+                        actual_hours,
+                        now_str,
+                    ),
+                )
 
-        conn.commit()
-        conn.close()
+                cursor.execute(
+                    "UPDATE remediation_tasks SET sla_breached = 1 WHERE task_id = ?",
+                    (task["task_id"],),
+                )
 
-        return breaches
+                breaches.append(
+                    {
+                        "task_id": task["task_id"],
+                        "severity": task["severity"],
+                        "sla_hours": task["sla_hours"],
+                        "actual_hours": round(actual_hours, 1),
+                        "overdue_hours": round(actual_hours - task["sla_hours"], 1),
+                    }
+                )
+
+            conn.commit()
+            return breaches
+        finally:
+            conn.close()
 
     def get_metrics(self, org_id: str, app_id: Optional[str] = None) -> Dict[str, Any]:
         """Get remediation metrics including MTTR."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        base_query = "FROM remediation_tasks WHERE org_id = ?"
-        params: List[Any] = [org_id]
-        if app_id:
-            base_query += " AND app_id = ?"
-            params.append(app_id)
+            base_query = "FROM remediation_tasks WHERE org_id = ?"
+            params: List[Any] = [org_id]
+            if app_id:
+                base_query += " AND app_id = ?"
+                params.append(app_id)
 
-        # Total tasks by status
-        cursor.execute(
-            f"SELECT status, COUNT(*) as count {base_query} GROUP BY status", params
-        )
-        status_counts = {row["status"]: row["count"] for row in cursor.fetchall()}
+            cursor.execute(
+                f"SELECT status, COUNT(*) as count {base_query} GROUP BY status", params
+            )
+            status_counts = {row["status"]: row["count"] for row in cursor.fetchall()}
 
-        # Total tasks by severity
-        cursor.execute(
-            f"SELECT severity, COUNT(*) as count {base_query} GROUP BY severity", params
-        )
-        severity_counts = {row["severity"]: row["count"] for row in cursor.fetchall()}
+            cursor.execute(
+                f"SELECT severity, COUNT(*) as count {base_query} GROUP BY severity",
+                params,
+            )
+            severity_counts = {
+                row["severity"]: row["count"] for row in cursor.fetchall()
+            }
 
-        # MTTR calculation (Mean Time To Resolve)
-        cursor.execute(
-            f"""
-            SELECT severity,
-                   AVG(julianday(resolved_at) - julianday(created_at)) * 24 as avg_hours
-            {base_query} AND resolved_at IS NOT NULL
-            GROUP BY severity
-        """,
-            params,
-        )
-        mttr_by_severity = {
-            row["severity"]: round(row["avg_hours"], 1) if row["avg_hours"] else None
-            for row in cursor.fetchall()
-        }
+            cursor.execute(
+                f"""
+                SELECT severity,
+                       AVG(julianday(resolved_at) - julianday(created_at)) * 24 as avg_hours
+                {base_query} AND resolved_at IS NOT NULL
+                GROUP BY severity
+            """,
+                params,
+            )
+            mttr_by_severity = {
+                row["severity"]: (
+                    round(row["avg_hours"], 1) if row["avg_hours"] else None
+                )
+                for row in cursor.fetchall()
+            }
 
-        # SLA compliance rate
-        cursor.execute(
-            f"SELECT COUNT(*) as total {base_query} AND resolved_at IS NOT NULL", params
-        )
-        total_resolved = cursor.fetchone()["total"]
+            cursor.execute(
+                f"SELECT COUNT(*) as total {base_query} AND resolved_at IS NOT NULL",
+                params,
+            )
+            total_resolved = cursor.fetchone()["total"]
 
-        cursor.execute(
-            f"SELECT COUNT(*) as breached {base_query} AND sla_breached = 1", params
-        )
-        total_breached = cursor.fetchone()["breached"]
+            cursor.execute(
+                f"SELECT COUNT(*) as breached {base_query} AND sla_breached = 1", params
+            )
+            total_breached = cursor.fetchone()["breached"]
 
-        sla_compliance = (
-            round((1 - total_breached / total_resolved) * 100, 1)
-            if total_resolved > 0
-            else 100.0
-        )
+            sla_compliance = (
+                round((1 - total_breached / total_resolved) * 100, 1)
+                if total_resolved > 0
+                else 100.0
+            )
 
-        # Overdue tasks
-        now = datetime.utcnow().isoformat()
-        cursor.execute(
-            f"""
-            SELECT COUNT(*) as overdue {base_query}
-            AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')
-        """,
-            params + [now],
-        )
-        overdue_count = cursor.fetchone()["overdue"]
+            now = datetime.utcnow().isoformat()
+            cursor.execute(
+                f"""
+                SELECT COUNT(*) as overdue {base_query}
+                AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')
+            """,
+                params + [now],
+            )
+            overdue_count = cursor.fetchone()["overdue"]
 
-        conn.close()
-
-        return {
-            "status_breakdown": status_counts,
-            "severity_breakdown": severity_counts,
-            "mttr_by_severity_hours": mttr_by_severity,
-            "sla_compliance_percent": sla_compliance,
-            "overdue_count": overdue_count,
-            "total_resolved": total_resolved,
-            "total_breached": total_breached,
-        }
+            return {
+                "status_breakdown": status_counts,
+                "severity_breakdown": severity_counts,
+                "mttr_by_severity_hours": mttr_by_severity,
+                "sla_compliance_percent": sla_compliance,
+                "overdue_count": overdue_count,
+                "total_resolved": total_resolved,
+                "total_breached": total_breached,
+            }
+        finally:
+            conn.close()
 
     def _is_overdue(self, task: Dict[str, Any]) -> bool:
         """Check if task is overdue."""
@@ -685,14 +685,14 @@ class RemediationService:
     ) -> bool:
         """Link task to external ticket."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "UPDATE remediation_tasks SET ticket_id = ?, ticket_url = ? WHERE task_id = ?",
-            (ticket_id, ticket_url, task_id),
-        )
-
-        updated = cursor.rowcount > 0
-        conn.commit()
-        conn.close()
-        return updated
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE remediation_tasks SET ticket_id = ?, ticket_url = ? WHERE task_id = ?",
+                (ticket_id, ticket_url, task_id),
+            )
+            updated = cursor.rowcount > 0
+            conn.commit()
+            return updated
+        finally:
+            conn.close()

@@ -73,7 +73,7 @@ class CreateCorrelationLinkRequest(BaseModel):
 
 
 @router.post("/process")
-async def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
+def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
     """Process a single finding for deduplication."""
     service = get_dedup_service()
     return service.process_finding(
@@ -85,7 +85,7 @@ async def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
 
 
 @router.post("/process/batch")
-async def process_findings_batch(
+def process_findings_batch(
     request: ProcessFindingsBatchRequest,
 ) -> Dict[str, Any]:
     """Process a batch of findings for deduplication."""
@@ -99,7 +99,7 @@ async def process_findings_batch(
 
 
 @router.get("/clusters")
-async def list_clusters(
+def list_clusters(
     org_id: str,
     app_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -126,7 +126,7 @@ async def list_clusters(
 
 
 @router.get("/clusters/{cluster_id}")
-async def get_cluster(cluster_id: str) -> Dict[str, Any]:
+def get_cluster(cluster_id: str) -> Dict[str, Any]:
     """Get a specific cluster by ID."""
     service = get_dedup_service()
     cluster = service.get_cluster(cluster_id)
@@ -136,11 +136,10 @@ async def get_cluster(cluster_id: str) -> Dict[str, Any]:
 
 
 @router.put("/clusters/{cluster_id}/status")
-async def update_cluster_status(
+def update_cluster_status(
     cluster_id: str, request: UpdateStatusRequest
 ) -> Dict[str, Any]:
     """Update cluster status."""
-    # Validate status
     try:
         ClusterStatus(request.status)
     except ValueError:
@@ -163,9 +162,7 @@ async def update_cluster_status(
 
 
 @router.put("/clusters/{cluster_id}/assign")
-async def assign_cluster(
-    cluster_id: str, request: AssignClusterRequest
-) -> Dict[str, Any]:
+def assign_cluster(cluster_id: str, request: AssignClusterRequest) -> Dict[str, Any]:
     """Assign cluster to a user."""
     service = get_dedup_service()
     success = service.assign_cluster(cluster_id, request.assignee)
@@ -179,7 +176,7 @@ async def assign_cluster(
 
 
 @router.put("/clusters/{cluster_id}/ticket")
-async def link_ticket(cluster_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
+def link_ticket(cluster_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
     """Link cluster to external ticket."""
     service = get_dedup_service()
     success = service.link_to_ticket(
@@ -197,7 +194,7 @@ async def link_ticket(cluster_id: str, request: LinkTicketRequest) -> Dict[str, 
 
 
 @router.get("/clusters/{cluster_id}/related")
-async def get_related_clusters(
+def get_related_clusters(
     cluster_id: str, min_confidence: float = Query(default=0.5, ge=0.0, le=1.0)
 ) -> Dict[str, Any]:
     """Get clusters related to the given cluster."""
@@ -207,7 +204,7 @@ async def get_related_clusters(
 
 
 @router.post("/correlations")
-async def create_correlation_link(
+def create_correlation_link(
     request: CreateCorrelationLinkRequest,
 ) -> Dict[str, Any]:
     """Create a correlation link between two clusters."""
@@ -223,7 +220,7 @@ async def create_correlation_link(
 
 
 @router.get("/stats/{org_id}")
-async def get_dedup_stats(org_id: str) -> Dict[str, Any]:
+def get_dedup_stats(org_id: str) -> Dict[str, Any]:
     """Get deduplication statistics for an organization."""
     service = get_dedup_service()
     return service.get_dedup_stats(org_id)

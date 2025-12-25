@@ -6,7 +6,11 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from core.services.remediation import RemediationService, RemediationStatus
+from core.services.remediation import (
+    VALID_TRANSITIONS,
+    RemediationService,
+    RemediationStatus,
+)
 
 router = APIRouter(prefix="/api/v1/remediation", tags=["remediation"])
 
@@ -69,7 +73,7 @@ class LinkTicketRequest(BaseModel):
 
 
 @router.post("/tasks")
-async def create_task(request: CreateTaskRequest) -> Dict[str, Any]:
+def create_task(request: CreateTaskRequest) -> Dict[str, Any]:
     """Create a new remediation task."""
     service = get_remediation_service()
     return service.create_task(
@@ -86,7 +90,7 @@ async def create_task(request: CreateTaskRequest) -> Dict[str, Any]:
 
 
 @router.get("/tasks")
-async def list_tasks(
+def list_tasks(
     org_id: str,
     app_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -117,7 +121,7 @@ async def list_tasks(
 
 
 @router.get("/tasks/{task_id}")
-async def get_task(task_id: str) -> Dict[str, Any]:
+def get_task(task_id: str) -> Dict[str, Any]:
     """Get a specific task by ID."""
     service = get_remediation_service()
     task = service.get_task(task_id)
@@ -127,9 +131,7 @@ async def get_task(task_id: str) -> Dict[str, Any]:
 
 
 @router.put("/tasks/{task_id}/status")
-async def update_task_status(
-    task_id: str, request: UpdateStatusRequest
-) -> Dict[str, Any]:
+def update_task_status(task_id: str, request: UpdateStatusRequest) -> Dict[str, Any]:
     """Update task status with state machine validation."""
     service = get_remediation_service()
     try:
@@ -144,7 +146,7 @@ async def update_task_status(
 
 
 @router.put("/tasks/{task_id}/assign")
-async def assign_task(task_id: str, request: AssignTaskRequest) -> Dict[str, Any]:
+def assign_task(task_id: str, request: AssignTaskRequest) -> Dict[str, Any]:
     """Assign task to a user."""
     service = get_remediation_service()
     try:
@@ -159,7 +161,7 @@ async def assign_task(task_id: str, request: AssignTaskRequest) -> Dict[str, Any
 
 
 @router.post("/tasks/{task_id}/verification")
-async def submit_verification(
+def submit_verification(
     task_id: str, request: SubmitVerificationRequest
 ) -> Dict[str, Any]:
     """Submit verification evidence for a task."""
@@ -176,7 +178,7 @@ async def submit_verification(
 
 
 @router.put("/tasks/{task_id}/ticket")
-async def link_ticket(task_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
+def link_ticket(task_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
     """Link task to external ticket."""
     service = get_remediation_service()
     success = service.link_to_ticket(
@@ -194,7 +196,7 @@ async def link_ticket(task_id: str, request: LinkTicketRequest) -> Dict[str, Any
 
 
 @router.post("/sla/check")
-async def check_sla_breaches(org_id: str) -> Dict[str, Any]:
+def check_sla_breaches(org_id: str) -> Dict[str, Any]:
     """Check for SLA breaches and record them."""
     service = get_remediation_service()
     breaches = service.check_sla_breaches(org_id)
@@ -206,21 +208,19 @@ async def check_sla_breaches(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/metrics/{org_id}")
-async def get_metrics(org_id: str, app_id: Optional[str] = None) -> Dict[str, Any]:
+def get_metrics(org_id: str, app_id: Optional[str] = None) -> Dict[str, Any]:
     """Get remediation metrics including MTTR."""
     service = get_remediation_service()
     return service.get_metrics(org_id, app_id)
 
 
 @router.get("/statuses")
-async def list_valid_statuses() -> Dict[str, Any]:
+def list_valid_statuses() -> Dict[str, Any]:
     """List all valid remediation statuses."""
     return {
         "statuses": [s.value for s in RemediationStatus],
         "transitions": {
             status.value: [t.value for t in targets]
-            for status, targets in __import__(
-                "core.services.remediation", fromlist=["VALID_TRANSITIONS"]
-            ).VALID_TRANSITIONS.items()
+            for status, targets in VALID_TRANSITIONS.items()
         },
     }

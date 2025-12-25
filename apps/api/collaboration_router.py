@@ -69,9 +69,8 @@ class RecordActivityRequest(BaseModel):
 
 
 @router.post("/comments")
-async def add_comment(request: AddCommentRequest) -> Dict[str, Any]:
+def add_comment(request: AddCommentRequest) -> Dict[str, Any]:
     """Add a comment to an entity."""
-    # Validate entity type
     try:
         EntityType(request.entity_type)
     except ValueError:
@@ -96,7 +95,7 @@ async def add_comment(request: AddCommentRequest) -> Dict[str, Any]:
 
 
 @router.get("/comments")
-async def get_comments(
+def get_comments(
     entity_type: str,
     entity_id: str,
     include_internal: bool = True,
@@ -121,7 +120,7 @@ async def get_comments(
 
 
 @router.put("/comments/{comment_id}/promote")
-async def promote_to_evidence(comment_id: str, promoted_by: str) -> Dict[str, Any]:
+def promote_to_evidence(comment_id: str, promoted_by: str) -> Dict[str, Any]:
     """Promote a comment to evidence for compliance."""
     service = get_collab_service()
     success = service.promote_to_evidence(comment_id, promoted_by)
@@ -131,7 +130,7 @@ async def promote_to_evidence(comment_id: str, promoted_by: str) -> Dict[str, An
 
 
 @router.post("/watchers")
-async def add_watcher(request: AddWatcherRequest) -> Dict[str, Any]:
+def add_watcher(request: AddWatcherRequest) -> Dict[str, Any]:
     """Add a watcher to an entity."""
     service = get_collab_service()
     return service.add_watcher(
@@ -144,21 +143,25 @@ async def add_watcher(request: AddWatcherRequest) -> Dict[str, Any]:
 
 
 @router.delete("/watchers")
-async def remove_watcher(request: RemoveWatcherRequest) -> Dict[str, Any]:
+def remove_watcher(
+    entity_type: str,
+    entity_id: str,
+    user_id: str,
+) -> Dict[str, Any]:
     """Remove a watcher from an entity."""
     service = get_collab_service()
     success = service.remove_watcher(
-        entity_type=request.entity_type,
-        entity_id=request.entity_id,
-        user_id=request.user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        user_id=user_id,
     )
     if not success:
-        return {"status": "not_found", "user_id": request.user_id}
-    return {"status": "removed", "user_id": request.user_id}
+        return {"status": "not_found", "user_id": user_id}
+    return {"status": "removed", "user_id": user_id}
 
 
 @router.get("/watchers")
-async def get_watchers(entity_type: str, entity_id: str) -> Dict[str, Any]:
+def get_watchers(entity_type: str, entity_id: str) -> Dict[str, Any]:
     """Get watchers for an entity."""
     service = get_collab_service()
     watchers = service.get_watchers(entity_type, entity_id)
@@ -171,7 +174,7 @@ async def get_watchers(entity_type: str, entity_id: str) -> Dict[str, Any]:
 
 
 @router.get("/watchers/user/{user_id}")
-async def get_watched_entities(
+def get_watched_entities(
     user_id: str, entity_type: Optional[str] = None
 ) -> Dict[str, Any]:
     """Get entities watched by a user."""
@@ -185,8 +188,17 @@ async def get_watched_entities(
 
 
 @router.post("/activities")
-async def record_activity(request: RecordActivityRequest) -> Dict[str, Any]:
+def record_activity(request: RecordActivityRequest) -> Dict[str, Any]:
     """Record an activity in the feed."""
+    try:
+        ActivityType(request.activity_type)
+    except ValueError:
+        valid_types = [t.value for t in ActivityType]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid activity_type. Must be one of: {valid_types}",
+        )
+
     service = get_collab_service()
     activity_id = service.record_activity(
         entity_type=request.entity_type,
@@ -202,7 +214,7 @@ async def record_activity(request: RecordActivityRequest) -> Dict[str, Any]:
 
 
 @router.get("/activities")
-async def get_activity_feed(
+def get_activity_feed(
     org_id: str,
     entity_type: Optional[str] = None,
     entity_id: Optional[str] = None,
@@ -233,7 +245,7 @@ async def get_activity_feed(
 
 
 @router.get("/mentions/{user_id}")
-async def get_user_mentions(
+def get_user_mentions(
     user_id: str, unacknowledged_only: bool = False
 ) -> Dict[str, Any]:
     """Get mentions for a user."""
@@ -247,7 +259,7 @@ async def get_user_mentions(
 
 
 @router.put("/mentions/{mention_id}/acknowledge")
-async def acknowledge_mention(mention_id: int) -> Dict[str, Any]:
+def acknowledge_mention(mention_id: int) -> Dict[str, Any]:
     """Acknowledge a mention."""
     service = get_collab_service()
     success = service.acknowledge_mention(mention_id)
@@ -257,12 +269,12 @@ async def acknowledge_mention(mention_id: int) -> Dict[str, Any]:
 
 
 @router.get("/entity-types")
-async def list_entity_types() -> Dict[str, Any]:
+def list_entity_types() -> Dict[str, Any]:
     """List all valid entity types."""
     return {"entity_types": [t.value for t in EntityType]}
 
 
 @router.get("/activity-types")
-async def list_activity_types() -> Dict[str, Any]:
+def list_activity_types() -> Dict[str, Any]:
     """List all valid activity types."""
     return {"activity_types": [t.value for t in ActivityType]}

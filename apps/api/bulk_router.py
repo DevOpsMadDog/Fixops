@@ -1,6 +1,7 @@
 """
 Enterprise Bulk Operations API endpoints with async job support.
 """
+
 import asyncio
 import uuid
 from datetime import datetime
@@ -21,6 +22,14 @@ class JobStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     PARTIAL = "partial"
+    CANCELLED = "cancelled"
+
+
+def _is_job_cancelled(job_id: str) -> bool:
+    """Check if job has been cancelled."""
+    if job_id not in _jobs:
+        return True
+    return _jobs[job_id].get("cancel_requested", False)
 
 
 class ActionType(str, Enum):
@@ -179,11 +188,20 @@ def _update_job_progress(
 
 
 def _complete_job(job_id: str, status: str):
-    """Mark job as complete."""
+    """Mark job as complete. Does not overwrite terminal states."""
     if job_id not in _jobs:
         return
 
     job = _jobs[job_id]
+    terminal_states = [
+        JobStatus.COMPLETED.value,
+        JobStatus.FAILED.value,
+        JobStatus.PARTIAL.value,
+        JobStatus.CANCELLED.value,
+    ]
+    if job["status"] in terminal_states:
+        return
+
     job["status"] = status
     job["completed_at"] = datetime.utcnow().isoformat()
 
@@ -192,11 +210,16 @@ async def _process_bulk_status(
     job_id: str, ids: List[str], new_status: str, reason: Optional[str]
 ):
     """Process bulk status update in background."""
+    if _is_job_cancelled(job_id):
+        return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
     for i, item_id in enumerate(ids):
+        if _is_job_cancelled(job_id):
+            _complete_job(job_id, JobStatus.CANCELLED.value)
+            return
         try:
             await asyncio.sleep(0.01)
             success += 1
@@ -225,11 +248,16 @@ async def _process_bulk_assign(
     job_id: str, ids: List[str], assignee: str, assignee_email: Optional[str]
 ):
     """Process bulk assign in background."""
+    if _is_job_cancelled(job_id):
+        return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
     for i, item_id in enumerate(ids):
+        if _is_job_cancelled(job_id):
+            _complete_job(job_id, JobStatus.CANCELLED.value)
+            return
         try:
             await asyncio.sleep(0.01)
             success += 1
@@ -262,11 +290,16 @@ async def _process_bulk_accept_risk(
     expiry_days: int,
 ):
     """Process bulk accept risk in background."""
+    if _is_job_cancelled(job_id):
+        return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
     for i, item_id in enumerate(ids):
+        if _is_job_cancelled(job_id):
+            _complete_job(job_id, JobStatus.CANCELLED.value)
+            return
         try:
             await asyncio.sleep(0.01)
             success += 1
@@ -304,11 +337,16 @@ async def _process_bulk_tickets(
     issue_type: str,
 ):
     """Process bulk ticket creation in background."""
+    if _is_job_cancelled(job_id):
+        return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
     for i, item_id in enumerate(ids):
+        if _is_job_cancelled(job_id):
+            _complete_job(job_id, JobStatus.CANCELLED.value)
+            return
         try:
             await asyncio.sleep(0.05)
             ticket_id = f"TICKET-{i + 1000}"
@@ -347,10 +385,16 @@ async def _process_bulk_export(
     include_fields: Optional[List[str]],
 ):
     """Process bulk export in background."""
+    if _is_job_cancelled(job_id):
+        return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
 
     try:
         await asyncio.sleep(0.1 * len(ids) / 100)
+
+        if _is_job_cancelled(job_id):
+            _complete_job(job_id, JobStatus.CANCELLED.value)
+            return
 
         export_id = str(uuid.uuid4())[:8]
         download_url = f"/api/v1/bulk/exports/{export_id}.{format}"
@@ -533,9 +577,11 @@ async def get_job_status(job_id: str):
         progress_percent=job["progress_percent"],
         started_at=job["started_at"],
         completed_at=job["completed_at"],
-        results=job["results"]
-        if job["status"] in [JobStatus.COMPLETED.value, JobStatus.PARTIAL.value]
-        else None,
+        results=(
+            job["results"]
+            if job["status"] in [JobStatus.COMPLETED.value, JobStatus.PARTIAL.value]
+            else None
+        ),
         errors=job["errors"],
     )
 
@@ -570,18 +616,24 @@ async def cancel_job(job_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="Job not found")
 
     job = _jobs[job_id]
-    if job["status"] in [
+    terminal_states = [
         JobStatus.COMPLETED.value,
         JobStatus.FAILED.value,
         JobStatus.PARTIAL.value,
-    ]:
+        JobStatus.CANCELLED.value,
+    ]
+    if job["status"] in terminal_states:
         raise HTTPException(
             status_code=400,
             detail=f"Cannot cancel job with status: {job['status']}",
         )
 
-    _complete_job(job_id, JobStatus.FAILED.value)
+    job["cancel_requested"] = True
     job["errors"].append({"error": "Job cancelled by user"})
+
+    if job["status"] == JobStatus.PENDING.value:
+        job["status"] = JobStatus.CANCELLED.value
+        job["completed_at"] = datetime.utcnow().isoformat()
 
     return {"status": "cancelled", "job_id": job_id}
 

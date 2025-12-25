@@ -315,15 +315,15 @@ class DeduplicationService:
         """Get cluster by ID."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM clusters WHERE cluster_id = ?", (cluster_id,))
-        row = cursor.fetchone()
-        conn.close()
-
-        if row:
-            return dict(row)
-        return None
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM clusters WHERE cluster_id = ?", (cluster_id,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+        finally:
+            conn.close()
 
     def get_clusters(
         self,
@@ -337,29 +337,30 @@ class DeduplicationService:
         """Get clusters with optional filters."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        query = "SELECT * FROM clusters WHERE org_id = ?"
-        params: List[Any] = [org_id]
+            query = "SELECT * FROM clusters WHERE org_id = ?"
+            params: List[Any] = [org_id]
 
-        if app_id:
-            query += " AND app_id = ?"
-            params.append(app_id)
-        if status:
-            query += " AND status = ?"
-            params.append(status)
-        if severity:
-            query += " AND severity = ?"
-            params.append(severity)
+            if app_id:
+                query += " AND app_id = ?"
+                params.append(app_id)
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+            if severity:
+                query += " AND severity = ?"
+                params.append(severity)
 
-        query += " ORDER BY last_seen DESC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+            query += " ORDER BY last_seen DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
 
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
-
-        return [dict(row) for row in rows]
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            conn.close()
 
     def update_cluster_status(
         self,
@@ -369,72 +370,76 @@ class DeduplicationService:
         reason: Optional[str] = None,
     ) -> bool:
         """Update cluster status with audit trail."""
+        try:
+            ClusterStatus(new_status)
+        except ValueError:
+            valid_statuses = [s.value for s in ClusterStatus]
+            raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        # Get current status
-        cursor.execute(
-            "SELECT status FROM clusters WHERE cluster_id = ?", (cluster_id,)
-        )
-        row = cursor.fetchone()
-        if not row:
+            cursor.execute(
+                "SELECT status FROM clusters WHERE cluster_id = ?", (cluster_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return False
+
+            old_status = row["status"]
+            now = datetime.utcnow().isoformat()
+
+            cursor.execute(
+                "UPDATE clusters SET status = ? WHERE cluster_id = ?",
+                (new_status, cluster_id),
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO status_history (cluster_id, old_status, new_status, changed_by, reason, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """,
+                (cluster_id, old_status, new_status, changed_by, reason, now),
+            )
+
+            conn.commit()
+            return True
+        finally:
             conn.close()
-            return False
-
-        old_status = row["status"]
-        now = datetime.utcnow().isoformat()
-
-        # Update status
-        cursor.execute(
-            "UPDATE clusters SET status = ? WHERE cluster_id = ?",
-            (new_status, cluster_id),
-        )
-
-        # Record history
-        cursor.execute(
-            """
-            INSERT INTO status_history (cluster_id, old_status, new_status, changed_by, reason, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """,
-            (cluster_id, old_status, new_status, changed_by, reason, now),
-        )
-
-        conn.commit()
-        conn.close()
-        return True
 
     def link_to_ticket(
         self, cluster_id: str, ticket_id: str, ticket_url: Optional[str] = None
     ) -> bool:
         """Link cluster to external ticket."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "UPDATE clusters SET ticket_id = ?, ticket_url = ? WHERE cluster_id = ?",
-            (ticket_id, ticket_url, cluster_id),
-        )
-
-        updated = cursor.rowcount > 0
-        conn.commit()
-        conn.close()
-        return updated
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE clusters SET ticket_id = ?, ticket_url = ? WHERE cluster_id = ?",
+                (ticket_id, ticket_url, cluster_id),
+            )
+            updated = cursor.rowcount > 0
+            conn.commit()
+            return updated
+        finally:
+            conn.close()
 
     def assign_cluster(self, cluster_id: str, assignee: str) -> bool:
         """Assign cluster to a user."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "UPDATE clusters SET assignee = ? WHERE cluster_id = ?",
-            (assignee, cluster_id),
-        )
-
-        updated = cursor.rowcount > 0
-        conn.commit()
-        conn.close()
-        return updated
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE clusters SET assignee = ? WHERE cluster_id = ?",
+                (assignee, cluster_id),
+            )
+            updated = cursor.rowcount > 0
+            conn.commit()
+            return updated
+        finally:
+            conn.close()
 
     def create_correlation_link(
         self,
@@ -446,32 +451,34 @@ class DeduplicationService:
     ) -> str:
         """Create a correlation link between two clusters."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        link_id = str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+            link_id = str(uuid.uuid4())
+            now = datetime.utcnow().isoformat()
 
-        cursor.execute(
-            """
-            INSERT INTO correlation_links (
-                link_id, source_cluster_id, target_cluster_id,
-                link_type, confidence, reason, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                link_id,
-                source_cluster_id,
-                target_cluster_id,
-                link_type,
-                confidence,
-                reason,
-                now,
-            ),
-        )
+            cursor.execute(
+                """
+                INSERT INTO correlation_links (
+                    link_id, source_cluster_id, target_cluster_id,
+                    link_type, confidence, reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    link_id,
+                    source_cluster_id,
+                    target_cluster_id,
+                    link_type,
+                    confidence,
+                    reason,
+                    now,
+                ),
+            )
 
-        conn.commit()
-        conn.close()
-        return link_id
+            conn.commit()
+            return link_id
+        finally:
+            conn.close()
 
     def get_related_clusters(
         self, cluster_id: str, min_confidence: float = 0.5
@@ -479,86 +486,84 @@ class DeduplicationService:
         """Get clusters related to the given cluster."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            SELECT c.*, cl.link_type, cl.confidence, cl.reason
-            FROM clusters c
-            JOIN correlation_links cl ON (
-                (cl.target_cluster_id = c.cluster_id AND cl.source_cluster_id = ?)
-                OR (cl.source_cluster_id = c.cluster_id AND cl.target_cluster_id = ?)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT c.*, cl.link_type, cl.confidence, cl.reason
+                FROM clusters c
+                JOIN correlation_links cl ON (
+                    (cl.target_cluster_id = c.cluster_id AND cl.source_cluster_id = ?)
+                    OR (cl.source_cluster_id = c.cluster_id AND cl.target_cluster_id = ?)
+                )
+                WHERE cl.confidence >= ?
+                ORDER BY cl.confidence DESC
+            """,
+                (cluster_id, cluster_id, min_confidence),
             )
-            WHERE cl.confidence >= ?
-            ORDER BY cl.confidence DESC
-        """,
-            (cluster_id, cluster_id, min_confidence),
-        )
-
-        rows = cursor.fetchall()
-        conn.close()
-
-        return [dict(row) for row in rows]
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            conn.close()
 
     def get_dedup_stats(self, org_id: str) -> Dict[str, Any]:
         """Get deduplication statistics for an organization."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        # Total clusters
-        cursor.execute(
-            "SELECT COUNT(*) as count FROM clusters WHERE org_id = ?", (org_id,)
-        )
-        total_clusters = cursor.fetchone()["count"]
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM clusters WHERE org_id = ?", (org_id,)
+            )
+            total_clusters = cursor.fetchone()["count"]
 
-        # Total events
-        cursor.execute(
-            """
-            SELECT COUNT(*) as count FROM events e
-            JOIN clusters c ON e.cluster_id = c.cluster_id
-            WHERE c.org_id = ?
-        """,
-            (org_id,),
-        )
-        total_events = cursor.fetchone()["count"]
+            cursor.execute(
+                """
+                SELECT COUNT(*) as count FROM events e
+                JOIN clusters c ON e.cluster_id = c.cluster_id
+                WHERE c.org_id = ?
+            """,
+                (org_id,),
+            )
+            total_events = cursor.fetchone()["count"]
 
-        # Status breakdown
-        cursor.execute(
-            """
-            SELECT status, COUNT(*) as count
-            FROM clusters WHERE org_id = ?
-            GROUP BY status
-        """,
-            (org_id,),
-        )
-        status_breakdown = {row["status"]: row["count"] for row in cursor.fetchall()}
+            cursor.execute(
+                """
+                SELECT status, COUNT(*) as count
+                FROM clusters WHERE org_id = ?
+                GROUP BY status
+            """,
+                (org_id,),
+            )
+            status_breakdown = {
+                row["status"]: row["count"] for row in cursor.fetchall()
+            }
 
-        # Severity breakdown
-        cursor.execute(
-            """
-            SELECT severity, COUNT(*) as count
-            FROM clusters WHERE org_id = ?
-            GROUP BY severity
-        """,
-            (org_id,),
-        )
-        severity_breakdown = {
-            row["severity"]: row["count"] for row in cursor.fetchall()
-        }
+            cursor.execute(
+                """
+                SELECT severity, COUNT(*) as count
+                FROM clusters WHERE org_id = ?
+                GROUP BY severity
+            """,
+                (org_id,),
+            )
+            severity_breakdown = {
+                row["severity"]: row["count"] for row in cursor.fetchall()
+            }
 
-        conn.close()
+            noise_reduction = (
+                round((1 - total_clusters / total_events) * 100, 1)
+                if total_events > 0
+                else 0
+            )
 
-        noise_reduction = (
-            round((1 - total_clusters / total_events) * 100, 1)
-            if total_events > 0
-            else 0
-        )
-
-        return {
-            "total_clusters": total_clusters,
-            "total_events": total_events,
-            "noise_reduction_percent": noise_reduction,
-            "status_breakdown": status_breakdown,
-            "severity_breakdown": severity_breakdown,
-        }
+            return {
+                "total_clusters": total_clusters,
+                "total_events": total_events,
+                "noise_reduction_percent": noise_reduction,
+                "status_breakdown": status_breakdown,
+                "severity_breakdown": severity_breakdown,
+            }
+        finally:
+            conn.close()
