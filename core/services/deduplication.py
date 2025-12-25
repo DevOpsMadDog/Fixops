@@ -886,7 +886,7 @@ class DeduplicationService:
                 ),
             )
 
-            action_result = None
+            action_result: Optional[Dict[str, Any]] = None
 
             # Apply feedback based on type
             if feedback_type == "merge_allowed" and target_cluster_id:

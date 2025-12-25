@@ -1096,8 +1096,8 @@ class PipelineOrchestrator:
                 }
 
                 enriched_crosswalk = []
-                for entry in crosswalk:
-                    enriched_entry = entry.to_dict()
+                for crosswalk_row in crosswalk:
+                    enriched_entry = crosswalk_row.to_dict()
                     # Add cluster info to findings
                     if "findings" in enriched_entry:
                         enriched_findings = []
