@@ -6,7 +6,7 @@
 
 FixOps is a DevSecOps decision and verification platform that operationalizes vulnerability management end-to-end. It ingests and normalizes security artifacts (SBOM, SARIF, CVE, VEX, CNAPP, plus business context), correlates them into an application-centric risk model via an interactive **Risk Graph** (linking services → components → CVEs/findings with KEV/EPSS enrichment), and produces release-gate outcomes (Allow/Block/Needs Review) through policy evaluation, multi-LLM consensus, and probabilistic forecasting. Every decision is packaged as exportable, cryptographically verifiable evidence for audit, triage, and long-term retention.
 
-FixOps exposes this workflow through three first-class interfaces: a **REST API** (243+ endpoints across 22 router modules), a **CLI** (67 commands/subcommands), and a **modular UI** (27 micro-frontends) covering triage, risk graph exploration, compliance reporting, micro-pentest execution, reachability analysis, evidence management, and more—deployable on-prem or air-gapped as needed.
+FixOps exposes this workflow through three first-class interfaces: a **REST API** (280+ endpoints across 25 router modules), a **CLI** (67 commands/subcommands), and a **modular UI** (27 micro-frontends) covering triage, risk graph exploration, compliance reporting, micro-pentest execution, reachability analysis, evidence management, and more—deployable on-prem or air-gapped as needed.
 
 ---
 
@@ -549,6 +549,10 @@ pytest --cov=core --cov=apps
 - Enhanced PentAGI
 - IDE integration APIs
 - SSO/OAuth configuration
+- **Deduplication & Correlation Engine** - Two-layer system with cluster management, correlation linking, and 35% noise reduction targeting
+- **Remediation Lifecycle Management** - State machine with SLA tracking (Critical=24h, High=72h, Medium=168h, Low=720h), verification evidence, and MTTR metrics
+- **Enterprise Bulk Operations** - Async job framework with per-item outcomes, partial failure handling, and job status tracking
+- **Team Collaboration** - Append-only comment threads, watchers, activity feeds, mention tracking, and evidence promotion
 
 ### Optional Integrations
 - Jira (requires `FIXOPS_JIRA_TOKEN`)

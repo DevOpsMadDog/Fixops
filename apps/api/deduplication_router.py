@@ -1,0 +1,229 @@
+"""Deduplication & Correlation API endpoints."""
+
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from core.services.deduplication import ClusterStatus, DeduplicationService
+
+router = APIRouter(prefix="/api/v1/deduplication", tags=["deduplication"])
+
+# Initialize service with default path
+_DATA_DIR = Path("data/deduplication")
+_dedup_service: Optional[DeduplicationService] = None
+
+
+def get_dedup_service() -> DeduplicationService:
+    """Get or create deduplication service instance."""
+    global _dedup_service
+    if _dedup_service is None:
+        _dedup_service = DeduplicationService(_DATA_DIR / "clusters.db")
+    return _dedup_service
+
+
+class ProcessFindingRequest(BaseModel):
+    """Request to process a single finding."""
+
+    finding: Dict[str, Any]
+    run_id: str
+    org_id: str
+    source: str = "sarif"
+
+
+class ProcessFindingsBatchRequest(BaseModel):
+    """Request to process a batch of findings."""
+
+    findings: List[Dict[str, Any]]
+    run_id: str
+    org_id: str
+    source: str = "sarif"
+
+
+class UpdateStatusRequest(BaseModel):
+    """Request to update cluster status."""
+
+    status: str
+    changed_by: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class AssignClusterRequest(BaseModel):
+    """Request to assign cluster to user."""
+
+    assignee: str
+
+
+class LinkTicketRequest(BaseModel):
+    """Request to link cluster to external ticket."""
+
+    ticket_id: str
+    ticket_url: Optional[str] = None
+
+
+class CreateCorrelationLinkRequest(BaseModel):
+    """Request to create correlation link between clusters."""
+
+    source_cluster_id: str
+    target_cluster_id: str
+    link_type: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    reason: Optional[str] = None
+
+
+@router.post("/process")
+async def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
+    """Process a single finding for deduplication."""
+    service = get_dedup_service()
+    return service.process_finding(
+        finding=request.finding,
+        run_id=request.run_id,
+        org_id=request.org_id,
+        source=request.source,
+    )
+
+
+@router.post("/process/batch")
+async def process_findings_batch(
+    request: ProcessFindingsBatchRequest,
+) -> Dict[str, Any]:
+    """Process a batch of findings for deduplication."""
+    service = get_dedup_service()
+    return service.process_findings_batch(
+        findings=request.findings,
+        run_id=request.run_id,
+        org_id=request.org_id,
+        source=request.source,
+    )
+
+
+@router.get("/clusters")
+async def list_clusters(
+    org_id: str,
+    app_id: Optional[str] = None,
+    status: Optional[str] = None,
+    severity: Optional[str] = None,
+    limit: int = Query(default=100, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """List clusters with optional filters."""
+    service = get_dedup_service()
+    clusters = service.get_clusters(
+        org_id=org_id,
+        app_id=app_id,
+        status=status,
+        severity=severity,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "clusters": clusters,
+        "count": len(clusters),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/clusters/{cluster_id}")
+async def get_cluster(cluster_id: str) -> Dict[str, Any]:
+    """Get a specific cluster by ID."""
+    service = get_dedup_service()
+    cluster = service.get_cluster(cluster_id)
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    return cluster
+
+
+@router.put("/clusters/{cluster_id}/status")
+async def update_cluster_status(
+    cluster_id: str, request: UpdateStatusRequest
+) -> Dict[str, Any]:
+    """Update cluster status."""
+    # Validate status
+    try:
+        ClusterStatus(request.status)
+    except ValueError:
+        valid_statuses = [s.value for s in ClusterStatus]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {valid_statuses}",
+        )
+
+    service = get_dedup_service()
+    success = service.update_cluster_status(
+        cluster_id=cluster_id,
+        new_status=request.status,
+        changed_by=request.changed_by,
+        reason=request.reason,
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    return {"status": "updated", "cluster_id": cluster_id, "new_status": request.status}
+
+
+@router.put("/clusters/{cluster_id}/assign")
+async def assign_cluster(
+    cluster_id: str, request: AssignClusterRequest
+) -> Dict[str, Any]:
+    """Assign cluster to a user."""
+    service = get_dedup_service()
+    success = service.assign_cluster(cluster_id, request.assignee)
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    return {
+        "status": "assigned",
+        "cluster_id": cluster_id,
+        "assignee": request.assignee,
+    }
+
+
+@router.put("/clusters/{cluster_id}/ticket")
+async def link_ticket(cluster_id: str, request: LinkTicketRequest) -> Dict[str, Any]:
+    """Link cluster to external ticket."""
+    service = get_dedup_service()
+    success = service.link_to_ticket(
+        cluster_id=cluster_id,
+        ticket_id=request.ticket_id,
+        ticket_url=request.ticket_url,
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    return {
+        "status": "linked",
+        "cluster_id": cluster_id,
+        "ticket_id": request.ticket_id,
+    }
+
+
+@router.get("/clusters/{cluster_id}/related")
+async def get_related_clusters(
+    cluster_id: str, min_confidence: float = Query(default=0.5, ge=0.0, le=1.0)
+) -> Dict[str, Any]:
+    """Get clusters related to the given cluster."""
+    service = get_dedup_service()
+    related = service.get_related_clusters(cluster_id, min_confidence)
+    return {"cluster_id": cluster_id, "related_clusters": related}
+
+
+@router.post("/correlations")
+async def create_correlation_link(
+    request: CreateCorrelationLinkRequest,
+) -> Dict[str, Any]:
+    """Create a correlation link between two clusters."""
+    service = get_dedup_service()
+    link_id = service.create_correlation_link(
+        source_cluster_id=request.source_cluster_id,
+        target_cluster_id=request.target_cluster_id,
+        link_type=request.link_type,
+        confidence=request.confidence,
+        reason=request.reason,
+    )
+    return {"link_id": link_id, "status": "created"}
+
+
+@router.get("/stats/{org_id}")
+async def get_dedup_stats(org_id: str) -> Dict[str, Any]:
+    """Get deduplication statistics for an organization."""
+    service = get_dedup_service()
+    return service.get_dedup_stats(org_id)

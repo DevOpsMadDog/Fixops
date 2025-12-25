@@ -25,12 +25,15 @@ from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
 from apps.api.auth_router import router as auth_router
 from apps.api.bulk_router import router as bulk_router
+from apps.api.collaboration_router import router as collaboration_router
+from apps.api.deduplication_router import router as deduplication_router
 from apps.api.iac_router import router as iac_router
 from apps.api.ide_router import router as ide_router
 from apps.api.integrations_router import router as integrations_router
 from apps.api.inventory_router import router as inventory_router
 from apps.api.pentagi_router_enhanced import router as pentagi_router
 from apps.api.policies_router import router as policies_router
+from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
 from apps.api.secrets_router import router as secrets_router
 from apps.api.teams_router import router as teams_router
@@ -407,6 +410,11 @@ def create_app() -> FastAPI:
     app.include_router(iac_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(ide_router, dependencies=[Depends(_verify_api_key)])
+
+    # Enterprise features - Deduplication, Remediation, Collaboration
+    app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
 
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
 

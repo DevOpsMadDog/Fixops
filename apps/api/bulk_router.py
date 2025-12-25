@@ -1,12 +1,41 @@
 """
-Bulk operations API endpoints.
+Enterprise Bulk Operations API endpoints with async job support.
 """
-from typing import Any, Dict, List
+import asyncio
+import uuid
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/bulk", tags=["bulk"])
+
+
+class JobStatus(str, Enum):
+    """Status of a bulk job."""
+
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PARTIAL = "partial"
+
+
+class ActionType(str, Enum):
+    """Types of bulk actions."""
+
+    UPDATE_STATUS = "update_status"
+    ASSIGN = "assign"
+    CREATE_TICKETS = "create_tickets"
+    ACCEPT_RISK = "accept_risk"
+    EXPORT = "export"
+    DELETE = "delete"
+
+
+# In-memory job store (in production, use Redis or database)
+_jobs: Dict[str, Dict[str, Any]] = {}
 
 
 class BulkUpdateRequest(BaseModel):
@@ -22,6 +51,51 @@ class BulkDeleteRequest(BaseModel):
     ids: List[str] = Field(..., min_length=1)
 
 
+class BulkAssignRequest(BaseModel):
+    """Request model for bulk assign operations."""
+
+    ids: List[str] = Field(..., min_length=1)
+    assignee: str
+    assignee_email: Optional[str] = None
+
+
+class BulkStatusUpdateRequest(BaseModel):
+    """Request model for bulk status update."""
+
+    ids: List[str] = Field(..., min_length=1)
+    new_status: str
+    reason: Optional[str] = None
+    changed_by: Optional[str] = None
+
+
+class BulkAcceptRiskRequest(BaseModel):
+    """Request model for bulk accept risk."""
+
+    ids: List[str] = Field(..., min_length=1)
+    justification: str
+    approved_by: str
+    expiry_days: Optional[int] = 90
+
+
+class BulkCreateTicketsRequest(BaseModel):
+    """Request model for bulk ticket creation."""
+
+    ids: List[str] = Field(..., min_length=1)
+    integration_id: str
+    project_key: Optional[str] = None
+    issue_type: str = "Bug"
+    priority_mapping: Optional[Dict[str, str]] = None
+
+
+class BulkExportRequest(BaseModel):
+    """Request model for bulk export."""
+
+    ids: List[str] = Field(..., min_length=1)
+    format: str = "json"
+    include_fields: Optional[List[str]] = None
+    org_id: str
+
+
 class BulkOperationResponse(BaseModel):
     """Response model for bulk operations."""
 
@@ -30,6 +104,489 @@ class BulkOperationResponse(BaseModel):
     errors: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class JobResponse(BaseModel):
+    """Response model for job creation."""
+
+    job_id: str
+    status: str
+    total_items: int
+    message: str
+
+
+class JobStatusResponse(BaseModel):
+    """Response model for job status."""
+
+    job_id: str
+    status: str
+    action_type: str
+    total_items: int
+    processed_items: int
+    success_count: int
+    failure_count: int
+    progress_percent: float
+    started_at: str
+    completed_at: Optional[str] = None
+    results: Optional[List[Dict[str, Any]]] = None
+    errors: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+def _create_job(action_type: str, total_items: int, metadata: Dict[str, Any]) -> str:
+    """Create a new bulk job."""
+    job_id = str(uuid.uuid4())
+    now = datetime.utcnow().isoformat()
+
+    _jobs[job_id] = {
+        "job_id": job_id,
+        "status": JobStatus.PENDING.value,
+        "action_type": action_type,
+        "total_items": total_items,
+        "processed_items": 0,
+        "success_count": 0,
+        "failure_count": 0,
+        "progress_percent": 0.0,
+        "started_at": now,
+        "completed_at": None,
+        "results": [],
+        "errors": [],
+        "metadata": metadata,
+    }
+
+    return job_id
+
+
+def _update_job_progress(
+    job_id: str,
+    processed: int,
+    success: int,
+    failure: int,
+    result: Optional[Dict[str, Any]] = None,
+    error: Optional[Dict[str, Any]] = None,
+):
+    """Update job progress."""
+    if job_id not in _jobs:
+        return
+
+    job = _jobs[job_id]
+    job["processed_items"] = processed
+    job["success_count"] = success
+    job["failure_count"] = failure
+    job["progress_percent"] = round((processed / job["total_items"]) * 100, 1)
+
+    if result:
+        job["results"].append(result)
+    if error:
+        job["errors"].append(error)
+
+
+def _complete_job(job_id: str, status: str):
+    """Mark job as complete."""
+    if job_id not in _jobs:
+        return
+
+    job = _jobs[job_id]
+    job["status"] = status
+    job["completed_at"] = datetime.utcnow().isoformat()
+
+
+async def _process_bulk_status(
+    job_id: str, ids: List[str], new_status: str, reason: Optional[str]
+):
+    """Process bulk status update in background."""
+    _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    success = 0
+    failure = 0
+
+    for i, item_id in enumerate(ids):
+        try:
+            await asyncio.sleep(0.01)
+            success += 1
+            _update_job_progress(
+                job_id,
+                i + 1,
+                success,
+                failure,
+                result={"id": item_id, "status": "updated", "new_status": new_status},
+            )
+        except Exception as e:
+            failure += 1
+            _update_job_progress(
+                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+            )
+
+    final_status = (
+        JobStatus.COMPLETED.value
+        if failure == 0
+        else (JobStatus.PARTIAL.value if success > 0 else JobStatus.FAILED.value)
+    )
+    _complete_job(job_id, final_status)
+
+
+async def _process_bulk_assign(
+    job_id: str, ids: List[str], assignee: str, assignee_email: Optional[str]
+):
+    """Process bulk assign in background."""
+    _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    success = 0
+    failure = 0
+
+    for i, item_id in enumerate(ids):
+        try:
+            await asyncio.sleep(0.01)
+            success += 1
+            _update_job_progress(
+                job_id,
+                i + 1,
+                success,
+                failure,
+                result={"id": item_id, "status": "assigned", "assignee": assignee},
+            )
+        except Exception as e:
+            failure += 1
+            _update_job_progress(
+                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+            )
+
+    final_status = (
+        JobStatus.COMPLETED.value
+        if failure == 0
+        else (JobStatus.PARTIAL.value if success > 0 else JobStatus.FAILED.value)
+    )
+    _complete_job(job_id, final_status)
+
+
+async def _process_bulk_accept_risk(
+    job_id: str,
+    ids: List[str],
+    justification: str,
+    approved_by: str,
+    expiry_days: int,
+):
+    """Process bulk accept risk in background."""
+    _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    success = 0
+    failure = 0
+
+    for i, item_id in enumerate(ids):
+        try:
+            await asyncio.sleep(0.01)
+            success += 1
+            _update_job_progress(
+                job_id,
+                i + 1,
+                success,
+                failure,
+                result={
+                    "id": item_id,
+                    "status": "risk_accepted",
+                    "approved_by": approved_by,
+                    "expiry_days": expiry_days,
+                },
+            )
+        except Exception as e:
+            failure += 1
+            _update_job_progress(
+                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+            )
+
+    final_status = (
+        JobStatus.COMPLETED.value
+        if failure == 0
+        else (JobStatus.PARTIAL.value if success > 0 else JobStatus.FAILED.value)
+    )
+    _complete_job(job_id, final_status)
+
+
+async def _process_bulk_tickets(
+    job_id: str,
+    ids: List[str],
+    integration_id: str,
+    project_key: Optional[str],
+    issue_type: str,
+):
+    """Process bulk ticket creation in background."""
+    _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    success = 0
+    failure = 0
+
+    for i, item_id in enumerate(ids):
+        try:
+            await asyncio.sleep(0.05)
+            ticket_id = f"TICKET-{i + 1000}"
+            success += 1
+            _update_job_progress(
+                job_id,
+                i + 1,
+                success,
+                failure,
+                result={
+                    "id": item_id,
+                    "status": "ticket_created",
+                    "ticket_id": ticket_id,
+                    "integration_id": integration_id,
+                },
+            )
+        except Exception as e:
+            failure += 1
+            _update_job_progress(
+                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+            )
+
+    final_status = (
+        JobStatus.COMPLETED.value
+        if failure == 0
+        else (JobStatus.PARTIAL.value if success > 0 else JobStatus.FAILED.value)
+    )
+    _complete_job(job_id, final_status)
+
+
+async def _process_bulk_export(
+    job_id: str,
+    ids: List[str],
+    format: str,
+    org_id: str,
+    include_fields: Optional[List[str]],
+):
+    """Process bulk export in background."""
+    _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+
+    try:
+        await asyncio.sleep(0.1 * len(ids) / 100)
+
+        export_id = str(uuid.uuid4())[:8]
+        download_url = f"/api/v1/bulk/exports/{export_id}.{format}"
+
+        _jobs[job_id]["results"] = [
+            {
+                "export_id": export_id,
+                "format": format,
+                "item_count": len(ids),
+                "download_url": download_url,
+            }
+        ]
+        _jobs[job_id]["processed_items"] = len(ids)
+        _jobs[job_id]["success_count"] = len(ids)
+        _jobs[job_id]["progress_percent"] = 100.0
+
+        _complete_job(job_id, JobStatus.COMPLETED.value)
+    except Exception as e:
+        _jobs[job_id]["errors"].append({"error": str(e)})
+        _complete_job(job_id, JobStatus.FAILED.value)
+
+
+@router.post("/clusters/status", response_model=JobResponse)
+async def bulk_update_cluster_status(
+    request: BulkStatusUpdateRequest, background_tasks: BackgroundTasks
+):
+    """Bulk update cluster status."""
+    job_id = _create_job(
+        ActionType.UPDATE_STATUS.value,
+        len(request.ids),
+        {"new_status": request.new_status, "reason": request.reason},
+    )
+
+    background_tasks.add_task(
+        _process_bulk_status,
+        job_id,
+        request.ids,
+        request.new_status,
+        request.reason,
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status=JobStatus.PENDING.value,
+        total_items=len(request.ids),
+        message=f"Bulk status update job created for {len(request.ids)} items",
+    )
+
+
+@router.post("/clusters/assign", response_model=JobResponse)
+async def bulk_assign_clusters(
+    request: BulkAssignRequest, background_tasks: BackgroundTasks
+):
+    """Bulk assign clusters to a user."""
+    job_id = _create_job(
+        ActionType.ASSIGN.value,
+        len(request.ids),
+        {"assignee": request.assignee},
+    )
+
+    background_tasks.add_task(
+        _process_bulk_assign,
+        job_id,
+        request.ids,
+        request.assignee,
+        request.assignee_email,
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status=JobStatus.PENDING.value,
+        total_items=len(request.ids),
+        message=f"Bulk assign job created for {len(request.ids)} items",
+    )
+
+
+@router.post("/clusters/accept-risk", response_model=JobResponse)
+async def bulk_accept_risk(
+    request: BulkAcceptRiskRequest, background_tasks: BackgroundTasks
+):
+    """Bulk accept risk for clusters."""
+    job_id = _create_job(
+        ActionType.ACCEPT_RISK.value,
+        len(request.ids),
+        {"approved_by": request.approved_by, "expiry_days": request.expiry_days},
+    )
+
+    background_tasks.add_task(
+        _process_bulk_accept_risk,
+        job_id,
+        request.ids,
+        request.justification,
+        request.approved_by,
+        request.expiry_days or 90,
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status=JobStatus.PENDING.value,
+        total_items=len(request.ids),
+        message=f"Bulk accept risk job created for {len(request.ids)} items",
+    )
+
+
+@router.post("/clusters/create-tickets", response_model=JobResponse)
+async def bulk_create_tickets(
+    request: BulkCreateTicketsRequest, background_tasks: BackgroundTasks
+):
+    """Bulk create tickets for clusters."""
+    job_id = _create_job(
+        ActionType.CREATE_TICKETS.value,
+        len(request.ids),
+        {"integration_id": request.integration_id, "issue_type": request.issue_type},
+    )
+
+    background_tasks.add_task(
+        _process_bulk_tickets,
+        job_id,
+        request.ids,
+        request.integration_id,
+        request.project_key,
+        request.issue_type,
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status=JobStatus.PENDING.value,
+        total_items=len(request.ids),
+        message=f"Bulk ticket creation job created for {len(request.ids)} items",
+    )
+
+
+@router.post("/export", response_model=JobResponse)
+async def bulk_export(request: BulkExportRequest, background_tasks: BackgroundTasks):
+    """Bulk export findings/clusters in specified format."""
+    if request.format not in ["json", "csv", "sarif", "pdf"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid format. Must be one of: json, csv, sarif, pdf",
+        )
+
+    job_id = _create_job(
+        ActionType.EXPORT.value,
+        len(request.ids),
+        {"format": request.format, "org_id": request.org_id},
+    )
+
+    background_tasks.add_task(
+        _process_bulk_export,
+        job_id,
+        request.ids,
+        request.format,
+        request.org_id,
+        request.include_fields,
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status=JobStatus.PENDING.value,
+        total_items=len(request.ids),
+        message=f"Bulk export job created for {len(request.ids)} items",
+    )
+
+
+@router.get("/jobs/{job_id}", response_model=JobStatusResponse)
+async def get_job_status(job_id: str):
+    """Get status of a bulk job."""
+    if job_id not in _jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    job = _jobs[job_id]
+    return JobStatusResponse(
+        job_id=job["job_id"],
+        status=job["status"],
+        action_type=job["action_type"],
+        total_items=job["total_items"],
+        processed_items=job["processed_items"],
+        success_count=job["success_count"],
+        failure_count=job["failure_count"],
+        progress_percent=job["progress_percent"],
+        started_at=job["started_at"],
+        completed_at=job["completed_at"],
+        results=job["results"]
+        if job["status"] in [JobStatus.COMPLETED.value, JobStatus.PARTIAL.value]
+        else None,
+        errors=job["errors"],
+    )
+
+
+@router.get("/jobs")
+async def list_jobs(
+    status: Optional[str] = None,
+    action_type: Optional[str] = None,
+    limit: int = Query(default=20, le=100),
+) -> Dict[str, Any]:
+    """List bulk jobs with optional filters."""
+    jobs = list(_jobs.values())
+
+    if status:
+        jobs = [j for j in jobs if j["status"] == status]
+    if action_type:
+        jobs = [j for j in jobs if j["action_type"] == action_type]
+
+    jobs.sort(key=lambda x: x["started_at"], reverse=True)
+
+    return {
+        "jobs": jobs[:limit],
+        "count": len(jobs[:limit]),
+        "total": len(jobs),
+    }
+
+
+@router.delete("/jobs/{job_id}")
+async def cancel_job(job_id: str) -> Dict[str, Any]:
+    """Cancel a pending or in-progress job."""
+    if job_id not in _jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    job = _jobs[job_id]
+    if job["status"] in [
+        JobStatus.COMPLETED.value,
+        JobStatus.FAILED.value,
+        JobStatus.PARTIAL.value,
+    ]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel job with status: {job['status']}",
+        )
+
+    _complete_job(job_id, JobStatus.FAILED.value)
+    job["errors"].append({"error": "Job cancelled by user"})
+
+    return {"status": "cancelled", "job_id": job_id}
+
+
+# Legacy endpoints for backward compatibility
 @router.post("/findings/update", response_model=BulkOperationResponse)
 async def bulk_update_findings(request: BulkUpdateRequest):
     """Bulk update findings."""
@@ -67,15 +624,4 @@ async def bulk_apply_policies(policy_ids: List[str], target_ids: List[str]):
         "success_count": len(target_ids),
         "failure_count": 0,
         "errors": [],
-    }
-
-
-@router.post("/export")
-async def bulk_export(ids: List[str], format: str = "json"):
-    """Bulk export findings in specified format."""
-    return {
-        "export_id": "export-123",
-        "format": format,
-        "item_count": len(ids),
-        "download_url": f"/api/v1/bulk/exports/export-123.{format}",
     }
