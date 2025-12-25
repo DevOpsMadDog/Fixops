@@ -1114,8 +1114,20 @@ def create_app() -> FastAPI:
         return result
 
     @app.get("/api/v1/triage", dependencies=[Depends(_verify_api_key)])
-    async def get_triage() -> Dict[str, Any]:
-        """Transform last pipeline result into triage inbox format."""
+    async def get_triage(
+        view: str = "events",
+        cluster_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Transform last pipeline result into triage inbox format.
+
+        Args:
+            view: View mode - 'events' (individual findings) or 'clusters' (deduplicated groups)
+            cluster_status: Filter clusters by status (only applies when view=clusters)
+
+        Returns:
+            Triage data with rows and summary. When view=clusters, rows represent
+            deduplicated finding groups with event counts.
+        """
         last_result = app.state.last_pipeline_result
 
         if last_result is None:
@@ -1123,6 +1135,10 @@ def create_app() -> FastAPI:
                 status_code=404,
                 detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
             )
+
+        # If view=clusters, return deduplicated cluster view
+        if view == "clusters":
+            return await _get_triage_clusters(cluster_status)
 
         rows = []
         crosswalk = last_result.get("crosswalk", [])
@@ -1350,6 +1366,94 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=400, detail="Invalid format. Use 'csv' or 'json'."
             )
+
+    async def _get_triage_clusters(
+        cluster_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get triage data in cluster (deduplicated) view.
+
+        Returns finding clusters instead of individual events, showing
+        deduplicated groups with event counts and representative info.
+        """
+        from core.services.deduplication import DeduplicationService
+
+        dedup_service = DeduplicationService()
+        clusters = dedup_service.list_clusters(
+            status=cluster_status,
+            limit=1000,
+            offset=0,
+        )
+
+        rows = []
+        for cluster in clusters:
+            # Get events for this cluster to compute aggregates
+            events = dedup_service.get_cluster_events(cluster["cluster_id"])
+
+            # Compute severity (highest among events)
+            severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+            max_severity = "low"
+            for event in events:
+                event_severity = event.get("severity", "low")
+                if severity_order.get(event_severity, 0) > severity_order.get(
+                    max_severity, 0
+                ):
+                    max_severity = event_severity
+
+            # Compute exploitability (any KEV or max EPSS)
+            has_kev = any(event.get("kev", False) for event in events)
+            max_epss = max((event.get("epss", 0.0) for event in events), default=0.0)
+
+            # Get representative event for title/description
+            representative = events[0] if events else {}
+
+            rows.append(
+                {
+                    "id": cluster["cluster_id"],
+                    "cluster_id": cluster["cluster_id"],
+                    "severity": max_severity,
+                    "title": cluster.get(
+                        "title", representative.get("title", "Unknown")
+                    ),
+                    "source": cluster.get(
+                        "source", representative.get("source", "Unknown")
+                    ),
+                    "event_count": cluster.get("event_count", len(events)),
+                    "first_seen": cluster.get("first_seen"),
+                    "last_seen": cluster.get("last_seen"),
+                    "status": cluster.get("status", "open"),
+                    "exploitability": {"kev": has_kev, "epss": max_epss},
+                    "correlation_key": cluster.get("correlation_key"),
+                    "fingerprint": cluster.get("fingerprint"),
+                    "stages": list(set(e.get("stage", "unknown") for e in events)),
+                    "locations": list(
+                        set(e.get("location", "") for e in events if e.get("location"))
+                    ),
+                }
+            )
+
+        # Compute summary
+        high_critical = sum(1 for r in rows if r["severity"] in ["high", "critical"])
+        exploitable = sum(
+            1
+            for r in rows
+            if r["exploitability"]["kev"] or r["exploitability"]["epss"] > 0.7
+        )
+        open_count = sum(1 for r in rows if r["status"] == "open")
+
+        return {
+            "view": "clusters",
+            "rows": rows,
+            "summary": {
+                "total_clusters": len(rows),
+                "total_events": sum(r["event_count"] for r in rows),
+                "high_critical": high_critical,
+                "exploitable": exploitable,
+                "open": open_count,
+                "noise_reduction": f"{(1 - len(rows) / max(sum(r['event_count'] for r in rows), 1)) * 100:.1f}%"
+                if rows
+                else "0%",
+            },
+        }
 
     def _get_compliance_mappings(
         compliance_status: Dict[str, Any], source_type: str

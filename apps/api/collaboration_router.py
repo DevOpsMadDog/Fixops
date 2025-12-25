@@ -437,3 +437,85 @@ def update_notification_preferences(
         quiet_hours_end=request.quiet_hours_end,
         notification_types=request.notification_types,
     )
+
+
+class DeliverNotificationRequest(BaseModel):
+    """Request to deliver a specific notification."""
+
+    slack_webhook: Optional[str] = None
+    email_smtp_host: Optional[str] = None
+    email_smtp_port: Optional[int] = 587
+    email_smtp_user: Optional[str] = None
+    email_smtp_password: Optional[str] = None
+    email_from: Optional[str] = None
+
+
+class ProcessNotificationsRequest(BaseModel):
+    """Request to process pending notifications."""
+
+    slack_webhook: Optional[str] = None
+    email_smtp_host: Optional[str] = None
+    email_smtp_port: Optional[int] = 587
+    email_smtp_user: Optional[str] = None
+    email_smtp_password: Optional[str] = None
+    email_from: Optional[str] = None
+    limit: int = 100
+
+
+@router.post("/notifications/{notification_id}/deliver")
+def deliver_notification(
+    notification_id: str, request: DeliverNotificationRequest
+) -> Dict[str, Any]:
+    """Deliver a specific notification via configured channels.
+
+    Supports Slack webhook and/or email (SMTP) delivery.
+    Respects user notification preferences.
+    """
+    service = get_collab_service()
+
+    email_config = None
+    if request.email_smtp_host and request.email_smtp_user:
+        email_config = {
+            "smtp_host": request.email_smtp_host,
+            "smtp_port": request.email_smtp_port,
+            "smtp_user": request.email_smtp_user,
+            "smtp_password": request.email_smtp_password,
+            "from_email": request.email_from,
+        }
+
+    return service.deliver_notification(
+        notification_id=notification_id,
+        slack_webhook=request.slack_webhook,
+        email_config=email_config,
+    )
+
+
+@router.post("/notifications/process")
+def process_pending_notifications(
+    request: ProcessNotificationsRequest,
+) -> Dict[str, Any]:
+    """Process all pending notifications in the queue.
+
+    This is the main worker endpoint that should be called periodically
+    (e.g., by a cron job or scheduler) to deliver queued notifications.
+
+    Supports Slack webhook and/or email (SMTP) delivery.
+    Respects user notification preferences.
+    """
+    service = get_collab_service()
+
+    email_config = None
+    if request.email_smtp_host and request.email_smtp_user:
+        email_config = {
+            "smtp_host": request.email_smtp_host,
+            "smtp_port": request.email_smtp_port,
+            "smtp_user": request.email_smtp_user,
+            "smtp_password": request.email_smtp_password,
+            "from_email": request.email_from,
+        }
+
+    return service.process_pending_notifications(
+        slack_webhook=request.slack_webhook,
+        email_config=email_config,
+        limit=request.limit,
+    )

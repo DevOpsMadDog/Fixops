@@ -874,3 +874,238 @@ class CollaborationService:
             return self.get_user_notification_preferences(user_id)
         finally:
             conn.close()
+
+    def deliver_notification(
+        self,
+        notification_id: str,
+        slack_webhook: Optional[str] = None,
+        email_config: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Deliver a notification via configured channels (Slack/email).
+
+        This method:
+        1. Fetches the notification from the queue
+        2. Gets recipient preferences
+        3. Delivers via enabled channels (Slack, email)
+        4. Marks notification as sent or failed
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT * FROM notification_queue WHERE notification_id = ?",
+                (notification_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return {
+                    "error": "Notification not found",
+                    "notification_id": notification_id,
+                }
+
+            notification = dict(row)
+            if notification["status"] != "pending":
+                return {
+                    "notification_id": notification_id,
+                    "status": notification["status"],
+                    "message": "Notification already processed",
+                }
+
+            recipients = json.loads(notification["recipients"])
+            delivery_results: Dict[str, Any] = {
+                "notification_id": notification_id,
+                "slack_sent": [],
+                "slack_failed": [],
+                "email_sent": [],
+                "email_failed": [],
+            }
+
+            for recipient in recipients:
+                prefs = self.get_user_notification_preferences(recipient)
+
+                if prefs.get("slack_enabled") and slack_webhook:
+                    slack_result = self._deliver_slack(
+                        webhook_url=slack_webhook,
+                        title=notification["title"],
+                        message=notification["message"],
+                        recipient=recipient,
+                        priority=notification["priority"],
+                    )
+                    if slack_result.get("success"):
+                        delivery_results["slack_sent"].append(recipient)
+                    else:
+                        delivery_results["slack_failed"].append(
+                            {
+                                "recipient": recipient,
+                                "error": slack_result.get("error"),
+                            }
+                        )
+
+                if prefs.get("email_enabled") and email_config:
+                    email_result = self._deliver_email(
+                        config=email_config,
+                        title=notification["title"],
+                        message=notification["message"],
+                        recipient=recipient,
+                        priority=notification["priority"],
+                    )
+                    if email_result.get("success"):
+                        delivery_results["email_sent"].append(recipient)
+                    else:
+                        delivery_results["email_failed"].append(
+                            {
+                                "recipient": recipient,
+                                "error": email_result.get("error"),
+                            }
+                        )
+
+            total_sent = len(delivery_results["slack_sent"]) + len(
+                delivery_results["email_sent"]
+            )
+            total_failed = len(delivery_results["slack_failed"]) + len(
+                delivery_results["email_failed"]
+            )
+
+            if total_sent > 0:
+                self.mark_notification_sent(notification_id, error=None)
+                delivery_results["status"] = "sent"
+            elif total_failed > 0:
+                error_msg = f"Failed to deliver to {total_failed} recipients"
+                self.mark_notification_sent(notification_id, error=error_msg)
+                delivery_results["status"] = "failed"
+                delivery_results["error"] = error_msg
+            else:
+                delivery_results["status"] = "no_channels"
+                delivery_results[
+                    "message"
+                ] = "No delivery channels configured or enabled"
+
+            return delivery_results
+        finally:
+            conn.close()
+
+    def _deliver_slack(
+        self,
+        webhook_url: str,
+        title: str,
+        message: str,
+        recipient: str,
+        priority: str = "normal",
+    ) -> Dict[str, Any]:
+        """Deliver notification via Slack webhook."""
+        try:
+            import requests
+
+            priority_emoji = {
+                "critical": ":rotating_light:",
+                "high": ":warning:",
+                "normal": ":bell:",
+                "low": ":information_source:",
+            }
+            emoji = priority_emoji.get(priority, ":bell:")
+
+            payload = {
+                "text": f"{emoji} *{title}*\n{message}\n_Recipient: {recipient}_",
+                "unfurl_links": False,
+                "unfurl_media": False,
+            }
+
+            response = requests.post(webhook_url, json=payload, timeout=10)
+            response.raise_for_status()
+
+            return {"success": True, "recipient": recipient}
+        except Exception as e:
+            return {"success": False, "recipient": recipient, "error": str(e)}
+
+    def _deliver_email(
+        self,
+        config: Dict[str, Any],
+        title: str,
+        message: str,
+        recipient: str,
+        priority: str = "normal",
+    ) -> Dict[str, Any]:
+        """Deliver notification via email (SMTP).
+
+        Config should contain:
+        - smtp_host: SMTP server hostname
+        - smtp_port: SMTP server port (default 587)
+        - smtp_user: SMTP username
+        - smtp_password: SMTP password
+        - from_email: Sender email address
+        """
+        try:
+            import smtplib
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+
+            smtp_host = config.get("smtp_host")
+            smtp_port = config.get("smtp_port", 587)
+            smtp_user = config.get("smtp_user")
+            smtp_password = config.get("smtp_password")
+            from_email = config.get("from_email")
+
+            if not all([smtp_host, smtp_user, smtp_password, from_email]):
+                return {
+                    "success": False,
+                    "recipient": recipient,
+                    "error": "Email configuration incomplete",
+                }
+
+            msg = MIMEMultipart()
+            msg["From"] = from_email
+            msg["To"] = recipient
+            msg["Subject"] = f"[FixOps {priority.upper()}] {title}"
+
+            body = f"{message}\n\n---\nThis is an automated notification from FixOps."
+            msg.attach(MIMEText(body, "plain"))
+
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+
+            return {"success": True, "recipient": recipient}
+        except Exception as e:
+            return {"success": False, "recipient": recipient, "error": str(e)}
+
+    def process_pending_notifications(
+        self,
+        slack_webhook: Optional[str] = None,
+        email_config: Optional[Dict[str, Any]] = None,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """Process all pending notifications in the queue.
+
+        This is the main worker method that should be called periodically
+        to deliver queued notifications.
+        """
+        pending = self.get_pending_notifications(limit=limit)
+        results = {
+            "processed": 0,
+            "sent": 0,
+            "failed": 0,
+            "no_channels": 0,
+            "details": [],
+        }
+
+        for notification in pending:
+            result = self.deliver_notification(
+                notification_id=notification["notification_id"],
+                slack_webhook=slack_webhook,
+                email_config=email_config,
+            )
+            results["processed"] += 1
+
+            if result.get("status") == "sent":
+                results["sent"] += 1
+            elif result.get("status") == "failed":
+                results["failed"] += 1
+            else:
+                results["no_channels"] += 1
+
+            results["details"].append(result)
+
+        return results

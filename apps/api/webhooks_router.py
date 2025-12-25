@@ -80,6 +80,27 @@ def _init_db():
     """
     )
 
+    # Outbox table for reliable outbound sync with retry logic
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS outbox (
+            outbox_id TEXT PRIMARY KEY,
+            integration_type TEXT NOT NULL,
+            operation TEXT NOT NULL,
+            cluster_id TEXT,
+            external_id TEXT,
+            payload TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            retry_count INTEGER DEFAULT 0,
+            max_retries INTEGER DEFAULT 3,
+            next_retry_at TEXT,
+            last_error TEXT,
+            created_at TEXT NOT NULL,
+            processed_at TEXT
+        )
+    """
+    )
+
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_mappings_cluster ON integration_mappings(cluster_id)"
     )
@@ -88,6 +109,9 @@ def _init_db():
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_events_processed ON webhook_events(processed)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_outbox_status ON outbox(status, next_retry_at)"
     )
 
     conn.commit()
@@ -661,5 +685,343 @@ def list_webhook_events(
         events = [dict(row) for row in cursor.fetchall()]
 
         return {"events": events, "count": len(events)}
+    finally:
+        conn.close()
+
+
+class OutboxRequest(BaseModel):
+    """Request to queue an outbound sync operation."""
+
+    integration_type: str
+    operation: str
+    cluster_id: Optional[str] = None
+    external_id: Optional[str] = None
+    payload: Dict[str, Any]
+    max_retries: int = 3
+
+
+def _calculate_next_retry(retry_count: int) -> str:
+    """Calculate next retry time with exponential backoff."""
+    from datetime import timedelta
+
+    base_delay = 60
+    delay_seconds = base_delay * (2**retry_count)
+    max_delay = 3600
+    delay_seconds = min(delay_seconds, max_delay)
+    next_retry = datetime.utcnow() + timedelta(seconds=delay_seconds)
+    return next_retry.isoformat()
+
+
+@router.post("/outbox")
+def queue_outbound_sync(request: OutboxRequest) -> Dict[str, Any]:
+    """Queue an outbound sync operation for reliable delivery with retries."""
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        outbox_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+
+        cursor.execute(
+            """
+            INSERT INTO outbox (
+                outbox_id, integration_type, operation, cluster_id,
+                external_id, payload, status, max_retries, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+        """,
+            (
+                outbox_id,
+                request.integration_type,
+                request.operation,
+                request.cluster_id,
+                request.external_id,
+                json.dumps(request.payload),
+                request.max_retries,
+                now,
+            ),
+        )
+        conn.commit()
+
+        return {
+            "outbox_id": outbox_id,
+            "integration_type": request.integration_type,
+            "operation": request.operation,
+            "status": "pending",
+            "created_at": now,
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/outbox")
+def list_outbox_items(
+    status: Optional[str] = None,
+    integration_type: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> Dict[str, Any]:
+    """List outbox items with optional filters."""
+    conn = sqlite3.connect(_get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM outbox WHERE 1=1"
+        params: List[Any] = []
+
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        if integration_type:
+            query += " AND integration_type = ?"
+            params.append(integration_type)
+
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(query, params)
+        items = [dict(row) for row in cursor.fetchall()]
+
+        for item in items:
+            if item.get("payload"):
+                item["payload"] = json.loads(item["payload"])
+
+        return {"items": items, "count": len(items)}
+    finally:
+        conn.close()
+
+
+@router.get("/outbox/pending")
+def get_pending_outbox_items(limit: int = 100) -> Dict[str, Any]:
+    """Get pending outbox items ready for processing."""
+    conn = sqlite3.connect(_get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        cursor = conn.cursor()
+        now = datetime.utcnow().isoformat()
+
+        cursor.execute(
+            """
+            SELECT * FROM outbox
+            WHERE status = 'pending'
+            AND (next_retry_at IS NULL OR next_retry_at <= ?)
+            ORDER BY created_at ASC
+            LIMIT ?
+        """,
+            (now, limit),
+        )
+        items = [dict(row) for row in cursor.fetchall()]
+
+        for item in items:
+            if item.get("payload"):
+                item["payload"] = json.loads(item["payload"])
+
+        return {"items": items, "count": len(items)}
+    finally:
+        conn.close()
+
+
+@router.put("/outbox/{outbox_id}/process")
+def process_outbox_item(
+    outbox_id: str, success: bool, error: Optional[str] = None
+) -> Dict[str, Any]:
+    """Mark an outbox item as processed or schedule retry."""
+    conn = sqlite3.connect(_get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM outbox WHERE outbox_id = ?",
+            (outbox_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Outbox item not found")
+
+        item = dict(row)
+        now = datetime.utcnow().isoformat()
+
+        if success:
+            cursor.execute(
+                """
+                UPDATE outbox
+                SET status = 'completed', processed_at = ?
+                WHERE outbox_id = ?
+            """,
+                (now, outbox_id),
+            )
+            result = {
+                "outbox_id": outbox_id,
+                "status": "completed",
+                "processed_at": now,
+            }
+        else:
+            retry_count = item["retry_count"] + 1
+            max_retries = item["max_retries"]
+
+            if retry_count >= max_retries:
+                cursor.execute(
+                    """
+                    UPDATE outbox
+                    SET status = 'failed', retry_count = ?, last_error = ?, processed_at = ?
+                    WHERE outbox_id = ?
+                """,
+                    (retry_count, error, now, outbox_id),
+                )
+                result = {
+                    "outbox_id": outbox_id,
+                    "status": "failed",
+                    "retry_count": retry_count,
+                    "max_retries": max_retries,
+                    "error": error,
+                }
+            else:
+                next_retry = _calculate_next_retry(retry_count)
+                cursor.execute(
+                    """
+                    UPDATE outbox
+                    SET retry_count = ?, next_retry_at = ?, last_error = ?
+                    WHERE outbox_id = ?
+                """,
+                    (retry_count, next_retry, error, outbox_id),
+                )
+                result = {
+                    "outbox_id": outbox_id,
+                    "status": "pending",
+                    "retry_count": retry_count,
+                    "max_retries": max_retries,
+                    "next_retry_at": next_retry,
+                    "error": error,
+                }
+
+        conn.commit()
+        return result
+    finally:
+        conn.close()
+
+
+@router.delete("/outbox/{outbox_id}")
+def cancel_outbox_item(outbox_id: str) -> Dict[str, Any]:
+    """Cancel a pending outbox item."""
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT status FROM outbox WHERE outbox_id = ?",
+            (outbox_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Outbox item not found")
+
+        if row[0] != "pending":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot cancel item with status '{row[0]}'",
+            )
+
+        now = datetime.utcnow().isoformat()
+        cursor.execute(
+            """
+            UPDATE outbox
+            SET status = 'cancelled', processed_at = ?
+            WHERE outbox_id = ?
+        """,
+            (now, outbox_id),
+        )
+        conn.commit()
+
+        return {
+            "outbox_id": outbox_id,
+            "status": "cancelled",
+            "cancelled_at": now,
+        }
+    finally:
+        conn.close()
+
+
+@router.post("/outbox/{outbox_id}/retry")
+def retry_outbox_item(outbox_id: str) -> Dict[str, Any]:
+    """Manually retry a failed outbox item."""
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT status, retry_count FROM outbox WHERE outbox_id = ?",
+            (outbox_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Outbox item not found")
+
+        if row[0] not in ("failed", "pending"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot retry item with status '{row[0]}'",
+            )
+
+        cursor.execute(
+            """
+            UPDATE outbox
+            SET status = 'pending', next_retry_at = NULL, last_error = NULL
+            WHERE outbox_id = ?
+        """,
+            (outbox_id,),
+        )
+        conn.commit()
+
+        return {
+            "outbox_id": outbox_id,
+            "status": "pending",
+            "message": "Item queued for retry",
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/outbox/stats")
+def get_outbox_stats() -> Dict[str, Any]:
+    """Get statistics about outbox items."""
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT status, COUNT(*) as count
+            FROM outbox
+            GROUP BY status
+        """
+        )
+        status_counts = {row[0]: row[1] for row in cursor.fetchall()}
+
+        cursor.execute(
+            """
+            SELECT integration_type, COUNT(*) as count
+            FROM outbox
+            WHERE status = 'pending'
+            GROUP BY integration_type
+        """
+        )
+        pending_by_type = {row[0]: row[1] for row in cursor.fetchall()}
+
+        cursor.execute(
+            """
+            SELECT AVG(retry_count) as avg_retries
+            FROM outbox
+            WHERE status = 'completed'
+        """
+        )
+        avg_retries = cursor.fetchone()[0] or 0
+
+        return {
+            "status_counts": status_counts,
+            "pending_by_integration": pending_by_type,
+            "average_retries_to_success": round(avg_retries, 2),
+            "total_items": sum(status_counts.values()),
+        }
     finally:
         conn.close()
