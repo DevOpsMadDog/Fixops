@@ -2,11 +2,25 @@
 
 # FixOps
 
-**Enterprise DevSecOps Decision & Verification Platform**
+**Enterprise DevSecOps Decision, Verification & Vulnerability Operations Platform**
 
-FixOps is a DevSecOps decision and verification platform that operationalizes vulnerability management end-to-end. It ingests and normalizes security artifacts (SBOM, SARIF, CVE, VEX, CNAPP, plus business context), correlates them into an application-centric risk model via an interactive **Risk Graph** (linking services → components → CVEs/findings with KEV/EPSS enrichment), and produces release-gate outcomes (Allow/Block/Needs Review) through policy evaluation, multi-LLM consensus, and probabilistic forecasting. Every decision is packaged as exportable, cryptographically verifiable evidence for audit, triage, and long-term retention.
+*FixOps turns noisy security outputs into provable release decisions and verified remediation.*
 
-FixOps exposes this workflow through three first-class interfaces: a **REST API** (243+ endpoints across 22 router modules), a **CLI** (67 commands/subcommands), and a **modular UI** (27 micro-frontends) covering triage, risk graph exploration, compliance reporting, micro-pentest execution, reachability analysis, evidence management, and more—deployable on-prem or air-gapped as needed.
+FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability management end-to-end. It ingests and normalizes security artifacts (SBOM, SARIF, CVE, VEX, CNAPP) plus business context, correlates and deduplicates findings into an application-centric **Risk Graph** (services → components → CVEs/findings with KEV/EPSS enrichment), and produces release-gate outcomes (Allow/Block/Needs Review) via policy evaluation, multi-LLM consensus, probabilistic forecasting, and explainable risk scoring. FixOps then verifies exploitability through reachability analysis and micro-pentest validation, operationalizes remediation with lifecycle/SLA tracking and bulk actions, and produces tamper-evident evidence and provenance (signed bundles, integrity-verified evidence lake, SLSA attestations) for audit and long-term retention.
+
+**Core Capability Areas:**
+
+| Category | What It Does |
+|----------|--------------|
+| **Ingest & Normalize** | SBOM/SARIF/CVE/VEX/CNAPP ingestion with business context enrichment |
+| **Correlate & Deduplicate** | Risk Graph modeling, 5 correlation strategies (fingerprint, location, pattern, root-cause, vulnerability taxonomy), intelligent finding clustering |
+| **Decide with Transparency** | Policy evaluation, multi-LLM consensus (4 providers), probabilistic forecasting, explainable verdicts with natural-language narratives, MITRE ATT&CK mapping (35+ techniques), transparent scoring with visible weights |
+| **Verify Exploitability** | Micro-pentest engine with attack simulation, reachability analysis with attack path mapping |
+| **Operationalize Remediation** | Remediation lifecycle with SLA tracking, bulk operations, team collaboration, decision regression validation |
+| **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
+| **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (25+ pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
+
+**Platform Interfaces:** REST API (243+ endpoints across 22 router modules), CLI (67 commands/subcommands), and modular UI (27 micro-frontends) - deployable on-prem or air-gapped as needed.
 
 ---
 
