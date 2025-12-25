@@ -503,5 +503,5 @@
 
 ---
 
-**Survival Score: 72/100** ⚠️ **MODERATE RISK**  
+**Survival Score: 75/100** ⚠️ **MODERATE RISK**  
 **Action Required:** 🔴 **CRITICAL** (Business model + first customers)

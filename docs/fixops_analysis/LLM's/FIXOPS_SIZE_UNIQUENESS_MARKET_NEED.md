@@ -324,7 +324,7 @@ Total:                234K LOC  (excluding tests/docs)
 #### ✅ **Alert Fatigue** (60% of security teams)
 - 1,000+ alerts per day, 60% false positives
 - Multi-LLM consensus + exploit validation reduces noise by 50-70%
-- **FixOps saves $150K-300K per year** per security team
+- **FixOps saves $75K-150K per year** per security team
 
 #### ✅ **On-Prem Requirement** (30% of enterprises)
 - Financial services, healthcare, government require air-gapped solutions
@@ -404,7 +404,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 | Benefit | Annual Savings | FixOps Advantage |
 |---------|---------------|------------------|
-| **Alert Fatigue Reduction** | $150K-300K | 50-70% false positive reduction |
+| **Alert Fatigue Reduction** | $75K-150K | 50-70% false positive reduction |
 | **Compliance Automation** | $200K-500K | Auto-generated audit artifacts |
 | **Exploit Validation** | $200K-400K | 50-70% false positive reduction |
 | **On-Prem Deployment** | $100K-300K | No SaaS subscription fees |
@@ -445,7 +445,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 **Reasons:**
 1. **Regulatory compliance** (EU CRA, NIST SSDF, ISO 27001) requires evidence bundles → **Only FixOps provides**
-2. **Alert fatigue** costs $150K-300K/year → **FixOps reduces by 50-70%**
+2. **Alert fatigue** costs $75K-150K/year → **FixOps reduces by 50-70%**
 3. **On-prem requirement** ($3.6B market) → **Only FixOps serves**
 4. **Exploit validation** reduces false positives → **Only FixOps validates**
 5. **Transparent decisions** enable compliance → **Only FixOps explains**
