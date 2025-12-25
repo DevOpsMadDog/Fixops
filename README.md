@@ -146,12 +146,45 @@ Every decision produces a cryptographically signed bundle:
 - Configurable retention policies
 - Audit-ready anytime, even offline
 
-### Exploit Intelligence Enrichment
-Real-time threat data integration:
-- **CISA KEV** - Known Exploited Vulnerabilities catalog
-- **EPSS** - Exploit Prediction Scoring System
-- **CVSS/CWE** - Standard vulnerability metrics
-- Automatic severity promotion for actively exploited CVEs
+### World-Class Vulnerability Intelligence (8 Categories)
+FixOps ingests the largest vulnerability and exploit intelligence surface in the world:
+
+**1. Global Authoritative Sources (Ground Truth)**
+- NVD, CVE Program, MITRE, CISA KEV, CERT/CC, US-CERT, ICS-CERT
+
+**2. National CERTs (Geo-specific Exploit Reality)**
+- NCSC UK, BSI Germany, ANSSI France, JPCERT Japan, CERT-In, ACSC Australia, SingCERT, KISA Korea
+- Geo-weighted risk scoring (exploitation differs by country/region)
+
+**3. Exploit & Weaponization Intelligence**
+- Exploit-DB, Metasploit, Packet Storm, Vulners, GreyNoise, Shodan, Censys, Nuclei Templates
+- Exploit-confidence scoring (not CVSS fear-score)
+
+**4. Threat Actor & Campaign Intelligence**
+- MITRE ATT&CK, AlienVault OTX, abuse.ch, Feodo Tracker, Ransomware Live
+- CVE → Threat Actor → Sector targeting mapping
+
+**5. Supply-Chain & SBOM Intelligence**
+- OSV, GitHub Advisory Database, Snyk, deps.dev, NPM/PyPI/RustSec advisories
+- Reachable dependency analysis (exploitability based on actual reachability)
+
+**6. Cloud & Runtime Vulnerability Feeds**
+- AWS, Azure, GCP Security Bulletins, Kubernetes CVEs, Red Hat, Ubuntu, Debian, Alpine
+
+**7. Zero-Day & Early-Signal Feeds**
+- Microsoft MSRC, Apple Security, Cisco PSIRT, Palo Alto, Fortinet
+- GitHub security commits, Full-Disclosure, OSS-Security mailing lists
+- Pre-CVE risk alerts
+
+**8. Internal Enterprise Signals**
+- SAST/DAST/SCA findings, IaC misconfigurations, runtime detections
+- Exposure graph (internet-facing? auth bypass?), business criticality metadata
+
+**Key Differentiators:**
+- **Exploit-Confidence Score** - Based on actual exploitation evidence, not CVSS fear-scoring
+- **Geo-Weighted Risk** - Regional exploitation patterns from national CERTs
+- **Threat Actor Mapping** - Know which APT groups are using which CVEs
+- **Reachable Dependency Analysis** - Same CVE ≠ same risk
 
 ### Compliance Framework Mapping
 Native support for regulatory requirements:

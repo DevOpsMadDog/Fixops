@@ -24,7 +24,8 @@
 | **Remediation Lifecycle** | **10** | **-** | **API Only** |
 | **Bulk Operations (Enhanced)** | **8** | **-** | **API Only** |
 | **Team Collaboration** | **12** | **-** | **API Only** |
-| **TOTAL** | **~280** | **67** | **~85%** |
+| **Vulnerability Intelligence Feeds** | **20** | **-** | **API Only** |
+| **TOTAL** | **~300** | **67** | **~85%** |
 
 ---
 
@@ -448,3 +449,44 @@ These API-only features are typically used by the web UI or require interactive 
 | 12 | `/api/v1/collaboration/entity-types` | GET | List valid entity types |
 
 **Features:** Append-only comments, @mention extraction, activity feeds, evidence promotion
+
+### VULNERABILITY INTELLIGENCE FEEDS (20 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/feeds/epss` | GET | Get EPSS scores for CVEs |
+| 2 | `/api/v1/feeds/epss/refresh` | POST | Refresh EPSS feed from FIRST.org |
+| 3 | `/api/v1/feeds/kev` | GET | Get CISA KEV entries |
+| 4 | `/api/v1/feeds/kev/refresh` | POST | Refresh KEV feed from CISA |
+| 5 | `/api/v1/feeds/exploits/{cve_id}` | GET | Get exploit intelligence for CVE |
+| 6 | `/api/v1/feeds/threat-actors/{cve_id}` | GET | Get threat actor mappings for CVE |
+| 7 | `/api/v1/feeds/threat-actors/by-actor/{actor}` | GET | Get CVEs used by threat actor |
+| 8 | `/api/v1/feeds/supply-chain/{package}` | GET | Get supply chain vulnerabilities |
+| 9 | `/api/v1/feeds/cloud-bulletins` | GET | Get cloud security bulletins |
+| 10 | `/api/v1/feeds/early-signals` | GET | Get zero-day early signals |
+| 11 | `/api/v1/feeds/national-certs` | GET | Get national CERT advisories |
+| 12 | `/api/v1/feeds/exploit-confidence/{cve_id}` | GET | Get exploit confidence score |
+| 13 | `/api/v1/feeds/geo-risk/{cve_id}` | GET | Get geo-weighted risk score |
+| 14 | `/api/v1/feeds/enrich` | POST | Comprehensive finding enrichment |
+| 15 | `/api/v1/feeds/stats` | GET | Get feed statistics across all categories |
+| 16 | `/api/v1/feeds/refresh/all` | POST | Refresh all feed categories |
+| 17 | `/api/v1/feeds/categories` | GET | List all feed categories |
+| 18 | `/api/v1/feeds/sources` | GET | List all feed sources |
+| 19 | `/api/v1/feeds/health` | GET | Feed health and freshness status |
+| 20 | `/api/v1/feeds/scheduler/status` | GET | Feed scheduler status |
+
+**Feed Categories (8):**
+1. **Global Authoritative** - NVD, CVE Program, MITRE, CISA KEV, CERT/CC, US-CERT, ICS-CERT
+2. **National CERTs** - NCSC UK, BSI, ANSSI, JPCERT, CERT-In, ACSC, SingCERT, KISA
+3. **Exploit Intelligence** - Exploit-DB, Metasploit, Packet Storm, Vulners, GreyNoise, Shodan, Censys
+4. **Threat Actor Intelligence** - MITRE ATT&CK, AlienVault OTX, abuse.ch, Feodo Tracker
+5. **Supply-Chain & SBOM** - OSV, GitHub Advisory, Snyk, deps.dev, NPM/PyPI/RustSec
+6. **Cloud & Runtime** - AWS, Azure, GCP Security Bulletins, Kubernetes CVEs, Red Hat, Ubuntu
+7. **Zero-Day & Early-Signal** - Vendor blogs, GitHub commits, mailing lists
+8. **Internal Enterprise** - SAST/DAST/SCA, IaC, runtime detections, exposure graph
+
+**Key Features:**
+- Geo-weighted risk scoring (exploitation differs by country/region)
+- Exploit-confidence scoring (real-world exploitation vs CVSS fear-scoring)
+- Threat actor to CVE mapping with sector targeting
+- Reachable dependency analysis

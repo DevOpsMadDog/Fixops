@@ -41,6 +41,13 @@ from apps.api.users_router import router as users_router
 from apps.api.webhooks_router import router as webhooks_router
 from apps.api.workflows_router import router as workflows_router
 
+# Enterprise feeds router - vulnerability intelligence
+feeds_router: Optional[APIRouter] = None
+try:
+    from apps.api.feeds_router import router as feeds_router
+except ImportError:
+    logging.getLogger(__name__).warning("Feeds router not available")
+
 # Legacy API bridge router - imports legacy APIs from archive/enterprise_legacy
 legacy_bridge_router: Optional[APIRouter] = None
 try:
@@ -412,11 +419,15 @@ def create_app() -> FastAPI:
     app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(ide_router, dependencies=[Depends(_verify_api_key)])
 
-    # Enterprise features - Deduplication, Remediation, Collaboration, Webhooks
+    # Enterprise features - Deduplication, Remediation, Collaboration, Webhooks, Feeds
     app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(webhooks_router)
+
+    # Enterprise vulnerability intelligence feeds
+    if feeds_router:
+        app.include_router(feeds_router, dependencies=[Depends(_verify_api_key)])
 
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
 
