@@ -1401,11 +1401,17 @@ def create_app() -> FastAPI:
             offset=0,
         )
 
+        # Batch fetch events for all clusters to avoid N+1 query pattern
+        cluster_ids = [c["cluster_id"] for c in clusters]
+        events_by_cluster = dedup_service.get_events_for_clusters(
+            cluster_ids, limit_per_cluster=100
+        )
+
         rows = []
         for cluster in clusters:
-            # Fetch events for this cluster from the deduplication service
-            events: List[Dict[str, Any]] = dedup_service.get_cluster_events(
-                cluster["cluster_id"]
+            # Get events for this cluster from the batch result
+            events: List[Dict[str, Any]] = events_by_cluster.get(
+                cluster["cluster_id"], []
             )
 
             # Compute severity (highest among events, fallback to cluster metadata)

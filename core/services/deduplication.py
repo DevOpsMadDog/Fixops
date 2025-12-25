@@ -369,6 +369,68 @@ class DeduplicationService:
         finally:
             conn.close()
 
+    def get_events_for_clusters(
+        self, cluster_ids: List[str], limit_per_cluster: int = 100
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Get events for multiple clusters in a single query.
+
+        This is more efficient than calling get_cluster_events() in a loop
+        as it uses a single database connection and query.
+
+        Args:
+            cluster_ids: List of cluster IDs to fetch events for
+            limit_per_cluster: Maximum events per cluster (applied via window function)
+
+        Returns:
+            Dict mapping cluster_id to list of events
+        """
+        if not cluster_ids:
+            return {}
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            # Use placeholders for the IN clause
+            placeholders = ",".join("?" * len(cluster_ids))
+            cursor.execute(
+                f"""
+                SELECT event_id, cluster_id, run_id, source, raw_finding, timestamp
+                FROM events
+                WHERE cluster_id IN ({placeholders})
+                ORDER BY cluster_id, timestamp DESC
+                """,
+                cluster_ids,
+            )
+            rows = cursor.fetchall()
+
+            # Group events by cluster_id
+            events_by_cluster: Dict[str, List[Dict[str, Any]]] = {
+                cid: [] for cid in cluster_ids
+            }
+            for row in rows:
+                event = dict(row)
+                cluster_id = event["cluster_id"]
+
+                # Apply per-cluster limit
+                if len(events_by_cluster[cluster_id]) >= limit_per_cluster:
+                    continue
+
+                # Parse raw_finding JSON if present
+                raw = event.get("raw_finding")
+                if raw:
+                    try:
+                        parsed = json.loads(raw)
+                        event.update(parsed)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                events_by_cluster[cluster_id].append(event)
+
+            return events_by_cluster
+        finally:
+            conn.close()
+
     def get_clusters(
         self,
         org_id: str,
