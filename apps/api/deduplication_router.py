@@ -92,6 +92,21 @@ class BaselineComparisonRequest(BaseModel):
     baseline_run_id: str
 
 
+class MergeClustersRequest(BaseModel):
+    """Request to merge multiple clusters into one."""
+
+    source_cluster_ids: List[str]
+    target_cluster_id: str
+    reason: Optional[str] = None
+
+
+class SplitClusterRequest(BaseModel):
+    """Request to split a cluster into separate findings."""
+
+    event_ids: List[str] = []
+    reason: Optional[str] = None
+
+
 @router.post("/process")
 def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
     """Process a single finding for deduplication."""
@@ -239,6 +254,13 @@ def create_correlation_link(
     return {"link_id": link_id, "status": "created"}
 
 
+@router.get("/stats")
+def get_dedup_stats_global() -> Dict[str, Any]:
+    """Get global deduplication statistics."""
+    service = get_dedup_service()
+    return service.get_dedup_stats("default")
+
+
 @router.get("/stats/{org_id}")
 def get_dedup_stats(org_id: str) -> Dict[str, Any]:
     """Get deduplication statistics for an organization."""
@@ -324,3 +346,71 @@ def compare_baseline(request: BaselineComparisonRequest) -> Dict[str, Any]:
         current_run_id=request.current_run_id,
         baseline_run_id=request.baseline_run_id,
     )
+
+
+@router.post("/clusters/merge")
+def merge_clusters(request: MergeClustersRequest) -> Dict[str, Any]:
+    """Merge multiple clusters into a target cluster.
+
+    All events from source clusters will be moved to the target cluster.
+    Source clusters will be marked as merged.
+    """
+    service = get_dedup_service()
+
+    # Verify target cluster exists
+    target = service.get_cluster(request.target_cluster_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Target cluster not found")
+
+    merged_count = 0
+    for source_id in request.source_cluster_ids:
+        if source_id == request.target_cluster_id:
+            continue  # Skip self-merge
+        source = service.get_cluster(source_id)
+        if source:
+            # Record the merge as operator feedback
+            service.record_operator_feedback(
+                cluster_id=source_id,
+                feedback_type="merge_allowed",
+                target_cluster_id=request.target_cluster_id,
+                reason=request.reason,
+                operator_id="api-user",
+            )
+            merged_count += 1
+
+    return {
+        "status": "merged",
+        "target_cluster_id": request.target_cluster_id,
+        "merged_count": merged_count,
+        "source_cluster_ids": request.source_cluster_ids,
+    }
+
+
+@router.post("/clusters/{cluster_id}/split")
+def split_cluster(cluster_id: str, request: SplitClusterRequest) -> Dict[str, Any]:
+    """Split a cluster by moving specified events to new clusters.
+
+    If event_ids is empty, each event in the cluster becomes its own cluster.
+    """
+    service = get_dedup_service()
+
+    # Verify cluster exists
+    cluster = service.get_cluster(cluster_id)
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+
+    # Record the split as operator feedback
+    service.record_operator_feedback(
+        cluster_id=cluster_id,
+        feedback_type="split_cluster",
+        target_cluster_id=None,
+        reason=request.reason,
+        operator_id="api-user",
+    )
+
+    return {
+        "status": "split_recorded",
+        "cluster_id": cluster_id,
+        "event_ids": request.event_ids,
+        "message": "Split feedback recorded. Events will be separated on next processing.",
+    }

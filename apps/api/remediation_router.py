@@ -224,3 +224,45 @@ def list_valid_statuses() -> Dict[str, Any]:
             for status, targets in VALID_TRANSITIONS.items()
         },
     }
+
+
+# CLI-compatible alias endpoints
+
+
+@router.put("/tasks/{task_id}/transition")
+def transition_task_status(
+    task_id: str, request: UpdateStatusRequest
+) -> Dict[str, Any]:
+    """Transition task status (CLI-compatible alias for /tasks/{task_id}/status)."""
+    service = get_remediation_service()
+    try:
+        return service.update_status(
+            task_id=task_id,
+            new_status=request.status,
+            changed_by=request.changed_by,
+            reason=request.reason,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/tasks/{task_id}/verify")
+def verify_task(task_id: str, request: SubmitVerificationRequest) -> Dict[str, Any]:
+    """Verify task (CLI-compatible alias for /tasks/{task_id}/verification)."""
+    service = get_remediation_service()
+    try:
+        return service.submit_verification(
+            task_id=task_id,
+            evidence_type=request.evidence_type,
+            evidence_data=request.evidence_data,
+            submitted_by=request.submitted_by,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/metrics")
+def get_global_metrics() -> Dict[str, Any]:
+    """Get global remediation metrics (CLI-compatible endpoint)."""
+    service = get_remediation_service()
+    return service.get_metrics("default", None)
