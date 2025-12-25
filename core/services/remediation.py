@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 
 class RemediationStatus(str, Enum):
@@ -780,8 +780,8 @@ class RemediationService:
             task = dict(row)
             now = datetime.utcnow().isoformat()
 
-            updates = {"updated_at": now}
-            escalation_details = {
+            updates: Dict[str, Any] = {"updated_at": now}
+            escalation_details: Dict[str, Any] = {
                 "task_id": task_id,
                 "escalation_type": escalation_type,
                 "escalated_at": now,
@@ -848,7 +848,7 @@ class RemediationService:
         self,
         org_id: str,
         auto_escalate: bool = True,
-        notify_callback: Optional[callable] = None,
+        notify_callback: Optional[Callable[..., Any]] = None,
     ) -> Dict[str, Any]:
         """Run SLA check and optionally auto-escalate breached tasks.
 
@@ -862,7 +862,7 @@ class RemediationService:
         Returns:
             Summary of SLA check results
         """
-        results = {
+        results: Dict[str, Any] = {
             "checked_at": datetime.utcnow().isoformat(),
             "org_id": org_id,
             "breaches_detected": [],
@@ -980,7 +980,7 @@ class SLAScheduler:
         self,
         remediation_service: RemediationService,
         check_interval_minutes: int = 15,
-        notify_callback: Optional[callable] = None,
+        notify_callback: Optional[Callable[..., Any]] = None,
     ):
         """Initialize SLA scheduler.
 
@@ -1018,7 +1018,7 @@ class SLAScheduler:
         Returns:
             Aggregated results
         """
-        results = {
+        results: Dict[str, Any] = {
             "checked_at": datetime.utcnow().isoformat(),
             "organizations_checked": len(org_ids),
             "total_breaches": 0,
