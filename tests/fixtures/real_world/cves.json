@@ -1,0 +1,223 @@
+[
+  {
+    "cveID": "CVE-2021-44228",
+    "shortDescription": "Apache Log4j2 JNDI features do not protect against attacker controlled LDAP and other JNDI related endpoints",
+    "severity": "critical",
+    "cvssScore": 10.0,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2021-12-10",
+    "epssScore": 0.97565,
+    "cweId": "CWE-917",
+    "cweName": "Improper Neutralization of Special Elements used in an Expression Language Statement",
+    "affectedProducts": [
+      {"vendor": "Apache", "product": "Log4j", "versions": "2.0-beta9 to 2.14.1"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Apache", "url": "https://logging.apache.org/log4j/2.x/security.html"}
+    ],
+    "publishedDate": "2021-12-10",
+    "lastModifiedDate": "2023-04-03"
+  },
+  {
+    "cveID": "CVE-2022-22965",
+    "shortDescription": "Spring Framework RCE via Data Binding on JDK 9+ (Spring4Shell)",
+    "severity": "critical",
+    "cvssScore": 9.8,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2022-04-04",
+    "epssScore": 0.97548,
+    "cweId": "CWE-94",
+    "cweName": "Improper Control of Generation of Code",
+    "affectedProducts": [
+      {"vendor": "VMware", "product": "Spring Framework", "versions": "5.3.0 to 5.3.17, 5.2.0 to 5.2.19"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-22965"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "VMware", "url": "https://tanzu.vmware.com/security/cve-2022-22965"}
+    ],
+    "publishedDate": "2022-04-01",
+    "lastModifiedDate": "2023-02-09"
+  },
+  {
+    "cveID": "CVE-2023-44487",
+    "shortDescription": "HTTP/2 Rapid Reset Attack (affects nginx, Apache, Node.js, Go, and more)",
+    "severity": "high",
+    "cvssScore": 7.5,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2023-10-10",
+    "epssScore": 0.73214,
+    "cweId": "CWE-400",
+    "cweName": "Uncontrolled Resource Consumption",
+    "affectedProducts": [
+      {"vendor": "IETF", "product": "HTTP/2", "versions": "All implementations"},
+      {"vendor": "nginx", "product": "nginx", "versions": "< 1.25.3"},
+      {"vendor": "Apache", "product": "HTTP Server", "versions": "< 2.4.58"},
+      {"vendor": "Node.js", "product": "Node.js", "versions": "< 18.18.2, < 20.8.1"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-44487"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Cloudflare", "url": "https://blog.cloudflare.com/technical-breakdown-http2-rapid-reset-ddos-attack/"}
+    ],
+    "publishedDate": "2023-10-10",
+    "lastModifiedDate": "2024-01-02"
+  },
+  {
+    "cveID": "CVE-2023-34362",
+    "shortDescription": "MOVEit Transfer SQL Injection Vulnerability",
+    "severity": "critical",
+    "cvssScore": 9.8,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2023-06-02",
+    "epssScore": 0.96234,
+    "cweId": "CWE-89",
+    "cweName": "SQL Injection",
+    "affectedProducts": [
+      {"vendor": "Progress", "product": "MOVEit Transfer", "versions": "< 2023.0.1"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-34362"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Progress", "url": "https://community.progress.com/s/article/MOVEit-Transfer-Critical-Vulnerability-31May2023"}
+    ],
+    "publishedDate": "2023-06-02",
+    "lastModifiedDate": "2023-07-26"
+  },
+  {
+    "cveID": "CVE-2024-3094",
+    "shortDescription": "XZ Utils backdoor - malicious code in liblzma affecting SSH authentication",
+    "severity": "critical",
+    "cvssScore": 10.0,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    "knownExploited": false,
+    "epssScore": 0.04521,
+    "cweId": "CWE-506",
+    "cweName": "Embedded Malicious Code",
+    "affectedProducts": [
+      {"vendor": "Tukaani", "product": "XZ Utils", "versions": "5.6.0, 5.6.1"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-3094"},
+      {"source": "CISA", "url": "https://www.cisa.gov/news-events/alerts/2024/03/29/reported-supply-chain-compromise-affecting-xz-utils-data-compression-library"},
+      {"source": "OpenSSF", "url": "https://openssf.org/blog/2024/03/30/xz-backdoor-cve-2024-3094/"}
+    ],
+    "publishedDate": "2024-03-29",
+    "lastModifiedDate": "2024-04-12"
+  },
+  {
+    "cveID": "CVE-2021-45046",
+    "shortDescription": "Apache Log4j2 Thread Context Message Pattern and Context Lookup Pattern vulnerable to RCE",
+    "severity": "critical",
+    "cvssScore": 9.0,
+    "cvssVector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2021-12-15",
+    "epssScore": 0.91234,
+    "cweId": "CWE-917",
+    "cweName": "Improper Neutralization of Special Elements used in an Expression Language Statement",
+    "affectedProducts": [
+      {"vendor": "Apache", "product": "Log4j", "versions": "2.0-beta9 to 2.15.0"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-45046"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Apache", "url": "https://logging.apache.org/log4j/2.x/security.html"}
+    ],
+    "publishedDate": "2021-12-14",
+    "lastModifiedDate": "2023-04-03"
+  },
+  {
+    "cveID": "CVE-2022-26134",
+    "shortDescription": "Atlassian Confluence Server and Data Center OGNL Injection RCE",
+    "severity": "critical",
+    "cvssScore": 9.8,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2022-06-02",
+    "epssScore": 0.97123,
+    "cweId": "CWE-917",
+    "cweName": "Improper Neutralization of Special Elements used in an Expression Language Statement",
+    "affectedProducts": [
+      {"vendor": "Atlassian", "product": "Confluence Server", "versions": "< 7.4.17, 7.13.x < 7.13.7, 7.14.x < 7.14.3, 7.15.x < 7.15.2, 7.16.x < 7.16.4, 7.17.x < 7.17.4, 7.18.x < 7.18.1"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-26134"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Atlassian", "url": "https://confluence.atlassian.com/doc/confluence-security-advisory-2022-06-02-1130377146.html"}
+    ],
+    "publishedDate": "2022-06-03",
+    "lastModifiedDate": "2022-10-06"
+  },
+  {
+    "cveID": "CVE-2023-22515",
+    "shortDescription": "Atlassian Confluence Data Center and Server Broken Access Control",
+    "severity": "critical",
+    "cvssScore": 10.0,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2023-10-05",
+    "epssScore": 0.96543,
+    "cweId": "CWE-284",
+    "cweName": "Improper Access Control",
+    "affectedProducts": [
+      {"vendor": "Atlassian", "product": "Confluence Data Center", "versions": "8.0.0 - 8.5.1"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-22515"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Atlassian", "url": "https://confluence.atlassian.com/security/cve-2023-22515-privilege-escalation-vulnerability-in-confluence-data-center-and-server-1295682276.html"}
+    ],
+    "publishedDate": "2023-10-04",
+    "lastModifiedDate": "2023-11-08"
+  },
+  {
+    "cveID": "CVE-2021-26855",
+    "shortDescription": "Microsoft Exchange Server SSRF (ProxyLogon)",
+    "severity": "critical",
+    "cvssScore": 9.8,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2021-11-03",
+    "epssScore": 0.97654,
+    "cweId": "CWE-918",
+    "cweName": "Server-Side Request Forgery (SSRF)",
+    "affectedProducts": [
+      {"vendor": "Microsoft", "product": "Exchange Server", "versions": "2013, 2016, 2019"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-26855"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"},
+      {"source": "Microsoft", "url": "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-26855"}
+    ],
+    "publishedDate": "2021-03-03",
+    "lastModifiedDate": "2023-08-08"
+  },
+  {
+    "cveID": "CVE-2019-11510",
+    "shortDescription": "Pulse Secure Pulse Connect Secure Arbitrary File Read",
+    "severity": "critical",
+    "cvssScore": 10.0,
+    "cvssVector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    "knownExploited": true,
+    "kevDateAdded": "2021-11-03",
+    "epssScore": 0.97432,
+    "cweId": "CWE-22",
+    "cweName": "Path Traversal",
+    "affectedProducts": [
+      {"vendor": "Pulse Secure", "product": "Pulse Connect Secure", "versions": "< 8.2R12.1, 8.3.x < 8.3R7.1, 9.0.x < 9.0R3.4"}
+    ],
+    "references": [
+      {"source": "NVD", "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-11510"},
+      {"source": "CISA KEV", "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"}
+    ],
+    "publishedDate": "2019-05-08",
+    "lastModifiedDate": "2023-03-24"
+  }
+]

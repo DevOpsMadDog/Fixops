@@ -8,10 +8,13 @@ path conflicts with other src directories.
 from __future__ import annotations
 
 import importlib.util
+import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import APIKeyHeader
@@ -79,15 +82,139 @@ def _load_enterprise_marketplace():
 ) = _load_enterprise_marketplace()
 
 
-def _require_enterprise_service():
-    """Helper to check if enterprise marketplace service is available."""
-    service = get_marketplace_service()
-    if service is None:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Marketplace service requires enterprise modules. The /packs endpoint is available for basic remediation packs.",
-        )
-    return service
+def _get_enterprise_service_safe():
+    """Safely get enterprise marketplace service, returning None if unavailable or misconfigured."""
+    try:
+        service = get_marketplace_service()
+        return service
+    except Exception as e:
+        # Enterprise service exists but failed to initialize (missing config, DB, etc.)
+        logger.debug("Enterprise marketplace service unavailable: %s", e)
+        return None
+
+
+# TypedDict definitions for demo data to satisfy mypy
+class _DemoMarketplaceItem(TypedDict):
+    id: str
+    name: str
+    description: str
+    content_type: str
+    compliance_frameworks: List[str]
+    ssdlc_stages: List[str]
+    pricing_model: str
+    price: float
+    tags: List[str]
+    rating: float
+    rating_count: int
+    downloads: int
+    version: str
+    qa_status: str
+    created_at: str
+    updated_at: str
+
+
+class _DemoContributor(TypedDict):
+    author: str
+    organization: str
+    contributions: int
+    total_downloads: int
+    average_rating: float
+
+
+# Demo/stub data for marketplace endpoints when enterprise service is unavailable
+_DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
+    {
+        "id": "demo-remediation-pack-1",
+        "name": "SQL Injection Remediation Pack",
+        "description": "Comprehensive remediation guidance for SQL injection vulnerabilities",
+        "content_type": "remediation_pack",
+        "compliance_frameworks": ["OWASP", "PCI-DSS", "SOC2"],
+        "ssdlc_stages": ["development", "testing"],
+        "pricing_model": "free",
+        "price": 0.0,
+        "tags": ["sql-injection", "security", "remediation"],
+        "rating": 4.5,
+        "rating_count": 128,
+        "downloads": 1542,
+        "version": "2.1.0",
+        "qa_status": "approved",
+        "created_at": "2024-01-15T10:00:00Z",
+        "updated_at": "2024-06-20T14:30:00Z",
+    },
+    {
+        "id": "demo-policy-template-1",
+        "name": "Access Control Policy Template",
+        "description": "Enterprise-ready access control policy template for ISO27001 compliance",
+        "content_type": "policy_template",
+        "compliance_frameworks": ["ISO27001", "SOC2", "HIPAA"],
+        "ssdlc_stages": ["design", "deployment"],
+        "pricing_model": "free",
+        "price": 0.0,
+        "tags": ["access-control", "policy", "compliance"],
+        "rating": 4.8,
+        "rating_count": 89,
+        "downloads": 967,
+        "version": "1.5.0",
+        "qa_status": "approved",
+        "created_at": "2024-02-10T09:00:00Z",
+        "updated_at": "2024-07-15T11:00:00Z",
+    },
+    {
+        "id": "demo-integration-1",
+        "name": "Jira Security Integration",
+        "description": "Automatically create Jira tickets for security findings",
+        "content_type": "integration",
+        "compliance_frameworks": ["SOC2"],
+        "ssdlc_stages": ["operations"],
+        "pricing_model": "free",
+        "price": 0.0,
+        "tags": ["jira", "integration", "ticketing"],
+        "rating": 4.2,
+        "rating_count": 56,
+        "downloads": 423,
+        "version": "3.0.1",
+        "qa_status": "approved",
+        "created_at": "2024-03-05T08:00:00Z",
+        "updated_at": "2024-08-01T16:00:00Z",
+    },
+]
+
+_DEMO_CONTRIBUTORS: List[_DemoContributor] = [
+    {
+        "author": "FixOps Team",
+        "organization": "FixOps",
+        "contributions": 15,
+        "total_downloads": 5420,
+        "average_rating": 4.6,
+    },
+    {
+        "author": "Security Community",
+        "organization": "Open Source",
+        "contributions": 8,
+        "total_downloads": 2130,
+        "average_rating": 4.3,
+    },
+]
+
+_DEMO_STATS = {
+    "total_items": 3,
+    "total_downloads": 2932,
+    "total_contributors": 2,
+    "average_rating": 4.5,
+    "items_by_type": {
+        "remediation_pack": 1,
+        "policy_template": 1,
+        "integration": 1,
+    },
+    "items_by_framework": {
+        "OWASP": 1,
+        "PCI-DSS": 1,
+        "SOC2": 3,
+        "ISO27001": 1,
+        "HIPAA": 1,
+    },
+    "marketplace_mode": "demo",
+}
 
 
 router = APIRouter(tags=["marketplace"])
@@ -210,13 +337,44 @@ async def browse_marketplace(
     query: Optional[str] = Query(None, description="Search query"),
 ) -> Dict[str, Any]:
     """Browse and search marketplace items with optional filters."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return demo data if enterprise service is unavailable
+    if service is None:
+        demo_items = list(_DEMO_MARKETPLACE_ITEMS)
+        # Apply basic filtering on demo data
+        if content_type:
+            demo_items = [i for i in demo_items if i["content_type"] == content_type]
+        if compliance_framework:
+            demo_items = [
+                i
+                for i in demo_items
+                if compliance_framework in i["compliance_frameworks"]
+            ]
+        if ssdlc_stage:
+            demo_items = [i for i in demo_items if ssdlc_stage in i["ssdlc_stages"]]
+        if pricing_model:
+            demo_items = [i for i in demo_items if i["pricing_model"] == pricing_model]
+        if query:
+            query_lower = query.lower()
+            demo_items = [
+                i
+                for i in demo_items
+                if query_lower in i["name"].lower()
+                or query_lower in i["description"].lower()
+            ]
+        return {
+            "items": demo_items,
+            "total": len(demo_items),
+            "marketplace_mode": "demo",
+        }
+
     ct = ContentType(content_type) if content_type else None
     pm = PricingModel(pricing_model) if pricing_model else None
     frameworks = [compliance_framework] if compliance_framework else None
     stages = [ssdlc_stage] if ssdlc_stage else None
 
-    items = await service.search_marketplace(
+    enterprise_items = await service.search_marketplace(
         content_type=ct,
         compliance_frameworks=frameworks,
         ssdlc_stages=stages,
@@ -243,9 +401,9 @@ async def browse_marketplace(
                 "created_at": item.created_at,
                 "updated_at": item.updated_at,
             }
-            for item in items
+            for item in enterprise_items
         ],
-        "total": len(items),
+        "total": len(enterprise_items),
     }
 
 
@@ -257,7 +415,27 @@ async def get_recommendations(
     ),
 ) -> Dict[str, Any]:
     """Get recommended marketplace content based on organization profile."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return demo data if enterprise service is unavailable
+    if service is None:
+        recommendations = []
+        for item in _DEMO_MARKETPLACE_ITEMS:
+            recommendations.append(
+                {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "description": item["description"],
+                    "content_type": item["content_type"],
+                    "compliance_frameworks": item["compliance_frameworks"],
+                    "pricing_model": item["pricing_model"],
+                    "price": item["price"],
+                    "rating": item["rating"],
+                    "downloads": item["downloads"],
+                }
+            )
+        return {"recommendations": recommendations, "marketplace_mode": "demo"}
+
     requirements = [r.strip() for r in compliance_requirements.split(",") if r.strip()]
     items = await service.get_recommended_content(
         organization_type=organization_type,
@@ -284,32 +462,42 @@ async def get_recommendations(
 @router.get("/items/{item_id}")
 async def get_item(item_id: str) -> Dict[str, Any]:
     """Get details of a specific marketplace item."""
-    service = _require_enterprise_service()
-    item = await service.get_item(item_id)
-    if not item:
+    service = _get_enterprise_service_safe()
+
+    # Return demo data if enterprise service is unavailable
+    if service is None:
+        for demo_item in _DEMO_MARKETPLACE_ITEMS:
+            if demo_item["id"] == item_id:
+                return {**demo_item, "marketplace_mode": "demo"}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
+        )
+
+    enterprise_item = await service.get_item(item_id)
+    if not enterprise_item:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         )
     return {
-        "id": item.id,
-        "name": item.name,
-        "description": item.description,
-        "content_type": item.content_type.value,
-        "compliance_frameworks": item.compliance_frameworks,
-        "ssdlc_stages": item.ssdlc_stages,
-        "pricing_model": item.pricing_model.value,
-        "price": item.price,
-        "tags": item.tags,
-        "metadata": item.metadata,
-        "rating": item.rating,
-        "rating_count": item.rating_count,
-        "downloads": item.downloads,
-        "version": item.version,
-        "qa_status": item.qa_status.value,
-        "qa_summary": item.qa_summary,
-        "qa_checks": item.qa_checks,
-        "created_at": item.created_at,
-        "updated_at": item.updated_at,
+        "id": enterprise_item.id,
+        "name": enterprise_item.name,
+        "description": enterprise_item.description,
+        "content_type": enterprise_item.content_type.value,
+        "compliance_frameworks": enterprise_item.compliance_frameworks,
+        "ssdlc_stages": enterprise_item.ssdlc_stages,
+        "pricing_model": enterprise_item.pricing_model.value,
+        "price": enterprise_item.price,
+        "tags": enterprise_item.tags,
+        "metadata": enterprise_item.metadata,
+        "rating": enterprise_item.rating,
+        "rating_count": enterprise_item.rating_count,
+        "downloads": enterprise_item.downloads,
+        "version": enterprise_item.version,
+        "qa_status": enterprise_item.qa_status.value,
+        "qa_summary": enterprise_item.qa_summary,
+        "qa_checks": enterprise_item.qa_checks,
+        "created_at": enterprise_item.created_at,
+        "updated_at": enterprise_item.updated_at,
     }
 
 
@@ -320,7 +508,15 @@ async def contribute_content(
     organization: str = Query(..., description="Organization name"),
 ) -> Dict[str, Any]:
     """Submit new content to the marketplace."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return 403 in demo mode - contributions require enterprise service
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Contributions are not available in demo mode. Configure enterprise marketplace service to enable contributions.",
+        )
+
     try:
         item_id = await service.contribute_content(
             content=request.model_dump(),
@@ -340,7 +536,15 @@ async def update_item(
     request: UpdateRequest,
 ) -> Dict[str, Any]:
     """Update an existing marketplace item."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return 403 in demo mode - updates require enterprise service
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Item updates are not available in demo mode. Configure enterprise marketplace service to enable updates.",
+        )
+
     try:
         patch = {k: v for k, v in request.model_dump().items() if v is not None}
         updated = await service.update_content(item_id, patch)
@@ -358,7 +562,15 @@ async def rate_item(
     reviewer: str = Query(..., description="Reviewer name"),
 ) -> Dict[str, Any]:
     """Rate a marketplace item."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return 403 in demo mode - ratings require enterprise service
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ratings are not available in demo mode. Configure enterprise marketplace service to enable ratings.",
+        )
+
     try:
         result = await service.rate_content(item_id, request.rating, reviewer)
         return result
@@ -375,7 +587,15 @@ async def purchase_item(
     purchaser: str = Query(..., description="Purchaser name"),
 ) -> Dict[str, Any]:
     """Purchase a marketplace item and get download token."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return 403 in demo mode - purchases require enterprise service
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Purchases are not available in demo mode. Configure enterprise marketplace service to enable purchases.",
+        )
+
     try:
         result = await service.purchase_content(
             item_id, purchaser, request.organization
@@ -390,7 +610,15 @@ async def purchase_item(
 @router.get("/download/{token}")
 async def download_content(token: str) -> Dict[str, Any]:
     """Download purchased content using a valid token."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return 403 in demo mode - downloads require enterprise service
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Downloads are not available in demo mode. Configure enterprise marketplace service to enable downloads.",
+        )
+
     try:
         result = await service.download_by_token(token)
         return result
@@ -406,7 +634,23 @@ async def get_contributors(
     organization: Optional[str] = Query(None, description="Filter by organization"),
 ) -> Dict[str, Any]:
     """Get contributor leaderboard and metrics."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return demo data if enterprise service is unavailable
+    if service is None:
+        contributors = _DEMO_CONTRIBUTORS
+        if author:
+            contributors = [c for c in contributors if c["author"] == author]
+        if organization:
+            contributors = [
+                c for c in contributors if c["organization"] == organization
+            ]
+        return {
+            "contributors": contributors,
+            "total": len(contributors),
+            "marketplace_mode": "demo",
+        }
+
     contributors = await service.get_contributor_metrics(author, organization)
     return {"contributors": contributors, "total": len(contributors)}
 
@@ -417,7 +661,26 @@ async def get_compliance_content(
     frameworks: str = Query(..., description="Comma-separated compliance frameworks"),
 ) -> Dict[str, Any]:
     """Get marketplace content for a specific SSDLC stage and frameworks."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return demo data if enterprise service is unavailable
+    if service is None:
+        framework_list = [f.strip() for f in frameworks.split(",") if f.strip()]
+        # Filter demo items by stage and frameworks
+        items = [
+            i
+            for i in _DEMO_MARKETPLACE_ITEMS
+            if stage in i["ssdlc_stages"]
+            and any(fw in i["compliance_frameworks"] for fw in framework_list)
+        ]
+        return {
+            "stage": stage,
+            "frameworks": framework_list,
+            "items": items,
+            "total": len(items),
+            "marketplace_mode": "demo",
+        }
+
     framework_list = [f.strip() for f in frameworks.split(",") if f.strip()]
     result = await service.get_compliance_content_for_stage(stage, framework_list)
     return result
@@ -426,7 +689,12 @@ async def get_compliance_content(
 @router.get("/stats")
 async def get_marketplace_stats() -> Dict[str, Any]:
     """Get marketplace statistics and quality summary."""
-    service = _require_enterprise_service()
+    service = _get_enterprise_service_safe()
+
+    # Return demo stats if enterprise service is unavailable
+    if service is None:
+        return _DEMO_STATS
+
     stats = await service.get_stats()
     return stats
 
