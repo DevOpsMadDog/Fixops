@@ -16,6 +16,7 @@ from core.evidence import EvidenceHub
 from core.exploit_signals import ExploitFeedRefresher, ExploitSignalEvaluator
 from core.feature_matrix import build_feature_matrix
 from core.iac import IaCPostureEvaluator
+from core.iac_db import IaCDB
 from core.modules import PipelineContext, execute_custom_modules
 from core.onboarding import OnboardingGuide
 from core.performance import PerformanceSimulator
@@ -1018,6 +1019,97 @@ class PipelineOrchestrator:
                             cnapp_findings_for_dedup, run_id, org_id, source="cnapp"
                         )
 
+                # Process Design threats through deduplication
+                # Design rows contain threat model data with components and controls
+                design_dedup_result = None
+                if rows:
+                    design_findings_for_dedup = []
+                    for row in rows:
+                        # Convert design row to finding dict
+                        component = str(row.get("component", "")).strip()
+                        subcomponent = str(row.get("subcomponent", "")).strip()
+                        control_scope = str(row.get("control_scope", "")).strip()
+                        data_class = str(row.get("data_class", "")).strip()
+                        description = str(row.get("description", "")).strip()
+
+                        # Skip rows without meaningful content
+                        if not component and not description:
+                            continue
+
+                        # Determine severity based on data classification
+                        data_class_severity = {
+                            "pii": "high",
+                            "phi": "critical",
+                            "pci": "critical",
+                            "confidential": "high",
+                            "internal": "medium",
+                            "public": "low",
+                        }
+                        severity = data_class_severity.get(data_class.lower(), "medium")
+
+                        finding_dict = {
+                            "category": "threat_model",
+                            "stage": "design",
+                            "severity": severity,
+                            "rule_id": f"TM-{control_scope}"
+                            if control_scope
+                            else "TM-GENERAL",
+                            "title": f"Design threat: {component}",
+                            "description": description
+                            or f"Threat model entry for {component}",
+                            "component": component,
+                            "subcomponent": subcomponent,
+                            "control_scope": control_scope,
+                            "data_class": data_class,
+                            "file": f"design/{component.lower().replace(' ', '_')}.csv",
+                            "raw": dict(row),
+                        }
+                        design_findings_for_dedup.append(finding_dict)
+
+                    if design_findings_for_dedup:
+                        design_dedup_result = dedup_service.process_findings_batch(
+                            design_findings_for_dedup, run_id, org_id, source="design"
+                        )
+
+                # Process Deploy/IaC findings through deduplication
+                # IaC findings represent infrastructure policy violations
+                deploy_dedup_result = None
+                try:
+                    iac_db = IaCDB()
+                    iac_findings = iac_db.list_findings(limit=1000)
+                    if iac_findings:
+                        deploy_findings_for_dedup = []
+                        for iac_finding in iac_findings:
+                            finding_dict = {
+                                "category": "iac",
+                                "stage": "deploy",
+                                "severity": iac_finding.severity.lower(),
+                                "rule_id": iac_finding.rule_id,
+                                "title": iac_finding.title,
+                                "description": iac_finding.description,
+                                "file": iac_finding.file_path,
+                                "line": iac_finding.line_number,
+                                "resource_type": iac_finding.resource_type,
+                                "resource_id": f"{iac_finding.resource_type}/{iac_finding.resource_name}",
+                                "resource_name": iac_finding.resource_name,
+                                "policy_id": iac_finding.rule_id,
+                                "provider": iac_finding.provider.value,
+                                "remediation": iac_finding.remediation,
+                                "raw": iac_finding.to_dict(),
+                            }
+                            deploy_findings_for_dedup.append(finding_dict)
+
+                        if deploy_findings_for_dedup:
+                            deploy_dedup_result = dedup_service.process_findings_batch(
+                                deploy_findings_for_dedup,
+                                run_id,
+                                org_id,
+                                source="deploy",
+                            )
+                except Exception:
+                    # IaC DB may not be initialized, skip deploy findings
+                    pass
+
                 # Calculate overall deduplication summary
                 total_findings = (
                     sarif_dedup_result["total_findings"]
@@ -1025,6 +1117,16 @@ class PipelineOrchestrator:
                     + (
                         cnapp_dedup_result["total_findings"]
                         if cnapp_dedup_result
+                        else 0
+                    )
+                    + (
+                        design_dedup_result["total_findings"]
+                        if design_dedup_result
+                        else 0
+                    )
+                    + (
+                        deploy_dedup_result["total_findings"]
+                        if deploy_dedup_result
                         else 0
                     )
                 )
@@ -1036,11 +1138,31 @@ class PipelineOrchestrator:
                         if cnapp_dedup_result
                         else set()
                     )
+                    | (
+                        set(c["cluster_id"] for c in design_dedup_result["clusters"])
+                        if design_dedup_result
+                        else set()
+                    )
+                    | (
+                        set(c["cluster_id"] for c in deploy_dedup_result["clusters"])
+                        if deploy_dedup_result
+                        else set()
+                    )
                 )
                 new_findings = (
                     sarif_dedup_result["new_clusters"]
                     + cve_dedup_result["new_clusters"]
                     + (cnapp_dedup_result["new_clusters"] if cnapp_dedup_result else 0)
+                    + (
+                        design_dedup_result["new_clusters"]
+                        if design_dedup_result
+                        else 0
+                    )
+                    + (
+                        deploy_dedup_result["new_clusters"]
+                        if deploy_dedup_result
+                        else 0
+                    )
                 )
                 existing_findings = (
                     sarif_dedup_result["existing_clusters"]
@@ -1048,6 +1170,16 @@ class PipelineOrchestrator:
                     + (
                         cnapp_dedup_result["existing_clusters"]
                         if cnapp_dedup_result
+                        else 0
+                    )
+                    + (
+                        design_dedup_result["existing_clusters"]
+                        if design_dedup_result
+                        else 0
+                    )
+                    + (
+                        deploy_dedup_result["existing_clusters"]
+                        if deploy_dedup_result
                         else 0
                     )
                 )
@@ -1085,6 +1217,20 @@ class PipelineOrchestrator:
                         "unique": cnapp_dedup_result["unique_clusters"],
                         "new": cnapp_dedup_result["new_clusters"],
                         "existing": cnapp_dedup_result["existing_clusters"],
+                    }
+                if design_dedup_result:
+                    dedup_summary["by_source"]["design"] = {
+                        "total": design_dedup_result["total_findings"],
+                        "unique": design_dedup_result["unique_clusters"],
+                        "new": design_dedup_result["new_clusters"],
+                        "existing": design_dedup_result["existing_clusters"],
+                    }
+                if deploy_dedup_result:
+                    dedup_summary["by_source"]["deploy"] = {
+                        "total": deploy_dedup_result["total_findings"],
+                        "unique": deploy_dedup_result["unique_clusters"],
+                        "new": deploy_dedup_result["new_clusters"],
+                        "existing": deploy_dedup_result["existing_clusters"],
                     }
 
                 # Enrich crosswalk with cluster information

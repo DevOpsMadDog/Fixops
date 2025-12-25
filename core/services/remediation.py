@@ -696,3 +696,384 @@ class RemediationService:
             return updated
         finally:
             conn.close()
+
+    def get_approaching_sla(
+        self, org_id: str, hours_threshold: int = 24
+    ) -> List[Dict[str, Any]]:
+        """Get tasks approaching SLA breach within threshold hours.
+
+        Args:
+            org_id: Organization ID
+            hours_threshold: Hours before SLA breach to alert (default 24)
+
+        Returns:
+            List of tasks approaching SLA breach
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            now = datetime.utcnow()
+            threshold_time = (now + timedelta(hours=hours_threshold)).isoformat()
+
+            cursor.execute(
+                """
+                SELECT * FROM remediation_tasks
+                WHERE org_id = ?
+                AND due_at > ?
+                AND due_at <= ?
+                AND status NOT IN ('resolved', 'wont_fix')
+                AND sla_breached = 0
+                ORDER BY due_at ASC
+            """,
+                (org_id, now.isoformat(), threshold_time),
+            )
+
+            tasks = []
+            for row in cursor.fetchall():
+                task = dict(row)
+                due_at = datetime.fromisoformat(task["due_at"])
+                task["hours_until_breach"] = round(
+                    (due_at - now).total_seconds() / 3600, 1
+                )
+                tasks.append(task)
+
+            return tasks
+        finally:
+            conn.close()
+
+    def escalate_task(
+        self,
+        task_id: str,
+        escalation_type: str,
+        escalated_by: Optional[str] = None,
+        reason: Optional[str] = None,
+        new_assignee: Optional[str] = None,
+        raise_priority: bool = False,
+    ) -> Dict[str, Any]:
+        """Escalate a task due to SLA breach or other reasons.
+
+        Args:
+            task_id: Task ID to escalate
+            escalation_type: Type of escalation (sla_breach, manual, auto)
+            escalated_by: User who triggered escalation
+            reason: Reason for escalation
+            new_assignee: New assignee for escalated task
+            raise_priority: Whether to raise severity by one level
+
+        Returns:
+            Escalation result
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT * FROM remediation_tasks WHERE task_id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Task {task_id} not found")
+
+            task = dict(row)
+            now = datetime.utcnow().isoformat()
+
+            updates = {"updated_at": now}
+            escalation_details = {
+                "task_id": task_id,
+                "escalation_type": escalation_type,
+                "escalated_at": now,
+                "escalated_by": escalated_by,
+                "reason": reason,
+            }
+
+            # Raise priority if requested
+            if raise_priority:
+                severity_order = ["low", "medium", "high", "critical"]
+                current_idx = severity_order.index(task["severity"])
+                if current_idx < len(severity_order) - 1:
+                    new_severity = severity_order[current_idx + 1]
+                    updates["severity"] = new_severity
+                    escalation_details["severity_raised"] = {
+                        "from": task["severity"],
+                        "to": new_severity,
+                    }
+                    # Update SLA based on new severity
+                    new_sla_hours = self.sla_policies.get(new_severity, 168)
+                    created_at = datetime.fromisoformat(task["created_at"])
+                    new_due_at = (
+                        created_at + timedelta(hours=new_sla_hours)
+                    ).isoformat()
+                    updates["sla_hours"] = new_sla_hours
+                    updates["due_at"] = new_due_at
+
+            # Reassign if new assignee provided
+            if new_assignee:
+                updates["assignee"] = new_assignee
+                escalation_details["reassigned_to"] = new_assignee
+
+            # Update task
+            if updates:
+                set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+                cursor.execute(
+                    f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",
+                    list(updates.values()) + [task_id],
+                )
+
+            # Record escalation in history
+            cursor.execute(
+                """
+                INSERT INTO task_history (
+                    task_id, old_status, new_status, changed_by, reason, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    task_id,
+                    task["status"],
+                    task["status"],
+                    escalated_by,
+                    f"Escalation ({escalation_type}): {reason or 'No reason provided'}",
+                    now,
+                ),
+            )
+
+            conn.commit()
+            return escalation_details
+        finally:
+            conn.close()
+
+    def run_sla_check_and_escalate(
+        self,
+        org_id: str,
+        auto_escalate: bool = True,
+        notify_callback: Optional[callable] = None,
+    ) -> Dict[str, Any]:
+        """Run SLA check and optionally auto-escalate breached tasks.
+
+        This is the main method to be called by the background scheduler.
+
+        Args:
+            org_id: Organization ID
+            auto_escalate: Whether to auto-escalate breached tasks
+            notify_callback: Optional callback for notifications
+
+        Returns:
+            Summary of SLA check results
+        """
+        results = {
+            "checked_at": datetime.utcnow().isoformat(),
+            "org_id": org_id,
+            "breaches_detected": [],
+            "approaching_breach": [],
+            "escalations": [],
+            "notifications_sent": [],
+        }
+
+        # Check for new SLA breaches
+        breaches = self.check_sla_breaches(org_id)
+        results["breaches_detected"] = breaches
+
+        # Auto-escalate breached tasks
+        if auto_escalate:
+            for breach in breaches:
+                try:
+                    escalation = self.escalate_task(
+                        task_id=breach["task_id"],
+                        escalation_type="sla_breach",
+                        escalated_by="system",
+                        reason=f"SLA breached: {breach['actual_hours']}h vs {breach['sla_hours']}h target",
+                        raise_priority=True,
+                    )
+                    results["escalations"].append(escalation)
+
+                    # Send notification if callback provided
+                    if notify_callback:
+                        try:
+                            notify_callback(
+                                event_type="sla_breach",
+                                task_id=breach["task_id"],
+                                details=breach,
+                            )
+                            results["notifications_sent"].append(
+                                {"task_id": breach["task_id"], "type": "sla_breach"}
+                            )
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+        # Check for tasks approaching SLA breach (24h warning)
+        approaching = self.get_approaching_sla(org_id, hours_threshold=24)
+        results["approaching_breach"] = [
+            {
+                "task_id": t["task_id"],
+                "severity": t["severity"],
+                "hours_until_breach": t["hours_until_breach"],
+            }
+            for t in approaching
+        ]
+
+        # Send warning notifications for approaching breaches
+        if notify_callback:
+            for task in approaching:
+                try:
+                    notify_callback(
+                        event_type="sla_warning",
+                        task_id=task["task_id"],
+                        details={
+                            "hours_until_breach": task["hours_until_breach"],
+                            "severity": task["severity"],
+                        },
+                    )
+                    results["notifications_sent"].append(
+                        {"task_id": task["task_id"], "type": "sla_warning"}
+                    )
+                except Exception:
+                    pass
+
+        return results
+
+    def get_escalation_history(self, task_id: str) -> List[Dict[str, Any]]:
+        """Get escalation history for a task.
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            List of escalation events
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM task_history
+                WHERE task_id = ? AND reason LIKE 'Escalation%'
+                ORDER BY timestamp DESC
+            """,
+                (task_id,),
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+
+# ============================================================================
+# SLA Background Scheduler
+# ============================================================================
+
+
+class SLAScheduler:
+    """Background scheduler for SLA monitoring and escalation.
+
+    This scheduler runs periodically to:
+    1. Check for SLA breaches
+    2. Auto-escalate breached tasks
+    3. Send notifications for approaching breaches
+    4. Generate SLA reports
+    """
+
+    def __init__(
+        self,
+        remediation_service: RemediationService,
+        check_interval_minutes: int = 15,
+        notify_callback: Optional[callable] = None,
+    ):
+        """Initialize SLA scheduler.
+
+        Args:
+            remediation_service: RemediationService instance
+            check_interval_minutes: How often to check SLAs (default 15 min)
+            notify_callback: Callback for sending notifications
+        """
+        self.remediation_service = remediation_service
+        self.check_interval_minutes = check_interval_minutes
+        self.notify_callback = notify_callback
+        self._running = False
+
+    def run_check(self, org_id: str) -> Dict[str, Any]:
+        """Run a single SLA check for an organization.
+
+        Args:
+            org_id: Organization ID to check
+
+        Returns:
+            Check results
+        """
+        return self.remediation_service.run_sla_check_and_escalate(
+            org_id=org_id,
+            auto_escalate=True,
+            notify_callback=self.notify_callback,
+        )
+
+    def run_check_all_orgs(self, org_ids: List[str]) -> Dict[str, Any]:
+        """Run SLA check for multiple organizations.
+
+        Args:
+            org_ids: List of organization IDs
+
+        Returns:
+            Aggregated results
+        """
+        results = {
+            "checked_at": datetime.utcnow().isoformat(),
+            "organizations_checked": len(org_ids),
+            "total_breaches": 0,
+            "total_escalations": 0,
+            "total_warnings": 0,
+            "by_org": {},
+        }
+
+        for org_id in org_ids:
+            try:
+                org_result = self.run_check(org_id)
+                results["by_org"][org_id] = org_result
+                results["total_breaches"] += len(
+                    org_result.get("breaches_detected", [])
+                )
+                results["total_escalations"] += len(org_result.get("escalations", []))
+                results["total_warnings"] += len(
+                    org_result.get("approaching_breach", [])
+                )
+            except Exception as e:
+                results["by_org"][org_id] = {"error": str(e)}
+
+        return results
+
+    async def start_async(self, org_ids: List[str]) -> None:
+        """Start async background scheduler.
+
+        Args:
+            org_ids: List of organization IDs to monitor
+        """
+        import asyncio
+        import logging
+
+        logger = logging.getLogger(__name__)
+        self._running = True
+        delay_seconds = self.check_interval_minutes * 60
+
+        logger.info(
+            f"Starting SLA scheduler with {self.check_interval_minutes}min interval"
+        )
+
+        while self._running:
+            try:
+                logger.info("Running scheduled SLA check")
+                results = self.run_check_all_orgs(org_ids)
+                logger.info(
+                    f"SLA check complete: {results['total_breaches']} breaches, "
+                    f"{results['total_escalations']} escalations, "
+                    f"{results['total_warnings']} warnings"
+                )
+            except Exception as e:
+                logger.error(f"SLA check failed: {e}")
+
+            await asyncio.sleep(delay_seconds)
+
+    def stop(self) -> None:
+        """Stop the background scheduler."""
+        self._running = False

@@ -1026,3 +1026,519 @@ def get_outbox_stats() -> Dict[str, Any]:
         }
     finally:
         conn.close()
+
+
+# ============================================================================
+# GitLab ALM Integration
+# ============================================================================
+
+
+class GitLabWebhookPayload(BaseModel):
+    """GitLab webhook payload for issue events."""
+
+    object_kind: str
+    event_type: Optional[str] = None
+    object_attributes: Optional[Dict[str, Any]] = None
+    project: Optional[Dict[str, Any]] = None
+    user: Optional[Dict[str, Any]] = None
+    labels: Optional[List[Dict[str, Any]]] = None
+
+
+def _map_gitlab_state_to_fixops(state: str) -> str:
+    """Map GitLab issue state to FixOps status."""
+    state_map = {
+        "opened": "open",
+        "closed": "resolved",
+        "reopened": "open",
+        "merged": "resolved",
+    }
+    return state_map.get(state.lower(), "open")
+
+
+def _map_gitlab_labels_to_status(labels: List[Dict[str, Any]]) -> Optional[str]:
+    """Extract status from GitLab labels."""
+    label_map = {
+        "in progress": "in_progress",
+        "in-progress": "in_progress",
+        "wip": "in_progress",
+        "won't fix": "accepted_risk",
+        "wontfix": "accepted_risk",
+        "false positive": "false_positive",
+        "duplicate": "false_positive",
+    }
+    for label in labels:
+        label_name = label.get("title", "").lower()
+        if label_name in label_map:
+            return label_map[label_name]
+    return None
+
+
+@router.post("/gitlab")
+async def receive_gitlab_webhook(
+    request: Request,
+    x_gitlab_token: Optional[str] = Header(None),
+    x_gitlab_event: Optional[str] = Header(None),
+) -> Dict[str, Any]:
+    """Receive webhook events from GitLab for bidirectional sync.
+
+    Supports GitLab issue events for ALM integration with vulnerability tracking.
+    """
+    body = await request.body()
+
+    try:
+        payload_dict = json.loads(body)
+        payload = GitLabWebhookPayload(**payload_dict)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
+
+    event_id = str(uuid.uuid4())
+    now = datetime.utcnow().isoformat()
+
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        object_attrs = payload.object_attributes or {}
+        issue_iid = object_attrs.get("iid")
+        project_id = payload.project.get("id") if payload.project else None
+        external_id = f"{project_id}#{issue_iid}" if project_id and issue_iid else None
+
+        cursor.execute(
+            """
+            INSERT INTO webhook_events (
+                event_id, integration_type, event_type, external_id, payload, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+            (
+                event_id,
+                "gitlab",
+                payload.object_kind,
+                external_id,
+                json.dumps(payload_dict),
+                now,
+            ),
+        )
+
+        result: Dict[str, Any] = {
+            "event_id": event_id,
+            "status": "received",
+            "event_type": payload.object_kind,
+            "gitlab_event": x_gitlab_event,
+        }
+
+        if payload.object_kind == "issue" and external_id:
+            issue_state = object_attrs.get("state")
+            issue_action = object_attrs.get("action")
+
+            cursor.execute(
+                """
+                SELECT mapping_id, cluster_id, fixops_status
+                FROM integration_mappings
+                WHERE integration_type = 'gitlab' AND external_id = ?
+            """,
+                (external_id,),
+            )
+            mapping = cursor.fetchone()
+
+            if mapping:
+                mapping_id, cluster_id, fixops_status = mapping
+
+                # Determine external status from state and labels
+                external_status = _map_gitlab_state_to_fixops(issue_state or "opened")
+                if payload.labels:
+                    label_status = _map_gitlab_labels_to_status(payload.labels)
+                    if label_status:
+                        external_status = label_status
+
+                cursor.execute(
+                    """
+                    UPDATE integration_mappings
+                    SET external_status = ?, last_synced = ?
+                    WHERE mapping_id = ?
+                """,
+                    (external_status, now, mapping_id),
+                )
+
+                drift_id = _detect_drift(mapping_id, fixops_status, external_status)
+                if drift_id:
+                    result["drift_detected"] = True
+                    result["drift_id"] = drift_id
+
+                result["mapping_updated"] = True
+                result["cluster_id"] = cluster_id
+                result["action"] = issue_action
+
+        cursor.execute(
+            "UPDATE webhook_events SET processed = TRUE, processed_at = ? WHERE event_id = ?",
+            (now, event_id),
+        )
+        conn.commit()
+
+        return result
+    except Exception as e:
+        cursor.execute(
+            "UPDATE webhook_events SET error = ? WHERE event_id = ?",
+            (str(e), event_id),
+        )
+        conn.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+# ============================================================================
+# Azure DevOps ALM Integration
+# ============================================================================
+
+
+class AzureDevOpsWebhookPayload(BaseModel):
+    """Azure DevOps webhook payload for work item events."""
+
+    subscriptionId: Optional[str] = None
+    notificationId: Optional[int] = None
+    eventType: str
+    resource: Optional[Dict[str, Any]] = None
+    resourceVersion: Optional[str] = None
+    resourceContainers: Optional[Dict[str, Any]] = None
+
+
+def _map_azure_state_to_fixops(state: str) -> str:
+    """Map Azure DevOps work item state to FixOps status."""
+    state_map = {
+        "new": "open",
+        "active": "in_progress",
+        "resolved": "resolved",
+        "closed": "resolved",
+        "removed": "false_positive",
+        "done": "resolved",
+        "to do": "open",
+        "doing": "in_progress",
+    }
+    return state_map.get(state.lower(), "open")
+
+
+@router.post("/azure-devops")
+async def receive_azure_devops_webhook(request: Request) -> Dict[str, Any]:
+    """Receive webhook events from Azure DevOps for bidirectional sync.
+
+    Supports Azure DevOps work item events for ALM integration.
+    """
+    body = await request.body()
+
+    try:
+        payload_dict = json.loads(body)
+        payload = AzureDevOpsWebhookPayload(**payload_dict)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
+
+    event_id = str(uuid.uuid4())
+    now = datetime.utcnow().isoformat()
+
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        resource = payload.resource or {}
+        work_item_id = resource.get("id")
+        project = resource.get("fields", {}).get("System.TeamProject")
+        external_id = (
+            f"{project}/{work_item_id}"
+            if project and work_item_id
+            else str(work_item_id)
+        )
+
+        cursor.execute(
+            """
+            INSERT INTO webhook_events (
+                event_id, integration_type, event_type, external_id, payload, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+            (
+                event_id,
+                "azure_devops",
+                payload.eventType,
+                external_id,
+                json.dumps(payload_dict),
+                now,
+            ),
+        )
+
+        result: Dict[str, Any] = {
+            "event_id": event_id,
+            "status": "received",
+            "event_type": payload.eventType,
+        }
+
+        if payload.eventType.startswith("workitem.") and external_id:
+            fields = resource.get("fields", {})
+            work_item_state = fields.get("System.State")
+
+            cursor.execute(
+                """
+                SELECT mapping_id, cluster_id, fixops_status
+                FROM integration_mappings
+                WHERE integration_type = 'azure_devops' AND external_id = ?
+            """,
+                (external_id,),
+            )
+            mapping = cursor.fetchone()
+
+            if mapping and work_item_state:
+                mapping_id, cluster_id, fixops_status = mapping
+                external_status = _map_azure_state_to_fixops(work_item_state)
+
+                cursor.execute(
+                    """
+                    UPDATE integration_mappings
+                    SET external_status = ?, last_synced = ?
+                    WHERE mapping_id = ?
+                """,
+                    (external_status, now, mapping_id),
+                )
+
+                drift_id = _detect_drift(mapping_id, fixops_status, external_status)
+                if drift_id:
+                    result["drift_detected"] = True
+                    result["drift_id"] = drift_id
+
+                result["mapping_updated"] = True
+                result["cluster_id"] = cluster_id
+
+        cursor.execute(
+            "UPDATE webhook_events SET processed = TRUE, processed_at = ? WHERE event_id = ?",
+            (now, event_id),
+        )
+        conn.commit()
+
+        return result
+    except Exception as e:
+        cursor.execute(
+            "UPDATE webhook_events SET error = ? WHERE event_id = ?",
+            (str(e), event_id),
+        )
+        conn.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+# ============================================================================
+# ALM Work Item Creation Endpoints
+# ============================================================================
+
+
+class CreateWorkItemRequest(BaseModel):
+    """Request to create a work item in an ALM system."""
+
+    cluster_id: str
+    integration_type: str  # gitlab, azure_devops, jira, servicenow
+    title: str
+    description: Optional[str] = None
+    severity: Optional[str] = None
+    labels: Optional[List[str]] = None
+    assignee: Optional[str] = None
+    project_id: Optional[str] = None
+    additional_fields: Optional[Dict[str, Any]] = None
+
+
+@router.post("/alm/work-items")
+def create_alm_work_item(request: CreateWorkItemRequest) -> Dict[str, Any]:
+    """Queue creation of a work item in an ALM system.
+
+    This endpoint queues the work item creation in the outbox for reliable delivery.
+    The actual creation happens asynchronously via the outbox processor.
+    """
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        # Check if mapping already exists
+        cursor.execute(
+            """
+            SELECT mapping_id, external_id
+            FROM integration_mappings
+            WHERE cluster_id = ? AND integration_type = ?
+        """,
+            (request.cluster_id, request.integration_type),
+        )
+        existing = cursor.fetchone()
+        if existing:
+            return {
+                "status": "already_exists",
+                "mapping_id": existing[0],
+                "external_id": existing[1],
+                "message": "Work item already exists for this cluster",
+            }
+
+        # Queue in outbox for async creation
+        outbox_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+
+        payload = {
+            "cluster_id": request.cluster_id,
+            "title": request.title,
+            "description": request.description,
+            "severity": request.severity,
+            "labels": request.labels,
+            "assignee": request.assignee,
+            "project_id": request.project_id,
+            "additional_fields": request.additional_fields,
+        }
+
+        cursor.execute(
+            """
+            INSERT INTO outbox (
+                outbox_id, integration_type, operation, cluster_id,
+                payload, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                outbox_id,
+                request.integration_type,
+                "create_work_item",
+                request.cluster_id,
+                json.dumps(payload),
+                "pending",
+                now,
+            ),
+        )
+        conn.commit()
+
+        return {
+            "status": "queued",
+            "outbox_id": outbox_id,
+            "cluster_id": request.cluster_id,
+            "integration_type": request.integration_type,
+            "message": "Work item creation queued for processing",
+        }
+    finally:
+        conn.close()
+
+
+class UpdateWorkItemRequest(BaseModel):
+    """Request to update a work item in an ALM system."""
+
+    status: Optional[str] = None
+    assignee: Optional[str] = None
+    labels: Optional[List[str]] = None
+    comment: Optional[str] = None
+    additional_fields: Optional[Dict[str, Any]] = None
+
+
+@router.put("/alm/work-items/{mapping_id}")
+def update_alm_work_item(
+    mapping_id: str, request: UpdateWorkItemRequest
+) -> Dict[str, Any]:
+    """Queue update of a work item in an ALM system.
+
+    This endpoint queues the work item update in the outbox for reliable delivery.
+    """
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+
+        # Get existing mapping
+        cursor.execute(
+            """
+            SELECT cluster_id, integration_type, external_id
+            FROM integration_mappings
+            WHERE mapping_id = ?
+        """,
+            (mapping_id,),
+        )
+        mapping = cursor.fetchone()
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Mapping not found")
+
+        cluster_id, integration_type, external_id = mapping
+
+        # Queue in outbox for async update
+        outbox_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+
+        payload = {
+            "mapping_id": mapping_id,
+            "external_id": external_id,
+            "status": request.status,
+            "assignee": request.assignee,
+            "labels": request.labels,
+            "comment": request.comment,
+            "additional_fields": request.additional_fields,
+        }
+
+        cursor.execute(
+            """
+            INSERT INTO outbox (
+                outbox_id, integration_type, operation, cluster_id, external_id,
+                payload, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                outbox_id,
+                integration_type,
+                "update_work_item",
+                cluster_id,
+                external_id,
+                json.dumps(payload),
+                "pending",
+                now,
+            ),
+        )
+        conn.commit()
+
+        return {
+            "status": "queued",
+            "outbox_id": outbox_id,
+            "mapping_id": mapping_id,
+            "external_id": external_id,
+            "message": "Work item update queued for processing",
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/alm/work-items")
+def list_alm_work_items(
+    cluster_id: Optional[str] = None,
+    integration_type: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> Dict[str, Any]:
+    """List ALM work items with their sync status."""
+    conn = sqlite3.connect(_get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        cursor = conn.cursor()
+
+        query = """
+            SELECT m.*,
+                   (SELECT COUNT(*) FROM sync_drift d
+                    WHERE d.mapping_id = m.mapping_id AND d.resolved = FALSE) as unresolved_drifts
+            FROM integration_mappings m
+            WHERE m.integration_type IN ('gitlab', 'azure_devops', 'jira', 'servicenow')
+        """
+        params: List[Any] = []
+
+        if cluster_id:
+            query += " AND m.cluster_id = ?"
+            params.append(cluster_id)
+        if integration_type:
+            query += " AND m.integration_type = ?"
+            params.append(integration_type)
+        if status:
+            query += " AND (m.fixops_status = ? OR m.external_status = ?)"
+            params.extend([status, status])
+
+        query += " ORDER BY m.last_synced DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(query, params)
+        work_items = [dict(row) for row in cursor.fetchall()]
+
+        return {
+            "work_items": work_items,
+            "count": len(work_items),
+        }
+    finally:
+        conn.close()
