@@ -1,7 +1,7 @@
 """Team Collaboration API endpoints - Comments, watchers, activity feeds."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -278,3 +278,162 @@ def list_entity_types() -> Dict[str, Any]:
 def list_activity_types() -> Dict[str, Any]:
     """List all valid activity types."""
     return {"activity_types": [t.value for t in ActivityType]}
+
+
+class QueueNotificationRequest(BaseModel):
+    """Request to queue a notification."""
+
+    entity_type: str
+    entity_id: str
+    notification_type: str
+    title: str
+    message: str
+    recipients: List[str]
+    priority: str = "normal"
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class NotifyWatchersRequest(BaseModel):
+    """Request to notify all watchers of an entity."""
+
+    entity_type: str
+    entity_id: str
+    notification_type: str
+    title: str
+    message: str
+    priority: str = "normal"
+    metadata: Optional[Dict[str, Any]] = None
+    exclude_users: Optional[List[str]] = None
+
+
+class UpdateNotificationPreferencesRequest(BaseModel):
+    """Request to update notification preferences."""
+
+    email_enabled: Optional[bool] = None
+    slack_enabled: Optional[bool] = None
+    in_app_enabled: Optional[bool] = None
+    digest_frequency: Optional[str] = None
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
+    notification_types: Optional[List[str]] = None
+
+
+@router.post("/notifications/queue")
+def queue_notification(request: QueueNotificationRequest) -> Dict[str, Any]:
+    """Queue a notification for delivery.
+
+    Notification types:
+    - new_critical_finding: New critical/high severity finding
+    - status_change: Finding/task status changed
+    - comment_mention: User was mentioned in a comment
+    - sla_breach: SLA deadline approaching or breached
+    - assignment: Task/finding assigned to user
+
+    Priority levels: low, normal, high, urgent
+    """
+    valid_priorities = ["low", "normal", "high", "urgent"]
+    if request.priority not in valid_priorities:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid priority. Must be one of: {valid_priorities}",
+        )
+
+    service = get_collab_service()
+    notification_id = service.queue_notification(
+        entity_type=request.entity_type,
+        entity_id=request.entity_id,
+        notification_type=request.notification_type,
+        title=request.title,
+        message=request.message,
+        recipients=request.recipients,
+        priority=request.priority,
+        metadata=request.metadata,
+    )
+    return {
+        "notification_id": notification_id,
+        "status": "queued",
+        "recipients_count": len(request.recipients),
+    }
+
+
+@router.post("/notifications/notify-watchers")
+def notify_watchers(request: NotifyWatchersRequest) -> Dict[str, Any]:
+    """Notify all watchers of an entity.
+
+    This is a convenience endpoint that:
+    1. Gets all watchers for the entity
+    2. Queues notifications for each watcher
+    3. Returns summary of notifications queued
+    """
+    service = get_collab_service()
+    return service.notify_watchers(
+        entity_type=request.entity_type,
+        entity_id=request.entity_id,
+        notification_type=request.notification_type,
+        title=request.title,
+        message=request.message,
+        priority=request.priority,
+        metadata=request.metadata,
+        exclude_users=request.exclude_users,
+    )
+
+
+@router.get("/notifications/pending")
+def get_pending_notifications(
+    limit: int = Query(default=100, le=500)
+) -> Dict[str, Any]:
+    """Get pending notifications for delivery."""
+    service = get_collab_service()
+    notifications = service.get_pending_notifications(limit)
+    return {
+        "notifications": notifications,
+        "count": len(notifications),
+    }
+
+
+@router.put("/notifications/{notification_id}/sent")
+def mark_notification_sent(
+    notification_id: str, error: Optional[str] = None
+) -> Dict[str, Any]:
+    """Mark a notification as sent or failed."""
+    service = get_collab_service()
+    success = service.mark_notification_sent(notification_id, error)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    status = "failed" if error else "sent"
+    return {"notification_id": notification_id, "status": status}
+
+
+@router.get("/notifications/preferences/{user_id}")
+def get_notification_preferences(user_id: str) -> Dict[str, Any]:
+    """Get notification preferences for a user."""
+    service = get_collab_service()
+    return service.get_user_notification_preferences(user_id)
+
+
+@router.put("/notifications/preferences/{user_id}")
+def update_notification_preferences(
+    user_id: str, request: UpdateNotificationPreferencesRequest
+) -> Dict[str, Any]:
+    """Update notification preferences for a user.
+
+    Digest frequency options: immediate, hourly, daily, weekly
+    """
+    valid_frequencies = ["immediate", "hourly", "daily", "weekly"]
+    if request.digest_frequency and request.digest_frequency not in valid_frequencies:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid digest_frequency. Must be one of: {valid_frequencies}",
+        )
+
+    service = get_collab_service()
+    return service.update_notification_preferences(
+        user_id=user_id,
+        email_enabled=request.email_enabled,
+        slack_enabled=request.slack_enabled,
+        in_app_enabled=request.in_app_enabled,
+        digest_frequency=request.digest_frequency,
+        quiet_hours_start=request.quiet_hours_start,
+        quiet_hours_end=request.quiet_hours_end,
+        notification_types=request.notification_types,
+    )

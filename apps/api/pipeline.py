@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
@@ -21,6 +22,8 @@ from core.performance import PerformanceSimulator
 from core.policy import PolicyAutomation
 from core.probabilistic import ProbabilisticForecastEngine
 from core.processing_layer import ProcessingLayer
+from core.services.deduplication import DeduplicationService
+from core.services.identity import IdentityResolver
 from core.severity_promotion import SeverityPromotionEngine
 from core.ssdlc import SSDLCEvaluator
 from core.tenancy import TenantLifecycleManager
@@ -172,6 +175,17 @@ class PipelineOrchestrator:
         self._vector_matcher: Optional[SecurityPatternMatcher] = None
         self._vector_signature: Optional[str] = None
         self._repo_root = Path(__file__).resolve().parents[2]
+        self._identity_resolver = IdentityResolver()
+        self._dedup_service: Optional[DeduplicationService] = None
+        self._dedup_db_path = self._repo_root / "data" / "deduplication" / "clusters.db"
+
+    def _ensure_dedup_service(self) -> DeduplicationService:
+        """Lazily initialize deduplication service."""
+        if self._dedup_service is None:
+            self._dedup_service = DeduplicationService(
+                self._dedup_db_path, self._identity_resolver
+            )
+        return self._dedup_service
 
     @staticmethod
     def _determine_highest_severity(counts: Mapping[str, int]) -> str:
@@ -950,6 +964,213 @@ class PipelineOrchestrator:
             analytics_summary: Optional[Dict[str, Any]] = None
             tenant_overview: Optional[Dict[str, Any]] = None
             performance_profile: Optional[Dict[str, Any]] = None
+
+            # Deduplication & Correlation Engine - wire identity into pipeline
+            if overlay.is_module_enabled("correlation_engine"):
+                run_id = str(uuid.uuid4())
+                org_id = (
+                    overlay.metadata.get("org_id", "default")
+                    if overlay.metadata
+                    else "default"
+                )
+                dedup_service = self._ensure_dedup_service()
+
+                # Process SARIF findings through deduplication
+                sarif_findings_for_dedup = []
+                for finding in sarif.findings:
+                    finding_dict = finding.to_dict()
+                    finding_dict["category"] = "sast"
+                    finding_dict["stage"] = "build"
+                    finding_dict["severity"] = self._normalise_sarif_severity(
+                        finding.level
+                    )
+                    sarif_findings_for_dedup.append(finding_dict)
+
+                sarif_dedup_result = dedup_service.process_findings_batch(
+                    sarif_findings_for_dedup, run_id, org_id, source="sarif"
+                )
+
+                # Process CVE findings through deduplication
+                cve_findings_for_dedup = []
+                for record in cve.records:
+                    finding_dict = record.to_dict()
+                    finding_dict["category"] = "sca"
+                    finding_dict["stage"] = "build"
+                    finding_dict["severity"] = self._normalise_cve_severity(record)
+                    cve_findings_for_dedup.append(finding_dict)
+
+                cve_dedup_result = dedup_service.process_findings_batch(
+                    cve_findings_for_dedup, run_id, org_id, source="cve"
+                )
+
+                # Process CNAPP findings if present
+                cnapp_dedup_result = None
+                if cnapp is not None:
+                    cnapp_findings_for_dedup = []
+                    for finding in cnapp.findings:
+                        finding_dict = finding.to_dict()
+                        finding_dict["category"] = "cnapp"
+                        finding_dict["stage"] = "runtime"
+                        cnapp_findings_for_dedup.append(finding_dict)
+
+                    if cnapp_findings_for_dedup:
+                        cnapp_dedup_result = dedup_service.process_findings_batch(
+                            cnapp_findings_for_dedup, run_id, org_id, source="cnapp"
+                        )
+
+                # Calculate overall deduplication summary
+                total_findings = (
+                    sarif_dedup_result["total_findings"]
+                    + cve_dedup_result["total_findings"]
+                    + (
+                        cnapp_dedup_result["total_findings"]
+                        if cnapp_dedup_result
+                        else 0
+                    )
+                )
+                unique_clusters = len(
+                    set(c["cluster_id"] for c in sarif_dedup_result["clusters"])
+                    | set(c["cluster_id"] for c in cve_dedup_result["clusters"])
+                    | (
+                        set(c["cluster_id"] for c in cnapp_dedup_result["clusters"])
+                        if cnapp_dedup_result
+                        else set()
+                    )
+                )
+                new_findings = (
+                    sarif_dedup_result["new_clusters"]
+                    + cve_dedup_result["new_clusters"]
+                    + (cnapp_dedup_result["new_clusters"] if cnapp_dedup_result else 0)
+                )
+                existing_findings = (
+                    sarif_dedup_result["existing_clusters"]
+                    + cve_dedup_result["existing_clusters"]
+                    + (
+                        cnapp_dedup_result["existing_clusters"]
+                        if cnapp_dedup_result
+                        else 0
+                    )
+                )
+
+                dedup_summary = {
+                    "run_id": run_id,
+                    "total_findings": total_findings,
+                    "unique_clusters": unique_clusters,
+                    "duplicates_merged": total_findings - unique_clusters,
+                    "noise_reduction_percent": round(
+                        (1 - unique_clusters / total_findings) * 100, 1
+                    )
+                    if total_findings > 0
+                    else 0,
+                    "new_findings": new_findings,
+                    "existing_findings": existing_findings,
+                    "by_source": {
+                        "sarif": {
+                            "total": sarif_dedup_result["total_findings"],
+                            "unique": sarif_dedup_result["unique_clusters"],
+                            "new": sarif_dedup_result["new_clusters"],
+                            "existing": sarif_dedup_result["existing_clusters"],
+                        },
+                        "cve": {
+                            "total": cve_dedup_result["total_findings"],
+                            "unique": cve_dedup_result["unique_clusters"],
+                            "new": cve_dedup_result["new_clusters"],
+                            "existing": cve_dedup_result["existing_clusters"],
+                        },
+                    },
+                }
+                if cnapp_dedup_result:
+                    dedup_summary["by_source"]["cnapp"] = {
+                        "total": cnapp_dedup_result["total_findings"],
+                        "unique": cnapp_dedup_result["unique_clusters"],
+                        "new": cnapp_dedup_result["new_clusters"],
+                        "existing": cnapp_dedup_result["existing_clusters"],
+                    }
+
+                # Enrich crosswalk with cluster information
+                sarif_cluster_map = {
+                    c["correlation_key"]: c for c in sarif_dedup_result["clusters"]
+                }
+                cve_cluster_map = {
+                    c["correlation_key"]: c for c in cve_dedup_result["clusters"]
+                }
+
+                enriched_crosswalk = []
+                for entry in crosswalk:
+                    enriched_entry = dict(entry)
+                    # Add cluster info to findings
+                    if "findings" in enriched_entry:
+                        enriched_findings = []
+                        for finding in enriched_entry["findings"]:
+                            enriched_finding = (
+                                dict(finding) if isinstance(finding, dict) else finding
+                            )
+                            if isinstance(enriched_finding, dict):
+                                # Compute correlation key for this finding
+                                finding_for_key = dict(enriched_finding)
+                                finding_for_key["category"] = "sast"
+                                corr_key = (
+                                    self._identity_resolver.compute_correlation_key(
+                                        finding_for_key
+                                    )
+                                )
+                                if corr_key in sarif_cluster_map:
+                                    cluster_info = sarif_cluster_map[corr_key]
+                                    enriched_finding["cluster_id"] = cluster_info[
+                                        "cluster_id"
+                                    ]
+                                    enriched_finding["correlation_key"] = corr_key
+                                    enriched_finding["fingerprint"] = cluster_info[
+                                        "fingerprint"
+                                    ]
+                                    enriched_finding["is_new"] = cluster_info["is_new"]
+                                    enriched_finding["occurrence_count"] = cluster_info[
+                                        "occurrence_count"
+                                    ]
+                                    enriched_finding["status"] = cluster_info["status"]
+                            enriched_findings.append(enriched_finding)
+                        enriched_entry["findings"] = enriched_findings
+                    # Add cluster info to CVEs
+                    if "cves" in enriched_entry:
+                        enriched_cves = []
+                        for cve_entry in enriched_entry["cves"]:
+                            enriched_cve = (
+                                dict(cve_entry)
+                                if isinstance(cve_entry, dict)
+                                else cve_entry
+                            )
+                            if isinstance(enriched_cve, dict):
+                                cve_for_key = dict(enriched_cve)
+                                cve_for_key["category"] = "sca"
+                                corr_key = (
+                                    self._identity_resolver.compute_correlation_key(
+                                        cve_for_key
+                                    )
+                                )
+                                if corr_key in cve_cluster_map:
+                                    cluster_info = cve_cluster_map[corr_key]
+                                    enriched_cve["cluster_id"] = cluster_info[
+                                        "cluster_id"
+                                    ]
+                                    enriched_cve["correlation_key"] = corr_key
+                                    enriched_cve["fingerprint"] = cluster_info[
+                                        "fingerprint"
+                                    ]
+                                    enriched_cve["is_new"] = cluster_info["is_new"]
+                                    enriched_cve["occurrence_count"] = cluster_info[
+                                        "occurrence_count"
+                                    ]
+                                    enriched_cve["status"] = cluster_info["status"]
+                            enriched_cves.append(enriched_cve)
+                        enriched_entry["cves"] = enriched_cves
+                    enriched_crosswalk.append(enriched_entry)
+
+                result["crosswalk"] = enriched_crosswalk
+                result["dedup_summary"] = dedup_summary
+                modules_status["correlation_engine"] = "executed"
+                executed_modules.append("correlation_engine")
+            else:
+                modules_status["correlation_engine"] = "disabled"
 
             if overlay.is_module_enabled("exploit_signals"):
                 exploit_evaluator = ExploitSignalEvaluator(overlay.exploit_settings)

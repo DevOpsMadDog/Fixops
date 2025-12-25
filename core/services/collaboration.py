@@ -495,3 +495,341 @@ class CollaborationService:
         pattern = r"@(\w+)"
         matches = re.findall(pattern, content)
         return list(set(matches))
+
+    def queue_notification(
+        self,
+        entity_type: str,
+        entity_id: str,
+        notification_type: str,
+        title: str,
+        message: str,
+        recipients: List[str],
+        priority: str = "normal",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Queue a notification for delivery to watchers.
+
+        Notification types:
+        - new_critical_finding: New critical/high severity finding
+        - status_change: Finding/task status changed
+        - comment_mention: User was mentioned in a comment
+        - sla_breach: SLA deadline approaching or breached
+        - assignment: Task/finding assigned to user
+
+        Priority levels: low, normal, high, urgent
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notification_queue (
+                    notification_id TEXT PRIMARY KEY,
+                    entity_type TEXT NOT NULL,
+                    entity_id TEXT NOT NULL,
+                    notification_type TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    priority TEXT DEFAULT 'normal',
+                    recipients TEXT NOT NULL,
+                    metadata TEXT,
+                    status TEXT DEFAULT 'pending',
+                    created_at TEXT NOT NULL,
+                    sent_at TEXT,
+                    error TEXT
+                )
+            """
+            )
+
+            notification_id = str(uuid.uuid4())
+            now = datetime.utcnow().isoformat()
+
+            cursor.execute(
+                """
+                INSERT INTO notification_queue (
+                    notification_id, entity_type, entity_id, notification_type,
+                    title, message, priority, recipients, metadata, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    notification_id,
+                    entity_type,
+                    entity_id,
+                    notification_type,
+                    title,
+                    message,
+                    priority,
+                    json.dumps(recipients),
+                    json.dumps(metadata) if metadata else None,
+                    now,
+                ),
+            )
+
+            conn.commit()
+            return notification_id
+        finally:
+            conn.close()
+
+    def get_pending_notifications(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get pending notifications for delivery."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT * FROM notification_queue
+                WHERE status = 'pending'
+                ORDER BY
+                    CASE priority
+                        WHEN 'urgent' THEN 1
+                        WHEN 'high' THEN 2
+                        WHEN 'normal' THEN 3
+                        WHEN 'low' THEN 4
+                    END,
+                    created_at ASC
+                LIMIT ?
+            """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+            notifications = []
+            for row in rows:
+                notification = dict(row)
+                notification["recipients"] = json.loads(notification["recipients"])
+                if notification["metadata"]:
+                    notification["metadata"] = json.loads(notification["metadata"])
+                notifications.append(notification)
+            return notifications
+        finally:
+            conn.close()
+
+    def mark_notification_sent(
+        self, notification_id: str, error: Optional[str] = None
+    ) -> bool:
+        """Mark a notification as sent or failed."""
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            now = datetime.utcnow().isoformat()
+
+            if error:
+                cursor.execute(
+                    """
+                    UPDATE notification_queue
+                    SET status = 'failed', error = ?
+                    WHERE notification_id = ?
+                """,
+                    (error, notification_id),
+                )
+            else:
+                cursor.execute(
+                    """
+                    UPDATE notification_queue
+                    SET status = 'sent', sent_at = ?
+                    WHERE notification_id = ?
+                """,
+                    (now, notification_id),
+                )
+
+            updated = cursor.rowcount > 0
+            conn.commit()
+            return updated
+        finally:
+            conn.close()
+
+    def notify_watchers(
+        self,
+        entity_type: str,
+        entity_id: str,
+        notification_type: str,
+        title: str,
+        message: str,
+        priority: str = "normal",
+        metadata: Optional[Dict[str, Any]] = None,
+        exclude_users: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Notify all watchers of an entity.
+
+        This is a convenience method that:
+        1. Gets all watchers for the entity
+        2. Queues notifications for each watcher
+        3. Returns summary of notifications queued
+        """
+        watchers = self.get_watchers(entity_type, entity_id)
+        recipients = [w["user_id"] for w in watchers]
+
+        if exclude_users:
+            recipients = [r for r in recipients if r not in exclude_users]
+
+        if not recipients:
+            return {
+                "notification_id": None,
+                "recipients_count": 0,
+                "message": "No watchers to notify",
+            }
+
+        notification_id = self.queue_notification(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            recipients=recipients,
+            priority=priority,
+            metadata=metadata,
+        )
+
+        return {
+            "notification_id": notification_id,
+            "recipients_count": len(recipients),
+            "recipients": recipients,
+        }
+
+    def get_user_notification_preferences(self, user_id: str) -> Dict[str, Any]:
+        """Get notification preferences for a user."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notification_preferences (
+                    user_id TEXT PRIMARY KEY,
+                    email_enabled INTEGER DEFAULT 1,
+                    slack_enabled INTEGER DEFAULT 1,
+                    in_app_enabled INTEGER DEFAULT 1,
+                    digest_frequency TEXT DEFAULT 'immediate',
+                    quiet_hours_start TEXT,
+                    quiet_hours_end TEXT,
+                    notification_types TEXT,
+                    updated_at TEXT
+                )
+            """
+            )
+
+            cursor.execute(
+                "SELECT * FROM notification_preferences WHERE user_id = ?",
+                (user_id,),
+            )
+            row = cursor.fetchone()
+
+            if row:
+                prefs = dict(row)
+                if prefs.get("notification_types"):
+                    prefs["notification_types"] = json.loads(
+                        prefs["notification_types"]
+                    )
+                return prefs
+
+            return {
+                "user_id": user_id,
+                "email_enabled": True,
+                "slack_enabled": True,
+                "in_app_enabled": True,
+                "digest_frequency": "immediate",
+                "quiet_hours_start": None,
+                "quiet_hours_end": None,
+                "notification_types": None,
+            }
+        finally:
+            conn.close()
+
+    def update_notification_preferences(
+        self,
+        user_id: str,
+        email_enabled: Optional[bool] = None,
+        slack_enabled: Optional[bool] = None,
+        in_app_enabled: Optional[bool] = None,
+        digest_frequency: Optional[str] = None,
+        quiet_hours_start: Optional[str] = None,
+        quiet_hours_end: Optional[str] = None,
+        notification_types: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Update notification preferences for a user."""
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notification_preferences (
+                    user_id TEXT PRIMARY KEY,
+                    email_enabled INTEGER DEFAULT 1,
+                    slack_enabled INTEGER DEFAULT 1,
+                    in_app_enabled INTEGER DEFAULT 1,
+                    digest_frequency TEXT DEFAULT 'immediate',
+                    quiet_hours_start TEXT,
+                    quiet_hours_end TEXT,
+                    notification_types TEXT,
+                    updated_at TEXT
+                )
+            """
+            )
+
+            current = self.get_user_notification_preferences(user_id)
+            now = datetime.utcnow().isoformat()
+
+            new_prefs = {
+                "email_enabled": email_enabled
+                if email_enabled is not None
+                else current["email_enabled"],
+                "slack_enabled": slack_enabled
+                if slack_enabled is not None
+                else current["slack_enabled"],
+                "in_app_enabled": in_app_enabled
+                if in_app_enabled is not None
+                else current["in_app_enabled"],
+                "digest_frequency": digest_frequency or current["digest_frequency"],
+                "quiet_hours_start": quiet_hours_start
+                if quiet_hours_start is not None
+                else current["quiet_hours_start"],
+                "quiet_hours_end": quiet_hours_end
+                if quiet_hours_end is not None
+                else current["quiet_hours_end"],
+                "notification_types": json.dumps(notification_types)
+                if notification_types
+                else (
+                    json.dumps(current["notification_types"])
+                    if current["notification_types"]
+                    else None
+                ),
+            }
+
+            cursor.execute(
+                """
+                INSERT INTO notification_preferences (
+                    user_id, email_enabled, slack_enabled, in_app_enabled,
+                    digest_frequency, quiet_hours_start, quiet_hours_end,
+                    notification_types, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    email_enabled = excluded.email_enabled,
+                    slack_enabled = excluded.slack_enabled,
+                    in_app_enabled = excluded.in_app_enabled,
+                    digest_frequency = excluded.digest_frequency,
+                    quiet_hours_start = excluded.quiet_hours_start,
+                    quiet_hours_end = excluded.quiet_hours_end,
+                    notification_types = excluded.notification_types,
+                    updated_at = excluded.updated_at
+            """,
+                (
+                    user_id,
+                    1 if new_prefs["email_enabled"] else 0,
+                    1 if new_prefs["slack_enabled"] else 0,
+                    1 if new_prefs["in_app_enabled"] else 0,
+                    new_prefs["digest_frequency"],
+                    new_prefs["quiet_hours_start"],
+                    new_prefs["quiet_hours_end"],
+                    new_prefs["notification_types"],
+                    now,
+                ),
+            )
+
+            conn.commit()
+            return self.get_user_notification_preferences(user_id)
+        finally:
+            conn.close()

@@ -72,6 +72,26 @@ class CreateCorrelationLinkRequest(BaseModel):
     reason: Optional[str] = None
 
 
+class OperatorFeedbackRequest(BaseModel):
+    """Request to record operator feedback for correlation corrections."""
+
+    cluster_id: str
+    feedback_type: str = Field(
+        description="merge_allowed, merge_blocked, or split_cluster"
+    )
+    target_cluster_id: Optional[str] = None
+    reason: Optional[str] = None
+    operator_id: Optional[str] = None
+
+
+class BaselineComparisonRequest(BaseModel):
+    """Request to compare current run against baseline."""
+
+    org_id: str
+    current_run_id: str
+    baseline_run_id: str
+
+
 @router.post("/process")
 def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
     """Process a single finding for deduplication."""
@@ -224,3 +244,83 @@ def get_dedup_stats(org_id: str) -> Dict[str, Any]:
     """Get deduplication statistics for an organization."""
     service = get_dedup_service()
     return service.get_dedup_stats(org_id)
+
+
+@router.post("/correlate/cross-stage")
+def correlate_cross_stage(
+    org_id: str, min_confidence: float = Query(default=0.7, ge=0.0, le=1.0)
+) -> Dict[str, Any]:
+    """Find and create cross-stage correlation links.
+
+    Cross-stage anchors:
+    - CVE+purl: Same vulnerability in same package across stages
+    - rule_id+file_path: Same rule violation in same file across stages
+    - resource_id+policy_id: Same policy violation on same resource
+    """
+    service = get_dedup_service()
+    return service.correlate_cross_stage(org_id, min_confidence)
+
+
+@router.get("/graph")
+def get_correlation_graph(
+    org_id: str, cluster_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Get the correlation graph for visualization.
+
+    Returns nodes (clusters) and edges (correlation links) in a format
+    suitable for graph visualization.
+    """
+    service = get_dedup_service()
+    return service.get_correlation_graph(org_id, cluster_id)
+
+
+@router.post("/feedback")
+def record_operator_feedback(request: OperatorFeedbackRequest) -> Dict[str, Any]:
+    """Record operator feedback for correlation corrections.
+
+    Feedback types:
+    - merge_allowed: Confirm two clusters should be merged
+    - merge_blocked: Block automatic merge of two clusters
+    - split_cluster: Split a cluster into separate findings
+    """
+    valid_types = ["merge_allowed", "merge_blocked", "split_cluster"]
+    if request.feedback_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid feedback_type. Must be one of: {valid_types}",
+        )
+
+    if (
+        request.feedback_type in ["merge_allowed", "merge_blocked"]
+        and not request.target_cluster_id
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="target_cluster_id is required for merge_allowed and merge_blocked feedback",
+        )
+
+    service = get_dedup_service()
+    return service.record_operator_feedback(
+        cluster_id=request.cluster_id,
+        feedback_type=request.feedback_type,
+        target_cluster_id=request.target_cluster_id,
+        reason=request.reason,
+        operator_id=request.operator_id,
+    )
+
+
+@router.post("/baseline/compare")
+def compare_baseline(request: BaselineComparisonRequest) -> Dict[str, Any]:
+    """Compare current run against a baseline to identify NEW/EXISTING/FIXED.
+
+    Returns findings categorized as:
+    - NEW: Present in current run but not in baseline
+    - EXISTING: Present in both runs
+    - FIXED: Present in baseline but not in current run
+    """
+    service = get_dedup_service()
+    return service.get_baseline_comparison(
+        org_id=request.org_id,
+        current_run_id=request.current_run_id,
+        baseline_run_id=request.baseline_run_id,
+    )

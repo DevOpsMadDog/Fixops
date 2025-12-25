@@ -567,3 +567,459 @@ class DeduplicationService:
             }
         finally:
             conn.close()
+
+    def correlate_cross_stage(
+        self, org_id: str, min_confidence: float = 0.7
+    ) -> Dict[str, Any]:
+        """Find and create cross-stage correlation links.
+
+        Cross-stage anchors:
+        - CVE+purl: Same vulnerability in same package across stages
+        - rule_id+file_path: Same rule violation in same file across stages
+        - resource_id+policy_id: Same policy violation on same resource
+
+        Returns:
+            Dict with correlation statistics and new links created
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            # Get all clusters for the org with stage info from metadata
+            cursor.execute(
+                "SELECT * FROM clusters WHERE org_id = ?",
+                (org_id,),
+            )
+            clusters = [dict(row) for row in cursor.fetchall()]
+
+            # Parse metadata to extract stage info
+            for cluster in clusters:
+                metadata = json.loads(cluster.get("metadata") or "{}")
+                cluster["stage"] = metadata.get("stage", "unknown")
+                cluster["purl"] = metadata.get("purl")
+                cluster["resource_id"] = metadata.get("resource_id")
+                cluster["policy_id"] = metadata.get("policy_id")
+                cluster["file_path"] = metadata.get("file_path") or metadata.get("file")
+
+            # Group by stage
+            stages = ["design", "build", "deploy", "runtime"]
+            by_stage: Dict[str, List[Dict[str, Any]]] = {s: [] for s in stages}
+            for cluster in clusters:
+                stage = cluster.get("stage", "unknown")
+                if stage in by_stage:
+                    by_stage[stage].append(cluster)
+
+            links_created = []
+            correlation_stats = {
+                "cve_purl_matches": 0,
+                "rule_file_matches": 0,
+                "resource_policy_matches": 0,
+            }
+
+            # Find cross-stage correlations
+            for i, stage1 in enumerate(stages):
+                for stage2 in stages[i + 1 :]:
+                    for c1 in by_stage[stage1]:
+                        for c2 in by_stage[stage2]:
+                            if c1["cluster_id"] == c2["cluster_id"]:
+                                continue
+
+                            link_type = None
+                            confidence = 0.0
+                            reason = None
+
+                            # CVE + purl anchor
+                            if (
+                                c1.get("cve_id")
+                                and c1.get("cve_id") == c2.get("cve_id")
+                                and c1.get("purl")
+                                and c1.get("purl") == c2.get("purl")
+                            ):
+                                link_type = "cve_purl_anchor"
+                                confidence = 0.95
+                                reason = f"Same CVE ({c1['cve_id']}) in same package across {stage1}->{stage2}"
+                                correlation_stats["cve_purl_matches"] += 1
+
+                            # rule_id + file_path anchor
+                            elif (
+                                c1.get("rule_id")
+                                and c1.get("rule_id") == c2.get("rule_id")
+                                and c1.get("file_path")
+                                and c1.get("file_path") == c2.get("file_path")
+                            ):
+                                link_type = "rule_file_anchor"
+                                confidence = 0.85
+                                reason = f"Same rule ({c1['rule_id']}) in same file across {stage1}->{stage2}"
+                                correlation_stats["rule_file_matches"] += 1
+
+                            # resource_id + policy_id anchor
+                            elif (
+                                c1.get("resource_id")
+                                and c1.get("resource_id") == c2.get("resource_id")
+                                and c1.get("policy_id")
+                                and c1.get("policy_id") == c2.get("policy_id")
+                            ):
+                                link_type = "resource_policy_anchor"
+                                confidence = 0.90
+                                reason = f"Same policy violation on same resource across {stage1}->{stage2}"
+                                correlation_stats["resource_policy_matches"] += 1
+
+                            if link_type and confidence >= min_confidence:
+                                # Check if link already exists
+                                cursor.execute(
+                                    """
+                                    SELECT link_id FROM correlation_links
+                                    WHERE (source_cluster_id = ? AND target_cluster_id = ?)
+                                    OR (source_cluster_id = ? AND target_cluster_id = ?)
+                                """,
+                                    (
+                                        c1["cluster_id"],
+                                        c2["cluster_id"],
+                                        c2["cluster_id"],
+                                        c1["cluster_id"],
+                                    ),
+                                )
+                                if not cursor.fetchone():
+                                    link_id = self.create_correlation_link(
+                                        c1["cluster_id"],
+                                        c2["cluster_id"],
+                                        link_type,
+                                        confidence,
+                                        reason,
+                                    )
+                                    links_created.append(
+                                        {
+                                            "link_id": link_id,
+                                            "source": c1["cluster_id"],
+                                            "target": c2["cluster_id"],
+                                            "type": link_type,
+                                            "confidence": confidence,
+                                            "stages": [stage1, stage2],
+                                        }
+                                    )
+
+            return {
+                "links_created": len(links_created),
+                "links": links_created,
+                "correlation_stats": correlation_stats,
+                "clusters_analyzed": len(clusters),
+                "by_stage": {s: len(by_stage[s]) for s in stages},
+            }
+        finally:
+            conn.close()
+
+    def get_correlation_graph(
+        self, org_id: str, cluster_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get the correlation graph for visualization.
+
+        Returns nodes (clusters) and edges (correlation links) in a format
+        suitable for graph visualization.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            # Get clusters
+            if cluster_id:
+                # Get specific cluster and its related clusters
+                cursor.execute(
+                    "SELECT * FROM clusters WHERE cluster_id = ?",
+                    (cluster_id,),
+                )
+                root = cursor.fetchone()
+                if not root:
+                    return {"nodes": [], "edges": [], "error": "Cluster not found"}
+
+                # Get related clusters
+                cursor.execute(
+                    """
+                    SELECT DISTINCT c.* FROM clusters c
+                    JOIN correlation_links cl ON (
+                        c.cluster_id = cl.source_cluster_id
+                        OR c.cluster_id = cl.target_cluster_id
+                    )
+                    WHERE cl.source_cluster_id = ? OR cl.target_cluster_id = ?
+                """,
+                    (cluster_id, cluster_id),
+                )
+                related = cursor.fetchall()
+                clusters = [dict(root)] + [dict(r) for r in related]
+
+                # Get edges for these clusters
+                cluster_ids = [c["cluster_id"] for c in clusters]
+                placeholders = ",".join("?" * len(cluster_ids))
+                cursor.execute(
+                    f"""
+                    SELECT * FROM correlation_links
+                    WHERE source_cluster_id IN ({placeholders})
+                    AND target_cluster_id IN ({placeholders})
+                """,
+                    cluster_ids + cluster_ids,
+                )
+            else:
+                # Get all clusters for org
+                cursor.execute(
+                    "SELECT * FROM clusters WHERE org_id = ?",
+                    (org_id,),
+                )
+                clusters = [dict(row) for row in cursor.fetchall()]
+
+                # Get all edges
+                cluster_ids = [c["cluster_id"] for c in clusters]
+                if cluster_ids:
+                    placeholders = ",".join("?" * len(cluster_ids))
+                    cursor.execute(
+                        f"""
+                        SELECT * FROM correlation_links
+                        WHERE source_cluster_id IN ({placeholders})
+                        OR target_cluster_id IN ({placeholders})
+                    """,
+                        cluster_ids + cluster_ids,
+                    )
+                else:
+                    cursor.execute("SELECT * FROM correlation_links WHERE 1=0")
+
+            edges = [dict(row) for row in cursor.fetchall()]
+
+            # Format nodes with stage info
+            nodes = []
+            for cluster in clusters:
+                metadata = json.loads(cluster.get("metadata") or "{}")
+                nodes.append(
+                    {
+                        "id": cluster["cluster_id"],
+                        "label": cluster.get("title")
+                        or cluster.get("cve_id")
+                        or cluster.get("rule_id")
+                        or cluster["cluster_id"][:8],
+                        "severity": cluster["severity"],
+                        "status": cluster["status"],
+                        "stage": metadata.get("stage", "unknown"),
+                        "category": cluster["category"],
+                        "occurrence_count": cluster["occurrence_count"],
+                    }
+                )
+
+            # Format edges with explainability
+            formatted_edges = []
+            for edge in edges:
+                formatted_edges.append(
+                    {
+                        "id": edge["link_id"],
+                        "source": edge["source_cluster_id"],
+                        "target": edge["target_cluster_id"],
+                        "type": edge["link_type"],
+                        "confidence": edge["confidence"],
+                        "reason": edge["reason"],
+                    }
+                )
+
+            return {
+                "nodes": nodes,
+                "edges": formatted_edges,
+                "node_count": len(nodes),
+                "edge_count": len(formatted_edges),
+            }
+        finally:
+            conn.close()
+
+    def record_operator_feedback(
+        self,
+        cluster_id: str,
+        feedback_type: str,
+        target_cluster_id: Optional[str] = None,
+        reason: Optional[str] = None,
+        operator_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Record operator feedback for correlation corrections.
+
+        Feedback types:
+        - merge_allowed: Confirm two clusters should be merged
+        - merge_blocked: Block automatic merge of two clusters
+        - split_cluster: Split a cluster into separate findings
+
+        Returns:
+            Dict with feedback_id and action taken
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+
+            # Create feedback table if not exists
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS operator_feedback (
+                    feedback_id TEXT PRIMARY KEY,
+                    cluster_id TEXT NOT NULL,
+                    target_cluster_id TEXT,
+                    feedback_type TEXT NOT NULL,
+                    reason TEXT,
+                    operator_id TEXT,
+                    created_at TEXT NOT NULL,
+                    applied BOOLEAN DEFAULT FALSE,
+                    FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
+                )
+            """
+            )
+
+            feedback_id = str(uuid.uuid4())
+            now = datetime.utcnow().isoformat()
+
+            cursor.execute(
+                """
+                INSERT INTO operator_feedback (
+                    feedback_id, cluster_id, target_cluster_id,
+                    feedback_type, reason, operator_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    feedback_id,
+                    cluster_id,
+                    target_cluster_id,
+                    feedback_type,
+                    reason,
+                    operator_id,
+                    now,
+                ),
+            )
+
+            action_result = None
+
+            # Apply feedback based on type
+            if feedback_type == "merge_allowed" and target_cluster_id:
+                # Create high-confidence correlation link
+                link_id = self.create_correlation_link(
+                    cluster_id,
+                    target_cluster_id,
+                    "operator_merge",
+                    1.0,
+                    f"Operator confirmed merge: {reason}",
+                )
+                action_result = {"action": "link_created", "link_id": link_id}
+
+            elif feedback_type == "merge_blocked" and target_cluster_id:
+                # Remove any existing correlation links between these clusters
+                cursor.execute(
+                    """
+                    DELETE FROM correlation_links
+                    WHERE (source_cluster_id = ? AND target_cluster_id = ?)
+                    OR (source_cluster_id = ? AND target_cluster_id = ?)
+                """,
+                    (cluster_id, target_cluster_id, target_cluster_id, cluster_id),
+                )
+                action_result = {
+                    "action": "links_removed",
+                    "count": cursor.rowcount,
+                }
+
+            elif feedback_type == "split_cluster":
+                # Mark cluster for manual review
+                cursor.execute(
+                    """
+                    UPDATE clusters SET status = 'needs_review'
+                    WHERE cluster_id = ?
+                """,
+                    (cluster_id,),
+                )
+                action_result = {"action": "marked_for_review"}
+
+            # Mark feedback as applied
+            cursor.execute(
+                "UPDATE operator_feedback SET applied = TRUE WHERE feedback_id = ?",
+                (feedback_id,),
+            )
+
+            conn.commit()
+
+            return {
+                "feedback_id": feedback_id,
+                "feedback_type": feedback_type,
+                "cluster_id": cluster_id,
+                "target_cluster_id": target_cluster_id,
+                "action_result": action_result,
+            }
+        finally:
+            conn.close()
+
+    def get_baseline_comparison(
+        self,
+        org_id: str,
+        current_run_id: str,
+        baseline_run_id: str,
+    ) -> Dict[str, Any]:
+        """Compare current run against a baseline to identify NEW/EXISTING/FIXED.
+
+        Returns:
+            Dict with new, existing, and fixed findings
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+
+            # Get clusters from current run
+            cursor.execute(
+                """
+                SELECT DISTINCT c.* FROM clusters c
+                JOIN events e ON c.cluster_id = e.cluster_id
+                WHERE c.org_id = ? AND e.run_id = ?
+            """,
+                (org_id, current_run_id),
+            )
+            current_clusters = {
+                row["correlation_key"]: dict(row) for row in cursor.fetchall()
+            }
+
+            # Get clusters from baseline run
+            cursor.execute(
+                """
+                SELECT DISTINCT c.* FROM clusters c
+                JOIN events e ON c.cluster_id = e.cluster_id
+                WHERE c.org_id = ? AND e.run_id = ?
+            """,
+                (org_id, baseline_run_id),
+            )
+            baseline_clusters = {
+                row["correlation_key"]: dict(row) for row in cursor.fetchall()
+            }
+
+            # Categorize findings
+            new_findings = []
+            existing_findings = []
+            fixed_findings = []
+
+            for corr_key, cluster in current_clusters.items():
+                if corr_key in baseline_clusters:
+                    cluster["baseline_status"] = "EXISTING"
+                    cluster["baseline_first_seen"] = baseline_clusters[corr_key][
+                        "first_seen"
+                    ]
+                    existing_findings.append(cluster)
+                else:
+                    cluster["baseline_status"] = "NEW"
+                    new_findings.append(cluster)
+
+            for corr_key, cluster in baseline_clusters.items():
+                if corr_key not in current_clusters:
+                    cluster["baseline_status"] = "FIXED"
+                    fixed_findings.append(cluster)
+
+            return {
+                "current_run_id": current_run_id,
+                "baseline_run_id": baseline_run_id,
+                "summary": {
+                    "total_current": len(current_clusters),
+                    "total_baseline": len(baseline_clusters),
+                    "new_count": len(new_findings),
+                    "existing_count": len(existing_findings),
+                    "fixed_count": len(fixed_findings),
+                },
+                "new": new_findings,
+                "existing": existing_findings,
+                "fixed": fixed_findings,
+            }
+        finally:
+            conn.close()

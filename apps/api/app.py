@@ -38,6 +38,7 @@ from apps.api.reports_router import router as reports_router
 from apps.api.secrets_router import router as secrets_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
+from apps.api.webhooks_router import router as webhooks_router
 from apps.api.workflows_router import router as workflows_router
 
 # Legacy API bridge router - imports legacy APIs from archive/enterprise_legacy
@@ -411,10 +412,11 @@ def create_app() -> FastAPI:
     app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(ide_router, dependencies=[Depends(_verify_api_key)])
 
-    # Enterprise features - Deduplication, Remediation, Collaboration
+    # Enterprise features - Deduplication, Remediation, Collaboration, Webhooks
     app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(webhooks_router)
 
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
 

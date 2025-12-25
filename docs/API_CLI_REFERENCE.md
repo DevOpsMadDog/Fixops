@@ -1,4 +1,4 @@
-# FixOps API to CLI Mapping (250+ Endpoints)
+# FixOps API to CLI Mapping (280+ Endpoints)
 
 ## Summary
 
@@ -20,7 +20,11 @@
 | PentAGI | 8 | 3 | Full |
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
-| **TOTAL** | **~250** | **67** | **~85%** |
+| **Deduplication & Correlation** | **10** | **-** | **API Only** |
+| **Remediation Lifecycle** | **10** | **-** | **API Only** |
+| **Bulk Operations (Enhanced)** | **8** | **-** | **API Only** |
+| **Team Collaboration** | **12** | **-** | **API Only** |
+| **TOTAL** | **~280** | **67** | **~85%** |
 
 ---
 
@@ -372,3 +376,75 @@
 - Retention policy management
 
 These API-only features are typically used by the web UI or require interactive visualization that doesn't translate well to CLI.
+
+---
+
+## ENTERPRISE FEATURES (Implemented)
+
+### DEDUPLICATION & CORRELATION (10 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/deduplication/process` | POST | Process single finding and return cluster info |
+| 2 | `/api/v1/deduplication/process/batch` | POST | Process batch of findings with dedup summary |
+| 3 | `/api/v1/deduplication/clusters` | GET | List clusters with filters (org_id, app_id, status, severity) |
+| 4 | `/api/v1/deduplication/clusters/{cluster_id}` | GET | Get specific cluster details |
+| 5 | `/api/v1/deduplication/clusters/{cluster_id}/status` | PUT | Update cluster status with audit trail |
+| 6 | `/api/v1/deduplication/clusters/{cluster_id}/assign` | PUT | Assign cluster to user |
+| 7 | `/api/v1/deduplication/clusters/{cluster_id}/ticket` | PUT | Link cluster to external ticket |
+| 8 | `/api/v1/deduplication/clusters/{cluster_id}/related` | GET | Get related clusters via correlation links |
+| 9 | `/api/v1/deduplication/correlations` | POST | Create correlation link between clusters |
+| 10 | `/api/v1/deduplication/stats/{org_id}` | GET | Get deduplication statistics |
+
+### REMEDIATION LIFECYCLE (10 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/remediation/tasks` | POST | Create remediation task with SLA tracking |
+| 2 | `/api/v1/remediation/tasks` | GET | List tasks with filters (org_id, app_id, status, severity) |
+| 3 | `/api/v1/remediation/tasks/{task_id}` | GET | Get specific task details |
+| 4 | `/api/v1/remediation/tasks/{task_id}/status` | PUT | Update task status (state machine enforced) |
+| 5 | `/api/v1/remediation/tasks/{task_id}/assign` | PUT | Assign task to user |
+| 6 | `/api/v1/remediation/tasks/{task_id}/verification` | POST | Submit verification evidence |
+| 7 | `/api/v1/remediation/tasks/{task_id}/ticket` | PUT | Link task to external ticket |
+| 8 | `/api/v1/remediation/sla/check` | POST | Check for SLA breaches |
+| 9 | `/api/v1/remediation/metrics/{org_id}` | GET | Get MTTR and SLA compliance metrics |
+| 10 | `/api/v1/remediation/statuses` | GET | List valid status values and transitions |
+
+**State Machine:** OPEN → ASSIGNED → IN_PROGRESS → VERIFICATION → RESOLVED (with DEFERRED and WONT_FIX branches)
+
+**SLA Policies:** Critical=24h, High=72h, Medium=168h (7d), Low=720h (30d)
+
+### BULK OPERATIONS (8 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/bulk/clusters/status` | POST | Bulk update cluster status |
+| 2 | `/api/v1/bulk/clusters/assign` | POST | Bulk assign clusters |
+| 3 | `/api/v1/bulk/clusters/accept-risk` | POST | Bulk accept risk |
+| 4 | `/api/v1/bulk/clusters/tickets` | POST | Bulk create tickets |
+| 5 | `/api/v1/bulk/clusters/export` | POST | Bulk export clusters |
+| 6 | `/api/v1/bulk/jobs` | GET | List all bulk jobs |
+| 7 | `/api/v1/bulk/jobs/{job_id}` | GET | Get job status and results |
+| 8 | `/api/v1/bulk/jobs/{job_id}/cancel` | POST | Cancel running job |
+
+**Features:** Async job execution, per-item outcomes, partial failure handling, progress tracking
+
+### TEAM COLLABORATION (12 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/collaboration/comments` | POST | Add comment with mention extraction |
+| 2 | `/api/v1/collaboration/comments` | GET | Get comments for entity |
+| 3 | `/api/v1/collaboration/comments/{comment_id}/promote` | PUT | Promote comment to compliance evidence |
+| 4 | `/api/v1/collaboration/watchers` | POST | Add watcher to entity |
+| 5 | `/api/v1/collaboration/watchers` | DELETE | Remove watcher from entity |
+| 6 | `/api/v1/collaboration/watchers` | GET | Get watchers for entity |
+| 7 | `/api/v1/collaboration/watchers/user/{user_id}` | GET | Get entities watched by user |
+| 8 | `/api/v1/collaboration/activities` | POST | Record activity in feed |
+| 9 | `/api/v1/collaboration/activities` | GET | Get activity feed with filters |
+| 10 | `/api/v1/collaboration/mentions/{user_id}` | GET | Get mentions for user |
+| 11 | `/api/v1/collaboration/mentions/{mention_id}/acknowledge` | PUT | Acknowledge mention |
+| 12 | `/api/v1/collaboration/entity-types` | GET | List valid entity types |
+
+**Features:** Append-only comments, @mention extraction, activity feeds, evidence promotion
