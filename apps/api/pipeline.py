@@ -1026,14 +1026,14 @@ class PipelineOrchestrator:
                     design_findings_for_dedup = []
                     for row in rows:
                         # Convert design row to finding dict
-                        component = str(row.get("component", "")).strip()
-                        subcomponent = str(row.get("subcomponent", "")).strip()
-                        control_scope = str(row.get("control_scope", "")).strip()
-                        data_class = str(row.get("data_class", "")).strip()
-                        description = str(row.get("description", "")).strip()
+                        design_component = str(row.get("component", "")).strip()
+                        design_subcomponent = str(row.get("subcomponent", "")).strip()
+                        design_control_scope = str(row.get("control_scope", "")).strip()
+                        design_data_class = str(row.get("data_class", "")).strip()
+                        design_description = str(row.get("description", "")).strip()
 
                         # Skip rows without meaningful content
-                        if not component and not description:
+                        if not design_component and not design_description:
                             continue
 
                         # Determine severity based on data classification
@@ -1045,23 +1045,25 @@ class PipelineOrchestrator:
                             "internal": "medium",
                             "public": "low",
                         }
-                        severity = data_class_severity.get(data_class.lower(), "medium")
+                        design_severity = data_class_severity.get(
+                            design_data_class.lower(), "medium"
+                        )
 
                         finding_dict = {
                             "category": "threat_model",
                             "stage": "design",
-                            "severity": severity,
-                            "rule_id": f"TM-{control_scope}"
-                            if control_scope
+                            "severity": design_severity,
+                            "rule_id": f"TM-{design_control_scope}"
+                            if design_control_scope
                             else "TM-GENERAL",
-                            "title": f"Design threat: {component}",
-                            "description": description
-                            or f"Threat model entry for {component}",
-                            "component": component,
-                            "subcomponent": subcomponent,
-                            "control_scope": control_scope,
-                            "data_class": data_class,
-                            "file": f"design/{component.lower().replace(' ', '_')}.csv",
+                            "title": f"Design threat: {design_component}",
+                            "description": design_description
+                            or f"Threat model entry for {design_component}",
+                            "component": design_component,
+                            "subcomponent": design_subcomponent,
+                            "control_scope": design_control_scope,
+                            "data_class": design_data_class,
+                            "file": f"design/{design_component.lower().replace(' ', '_')}.csv",
                             "raw": dict(row),
                         }
                         design_findings_for_dedup.append(finding_dict)
