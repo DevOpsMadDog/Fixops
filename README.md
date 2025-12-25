@@ -10,6 +10,7 @@ FixOps is a DevSecOps decision and verification platform that operationalizes vu
 - **Micro-Pentest Engine** - Automated vulnerability verification with multi-AI orchestration, attack simulation, and exploitability confidence scoring
 - **Transparent Risk Scoring** - Fully configurable risk parameters with visible weights, thresholds, and calculation breakdowns (no black-box scores)
 - **YAML-Based Configuration** - All platform behavior controlled via `fixops.overlay.yml` including risk models, feature toggles, and module enablement
+- **YAML Playbook Scripting** - Declarative automation via Playbooks, CompliancePacks, TestPacks, and MitigationPacks with 25+ pre-approved actions (OPA policy evaluation, evidence collection/signing, compliance checks, Jira/Slack/Confluence integrations, workflow control) - sandboxed execution with no arbitrary code
 - **Compliance Marketplace** - Browse, purchase, and contribute compliance packs for SOC2, ISO 27001, PCI-DSS, NIST, and custom frameworks
 - **Compliance Testing** - Automated framework gap analysis, control status tracking, and audit report generation
 - **Reachability Analysis** - Determine if CVEs are actually reachable from attack surfaces with attack path mapping
@@ -222,6 +223,87 @@ Configurable retention policies for compliance requirements:
 - **Encryption** - Optional Fernet encryption for sensitive bundles
 - **Export formats** - JSON, SARIF for portability
 - **Audit-ready** - Evidence accessible offline for auditors
+
+### YAML Playbook Scripting
+Declarative automation engine for vulnerability management workflows. Playbooks are sandboxed and can only call pre-approved actions - no arbitrary code execution.
+
+**Playbook Types:**
+- **Playbook** - General automation workflows
+- **CompliancePack** - Framework-specific compliance validation (SOC2, ISO 27001, PCI-DSS, NIST, HIPAA, FedRAMP)
+- **TestPack** - Security test automation
+- **MitigationPack** - Remediation workflow automation
+
+**25+ Pre-Approved Actions:**
+```yaml
+# Policy Evaluation
+- opa.evaluate          # Run OPA/Rego policy evaluation
+- opa.assert            # Assert policy conditions
+
+# Evidence Management
+- evidence.assert       # Assert evidence requirements
+- evidence.collect      # Collect evidence artifacts
+- evidence.sign         # Cryptographically sign evidence bundles
+
+# Compliance Checks
+- compliance.check_control      # Check specific framework controls
+- compliance.map_finding        # Map findings to compliance controls
+- compliance.generate_report    # Generate compliance reports
+
+# Security Testing
+- pentest.request                   # Request micro-pentest validation
+- pentest.validate_exploitability   # Validate CVE exploitability
+- scanner.run                       # Run security scanners
+
+# Notifications & Integrations
+- notify.slack / notify.email / notify.pagerduty
+- jira.create_issue / jira.update_issue / jira.add_comment
+- confluence.create_page / confluence.update_page
+
+# Workflow Control
+- workflow.approve / workflow.reject / workflow.escalate
+- data.filter / data.aggregate / data.transform
+```
+
+**Example SOC2 Compliance Playbook:**
+```yaml
+apiVersion: fixops.io/v1
+kind: CompliancePack
+metadata:
+  name: soc2-access-control-validation
+  version: "1.0.0"
+  compliance_frameworks: [SOC2]
+
+spec:
+  steps:
+    - name: evaluate-access-controls
+      action: opa.evaluate
+      params:
+        policy: "soc2/access-control.rego"
+        input: "{{ inputs.findings }}"
+
+    - name: check-mfa-requirement
+      action: compliance.check_control
+      condition:
+        depends_on: [evaluate-access-controls]
+      params:
+        framework: SOC2
+        control: "CC6.1"
+
+    - name: create-remediation-ticket
+      action: jira.create_issue
+      condition:
+        when: "steps.check-mfa-requirement.status == 'failed'"
+      params:
+        project: "SEC"
+        priority: "High"
+        summary: "SOC2 CC6.1 - MFA requirement not met"
+
+  triggers:
+    - event: pipeline.completed
+      filter: { stage: deploy }
+    - event: schedule.cron
+      filter: { expression: "0 0 * * 1" }  # Weekly
+```
 
 ---
 
