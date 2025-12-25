@@ -3,33 +3,23 @@
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from core.services.collaboration import ActivityType, CollaborationService, EntityType
 
-# SSRF protection: Only allow legitimate Slack webhook URLs
-ALLOWED_SLACK_HOSTS = ["hooks.slack.com", "hooks.slack-gov.com"]
+# SSRF protection: Slack webhook URL must be configured via environment variable
+# This prevents SSRF attacks by not accepting user-provided URLs
 
 
-def _validate_slack_webhook_url(url: Optional[str]) -> Optional[str]:
-    """Validate Slack webhook URL to prevent SSRF attacks.
+def _get_slack_webhook_url() -> Optional[str]:
+    """Get Slack webhook URL from environment variable.
 
-    Only allows HTTPS URLs to legitimate Slack webhook hosts.
-    Returns the validated URL or raises HTTPException for invalid URLs.
+    Security: The webhook URL is read from FIXOPS_SLACK_WEBHOOK_URL environment
+    variable to prevent SSRF attacks. User-provided URLs are not accepted.
     """
-    if url is None:
-        return None
-
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.netloc not in ALLOWED_SLACK_HOSTS:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid Slack webhook URL. Must be https://hooks.slack.com/...",
-        )
-    return url
+    return os.environ.get("FIXOPS_SLACK_WEBHOOK_URL")
 
 
 router = APIRouter(prefix="/api/v1/collaboration", tags=["collaboration"])
@@ -482,11 +472,12 @@ def update_notification_preferences(
 class DeliverNotificationRequest(BaseModel):
     """Request to deliver a specific notification.
 
-    Note: SMTP password should be configured via FIXOPS_SMTP_PASSWORD environment
-    variable for security. Do not pass credentials in request bodies.
+    Note: Credentials should be configured via environment variables for security:
+    - FIXOPS_SLACK_WEBHOOK_URL: Slack webhook URL
+    - FIXOPS_SMTP_PASSWORD: SMTP password
+    Do not pass credentials in request bodies.
     """
 
-    slack_webhook: Optional[str] = None
     email_smtp_host: Optional[str] = None
     email_smtp_port: Optional[int] = 587
     email_smtp_user: Optional[str] = None
@@ -496,11 +487,12 @@ class DeliverNotificationRequest(BaseModel):
 class ProcessNotificationsRequest(BaseModel):
     """Request to process pending notifications.
 
-    Note: SMTP password should be configured via FIXOPS_SMTP_PASSWORD environment
-    variable for security. Do not pass credentials in request bodies.
+    Note: Credentials should be configured via environment variables for security:
+    - FIXOPS_SLACK_WEBHOOK_URL: Slack webhook URL
+    - FIXOPS_SMTP_PASSWORD: SMTP password
+    Do not pass credentials in request bodies.
     """
 
-    slack_webhook: Optional[str] = None
     email_smtp_host: Optional[str] = None
     email_smtp_port: Optional[int] = 587
     email_smtp_user: Optional[str] = None
@@ -516,9 +508,12 @@ def deliver_notification(
 
     Supports Slack webhook and/or email (SMTP) delivery.
     Respects user notification preferences.
+
+    Note: Slack webhook URL is read from FIXOPS_SLACK_WEBHOOK_URL environment
+    variable to prevent SSRF attacks.
     """
-    # Validate Slack webhook URL to prevent SSRF attacks
-    validated_slack_webhook = _validate_slack_webhook_url(request.slack_webhook)
+    # Get Slack webhook URL from environment variable (SSRF protection)
+    slack_webhook = _get_slack_webhook_url()
 
     service = get_collab_service()
 
@@ -535,7 +530,7 @@ def deliver_notification(
 
     return service.deliver_notification(
         notification_id=notification_id,
-        slack_webhook=validated_slack_webhook,
+        slack_webhook=slack_webhook,
         email_config=email_config,
     )
 
@@ -551,9 +546,12 @@ def process_pending_notifications(
 
     Supports Slack webhook and/or email (SMTP) delivery.
     Respects user notification preferences.
+
+    Note: Slack webhook URL is read from FIXOPS_SLACK_WEBHOOK_URL environment
+    variable to prevent SSRF attacks.
     """
-    # Validate Slack webhook URL to prevent SSRF attacks
-    validated_slack_webhook = _validate_slack_webhook_url(request.slack_webhook)
+    # Get Slack webhook URL from environment variable (SSRF protection)
+    slack_webhook = _get_slack_webhook_url()
 
     service = get_collab_service()
 
@@ -569,7 +567,7 @@ def process_pending_notifications(
         }
 
     return service.process_pending_notifications(
-        slack_webhook=validated_slack_webhook,
+        slack_webhook=slack_webhook,
         email_config=email_config,
         limit=request.limit,
     )
