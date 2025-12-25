@@ -640,7 +640,8 @@ class RemediationService:
             total_resolved = cursor.fetchone()["total"]
 
             cursor.execute(
-                f"SELECT COUNT(*) as breached {base_query} AND sla_breached = 1", params
+                f"SELECT COUNT(*) as breached {base_query} AND sla_breached = 1 AND resolved_at IS NOT NULL",
+                params,
             )
             total_breached = cursor.fetchone()["breached"]
 
