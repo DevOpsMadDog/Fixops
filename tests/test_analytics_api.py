@@ -321,3 +321,67 @@ def test_export_analytics(client, db, monkeypatch):
     data = response.json()
     assert "data" in data
     assert data["format"] == "json"
+
+
+def test_findings_deduplicate_by_fingerprint_within_window(client, db, monkeypatch):
+    """Creating the same finding twice should deduplicate within the default window."""
+    monkeypatch.setattr("apps.api.analytics_router.db", db)
+
+    finding_data = {
+        "rule_id": "SAST-001",
+        "severity": "high",
+        "status": "open",
+        "title": "SQL Injection Vulnerability",
+        "description": "Potential SQL injection in user input",
+        "source": "SAST",
+        "cve_id": "CVE-2024-1234",
+        "cvss_score": 8.5,
+        "exploitable": True,
+        "metadata": {"file_path": "/workspace/app/api/users.py:10"},
+    }
+
+    first = client.post("/api/v1/analytics/findings", json=finding_data)
+    assert first.status_code == 201
+    second = client.post("/api/v1/analytics/findings", json=finding_data)
+    assert second.status_code == 201
+
+    assert first.json()["id"] == second.json()["id"]
+
+
+def test_list_cases_groups_findings(client, db, monkeypatch):
+    """Cases endpoint should group findings by correlation key."""
+    monkeypatch.setattr("apps.api.analytics_router.db", db)
+
+    a = client.post(
+        "/api/v1/analytics/findings",
+        json={
+            "rule_id": "SAST-001",
+            "severity": "high",
+            "status": "open",
+            "title": "SQL Injection Vulnerability",
+            "description": "Potential SQL injection in user input",
+            "source": "SAST",
+            "metadata": {"file_path": "services/users.py:10"},
+        },
+    )
+    assert a.status_code == 201
+
+    b = client.post(
+        "/api/v1/analytics/findings",
+        json={
+            "rule_id": "SAST-001",
+            "severity": "high",
+            "status": "open",
+            "title": "SQL Injection Vulnerability",
+            "description": "Potential SQL injection in user input",
+            "source": "SAST",
+            "metadata": {"file_path": "services/users.py:11"},
+        },
+    )
+    assert b.status_code == 201
+
+    response = client.get("/api/v1/analytics/cases")
+    assert response.status_code == 200
+    cases = response.json()
+    assert isinstance(cases, list)
+    assert cases

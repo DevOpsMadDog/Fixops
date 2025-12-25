@@ -15,6 +15,7 @@ from core.analytics_models import (
     FindingSeverity,
     FindingStatus,
 )
+from core.findings import DedupCorrelationEngine
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 db = AnalyticsDB()
@@ -65,6 +66,17 @@ class FindingResponse(BaseModel):
     created_at: str
     updated_at: str
     resolved_at: Optional[str]
+
+
+class CaseResponse(BaseModel):
+    """Grouped issue/case derived from correlated findings."""
+
+    case_id: str
+    correlation_key: str
+    highest_severity: str
+    finding_count: int
+    sources: List[str]
+    findings: List[FindingResponse]
 
 
 class DecisionCreate(BaseModel):
@@ -189,6 +201,67 @@ async def query_findings(
         offset=offset,
     )
     return [FindingResponse(**f.to_dict()) for f in findings]
+
+
+@router.get("/cases", response_model=List[CaseResponse])
+async def list_cases(
+    severity: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    finding_limit: int = Query(5000, ge=1, le=20000),
+):
+    """List correlated cases grouped by stable correlation keys."""
+    findings = db.list_findings(severity=severity, status=status, limit=finding_limit, offset=0)
+    engine = DedupCorrelationEngine()
+
+    grouped: Dict[str, List[Finding]] = {}
+    for finding in findings:
+        meta = dict(finding.metadata or {})
+        key = meta.get("correlation_key")
+        if not key:
+            base = {
+                "stage": meta.get("stage") or "api",
+                "source": finding.source,
+                "title": finding.title,
+                "description": finding.description,
+                "severity": finding.severity.value,
+                "rule_id": finding.rule_id,
+                "cve_id": finding.cve_id,
+                "application_id": finding.application_id,
+                "service_id": finding.service_id,
+                "component": meta.get("component") or meta.get("component_id"),
+                "package": meta.get("package") or meta.get("purl"),
+                "file_path": meta.get("file_path") or meta.get("file") or meta.get("path"),
+                "asset_id": meta.get("asset_id") or meta.get("asset") or meta.get("resource_id"),
+            }
+            key = engine.correlation_key(base)
+        grouped.setdefault(str(key), []).append(finding)
+
+    def _severity_rank(value: str) -> int:
+        ranks = {"low": 1, "info": 1, "medium": 2, "high": 3, "critical": 4}
+        return ranks.get(str(value).lower(), 0)
+
+    cases: List[Dict[str, Any]] = []
+    for corr_key, items in grouped.items():
+        sources = sorted({f.source for f in items if f.source})
+        highest = "low"
+        for f in items:
+            if _severity_rank(f.severity.value) > _severity_rank(highest):
+                highest = f.severity.value
+        cases.append(
+            {
+                "case_id": corr_key,
+                "correlation_key": corr_key,
+                "highest_severity": highest,
+                "finding_count": len(items),
+                "sources": sources,
+                "findings": [FindingResponse(**f.to_dict()) for f in items],
+            }
+        )
+
+    cases.sort(key=lambda c: (-_severity_rank(c["highest_severity"]), -int(c["finding_count"])))
+    return [CaseResponse(**c) for c in cases[offset : offset + limit]]
 
 
 @router.post("/findings", response_model=FindingResponse, status_code=201)

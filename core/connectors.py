@@ -248,6 +248,65 @@ class SlackConnector(_BaseConnector):
         return ConnectorOutcome("sent", {"webhook": webhook})
 
 
+class GitHubConnector(_BaseConnector):
+    """Minimal GitHub connector (configuration validation + future extension)."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 6.0) or 6.0))
+        self.base_url = str(settings.get("base_url") or "https://api.github.com").rstrip("/")
+        token = settings.get("token")
+        token_env = settings.get("token_env")
+        if token_env:
+            env_value = os.getenv(str(token_env))
+            if env_value:
+                token = env_value
+        self.token = str(token) if token else ""
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.token)
+
+
+class GitLabConnector(_BaseConnector):
+    """Minimal GitLab connector (configuration validation + future extension)."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 6.0) or 6.0))
+        self.base_url = str(settings.get("base_url") or "https://gitlab.com/api/v4").rstrip("/")
+        token = settings.get("token")
+        token_env = settings.get("token_env")
+        if token_env:
+            env_value = os.getenv(str(token_env))
+            if env_value:
+                token = env_value
+        self.token = str(token) if token else ""
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.token)
+
+
+class PagerDutyConnector(_BaseConnector):
+    """Minimal PagerDuty connector (configuration validation + future extension)."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 6.0) or 6.0))
+        self.base_url = str(settings.get("base_url") or "https://api.pagerduty.com").rstrip("/")
+        token = settings.get("token")
+        token_env = settings.get("token_env")
+        if token_env:
+            env_value = os.getenv(str(token_env))
+            if env_value:
+                token = env_value
+        self.token = str(token) if token else ""
+        # Optional Events API routing key for triggering incidents.
+        self.routing_key = str(settings.get("routing_key") or "")
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.token or self.routing_key)
+
+
 class AutomationConnectors:
     """Registry that routes actions to configured delivery connectors."""
 
@@ -348,11 +407,33 @@ def summarise_connector(connector: _BaseConnector) -> Dict[str, Any]:
             "configured": bool(connector.default_webhook),
             "webhook": _mask(connector.default_webhook),
         }
+    if isinstance(connector, GitHubConnector):
+        return {
+            "configured": connector.configured,
+            "base_url": connector.base_url,
+            "token": _mask(connector.token),
+        }
+    if isinstance(connector, GitLabConnector):
+        return {
+            "configured": connector.configured,
+            "base_url": connector.base_url,
+            "token": _mask(connector.token),
+        }
+    if isinstance(connector, PagerDutyConnector):
+        return {
+            "configured": connector.configured,
+            "base_url": connector.base_url,
+            "token": _mask(connector.token),
+            "routing_key": _mask(connector.routing_key),
+        }
     return {"configured": False}
 
 
 __all__ = [
     "AutomationConnectors",
     "ConnectorOutcome",
+    "GitHubConnector",
+    "GitLabConnector",
+    "PagerDutyConnector",
     "summarise_connector",
 ]

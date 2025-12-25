@@ -7,7 +7,14 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from core.connectors import ConfluenceConnector, JiraConnector, SlackConnector
+from core.connectors import (
+    ConfluenceConnector,
+    GitHubConnector,
+    GitLabConnector,
+    JiraConnector,
+    PagerDutyConnector,
+    SlackConnector,
+)
 from core.integration_db import IntegrationDB
 from core.integration_models import Integration, IntegrationStatus, IntegrationType
 
@@ -189,6 +196,54 @@ async def test_integration(id: str):
                 "integration_id": id,
                 "success": True,
                 "message": "Slack connection test successful",
+            }
+
+        elif integration.integration_type == IntegrationType.GITHUB:
+            github = GitHubConnector(integration.config)
+            if not github.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "GitHub connector not fully configured",
+                    "details": {"base_url": github.base_url},
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "GitHub connector configured",
+                "details": {"base_url": github.base_url},
+            }
+
+        elif integration.integration_type == IntegrationType.GITLAB:
+            gitlab = GitLabConnector(integration.config)
+            if not gitlab.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "GitLab connector not fully configured",
+                    "details": {"base_url": gitlab.base_url},
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "GitLab connector configured",
+                "details": {"base_url": gitlab.base_url},
+            }
+
+        elif integration.integration_type == IntegrationType.PAGERDUTY:
+            pagerduty = PagerDutyConnector(integration.config)
+            if not pagerduty.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "PagerDuty connector not fully configured",
+                    "details": {"base_url": pagerduty.base_url},
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "PagerDuty connector configured",
+                "details": {"base_url": pagerduty.base_url},
             }
 
         else:

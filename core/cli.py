@@ -2433,116 +2433,183 @@ def _handle_integrations(args: argparse.Namespace) -> int:
 def _handle_analytics(args: argparse.Namespace) -> int:
     """Handle analytics commands."""
     import json
-    from datetime import datetime, timezone
+    import os
+    from datetime import datetime, timedelta
 
-    if args.analytics_command == "dashboard":
-        dashboard_data = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "period": getattr(args, "period", "30d"),
-            "overview": {
-                "total_findings": 127,
-                "critical": 3,
-                "high": 12,
-                "medium": 45,
-                "low": 67,
-                "remediated_last_30d": 89,
-                "new_last_30d": 38,
-            },
-            "trends": {
-                "findings_trend": "decreasing",
-                "mttr_trend": "improving",
-                "compliance_trend": "stable",
-            },
-            "top_risks": [
-                {"cve": "CVE-2024-1234", "severity": "critical", "affected_apps": 3},
-                {"cve": "CVE-2024-5678", "severity": "high", "affected_apps": 7},
-                {"cve": "CVE-2024-9012", "severity": "high", "affected_apps": 5},
-            ],
-            "compliance_status": {
-                "SOC2": 87,
-                "ISO27001": 72,
-                "PCI_DSS": 91,
-            },
-        }
-        print(json.dumps(dashboard_data, indent=2))
+    from core.analytics_db import AnalyticsDB
+    from core.findings import DedupCorrelationEngine
 
-    elif args.analytics_command == "mttr":
-        mttr_data = {
-            "period": getattr(args, "period", "30d"),
-            "overall_mttr_days": 4.2,
-            "by_severity": {
-                "critical": 1.5,
-                "high": 3.2,
-                "medium": 7.8,
-                "low": 14.3,
-            },
-            "by_team": {
-                "platform": 3.1,
-                "backend": 4.5,
-                "frontend": 5.2,
-            },
-            "trend": "improving",
-            "target_mttr_days": 5.0,
-        }
-        print(json.dumps(mttr_data, indent=2))
+    db_path = os.environ.get("ANALYTICS_DB_PATH", "data/analytics.db")
+    db = AnalyticsDB(db_path=db_path)
 
-    elif args.analytics_command == "coverage":
-        coverage_data = {
-            "total_applications": 45,
-            "scanned_applications": 42,
-            "coverage_percent": 93.3,
-            "by_scan_type": {
-                "sast": {"covered": 40, "total": 45, "percent": 88.9},
-                "dast": {"covered": 35, "total": 45, "percent": 77.8},
-                "sca": {"covered": 42, "total": 45, "percent": 93.3},
-                "secrets": {"covered": 38, "total": 45, "percent": 84.4},
-            },
-            "unscanned_applications": ["legacy-app-1", "internal-tool-2", "test-app-3"],
-        }
-        print(json.dumps(coverage_data, indent=2))
+    command = args.analytics_command
+    if command == "dashboard":
+        print(json.dumps(db.get_dashboard_overview(), indent=2))
+        return 0
 
-    elif args.analytics_command == "roi":
-        roi_data = {
-            "period": getattr(args, "period", "12m"),
-            "cost_savings": {
-                "prevented_breaches_estimate": 450000,
-                "reduced_manual_triage_hours": 2400,
-                "triage_cost_savings": 180000,
-                "compliance_automation_savings": 75000,
-                "total_savings": 705000,
-            },
-            "efficiency_gains": {
-                "noise_reduction_percent": 67,
-                "false_positive_reduction_percent": 45,
-                "time_to_decision_reduction_percent": 82,
-            },
-            "risk_reduction": {
-                "critical_vulns_remediated": 23,
-                "high_vulns_remediated": 89,
-                "average_exposure_days_reduced": 12,
-            },
-        }
-        print(json.dumps(roi_data, indent=2))
+    if command == "findings":
+        findings = db.list_findings(
+            severity=getattr(args, "severity", None),
+            status=getattr(args, "status", None),
+            limit=getattr(args, "limit", 100),
+            offset=getattr(args, "offset", 0),
+        )
+        payload = [f.to_dict() for f in findings]
+        fmt = getattr(args, "format", "json")
+        if fmt == "json":
+            print(json.dumps(payload, indent=2))
+        else:
+            print("ID | Severity | Status | Source | Title")
+            print("-" * 80)
+            for item in payload:
+                print(
+                    f"{item.get('id','')[:8]} | {item.get('severity')} | {item.get('status')} | {item.get('source')} | {item.get('title')}"
+                )
+        return 0
 
-    elif args.analytics_command == "export":
-        export_data: dict[str, object] = {
-            "export_type": "analytics",
-            "format": getattr(args, "output_format", "json"),
-            "exported_at": datetime.now(timezone.utc).isoformat(),
-            "data": {
-                "findings_summary": {},
-                "decisions_summary": {},
-                "compliance_summary": {},
-            },
-        }
+    if command == "decisions":
+        decisions = db.list_decisions(
+            finding_id=getattr(args, "finding_id", None),
+            limit=getattr(args, "limit", 100),
+            offset=getattr(args, "offset", 0),
+        )
+        print(json.dumps([d.to_dict() for d in decisions], indent=2))
+        return 0
+
+    if command == "top-risks":
+        limit = int(getattr(args, "limit", 10))
+        print(json.dumps({"risks": db.get_top_risks(limit=limit)}, indent=2))
+        return 0
+
+    if command == "mttr":
+        mttr_hours = db.calculate_mttr()
+        if mttr_hours is None:
+            print("No resolved findings available for MTTR calculation")
+            return 0
+        print(
+            json.dumps(
+                {
+                    "mttr_hours": round(mttr_hours, 2),
+                    "mttr_days": round(mttr_hours / 24.0, 2),
+                },
+                indent=2,
+            )
+        )
+        return 0
+
+    if command == "coverage":
+        findings = db.list_findings(limit=10000, offset=0)
+        apps = {f.application_id for f in findings if f.application_id}
+        services = {f.service_id for f in findings if f.service_id}
+        sources: Dict[str, int] = {}
+        for finding in findings:
+            sources[finding.source] = sources.get(finding.source, 0) + 1
+        print(
+            json.dumps(
+                {
+                    "total_findings": len(findings),
+                    "scanned_applications": len(apps),
+                    "scanned_services": len(services),
+                    "sources": sources,
+                },
+                indent=2,
+            )
+        )
+        return 0
+
+    if command == "roi":
+        findings = db.list_findings(limit=10000, offset=0)
+        total_findings = len(findings)
+        critical_blocked = sum(
+            1
+            for f in findings
+            if f.severity.value == "critical" and f.status.value == "resolved"
+        )
+        avg_breach_cost = 4_240_000
+        critical_breach_probability = 0.15
+        prevented_cost = critical_blocked * avg_breach_cost * critical_breach_probability
+        print(
+            json.dumps(
+                {
+                    "total_findings": total_findings,
+                    "critical_blocked": critical_blocked,
+                    "estimated_prevented_cost": round(prevented_cost, 2),
+                    "currency": "USD",
+                },
+                indent=2,
+            )
+        )
+        return 0
+
+    if command == "export":
+        data_type = getattr(args, "data_type", "findings")
+        if data_type == "findings":
+            payload = [f.to_dict() for f in db.list_findings(limit=10000, offset=0)]
+        elif data_type == "decisions":
+            payload = [d.to_dict() for d in db.list_decisions(limit=10000, offset=0)]
+        else:
+            return 2
         output_path = getattr(args, "output", None)
         if output_path:
-            with open(output_path, "w") as f:
-                json.dump(export_data, f, indent=2)
-            print(f"Exported to: {output_path}")
+            with open(output_path, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2)
+            print(str(output_path))
         else:
-            print(json.dumps(export_data, indent=2))
+            print(json.dumps(payload, indent=2))
+        return 0
 
+    if command == "cases":
+        findings = db.list_findings(
+            severity=getattr(args, "severity", None),
+            status=getattr(args, "status", None),
+            limit=getattr(args, "finding_limit", 5000),
+            offset=0,
+        )
+        engine = DedupCorrelationEngine()
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for finding in findings:
+            payload = finding.to_dict()
+            meta = dict(payload.get("metadata") or {})
+            key = meta.get("correlation_key")
+            if not key:
+                base = {
+                    "stage": meta.get("stage") or "api",
+                    "source": payload.get("source"),
+                    "title": payload.get("title"),
+                    "description": payload.get("description"),
+                    "severity": payload.get("severity"),
+                    "rule_id": payload.get("rule_id"),
+                    "cve_id": payload.get("cve_id"),
+                    "application_id": payload.get("application_id"),
+                    "service_id": payload.get("service_id"),
+                    "component": meta.get("component") or meta.get("component_id"),
+                    "package": meta.get("package") or meta.get("purl"),
+                    "file_path": meta.get("file_path")
+                    or meta.get("file")
+                    or meta.get("path"),
+                    "asset_id": meta.get("asset_id")
+                    or meta.get("asset")
+                    or meta.get("resource_id"),
+                }
+                key = engine.correlation_key(base)
+            grouped.setdefault(str(key), []).append(payload)
+        cases = [
+            {
+                "case_id": corr_key,
+                "correlation_key": corr_key,
+                "finding_count": len(items),
+                "sources": sorted(
+                    {i.get("source") for i in items if i.get("source")}
+                ),
+                "findings": items,
+            }
+            for corr_key, items in grouped.items()
+        ]
+        print(json.dumps(cases, indent=2))
+        return 0
+
+    # Default: no-op.
+    _ = datetime.utcnow() - timedelta(days=0)
     return 0
 
 
@@ -3972,32 +4039,51 @@ def build_parser() -> argparse.ArgumentParser:
     )
     analytics_subparsers = analytics_parser.add_subparsers(dest="analytics_command")
 
-    analytics_dashboard = analytics_subparsers.add_parser(
-        "dashboard", help="Get dashboard metrics"
-    )
-    analytics_dashboard.add_argument(
-        "--period", choices=["7d", "30d", "90d", "12m"], default="30d"
-    )
+    analytics_subparsers.add_parser("dashboard", help="Get dashboard overview")
 
-    analytics_mttr = analytics_subparsers.add_parser(
-        "mttr", help="Get mean time to remediate metrics"
+    analytics_findings = analytics_subparsers.add_parser(
+        "findings", help="List findings"
     )
-    analytics_mttr.add_argument(
-        "--period", choices=["7d", "30d", "90d", "12m"], default="30d"
-    )
+    analytics_findings.add_argument("--severity", help="Filter by severity")
+    analytics_findings.add_argument("--status", help="Filter by status")
+    analytics_findings.add_argument("--limit", type=int, default=100)
+    analytics_findings.add_argument("--offset", type=int, default=0)
+    analytics_findings.add_argument("--format", choices=["json", "table"], default="json")
 
-    analytics_subparsers.add_parser("coverage", help="Get security scan coverage")
-
-    analytics_roi = analytics_subparsers.add_parser(
-        "roi", help="Get ROI and cost savings analysis"
+    analytics_decisions = analytics_subparsers.add_parser(
+        "decisions", help="List decisions"
     )
-    analytics_roi.add_argument("--period", choices=["30d", "90d", "12m"], default="12m")
+    analytics_decisions.add_argument("--finding-id", dest="finding_id", help="Filter by finding id")
+    analytics_decisions.add_argument("--limit", type=int, default=100)
+    analytics_decisions.add_argument("--offset", type=int, default=0)
+    analytics_decisions.add_argument("--format", choices=["json"], default="json")
+
+    analytics_top_risks = analytics_subparsers.add_parser(
+        "top-risks", help="Get top risks"
+    )
+    analytics_top_risks.add_argument("--limit", type=int, default=10)
+
+    analytics_subparsers.add_parser("mttr", help="Calculate MTTR")
+    analytics_subparsers.add_parser("coverage", help="Get security coverage")
+    analytics_subparsers.add_parser("roi", help="Get ROI estimate")
+
+    analytics_cases = analytics_subparsers.add_parser(
+        "cases", help="List correlated cases (deduplication/correlation engine)"
+    )
+    analytics_cases.add_argument("--severity", help="Filter by severity")
+    analytics_cases.add_argument("--status", help="Filter by status")
+    analytics_cases.add_argument(
+        "--finding-limit",
+        type=int,
+        default=5000,
+        help="Max findings to load before grouping",
+    )
 
     analytics_export = analytics_subparsers.add_parser(
         "export", help="Export analytics data"
     )
     analytics_export.add_argument(
-        "--output-format", choices=["json", "csv"], default="json"
+        "--data-type", dest="data_type", choices=["findings", "decisions"], default="findings"
     )
     analytics_export.add_argument("--output", type=Path, help="Output file path")
 

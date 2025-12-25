@@ -17,6 +17,8 @@ from core.analytics_models import (
     Metric,
 )
 
+from core.findings import DedupCorrelationEngine
+
 
 class AnalyticsDB:
     """Database manager for analytics records."""
@@ -54,6 +56,8 @@ class AnalyticsDB:
                     epss_score REAL,
                     exploitable INTEGER NOT NULL,
                     metadata TEXT,
+                    fingerprint TEXT,
+                    correlation_key TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     resolved_at TEXT
@@ -91,17 +95,87 @@ class AnalyticsDB:
             """
             )
             conn.commit()
+            self._ensure_columns(conn)
         finally:
             conn.close()
 
+    def _ensure_columns(self, conn: sqlite3.Connection) -> None:
+        """Best-effort schema migration for existing SQLite files."""
+        try:
+            rows = conn.execute("PRAGMA table_info(findings)").fetchall()
+            existing = {row[1] for row in rows}  # type: ignore[index]
+        except Exception:
+            return
+        cursor = conn.cursor()
+        if "fingerprint" not in existing:
+            cursor.execute("ALTER TABLE findings ADD COLUMN fingerprint TEXT")
+        if "correlation_key" not in existing:
+            cursor.execute("ALTER TABLE findings ADD COLUMN correlation_key TEXT")
+        conn.commit()
+        # Index creation is idempotent in executescript above; ensure for migrated DBs.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_findings_fingerprint ON findings(fingerprint)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_findings_correlation_key ON findings(correlation_key)"
+        )
+        conn.commit()
+
     def create_finding(self, finding: Finding) -> Finding:
         """Create new finding."""
+        # Compute stable fingerprint + correlation key for dedup/correlation.
+        engine = DedupCorrelationEngine({"dedup_window_seconds": 24 * 60 * 60})
+        meta = dict(finding.metadata or {})
+        stage = str(meta.get("stage") or meta.get("pipeline_stage") or "api")
+        file_path = meta.get("file_path") or meta.get("file") or meta.get("path")
+        package = meta.get("package") or meta.get("purl")
+        component = meta.get("component") or meta.get("component_id")
+        asset_id = meta.get("asset_id") or meta.get("asset") or meta.get("resource_id")
+        base: Dict[str, Any] = {
+            "id": finding.id or "",
+            "stage": stage,
+            "source": finding.source,
+            "title": finding.title,
+            "description": finding.description,
+            "severity": finding.severity.value,
+            "rule_id": finding.rule_id,
+            "cve_id": finding.cve_id,
+            "application_id": finding.application_id,
+            "service_id": finding.service_id,
+            "component": component,
+            "package": package,
+            "file_path": file_path,
+            "asset_id": asset_id,
+        }
+        fingerprint = engine.fingerprint(base)
+        correlation_key = engine.correlation_key(base)
+
         if not finding.id:
             finding.id = str(uuid.uuid4())
         conn = self._get_connection()
         try:
+            # Deduplicate: same fingerprint within the rolling window → reuse existing record.
+            window_seconds = int(meta.get("dedup_window_seconds") or (24 * 60 * 60))
+            since = (datetime.utcnow() - timedelta(seconds=window_seconds)).isoformat()
+            row = conn.execute(
+                "SELECT * FROM findings WHERE fingerprint = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1",
+                (fingerprint, since),
+            ).fetchone()
+            if row:
+                existing = self._row_to_finding(row)
+                # Mark dedup hit for auditability.
+                existing_meta = dict(existing.metadata or {})
+                existing_meta["dedup"] = {
+                    "fingerprint": fingerprint,
+                    "correlation_key": correlation_key,
+                    "hits": int(existing_meta.get("dedup", {}).get("hits", 0)) + 1,
+                    "last_seen_at": datetime.utcnow().isoformat(),
+                    "window_seconds": window_seconds,
+                }
+                existing.metadata = existing_meta
+                self.update_finding(existing)
+                return existing
+
             conn.execute(
-                """INSERT INTO findings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO findings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     finding.id,
                     finding.application_id,
@@ -117,6 +191,8 @@ class AnalyticsDB:
                     finding.epss_score,
                     1 if finding.exploitable else 0,
                     json.dumps(finding.metadata),
+                    fingerprint,
+                    correlation_key,
                     finding.created_at.isoformat(),
                     finding.updated_at.isoformat(),
                     finding.resolved_at.isoformat() if finding.resolved_at else None,
@@ -363,6 +439,20 @@ class AnalyticsDB:
 
     def _row_to_finding(self, row) -> Finding:
         """Convert database row to Finding object."""
+        metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+        if isinstance(metadata, dict):
+            try:
+                fingerprint = row["fingerprint"]
+            except Exception:
+                fingerprint = None
+            try:
+                correlation_key = row["correlation_key"]
+            except Exception:
+                correlation_key = None
+            if fingerprint and "fingerprint" not in metadata:
+                metadata["fingerprint"] = fingerprint
+            if correlation_key and "correlation_key" not in metadata:
+                metadata["correlation_key"] = correlation_key
         return Finding(
             id=row["id"],
             application_id=row["application_id"],
@@ -377,7 +467,7 @@ class AnalyticsDB:
             cvss_score=row["cvss_score"],
             epss_score=row["epss_score"],
             exploitable=bool(row["exploitable"]),
-            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
+            metadata=metadata,
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
             resolved_at=(

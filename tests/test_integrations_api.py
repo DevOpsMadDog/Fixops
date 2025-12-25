@@ -178,6 +178,26 @@ def test_test_integration_inactive(client, db, monkeypatch):
     assert "not active" in data["message"]
 
 
+def test_test_integration_github_configured(client, db, monkeypatch):
+    """GitHub integration test should validate configuration."""
+    monkeypatch.setattr("apps.api.integrations_router.db", db)
+
+    integration = Integration(
+        id="",
+        name="Test GitHub",
+        integration_type=IntegrationType.GITHUB,
+        status=IntegrationStatus.ACTIVE,
+        config={"token": "ghp_test", "base_url": "https://api.github.com"},
+    )
+    created = db.create_integration(integration)
+
+    response = client.post(f"/api/v1/integrations/{created.id}/test")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["integration_id"] == created.id
+    assert data["success"] is True
+
+
 def test_get_sync_status(client, db, monkeypatch):
     """Test getting integration sync status."""
     monkeypatch.setattr("apps.api.integrations_router.db", db)

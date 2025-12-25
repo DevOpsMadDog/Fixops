@@ -1333,6 +1333,24 @@ class PipelineOrchestrator:
             }
             result["feature_matrix"] = build_feature_matrix(result)
 
+            # Deduplication & Correlation Engine (enterprise-grade noise reduction).
+            # Reuses the existing overlay `modules.correlation_engine` configuration.
+            if overlay.is_module_enabled("correlation_engine", default=False):
+                try:
+                    from core.findings import DedupCorrelationEngine
+
+                    engine = DedupCorrelationEngine(
+                        overlay.module_config("correlation_engine")
+                    )
+                    canonical = engine.canonicalize_artifacts(
+                        sarif=sarif, cve=cve, cnapp=cnapp, observed_at=result.get("timestamp")
+                    )
+                    deduped, dedup_summary = engine.deduplicate(canonical)
+                    result["deduplication"] = dedup_summary
+                    result["cases"] = engine.correlate(deduped)
+                except Exception as exc:  # pragma: no cover - must not break pipeline
+                    result["deduplication"] = {"status": "error", "error": str(exc)}
+
         risk_score = 0
         if context_summary and isinstance(context_summary, dict):
             summary = context_summary.get("summary", {})
