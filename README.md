@@ -279,7 +279,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### 243+ API Endpoints (22 Router Modules)
+### 280+ API Endpoints (25 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -525,7 +525,7 @@ pytest --cov=core --cov=apps
 
 | Document | Description |
 |----------|-------------|
-| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (243+ endpoints) |
+| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (280+ endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
 | [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
