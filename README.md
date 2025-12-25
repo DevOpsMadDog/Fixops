@@ -67,7 +67,7 @@ FixOps is not a vulnerability scanner. It's the decision and evidence layer that
 | **Compliance Automation** | Auto-generated audit artifacts | - | Reports | Reports | Basic | Basic |
 | **Explainable Decisions** | Transparent "Why" + audit trail | Score only | Black box | Risk score | Priority | Risk score |
 | **Push-Model Integration** | Universal SBOM/SARIF support | Connectors | Pull-based | Scanner | Hard-wired | Agent+API |
-| **On-Prem / Air-Gapped** | Full evidence persistence | Ltd SaaS | SaaS only | SaaS only | SaaS+Priv | SaaS+VPC |
+| **On-Prem / Air-Gapped** | Full functionality offline | Ltd SaaS | SaaS only | SaaS only | SaaS+Priv | SaaS+VPC |
 | **CTEM Loop** | Full (prioritize→validate→remediate→measure) | Partial | Partial | Partial | Limited | Partial |
 | **Micro-Pentest Validation** | Multi-AI exploit verification | - | - | - | - | - |
 | **Onboarding Time** | ~30 minutes | Weeks | Weeks | Days | Days | Weeks |
