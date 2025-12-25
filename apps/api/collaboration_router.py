@@ -3,11 +3,34 @@
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from core.services.collaboration import ActivityType, CollaborationService, EntityType
+
+# SSRF protection: Only allow legitimate Slack webhook URLs
+ALLOWED_SLACK_HOSTS = ["hooks.slack.com", "hooks.slack-gov.com"]
+
+
+def _validate_slack_webhook_url(url: Optional[str]) -> Optional[str]:
+    """Validate Slack webhook URL to prevent SSRF attacks.
+
+    Only allows HTTPS URLs to legitimate Slack webhook hosts.
+    Returns the validated URL or raises HTTPException for invalid URLs.
+    """
+    if url is None:
+        return None
+
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc not in ALLOWED_SLACK_HOSTS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Slack webhook URL. Must be https://hooks.slack.com/...",
+        )
+    return url
+
 
 router = APIRouter(prefix="/api/v1/collaboration", tags=["collaboration"])
 
@@ -494,6 +517,9 @@ def deliver_notification(
     Supports Slack webhook and/or email (SMTP) delivery.
     Respects user notification preferences.
     """
+    # Validate Slack webhook URL to prevent SSRF attacks
+    validated_slack_webhook = _validate_slack_webhook_url(request.slack_webhook)
+
     service = get_collab_service()
 
     email_config = None
@@ -509,7 +535,7 @@ def deliver_notification(
 
     return service.deliver_notification(
         notification_id=notification_id,
-        slack_webhook=request.slack_webhook,
+        slack_webhook=validated_slack_webhook,
         email_config=email_config,
     )
 
@@ -526,6 +552,9 @@ def process_pending_notifications(
     Supports Slack webhook and/or email (SMTP) delivery.
     Respects user notification preferences.
     """
+    # Validate Slack webhook URL to prevent SSRF attacks
+    validated_slack_webhook = _validate_slack_webhook_url(request.slack_webhook)
+
     service = get_collab_service()
 
     email_config = None
@@ -540,7 +569,7 @@ def process_pending_notifications(
         }
 
     return service.process_pending_notifications(
-        slack_webhook=request.slack_webhook,
+        slack_webhook=validated_slack_webhook,
         email_config=email_config,
         limit=request.limit,
     )
