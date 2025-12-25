@@ -1020,9 +1020,26 @@ class CollaborationService:
         recipient: str,
         priority: str = "normal",
     ) -> Dict[str, Any]:
-        """Deliver notification via Slack webhook."""
+        """Deliver notification via Slack webhook.
+
+        Security: Only allows requests to legitimate Slack webhook URLs
+        to prevent Server-Side Request Forgery (SSRF) attacks.
+        """
         try:
+            from urllib.parse import urlparse
+
             import requests
+
+            # Validate webhook URL to prevent SSRF attacks
+            # Only allow legitimate Slack webhook URLs
+            parsed_url = urlparse(webhook_url)
+            allowed_hosts = ["hooks.slack.com", "hooks.slack-gov.com"]
+            if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
+                return {
+                    "success": False,
+                    "recipient": recipient,
+                    "error": "Invalid Slack webhook URL. Must be https://hooks.slack.com/...",
+                }
 
             priority_emoji = {
                 "critical": ":rotating_light:",
