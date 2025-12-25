@@ -796,7 +796,11 @@ class RemediationService:
             # Raise priority if requested
             if raise_priority:
                 severity_order = ["low", "medium", "high", "critical"]
-                current_idx = severity_order.index(task["severity"])
+                try:
+                    current_idx = severity_order.index(task["severity"])
+                except ValueError:
+                    # Unknown severity, default to lowest priority
+                    current_idx = 0
                 if current_idx < len(severity_order) - 1:
                     new_severity = severity_order[current_idx + 1]
                     updates["severity"] = new_severity

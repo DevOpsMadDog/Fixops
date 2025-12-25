@@ -410,7 +410,7 @@ def notify_watchers(request: NotifyWatchersRequest) -> Dict[str, Any]:
 
 @router.get("/notifications/pending")
 def get_pending_notifications(
-    limit: int = Query(default=100, le=500)
+    limit: int = Query(default=100, ge=1, le=500)
 ) -> Dict[str, Any]:
     """Get pending notifications for delivery."""
     service = get_collab_service()
@@ -520,6 +520,11 @@ def deliver_notification(
     email_config = None
     if request.email_smtp_host and request.email_smtp_user:
         smtp_password = os.environ.get("FIXOPS_SMTP_PASSWORD")
+        if not smtp_password:
+            raise HTTPException(
+                status_code=400,
+                detail="FIXOPS_SMTP_PASSWORD environment variable is required for email delivery",
+            )
         email_config = {
             "smtp_host": request.email_smtp_host,
             "smtp_port": request.email_smtp_port,
@@ -558,6 +563,11 @@ def process_pending_notifications(
     email_config = None
     if request.email_smtp_host and request.email_smtp_user:
         smtp_password = os.environ.get("FIXOPS_SMTP_PASSWORD")
+        if not smtp_password:
+            raise HTTPException(
+                status_code=400,
+                detail="FIXOPS_SMTP_PASSWORD environment variable is required for email delivery",
+            )
         email_config = {
             "smtp_host": request.email_smtp_host,
             "smtp_port": request.email_smtp_port,

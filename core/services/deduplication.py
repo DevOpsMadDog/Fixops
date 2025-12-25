@@ -877,6 +877,7 @@ class DeduplicationService:
         target_cluster_id: Optional[str] = None,
         reason: Optional[str] = None,
         operator_id: Optional[str] = None,
+        event_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Record operator feedback for correlation corrections.
 
@@ -968,7 +969,10 @@ class DeduplicationService:
                 """,
                     (ClusterStatus.IN_PROGRESS.value, cluster_id),
                 )
-                action_result = {"action": "marked_for_review"}
+                action_result = {
+                    "action": "marked_for_review",
+                    "event_ids": event_ids or [],
+                }
 
             # Mark feedback as applied
             cursor.execute(

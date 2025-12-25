@@ -1,7 +1,7 @@
 """Deduplication & Correlation API endpoints."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -76,7 +76,7 @@ class OperatorFeedbackRequest(BaseModel):
     """Request to record operator feedback for correlation corrections."""
 
     cluster_id: str
-    feedback_type: str = Field(
+    feedback_type: Literal["merge_allowed", "merge_blocked", "split_cluster"] = Field(
         description="merge_allowed, merge_blocked, or split_cluster"
     )
     target_cluster_id: Optional[str] = None
@@ -95,7 +95,7 @@ class BaselineComparisonRequest(BaseModel):
 class MergeClustersRequest(BaseModel):
     """Request to merge multiple clusters into one."""
 
-    source_cluster_ids: List[str]
+    source_cluster_ids: List[str] = Field(min_length=1)
     target_cluster_id: str
     reason: Optional[str] = None
 
@@ -399,13 +399,14 @@ def split_cluster(cluster_id: str, request: SplitClusterRequest) -> Dict[str, An
     if not cluster:
         raise HTTPException(status_code=404, detail="Cluster not found")
 
-    # Record the split as operator feedback
+    # Record the split as operator feedback with event_ids
     service.record_operator_feedback(
         cluster_id=cluster_id,
         feedback_type="split_cluster",
         target_cluster_id=None,
         reason=request.reason,
         operator_id="api-user",
+        event_ids=request.event_ids,
     )
 
     return {

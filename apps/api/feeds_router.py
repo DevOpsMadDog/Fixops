@@ -11,14 +11,17 @@ Exposes the world-class vulnerability intelligence feed service with 8 categorie
 8. Internal Enterprise (SAST/DAST/SCA, IaC, runtime detections)
 """
 
+# Import from fixops-enterprise using relative path
+# Note: fixops-enterprise should be installed as a package or added to PYTHONPATH
+# This import assumes the package is properly installed
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-# Add fixops-enterprise to path for imports
 ENTERPRISE_SRC = Path(__file__).resolve().parent.parent.parent / "fixops-enterprise"
 if ENTERPRISE_SRC.exists() and str(ENTERPRISE_SRC) not in sys.path:
     sys.path.insert(0, str(ENTERPRISE_SRC))
@@ -44,13 +47,17 @@ router = APIRouter(prefix="/api/v1/feeds", tags=["feeds"])
 # Initialize service with default path
 _DATA_DIR = Path("data/feeds")
 _feeds_service: Optional[FeedsService] = None
+_feeds_service_lock = threading.Lock()
 
 
 def get_feeds_service() -> FeedsService:
-    """Get or create feeds service instance."""
+    """Get or create feeds service instance (thread-safe singleton)."""
     global _feeds_service
     if _feeds_service is None:
-        _feeds_service = FeedsService(_DATA_DIR / "feeds.db")
+        with _feeds_service_lock:
+            # Double-check locking pattern
+            if _feeds_service is None:
+                _feeds_service = FeedsService(_DATA_DIR / "feeds.db")
     return _feeds_service
 
 

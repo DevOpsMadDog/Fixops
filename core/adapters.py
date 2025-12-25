@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
 from urllib.parse import urljoin as _urljoin  # noqa: F401
 
@@ -43,7 +43,9 @@ class AdapterFinding:
     remediation: Optional[str] = None
     confidence: float = 1.0
     raw: Dict[str, Any] = field(default_factory=dict)
-    detected_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    detected_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for pipeline processing."""

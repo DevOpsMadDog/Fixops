@@ -40,10 +40,11 @@ from __future__ import annotations
 import asyncio
 import csv
 import gzip
+import json
 import logging
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -534,7 +535,9 @@ class FeedRefreshResult:
     success: bool
     records_updated: int
     error: Optional[str] = None
-    refreshed_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    refreshed_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
@@ -662,7 +665,9 @@ class EarlySignal:
     title: str
     description: str
     source_url: Optional[str] = None
-    detected_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    detected_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     cve_id: Optional[str] = None  # May be assigned later
     severity_estimate: str = "unknown"
     affected_products: List[str] = field(default_factory=list)
@@ -729,7 +734,9 @@ class ExploitConfidenceScore:
     # - threat_actor_use: 1.0 if used by known threat actor
     # - greynoise_seen: 0.9 if seen in GreyNoise
     # - shodan_exposed: 0.7 if exposed systems found
-    calculated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    calculated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -750,7 +757,9 @@ class GeoWeightedRisk:
     # geo_scores maps region -> weighted score
     cert_mentions: Dict[str, List[str]] = field(default_factory=dict)
     # cert_mentions maps region -> list of CERT advisory IDs
-    calculated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    calculated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -1046,7 +1055,7 @@ class FeedsService:
             # Batch insert into database
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.executemany(
                 """
@@ -1140,7 +1149,7 @@ class FeedsService:
             # Batch insert into database
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             cursor.executemany(
                 """
@@ -1508,9 +1517,7 @@ class FeedsService:
             confidence_score = sum(factors.get(k, 0.0) * w for k, w in weights.items())
 
             # Store the calculated score
-            now = datetime.utcnow().isoformat()
-            import json
-
+            now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
                 """
                 INSERT OR REPLACE INTO exploit_confidence_scores
@@ -1635,9 +1642,7 @@ class FeedsService:
                 geo_scores[region_name] = min(1.0, round(region_score, 4))
 
             # Store the calculated score
-            now = datetime.utcnow().isoformat()
-            import json
-
+            now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
                 """
                 INSERT OR REPLACE INTO geo_weighted_risks
@@ -1677,8 +1682,6 @@ class FeedsService:
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
-            import json
-
             cursor.execute(
                 """
                 INSERT OR REPLACE INTO threat_actor_mappings
@@ -1697,7 +1700,7 @@ class FeedsService:
                     json.dumps(mapping.ttps),
                     mapping.confidence,
                     mapping.source,
-                    datetime.utcnow().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                 ),
             )
             conn.commit()
@@ -1793,7 +1796,7 @@ class FeedsService:
                     exploit.reliability,
                     exploit.metasploit_module,
                     exploit.nuclei_template,
-                    datetime.utcnow().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                 ),
             )
             conn.commit()
@@ -1867,7 +1870,7 @@ class FeedsService:
                     1 if vuln.reachable else (0 if vuln.reachable is False else None),
                     1 if vuln.transitive else 0,
                     vuln.source,
-                    datetime.utcnow().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                 ),
             )
             conn.commit()
@@ -1943,7 +1946,7 @@ class FeedsService:
             stats: Dict[str, Any] = {
                 "categories": {},
                 "totals": {},
-                "last_updated": datetime.utcnow().isoformat(),
+                "last_updated": datetime.now(timezone.utc).isoformat(),
             }
 
             # Count records in each table
