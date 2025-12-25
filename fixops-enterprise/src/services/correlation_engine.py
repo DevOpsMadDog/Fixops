@@ -10,9 +10,10 @@ import asyncio
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import structlog
+from src.models.canonical import CanonicalFinding, FindingStage
 
 logger = structlog.get_logger()
 
@@ -56,6 +57,7 @@ class CorrelationEngine:
             self._correlate_by_pattern,
             self._correlate_by_root_cause,
             self._correlate_by_vulnerability,
+            self._correlate_cross_stage,
         ]
 
         if self.enabled:
@@ -67,15 +69,15 @@ class CorrelationEngine:
 
     async def correlate_finding(
         self,
-        finding: Dict[str, Any],
-        all_findings: List[Dict[str, Any]],
+        finding: Union[Dict[str, Any], CanonicalFinding],
+        all_findings: List[Union[Dict[str, Any], CanonicalFinding]],
         force_refresh: bool = False,
     ) -> Optional[CorrelationResult]:
         """
         Correlate a single finding with other findings
 
         Args:
-            finding: The finding to correlate (dict with id, title, description, severity, etc.)
+            finding: The finding to correlate
             all_findings: List of all findings to correlate against
             force_refresh: Force recalculation (bypass cache)
 
@@ -84,6 +86,18 @@ class CorrelationEngine:
         """
         if not self.enabled:
             return None
+
+        # Normalize inputs to dicts
+        if isinstance(finding, CanonicalFinding):
+            finding = finding.to_dict()
+        
+        all_findings_dicts = []
+        for f in all_findings:
+            if isinstance(f, CanonicalFinding):
+                all_findings_dicts.append(f.to_dict())
+            else:
+                all_findings_dicts.append(f)
+        all_findings = all_findings_dicts
 
         start_time = time.perf_counter()
 
@@ -396,6 +410,62 @@ class CorrelationEngine:
                 confidence_score=confidence,
                 noise_reduction_factor=len(matches) / (len(matches) + 2),
                 root_cause="known_vulnerability",
+            )
+
+        return None
+
+    async def _correlate_cross_stage(
+        self, finding: Dict[str, Any], all_findings: List[Dict[str, Any]]
+    ) -> Optional[CorrelationResult]:
+        """Correlate findings across different SDLC stages (Design, Build, Deploy, Runtime)"""
+        finding_stage = finding.get("stage")
+        if not finding_stage:
+            return None
+
+        finding_id = finding.get("id") or finding.get("finding_id")
+        
+        # Keys to match on for cross-stage
+        cve_id = finding.get("cve_id")
+        component = finding.get("component_name") or finding.get("component")
+        repo_path = finding.get("location", {}).get("path") or finding.get("file_path")
+        
+        matches = []
+        for other in all_findings:
+            other_id = other.get("id") or other.get("finding_id")
+            if other_id == finding_id:
+                continue
+
+            other_stage = other.get("stage")
+            if not other_stage or other_stage == finding_stage:
+                continue  # Only correlate across DIFFERENT stages
+                
+            # Match Logic
+            is_match = False
+            
+            # 1. Exact CVE match
+            if cve_id and other.get("cve_id") == cve_id:
+                is_match = True
+            
+            # 2. Same Component + Similar Severity
+            elif component and (other.get("component_name") == component or other.get("component") == component):
+                 if other.get("severity") == finding.get("severity"):
+                     is_match = True
+
+            # 3. Same File Path (e.g. SAST in Build vs Runtime Trace)
+            elif repo_path and (other.get("location", {}).get("path") == repo_path or other.get("file_path") == repo_path):
+                 is_match = True
+
+            if is_match:
+                matches.append(other_id)
+
+        if len(matches) >= 1:
+            return CorrelationResult(
+                finding_id=finding_id,
+                correlated_findings=matches,
+                correlation_type="cross_stage_trace",
+                confidence_score=0.85,
+                noise_reduction_factor=1.0, # High value as this connects silos
+                root_cause="sdlc_lifecycle_trace",
             )
 
         return None

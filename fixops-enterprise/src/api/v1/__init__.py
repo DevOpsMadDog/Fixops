@@ -9,6 +9,7 @@ from . import (
     cicd,
     enhanced,
     evidence,
+    findings,
     marketplace,
     micro_pentest,
     pentagi,
@@ -17,6 +18,7 @@ from . import (
 router = APIRouter()
 router.include_router(cicd.router, prefix="/cicd")
 router.include_router(evidence.router, prefix="/evidence")
+router.include_router(findings.router, prefix="/findings")
 router.include_router(artefacts.router, prefix="/artefacts")
 router.include_router(enhanced.router, prefix="/enhanced")
 router.include_router(marketplace.router, prefix="/marketplace")

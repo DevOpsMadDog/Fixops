@@ -50,12 +50,57 @@ class CodeScanner:
                 return self._format_table(results)
             elif format == "json":
                 return json.dumps(results, indent=2)
+            elif format == "canonical":
+                return self._format_canonical(results)
             else:  # sarif
                 return json.dumps(results, indent=2)
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Scan failed: {e}")
             return f"Error: {e}"
+
+    def _format_canonical(self, results: dict) -> str:
+        """Format results as canonical JSON."""
+        import hashlib
+        from datetime import datetime
+        
+        findings = results.get("findings", [])
+        canonical_findings = []
+        
+        for f in findings:
+            # Map raw finding to canonical structure
+            # This is a client-side best-effort mapping
+            
+            tool_name = "fixops-scanner"
+            title = f.get("vulnerability", f.get("title", "Unknown Vulnerability"))
+            # Generate ID if missing
+            if not f.get("id"):
+                raw_id = f"{tool_name}|{title}|{f.get('file', '')}|{f.get('line', 0)}"
+                f_id = hashlib.sha256(raw_id.encode()).hexdigest()
+            else:
+                f_id = f.get("id")
+                
+            canonical = {
+                "id": f_id,
+                "title": title,
+                "description": f.get("description", ""),
+                "severity": f.get("severity", "medium").lower(),
+                "stage": "runtime", # CLI scan usually implies runtime/build check
+                "tool": {
+                    "name": tool_name,
+                    "version": "1.0.0"
+                },
+                "location": {
+                    "path": f.get("file", ""),
+                    "start_line": int(f.get("line", 0)) if f.get("line") else None
+                },
+                "status": "open",
+                "created_at": datetime.utcnow().isoformat(),
+                "fingerprint": hashlib.sha256(f"{tool_name}|{title}".encode()).hexdigest() # Simplified
+            }
+            canonical_findings.append(canonical)
+            
+        return json.dumps(canonical_findings, indent=2)
 
     def _format_table(self, results: dict) -> str:
         """Format results as table."""
