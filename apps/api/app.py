@@ -429,8 +429,6 @@ def create_app() -> FastAPI:
     if feeds_router:
         app.include_router(feeds_router, dependencies=[Depends(_verify_api_key)])
 
-    app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
-
     # Legacy API bridge - exposes legacy APIs from archive/enterprise_legacy
     if legacy_bridge_router:
         app.include_router(
