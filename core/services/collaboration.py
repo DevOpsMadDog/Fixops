@@ -43,11 +43,12 @@ class CollaborationService:
     def _init_db(self):
         """Initialize database schema."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        # Comments (append-only for audit trail)
-        cursor.execute(
-            """
+            # Comments (append-only for audit trail)
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS comments (
                 comment_id TEXT PRIMARY KEY,
                 entity_type TEXT NOT NULL,
@@ -63,12 +64,12 @@ class CollaborationService:
                 edited_at TEXT,
                 metadata TEXT
             )
-        """
-        )
-
-        # Watchers
-        cursor.execute(
             """
+            )
+
+            # Watchers
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS watchers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 entity_type TEXT NOT NULL,
@@ -79,12 +80,12 @@ class CollaborationService:
                 added_by TEXT,
                 UNIQUE(entity_type, entity_id, user_id)
             )
-        """
-        )
-
-        # Activity feed (append-only event log)
-        cursor.execute(
             """
+            )
+
+            # Activity feed (append-only event log)
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS activities (
                 activity_id TEXT PRIMARY KEY,
                 entity_type TEXT NOT NULL,
@@ -97,12 +98,12 @@ class CollaborationService:
                 details TEXT,
                 created_at TEXT NOT NULL
             )
-        """
-        )
-
-        # Mentions
-        cursor.execute(
             """
+            )
+
+            # Mentions
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS mentions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 comment_id TEXT NOT NULL,
@@ -112,12 +113,12 @@ class CollaborationService:
                 acknowledged_at TEXT,
                 FOREIGN KEY (comment_id) REFERENCES comments(comment_id)
             )
-        """
-        )
-
-        # Notification queue
-        cursor.execute(
             """
+            )
+
+            # Notification queue
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS notification_queue (
                 notification_id TEXT PRIMARY KEY,
                 entity_type TEXT NOT NULL,
@@ -133,12 +134,12 @@ class CollaborationService:
                 sent_at TEXT,
                 error TEXT
             )
-        """
-        )
-
-        # Notification preferences
-        cursor.execute(
             """
+            )
+
+            # Notification preferences
+            cursor.execute(
+                """
             CREATE TABLE IF NOT EXISTS notification_preferences (
                 user_id TEXT PRIMARY KEY,
                 email_enabled INTEGER DEFAULT 1,
@@ -150,34 +151,35 @@ class CollaborationService:
                 notification_types TEXT,
                 updated_at TEXT
             )
-        """
-        )
+            """
+            )
 
-        # Indexes
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_comments_entity ON comments(entity_type, entity_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_watchers_entity ON watchers(entity_type, entity_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_watchers_user ON watchers(user_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_activities_entity ON activities(entity_type, entity_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_activities_org ON activities(org_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_mentions_user ON mentions(mentioned_user)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_notifications_status ON notification_queue(status)"
-        )
+            # Indexes
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_comments_entity ON comments(entity_type, entity_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_watchers_entity ON watchers(entity_type, entity_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_watchers_user ON watchers(user_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_activities_entity ON activities(entity_type, entity_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_activities_org ON activities(org_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_mentions_user ON mentions(mentioned_user)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_status ON notification_queue(status)"
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
 
     def add_comment(
         self,
