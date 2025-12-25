@@ -1016,6 +1016,11 @@ class PipelineOrchestrator:
                         finding_dict = cnapp_finding.to_dict()
                         finding_dict["category"] = "cnapp"
                         finding_dict["stage"] = "runtime"
+                        # Normalize CNAPP severity (use existing severity or default to medium)
+                        cnapp_severity = finding_dict.get("severity", "medium")
+                        if cnapp_severity:
+                            cnapp_severity = cnapp_severity.lower()
+                        finding_dict["severity"] = cnapp_severity or "medium"
                         cnapp_findings_for_dedup.append(finding_dict)
 
                     if cnapp_findings_for_dedup:

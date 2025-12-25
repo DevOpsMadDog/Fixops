@@ -624,6 +624,27 @@ class CollaborationService:
         try:
             cursor = conn.cursor()
 
+            # Ensure notification_queue table exists
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notification_queue (
+                    notification_id TEXT PRIMARY KEY,
+                    entity_type TEXT NOT NULL,
+                    entity_id TEXT NOT NULL,
+                    notification_type TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    message TEXT,
+                    priority TEXT DEFAULT 'normal',
+                    recipients TEXT NOT NULL,
+                    metadata TEXT,
+                    status TEXT DEFAULT 'pending',
+                    created_at TEXT NOT NULL,
+                    sent_at TEXT,
+                    error TEXT
+                )
+            """
+            )
+
             cursor.execute(
                 """
                 SELECT * FROM notification_queue
