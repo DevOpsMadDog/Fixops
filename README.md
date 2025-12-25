@@ -15,7 +15,7 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Ingest & Normalize** | SBOM/SARIF/CVE/VEX/CNAPP ingestion with business context enrichment |
 | **Correlate & Deduplicate** | Risk Graph modeling, 5 correlation strategies (fingerprint, location, pattern, root-cause, vulnerability taxonomy), intelligent finding clustering |
 | **Decide with Transparency** | Policy evaluation, multi-LLM consensus (4 providers), probabilistic forecasting, explainable verdicts with natural-language narratives, MITRE ATT&CK mapping (35+ techniques), transparent scoring with visible weights |
-| **Verify Exploitability** | Micro-pentest engine with attack simulation, reachability analysis with attack path mapping |
+| **Verify Exploitability** | **Micro-Pentest Engine** (automated exploit validation, attack vector simulation, confidence scoring) + reachability analysis with attack path mapping |
 | **Operationalize Remediation** | Remediation lifecycle with SLA tracking, bulk operations, team collaboration, decision regression validation |
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
 | **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (25+ pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
@@ -63,11 +63,13 @@ FixOps is not a vulnerability scanner. It's the decision and evidence layer that
 
 | Capability | FixOps | Nucleus | Apiiro | ArmorCode | Cycode | Vulcan |
 |------------|--------|---------|--------|-----------|--------|--------|
-| **Signed Evidence Storage** | SLSA-style provenance | Logs only | SLA only | Reports | Basic | Basic |
+| **Signed Evidence Storage** | SLSA v1 + 7-year retention | Logs only | SLA only | Reports | Basic | Basic |
 | **Compliance Automation** | Auto-generated audit artifacts | - | Reports | Reports | Basic | Basic |
-| **Explainable Decisions** | Transparent reasoning + audit trail | Score only | Black box | Risk score | Priority | Risk score |
+| **Explainable Decisions** | Transparent "Why" + audit trail | Score only | Black box | Risk score | Priority | Risk score |
 | **Push-Model Integration** | Universal SBOM/SARIF support | Connectors | Pull-based | Scanner | Hard-wired | Agent+API |
-| **On-Prem / Air-Gapped** | Full functionality offline | Ltd SaaS | SaaS only | SaaS only | SaaS+Priv | SaaS+VPC |
+| **On-Prem / Air-Gapped** | Full evidence persistence | Ltd SaaS | SaaS only | SaaS only | SaaS+Priv | SaaS+VPC |
+| **CTEM Loop** | Full (prioritize→validate→remediate→measure) | Partial | Partial | Partial | Limited | Partial |
+| **Micro-Pentest Validation** | Multi-AI exploit verification | - | - | - | - | - |
 | **Onboarding Time** | ~30 minutes | Weeks | Weeks | Days | Days | Weeks |
 | **Vendor Lock-in** | Full export (JSON/SARIF) | Data trap | SaaS silo | Platform | Platform | Platform |
 
@@ -78,6 +80,27 @@ FixOps is not a vulnerability scanner. It's the decision and evidence layer that
 **vs. RBVM Platforms (Nucleus, Vulcan)**: Traditional RBVM tools hide decisions behind opaque "risk scores." FixOps produces cryptographically signed artifacts proving WHY a vulnerability is or isn't exploitable in your context.
 
 **vs. ASPM Platforms (Apiiro, ArmorCode, Cycode)**: ASPM tools aggregate findings but still require manual triage. FixOps adds evidence automation and supports on-prem/air-gapped environments that SaaS-only platforms can't serve.
+
+### Risk-Based + Evidence-Based Philosophy
+
+Moving beyond opaque risk scores to auditable, cryptographically signed decisions.
+
+**The Industry Critique:** Traditional RBVM tools hide critical vulnerabilities behind opaque "risk scores." Auditors reject deprioritization without proof. The "fix everything" approach creates 60% noise and alert fatigue. Risk scores often ignore architecture context (air-gapped, internal-only), leading to false urgency.
+
+**FixOps Approach:** We don't just "deprioritize" - we produce a cryptographically signed artifact proving WHY a vulnerability is not exploitable in your context. Policy flexibility supports Zero-Exception (Block all) OR Smart Prioritization via policy overlay. You control the dial, we provide the evidence.
+
+**Safety Guardrails:** 85% Multi-LLM Consensus threshold, fail-closed defaults, step-by-step reasoning transparency.
+
+### Closing the Compliance Gap
+
+New regulations demand evidence, not just scans. Traditional ASPM tools leave you exposed to audit failure.
+
+| Regulation | Requirement | How FixOps Helps |
+|------------|-------------|------------------|
+| **ISO 27001:2022 A.8.25** | Secure Development Cycle | Evidence of secure coding, design security, and testing milestones |
+| **NIST SSDF / EO 14028** | Secure Software Attestation | Self-attestation of secure practices with signed evidence |
+| **EU Cyber Resilience Act** | Supply Chain Transparency | SLSA v1 provenance, SBOM attestations, tamper-evident audit trails |
+| **SOC2 / PCI-DSS** | Continuous Compliance | Auto-generated audit artifacts, compliance pack marketplace |
 
 ---
 
