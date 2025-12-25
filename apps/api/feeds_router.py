@@ -152,7 +152,7 @@ def get_epss_scores(
         return {"scores": scores, "count": len(scores)}
 
     # Return high-risk CVEs if no specific IDs provided
-    high_risk = service.get_high_risk_cves(min_epss=min_score, limit=limit)
+    high_risk = service.get_high_risk_cves(epss_threshold=min_score, limit=limit)
     return {"scores": high_risk, "count": len(high_risk)}
 
 
@@ -167,8 +167,8 @@ def refresh_epss_feed(request: RefreshFeedRequest) -> Dict[str, Any]:
     return {
         "status": "refreshed" if result.success else "failed",
         "records_updated": result.records_updated,
-        "source": result.source,
-        "timestamp": result.timestamp,
+        "source": result.feed_name,
+        "timestamp": result.refreshed_at,
         "error": result.error,
     }
 
@@ -219,8 +219,8 @@ def refresh_kev_feed(request: RefreshFeedRequest) -> Dict[str, Any]:
     return {
         "status": "refreshed" if result.success else "failed",
         "records_updated": result.records_updated,
-        "source": result.source,
-        "timestamp": result.timestamp,
+        "source": result.feed_name,
+        "timestamp": result.refreshed_at,
         "error": result.error,
     }
 
