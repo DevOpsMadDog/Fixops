@@ -115,6 +115,44 @@ class CollaborationService:
         """
         )
 
+        # Notification queue
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS notification_queue (
+                notification_id TEXT PRIMARY KEY,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                notification_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                priority TEXT DEFAULT 'normal',
+                recipients TEXT NOT NULL,
+                metadata TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                sent_at TEXT,
+                error TEXT
+            )
+        """
+        )
+
+        # Notification preferences
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                user_id TEXT PRIMARY KEY,
+                email_enabled INTEGER DEFAULT 1,
+                slack_enabled INTEGER DEFAULT 1,
+                in_app_enabled INTEGER DEFAULT 1,
+                digest_frequency TEXT DEFAULT 'immediate',
+                quiet_hours_start TEXT,
+                quiet_hours_end TEXT,
+                notification_types TEXT,
+                updated_at TEXT
+            )
+        """
+        )
+
         # Indexes
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_comments_entity ON comments(entity_type, entity_id)"
@@ -133,6 +171,9 @@ class CollaborationService:
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_mentions_user ON mentions(mentioned_user)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_notifications_status ON notification_queue(status)"
         )
 
         conn.commit()
