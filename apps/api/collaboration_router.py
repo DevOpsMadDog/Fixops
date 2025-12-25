@@ -1,5 +1,6 @@
 """Team Collaboration API endpoints - Comments, watchers, activity feeds."""
 
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -456,24 +457,30 @@ def update_notification_preferences(
 
 
 class DeliverNotificationRequest(BaseModel):
-    """Request to deliver a specific notification."""
+    """Request to deliver a specific notification.
+
+    Note: SMTP password should be configured via FIXOPS_SMTP_PASSWORD environment
+    variable for security. Do not pass credentials in request bodies.
+    """
 
     slack_webhook: Optional[str] = None
     email_smtp_host: Optional[str] = None
     email_smtp_port: Optional[int] = 587
     email_smtp_user: Optional[str] = None
-    email_smtp_password: Optional[str] = None
     email_from: Optional[str] = None
 
 
 class ProcessNotificationsRequest(BaseModel):
-    """Request to process pending notifications."""
+    """Request to process pending notifications.
+
+    Note: SMTP password should be configured via FIXOPS_SMTP_PASSWORD environment
+    variable for security. Do not pass credentials in request bodies.
+    """
 
     slack_webhook: Optional[str] = None
     email_smtp_host: Optional[str] = None
     email_smtp_port: Optional[int] = 587
     email_smtp_user: Optional[str] = None
-    email_smtp_password: Optional[str] = None
     email_from: Optional[str] = None
     limit: int = 100
 
@@ -491,11 +498,12 @@ def deliver_notification(
 
     email_config = None
     if request.email_smtp_host and request.email_smtp_user:
+        smtp_password = os.environ.get("FIXOPS_SMTP_PASSWORD")
         email_config = {
             "smtp_host": request.email_smtp_host,
             "smtp_port": request.email_smtp_port,
             "smtp_user": request.email_smtp_user,
-            "smtp_password": request.email_smtp_password,
+            "smtp_password": smtp_password,
             "from_email": request.email_from,
         }
 
@@ -522,11 +530,12 @@ def process_pending_notifications(
 
     email_config = None
     if request.email_smtp_host and request.email_smtp_user:
+        smtp_password = os.environ.get("FIXOPS_SMTP_PASSWORD")
         email_config = {
             "smtp_host": request.email_smtp_host,
             "smtp_port": request.email_smtp_port,
             "smtp_user": request.email_smtp_user,
-            "smtp_password": request.email_smtp_password,
+            "smtp_password": smtp_password,
             "from_email": request.email_from,
         }
 
