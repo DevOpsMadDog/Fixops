@@ -6,7 +6,7 @@
 
 ## Executive Summary: Survival Probability
 
-### **Survival Score: 72/100** ⚠️ **MODERATE RISK**
+### **Survival Score: 75/100** ⚠️ **MODERATE RISK**
 
 | Factor | Score | Weight | Weighted |
 |--------|-------|--------|----------|
@@ -18,7 +18,7 @@
 | **Community/Adoption** | 40/100 | 10% | 4.00 |
 | **Technical Debt** | 70/100 | 5% | 3.50 |
 
-### **Overall Survival Probability: 72/100** ⚠️
+### **Overall Survival Probability: 75/100** ⚠️
 
 **Verdict:** **Will survive IF** critical gaps are addressed. **High risk of dying off** if business model and adoption issues aren't resolved.
 
@@ -202,7 +202,7 @@
 
 #### 2.3 High Development Velocity (90/100) ✅
 **Strength:**
-- **1,994 commits** in last 25 days (Dec 2024 - Dec 2025)
+- **1,994 commits** in last 12 months (Dec 2024 - Dec 2025)
 - Active development (4-5 developers)
 - Recent improvements (PR #222, PR #221, PR #212)
 - Security hardening, testing improvements

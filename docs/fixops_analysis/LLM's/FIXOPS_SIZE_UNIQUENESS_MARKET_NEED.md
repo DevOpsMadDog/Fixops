@@ -205,7 +205,7 @@ Total:                234K LOC  (excluding tests/docs)
 - Correlation engine reduces noise by 35%
 - Automated prioritization based on exploitability
 
-**Market Impact:** Saves $150K-300K per year per security team (2-4 hours/day × $150/hr × 250 days)
+**Market Impact:** Saves $75K-150K per year per security team (2-4 hours/day × $150/hr × 250 days)
 
 ---
 

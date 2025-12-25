@@ -6,7 +6,7 @@
 
 ## Executive Summary: Australia Market Need
 
-### **Australia Market Need Score: 88/100** ✅ **VERY HIGH**
+### **Australia Market Need Score: 89/100** ✅ **VERY HIGH**
 
 | Factor | Score | Weight | Weighted |
 |--------|-------|--------|----------|
@@ -16,14 +16,14 @@
 | **On-Prem Requirement** | 95/100 | 15% | 14.25 |
 | **Alert Fatigue** | 85/100 | 15% | 12.75 |
 
-### **Overall Score: 88/100** ✅
+### **Overall Score: 89/100** ✅
 
 **Verdict:** ✅ **YES - FixOps is CRITICALLY NEEDED for Australia**
 
 **Key Reasons:**
 1. ✅ **ACSC Essential Eight** requires vulnerability management (FixOps provides)
 2. ✅ **APRA CPS 234** requires evidence of security controls (FixOps provides)
-3. ✅ **PSI DSS** requires secure software development (FixOps provides)
+3. ✅ **PSPF (Protective Security Policy Framework)** requires secure software development (FixOps provides)
 4. ✅ **Government/Defense** requires on-prem/air-gapped (FixOps provides)
 5. ✅ **Financial Services** require evidence-based decisions (FixOps provides)
 
@@ -37,7 +37,7 @@
 |------------|-----------|-------------|------------|
 | **ACSC Essential Eight** | ACSC | Vulnerability management, evidence | ✅ Perfect fit |
 | **APRA CPS 234** | APRA | Evidence of security controls | ✅ Perfect fit |
-| **PSI DSS** | ACSC | Secure software development | ✅ Perfect fit |
+| **PSPF (Protective Security Policy Framework)** | AGD | Secure software development | ✅ Perfect fit |
 | **ISM (Information Security Manual)** | ACSC | Security controls, evidence | ✅ Perfect fit |
 | **Privacy Act 1988** | OAIC | Data protection, evidence | ✅ Good fit |
 | **Notifiable Data Breaches** | OAIC | Breach prevention, evidence | ✅ Good fit |
@@ -88,7 +88,7 @@
 
 ---
 
-### 1.3 PSI DSS (Protective Security Information)
+### 1.3 PSPF (Protective Security Policy Framework)
 
 **What It Requires:**
 - **Secure Software Development**: "Secure coding practices must be implemented"
@@ -105,7 +105,7 @@
 - ✅ **Compliance Automation**: Auto-generated audit artifacts
 - ✅ **On-Prem Deployment**: Required for government/defense
 
-**Market Impact:** 🔴 **CRITICAL** - PSI DSS is mandatory for Australian government and defense contractors
+**Market Impact:** 🔴 **CRITICAL** - PSPF is mandatory for Australian government and defense contractors
 
 **Australian Market:** ~500+ government agencies and defense contractors
 
@@ -139,7 +139,7 @@
 | Segment | Size (AUD) | Growth | FixOps Addressable |
 |---------|------------|--------|-------------------|
 | **Financial Services** | $2.5B | 12% YoY | ✅ Perfect fit (APRA CPS 234) |
-| **Government/Defense** | $1.8B | 15% YoY | ✅ Perfect fit (PSI DSS, ISM) |
+| **Government/Defense** | $1.8B | 15% YoY | ✅ Perfect fit (PSPF, ISM) |
 | **Critical Infrastructure** | $1.2B | 18% YoY | ✅ Perfect fit (Essential Eight) |
 | **Healthcare** | $800M | 14% YoY | ✅ Good fit (Privacy Act) |
 | **Energy/Utilities** | $600M | 16% YoY | ✅ Good fit (Essential Eight) |
@@ -168,10 +168,10 @@
 
 ---
 
-#### 2. Government/Defense (PSI DSS, ISM)
+#### 2. Government/Defense (PSPF, ISM)
 - **Market Size:** $1.8B AUD
 - **Key Players:** Federal/state government, defense contractors
-- **Regulatory Requirement:** PSI DSS, ISM (secure software development)
+- **Regulatory Requirement:** PSPF, ISM (secure software development)
 - **FixOps Fit:** ✅ **PERFECT** - On-prem/air-gapped, evidence bundles
 
 **Key Customers:**
@@ -223,7 +223,7 @@
 - **Government/Defense**: Requires air-gapped deployment (no cloud)
 - **Financial Services**: APRA requires on-prem for sensitive data
 - **Critical Infrastructure**: Essential Eight requires on-prem for critical systems
-- **Defense Contractors**: PSI DSS requires air-gapped for classified systems
+- **Defense Contractors**: PSPF requires air-gapped for classified systems
 
 **Market Size:** ~40% of Australian market requires on-prem/air-gapped
 
@@ -235,7 +235,7 @@
 
 **Why It's Critical in Australia:**
 - **APRA CPS 234**: Requires evidence of security controls
-- **PSI DSS**: Requires evidence of secure development
+- **PSPF**: Requires evidence of secure development
 - **Essential Eight**: Requires evidence of vulnerability management
 - **ISM**: Requires evidence of security controls
 
@@ -249,7 +249,7 @@
 
 **Why It's Critical in Australia:**
 - **APRA CPS 234**: Mandatory for financial services
-- **PSI DSS**: Mandatory for government/defense
+- **PSPF**: Mandatory for government/defense
 - **Essential Eight**: Mandatory for critical infrastructure
 - **ISM**: Mandatory for government
 
@@ -266,7 +266,7 @@
 #### 1. Regulatory Compliance (80% of enterprises) 🔴
 **Problem:**
 - APRA CPS 234 requires evidence of security controls
-- PSI DSS requires evidence of secure development
+- PSPF requires evidence of secure development
 - Essential Eight requires evidence of vulnerability management
 - ISM requires evidence of security controls
 - Auditors reject opaque risk scores
@@ -330,10 +330,10 @@
 
 ---
 
-#### Tier 2: Government/Defense (PSI DSS, ISM)
+#### Tier 2: Government/Defense (PSPF, ISM)
 - **Market Size:** $1.8B AUD
 - **Key Customers:** Federal/state government, defense contractors
-- **Regulatory Requirement:** PSI DSS, ISM
+- **Regulatory Requirement:** PSPF, ISM
 - **FixOps Fit:** ✅ **PERFECT**
 - **Estimated Customers:** 500+ entities
 
@@ -362,7 +362,7 @@
 
 #### 1. Regulatory Compliance ✅
 - **APRA CPS 234**: FixOps provides evidence bundles (competitors don't)
-- **PSI DSS**: FixOps provides secure development evidence (competitors don't)
+- **PSPF**: FixOps provides secure development evidence (competitors don't)
 - **Essential Eight**: FixOps provides vulnerability management evidence (competitors don't)
 - **ISM**: FixOps provides security control evidence (competitors don't)
 
@@ -381,7 +381,7 @@
 
 #### 3. Evidence Bundles ✅
 - **APRA CPS 234**: Requires evidence (FixOps provides, competitors don't)
-- **PSI DSS**: Requires evidence (FixOps provides, competitors don't)
+- **PSPF**: Requires evidence (FixOps provides, competitors don't)
 - **Essential Eight**: Requires evidence (FixOps provides, competitors don't)
 
 **Advantage:** ✅ **TECHNICAL MOAT** - Cryptographically-signed evidence is hard to replicate
@@ -409,7 +409,7 @@
 **Target:** Federal/state government, defense contractors
 
 **Strategy:**
-- ✅ Emphasize PSI DSS/ISM compliance (evidence bundles)
+- ✅ Emphasize PSPF/ISM compliance (evidence bundles)
 - ✅ Highlight air-gapped deployment (required for classified systems)
 - ✅ Target government procurement
 - ✅ Partner with defense contractors
@@ -448,7 +448,7 @@
 ### **Key Reasons:**
 
 1. ✅ **APRA CPS 234** - Requires evidence of security controls (FixOps provides)
-2. ✅ **PSI DSS** - Requires evidence of secure development (FixOps provides)
+2. ✅ **PSPF** - Requires evidence of secure development (FixOps provides)
 3. ✅ **Essential Eight** - Requires vulnerability management evidence (FixOps provides)
 4. ✅ **ISM** - Requires evidence of security controls (FixOps provides)
 5. ✅ **On-Prem Requirement** - 40% of market requires on-prem (FixOps provides, competitors don't)
@@ -471,7 +471,7 @@
 
 **✅ Australia is a CRITICAL market for FixOps** - Strong regulatory requirements, large market size, and competitive gaps create significant opportunity.
 
-**Action Required:** 🔴 **CRITICAL** - Enter Australian market immediately, focus on financial services (APRA CPS 234) and government/defense (PSI DSS, ISM).
+**Action Required:** 🔴 **CRITICAL** - Enter Australian market immediately, focus on financial services (APRA CPS 234) and government/defense (PSPF, ISM).
 
 ---
 
