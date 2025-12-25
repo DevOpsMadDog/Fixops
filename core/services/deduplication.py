@@ -325,6 +325,44 @@ class DeduplicationService:
         finally:
             conn.close()
 
+    def get_cluster_events(
+        self, cluster_id: str, limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get events belonging to a cluster.
+
+        Returns the raw findings associated with a cluster, parsed from JSON.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT event_id, cluster_id, run_id, source, raw_finding, timestamp
+                FROM events
+                WHERE cluster_id = ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+                """,
+                (cluster_id, limit),
+            )
+            rows = cursor.fetchall()
+            events = []
+            for row in rows:
+                event = dict(row)
+                # Parse raw_finding JSON if present
+                raw = event.get("raw_finding")
+                if raw:
+                    try:
+                        parsed = json.loads(raw)
+                        event.update(parsed)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                events.append(event)
+            return events
+        finally:
+            conn.close()
+
     def get_clusters(
         self,
         org_id: str,
@@ -916,13 +954,13 @@ class DeduplicationService:
                 }
 
             elif feedback_type == "split_cluster":
-                # Mark cluster for manual review
+                # Mark cluster for manual review (use IN_PROGRESS as review status)
                 cursor.execute(
                     """
-                    UPDATE clusters SET status = 'needs_review'
+                    UPDATE clusters SET status = ?
                     WHERE cluster_id = ?
                 """,
-                    (cluster_id,),
+                    (ClusterStatus.IN_PROGRESS.value, cluster_id),
                 )
                 action_result = {"action": "marked_for_review"}
 

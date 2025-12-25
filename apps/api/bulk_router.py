@@ -579,7 +579,12 @@ async def get_job_status(job_id: str):
         completed_at=job["completed_at"],
         results=(
             job["results"]
-            if job["status"] in [JobStatus.COMPLETED.value, JobStatus.PARTIAL.value]
+            if job["status"]
+            in [
+                JobStatus.COMPLETED.value,
+                JobStatus.PARTIAL.value,
+                JobStatus.CANCELLED.value,
+            ]
             else None
         ),
         errors=job["errors"],

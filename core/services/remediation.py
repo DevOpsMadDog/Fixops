@@ -1,12 +1,15 @@
 """Remediation Lifecycle Management - Track remediation tasks with SLA."""
 
 import json
+import logging
 import sqlite3
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class RemediationStatus(str, Enum):
@@ -900,10 +903,19 @@ class RemediationService:
                             results["notifications_sent"].append(
                                 {"task_id": breach["task_id"], "type": "sla_breach"}
                             )
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to send SLA breach notification for task "
+                                f"{breach['task_id']}: {e}"
+                            )
+                            results.setdefault("notification_failures", []).append(
+                                {"task_id": breach["task_id"], "error": str(e)}
+                            )
+                except Exception as e:
+                    logger.error(f"Failed to escalate task {breach['task_id']}: {e}")
+                    results.setdefault("escalation_failures", []).append(
+                        {"task_id": breach["task_id"], "error": str(e)}
+                    )
 
         # Check for tasks approaching SLA breach (24h warning)
         approaching = self.get_approaching_sla(org_id, hours_threshold=24)
@@ -931,8 +943,14 @@ class RemediationService:
                     results["notifications_sent"].append(
                         {"task_id": task["task_id"], "type": "sla_warning"}
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to send SLA warning notification for task "
+                        f"{task['task_id']}: {e}"
+                    )
+                    results.setdefault("notification_failures", []).append(
+                        {"task_id": task["task_id"], "error": str(e)}
+                    )
 
         return results
 
@@ -1064,7 +1082,8 @@ class SLAScheduler:
         while self._running:
             try:
                 logger.info("Running scheduled SLA check")
-                results = self.run_check_all_orgs(org_ids)
+                # Run blocking DB operations in thread pool to avoid blocking event loop
+                results = await asyncio.to_thread(self.run_check_all_orgs, org_ids)
                 logger.info(
                     f"SLA check complete: {results['total_breaches']} breaches, "
                     f"{results['total_escalations']} escalations, "

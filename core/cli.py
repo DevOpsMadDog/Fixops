@@ -4562,8 +4562,9 @@ def build_parser() -> argparse.ArgumentParser:
             "assigned",
             "in_progress",
             "verification",
-            "closed",
+            "resolved",
             "deferred",
+            "wont_fix",
         ],
         help="New status",
     )

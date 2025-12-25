@@ -272,18 +272,19 @@ class IdentityResolver:
         category = finding.get("category", "")
 
         # Determine the normalized rule/control identifier based on category
+        cve_id = finding.get("cve_id", "")
         if category in ("sast", "code", "secrets"):
             normalized_id = self.normalize_rule_id(finding)
         elif category in ("cspm", "iac", "cloud", "posture"):
             normalized_id = self.normalize_control_id(finding)
         else:
-            # For SCA/other, use CVE ID or rule_id as-is
-            normalized_id = finding.get("cve_id", "") or finding.get("rule_id", "")
+            # For SCA/other, use rule_id only (cve_id is added separately)
+            normalized_id = finding.get("rule_id", "")
 
         parts = [
             category,
-            finding.get("cve_id", ""),
-            normalized_id,
+            cve_id,
+            normalized_id if normalized_id != cve_id else "",  # Avoid duplication
             finding.get("app_id", ""),
             finding.get("component_id", ""),
             self._normalize_location(finding),

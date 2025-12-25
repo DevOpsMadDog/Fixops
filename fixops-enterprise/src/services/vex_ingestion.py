@@ -530,16 +530,47 @@ class VEXIngestor:
         return None
 
     def _purl_matches(self, assertion_purl: str, finding_purl: str) -> bool:
-        """Check if purls match (allowing version flexibility)."""
+        """Check if purls match (allowing version flexibility).
 
-        def extract_name(purl: str) -> str:
+        PURLs have format: pkg:type/namespace/name@version
+        We must match both the package type (ecosystem) and name to avoid
+        false positives across different ecosystems (e.g., npm vs pypi).
+        """
+
+        def parse_purl(purl: str) -> tuple[str, str]:
+            """Extract type and name from purl, returns (type, name)."""
+            # Remove version if present
             if "@" in purl:
                 purl = purl.split("@")[0]
-            if "/" in purl:
-                return purl.split("/")[-1]
-            return purl
 
-        return extract_name(assertion_purl) == extract_name(finding_purl)
+            # Extract type (ecosystem) - format is pkg:type/...
+            pkg_type = ""
+            if purl.startswith("pkg:"):
+                purl = purl[4:]  # Remove "pkg:" prefix
+                if "/" in purl:
+                    pkg_type = purl.split("/")[0]
+
+            # Extract name (last component)
+            if "/" in purl:
+                name = purl.split("/")[-1]
+            else:
+                name = purl
+
+            return (pkg_type.lower(), name.lower())
+
+        assertion_type, assertion_name = parse_purl(assertion_purl)
+        finding_type, finding_name = parse_purl(finding_purl)
+
+        # Names must match
+        if assertion_name != finding_name:
+            return False
+
+        # If both have types, they must match
+        if assertion_type and finding_type:
+            return assertion_type == finding_type
+
+        # If only one has a type, allow match (backward compatibility)
+        return True
 
     def _record_suppression(
         self, finding_id: str, assertion_id: str, reason: str

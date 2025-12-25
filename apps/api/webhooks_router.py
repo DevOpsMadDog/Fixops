@@ -3,13 +3,14 @@
 import hashlib
 import hmac
 import json
+import os
 import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
@@ -213,21 +214,14 @@ def _detect_drift(
 
 
 @router.post("/jira")
-async def receive_jira_webhook(
-    request: Request,
+def receive_jira_webhook(
+    payload: JiraWebhookPayload,
     x_atlassian_webhook_identifier: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
     """Receive webhook events from Jira for bidirectional sync."""
-    body = await request.body()
-
-    try:
-        payload_dict = json.loads(body)
-        payload = JiraWebhookPayload(**payload_dict)
-    except (json.JSONDecodeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
-
     event_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
+    payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
     try:
@@ -315,18 +309,11 @@ async def receive_jira_webhook(
 
 
 @router.post("/servicenow")
-async def receive_servicenow_webhook(request: Request) -> Dict[str, Any]:
+def receive_servicenow_webhook(payload: ServiceNowWebhookPayload) -> Dict[str, Any]:
     """Receive webhook events from ServiceNow for bidirectional sync."""
-    body = await request.body()
-
-    try:
-        payload_dict = json.loads(body)
-        payload = ServiceNowWebhookPayload(**payload_dict)
-    except (json.JSONDecodeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
-
     event_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
+    payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
     try:
@@ -967,7 +954,7 @@ def retry_outbox_item(outbox_id: str) -> Dict[str, Any]:
         cursor.execute(
             """
             UPDATE outbox
-            SET status = 'pending', next_retry_at = NULL, last_error = NULL
+            SET status = 'pending', retry_count = 0, next_retry_at = NULL, last_error = NULL
             WHERE outbox_id = ?
         """,
             (outbox_id,),
@@ -1073,9 +1060,14 @@ def _map_gitlab_labels_to_status(labels: List[Dict[str, Any]]) -> Optional[str]:
     return None
 
 
+def _get_gitlab_webhook_secret() -> Optional[str]:
+    """Get configured GitLab webhook secret from environment."""
+    return os.environ.get("FIXOPS_GITLAB_WEBHOOK_SECRET")
+
+
 @router.post("/gitlab")
-async def receive_gitlab_webhook(
-    request: Request,
+def receive_gitlab_webhook(
+    payload: GitLabWebhookPayload,
     x_gitlab_token: Optional[str] = Header(None),
     x_gitlab_event: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
@@ -1083,16 +1075,23 @@ async def receive_gitlab_webhook(
 
     Supports GitLab issue events for ALM integration with vulnerability tracking.
     """
-    body = await request.body()
-
-    try:
-        payload_dict = json.loads(body)
-        payload = GitLabWebhookPayload(**payload_dict)
-    except (json.JSONDecodeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
+    # Validate GitLab webhook token if configured
+    expected_secret = _get_gitlab_webhook_secret()
+    if expected_secret:
+        if not x_gitlab_token:
+            raise HTTPException(
+                status_code=401,
+                detail="Missing X-Gitlab-Token header",
+            )
+        if not hmac.compare_digest(x_gitlab_token, expected_secret):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid X-Gitlab-Token",
+            )
 
     event_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
+    payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
     try:
@@ -1218,21 +1217,14 @@ def _map_azure_state_to_fixops(state: str) -> str:
 
 
 @router.post("/azure-devops")
-async def receive_azure_devops_webhook(request: Request) -> Dict[str, Any]:
+def receive_azure_devops_webhook(payload: AzureDevOpsWebhookPayload) -> Dict[str, Any]:
     """Receive webhook events from Azure DevOps for bidirectional sync.
 
     Supports Azure DevOps work item events for ALM integration.
     """
-    body = await request.body()
-
-    try:
-        payload_dict = json.loads(body)
-        payload = AzureDevOpsWebhookPayload(**payload_dict)
-    except (json.JSONDecodeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
-
     event_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
+    payload_dict = payload.model_dump()
 
     conn = sqlite3.connect(_get_db_path())
     try:
@@ -1241,11 +1233,12 @@ async def receive_azure_devops_webhook(request: Request) -> Dict[str, Any]:
         resource = payload.resource or {}
         work_item_id = resource.get("id")
         project = resource.get("fields", {}).get("System.TeamProject")
-        external_id = (
-            f"{project}/{work_item_id}"
-            if project and work_item_id
-            else str(work_item_id)
-        )
+        if work_item_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing work item ID in webhook payload",
+            )
+        external_id = f"{project}/{work_item_id}" if project else str(work_item_id)
 
         cursor.execute(
             """
@@ -1331,7 +1324,7 @@ class CreateWorkItemRequest(BaseModel):
     """Request to create a work item in an ALM system."""
 
     cluster_id: str
-    integration_type: str  # gitlab, azure_devops, jira, servicenow
+    integration_type: Literal["gitlab", "azure_devops", "jira", "servicenow"]
     title: str
     description: Optional[str] = None
     severity: Optional[str] = None

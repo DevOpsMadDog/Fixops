@@ -191,6 +191,15 @@ def get_watched_entities(
 def record_activity(request: RecordActivityRequest) -> Dict[str, Any]:
     """Record an activity in the feed."""
     try:
+        EntityType(request.entity_type)
+    except ValueError:
+        valid_entity_types = [t.value for t in EntityType]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid entity_type. Must be one of: {valid_entity_types}",
+        )
+
+    try:
         ActivityType(request.activity_type)
     except ValueError:
         valid_types = [t.value for t in ActivityType]
@@ -365,6 +374,13 @@ def notify_watchers(request: NotifyWatchersRequest) -> Dict[str, Any]:
     2. Queues notifications for each watcher
     3. Returns summary of notifications queued
     """
+    valid_priorities = ["low", "normal", "high", "urgent"]
+    if request.priority not in valid_priorities:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid priority. Must be one of: {valid_priorities}",
+        )
+
     service = get_collab_service()
     return service.notify_watchers(
         entity_type=request.entity_type,

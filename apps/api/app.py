@@ -1403,12 +1403,14 @@ def create_app() -> FastAPI:
 
         rows = []
         for cluster in clusters:
-            # Use cluster data directly (no separate events query needed)
-            events: List[Dict[str, Any]] = []  # Events are embedded in cluster metadata
+            # Fetch events for this cluster from the deduplication service
+            events: List[Dict[str, Any]] = dedup_service.get_cluster_events(
+                cluster["cluster_id"]
+            )
 
-            # Compute severity (highest among events)
+            # Compute severity (highest among events, fallback to cluster metadata)
             severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}
-            max_severity = "low"
+            max_severity = cluster.get("severity", "low")
             for event in events:
                 event_severity = event.get("severity", "low")
                 if severity_order.get(event_severity, 0) > severity_order.get(

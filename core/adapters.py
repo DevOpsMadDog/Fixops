@@ -494,7 +494,7 @@ class TrivyAdapter(_BaseAdapter):
         try:
             # Load report from file or URL
             if self.report_path:
-                with open(self.report_path, "r") as f:
+                with open(self.report_path, "r", encoding="utf-8") as f:
                     report = json.load(f)
             else:
                 headers = {}
@@ -650,7 +650,7 @@ class ProwlerAdapter(_BaseAdapter):
         try:
             # Load report from file or URL
             if self.report_path:
-                with open(self.report_path, "r") as f:
+                with open(self.report_path, "r", encoding="utf-8") as f:
                     report = json.load(f)
             else:
                 headers = {}
@@ -754,7 +754,7 @@ class OWASPZAPAdapter(_BaseAdapter):
         try:
             if self.report_path:
                 # Parse JSON report
-                with open(self.report_path, "r") as f:
+                with open(self.report_path, "r", encoding="utf-8") as f:
                     report = json.load(f)
                 alerts = report.get("site", [{}])[0].get("alerts", [])
             else:
@@ -862,7 +862,7 @@ class SemgrepAdapter(_BaseAdapter):
         try:
             if self.report_path:
                 # Parse local JSON report
-                with open(self.report_path, "r") as f:
+                with open(self.report_path, "r", encoding="utf-8") as f:
                     report = json.load(f)
                 results = report.get("results", [])
             else:
@@ -989,7 +989,7 @@ class CheckovAdapter(_BaseAdapter):
         try:
             if self.report_path:
                 # Parse local JSON report
-                with open(self.report_path, "r") as f:
+                with open(self.report_path, "r", encoding="utf-8") as f:
                     report = json.load(f)
             else:
                 # Fetch from Bridgecrew API

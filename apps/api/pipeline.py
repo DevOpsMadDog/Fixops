@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
+import sqlite3
 import uuid
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+
+logger = logging.getLogger(__name__)
 
 from core.ai_agents import AIAgentAdvisor
 from core.analytics import ROIDashboard
@@ -1108,9 +1112,9 @@ class PipelineOrchestrator:
                                 org_id,
                                 source="deploy",
                             )
-                except Exception:
+                except (sqlite3.OperationalError, FileNotFoundError) as e:
                     # IaC DB may not be initialized, skip deploy findings
-                    pass
+                    logger.debug(f"Skipping deploy findings deduplication: {e}")
 
                 # Calculate overall deduplication summary
                 total_findings = (

@@ -2,9 +2,12 @@
 
 import json
 import re
+import smtplib
 import sqlite3
 import uuid
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -1039,10 +1042,6 @@ class CollaborationService:
         - from_email: Sender email address
         """
         try:
-            import smtplib
-            from email.mime.multipart import MIMEMultipart
-            from email.mime.text import MIMEText
-
             smtp_host = config.get("smtp_host")
             smtp_port = config.get("smtp_port", 587)
             smtp_user = config.get("smtp_user")
@@ -1056,11 +1055,15 @@ class CollaborationService:
                     "error": "Email configuration incomplete",
                 }
 
-            # Type assertions after validation
-            assert isinstance(smtp_host, str)
-            assert isinstance(smtp_user, str)
-            assert isinstance(smtp_password, str)
-            assert isinstance(from_email, str)
+            # Type checks after validation (safe even with -O flag)
+            if not isinstance(smtp_host, str):
+                raise TypeError("smtp_host must be a string")
+            if not isinstance(smtp_user, str):
+                raise TypeError("smtp_user must be a string")
+            if not isinstance(smtp_password, str):
+                raise TypeError("smtp_password must be a string")
+            if not isinstance(from_email, str):
+                raise TypeError("from_email must be a string")
 
             msg = MIMEMultipart()
             msg["From"] = from_email
