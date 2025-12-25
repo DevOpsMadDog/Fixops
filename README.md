@@ -81,6 +81,18 @@ FixOps is not a vulnerability scanner. It's the decision and evidence layer that
 
 **vs. ASPM Platforms (Apiiro, ArmorCode, Cycode)**: ASPM tools aggregate findings but still require manual triage. FixOps adds evidence automation and supports on-prem/air-gapped environments that SaaS-only platforms can't serve.
 
+**vs. CTEM (Continuous Threat Exposure Management)**: Most platforms cover only parts of the CTEM loop. FixOps delivers the complete cycle:
+
+| CTEM Phase | What It Means | How FixOps Delivers |
+|------------|---------------|---------------------|
+| **Discover/Ingest** | Identify all exposure sources | Universal SBOM/SARIF/CVE/VEX/CNAPP ingestion from any scanner |
+| **Prioritize** | Rank by real risk, not just CVSS | Multi-LLM consensus + EPSS/KEV enrichment + business context weighting |
+| **Validate** | Confirm exploitability | Micro-Pentest Engine + reachability analysis with attack path mapping |
+| **Remediate** | Fix with tracking | Remediation lifecycle, SLA tracking, Jira/Slack integration, bulk operations |
+| **Measure** | Prove progress | Signed evidence bundles, compliance dashboards, MTTR/coverage analytics |
+
+Competitors typically stop at Prioritize (RBVM) or Discover+Prioritize (ASPM). FixOps closes the loop with Validate, Remediate, and Measure - all with cryptographic proof.
+
 ### Risk-Based + Evidence-Based Philosophy
 
 Moving beyond opaque risk scores to auditable, cryptographically signed decisions.
