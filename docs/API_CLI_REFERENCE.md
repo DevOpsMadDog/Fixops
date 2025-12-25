@@ -382,7 +382,7 @@ These API-only features are typically used by the web UI or require interactive 
 
 ## ENTERPRISE FEATURES (Implemented)
 
-### DEDUPLICATION & CORRELATION (10 API Endpoints)
+### DEDUPLICATION & CORRELATION (17 API Endpoints)
 
 | # | API Endpoint | Method | Description |
 |---|--------------|--------|-------------|
@@ -395,9 +395,18 @@ These API-only features are typically used by the web UI or require interactive 
 | 7 | `/api/v1/deduplication/clusters/{cluster_id}/ticket` | PUT | Link cluster to external ticket |
 | 8 | `/api/v1/deduplication/clusters/{cluster_id}/related` | GET | Get related clusters via correlation links |
 | 9 | `/api/v1/deduplication/correlations` | POST | Create correlation link between clusters |
-| 10 | `/api/v1/deduplication/stats/{org_id}` | GET | Get deduplication statistics |
+| 10 | `/api/v1/deduplication/stats/{org_id}` | GET | Get deduplication statistics by org |
+| 11 | `/api/v1/deduplication/stats` | GET | Get global deduplication statistics (CLI-compatible) |
+| 12 | `/api/v1/deduplication/clusters/merge` | POST | Merge multiple clusters into target cluster |
+| 13 | `/api/v1/deduplication/clusters/{cluster_id}/split` | POST | Split cluster by moving events to new clusters |
+| 14 | `/api/v1/deduplication/graph` | GET | Get correlation graph for visualization |
+| 15 | `/api/v1/deduplication/feedback` | POST | Record operator feedback for correlation corrections |
+| 16 | `/api/v1/deduplication/baseline` | GET | Get baseline comparison (NEW/EXISTING/FIXED) |
+| 17 | `/api/v1/deduplication/cross-stage` | POST | Correlate findings across lifecycle stages |
 
-### REMEDIATION LIFECYCLE (10 API Endpoints)
+**CLI Commands:** `fixops correlation analyze`, `fixops correlation stats`, `fixops correlation graph`, `fixops correlation feedback`, `fixops groups list`, `fixops groups get`, `fixops groups merge`, `fixops groups unmerge`
+
+### REMEDIATION LIFECYCLE (13 API Endpoints)
 
 | # | API Endpoint | Method | Description |
 |---|--------------|--------|-------------|
@@ -405,12 +414,17 @@ These API-only features are typically used by the web UI or require interactive 
 | 2 | `/api/v1/remediation/tasks` | GET | List tasks with filters (org_id, app_id, status, severity) |
 | 3 | `/api/v1/remediation/tasks/{task_id}` | GET | Get specific task details |
 | 4 | `/api/v1/remediation/tasks/{task_id}/status` | PUT | Update task status (state machine enforced) |
-| 5 | `/api/v1/remediation/tasks/{task_id}/assign` | PUT | Assign task to user |
-| 6 | `/api/v1/remediation/tasks/{task_id}/verification` | POST | Submit verification evidence |
-| 7 | `/api/v1/remediation/tasks/{task_id}/ticket` | PUT | Link task to external ticket |
-| 8 | `/api/v1/remediation/sla/check` | POST | Check for SLA breaches |
-| 9 | `/api/v1/remediation/metrics/{org_id}` | GET | Get MTTR and SLA compliance metrics |
-| 10 | `/api/v1/remediation/statuses` | GET | List valid status values and transitions |
+| 5 | `/api/v1/remediation/tasks/{task_id}/transition` | PUT | Transition task status (CLI-compatible alias) |
+| 6 | `/api/v1/remediation/tasks/{task_id}/assign` | PUT | Assign task to user |
+| 7 | `/api/v1/remediation/tasks/{task_id}/verification` | POST | Submit verification evidence |
+| 8 | `/api/v1/remediation/tasks/{task_id}/verify` | POST | Verify task (CLI-compatible alias) |
+| 9 | `/api/v1/remediation/tasks/{task_id}/ticket` | PUT | Link task to external ticket |
+| 10 | `/api/v1/remediation/sla/check` | POST | Check for SLA breaches |
+| 11 | `/api/v1/remediation/metrics/{org_id}` | GET | Get MTTR and SLA compliance metrics by org |
+| 12 | `/api/v1/remediation/metrics` | GET | Get global remediation metrics (CLI-compatible) |
+| 13 | `/api/v1/remediation/statuses` | GET | List valid status values and transitions |
+
+**CLI Commands:** `fixops remediation list`, `fixops remediation get`, `fixops remediation assign`, `fixops remediation transition`, `fixops remediation verify`, `fixops remediation metrics`
 
 **State Machine:** OPEN → ASSIGNED → IN_PROGRESS → VERIFICATION → RESOLVED (with DEFERRED and WONT_FIX branches)
 
