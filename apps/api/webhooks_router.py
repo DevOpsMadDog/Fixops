@@ -860,6 +860,7 @@ def process_outbox_item(
             retry_count = item["retry_count"] + 1
             max_retries = item["max_retries"]
 
+            error_str = error or "Unknown error"
             if retry_count >= max_retries:
                 cursor.execute(
                     """
@@ -867,14 +868,14 @@ def process_outbox_item(
                     SET status = 'failed', retry_count = ?, last_error = ?, processed_at = ?
                     WHERE outbox_id = ?
                 """,
-                    (retry_count, error, now, outbox_id),
+                    (retry_count, error_str, now, outbox_id),
                 )
                 result = {
                     "outbox_id": outbox_id,
                     "status": "failed",
                     "retry_count": retry_count,
                     "max_retries": max_retries,
-                    "error": error,
+                    "error": error_str,
                 }
             else:
                 next_retry = _calculate_next_retry(retry_count)
@@ -884,7 +885,7 @@ def process_outbox_item(
                     SET retry_count = ?, next_retry_at = ?, last_error = ?
                     WHERE outbox_id = ?
                 """,
-                    (retry_count, next_retry, error, outbox_id),
+                    (retry_count, next_retry, error_str, outbox_id),
                 )
                 result = {
                     "outbox_id": outbox_id,
@@ -892,7 +893,7 @@ def process_outbox_item(
                     "retry_count": retry_count,
                     "max_retries": max_retries,
                     "next_retry_at": next_retry,
-                    "error": error,
+                    "error": error_str,
                 }
 
         conn.commit()

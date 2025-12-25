@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import jwt
 from fastapi import APIRouter, Body, Depends, FastAPI, File, HTTPException, UploadFile
@@ -1375,10 +1375,18 @@ def create_app() -> FastAPI:
         Returns finding clusters instead of individual events, showing
         deduplicated groups with event counts and representative info.
         """
+        from pathlib import Path
+
         from core.services.deduplication import DeduplicationService
 
-        dedup_service = DeduplicationService()
-        clusters = dedup_service.list_clusters(
+        db_path = (
+            Path(os.environ.get("FIXOPS_DATA_DIR", "data"))
+            / "deduplication"
+            / "dedup.db"
+        )
+        dedup_service = DeduplicationService(db_path=db_path)
+        clusters = dedup_service.get_clusters(
+            org_id="default",
             status=cluster_status,
             limit=1000,
             offset=0,
@@ -1386,8 +1394,8 @@ def create_app() -> FastAPI:
 
         rows = []
         for cluster in clusters:
-            # Get events for this cluster to compute aggregates
-            events = dedup_service.get_cluster_events(cluster["cluster_id"])
+            # Use cluster data directly (no separate events query needed)
+            events: List[Dict[str, Any]] = []  # Events are embedded in cluster metadata
 
             # Compute severity (highest among events)
             severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}

@@ -1054,6 +1054,12 @@ class CollaborationService:
                     "error": "Email configuration incomplete",
                 }
 
+            # Type assertions after validation
+            assert isinstance(smtp_host, str)
+            assert isinstance(smtp_user, str)
+            assert isinstance(smtp_password, str)
+            assert isinstance(from_email, str)
+
             msg = MIMEMultipart()
             msg["From"] = from_email
             msg["To"] = recipient
@@ -1083,13 +1089,11 @@ class CollaborationService:
         to deliver queued notifications.
         """
         pending = self.get_pending_notifications(limit=limit)
-        results = {
-            "processed": 0,
-            "sent": 0,
-            "failed": 0,
-            "no_channels": 0,
-            "details": [],
-        }
+        processed = 0
+        sent = 0
+        failed = 0
+        no_channels = 0
+        details: List[Dict[str, Any]] = []
 
         for notification in pending:
             result = self.deliver_notification(
@@ -1097,15 +1101,21 @@ class CollaborationService:
                 slack_webhook=slack_webhook,
                 email_config=email_config,
             )
-            results["processed"] += 1
+            processed += 1
 
             if result.get("status") == "sent":
-                results["sent"] += 1
+                sent += 1
             elif result.get("status") == "failed":
-                results["failed"] += 1
+                failed += 1
             else:
-                results["no_channels"] += 1
+                no_channels += 1
 
-            results["details"].append(result)
+            details.append(result)
 
-        return results
+        return {
+            "processed": processed,
+            "sent": sent,
+            "failed": failed,
+            "no_channels": no_channels,
+            "details": details,
+        }
