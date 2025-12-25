@@ -410,7 +410,7 @@ Total:                234K LOC  (excluding tests/docs)
 | **On-Prem Deployment** | $100K-300K | No SaaS subscription fees |
 | **Transparent Decisions** | $100K-300K | Reduced audit failures |
 
-**Total Annual Savings:** $750K-1.8M per enterprise
+**Total Annual Savings:** $675K-1.65M per enterprise
 
 ### FixOps Pricing Estimate:
 - **Enterprise License:** $100K-300K/year

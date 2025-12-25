@@ -211,7 +211,7 @@
 **Impact:** **HIGH** - Fast development shows project is alive and improving
 
 **Evidence:**
-- 1,994 commits in 25 days (~80 commits/day average)
+- 1,994 commits in 12 months (~5.5 commits/day average)
 - Recent PRs show active development
 - Security improvements, testing additions
 - Documentation updates
