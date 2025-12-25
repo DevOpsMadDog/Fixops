@@ -6,6 +6,18 @@
 
 FixOps is a DevSecOps decision and verification platform that operationalizes vulnerability management end-to-end. It ingests and normalizes security artifacts (SBOM, SARIF, CVE, VEX, CNAPP, plus business context), correlates them into an application-centric risk model via an interactive **Risk Graph** (linking services → components → CVEs/findings with KEV/EPSS enrichment), and produces release-gate outcomes (Allow/Block/Needs Review) through policy evaluation, multi-LLM consensus, and probabilistic forecasting. Every decision is packaged as exportable, cryptographically verifiable evidence for audit, triage, and long-term retention.
 
+**Beyond decision automation, FixOps provides:**
+- **Micro-Pentest Engine** - Automated vulnerability verification with multi-AI orchestration, attack simulation, and exploitability confidence scoring
+- **Transparent Risk Scoring** - Fully configurable risk parameters with visible weights, thresholds, and calculation breakdowns (no black-box scores)
+- **YAML-Based Configuration** - All platform behavior controlled via `fixops.overlay.yml` including risk models, feature toggles, and module enablement
+- **Compliance Marketplace** - Browse, purchase, and contribute compliance packs for SOC2, ISO 27001, PCI-DSS, NIST, and custom frameworks
+- **Compliance Testing** - Automated framework gap analysis, control status tracking, and audit report generation
+- **Reachability Analysis** - Determine if CVEs are actually reachable from attack surfaces with attack path mapping
+- **IaC & Secrets Scanning** - Infrastructure-as-Code analysis (Terraform, CloudFormation, Kubernetes) and secrets detection
+- **Analytics & ROI** - MTTR tracking, coverage metrics, noise reduction stats, and ROI dashboards
+- **Workflow Automation** - Custom automation rules with Jira, Confluence, Slack, and GitHub integrations
+- **IDE Integration** - Real-time code analysis plugins for developer workflows
+
 FixOps exposes this workflow through three first-class interfaces: a **REST API** (243+ endpoints across 22 router modules), a **CLI** (67 commands/subcommands), and a **modular UI** (27 micro-frontends) covering triage, risk graph exploration, compliance reporting, micro-pentest execution, reachability analysis, evidence management, and more—deployable on-prem or air-gapped as needed.
 
 ---
