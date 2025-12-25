@@ -8,13 +8,19 @@ FixOps is a DevSecOps decision and verification platform that operationalizes vu
 
 **Beyond decision automation, FixOps provides:**
 - **Micro-Pentest Engine** - Automated vulnerability verification with multi-AI orchestration, attack simulation, and exploitability confidence scoring
-- **Transparent Risk Scoring** - Fully configurable risk parameters with visible weights, thresholds, and calculation breakdowns (no black-box scores)
+- **Correlation Engine** - Intelligent finding deduplication with 5 correlation strategies (fingerprint, location, pattern, root-cause, vulnerability taxonomy) - reduces alert noise by clustering related findings into actionable units
+- **Explainable Verdicts** - Every decision includes feature attribution and natural-language narratives explaining WHY a finding received its risk score - no black-box outputs
+- **Transparent Risk Scoring** - Fully configurable risk parameters with visible weights, thresholds, and calculation breakdowns
+- **MITRE ATT&CK Mapping** - Automatic mapping of findings to 35+ MITRE techniques with business impact assessment and compliance framework correlation (PCI-DSS, SOX, HIPAA, NIST SSDF)
+- **SLSA v1 Provenance** - Supply-chain attestations for build artifacts with SHA-256 digests, builder verification, and tamper-evident audit trails
+- **Evidence Integrity Verification** - Immutable evidence lake with hash verification and RSA signature validation at retrieval time - not just signed once, verified always
 - **YAML-Based Configuration** - All platform behavior controlled via `fixops.overlay.yml` including risk models, feature toggles, and module enablement
 - **YAML Playbook Scripting** - Declarative automation via Playbooks, CompliancePacks, TestPacks, and MitigationPacks with 25+ pre-approved actions (OPA policy evaluation, evidence collection/signing, compliance checks, Jira/Slack/Confluence integrations, workflow control) - sandboxed execution with no arbitrary code
 - **Compliance Marketplace** - Browse, purchase, and contribute compliance packs for SOC2, ISO 27001, PCI-DSS, NIST, and custom frameworks
 - **Compliance Testing** - Automated framework gap analysis, control status tracking, and audit report generation
 - **Reachability Analysis** - Determine if CVEs are actually reachable from attack surfaces with attack path mapping
 - **IaC & Secrets Scanning** - Infrastructure-as-Code analysis (Terraform, CloudFormation, Kubernetes) and secrets detection
+- **Decision Regression Validation** - Golden regression store tracks historical decisions to detect drift when models or overlays change
 - **Analytics & ROI** - MTTR tracking, coverage metrics, noise reduction stats, and ROI dashboards
 - **Workflow Automation** - Custom automation rules with Jira, Confluence, Slack, and GitHub integrations
 - **IDE Integration** - Real-time code analysis plugins for developer workflows
