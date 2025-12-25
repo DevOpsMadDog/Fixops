@@ -1007,8 +1007,8 @@ class PipelineOrchestrator:
                 cnapp_dedup_result = None
                 if cnapp is not None:
                     cnapp_findings_for_dedup = []
-                    for finding in cnapp.findings:
-                        finding_dict = finding.to_dict()
+                    for cnapp_finding in cnapp.findings:
+                        finding_dict = cnapp_finding.to_dict()
                         finding_dict["category"] = "cnapp"
                         finding_dict["stage"] = "runtime"
                         cnapp_findings_for_dedup.append(finding_dict)
@@ -1097,7 +1097,7 @@ class PipelineOrchestrator:
 
                 enriched_crosswalk = []
                 for entry in crosswalk:
-                    enriched_entry = dict(entry)
+                    enriched_entry = entry.to_dict()
                     # Add cluster info to findings
                     if "findings" in enriched_entry:
                         enriched_findings = []

@@ -225,7 +225,7 @@ async def receive_jira_webhook(
             ),
         )
 
-        result = {
+        result: Dict[str, Any] = {
             "event_id": event_id,
             "status": "received",
             "event_type": payload.webhookEvent,
@@ -324,7 +324,7 @@ async def receive_servicenow_webhook(request: Request) -> Dict[str, Any]:
             ),
         )
 
-        result = {
+        result: Dict[str, Any] = {
             "event_id": event_id,
             "status": "received",
             "event_type": payload.event_type,
