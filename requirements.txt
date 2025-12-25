@@ -1,4 +1,4 @@
-fastapi>=0.110,<0.112
+fastapi>=0.115,<0.128
 pydantic>=2.6,<3.0
 requests>=2.32,<3.0
 pgmpy==0.1.24
