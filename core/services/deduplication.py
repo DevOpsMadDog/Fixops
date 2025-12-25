@@ -36,100 +36,106 @@ class DeduplicationService:
     def _init_db(self):
         """Initialize database schema for clusters and events."""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        # Finding clusters - deduplicated identity
-        cursor.execute(
+            # Finding clusters - deduplicated identity
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS clusters (
+                    cluster_id TEXT PRIMARY KEY,
+                    correlation_key TEXT NOT NULL UNIQUE,
+                    fingerprint TEXT NOT NULL,
+                    org_id TEXT NOT NULL,
+                    app_id TEXT NOT NULL,
+                    component_id TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    cve_id TEXT,
+                    rule_id TEXT,
+                    title TEXT,
+                    severity TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'open',
+                    first_seen TEXT NOT NULL,
+                    last_seen TEXT NOT NULL,
+                    occurrence_count INTEGER DEFAULT 1,
+                    assignee TEXT,
+                    ticket_id TEXT,
+                    ticket_url TEXT,
+                    metadata TEXT
+                )
             """
-            CREATE TABLE IF NOT EXISTS clusters (
-                cluster_id TEXT PRIMARY KEY,
-                correlation_key TEXT NOT NULL UNIQUE,
-                fingerprint TEXT NOT NULL,
-                org_id TEXT NOT NULL,
-                app_id TEXT NOT NULL,
-                component_id TEXT NOT NULL,
-                category TEXT NOT NULL,
-                cve_id TEXT,
-                rule_id TEXT,
-                title TEXT,
-                severity TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'open',
-                first_seen TEXT NOT NULL,
-                last_seen TEXT NOT NULL,
-                occurrence_count INTEGER DEFAULT 1,
-                assignee TEXT,
-                ticket_id TEXT,
-                ticket_url TEXT,
-                metadata TEXT
             )
-        """
-        )
 
-        # Finding events - individual observations
-        cursor.execute(
+            # Finding events - individual observations
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS events (
+                    event_id TEXT PRIMARY KEY,
+                    cluster_id TEXT NOT NULL,
+                    run_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    raw_finding TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
+                )
             """
-            CREATE TABLE IF NOT EXISTS events (
-                event_id TEXT PRIMARY KEY,
-                cluster_id TEXT NOT NULL,
-                run_id TEXT NOT NULL,
-                source TEXT NOT NULL,
-                raw_finding TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
             )
-        """
-        )
 
-        # Correlation links - relationships between clusters
-        cursor.execute(
+            # Correlation links - relationships between clusters
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS correlation_links (
+                    link_id TEXT PRIMARY KEY,
+                    source_cluster_id TEXT NOT NULL,
+                    target_cluster_id TEXT NOT NULL,
+                    link_type TEXT NOT NULL,
+                    confidence REAL NOT NULL,
+                    reason TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (source_cluster_id) REFERENCES clusters(cluster_id),
+                    FOREIGN KEY (target_cluster_id) REFERENCES clusters(cluster_id)
+                )
             """
-            CREATE TABLE IF NOT EXISTS correlation_links (
-                link_id TEXT PRIMARY KEY,
-                source_cluster_id TEXT NOT NULL,
-                target_cluster_id TEXT NOT NULL,
-                link_type TEXT NOT NULL,
-                confidence REAL NOT NULL,
-                reason TEXT,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (source_cluster_id) REFERENCES clusters(cluster_id),
-                FOREIGN KEY (target_cluster_id) REFERENCES clusters(cluster_id)
             )
-        """
-        )
 
-        # Status history for audit trail
-        cursor.execute(
+            # Status history for audit trail
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS status_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cluster_id TEXT NOT NULL,
+                    old_status TEXT,
+                    new_status TEXT NOT NULL,
+                    changed_by TEXT,
+                    reason TEXT,
+                    timestamp TEXT NOT NULL,
+                    FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
+                )
             """
-            CREATE TABLE IF NOT EXISTS status_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cluster_id TEXT NOT NULL,
-                old_status TEXT,
-                new_status TEXT NOT NULL,
-                changed_by TEXT,
-                reason TEXT,
-                timestamp TEXT NOT NULL,
-                FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
             )
-        """
-        )
 
-        # Indexes for performance
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_clusters_correlation_key ON clusters(correlation_key)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_clusters_org_app ON clusters(org_id, app_id)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_clusters_status ON clusters(status)"
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_events_cluster ON events(cluster_id)"
-        )
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id)")
+            # Indexes for performance
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_clusters_correlation_key "
+                "ON clusters(correlation_key)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_clusters_org_app "
+                "ON clusters(org_id, app_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_clusters_status ON clusters(status)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_events_cluster ON events(cluster_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id)"
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
 
     def process_finding(
         self,
