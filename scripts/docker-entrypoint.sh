@@ -118,15 +118,22 @@ case "${1:-interactive}" in
         exec /bin/bash
         ;;
     *)
-        echo -e "${RED}Unknown mode: $1${NC}"
-        echo ""
-        echo "Available modes:"
-        echo "  interactive  - Start interactive API tester (default)"
-        echo "  api-only     - Start only the API server"
-        echo "  demo         - Start ALDECI animated demo runner"
-        echo "  test-all     - Run all API tests automatically"
-        echo "  cli <args>   - Run FixOps CLI with arguments"
-        echo "  shell        - Start a bash shell"
-        exit 1
+        # Check if the first argument is an executable command (for CI compatibility)
+        if command -v "$1" > /dev/null 2>&1 || [[ -x "$1" ]]; then
+            exec "$@"
+        else
+            echo -e "${RED}Unknown mode: $1${NC}"
+            echo ""
+            echo "Available modes:"
+            echo "  interactive  - Start interactive API tester (default)"
+            echo "  api-only     - Start only the API server"
+            echo "  demo         - Start ALDECI animated demo runner"
+            echo "  test-all     - Run all API tests automatically"
+            echo "  cli <args>   - Run FixOps CLI with arguments"
+            echo "  shell        - Start a bash shell"
+            echo ""
+            echo "Or pass any executable command directly (e.g., ls, cat, etc.)"
+            exit 1
+        fi
         ;;
 esac
