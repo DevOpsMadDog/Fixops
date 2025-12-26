@@ -3581,11 +3581,16 @@ def _handle_remediation_cli(args: argparse.Namespace) -> int:
 def _handle_notifications(args: argparse.Namespace) -> int:
     """Handle notifications subcommands."""
     import time
+    from pathlib import Path
 
     from core.services.collaboration import CollaborationService
 
+    # Get db_path from environment or use default
+    data_dir = Path(os.environ.get("FIXOPS_DATA_DIR", ".fixops_data"))
+    db_path = data_dir / "collaboration" / "collaboration.db"
+
     if args.notifications_command == "worker":
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_path)
         slack_webhook = os.environ.get("FIXOPS_SLACK_WEBHOOK_URL")
         email_config = None
         smtp_host = os.environ.get("FIXOPS_SMTP_HOST")
@@ -3630,7 +3635,7 @@ def _handle_notifications(args: argparse.Namespace) -> int:
         return 0
 
     elif args.notifications_command == "pending":
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_path)
         limit = getattr(args, "limit", 100)
         pending = service.get_pending_notifications(limit=limit)
         print(json.dumps({"pending": pending, "count": len(pending)}, indent=2))
