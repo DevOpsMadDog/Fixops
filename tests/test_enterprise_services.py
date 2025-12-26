@@ -8,14 +8,24 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+@pytest.fixture
+def db_paths(tmp_path):
+    """Provide temporary database paths for enterprise services."""
+    return {
+        "dedup": tmp_path / "deduplication.db",
+        "remediation": tmp_path / "remediation.db",
+        "collaboration": tmp_path / "collaboration.db",
+    }
+
+
 class TestDeduplicationService:
     """Tests for the DeduplicationService."""
 
-    def test_generate_fingerprint_stability(self):
+    def test_generate_fingerprint_stability(self, db_paths):
         """Test that fingerprint generation is stable for same input."""
         from core.services.deduplication import DeduplicationService
 
-        service = DeduplicationService()
+        service = DeduplicationService(db_path=db_paths["dedup"])
 
         finding1 = {
             "rule_id": "SQL_INJECTION",
@@ -29,11 +39,11 @@ class TestDeduplicationService:
 
         assert fp1 == fp2, "Fingerprint should be stable for same input"
 
-    def test_generate_fingerprint_different_for_different_input(self):
+    def test_generate_fingerprint_different_for_different_input(self, db_paths):
         """Test that fingerprint differs for different findings."""
         from core.services.deduplication import DeduplicationService
 
-        service = DeduplicationService()
+        service = DeduplicationService(db_path=db_paths["dedup"])
 
         finding1 = {
             "rule_id": "SQL_INJECTION",
@@ -51,11 +61,11 @@ class TestDeduplicationService:
 
         assert fp1 != fp2, "Fingerprint should differ for different findings"
 
-    def test_process_findings_batch_creates_clusters(self):
+    def test_process_findings_batch_creates_clusters(self, db_paths):
         """Test that batch processing creates clusters."""
         from core.services.deduplication import DeduplicationService
 
-        service = DeduplicationService()
+        service = DeduplicationService(db_path=db_paths["dedup"])
 
         findings = [
             {
@@ -80,11 +90,11 @@ class TestDeduplicationService:
         assert "findings_processed" in result
         assert result["findings_processed"] == 2
 
-    def test_get_cluster_returns_none_for_nonexistent(self):
+    def test_get_cluster_returns_none_for_nonexistent(self, db_paths):
         """Test that get_cluster returns None for non-existent cluster."""
         from core.services.deduplication import DeduplicationService
 
-        service = DeduplicationService()
+        service = DeduplicationService(db_path=db_paths["dedup"])
         cluster = service.get_cluster("nonexistent-cluster-id")
 
         assert cluster is None
@@ -93,11 +103,11 @@ class TestDeduplicationService:
 class TestRemediationService:
     """Tests for the RemediationService."""
 
-    def test_create_task(self):
+    def test_create_task(self, db_paths):
         """Test creating a remediation task."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         task = service.create_task(
             cluster_id="test-cluster-1",
@@ -112,47 +122,47 @@ class TestRemediationService:
         assert task["severity"] == "high"
         assert task["status"] == "open"
 
-    def test_sla_calculation_high_severity(self):
+    def test_sla_calculation_high_severity(self, db_paths):
         """Test SLA calculation for high severity."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         sla_hours = service.get_sla_hours("high")
         assert sla_hours == 24, "High severity should have 24-hour SLA"
 
-    def test_sla_calculation_critical_severity(self):
+    def test_sla_calculation_critical_severity(self, db_paths):
         """Test SLA calculation for critical severity."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         sla_hours = service.get_sla_hours("critical")
         assert sla_hours == 4, "Critical severity should have 4-hour SLA"
 
-    def test_sla_calculation_medium_severity(self):
+    def test_sla_calculation_medium_severity(self, db_paths):
         """Test SLA calculation for medium severity."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         sla_hours = service.get_sla_hours("medium")
         assert sla_hours == 72, "Medium severity should have 72-hour SLA"
 
-    def test_sla_calculation_low_severity(self):
+    def test_sla_calculation_low_severity(self, db_paths):
         """Test SLA calculation for low severity."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         sla_hours = service.get_sla_hours("low")
         assert sla_hours == 168, "Low severity should have 168-hour (1 week) SLA"
 
-    def test_state_transition_open_to_in_progress(self):
+    def test_state_transition_open_to_in_progress(self, db_paths):
         """Test valid state transition from open to in_progress."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         task = service.create_task(
             cluster_id="test-cluster-2",
@@ -168,11 +178,11 @@ class TestRemediationService:
         assert updated is not None
         assert updated["status"] == "in_progress"
 
-    def test_check_sla_breaches(self):
+    def test_check_sla_breaches(self, db_paths):
         """Test SLA breach detection."""
         from core.services.remediation import RemediationService
 
-        service = RemediationService()
+        service = RemediationService(db_path=db_paths["remediation"])
 
         result = service.check_sla_breaches(org_id="test-org")
 
@@ -184,11 +194,11 @@ class TestRemediationService:
 class TestCollaborationService:
     """Tests for the CollaborationService."""
 
-    def test_add_comment(self):
+    def test_add_comment(self, db_paths):
         """Test adding a comment."""
         from core.services.collaboration import CollaborationService
 
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_paths["collaboration"])
 
         comment = service.add_comment(
             entity_type="cluster",
@@ -202,11 +212,11 @@ class TestCollaborationService:
         assert "comment_id" in comment
         assert comment["content"] == "This needs immediate attention"
 
-    def test_mention_extraction(self):
+    def test_mention_extraction(self, db_paths):
         """Test that mentions are extracted from comments."""
         from core.services.collaboration import CollaborationService
 
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_paths["collaboration"])
 
         comment = service.add_comment(
             entity_type="cluster",
@@ -224,11 +234,11 @@ class TestCollaborationService:
         assert "alice" in mentions, "Should extract @alice mention"
         assert "bob" in mentions, "Should extract @bob mention"
 
-    def test_promote_to_evidence_audit_trail(self):
+    def test_promote_to_evidence_audit_trail(self, db_paths):
         """Test that evidence promotion records audit trail."""
         from core.services.collaboration import CollaborationService
 
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_paths["collaboration"])
 
         comment = service.add_comment(
             entity_type="cluster",
@@ -246,11 +256,11 @@ class TestCollaborationService:
         assert result.get("promoted_by") == "admin-user"
         assert "promoted_at" in result
 
-    def test_queue_notification(self):
+    def test_queue_notification(self, db_paths):
         """Test queuing a notification."""
         from core.services.collaboration import CollaborationService
 
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_paths["collaboration"])
 
         notification = service.queue_notification(
             entity_type="cluster",
@@ -265,21 +275,21 @@ class TestCollaborationService:
         assert "notification_id" in notification
         assert notification["status"] == "pending"
 
-    def test_get_pending_notifications(self):
+    def test_get_pending_notifications(self, db_paths):
         """Test getting pending notifications."""
         from core.services.collaboration import CollaborationService
 
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_paths["collaboration"])
 
         pending = service.get_pending_notifications(limit=10)
 
         assert isinstance(pending, list)
 
-    def test_process_pending_notifications(self):
+    def test_process_pending_notifications(self, db_paths):
         """Test processing pending notifications."""
         from core.services.collaboration import CollaborationService
 
-        service = CollaborationService()
+        service = CollaborationService(db_path=db_paths["collaboration"])
 
         result = service.process_pending_notifications(limit=10)
 
