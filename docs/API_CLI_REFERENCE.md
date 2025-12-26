@@ -1,4 +1,4 @@
-# FixOps API to CLI Mapping (250+ Endpoints)
+# FixOps API to CLI Mapping (322 Endpoints)
 
 ## Summary
 
@@ -21,12 +21,12 @@
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
 | **Deduplication & Correlation** | **17** | **8** | **Full** |
-| **Remediation Lifecycle** | **13** | **6** | **Full** |
+| **Remediation Lifecycle** | **13** | **7** | **Full** |
 | **Bulk Operations (Enhanced)** | **12** | **-** | **API Only** |
 | **Team Collaboration** | **21** | **2** | **Partial** |
 | **Vulnerability Intelligence Feeds** | **20** | **-** | **API Only** |
 | **Webhooks** | **17** | **-** | **API Only** |
-| **TOTAL** | **~250** | **~106** | **~90%** |
+| **TOTAL** | **~322** | **~84** | **~85%** |
 
 ---
 
@@ -368,9 +368,9 @@
 - 11 CLI commands covering ~15% of API surface
 
 **After CLI Expansion:**
-- 67 CLI commands/subcommands covering ~85% of API surface
-- 10 new command groups added
-- Full coverage for: Compliance, Reports, Inventory, Policies, Integrations, Analytics, Audit, Workflows, Advanced Pentest, Reachability
+- 84 CLI commands/subcommands covering ~85% of API surface
+- 14 command groups added (including enterprise features)
+- Full coverage for: Compliance, Reports, Inventory, Policies, Integrations, Analytics, Audit, Workflows, Advanced Pentest, Reachability, Deduplication, Remediation
 
 **Remaining API-Only Features (~15%):**
 - Chunked uploads (large file handling)
