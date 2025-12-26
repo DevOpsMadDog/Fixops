@@ -1,4 +1,4 @@
-# FixOps API to CLI Mapping (250+ Endpoints)
+# FixOps API to CLI Mapping (280+ Endpoints)
 
 ## Summary
 
@@ -20,17 +20,12 @@
 | PentAGI | 8 | 3 | Full |
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
-| **CURRENT TOTAL** | **~250** | **67** | **~85%** |
-| | | | |
-| **ENTERPRISE (Planned)** | | | |
-| Correlation Engine | 12 | 6 | Planned |
-| Enterprise Integrations | 14 | 6 | Planned |
-| Remediation Lifecycle | 18 | 8 | Planned |
-| Bulk Operations | 10 | 6 | Planned |
-| Collaboration | 14 | 6 | Planned |
-| **ENTERPRISE TOTAL** | **~68** | **~32** | **Planned** |
-| | | | |
-| **GRAND TOTAL** | **~318** | **~99** | **~95%** |
+| **Deduplication & Correlation** | **10** | **-** | **API Only** |
+| **Remediation Lifecycle** | **10** | **-** | **API Only** |
+| **Bulk Operations (Enhanced)** | **8** | **-** | **API Only** |
+| **Team Collaboration** | **12** | **-** | **API Only** |
+| **Vulnerability Intelligence Feeds** | **20** | **-** | **API Only** |
+| **TOTAL** | **~300** | **67** | **~85%** |
 
 ---
 
@@ -385,134 +380,127 @@ These API-only features are typically used by the web UI or require interactive 
 
 ---
 
-## ENTERPRISE FEATURES (Planned)
+## ENTERPRISE FEATURES (Implemented)
 
-The following enterprise features are planned for implementation. See [Enterprise Features Documentation](ENTERPRISE_FEATURES.md) for detailed architectural designs.
+### DEDUPLICATION & CORRELATION (17 API Endpoints)
 
-### CORRELATION ENGINE (Planned: 12 API → 6 CLI)
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/deduplication/process` | POST | Process single finding and return cluster info |
+| 2 | `/api/v1/deduplication/process/batch` | POST | Process batch of findings with dedup summary |
+| 3 | `/api/v1/deduplication/clusters` | GET | List clusters with filters (org_id, app_id, status, severity) |
+| 4 | `/api/v1/deduplication/clusters/{cluster_id}` | GET | Get specific cluster details |
+| 5 | `/api/v1/deduplication/clusters/{cluster_id}/status` | PUT | Update cluster status with audit trail |
+| 6 | `/api/v1/deduplication/clusters/{cluster_id}/assign` | PUT | Assign cluster to user |
+| 7 | `/api/v1/deduplication/clusters/{cluster_id}/ticket` | PUT | Link cluster to external ticket |
+| 8 | `/api/v1/deduplication/clusters/{cluster_id}/related` | GET | Get related clusters via correlation links |
+| 9 | `/api/v1/deduplication/correlations` | POST | Create correlation link between clusters |
+| 10 | `/api/v1/deduplication/stats/{org_id}` | GET | Get deduplication statistics by org |
+| 11 | `/api/v1/deduplication/stats` | GET | Get global deduplication statistics (CLI-compatible) |
+| 12 | `/api/v1/deduplication/clusters/merge` | POST | Merge multiple clusters into target cluster |
+| 13 | `/api/v1/deduplication/clusters/{cluster_id}/split` | POST | Split cluster by moving events to new clusters |
+| 14 | `/api/v1/deduplication/graph` | GET | Get correlation graph for visualization |
+| 15 | `/api/v1/deduplication/feedback` | POST | Record operator feedback for correlation corrections |
+| 16 | `/api/v1/deduplication/baseline` | GET | Get baseline comparison (NEW/EXISTING/FIXED) |
+| 17 | `/api/v1/deduplication/cross-stage` | POST | Correlate findings across lifecycle stages |
 
-| # | API Endpoint | Method | CLI Command | Notes |
-|---|--------------|--------|-------------|-------|
-| 1 | `/api/v1/correlation/analyze` | POST | `correlation analyze` | Analyze findings for correlations |
-| 2 | `/api/v1/correlation/jobs/{job_id}` | GET | `correlation status` | Get async job status |
-| 3 | `/api/v1/correlation/jobs/{job_id}/results` | GET | `correlation status` | Get correlation results |
-| 4 | `/api/v1/groups` | GET | `groups list` | List finding groups |
-| 5 | `/api/v1/groups/{id}` | GET | `groups show` | Get group details |
-| 6 | `/api/v1/groups/{id}/members` | GET | `groups show` | List member findings |
-| 7 | `/api/v1/groups/{id}/merge` | POST | `groups merge` | Merge groups (human-in-loop) |
-| 8 | `/api/v1/groups/{id}/unmerge` | POST | `groups unmerge` | Unmerge with history |
-| 9 | `/api/v1/groups/{id}/history` | GET | `groups show` | Merge/unmerge audit trail |
-| 10 | `/api/v1/correlation/links` | GET | `correlation graph` | List correlation links |
-| 11 | `/api/v1/correlation/graph` | GET | `correlation graph` | Get full correlation graph |
-| 12 | `/api/v1/correlation/links/{id}` | GET | `correlation explain` | Get link with evidence |
+**CLI Commands:** `fixops correlation analyze`, `fixops correlation stats`, `fixops correlation graph`, `fixops correlation feedback`, `fixops groups list`, `fixops groups get`, `fixops groups merge`, `fixops groups unmerge`
 
-### ENTERPRISE INTEGRATIONS (Planned: 14 API → 6 CLI)
+### REMEDIATION LIFECYCLE (13 API Endpoints)
 
-| # | API Endpoint | Method | CLI Command | Notes |
-|---|--------------|--------|-------------|-------|
-| 1 | `/api/v1/integrations/{id}/tickets` | POST | `tickets create` | Create ticket for entity |
-| 2 | `/api/v1/integrations/{id}/tickets` | GET | `tickets list` | List tickets |
-| 3 | `/api/v1/integrations/{id}/tickets/{tid}` | PUT | `tickets sync` | Update ticket |
-| 4 | `/api/v1/integrations/{id}/tickets/{tid}/sync` | POST | `tickets sync` | Force sync |
-| 5 | `/api/v1/integrations/mappings` | GET | `mappings list` | List all mappings |
-| 6 | `/api/v1/integrations/mappings/{id}` | GET | `mappings list` | Get mapping details |
-| 7 | `/api/v1/integrations/mappings/{id}` | DELETE | `mappings unlink` | Unlink mapping |
-| 8 | `/api/v1/integrations/webhooks/jira` | POST | - | Jira webhook receiver (API only) |
-| 9 | `/api/v1/integrations/webhooks/servicenow` | POST | - | ServiceNow webhook receiver (API only) |
-| 10 | `/api/v1/integrations/{id}/sync` | POST | `integrations sync` | Trigger full sync |
-| 11 | `/api/v1/integrations/{id}/sync/status` | GET | `integrations sync` | Get sync job status |
-| 12 | `/api/v1/integrations/{id}/sync/history` | GET | - | Sync history (API only) |
-| 13 | `/api/v1/integrations/{id}/test` | POST | `integrations test` | Test connection |
-| 14 | `/api/v1/integrations/{id}/drift` | GET | `mappings list --drift-only` | Detect drift |
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/remediation/tasks` | POST | Create remediation task with SLA tracking |
+| 2 | `/api/v1/remediation/tasks` | GET | List tasks with filters (org_id, app_id, status, severity) |
+| 3 | `/api/v1/remediation/tasks/{task_id}` | GET | Get specific task details |
+| 4 | `/api/v1/remediation/tasks/{task_id}/status` | PUT | Update task status (state machine enforced) |
+| 5 | `/api/v1/remediation/tasks/{task_id}/transition` | PUT | Transition task status (CLI-compatible alias) |
+| 6 | `/api/v1/remediation/tasks/{task_id}/assign` | PUT | Assign task to user |
+| 7 | `/api/v1/remediation/tasks/{task_id}/verification` | POST | Submit verification evidence |
+| 8 | `/api/v1/remediation/tasks/{task_id}/verify` | POST | Verify task (CLI-compatible alias) |
+| 9 | `/api/v1/remediation/tasks/{task_id}/ticket` | PUT | Link task to external ticket |
+| 10 | `/api/v1/remediation/sla/check` | POST | Check for SLA breaches |
+| 11 | `/api/v1/remediation/metrics/{org_id}` | GET | Get MTTR and SLA compliance metrics by org |
+| 12 | `/api/v1/remediation/metrics` | GET | Get global remediation metrics (CLI-compatible) |
+| 13 | `/api/v1/remediation/statuses` | GET | List valid status values and transitions |
 
-### REMEDIATION LIFECYCLE (Planned: 18 API → 8 CLI)
+**CLI Commands:** `fixops remediation list`, `fixops remediation get`, `fixops remediation assign`, `fixops remediation transition`, `fixops remediation verify`, `fixops remediation metrics`
 
-| # | API Endpoint | Method | CLI Command | Notes |
-|---|--------------|--------|-------------|-------|
-| 1 | `/api/v1/remediation/tasks` | GET | `remediation list` | List tasks |
-| 2 | `/api/v1/remediation/tasks` | POST | `remediation create` | Create task for group |
-| 3 | `/api/v1/remediation/tasks/{id}` | GET | `remediation list` | Get task details |
-| 4 | `/api/v1/remediation/tasks/{id}` | PUT | - | Update task (API only) |
-| 5 | `/api/v1/remediation/tasks/{id}/assign` | POST | `remediation assign` | Assign owner |
-| 6 | `/api/v1/remediation/tasks/{id}/start` | POST | `remediation start` | Start work |
-| 7 | `/api/v1/remediation/tasks/{id}/defer` | POST | - | Defer with reason (API only) |
-| 8 | `/api/v1/remediation/tasks/{id}/accept-risk` | POST | `remediation accept-risk` | Accept risk with expiry |
-| 9 | `/api/v1/remediation/tasks/{id}/verify` | POST | `remediation verify` | Submit verification evidence |
-| 10 | `/api/v1/remediation/tasks/{id}/close` | POST | `remediation close` | Close task |
-| 11 | `/api/v1/remediation/tasks/{id}/history` | GET | - | Status history (API only) |
-| 12 | `/api/v1/remediation/tasks/{id}/evidence` | GET | - | Verification evidence (API only) |
-| 13 | `/api/v1/remediation/sla/policies` | GET | - | List SLA policies (API only) |
-| 14 | `/api/v1/remediation/sla/breaches` | GET | - | List SLA breaches (API only) |
-| 15 | `/api/v1/remediation/sla/report` | GET | `remediation sla-report` | SLA compliance report |
-| 16 | `/api/v1/remediation/metrics/mttr` | GET | `remediation mttr` | Mean time to remediate |
-| 17 | `/api/v1/remediation/metrics/mttd` | GET | - | Mean time to detect (API only) |
-| 18 | `/api/v1/remediation/metrics/sla` | GET | `remediation sla-report` | SLA compliance rate |
+**State Machine:** OPEN → ASSIGNED → IN_PROGRESS → VERIFICATION → RESOLVED (with DEFERRED and WONT_FIX branches)
 
-### BULK OPERATIONS (Planned: 10 API → 6 CLI)
+**SLA Policies:** Critical=24h, High=72h, Medium=168h (7d), Low=720h (30d)
 
-| # | API Endpoint | Method | CLI Command | Notes |
-|---|--------------|--------|-------------|-------|
-| 1 | `/api/v1/bulk/jobs` | POST | `bulk assign`, `bulk accept-risk`, etc. | Submit bulk job |
-| 2 | `/api/v1/bulk/jobs` | GET | `bulk status` | List jobs |
-| 3 | `/api/v1/bulk/jobs/{id}` | GET | `bulk status` | Get job status |
-| 4 | `/api/v1/bulk/jobs/{id}/results` | GET | `bulk results` | Get per-item results |
-| 5 | `/api/v1/bulk/jobs/{id}/download` | GET | `bulk export` | Download export |
-| 6 | `/api/v1/bulk/jobs/{id}/cancel` | POST | `bulk cancel` | Cancel running job |
-| 7 | `/api/v1/bulk/jobs/{id}/retry` | POST | `bulk retry` | Retry failed items |
-| 8 | `/api/v1/bulk/views` | GET | `views list` | List saved views |
-| 9 | `/api/v1/bulk/views` | POST | `views create` | Create saved view |
-| 10 | `/api/v1/bulk/views/{id}/execute` | POST | `views execute` | Execute view as bulk job |
+### BULK OPERATIONS (8 API Endpoints)
 
-### COLLABORATION (Planned: 14 API → 6 CLI)
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/bulk/clusters/status` | POST | Bulk update cluster status |
+| 2 | `/api/v1/bulk/clusters/assign` | POST | Bulk assign clusters |
+| 3 | `/api/v1/bulk/clusters/accept-risk` | POST | Bulk accept risk |
+| 4 | `/api/v1/bulk/clusters/tickets` | POST | Bulk create tickets |
+| 5 | `/api/v1/bulk/clusters/export` | POST | Bulk export clusters |
+| 6 | `/api/v1/bulk/jobs` | GET | List all bulk jobs |
+| 7 | `/api/v1/bulk/jobs/{job_id}` | GET | Get job status and results |
+| 8 | `/api/v1/bulk/jobs/{job_id}/cancel` | POST | Cancel running job |
 
-| # | API Endpoint | Method | CLI Command | Notes |
-|---|--------------|--------|-------------|-------|
-| 1 | `/api/v1/groups/{id}/comments` | GET | `comments list --group` | List comments on group |
-| 2 | `/api/v1/groups/{id}/comments` | POST | `comments add --group` | Add comment |
-| 3 | `/api/v1/tasks/{id}/comments` | GET | `comments list --task` | List comments on task |
-| 4 | `/api/v1/tasks/{id}/comments` | POST | `comments add --task` | Add comment |
-| 5 | `/api/v1/comments/{id}` | PUT | - | Edit comment (API only) |
-| 6 | `/api/v1/comments/{id}` | DELETE | - | Delete comment (API only) |
-| 7 | `/api/v1/comments/{id}/promote` | POST | - | Promote to evidence (API only) |
-| 8 | `/api/v1/groups/{id}/watchers` | GET | `watchers list --group` | List watchers |
-| 9 | `/api/v1/groups/{id}/watchers` | POST | `watch --group` | Add watcher |
-| 10 | `/api/v1/groups/{id}/watchers/{user_id}` | DELETE | `unwatch --group` | Remove watcher |
-| 11 | `/api/v1/activity` | GET | `activity` | Global activity feed |
-| 12 | `/api/v1/groups/{id}/activity` | GET | `activity --group` | Group activity |
-| 13 | `/api/v1/notifications` | GET | - | User notifications (API only) |
-| 14 | `/api/v1/notifications/read-all` | POST | - | Mark all as read (API only) |
+**Features:** Async job execution, per-item outcomes, partial failure handling, progress tracking
 
----
+### TEAM COLLABORATION (12 API Endpoints)
 
-## ENTERPRISE CLI COMMAND REFERENCE (Planned)
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/collaboration/comments` | POST | Add comment with mention extraction |
+| 2 | `/api/v1/collaboration/comments` | GET | Get comments for entity |
+| 3 | `/api/v1/collaboration/comments/{comment_id}/promote` | PUT | Promote comment to compliance evidence |
+| 4 | `/api/v1/collaboration/watchers` | POST | Add watcher to entity |
+| 5 | `/api/v1/collaboration/watchers` | DELETE | Remove watcher from entity |
+| 6 | `/api/v1/collaboration/watchers` | GET | Get watchers for entity |
+| 7 | `/api/v1/collaboration/watchers/user/{user_id}` | GET | Get entities watched by user |
+| 8 | `/api/v1/collaboration/activities` | POST | Record activity in feed |
+| 9 | `/api/v1/collaboration/activities` | GET | Get activity feed with filters |
+| 10 | `/api/v1/collaboration/mentions/{user_id}` | GET | Get mentions for user |
+| 11 | `/api/v1/collaboration/mentions/{mention_id}/acknowledge` | PUT | Acknowledge mention |
+| 12 | `/api/v1/collaboration/entity-types` | GET | List valid entity types |
 
-| Command | Subcommands | Description |
-|---------|-------------|-------------|
-| `correlation` | analyze, status, graph, explain | Deduplication and correlation analysis |
-| `groups` | list, show, merge, unmerge | Finding group management |
-| `tickets` | create, list, sync | External ticket management |
-| `mappings` | list, unlink | Integration mapping management |
-| `remediation` | list, create, assign, start, verify, close, accept-risk, sla-report, mttr | Remediation lifecycle management |
-| `bulk` | assign, accept-risk, create-tickets, export, status, results, cancel, retry | Enterprise bulk operations |
-| `views` | list, create, execute | Saved query views |
-| `comments` | list, add | Collaboration comments |
-| `watch` | - | Add watcher to entity |
-| `unwatch` | - | Remove watcher from entity |
-| `watchers` | list | List watchers on entity |
-| `activity` | - | View activity feed |
+**Features:** Append-only comments, @mention extraction, activity feeds, evidence promotion
 
----
+### VULNERABILITY INTELLIGENCE FEEDS (20 API Endpoints)
 
-## ENTERPRISE COVERAGE SUMMARY (Planned)
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/feeds/epss` | GET | Get EPSS scores for CVEs |
+| 2 | `/api/v1/feeds/epss/refresh` | POST | Refresh EPSS feed from FIRST.org |
+| 3 | `/api/v1/feeds/kev` | GET | Get CISA KEV entries |
+| 4 | `/api/v1/feeds/kev/refresh` | POST | Refresh KEV feed from CISA |
+| 5 | `/api/v1/feeds/exploits/{cve_id}` | GET | Get exploit intelligence for CVE |
+| 6 | `/api/v1/feeds/threat-actors/{cve_id}` | GET | Get threat actor mappings for CVE |
+| 7 | `/api/v1/feeds/threat-actors/by-actor/{actor}` | GET | Get CVEs used by threat actor |
+| 8 | `/api/v1/feeds/supply-chain/{package}` | GET | Get supply chain vulnerabilities |
+| 9 | `/api/v1/feeds/cloud-bulletins` | GET | Get cloud security bulletins |
+| 10 | `/api/v1/feeds/early-signals` | GET | Get zero-day early signals |
+| 11 | `/api/v1/feeds/national-certs` | GET | Get national CERT advisories |
+| 12 | `/api/v1/feeds/exploit-confidence/{cve_id}` | GET | Get exploit confidence score |
+| 13 | `/api/v1/feeds/geo-risk/{cve_id}` | GET | Get geo-weighted risk score |
+| 14 | `/api/v1/feeds/enrich` | POST | Comprehensive finding enrichment |
+| 15 | `/api/v1/feeds/stats` | GET | Get feed statistics across all categories |
+| 16 | `/api/v1/feeds/refresh/all` | POST | Refresh all feed categories |
+| 17 | `/api/v1/feeds/categories` | GET | List all feed categories |
+| 18 | `/api/v1/feeds/sources` | GET | List all feed sources |
+| 19 | `/api/v1/feeds/health` | GET | Feed health and freshness status |
+| 20 | `/api/v1/feeds/scheduler/status` | GET | Feed scheduler status |
 
-**After Enterprise Features:**
-- ~135 new API endpoints planned
-- ~32 new CLI commands/subcommands planned
-- Target: 95%+ API surface coverage
+**Feed Categories (8):**
+1. **Global Authoritative** - NVD, CVE Program, MITRE, CISA KEV, CERT/CC, US-CERT, ICS-CERT
+2. **National CERTs** - NCSC UK, BSI, ANSSI, JPCERT, CERT-In, ACSC, SingCERT, KISA
+3. **Exploit Intelligence** - Exploit-DB, Metasploit, Packet Storm, Vulners, GreyNoise, Shodan, Censys
+4. **Threat Actor Intelligence** - MITRE ATT&CK, AlienVault OTX, abuse.ch, Feodo Tracker
+5. **Supply-Chain & SBOM** - OSV, GitHub Advisory, Snyk, deps.dev, NPM/PyPI/RustSec
+6. **Cloud & Runtime** - AWS, Azure, GCP Security Bulletins, Kubernetes CVEs, Red Hat, Ubuntu
+7. **Zero-Day & Early-Signal** - Vendor blogs, GitHub commits, mailing lists
+8. **Internal Enterprise** - SAST/DAST/SCA, IaC, runtime detections, exposure graph
 
-**Enterprise Feature Priorities:**
-1. **HIGH**: Correlation Engine (12 endpoints, 6 CLI commands)
-2. **HIGH**: Enterprise Integrations (14 endpoints, 6 CLI commands)
-3. **MEDIUM**: Remediation Lifecycle (18 endpoints, 8 CLI commands)
-4. **MEDIUM**: Bulk Operations (10 endpoints, 6 CLI commands)
-5. **LOW**: Collaboration (14 endpoints, 6 CLI commands)
+**Key Features:**
+- Geo-weighted risk scoring (exploitation differs by country/region)
+- Exploit-confidence scoring (real-world exploitation vs CVSS fear-scoring)
+- Threat actor to CVE mapping with sector targeting
+- Reachable dependency analysis

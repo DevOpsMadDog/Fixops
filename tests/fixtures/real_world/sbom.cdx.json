@@ -1,0 +1,207 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2024-01-15T10:00:00Z",
+    "tools": [
+      {
+        "vendor": "FixOps",
+        "name": "SBOM Generator",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "enterprise-security-platform",
+      "version": "2.5.0",
+      "description": "Enterprise security platform with known vulnerable dependencies for testing"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+      "group": "org.apache.logging.log4j",
+      "name": "log4j-core",
+      "version": "2.14.1",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+      "description": "Apache Log4j Core - VULNERABLE TO CVE-2021-44228 (Log4Shell)",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://logging.apache.org/log4j/2.x/"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:maven/org.springframework/spring-beans@5.3.17",
+      "group": "org.springframework",
+      "name": "spring-beans",
+      "version": "5.3.17",
+      "purl": "pkg:maven/org.springframework/spring-beans@5.3.17",
+      "description": "Spring Beans - VULNERABLE TO CVE-2022-22965 (Spring4Shell)",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/node@18.18.0",
+      "name": "node",
+      "version": "18.18.0",
+      "purl": "pkg:npm/node@18.18.0",
+      "description": "Node.js runtime - VULNERABLE TO CVE-2023-44487 (HTTP/2 Rapid Reset)"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:generic/xz-utils@5.6.1",
+      "name": "xz-utils",
+      "version": "5.6.1",
+      "purl": "pkg:generic/xz-utils@5.6.1",
+      "description": "XZ Utils - VULNERABLE TO CVE-2024-3094 (XZ Backdoor)"
+    },
+    {
+      "type": "application",
+      "bom-ref": "pkg:generic/confluence-server@8.5.0",
+      "name": "confluence-server",
+      "version": "8.5.0",
+      "purl": "pkg:generic/confluence-server@8.5.0",
+      "description": "Atlassian Confluence Server - VULNERABLE TO CVE-2023-22515, CVE-2022-26134"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:maven/org.apache.logging.log4j/log4j-api@2.15.0",
+      "group": "org.apache.logging.log4j",
+      "name": "log4j-api",
+      "version": "2.15.0",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-api@2.15.0",
+      "description": "Apache Log4j API - VULNERABLE TO CVE-2021-45046"
+    },
+    {
+      "type": "application",
+      "bom-ref": "pkg:generic/exchange-server@2019",
+      "name": "exchange-server",
+      "version": "2019",
+      "purl": "pkg:generic/exchange-server@2019",
+      "description": "Microsoft Exchange Server - VULNERABLE TO CVE-2021-26855 (ProxyLogon)"
+    },
+    {
+      "type": "application",
+      "bom-ref": "pkg:generic/pulse-connect-secure@9.0.3",
+      "name": "pulse-connect-secure",
+      "version": "9.0.3",
+      "purl": "pkg:generic/pulse-connect-secure@9.0.3",
+      "description": "Pulse Secure VPN - VULNERABLE TO CVE-2019-11510"
+    },
+    {
+      "type": "application",
+      "bom-ref": "pkg:generic/moveit-transfer@2023.0.0",
+      "name": "moveit-transfer",
+      "version": "2023.0.0",
+      "purl": "pkg:generic/moveit-transfer@2023.0.0",
+      "description": "Progress MOVEit Transfer - VULNERABLE TO CVE-2023-34362"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lodash@4.17.21",
+      "name": "lodash",
+      "version": "4.17.21",
+      "purl": "pkg:npm/lodash@4.17.21",
+      "description": "Lodash utility library - patched version, no known vulnerabilities"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/express@4.18.2",
+      "name": "express",
+      "version": "4.18.2",
+      "purl": "pkg:npm/express@4.18.2",
+      "description": "Express.js web framework - patched version"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/requests@2.31.0",
+      "name": "requests",
+      "version": "2.31.0",
+      "purl": "pkg:pypi/requests@2.31.0",
+      "description": "Python HTTP library - patched version"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:maven/org.springframework/spring-beans@5.3.17",
+      "dependsOn": [
+        "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2021-44228",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 10.0,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H"
+        }
+      ],
+      "description": "Apache Log4j2 JNDI features do not protect against attacker controlled LDAP and other JNDI related endpoints",
+      "recommendation": "Upgrade to Log4j 2.17.0 or later",
+      "affects": [
+        {
+          "ref": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2022-22965",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 9.8,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "description": "Spring Framework RCE via Data Binding on JDK 9+",
+      "recommendation": "Upgrade to Spring Framework 5.3.18 or 5.2.20",
+      "affects": [
+        {
+          "ref": "pkg:maven/org.springframework/spring-beans@5.3.17"
+        }
+      ]
+    }
+  ]
+}

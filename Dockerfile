@@ -63,6 +63,7 @@ COPY fixops/ ./fixops/
 COPY domain/ ./domain/
 COPY new_apps/ ./new_apps/
 COPY new_backend/ ./new_backend/
+COPY fixops-enterprise/ ./fixops-enterprise/
 COPY *.py ./
 COPY *.txt ./
 COPY *.yml ./
