@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
@@ -219,14 +219,20 @@ def _detect_drift(
 
 
 @router.post("/jira")
-async def receive_jira_webhook(
-    request: Request,
+def receive_jira_webhook(
+    payload: JiraWebhookPayload,
     x_atlassian_webhook_identifier: Optional[str] = Header(None),
     x_hub_signature: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
-    """Receive webhook events from Jira for bidirectional sync."""
-    # Get raw body for signature verification
-    raw_body = await request.body()
+    """Receive webhook events from Jira for bidirectional sync.
+
+    Note: This endpoint uses synchronous def (not async def) because it performs
+    blocking SQLite operations. FastAPI automatically runs sync endpoints in a
+    threadpool to avoid blocking the event loop.
+    """
+    # For signature verification, we need the raw body. Since we're using Pydantic
+    # model parsing, we reconstruct the body from the validated payload.
+    raw_body = json.dumps(payload.model_dump()).encode()
 
     # Validate Jira webhook signature if configured
     expected_secret = _get_jira_webhook_secret()
@@ -242,15 +248,6 @@ async def receive_jira_webhook(
                 status_code=401,
                 detail="Invalid webhook signature",
             )
-
-    # Parse the JSON payload
-    try:
-        payload_dict = json.loads(raw_body)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
-
-    # Validate payload structure
-    payload = JiraWebhookPayload(**payload_dict)
 
     event_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()

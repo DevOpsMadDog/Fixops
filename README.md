@@ -383,10 +383,15 @@ Configurable retention policies for compliance requirements:
 | Secrets | 5 | Secrets scanning findings |
 | Health | 5 | Health checks, readiness, metrics |
 | IDE | 3 | IDE plugin integration |
-| Bulk | 5 | Bulk operations |
+| Bulk | 8 | Bulk operations, async job framework |
 | Marketplace | 12 | Compliance packs, contributions |
 | Evidence | 17 | Bundles, manifests, verification |
 | Graph/Risk | 7 | Dependency visualization, reachability |
+| Deduplication | 17 | Cluster management, correlation linking, baseline comparison |
+| Remediation | 13 | Task lifecycle, SLA tracking, verification evidence |
+| Collaboration | 12 | Comments, watchers, activity feeds, notifications |
+| Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
+| Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
 ### 67 CLI Commands
 
