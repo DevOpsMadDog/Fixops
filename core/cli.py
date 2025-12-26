@@ -3272,7 +3272,7 @@ def _handle_correlation(args: argparse.Namespace) -> int:
             print(f"Error: {e}", file=sys.stderr)
             return 1
 
-    elif args.correlation_command == "stats":
+    elif args.correlation_command in ("stats", "status"):
         try:
             response = requests.get(
                 f"{api_base}/api/v1/deduplication/stats",
@@ -3539,11 +3539,106 @@ def _handle_remediation_cli(args: argparse.Namespace) -> int:
             print(f"Error: {e}", file=sys.stderr)
             return 1
 
+    elif args.remediation_command == "sla":
+        try:
+            params = {}
+            if hasattr(args, "org_id") and args.org_id:
+                params["org_id"] = args.org_id
+            response = requests.post(
+                f"{api_base}/api/v1/remediation/sla/check",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if hasattr(args, "format") and args.format == "table":
+                breaches = result.get("breaches", [])
+                if breaches:
+                    print(f"{'Task ID':<40} {'Severity':<10} {'Hours Overdue':<15}")
+                    print("-" * 65)
+                    for b in breaches:
+                        print(
+                            f"{b.get('task_id', '')[:38]:<40} "
+                            f"{b.get('severity', ''):<10} "
+                            f"{b.get('hours_overdue', 0):<15.1f}"
+                        )
+                else:
+                    print("No SLA breaches found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
     else:
         print("Unknown remediation command", file=sys.stderr)
         return 1
 
     return 0
+
+
+def _handle_notifications(args: argparse.Namespace) -> int:
+    """Handle notifications subcommands."""
+    import time
+
+    from core.services.collaboration import CollaborationService
+
+    if args.notifications_command == "worker":
+        service = CollaborationService()
+        slack_webhook = os.environ.get("FIXOPS_SLACK_WEBHOOK_URL")
+        email_config = None
+        smtp_host = os.environ.get("FIXOPS_SMTP_HOST")
+        if smtp_host:
+            email_config = {
+                "host": smtp_host,
+                "port": int(os.environ.get("FIXOPS_SMTP_PORT", "587")),
+                "username": os.environ.get("FIXOPS_SMTP_USERNAME"),
+                "password": os.environ.get("FIXOPS_SMTP_PASSWORD"),
+                "from_email": os.environ.get(
+                    "FIXOPS_SMTP_FROM_EMAIL", "noreply@fixops.io"
+                ),
+            }
+
+        interval = getattr(args, "interval", 10)
+        once = getattr(args, "once", False)
+        limit = getattr(args, "limit", 100)
+
+        print(f"Starting notification worker (interval={interval}s, once={once})")
+
+        while True:
+            try:
+                result = service.process_pending_notifications(
+                    slack_webhook=slack_webhook,
+                    email_config=email_config,
+                    limit=limit,
+                )
+                if result["processed"] > 0:
+                    print(
+                        f"Processed {result['processed']} notifications: "
+                        f"{result['sent']} sent, {result['failed']} failed, "
+                        f"{result['no_channels']} no channels"
+                    )
+            except Exception as e:
+                print(f"Error processing notifications: {e}", file=sys.stderr)
+
+            if once:
+                break
+
+            time.sleep(interval)
+
+        return 0
+
+    elif args.notifications_command == "pending":
+        service = CollaborationService()
+        limit = getattr(args, "limit", 100)
+        pending = service.get_pending_notifications(limit=limit)
+        print(json.dumps({"pending": pending, "count": len(pending)}, indent=2))
+        return 0
+
+    else:
+        print("Unknown notifications command", file=sys.stderr)
+        return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -4463,6 +4558,9 @@ def build_parser() -> argparse.ArgumentParser:
     corr_analyze.add_argument("--org-id", help="Organization ID")
 
     correlation_subparsers.add_parser("stats", help="Get correlation statistics")
+    correlation_subparsers.add_parser(
+        "status", help="Get correlation statistics (alias for stats)"
+    )
 
     corr_graph = correlation_subparsers.add_parser(
         "graph", help="View correlation graph"
@@ -4587,7 +4685,54 @@ def build_parser() -> argparse.ArgumentParser:
         "metrics", help="Get remediation metrics (MTTR, etc.)"
     )
 
+    rem_sla = remediation_subparsers.add_parser("sla", help="Get SLA compliance report")
+    rem_sla.add_argument("--org-id", help="Organization ID")
+    rem_sla.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
     remediation_parser.set_defaults(func=_handle_remediation_cli)
+
+    # Notifications commands
+    notifications_parser = subparsers.add_parser(
+        "notifications", help="Notification queue management"
+    )
+    notifications_subparsers = notifications_parser.add_subparsers(
+        dest="notifications_command"
+    )
+
+    notif_worker = notifications_subparsers.add_parser(
+        "worker", help="Run notification worker to process pending notifications"
+    )
+    notif_worker.add_argument(
+        "--interval",
+        type=int,
+        default=10,
+        help="Polling interval in seconds (default: 10)",
+    )
+    notif_worker.add_argument(
+        "--once",
+        action="store_true",
+        help="Process once and exit (for cron jobs)",
+    )
+    notif_worker.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Max notifications to process per batch (default: 100)",
+    )
+
+    notif_pending = notifications_subparsers.add_parser(
+        "pending", help="List pending notifications"
+    )
+    notif_pending.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Max notifications to list (default: 100)",
+    )
+
+    notifications_parser.set_defaults(func=_handle_notifications)
 
     return parser
 
