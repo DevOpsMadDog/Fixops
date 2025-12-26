@@ -17,42 +17,124 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # ============================================================================
+# PLAIN MODE DETECTION - For terminal compatibility
+# ============================================================================
+# Set ALDECI_PLAIN=1 to force plain ASCII mode (no Unicode/emojis)
+# Set NO_COLOR=1 to disable colors
+# Set ALDECI_NO_ANIM=1 to disable animations
+
+# Auto-detect if we should use plain mode
+detect_plain_mode() {
+    # Force plain mode if explicitly set
+    [[ "${ALDECI_PLAIN:-}" == "1" ]] && return 0
+    
+    # Check if not a TTY
+    [[ ! -t 1 ]] && return 0
+    
+    # Check for dumb terminal
+    [[ "${TERM:-}" == "dumb" ]] && return 0
+    
+    # Check if locale doesn't support UTF-8
+    if ! locale charmap 2>/dev/null | grep -qi 'utf-8'; then
+        return 0
+    fi
+    
+    # Check if terminal has limited color support
+    local colors
+    colors=$(tput colors 2>/dev/null || echo 0)
+    [[ "$colors" -lt 8 ]] && return 0
+    
+    return 1
+}
+
+# Initialize plain mode
+if detect_plain_mode; then
+    PLAIN_MODE=1
+else
+    PLAIN_MODE="${ALDECI_PLAIN:-0}"
+fi
+
+# Disable animations if requested
+NO_ANIM="${ALDECI_NO_ANIM:-0}"
+
+# ============================================================================
 # COLORS AND STYLING
 # ============================================================================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-GRAY='\033[0;90m'
-BOLD='\033[1m'
-DIM='\033[2m'
-ITALIC='\033[3m'
-UNDERLINE='\033[4m'
-BLINK='\033[5m'
-REVERSE='\033[7m'
-NC='\033[0m'
-
-# Background colors
-BG_RED='\033[41m'
-BG_GREEN='\033[42m'
-BG_YELLOW='\033[43m'
-BG_BLUE='\033[44m'
-BG_MAGENTA='\033[45m'
-BG_CYAN='\033[46m'
+if [[ "${NO_COLOR:-}" == "1" ]] || [[ "$PLAIN_MODE" == "1" ]]; then
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    MAGENTA=''
+    CYAN=''
+    WHITE=''
+    GRAY=''
+    BOLD=''
+    DIM=''
+    ITALIC=''
+    UNDERLINE=''
+    BLINK=''
+    REVERSE=''
+    NC=''
+    BG_RED=''
+    BG_GREEN=''
+    BG_YELLOW=''
+    BG_BLUE=''
+    BG_MAGENTA=''
+    BG_CYAN=''
+else
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    MAGENTA='\033[0;35m'
+    CYAN='\033[0;36m'
+    WHITE='\033[1;37m'
+    GRAY='\033[0;90m'
+    BOLD='\033[1m'
+    DIM='\033[2m'
+    ITALIC='\033[3m'
+    UNDERLINE='\033[4m'
+    BLINK='\033[5m'
+    REVERSE='\033[7m'
+    NC='\033[0m'
+    # Background colors
+    BG_RED='\033[41m'
+    BG_GREEN='\033[42m'
+    BG_YELLOW='\033[43m'
+    BG_BLUE='\033[44m'
+    BG_MAGENTA='\033[45m'
+    BG_CYAN='\033[46m'
+fi
 
 # ============================================================================
 # ANIMATION FRAMES
 # ============================================================================
-SPINNER_FRAMES=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-PROGRESS_FRAMES=("▱▱▱▱▱▱▱" "▰▱▱▱▱▱▱" "▰▰▱▱▱▱▱" "▰▰▰▱▱▱▱" "▰▰▰▰▱▱▱" "▰▰▰▰▰▱▱" "▰▰▰▰▰▰▱" "▰▰▰▰▰▰▰")
-ROCKET_FRAMES=("🚀    " " 🚀   " "  🚀  " "   🚀 " "    🚀" "   🚀 " "  🚀  " " 🚀   ")
-PULSE_FRAMES=("●" "◉" "○" "◉")
-WAVE_FRAMES=("≋≈≋≈≋" "≈≋≈≋≈" "≋≈≋≈≋" "≈≋≈≋≈")
-DNA_FRAMES=("╔═══╗" "║╔═╗║" "║║═║║" "║╚═╝║" "╚═══╝")
-MATRIX_CHARS=("ア" "イ" "ウ" "エ" "オ" "カ" "キ" "ク" "ケ" "コ" "0" "1")
+if [[ "$PLAIN_MODE" == "1" ]]; then
+    # Plain ASCII mode - compatible with all terminals
+    SPINNER_FRAMES=("-" "\\" "|" "/")
+    PROGRESS_FRAMES=("[      ]" "[=     ]" "[==    ]" "[===   ]" "[====  ]" "[===== ]" "[======]" "[======]")
+    ROCKET_FRAMES=("*     " " *    " "  *   " "   *  " "    * " "   *  " "  *   " " *    ")
+    PULSE_FRAMES=("o" "O" "o" "O")
+    WAVE_FRAMES=("~~~~~" "~~~~~" "~~~~~" "~~~~~")
+    DNA_FRAMES=("+---+" "|+-+|" "|| ||" "|+-+|" "+---+")
+    MATRIX_CHARS=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B")
+    # Box drawing characters - ASCII fallback
+    BOX_TL="+" BOX_TR="+" BOX_BL="+" BOX_BR="+"
+    BOX_H="-" BOX_V="|" BOX_ML="+" BOX_MR="+"
+else
+    # Fancy Unicode mode
+    SPINNER_FRAMES=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    PROGRESS_FRAMES=("▱▱▱▱▱▱▱" "▰▱▱▱▱▱▱" "▰▰▱▱▱▱▱" "▰▰▰▱▱▱▱" "▰▰▰▰▱▱▱" "▰▰▰▰▰▱▱" "▰▰▰▰▰▰▱" "▰▰▰▰▰▰▰")
+    ROCKET_FRAMES=("*     " " *    " "  *   " "   *  " "    * " "   *  " "  *   " " *    ")
+    PULSE_FRAMES=("●" "◉" "○" "◉")
+    WAVE_FRAMES=("≋≈≋≈≋" "≈≋≈≋≈" "≋≈≋≈≋" "≈≋≈≋≈")
+    DNA_FRAMES=("╔═══╗" "║╔═╗║" "║║═║║" "║╚═╝║" "╚═══╝")
+    MATRIX_CHARS=("ア" "イ" "ウ" "エ" "オ" "カ" "キ" "ク" "ケ" "コ" "0" "1")
+    # Box drawing characters - Unicode
+    BOX_TL="╔" BOX_TR="╗" BOX_BL="╚" BOX_BR="╝"
+    BOX_H="═" BOX_V="║" BOX_ML="╠" BOX_MR="╣"
+fi
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -201,38 +283,61 @@ draw_box() {
     local width="${2:-60}"
     local color="${3:-$CYAN}"
     
-    printf "${color}╔"
-    printf '═%.0s' $(seq 1 $((width-2)))
-    printf "╗${NC}\n"
+    local tl tr bl br h v ml mr
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        tl="+" tr="+" bl="+" br="+" h="-" v="|" ml="+" mr="+"
+    else
+        tl="╔" tr="╗" bl="╚" br="╝" h="═" v="║" ml="╠" mr="╣"
+    fi
+    
+    printf "${color}${tl}"
+    printf -- "${h}%.0s" $(seq 1 $((width-2)))
+    printf "${tr}${NC}\n"
     
     if [[ -n "$title" ]]; then
         local padding=$(( (width - 2 - ${#title}) / 2 ))
-        printf "${color}║${NC}"
+        printf "${color}${v}${NC}"
         printf "%${padding}s${BOLD}${WHITE}%s${NC}%$((width - 2 - padding - ${#title}))s" "" "$title" ""
-        printf "${color}║${NC}\n"
+        printf "${color}${v}${NC}\n"
         
-        printf "${color}╠"
-        printf '═%.0s' $(seq 1 $((width-2)))
-        printf "╣${NC}\n"
+        printf "${color}${ml}"
+        printf -- "${h}%.0s" $(seq 1 $((width-2)))
+        printf "${mr}${NC}\n"
     fi
 }
 
 draw_box_bottom() {
     local width="${1:-60}"
     local color="${2:-$CYAN}"
-    printf "${color}╚"
-    printf '═%.0s' $(seq 1 $((width-2)))
-    printf "╝${NC}\n"
+    
+    local bl br h
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        bl="+" br="+" h="-"
+    else
+        bl="╚" br="╝" h="═"
+    fi
+    
+    printf "${color}${bl}"
+    printf -- "${h}%.0s" $(seq 1 $((width-2)))
+    printf "${br}${NC}\n"
 }
 
 draw_box_line() {
     local text="$1"
     local width="${2:-60}"
     local color="${3:-$CYAN}"
+    
+    local v
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        v="|"
+    else
+        v="║"
+    fi
+    
     local text_len=${#text}
     local padding=$((width - 4 - text_len))
     if ((padding < 0)); then padding=0; fi
-    printf "${color}║${NC} %s%${padding}s ${color}║${NC}\n" "$text" ""
+    printf "${color}${v}${NC} %s%${padding}s ${color}${v}${NC}\n" "$text" ""
 }
 
 # ============================================================================
