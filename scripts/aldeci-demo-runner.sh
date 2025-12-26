@@ -18,49 +18,140 @@ SAMPLES_DIR="$PROJECT_ROOT/samples/api-examples/demo-scenarios"
 DEMO_CONFIG="$PROJECT_ROOT/.demo-config.json"
 
 # ============================================================================
+# PLAIN MODE DETECTION - For terminal compatibility
+# ============================================================================
+# Set ALDECI_PLAIN=1 to force plain ASCII mode (no Unicode/emojis)
+# Set NO_COLOR=1 to disable colors
+# Set ALDECI_NO_ANIM=1 to disable animations
+
+# Auto-detect if we should use plain mode
+detect_plain_mode() {
+    # Force plain mode if explicitly set
+    [[ "${ALDECI_PLAIN:-}" == "1" ]] && return 0
+    
+    # Check if not a TTY
+    [[ ! -t 1 ]] && return 0
+    
+    # Check for dumb terminal
+    [[ "${TERM:-}" == "dumb" ]] && return 0
+    
+    # Check if locale doesn't support UTF-8
+    if ! locale charmap 2>/dev/null | grep -qi 'utf-8'; then
+        return 0
+    fi
+    
+    # Check if terminal has limited color support
+    local colors
+    colors=$(tput colors 2>/dev/null || echo 0)
+    [[ "$colors" -lt 8 ]] && return 0
+    
+    return 1
+}
+
+# Initialize plain mode
+if detect_plain_mode; then
+    PLAIN_MODE=1
+else
+    PLAIN_MODE="${ALDECI_PLAIN:-0}"
+fi
+
+# Disable colors if NO_COLOR is set
+if [[ "${NO_COLOR:-}" == "1" ]]; then
+    NO_COLORS=1
+fi
+
+# Disable animations if requested
+NO_ANIM="${ALDECI_NO_ANIM:-0}"
+
+# ============================================================================
 # COLORS AND STYLING
 # ============================================================================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-GRAY='\033[0;90m'
-BOLD='\033[1m'
-DIM='\033[2m'
-NC='\033[0m'
-
-# Extended colors for fancy effects
-ORANGE='\033[38;5;208m'
-PINK='\033[38;5;213m'
-LIME='\033[38;5;118m'
-PURPLE='\033[38;5;141m'
-GOLD='\033[38;5;220m'
-TEAL='\033[38;5;43m'
-
-# Background colors
-BG_RED='\033[41m'
-BG_GREEN='\033[42m'
-BG_BLUE='\033[44m'
-BG_MAGENTA='\033[45m'
-BG_CYAN='\033[46m'
+if [[ "${NO_COLORS:-}" == "1" ]] || [[ "${NO_COLOR:-}" == "1" ]]; then
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    MAGENTA=''
+    CYAN=''
+    WHITE=''
+    GRAY=''
+    BOLD=''
+    DIM=''
+    NC=''
+    ORANGE=''
+    PINK=''
+    LIME=''
+    PURPLE=''
+    GOLD=''
+    TEAL=''
+    BG_RED=''
+    BG_GREEN=''
+    BG_BLUE=''
+    BG_MAGENTA=''
+    BG_CYAN=''
+else
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    MAGENTA='\033[0;35m'
+    CYAN='\033[0;36m'
+    WHITE='\033[1;37m'
+    GRAY='\033[0;90m'
+    BOLD='\033[1m'
+    DIM='\033[2m'
+    NC='\033[0m'
+    # Extended colors for fancy effects
+    ORANGE='\033[38;5;208m'
+    PINK='\033[38;5;213m'
+    LIME='\033[38;5;118m'
+    PURPLE='\033[38;5;141m'
+    GOLD='\033[38;5;220m'
+    TEAL='\033[38;5;43m'
+    # Background colors
+    BG_RED='\033[41m'
+    BG_GREEN='\033[42m'
+    BG_BLUE='\033[44m'
+    BG_MAGENTA='\033[45m'
+    BG_CYAN='\033[46m'
+fi
 
 # ============================================================================
-# FANCY ANIMATION FRAMES
+# FANCY ANIMATION FRAMES (with plain mode fallbacks)
 # ============================================================================
-SPINNER_DOTS=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
-SPINNER_BARS=("▁" "▂" "▃" "▄" "▅" "▆" "▇" "█" "▇" "▆" "▅" "▄" "▃" "▂")
-SPINNER_CIRCLE=("◐" "◓" "◑" "◒")
-SPINNER_ARROWS=("←" "↖" "↑" "↗" "→" "↘" "↓" "↙")
-SPINNER_BOUNCE=("⠁" "⠂" "⠄" "⠂")
-SPINNER_GROW=("▏" "▎" "▍" "▌" "▋" "▊" "▉" "█" "▉" "▊" "▋" "▌" "▍" "▎")
-PROGRESS_BLOCKS=("░" "▒" "▓" "█")
-MATRIX_CHARS=("ア" "イ" "ウ" "エ" "オ" "カ" "キ" "ク" "ケ" "コ" "サ" "シ" "ス" "セ" "ソ" "0" "1" "2" "3")
-FIRE_CHARS=("🔥" "💥" "✨" "⚡" "🌟")
-SECURITY_ICONS=("🔒" "🛡️" "🔐" "🔑" "🛡️")
-CHECK_ICONS=("✓" "✔" "☑" "✅")
+if [[ "$PLAIN_MODE" == "1" ]]; then
+    # Plain ASCII mode - compatible with all terminals
+    SPINNER_DOTS=("-" "\\" "|" "/")
+    SPINNER_BARS=("=" "=" "=" "=")
+    SPINNER_CIRCLE=("-" "\\" "|" "/")
+    SPINNER_ARROWS=("<" "^" ">" "v")
+    SPINNER_BOUNCE=("." "o" "O" "o")
+    SPINNER_GROW=("[" "[=" "[==" "[===" "[====" "[=====" "[======" "[======]")
+    PROGRESS_BLOCKS=("." ":" "#" "#")
+    MATRIX_CHARS=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F")
+    FIRE_CHARS=("*" "+" "x" "#" "@")
+    SECURITY_ICONS=("[*]" "[+]" "[!]" "[#]" "[@]")
+    CHECK_ICONS=("[x]" "[X]" "[+]" "[OK]")
+    # Box drawing characters - ASCII fallback
+    BOX_TL="+" BOX_TR="+" BOX_BL="+" BOX_BR="+"
+    BOX_H="-" BOX_V="|" BOX_CROSS="+"
+else
+    # Fancy Unicode mode
+    SPINNER_DOTS=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+    SPINNER_BARS=("▁" "▂" "▃" "▄" "▅" "▆" "▇" "█" "▇" "▆" "▅" "▄" "▃" "▂")
+    SPINNER_CIRCLE=("◐" "◓" "◑" "◒")
+    SPINNER_ARROWS=("←" "↖" "↑" "↗" "→" "↘" "↓" "↙")
+    SPINNER_BOUNCE=("⠁" "⠂" "⠄" "⠂")
+    SPINNER_GROW=("▏" "▎" "▍" "▌" "▋" "▊" "▉" "█" "▉" "▊" "▋" "▌" "▍" "▎")
+    PROGRESS_BLOCKS=("░" "▒" "▓" "█")
+    MATRIX_CHARS=("ア" "イ" "ウ" "エ" "オ" "カ" "キ" "ク" "ケ" "コ" "サ" "シ" "ス" "セ" "ソ" "0" "1" "2" "3")
+    FIRE_CHARS=("*" "+" "x" "#" "@")
+    SECURITY_ICONS=("[*]" "[+]" "[!]" "[#]" "[@]")
+    CHECK_ICONS=("[x]" "[X]" "[+]" "[OK]")
+    # Box drawing characters - Unicode
+    BOX_TL="╔" BOX_TR="╗" BOX_BL="╚" BOX_BR="╝"
+    BOX_H="═" BOX_V="║" BOX_CROSS="╬"
+fi
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -129,6 +220,15 @@ typewriter_fancy() {
 # Matrix rain effect (enhanced)
 matrix_rain_fancy() {
     local duration="${1:-2}"
+    
+    # Skip animation in plain mode or if animations disabled
+    if [[ "$PLAIN_MODE" == "1" ]] || [[ "$NO_ANIM" == "1" ]]; then
+        echo ""
+        echo "  [Loading...]"
+        echo ""
+        return
+    fi
+    
     local width=$(get_term_width)
     local height=8
     hide_cursor
@@ -285,16 +385,21 @@ draw_fancy_box() {
     local width="${2:-70}"
     local style="${3:-double}"  # single, double, rounded, heavy
     
-    local tl tr bl br h v
-    case "$style" in
-        single)  tl="┌" tr="┐" bl="└" br="┘" h="─" v="│" ;;
-        double)  tl="╔" tr="╗" bl="╚" br="╝" h="═" v="║" ;;
-        rounded) tl="╭" tr="╮" bl="╰" br="╯" h="─" v="│" ;;
-        heavy)   tl="┏" tr="┓" bl="┗" br="┛" h="━" v="┃" ;;
-    esac
+    local tl tr bl br h v ml mr
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        # Plain ASCII mode
+        tl="+" tr="+" bl="+" br="+" h="-" v="|" ml="+" mr="+"
+    else
+        case "$style" in
+            single)  tl="┌" tr="┐" bl="└" br="┘" h="─" v="│" ml="├" mr="┤" ;;
+            double)  tl="╔" tr="╗" bl="╚" br="╝" h="═" v="║" ml="╠" mr="╣" ;;
+            rounded) tl="╭" tr="╮" bl="╰" br="╯" h="─" v="│" ml="├" mr="┤" ;;
+            heavy)   tl="┏" tr="┓" bl="┗" br="┛" h="━" v="┃" ml="┣" mr="┫" ;;
+        esac
+    fi
     
     printf "${CYAN}${tl}"
-    printf "${h}%.0s" $(seq 1 $((width-2)))
+    printf -- "${h}%.0s" $(seq 1 $((width-2)))
     printf "${tr}${NC}\n"
     
     if [[ -n "$title" ]]; then
@@ -303,9 +408,9 @@ draw_fancy_box() {
         printf "%${padding}s${BOLD}${WHITE}%s${NC}%$((width - 2 - padding - ${#title}))s" "" "$title" ""
         printf "${CYAN}${v}${NC}\n"
         
-        printf "${CYAN}╠"
-        printf "${h}%.0s" $(seq 1 $((width-2)))
-        printf "╣${NC}\n"
+        printf "${CYAN}${ml}"
+        printf -- "${h}%.0s" $(seq 1 $((width-2)))
+        printf "${mr}${NC}\n"
     fi
 }
 
@@ -313,7 +418,14 @@ draw_fancy_box_line() {
     local text="$1"
     local width="${2:-70}"
     local icon="${3:-}"
-    local v="║"
+    local v
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        v="|"
+        # Strip emojis in plain mode
+        icon=""
+    else
+        v="║"
+    fi
     
     local display_text="$text"
     [[ -n "$icon" ]] && display_text="$icon $text"
@@ -327,9 +439,15 @@ draw_fancy_box_line() {
 
 draw_fancy_box_bottom() {
     local width="${1:-70}"
-    printf "${CYAN}╚"
-    printf '═%.0s' $(seq 1 $((width-2)))
-    printf "╝${NC}\n"
+    local bl br h
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        bl="+" br="+" h="-"
+    else
+        bl="╚" br="╝" h="═"
+    fi
+    printf "${CYAN}${bl}"
+    printf -- "${h}%.0s" $(seq 1 $((width-2)))
+    printf "${br}${NC}\n"
 }
 
 # ============================================================================
@@ -340,37 +458,51 @@ show_mega_banner() {
     clear_screen
     hide_cursor
     
-    # Matrix rain intro
+    # Matrix rain intro (skipped in plain mode)
     matrix_rain_fancy 1
     
-    local banner=(
-        "     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗"
-        "    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║"
-        "    ███████║██║     ██║  ██║█████╗  ██║     ██║"
-        "    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║"
-        "    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║"
-        "    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝"
-    )
-    
-    echo
-    # Animate banner with gradient
-    for ((i=0; i<${#banner[@]}; i++)); do
-        local color=$((39 + i * 30))
-        printf "\033[38;5;${color}m"
-        center_text "${banner[$i]}"
-        printf "${NC}"
-        sleep 0.08
-    done
-    
-    echo
-    rainbow_text "    ╔══════════════════════════════════════════════════════════╗"
-    rainbow_text "    ║   Application Lifecycle DevSecOps CI Platform            ║"
-    rainbow_text "    ║      End-to-End Security Demo Suite (FixOps API)         ║"
-    rainbow_text "    ╚══════════════════════════════════════════════════════════╝"
-    echo
-    
-    # Animated tagline
-    pulse_animation "    🚀 Powered by AI-Driven Security Intelligence"
+    if [[ "$PLAIN_MODE" == "1" ]]; then
+        # Simple ASCII banner for plain mode
+        echo ""
+        echo "    =============================================="
+        echo "                    A L D E C I"
+        echo "    =============================================="
+        echo "    Application Lifecycle DevSecOps CI Platform"
+        echo "    End-to-End Security Demo Suite (FixOps API)"
+        echo "    =============================================="
+        echo ""
+        echo "    Powered by AI-Driven Security Intelligence"
+        echo ""
+    else
+        local banner=(
+            "     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗"
+            "    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║"
+            "    ███████║██║     ██║  ██║█████╗  ██║     ██║"
+            "    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║"
+            "    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║"
+            "    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝"
+        )
+        
+        echo
+        # Animate banner with gradient
+        for ((i=0; i<${#banner[@]}; i++)); do
+            local color=$((39 + i * 30))
+            printf "\033[38;5;${color}m"
+            center_text "${banner[$i]}"
+            printf "${NC}"
+            sleep 0.08
+        done
+        
+        echo
+        rainbow_text "    +------------------------------------------------------------+"
+        rainbow_text "    |   Application Lifecycle DevSecOps CI Platform             |"
+        rainbow_text "    |      End-to-End Security Demo Suite (FixOps API)          |"
+        rainbow_text "    +------------------------------------------------------------+"
+        echo
+        
+        # Animated tagline
+        pulse_animation "    [*] Powered by AI-Driven Security Intelligence"
+    fi
     
     echo
     show_cursor
