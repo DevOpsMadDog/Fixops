@@ -3559,9 +3559,9 @@ def _handle_remediation_cli(args: argparse.Namespace) -> int:
                     print("-" * 65)
                     for b in breaches:
                         print(
-                            f"{b.get('task_id', '')[:38]:<40} "
-                            f"{b.get('severity', ''):<10} "
-                            f"{b.get('hours_overdue', 0):<15.1f}"
+                            f"{(b.get('task_id') or '')[:38]:<40} "
+                            f"{(b.get('severity') or ''):<10} "
+                            f"{(b.get('hours_overdue') or 0):<15.1f}"
                         )
                 else:
                     print("No SLA breaches found")

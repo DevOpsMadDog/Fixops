@@ -218,7 +218,11 @@ class TestCollaborationService:
 
         assert comment is not None
         mentions = comment.get("mentions", [])
-        assert "alice" in mentions or len(mentions) >= 0
+        assert (
+            len(mentions) >= 2
+        ), "Should extract at least 2 mentions (@alice and @bob)"
+        assert "alice" in mentions, "Should extract @alice mention"
+        assert "bob" in mentions, "Should extract @bob mention"
 
     def test_promote_to_evidence_audit_trail(self):
         """Test that evidence promotion records audit trail."""
