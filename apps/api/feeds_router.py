@@ -12,8 +12,10 @@ Exposes the world-class vulnerability intelligence feed service with 8 categorie
 """
 
 # Import from fixops-enterprise
-# The package should be installed or PYTHONPATH should include fixops-enterprise
-import importlib.util
+# The fixops-enterprise package path is added to sys.path only once at module load time.
+# This is necessary because fixops-enterprise is not installed as a proper package.
+# TODO: Consider installing fixops-enterprise as a proper package to avoid sys.path manipulation.
+import sys
 import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -21,102 +23,26 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+# Add fixops-enterprise to path if not already present (done once at module load)
+_ENTERPRISE_SRC = Path(__file__).resolve().parent.parent.parent / "fixops-enterprise"
+if _ENTERPRISE_SRC.exists() and str(_ENTERPRISE_SRC) not in sys.path:
+    sys.path.insert(0, str(_ENTERPRISE_SRC))
 
-def _import_feeds_service():
-    """Import feeds_service from fixops-enterprise with proper fallback.
-
-    This function handles the import in a way that doesn't modify sys.path
-    globally, which is a fragile approach. Instead, it uses importlib to
-    load the module from the expected location.
-    """
-    # First, try direct import (if package is properly installed)
-    try:
-        from src.services.feeds_service import (
-            AUTHORITATIVE_FEEDS,
-            CLOUD_RUNTIME_FEEDS,
-            EARLY_SIGNAL_FEEDS,
-            EXPLOIT_FEEDS,
-            NATIONAL_CERT_FEEDS,
-            SUPPLY_CHAIN_FEEDS,
-            THREAT_ACTOR_FEEDS,
-            ExploitIntelligence,
-            FeedCategory,
-            FeedsService,
-            GeoRegion,
-            SupplyChainVuln,
-            ThreatActorMapping,
-        )
-
-        return {
-            "AUTHORITATIVE_FEEDS": AUTHORITATIVE_FEEDS,
-            "CLOUD_RUNTIME_FEEDS": CLOUD_RUNTIME_FEEDS,
-            "EARLY_SIGNAL_FEEDS": EARLY_SIGNAL_FEEDS,
-            "EXPLOIT_FEEDS": EXPLOIT_FEEDS,
-            "NATIONAL_CERT_FEEDS": NATIONAL_CERT_FEEDS,
-            "SUPPLY_CHAIN_FEEDS": SUPPLY_CHAIN_FEEDS,
-            "THREAT_ACTOR_FEEDS": THREAT_ACTOR_FEEDS,
-            "ExploitIntelligence": ExploitIntelligence,
-            "FeedCategory": FeedCategory,
-            "FeedsService": FeedsService,
-            "GeoRegion": GeoRegion,
-            "SupplyChainVuln": SupplyChainVuln,
-            "ThreatActorMapping": ThreatActorMapping,
-        }
-    except ImportError:
-        pass
-
-    # Fallback: use importlib to load from fixops-enterprise directory
-    enterprise_path = (
-        Path(__file__).resolve().parent.parent.parent / "fixops-enterprise"
-    )
-    feeds_service_path = enterprise_path / "src" / "services" / "feeds_service.py"
-
-    if not feeds_service_path.exists():
-        raise ImportError(
-            f"Cannot find feeds_service.py at {feeds_service_path}. "
-            "Please ensure fixops-enterprise is properly installed or "
-            "PYTHONPATH includes the fixops-enterprise directory."
-        )
-
-    spec = importlib.util.spec_from_file_location("feeds_service", feeds_service_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load module from {feeds_service_path}")
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    return {
-        "AUTHORITATIVE_FEEDS": module.AUTHORITATIVE_FEEDS,
-        "CLOUD_RUNTIME_FEEDS": module.CLOUD_RUNTIME_FEEDS,
-        "EARLY_SIGNAL_FEEDS": module.EARLY_SIGNAL_FEEDS,
-        "EXPLOIT_FEEDS": module.EXPLOIT_FEEDS,
-        "NATIONAL_CERT_FEEDS": module.NATIONAL_CERT_FEEDS,
-        "SUPPLY_CHAIN_FEEDS": module.SUPPLY_CHAIN_FEEDS,
-        "THREAT_ACTOR_FEEDS": module.THREAT_ACTOR_FEEDS,
-        "ExploitIntelligence": module.ExploitIntelligence,
-        "FeedCategory": module.FeedCategory,
-        "FeedsService": module.FeedsService,
-        "GeoRegion": module.GeoRegion,
-        "SupplyChainVuln": module.SupplyChainVuln,
-        "ThreatActorMapping": module.ThreatActorMapping,
-    }
-
-
-# Import feeds service components
-_feeds_imports = _import_feeds_service()
-AUTHORITATIVE_FEEDS = _feeds_imports["AUTHORITATIVE_FEEDS"]
-CLOUD_RUNTIME_FEEDS = _feeds_imports["CLOUD_RUNTIME_FEEDS"]
-EARLY_SIGNAL_FEEDS = _feeds_imports["EARLY_SIGNAL_FEEDS"]
-EXPLOIT_FEEDS = _feeds_imports["EXPLOIT_FEEDS"]
-NATIONAL_CERT_FEEDS = _feeds_imports["NATIONAL_CERT_FEEDS"]
-SUPPLY_CHAIN_FEEDS = _feeds_imports["SUPPLY_CHAIN_FEEDS"]
-THREAT_ACTOR_FEEDS = _feeds_imports["THREAT_ACTOR_FEEDS"]
-ExploitIntelligence = _feeds_imports["ExploitIntelligence"]
-FeedCategory = _feeds_imports["FeedCategory"]
-FeedsService = _feeds_imports["FeedsService"]
-GeoRegion = _feeds_imports["GeoRegion"]
-SupplyChainVuln = _feeds_imports["SupplyChainVuln"]
-ThreatActorMapping = _feeds_imports["ThreatActorMapping"]
+from src.services.feeds_service import (  # noqa: E402
+    AUTHORITATIVE_FEEDS,
+    CLOUD_RUNTIME_FEEDS,
+    EARLY_SIGNAL_FEEDS,
+    EXPLOIT_FEEDS,
+    NATIONAL_CERT_FEEDS,
+    SUPPLY_CHAIN_FEEDS,
+    THREAT_ACTOR_FEEDS,
+    ExploitIntelligence,
+    FeedCategory,
+    FeedsService,
+    GeoRegion,
+    SupplyChainVuln,
+    ThreatActorMapping,
+)
 
 router = APIRouter(prefix="/api/v1/feeds", tags=["feeds"])
 
