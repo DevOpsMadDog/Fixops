@@ -61,6 +61,11 @@ case "${1:-interactive}" in
         shift
         exec uvicorn "$@"
         ;;
+    bash)
+        # Pass through bash commands directly
+        shift
+        exec bash "$@"
+        ;;
     interactive|"")
         echo -e "${CYAN}Starting interactive tester...${NC}"
         echo ""

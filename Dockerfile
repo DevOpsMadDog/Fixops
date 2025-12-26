@@ -34,11 +34,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only runtime dependencies (including jq for demo scripts)
+# Install only runtime dependencies (including tools for demo scripts)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     jq \
+    ncurses-bin \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
