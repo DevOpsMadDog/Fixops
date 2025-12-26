@@ -1,0 +1,67 @@
+{
+  "policy_id": "sec-policy-001",
+  "check_type": "pre-deployment",
+  "target": {
+    "application": "payment-gateway",
+    "version": "2.1.0",
+    "environment": "production"
+  },
+  "artifacts": {
+    "sbom": "sbom.json",
+    "sarif": "scan-results.sarif",
+    "container_scan": "trivy-results.json"
+  },
+  "policy_rules": [
+    {
+      "rule_id": "VULN-001",
+      "name": "No Critical Vulnerabilities",
+      "description": "Production deployments must have zero critical vulnerabilities",
+      "severity": "blocking",
+      "condition": "critical_vulns == 0"
+    },
+    {
+      "rule_id": "VULN-002",
+      "name": "High Vulnerability Limit",
+      "description": "Maximum 5 high severity vulnerabilities allowed",
+      "severity": "blocking",
+      "condition": "high_vulns <= 5"
+    },
+    {
+      "rule_id": "LICENSE-001",
+      "name": "Approved Licenses Only",
+      "description": "All dependencies must use approved open source licenses",
+      "severity": "blocking",
+      "condition": "all_licenses_approved"
+    },
+    {
+      "rule_id": "SBOM-001",
+      "name": "SBOM Required",
+      "description": "Valid SBOM must be present for all deployments",
+      "severity": "blocking",
+      "condition": "sbom_present && sbom_valid"
+    },
+    {
+      "rule_id": "SIGN-001",
+      "name": "Image Signing Required",
+      "description": "Container images must be signed with approved key",
+      "severity": "blocking",
+      "condition": "image_signed"
+    },
+    {
+      "rule_id": "SECRET-001",
+      "name": "No Hardcoded Secrets",
+      "description": "No secrets or credentials in source code",
+      "severity": "blocking",
+      "condition": "secrets_detected == 0"
+    }
+  ],
+  "exceptions": [
+    {
+      "rule_id": "VULN-002",
+      "reason": "Known vulnerability with compensating control",
+      "approved_by": "security-team",
+      "expires": "2025-02-15",
+      "ticket": "SEC-456"
+    }
+  ]
+}
