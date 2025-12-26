@@ -379,10 +379,19 @@ class DeduplicationService:
 
         Args:
             cluster_ids: List of cluster IDs to fetch events for
-            limit_per_cluster: Maximum events per cluster (applied via window function)
+            limit_per_cluster: Maximum events per cluster (applied in Python after
+                fetching all rows, not via SQL window function)
 
         Returns:
             Dict mapping cluster_id to list of events
+
+        Note:
+            The per-cluster limit is applied in Python after fetching all rows
+            from the database. For clusters with many events, this may be less
+            efficient than using a SQL window function with ROW_NUMBER() OVER
+            (PARTITION BY cluster_id ORDER BY timestamp DESC). However, this
+            approach is simpler and works with SQLite's limited window function
+            support in older versions.
         """
         if not cluster_ids:
             return {}

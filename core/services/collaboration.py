@@ -65,7 +65,9 @@ class CollaborationService:
                 parent_comment_id TEXT,
                 created_at TEXT NOT NULL,
                 edited_at TEXT,
-                metadata TEXT
+                metadata TEXT,
+                promoted_by TEXT,
+                promoted_at TEXT
             )
             """
             )
@@ -301,13 +303,19 @@ class CollaborationService:
             conn.close()
 
     def promote_to_evidence(self, comment_id: str, promoted_by: str) -> bool:
-        """Promote a comment to evidence for compliance."""
+        """Promote a comment to evidence for compliance.
+
+        Records who promoted the comment and when for audit trail purposes.
+        """
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
+            now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
-                "UPDATE comments SET is_evidence = 1 WHERE comment_id = ?",
-                (comment_id,),
+                """UPDATE comments
+                   SET is_evidence = 1, promoted_by = ?, promoted_at = ?
+                   WHERE comment_id = ?""",
+                (promoted_by, now, comment_id),
             )
             updated = cursor.rowcount > 0
             conn.commit()

@@ -677,12 +677,20 @@ class RemediationService:
             conn.close()
 
     def _is_overdue(self, task: Dict[str, Any]) -> bool:
-        """Check if task is overdue."""
+        """Check if task is overdue.
+
+        Uses timezone-aware datetime comparison to avoid TypeError when
+        comparing with timezone-aware due_at values stored in the database.
+        """
         if task["status"] in ("resolved", "wont_fix"):
             return False
         if not task.get("due_at"):
             return False
-        return datetime.utcnow() > datetime.fromisoformat(task["due_at"])
+        due_at = datetime.fromisoformat(task["due_at"])
+        # Ensure due_at is timezone-aware for comparison
+        if due_at.tzinfo is None:
+            due_at = due_at.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > due_at
 
     def link_to_ticket(
         self, task_id: str, ticket_id: str, ticket_url: Optional[str] = None

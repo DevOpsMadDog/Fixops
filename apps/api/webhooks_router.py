@@ -1,4 +1,12 @@
-"""Webhook receivers for bidirectional integration sync."""
+"""Webhook receivers for bidirectional integration sync.
+
+This module exports two routers:
+- router: Management endpoints (mappings, drift, outbox) - requires API key authentication
+- receiver_router: Webhook receiver endpoints (jira, servicenow, gitlab, azure) - uses signature verification only
+
+External services (Jira, ServiceNow, GitLab, Azure DevOps) cannot provide FixOps API keys,
+so receiver endpoints use their own authentication mechanisms (webhook signatures).
+"""
 
 import hashlib
 import hmac
@@ -13,7 +21,11 @@ from typing import Any, Dict, List, Literal, Optional
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
+# Management endpoints - requires API key authentication
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
+
+# Receiver endpoints - uses signature verification only, no API key required
+receiver_router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks-receivers"])
 
 _DATA_DIR = Path("data/integrations")
 _db_path: Optional[Path] = None
@@ -218,7 +230,7 @@ def _detect_drift(
     return None
 
 
-@router.post("/jira")
+@receiver_router.post("/jira")
 def receive_jira_webhook(
     payload: JiraWebhookPayload,
     x_atlassian_webhook_identifier: Optional[str] = Header(None),
@@ -338,7 +350,7 @@ def receive_jira_webhook(
         conn.close()
 
 
-@router.post("/servicenow")
+@receiver_router.post("/servicenow")
 def receive_servicenow_webhook(payload: ServiceNowWebhookPayload) -> Dict[str, Any]:
     """Receive webhook events from ServiceNow for bidirectional sync."""
     event_id = str(uuid.uuid4())
@@ -1095,7 +1107,7 @@ def _get_gitlab_webhook_secret() -> Optional[str]:
     return os.environ.get("FIXOPS_GITLAB_WEBHOOK_SECRET")
 
 
-@router.post("/gitlab")
+@receiver_router.post("/gitlab")
 def receive_gitlab_webhook(
     payload: GitLabWebhookPayload,
     x_gitlab_token: Optional[str] = Header(None),
@@ -1246,7 +1258,7 @@ def _map_azure_state_to_fixops(state: str) -> str:
     return state_map.get(state.lower(), "open")
 
 
-@router.post("/azure-devops")
+@receiver_router.post("/azure-devops")
 def receive_azure_devops_webhook(payload: AzureDevOpsWebhookPayload) -> Dict[str, Any]:
     """Receive webhook events from Azure DevOps for bidirectional sync.
 

@@ -38,6 +38,7 @@ from apps.api.reports_router import router as reports_router
 from apps.api.secrets_router import router as secrets_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
+from apps.api.webhooks_router import receiver_router as webhooks_receiver_router
 from apps.api.webhooks_router import router as webhooks_router
 from apps.api.workflows_router import router as workflows_router
 
@@ -424,6 +425,9 @@ def create_app() -> FastAPI:
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(webhooks_router, dependencies=[Depends(_verify_api_key)])
+    # Webhook receiver endpoints - NO API key required, uses signature verification
+    # External services (Jira, ServiceNow, GitLab, Azure DevOps) cannot provide FixOps API keys
+    app.include_router(webhooks_receiver_router)
 
     # Enterprise vulnerability intelligence feeds
     if feeds_router:
