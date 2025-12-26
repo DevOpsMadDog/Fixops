@@ -20,7 +20,7 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
 | **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (25+ pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
 
-**Platform Interfaces:** REST API (288 endpoints across 25 router modules), CLI (67 commands/subcommands), and modular UI (27 micro-frontends) - deployable on-prem or air-gapped as needed.
+**Platform Interfaces:** REST API (322 endpoints across 22 router modules), CLI (84 commands/subcommands), and modular UI (27 micro-frontends) - deployable on-prem or air-gapped as needed.
 
 ---
 
@@ -361,7 +361,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### 288 API Endpoints (25 Router Modules)
+### 322 API Endpoints (22 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -393,7 +393,7 @@ Configurable retention policies for compliance requirements:
 | Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
 | Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
-### 67 CLI Commands
+### 84 CLI Commands
 
 | Command Group | Commands | Description |
 |---------------|----------|-------------|
@@ -612,7 +612,7 @@ pytest --cov=core --cov=apps
 
 | Document | Description |
 |----------|-------------|
-| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (288 endpoints) |
+| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (322 endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
 | [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
