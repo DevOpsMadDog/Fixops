@@ -3581,13 +3581,15 @@ def _handle_remediation_cli(args: argparse.Namespace) -> int:
 def _handle_notifications(args: argparse.Namespace) -> int:
     """Handle notifications subcommands."""
     import time
-    from pathlib import Path
 
     from core.services.collaboration import CollaborationService
 
     # Get db_path from environment or use default
     data_dir = Path(os.environ.get("FIXOPS_DATA_DIR", ".fixops_data"))
     db_path = data_dir / "collaboration" / "collaboration.db"
+
+    # Ensure parent directories exist
+    os.makedirs(db_path.parent, exist_ok=True)
 
     if args.notifications_command == "worker":
         service = CollaborationService(db_path=db_path)

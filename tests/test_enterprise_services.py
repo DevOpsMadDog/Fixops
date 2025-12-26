@@ -249,7 +249,7 @@ class TestCollaborationService:
             comment_id=comment["comment_id"], promoted_by="admin-user"
         )
 
-        assert result is not None
+        assert result is True
 
     def test_queue_notification(self, db_paths):
         """Test queuing a notification."""
