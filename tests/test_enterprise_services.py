@@ -175,7 +175,7 @@ class TestRemediationService:
         )
 
         assert updated is not None
-        assert updated["status"] == "assigned"
+        assert updated["new_status"] == "assigned"
 
     def test_check_sla_breaches(self, db_paths):
         """Test SLA breach detection returns a list."""
