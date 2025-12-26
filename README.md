@@ -361,7 +361,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### 288 API Endpoints (25 Router Modules)
+### 322 API Endpoints (22 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
