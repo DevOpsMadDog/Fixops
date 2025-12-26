@@ -1,0 +1,121 @@
+{
+  "scan_id": "cx-health-2025-001",
+  "tool": "checkmarx",
+  "tool_version": "9.5",
+  "scan_type": "sast",
+  "timestamp": "2025-01-15T09:30:00Z",
+  "application": "healthcare-api",
+  "branch": "main",
+  "commit": "ghi789jkl012",
+  "project_id": "CX-HEALTH-001",
+  "preset": "HIPAA",
+  "findings": [
+    {
+      "id": "CX-HEALTH-001",
+      "query_id": "PHI_Exposure",
+      "query_name": "Protected Health Information Exposure",
+      "severity": "critical",
+      "state": "confirmed",
+      "cwe": "CWE-359",
+      "categories": ["HIPAA-164.502", "OWASP_2021_A01"],
+      "source": {
+        "file": "src/controllers/patient.controller.ts",
+        "line": 89,
+        "column": 15
+      },
+      "sink": {
+        "file": "src/controllers/patient.controller.ts",
+        "line": 95,
+        "column": 10
+      },
+      "description": "Patient health information logged without redaction",
+      "remediation": "Implement PHI redaction before logging",
+      "correlation_id": "CORR-PHI-001"
+    },
+    {
+      "id": "CX-HEALTH-002",
+      "query_id": "Broken_Access_Control",
+      "query_name": "Broken Access Control - IDOR",
+      "severity": "critical",
+      "state": "confirmed",
+      "cwe": "CWE-639",
+      "categories": ["HIPAA-164.312", "OWASP_2021_A01"],
+      "source": {
+        "file": "src/controllers/records.controller.ts",
+        "line": 45,
+        "column": 20
+      },
+      "sink": {
+        "file": "src/services/records.service.ts",
+        "line": 78,
+        "column": 15
+      },
+      "description": "Patient ID from URL used directly without authorization check",
+      "remediation": "Verify requesting user has access to patient record",
+      "correlation_id": "CORR-IDOR-001"
+    },
+    {
+      "id": "CX-HEALTH-003",
+      "query_id": "Insufficient_Encryption",
+      "query_name": "PHI transmitted without encryption",
+      "severity": "high",
+      "state": "confirmed",
+      "cwe": "CWE-311",
+      "categories": ["HIPAA-164.312(e)(1)", "OWASP_2021_A02"],
+      "source": {
+        "file": "src/services/fhir.service.ts",
+        "line": 123,
+        "column": 10
+      },
+      "description": "Patient data sent to external API without TLS verification",
+      "remediation": "Ensure all PHI transmission uses TLS 1.2+",
+      "correlation_id": "CORR-ENCRYPT-001"
+    },
+    {
+      "id": "CX-HEALTH-004",
+      "query_id": "Missing_Audit_Log",
+      "query_name": "PHI access not logged",
+      "severity": "high",
+      "state": "confirmed",
+      "cwe": "CWE-778",
+      "categories": ["HIPAA-164.312(b)", "OWASP_2021_A09"],
+      "source": {
+        "file": "src/controllers/prescription.controller.ts",
+        "line": 67,
+        "column": 5
+      },
+      "description": "Prescription access not recorded in audit log",
+      "remediation": "Add audit logging for all PHI access",
+      "correlation_id": "CORR-AUDIT-001"
+    },
+    {
+      "id": "CX-HEALTH-005",
+      "query_id": "NoSQL_Injection",
+      "query_name": "NoSQL Injection",
+      "severity": "critical",
+      "state": "confirmed",
+      "cwe": "CWE-943",
+      "categories": ["OWASP_2021_A03"],
+      "source": {
+        "file": "src/repositories/patient.repository.ts",
+        "line": 34,
+        "column": 25
+      },
+      "sink": {
+        "file": "src/repositories/patient.repository.ts",
+        "line": 36,
+        "column": 10
+      },
+      "description": "User input directly used in MongoDB query",
+      "remediation": "Sanitize input and use parameterized queries",
+      "correlation_id": "CORR-NOSQL-001"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "critical": 3,
+    "high": 2,
+    "medium": 0,
+    "low": 0
+  }
+}
