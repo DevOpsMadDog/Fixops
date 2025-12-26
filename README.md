@@ -20,7 +20,7 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
 | **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (25+ pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
 
-**Platform Interfaces:** REST API (243+ endpoints across 22 router modules), CLI (67 commands/subcommands), and modular UI (27 micro-frontends) - deployable on-prem or air-gapped as needed.
+**Platform Interfaces:** REST API (288 endpoints across 25 router modules), CLI (67 commands/subcommands), and modular UI (27 micro-frontends) - deployable on-prem or air-gapped as needed.
 
 ---
 
@@ -146,12 +146,45 @@ Every decision produces a cryptographically signed bundle:
 - Configurable retention policies
 - Audit-ready anytime, even offline
 
-### Exploit Intelligence Enrichment
-Real-time threat data integration:
-- **CISA KEV** - Known Exploited Vulnerabilities catalog
-- **EPSS** - Exploit Prediction Scoring System
-- **CVSS/CWE** - Standard vulnerability metrics
-- Automatic severity promotion for actively exploited CVEs
+### World-Class Vulnerability Intelligence (8 Categories)
+FixOps ingests the largest vulnerability and exploit intelligence surface in the world:
+
+**1. Global Authoritative Sources (Ground Truth)**
+- NVD, CVE Program, MITRE, CISA KEV, CERT/CC, US-CERT, ICS-CERT
+
+**2. National CERTs (Geo-specific Exploit Reality)**
+- NCSC UK, BSI Germany, ANSSI France, JPCERT Japan, CERT-In, ACSC Australia, SingCERT, KISA Korea
+- Geo-weighted risk scoring (exploitation differs by country/region)
+
+**3. Exploit & Weaponization Intelligence**
+- Exploit-DB, Metasploit, Packet Storm, Vulners, GreyNoise, Shodan, Censys, Nuclei Templates
+- Exploit-confidence scoring (not CVSS fear-score)
+
+**4. Threat Actor & Campaign Intelligence**
+- MITRE ATT&CK, AlienVault OTX, abuse.ch, Feodo Tracker, Ransomware Live
+- CVE → Threat Actor → Sector targeting mapping
+
+**5. Supply-Chain & SBOM Intelligence**
+- OSV, GitHub Advisory Database, Snyk, deps.dev, NPM/PyPI/RustSec advisories
+- Reachable dependency analysis (exploitability based on actual reachability)
+
+**6. Cloud & Runtime Vulnerability Feeds**
+- AWS, Azure, GCP Security Bulletins, Kubernetes CVEs, Red Hat, Ubuntu, Debian, Alpine
+
+**7. Zero-Day & Early-Signal Feeds**
+- Microsoft MSRC, Apple Security, Cisco PSIRT, Palo Alto, Fortinet
+- GitHub security commits, Full-Disclosure, OSS-Security mailing lists
+- Pre-CVE risk alerts
+
+**8. Internal Enterprise Signals**
+- SAST/DAST/SCA findings, IaC misconfigurations, runtime detections
+- Exposure graph (internet-facing? auth bypass?), business criticality metadata
+
+**Key Differentiators:**
+- **Exploit-Confidence Score** - Based on actual exploitation evidence, not CVSS fear-scoring
+- **Geo-Weighted Risk** - Regional exploitation patterns from national CERTs
+- **Threat Actor Mapping** - Know which APT groups are using which CVEs
+- **Reachable Dependency Analysis** - Same CVE ≠ same risk
 
 ### Compliance Framework Mapping
 Native support for regulatory requirements:
@@ -328,7 +361,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### 243+ API Endpoints (22 Router Modules)
+### 288 API Endpoints (25 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -350,10 +383,15 @@ Configurable retention policies for compliance requirements:
 | Secrets | 5 | Secrets scanning findings |
 | Health | 5 | Health checks, readiness, metrics |
 | IDE | 3 | IDE plugin integration |
-| Bulk | 5 | Bulk operations |
+| Bulk | 8 | Bulk operations, async job framework |
 | Marketplace | 12 | Compliance packs, contributions |
 | Evidence | 17 | Bundles, manifests, verification |
 | Graph/Risk | 7 | Dependency visualization, reachability |
+| Deduplication | 17 | Cluster management, correlation linking, baseline comparison |
+| Remediation | 13 | Task lifecycle, SLA tracking, verification evidence |
+| Collaboration | 12 | Comments, watchers, activity feeds, notifications |
+| Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
+| Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
 ### 67 CLI Commands
 
@@ -574,7 +612,7 @@ pytest --cov=core --cov=apps
 
 | Document | Description |
 |----------|-------------|
-| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (243+ endpoints) |
+| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (288 endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
 | [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
@@ -598,6 +636,10 @@ pytest --cov=core --cov=apps
 - Enhanced PentAGI
 - IDE integration APIs
 - SSO/OAuth configuration
+- **Deduplication & Correlation Engine** - Two-layer system with cluster management, correlation linking, and 35% noise reduction targeting
+- **Remediation Lifecycle Management** - State machine with SLA tracking (Critical=24h, High=72h, Medium=168h, Low=720h), verification evidence, and MTTR metrics
+- **Enterprise Bulk Operations** - Async job framework with per-item outcomes, partial failure handling, and job status tracking
+- **Team Collaboration** - Append-only comment threads, watchers, activity feeds, mention tracking, and evidence promotion
 
 ### Optional Integrations
 - Jira (requires `FIXOPS_JIRA_TOKEN`)
