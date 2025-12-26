@@ -255,7 +255,7 @@
     "cisa_kev_count": 7,
     "weaponized_exploits": 6,
     "ransomware_associated": 3,
-    "applications_affected": 12,
+    "applications_affected": 10,
     "unique_mitre_techniques": 15
   }
 }

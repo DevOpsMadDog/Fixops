@@ -220,7 +220,7 @@ All findings across tools are linked using correlation IDs (format: `CORR-*`):
 | Category | Files | Description |
 |----------|-------|-------------|
 | Applications | 14 | Application definitions with metadata |
-| SAST | 6 | SonarQube, Checkmarx, Semgrep, CodeQL, Fortify, Major CVEs |
+| SAST | 5 | SonarQube, Checkmarx, Semgrep, Bandit, Major CVEs |
 | DAST | 2 | OWASP ZAP, Burp Suite |
 | SCA | 4 | Snyk, Dependabot, Trivy, Safety |
 | Container | 3 | Trivy, Grype, Prisma Cloud |

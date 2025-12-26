@@ -190,9 +190,9 @@
     "breach_log": []
   },
   "summary": {
-    "total_standards": 12,
+    "total_standards": 11,
     "compliant": 6,
-    "non_compliant": 6,
+    "non_compliant": 5,
     "critical_findings": 2,
     "high_findings": 4
   },

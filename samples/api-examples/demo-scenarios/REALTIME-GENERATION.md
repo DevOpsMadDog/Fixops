@@ -500,7 +500,8 @@ curl -H "Authorization: Bearer $SYSDIG_TOKEN" \
 
 ```bash
 # Create compliance assessment from scan results
-cat > compliance-assessment.json << 'EOF'
+# Note: Set FRAMEWORK and APP_NAME environment variables before running
+cat > compliance-assessment.json << EOF
 {
   "assessment_id": "compliance-$(date +%s)",
   "framework": "$FRAMEWORK",

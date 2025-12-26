@@ -31,7 +31,10 @@
     "update_security_group",
     "create_snapshot",
     "export_evidence_bundle",
-    "generate_compliance_report"
+    "generate_compliance_report",
+    "update_deployment_gate",
+    "update_compliance_record",
+    "evaluate_threat"
   ],
   "playbooks": [
     {

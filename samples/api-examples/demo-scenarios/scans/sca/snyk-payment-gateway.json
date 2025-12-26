@@ -35,13 +35,13 @@
       "correlation_id": "CORR-LOG4J-001"
     },
     {
-      "id": "SNYK-JAVA-COMFABORXMLBIND-2367193",
-      "title": "XML External Entity (XXE) Injection",
+      "id": "SNYK-JAVA-COMFASTERXMLJACKSONCORE-3038426",
+      "title": "Denial of Service via Deeply Nested JSON",
       "severity": "high",
       "cvss_score": 7.5,
-      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
       "cve": "CVE-2022-42003",
-      "cwe": ["CWE-611"],
+      "cwe": ["CWE-400"],
       "package_name": "com.fasterxml.jackson.core:jackson-databind",
       "installed_version": "2.12.3",
       "fixed_version": "2.13.4.1",
@@ -49,7 +49,7 @@
       "exploit_maturity": "proof-of-concept",
       "is_patchable": true,
       "is_upgradable": true,
-      "description": "Deeply nested JSON can cause stack overflow in jackson-databind",
+      "description": "Deeply nested JSON can cause stack overflow in jackson-databind leading to denial of service",
       "remediation": "Upgrade to jackson-databind@2.13.4.1 or later",
       "correlation_id": "CORR-JACKSON-001"
     },

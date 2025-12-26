@@ -60,7 +60,7 @@
       "rule_id": "VULN-002",
       "reason": "Known vulnerability with compensating control",
       "approved_by": "security-team",
-      "expires": "2025-02-15",
+      "expires": "2026-02-15",
       "ticket": "SEC-456"
     }
   ]

@@ -214,7 +214,7 @@ loading_bar_fancy() {
         printf "%${empty}s" | tr ' ' '░'
         printf "] ${BOLD}${WHITE}%3d%%${NC}" "$i"
         
-        sleep $(echo "scale=3; $duration / 50" | bc)
+        sleep $(awk "BEGIN {printf \"%.3f\", $duration / 50}")
     done
     printf "\n"
     show_cursor
@@ -414,10 +414,18 @@ DEMO_FRAMEWORKS=("${DEFAULT_FRAMEWORKS[@]}")
 load_demo_config() {
     if [[ -f "$DEMO_CONFIG" ]]; then
         echo "Loading saved configuration..."
-        # Parse JSON config if exists
+        # Parse JSON config if exists using mapfile to avoid word splitting issues (SC2207)
         if command -v jq &>/dev/null; then
-            DEMO_APPS=($(jq -r '.applications[]' "$DEMO_CONFIG" 2>/dev/null || echo "${DEFAULT_APPS[@]}"))
-            DEMO_FRAMEWORKS=($(jq -r '.frameworks[]' "$DEMO_CONFIG" 2>/dev/null || echo "${DEFAULT_FRAMEWORKS[@]}"))
+            local apps_output
+            apps_output=$(jq -r '.applications[]' "$DEMO_CONFIG" 2>/dev/null)
+            if [[ -n "$apps_output" ]]; then
+                mapfile -t DEMO_APPS <<< "$apps_output"
+            fi
+            local frameworks_output
+            frameworks_output=$(jq -r '.frameworks[]' "$DEMO_CONFIG" 2>/dev/null)
+            if [[ -n "$frameworks_output" ]]; then
+                mapfile -t DEMO_FRAMEWORKS <<< "$frameworks_output"
+            fi
         fi
     fi
 }
@@ -823,6 +831,11 @@ run_animated_reachability() {
     gradient_text "  ║   🛡️  REACHABILITY ANALYSIS - ATTACK PATH MAPPING ENGINE  🛡️       ║"
     gradient_text "  ╚═══════════════════════════════════════════════════════════════════╝"
     printf "${NC}\n"
+    
+    # Show network topology overview first
+    echo
+    printf "  ${CYAN}Network Topology Overview:${NC}\n"
+    draw_attack_path_ascii "Network Overview"
     
     # Animated network topology
     echo
