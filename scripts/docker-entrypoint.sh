@@ -29,15 +29,24 @@ if [[ "${START_API_SERVER:-true}" == "true" ]]; then
     
     # Wait for API to be ready
     echo -e "${CYAN}Waiting for API server to be ready...${NC}"
+    API_READY=false
     for i in {1..30}; do
         if curl -s http://localhost:8000/health > /dev/null 2>&1; then
             echo -e "${GREEN}API server is ready!${NC}"
+            API_READY=true
             break
         fi
         sleep 1
         echo -n "."
     done
     echo ""
+    
+    # Exit with error if API failed to start
+    if [[ "$API_READY" != "true" ]]; then
+        echo -e "${RED}ERROR: API server failed to start within 30 seconds${NC}"
+        echo -e "${YELLOW}Check the logs above for errors${NC}"
+        exit 1
+    fi
 fi
 
 # Handle different modes
@@ -54,12 +63,20 @@ case "${1:-interactive}" in
             uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level warning &
             API_PID=$!
             # Wait for API to be ready
+            API_READY=false
             for i in {1..30}; do
                 if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+                    API_READY=true
                     break
                 fi
                 sleep 1
             done
+            # Exit with error if API failed to start
+            if [[ "$API_READY" != "true" ]]; then
+                echo -e "${RED}ERROR: API server failed to start within 30 seconds${NC}"
+                echo -e "${YELLOW}Check the logs above for errors${NC}"
+                exit 1
+            fi
         fi
         echo -e "${CYAN}Running in API-only mode...${NC}"
         echo -e "${GREEN}API server running at http://localhost:8000${NC}"
