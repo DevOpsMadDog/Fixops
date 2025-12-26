@@ -51,6 +51,16 @@ fi
 
 # Handle different modes
 case "${1:-interactive}" in
+    python)
+        # Pass through python commands directly (for CI compatibility)
+        shift
+        exec python "$@"
+        ;;
+    uvicorn)
+        # Pass through uvicorn commands directly
+        shift
+        exec uvicorn "$@"
+        ;;
     interactive|"")
         echo -e "${CYAN}Starting interactive tester...${NC}"
         echo ""
