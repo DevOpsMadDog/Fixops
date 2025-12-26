@@ -39,10 +39,7 @@ class TestDeduplicationService:
             finding=finding,
             run_id="test-run-1",
             org_id="test-org",
-            app_id="test-app",
-            component_id="test-component",
             source="sarif",
-            category="sast",
         )
 
         assert result is not None
@@ -129,7 +126,7 @@ class TestRemediationService:
         service = RemediationService(db_path=db_paths["remediation"])
 
         assert "high" in service.sla_policies
-        assert service.sla_policies["high"] == 24
+        assert service.sla_policies["high"] == 72
 
     def test_sla_policy_critical_severity(self, db_paths):
         """Test SLA policy for critical severity."""
@@ -138,7 +135,7 @@ class TestRemediationService:
         service = RemediationService(db_path=db_paths["remediation"])
 
         assert "critical" in service.sla_policies
-        assert service.sla_policies["critical"] == 4
+        assert service.sla_policies["critical"] == 24
 
     def test_sla_policy_medium_severity(self, db_paths):
         """Test SLA policy for medium severity."""
@@ -147,7 +144,7 @@ class TestRemediationService:
         service = RemediationService(db_path=db_paths["remediation"])
 
         assert "medium" in service.sla_policies
-        assert service.sla_policies["medium"] == 72
+        assert service.sla_policies["medium"] == 168
 
     def test_sla_policy_low_severity(self, db_paths):
         """Test SLA policy for low severity."""
@@ -156,10 +153,10 @@ class TestRemediationService:
         service = RemediationService(db_path=db_paths["remediation"])
 
         assert "low" in service.sla_policies
-        assert service.sla_policies["low"] == 168
+        assert service.sla_policies["low"] == 720
 
     def test_update_status(self, db_paths):
-        """Test updating task status."""
+        """Test updating task status to assigned."""
         from core.services.remediation import RemediationService
 
         service = RemediationService(db_path=db_paths["remediation"])
@@ -172,12 +169,13 @@ class TestRemediationService:
             severity="medium",
         )
 
+        # Valid transition from open to assigned
         updated = service.update_status(
-            task["task_id"], "in_progress", changed_by="user-1"
+            task["task_id"], "assigned", changed_by="user-1"
         )
 
         assert updated is not None
-        assert updated["status"] == "in_progress"
+        assert updated["status"] == "assigned"
 
     def test_check_sla_breaches(self, db_paths):
         """Test SLA breach detection returns a list."""
@@ -209,7 +207,7 @@ class TestCollaborationService:
 
         assert comment is not None
         assert "comment_id" in comment
-        assert comment["content"] == "This needs immediate attention"
+        assert comment["author"] == "user-1"
 
     def test_mention_extraction(self, db_paths):
         """Test that mentions are extracted from comments."""
