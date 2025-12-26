@@ -49,6 +49,13 @@ try:
 except ImportError:
     logging.getLogger(__name__).warning("Feeds router not available")
 
+# Validation router - compatibility checking for security tool outputs
+validation_router: Optional[APIRouter] = None
+try:
+    from apps.api.validation_router import router as validation_router
+except ImportError:
+    logging.getLogger(__name__).warning("Validation router not available")
+
 # Legacy API bridge router - imports legacy APIs from archive/enterprise_legacy
 legacy_bridge_router: Optional[APIRouter] = None
 try:
@@ -432,6 +439,10 @@ def create_app() -> FastAPI:
     # Enterprise vulnerability intelligence feeds
     if feeds_router:
         app.include_router(feeds_router, dependencies=[Depends(_verify_api_key)])
+
+    # Validation router - compatibility checking for security tool outputs
+    if validation_router:
+        app.include_router(validation_router, dependencies=[Depends(_verify_api_key)])
 
     # Legacy API bridge - exposes legacy APIs from archive/enterprise_legacy
     if legacy_bridge_router:
