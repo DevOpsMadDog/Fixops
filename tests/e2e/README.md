@@ -4,16 +4,94 @@
 
 This test suite provides a complete simulation of FixOps/ALDECI deployment across 3 enterprise customers with 14 applications, covering all 291 API endpoints with realistic security tool data.
 
+## Test Modes (Commercial Deployment)
+
+The test suite supports three modes for different deployment scenarios:
+
+### 1. Platform Readiness (`--mode platform-readiness`)
+
+**Use for: Fresh deployments, CI/CD validation, platform health checks**
+
+```bash
+python comprehensive_e2e_test.py --mode platform-readiness
+```
+
+- Validates that the API is up, authentication works, and endpoints respond correctly
+- Empty responses (no data) are counted as **PASS** since no data exists yet
+- Focus: API availability, auth, endpoint contracts
+- **Expected pass rate: 90%+** on a fresh install
+
+### 2. Onboarding Validation (`--mode onboarding-validation`)
+
+**Use for: After customer data ingestion + pipeline run**
+
+```bash
+python comprehensive_e2e_test.py --mode onboarding-validation
+```
+
+- Validates that data exists after the onboarding process
+- Empty responses are counted as **GAP** (data should exist)
+- Focus: Data completeness, integration verification
+- **Run after:** `POST /inputs/sbom`, `POST /inputs/sarif`, `POST /pipeline/run`
+
+### 3. Full Analysis (`--mode full`) [DEFAULT]
+
+**Use for: Development, debugging, comprehensive analysis**
+
+```bash
+python comprehensive_e2e_test.py --mode full
+```
+
+- Full test with detailed classification of all results
+- NEEDS-SEEDING is reported separately for visibility
+- Provides complete breakdown of all result categories
+
+## Commercial Onboarding Process
+
+At a client site, follow this process:
+
+1. **Deploy & Configure**
+   ```bash
+   # Deploy FixOps
+   docker pull devopsaico/fixops:latest
+   docker run -d -p 8002:8002 devopsaico/fixops:latest
+   
+   # Verify platform is ready
+   python comprehensive_e2e_test.py --mode platform-readiness
+   ```
+
+2. **Ingest Customer Data**
+   ```bash
+   # Upload SBOM from their security tools (Trivy, Syft, etc.)
+   curl -F "file=@sbom.json" http://fixops:8002/inputs/sbom
+   
+   # Upload SARIF from their scanners (SonarQube, Checkmarx, etc.)
+   curl -F "file=@scan.sarif" http://fixops:8002/inputs/sarif
+   
+   # Upload CVE feed
+   curl -F "file=@cve.json" http://fixops:8002/inputs/cve
+   ```
+
+3. **Run Pipeline**
+   ```bash
+   curl http://fixops:8002/pipeline/run
+   ```
+
+4. **Validate Onboarding**
+   ```bash
+   python comprehensive_e2e_test.py --mode onboarding-validation
+   ```
+
 ## Test Philosophy
 
 **Goal: Find bugs and gaps, not just pass tests.**
 
 Results are classified as:
 - **PASS**: Valid response with expected data
-- **BUG**: Unexpected error or incorrect behavior
-- **GAP**: Missing feature or incomplete implementation
-- **NEEDS-SEEDING**: Empty response expected for unseeded data
-- **NOT-APPLICABLE**: Endpoint not relevant for current scenario
+- **BUG**: Unexpected error or incorrect behavior (server errors, validation failures)
+- **GAP**: Missing feature, permission issue, or incomplete implementation
+- **NEEDS-SEEDING**: Empty response expected for unseeded data (only in `full` mode)
+- **NOT-APPLICABLE**: Endpoint not relevant for current scenario (file uploads, disabled features)
 
 ## Customer Scenarios
 

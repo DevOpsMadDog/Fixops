@@ -7,11 +7,30 @@ Tests all 291 API endpoints across 14 applications with realistic security tool 
 Designed to find bugs and gaps, not just pass tests.
 
 Results classified as: PASS, BUG, GAP, NEEDS-SEEDING, NOT-APPLICABLE
+
+TEST MODES:
+-----------
+1. PLATFORM_READINESS (--mode platform-readiness)
+   - Validates fresh install: API is up, auth works, endpoints respond correctly
+   - Empty responses (NEEDS-SEEDING) are counted as PASS since no data exists yet
+   - Use this for: Fresh deployments, CI/CD validation, platform health checks
+
+2. ONBOARDING_VALIDATION (--mode onboarding-validation)
+   - Validates post-onboarding: Data should exist after ingestion + pipeline run
+   - Empty responses (NEEDS-SEEDING) are counted as issues to investigate
+   - Use this for: Post-onboarding verification, production readiness checks
+
+3. FULL (--mode full) [DEFAULT]
+   - Full test with detailed classification of all results
+   - NEEDS-SEEDING is reported separately for visibility
+   - Use this for: Development, debugging, comprehensive analysis
 """
 
+import argparse
 import csv
 import json
 import os
+import sys
 import time
 import traceback
 from dataclasses import asdict, dataclass, field
@@ -27,6 +46,14 @@ API_KEY = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
 OUTPUT_DIR = os.environ.get(
     "FIXOPS_TEST_OUTPUT", "/home/ubuntu/fixops_comprehensive_test/results"
 )
+
+
+class TestMode(Enum):
+    """Test execution modes for different deployment scenarios."""
+
+    PLATFORM_READINESS = "platform-readiness"
+    ONBOARDING_VALIDATION = "onboarding-validation"
+    FULL = "full"
 
 
 class E2ETestResult(Enum):
@@ -1229,8 +1256,9 @@ class FixOpsClient:
 class ComprehensiveTestRunner:
     """Runs comprehensive end-to-end tests across all APIs."""
 
-    def __init__(self, client: FixOpsClient):
+    def __init__(self, client: FixOpsClient, mode: TestMode = TestMode.FULL):
         self.client = client
+        self.mode = mode
         self.results: List[E2ETestCase] = []
         self.consistency_checks: List[ConsistencyCheck] = []
         self.stats = {
@@ -1276,7 +1304,26 @@ class ComprehensiveTestRunner:
         response: dict,
         expected_data: bool = True,
     ) -> Tuple[E2ETestResult, str]:
-        """Classify API response into result category."""
+        """
+        Classify API response into result category.
+
+        Classification behavior varies by test mode:
+        - PLATFORM_READINESS: NEEDS-SEEDING → PASS (empty data is expected)
+        - ONBOARDING_VALIDATION: NEEDS-SEEDING → GAP (data should exist)
+        - FULL: NEEDS-SEEDING reported as-is for visibility
+        """
+
+        def handle_needs_seeding(reason: str) -> Tuple[E2ETestResult, str]:
+            """Handle NEEDS-SEEDING based on test mode."""
+            if self.mode == TestMode.PLATFORM_READINESS:
+                # Fresh install - empty data is expected and OK
+                return E2ETestResult.PASS, f"[Platform OK] {reason}"
+            elif self.mode == TestMode.ONBOARDING_VALIDATION:
+                # Post-onboarding - data should exist, this is an issue
+                return E2ETestResult.GAP, f"[Missing Data] {reason}"
+            else:
+                # Full mode - report as NEEDS-SEEDING for visibility
+                return E2ETestResult.NEEDS_SEEDING, reason
 
         # Server errors are always bugs
         if status_code >= 500:
@@ -1302,7 +1349,7 @@ class ComprehensiveTestRunner:
             detail = str(response.get("detail", ""))
             # Stage not recognized - should use valid stage
             if "not recognised" in detail.lower() or "not recognized" in detail.lower():
-                return E2ETestResult.NEEDS_SEEDING, f"Invalid stage: {detail[:50]}"
+                return handle_needs_seeding(f"Invalid stage: {detail[:50]}")
             # These 404s indicate data needs to be seeded first
             if (
                 "not found" in detail.lower()
@@ -1310,7 +1357,7 @@ class ComprehensiveTestRunner:
                 or "no risk" in detail.lower()
                 or "no analytics" in detail.lower()
             ):
-                return E2ETestResult.NEEDS_SEEDING, f"Needs data: {detail[:50]}"
+                return handle_needs_seeding(f"Needs data: {detail[:50]}")
             return E2ETestResult.BUG, f"404 error: {detail[:50]}"
 
         # Validation errors - some are expected for file upload endpoints
@@ -1341,7 +1388,7 @@ class ComprehensiveTestRunner:
                 )
             # Task not found - needs seeding
             if "not found" in detail.lower():
-                return E2ETestResult.NEEDS_SEEDING, f"Needs data: {detail[:50]}"
+                return handle_needs_seeding(f"Needs data: {detail[:50]}")
             return (
                 E2ETestResult.BUG,
                 f"Client error {status_code}: {detail[:50]}",
@@ -1355,22 +1402,13 @@ class ComprehensiveTestRunner:
                 if isinstance(response, dict):
                     # Check common patterns for empty data
                     if response.get("items") == [] and response.get("total", 0) == 0:
-                        return (
-                            E2ETestResult.NEEDS_SEEDING,
-                            "Empty list - needs data seeding",
-                        )
+                        return handle_needs_seeding("Empty list - needs data seeding")
                     if response.get("findings") == []:
-                        return (
-                            E2ETestResult.NEEDS_SEEDING,
-                            "No findings - needs data seeding",
-                        )
+                        return handle_needs_seeding("No findings - needs data seeding")
                     if response.get("results") == []:
-                        return (
-                            E2ETestResult.NEEDS_SEEDING,
-                            "No results - needs data seeding",
-                        )
+                        return handle_needs_seeding("No results - needs data seeding")
                 elif isinstance(response, list) and len(response) == 0:
-                    return E2ETestResult.NEEDS_SEEDING, "Empty list response"
+                    return handle_needs_seeding("Empty list response")
 
             # Check for successful ingestion
             if "status" in response and response.get("status") == "ok":
@@ -4120,14 +4158,33 @@ class ComprehensiveTestRunner:
 
     def run_all(self):
         """Run all test phases."""
+        mode_descriptions = {
+            TestMode.PLATFORM_READINESS: "Platform Readiness (fresh install validation)",
+            TestMode.ONBOARDING_VALIDATION: "Onboarding Validation (post-data-ingestion)",
+            TestMode.FULL: "Full Analysis (detailed classification)",
+        }
+
         print("\n" + "=" * 80)
         print("FIXOPS COMPREHENSIVE END-TO-END TEST SUITE")
         print("=" * 80)
+        print(f"Test Mode: {mode_descriptions[self.mode]}")
         print(f"Base URL: {BASE_URL}")
         print(f"Started: {datetime.now(timezone.utc).isoformat()}")
         print(f"Customers: {len(CUSTOMERS)}")
         print(f"Applications: {len(APPLICATIONS)}")
         print("=" * 80)
+
+        # Mode-specific guidance
+        if self.mode == TestMode.PLATFORM_READINESS:
+            print("\n[INFO] Platform Readiness Mode:")
+            print("  - Empty responses (no data) are counted as PASS")
+            print("  - Use this for fresh deployments and CI/CD validation")
+            print("  - Focus: API availability, auth, endpoint contracts")
+        elif self.mode == TestMode.ONBOARDING_VALIDATION:
+            print("\n[INFO] Onboarding Validation Mode:")
+            print("  - Empty responses are counted as GAP (data should exist)")
+            print("  - Use this after: ingest data + run pipeline")
+            print("  - Focus: Data completeness, integration verification")
 
         try:
             self.phase1_infrastructure_setup()
@@ -4147,21 +4204,125 @@ class ComprehensiveTestRunner:
         print("\n" + "=" * 80)
         print("TEST EXECUTION COMPLETE")
         print("=" * 80)
+        print(f"\nTest Mode: {mode_descriptions[self.mode]}")
         print("\nFinal Results:")
         print(f"  Total:         {self.stats['total']}")
         pass_rate = self.stats["pass"] / max(self.stats["total"], 1) * 100
         print(f"  PASS:          {self.stats['pass']} ({pass_rate:.1f}%)")
         print(f"  BUG:           {self.stats['bug']}")
         print(f"  GAP:           {self.stats['gap']}")
-        print(f"  NEEDS-SEEDING: {self.stats['needs_seeding']}")
+        if self.mode == TestMode.FULL:
+            print(f"  NEEDS-SEEDING: {self.stats['needs_seeding']}")
+
+        # Mode-specific summary
+        if self.mode == TestMode.PLATFORM_READINESS:
+            functional_rate = (
+                (self.stats["pass"] + self.stats["not_applicable"])
+                / max(self.stats["total"], 1)
+                * 100
+            )
+            print(f"\n  Platform Functional: {functional_rate:.1f}%")
+            if self.stats["bug"] == 0:
+                print("  [OK] Platform is ready for deployment")
+            else:
+                print(
+                    f"  [WARN] {self.stats['bug']} bugs need fixing before deployment"
+                )
+        elif self.mode == TestMode.ONBOARDING_VALIDATION:
+            if self.stats["gap"] > 0:
+                print(f"\n  [WARN] {self.stats['gap']} endpoints missing expected data")
+                print(
+                    "  Run: POST /inputs/sbom, POST /inputs/sarif, POST /pipeline/run"
+                )
+
         print(f"\nReports saved to: {OUTPUT_DIR}")
 
 
 def main():
-    """Main entry point."""
-    client = FixOpsClient(BASE_URL, API_KEY)
-    runner = ComprehensiveTestRunner(client)
+    """Main entry point with argument parsing."""
+    parser = argparse.ArgumentParser(
+        description="FixOps Comprehensive End-to-End Test Suite",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Test Modes:
+  platform-readiness     Validates fresh install (empty data = PASS)
+                         Use for: CI/CD, fresh deployments, platform health
+
+  onboarding-validation  Validates post-onboarding (empty data = GAP)
+                         Use for: After data ingestion + pipeline run
+
+  full                   Full analysis with detailed classification
+                         Use for: Development, debugging, comprehensive analysis
+
+Examples:
+  # Fresh deployment validation
+  python comprehensive_e2e_test.py --mode platform-readiness
+
+  # After onboarding a customer
+  python comprehensive_e2e_test.py --mode onboarding-validation
+
+  # Full analysis (default)
+  python comprehensive_e2e_test.py --mode full
+""",
+    )
+    parser.add_argument(
+        "--mode",
+        "-m",
+        type=str,
+        choices=["platform-readiness", "onboarding-validation", "full"],
+        default="full",
+        help="Test mode (default: full)",
+    )
+    parser.add_argument(
+        "--url",
+        "-u",
+        type=str,
+        default=BASE_URL,
+        help=f"API base URL (default: {BASE_URL})",
+    )
+    parser.add_argument(
+        "--token",
+        "-t",
+        type=str,
+        default=API_KEY,
+        help="API token (default: from FIXOPS_API_TOKEN env var)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        default=OUTPUT_DIR,
+        help=f"Output directory for reports (default: {OUTPUT_DIR})",
+    )
+
+    args = parser.parse_args()
+
+    # Parse mode
+    mode_map = {
+        "platform-readiness": TestMode.PLATFORM_READINESS,
+        "onboarding-validation": TestMode.ONBOARDING_VALIDATION,
+        "full": TestMode.FULL,
+    }
+    mode = mode_map[args.mode]
+
+    # Use args for configuration (don't modify globals)
+    api_url = args.url
+    api_token = args.token
+    output_dir = args.output
+
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Run tests
+    client = FixOpsClient(api_url, api_token)
+    runner = ComprehensiveTestRunner(client, mode=mode)
+    runner.output_dir = output_dir  # Pass output dir to runner
     runner.run_all()
+
+    # Exit with appropriate code
+    if runner.stats["bug"] > 0:
+        sys.exit(1)  # Bugs found
+    sys.exit(0)
 
 
 if __name__ == "__main__":
