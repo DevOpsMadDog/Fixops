@@ -35,7 +35,7 @@ class DeduplicationService:
 
     def _init_db(self):
         """Initialize database schema for clusters and events."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         try:
             cursor = conn.cursor()
 
@@ -163,7 +163,7 @@ class DeduplicationService:
         correlation_key = self.identity_resolver.compute_correlation_key(finding)
         fingerprint = self.identity_resolver.compute_fingerprint(finding)
 
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -319,7 +319,7 @@ class DeduplicationService:
 
     def get_cluster(self, cluster_id: str) -> Optional[Dict[str, Any]]:
         """Get cluster by ID."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -338,7 +338,7 @@ class DeduplicationService:
 
         Returns the raw findings associated with a cluster, parsed from JSON.
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -396,7 +396,7 @@ class DeduplicationService:
         if not cluster_ids:
             return {}
 
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -450,7 +450,7 @@ class DeduplicationService:
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """Get clusters with optional filters."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -491,7 +491,7 @@ class DeduplicationService:
             valid_statuses = [s.value for s in ClusterStatus]
             raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
 
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -528,7 +528,7 @@ class DeduplicationService:
         self, cluster_id: str, ticket_id: str, ticket_url: Optional[str] = None
     ) -> bool:
         """Link cluster to external ticket."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         try:
             cursor = conn.cursor()
             cursor.execute(
@@ -543,7 +543,7 @@ class DeduplicationService:
 
     def assign_cluster(self, cluster_id: str, assignee: str) -> bool:
         """Assign cluster to a user."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         try:
             cursor = conn.cursor()
             cursor.execute(
@@ -565,7 +565,7 @@ class DeduplicationService:
         reason: Optional[str] = None,
     ) -> str:
         """Create a correlation link between two clusters."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         try:
             cursor = conn.cursor()
 
@@ -599,7 +599,7 @@ class DeduplicationService:
         self, cluster_id: str, min_confidence: float = 0.5
     ) -> List[Dict[str, Any]]:
         """Get clusters related to the given cluster."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -623,7 +623,7 @@ class DeduplicationService:
 
     def get_dedup_stats(self, org_id: str) -> Dict[str, Any]:
         """Get deduplication statistics for an organization."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -696,7 +696,7 @@ class DeduplicationService:
         Returns:
             Dict with correlation statistics and new links created
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -832,7 +832,7 @@ class DeduplicationService:
         Returns nodes (clusters) and edges (correlation links) in a format
         suitable for graph visualization.
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
@@ -960,7 +960,7 @@ class DeduplicationService:
         Returns:
             Dict with feedback_id and action taken
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         try:
             cursor = conn.cursor()
 
@@ -1006,13 +1006,26 @@ class DeduplicationService:
 
             # Apply feedback based on type
             if feedback_type == "merge_allowed" and target_cluster_id:
-                # Create high-confidence correlation link
-                link_id = self.create_correlation_link(
-                    cluster_id,
-                    target_cluster_id,
-                    "operator_merge",
-                    1.0,
-                    f"Operator confirmed merge: {reason}",
+                # Create high-confidence correlation link inline (avoid nested connection)
+                link_id = str(uuid.uuid4())
+                link_reason = f"Operator confirmed merge: {reason}"
+                now_link = datetime.now(timezone.utc).isoformat()
+                cursor.execute(
+                    """
+                    INSERT INTO correlation_links (
+                        link_id, source_cluster_id, target_cluster_id,
+                        link_type, confidence, reason, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        link_id,
+                        cluster_id,
+                        target_cluster_id,
+                        "operator_merge",
+                        1.0,
+                        link_reason,
+                        now_link,
+                    ),
                 )
                 action_result = {"action": "link_created", "link_id": link_id}
 
@@ -1074,7 +1087,7 @@ class DeduplicationService:
         Returns:
             Dict with new, existing, and fixed findings
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
