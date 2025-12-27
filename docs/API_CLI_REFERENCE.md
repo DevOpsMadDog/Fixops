@@ -1,4 +1,4 @@
-# FixOps API to CLI Mapping (280+ Endpoints)
+# FixOps API to CLI Mapping (322 Endpoints)
 
 ## Summary
 
@@ -13,19 +13,20 @@
 | Integrations | 8 | 4 | Full |
 | Analytics | 16 | 5 | Full |
 | Audit | 10 | 3 | Full |
-| Workflows | 12 | 5 | Full |
+| Workflows | 7 | 5 | Full |
 | Advanced Pen Testing | 45 | 6 | Full |
 | Reachability | 7 | 3 | Full |
 | Teams & Users | 14 | 8 | Full |
-| PentAGI | 8 | 3 | Full |
+| PentAGI | 14 | 3 | Full |
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
-| **Deduplication & Correlation** | **10** | **-** | **API Only** |
-| **Remediation Lifecycle** | **10** | **-** | **API Only** |
-| **Bulk Operations (Enhanced)** | **8** | **-** | **API Only** |
-| **Team Collaboration** | **12** | **-** | **API Only** |
+| **Deduplication & Correlation** | **17** | **8** | **Full** |
+| **Remediation Lifecycle** | **13** | **7** | **Full** |
+| **Bulk Operations (Enhanced)** | **12** | **-** | **API Only** |
+| **Team Collaboration** | **21** | **2** | **Partial** |
 | **Vulnerability Intelligence Feeds** | **20** | **-** | **API Only** |
-| **TOTAL** | **~300** | **67** | **~85%** |
+| **Webhooks** | **17** | **-** | **API Only** |
+| **TOTAL** | **~322** | **~84** | **~85%** |
 
 ---
 
@@ -354,6 +355,10 @@
 | `workflows` | list, get, create, execute, history | Workflow automation |
 | `advanced-pentest` | run, threat-intel, business-impact, simulate, remediation, capabilities | Advanced pen testing |
 | `reachability` | analyze, bulk, status | Vulnerability reachability |
+| `correlation` | analyze, stats, status, graph, feedback | Deduplication & correlation |
+| `groups` | list, get, merge, unmerge | Finding group management |
+| `remediation` | list, get, assign, transition, verify, metrics, sla | Remediation lifecycle |
+| `notifications` | worker, pending | Notification processing |
 
 ---
 
@@ -363,9 +368,9 @@
 - 11 CLI commands covering ~15% of API surface
 
 **After CLI Expansion:**
-- 67 CLI commands/subcommands covering ~85% of API surface
-- 10 new command groups added
-- Full coverage for: Compliance, Reports, Inventory, Policies, Integrations, Analytics, Audit, Workflows, Advanced Pentest, Reachability
+- 84 CLI commands/subcommands covering ~85% of API surface
+- 14 command groups added (including enterprise features)
+- Full coverage for: Compliance, Reports, Inventory, Policies, Integrations, Analytics, Audit, Workflows, Advanced Pentest, Reachability, Deduplication, Remediation
 
 **Remaining API-Only Features (~15%):**
 - Chunked uploads (large file handling)
