@@ -12,7 +12,9 @@ actually persisting the data. This is useful for:
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import logging
 from datetime import datetime
@@ -339,6 +341,27 @@ async def validate_input(
             except Exception as exc:
                 result.errors.append(f"CNAPP parsing failed: {exc}")
 
+        elif detected_type == "design":
+            # Design files are CSV files containing threat models, design artifacts
+            try:
+                buffer.seek(0)
+                text_content = buffer.read().decode("utf-8")
+                csv_reader = csv.reader(io.StringIO(text_content))
+                rows = list(csv_reader)
+                if rows:
+                    result.valid = True
+                    result.detected_format = "CSV"
+                    result.metadata["columns"] = rows[0] if rows else []
+                    result.metadata["row_count"] = len(rows) - 1  # Exclude header
+                    if len(rows) <= 1:
+                        result.warnings.append("Design CSV contains no data rows")
+                else:
+                    result.errors.append("Design CSV is empty")
+            except UnicodeDecodeError as exc:
+                result.errors.append(f"Design CSV encoding error: {exc}")
+            except csv.Error as exc:
+                result.errors.append(f"Design CSV parsing failed: {exc}")
+
     finally:
         buffer.close()
 
@@ -456,6 +479,11 @@ async def get_supported_formats() -> Dict[str, Any]:
                 ],
                 "tools": ["Cloud-native security platforms"],
                 "endpoint": "/inputs/cnapp",
+            },
+            "design": {
+                "versions": ["CSV"],
+                "tools": ["Threat modeling tools", "Design documentation"],
+                "endpoint": "/inputs/design",
             },
         },
         "validation_endpoint": "/api/v1/validate/input",
