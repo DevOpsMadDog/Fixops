@@ -24,7 +24,7 @@ import {
   ToggleLeft,
   ToggleRight
 } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useMarketplaceBrowse, useMarketplaceStats, useSystemMode } from '@fixops/api-client'
 
 type ContentType = 'policy_template' | 'compliance_testset' | 'mitigation_playbook' | 'attack_scenario' | 'pipeline_gate'
@@ -356,7 +356,7 @@ export default function MarketplacePage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="marketplace">
       <div className="min-h-screen bg-[#0f172a] font-sans text-white">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -860,6 +860,6 @@ export default function MarketplacePage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

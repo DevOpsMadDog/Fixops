@@ -103,3 +103,40 @@ export function getApiConfig(): ApiConfig {
     mode: getSystemMode(),
   };
 }
+
+/**
+ * Check if demo data mode is enabled.
+ * When enabled, the UI will show demo data instead of real API data.
+ * This is an explicit opt-in toggle, not an automatic fallback.
+ */
+export function isDemoDataEnabled(): boolean {
+  // Check for URL query param first (for shareability)
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const demoParam = urlParams.get('demo');
+    if (demoParam === '1' || demoParam === 'true') {
+      return true;
+    }
+    if (demoParam === '0' || demoParam === 'false') {
+      return false;
+    }
+    
+    // Fall back to localStorage
+    const storedValue = localStorage.getItem('fixops_demo_data');
+    if (storedValue === 'true') {
+      return true;
+    }
+  }
+  
+  // Default to false - show real API data by default
+  return false;
+}
+
+/**
+ * Set the demo data mode.
+ */
+export function setDemoDataEnabled(enabled: boolean): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fixops_demo_data', enabled ? 'true' : 'false');
+  }
+}

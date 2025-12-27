@@ -1,4 +1,4 @@
-# FixOps API to CLI Mapping (250+ Endpoints)
+# FixOps API to CLI Mapping (322 Endpoints)
 
 ## Summary
 
@@ -13,14 +13,20 @@
 | Integrations | 8 | 4 | Full |
 | Analytics | 16 | 5 | Full |
 | Audit | 10 | 3 | Full |
-| Workflows | 12 | 5 | Full |
+| Workflows | 7 | 5 | Full |
 | Advanced Pen Testing | 45 | 6 | Full |
 | Reachability | 7 | 3 | Full |
 | Teams & Users | 14 | 8 | Full |
-| PentAGI | 8 | 3 | Full |
+| PentAGI | 14 | 3 | Full |
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
-| **TOTAL** | **~250** | **67** | **~85%** |
+| **Deduplication & Correlation** | **17** | **8** | **Full** |
+| **Remediation Lifecycle** | **13** | **7** | **Full** |
+| **Bulk Operations (Enhanced)** | **12** | **-** | **API Only** |
+| **Team Collaboration** | **21** | **2** | **Partial** |
+| **Vulnerability Intelligence Feeds** | **20** | **-** | **API Only** |
+| **Webhooks** | **17** | **-** | **API Only** |
+| **TOTAL** | **~322** | **~84** | **~85%** |
 
 ---
 
@@ -349,6 +355,10 @@
 | `workflows` | list, get, create, execute, history | Workflow automation |
 | `advanced-pentest` | run, threat-intel, business-impact, simulate, remediation, capabilities | Advanced pen testing |
 | `reachability` | analyze, bulk, status | Vulnerability reachability |
+| `correlation` | analyze, stats, status, graph, feedback | Deduplication & correlation |
+| `groups` | list, get, merge, unmerge | Finding group management |
+| `remediation` | list, get, assign, transition, verify, metrics, sla | Remediation lifecycle |
+| `notifications` | worker, pending | Notification processing |
 
 ---
 
@@ -358,9 +368,9 @@
 - 11 CLI commands covering ~15% of API surface
 
 **After CLI Expansion:**
-- 67 CLI commands/subcommands covering ~85% of API surface
-- 10 new command groups added
-- Full coverage for: Compliance, Reports, Inventory, Policies, Integrations, Analytics, Audit, Workflows, Advanced Pentest, Reachability
+- 84 CLI commands/subcommands covering ~85% of API surface
+- 14 command groups added (including enterprise features)
+- Full coverage for: Compliance, Reports, Inventory, Policies, Integrations, Analytics, Audit, Workflows, Advanced Pentest, Reachability, Deduplication, Remediation
 
 **Remaining API-Only Features (~15%):**
 - Chunked uploads (large file handling)
@@ -372,3 +382,130 @@
 - Retention policy management
 
 These API-only features are typically used by the web UI or require interactive visualization that doesn't translate well to CLI.
+
+---
+
+## ENTERPRISE FEATURES (Implemented)
+
+### DEDUPLICATION & CORRELATION (17 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/deduplication/process` | POST | Process single finding and return cluster info |
+| 2 | `/api/v1/deduplication/process/batch` | POST | Process batch of findings with dedup summary |
+| 3 | `/api/v1/deduplication/clusters` | GET | List clusters with filters (org_id, app_id, status, severity) |
+| 4 | `/api/v1/deduplication/clusters/{cluster_id}` | GET | Get specific cluster details |
+| 5 | `/api/v1/deduplication/clusters/{cluster_id}/status` | PUT | Update cluster status with audit trail |
+| 6 | `/api/v1/deduplication/clusters/{cluster_id}/assign` | PUT | Assign cluster to user |
+| 7 | `/api/v1/deduplication/clusters/{cluster_id}/ticket` | PUT | Link cluster to external ticket |
+| 8 | `/api/v1/deduplication/clusters/{cluster_id}/related` | GET | Get related clusters via correlation links |
+| 9 | `/api/v1/deduplication/correlations` | POST | Create correlation link between clusters |
+| 10 | `/api/v1/deduplication/stats/{org_id}` | GET | Get deduplication statistics by org |
+| 11 | `/api/v1/deduplication/stats` | GET | Get global deduplication statistics (CLI-compatible) |
+| 12 | `/api/v1/deduplication/clusters/merge` | POST | Merge multiple clusters into target cluster |
+| 13 | `/api/v1/deduplication/clusters/{cluster_id}/split` | POST | Split cluster by moving events to new clusters |
+| 14 | `/api/v1/deduplication/graph` | GET | Get correlation graph for visualization |
+| 15 | `/api/v1/deduplication/feedback` | POST | Record operator feedback for correlation corrections |
+| 16 | `/api/v1/deduplication/baseline` | GET | Get baseline comparison (NEW/EXISTING/FIXED) |
+| 17 | `/api/v1/deduplication/cross-stage` | POST | Correlate findings across lifecycle stages |
+
+**CLI Commands:** `fixops correlation analyze`, `fixops correlation stats`, `fixops correlation graph`, `fixops correlation feedback`, `fixops groups list`, `fixops groups get`, `fixops groups merge`, `fixops groups unmerge`
+
+### REMEDIATION LIFECYCLE (13 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/remediation/tasks` | POST | Create remediation task with SLA tracking |
+| 2 | `/api/v1/remediation/tasks` | GET | List tasks with filters (org_id, app_id, status, severity) |
+| 3 | `/api/v1/remediation/tasks/{task_id}` | GET | Get specific task details |
+| 4 | `/api/v1/remediation/tasks/{task_id}/status` | PUT | Update task status (state machine enforced) |
+| 5 | `/api/v1/remediation/tasks/{task_id}/transition` | PUT | Transition task status (CLI-compatible alias) |
+| 6 | `/api/v1/remediation/tasks/{task_id}/assign` | PUT | Assign task to user |
+| 7 | `/api/v1/remediation/tasks/{task_id}/verification` | POST | Submit verification evidence |
+| 8 | `/api/v1/remediation/tasks/{task_id}/verify` | POST | Verify task (CLI-compatible alias) |
+| 9 | `/api/v1/remediation/tasks/{task_id}/ticket` | PUT | Link task to external ticket |
+| 10 | `/api/v1/remediation/sla/check` | POST | Check for SLA breaches |
+| 11 | `/api/v1/remediation/metrics/{org_id}` | GET | Get MTTR and SLA compliance metrics by org |
+| 12 | `/api/v1/remediation/metrics` | GET | Get global remediation metrics (CLI-compatible) |
+| 13 | `/api/v1/remediation/statuses` | GET | List valid status values and transitions |
+
+**CLI Commands:** `fixops remediation list`, `fixops remediation get`, `fixops remediation assign`, `fixops remediation transition`, `fixops remediation verify`, `fixops remediation metrics`
+
+**State Machine:** OPEN → ASSIGNED → IN_PROGRESS → VERIFICATION → RESOLVED (with DEFERRED and WONT_FIX branches)
+
+**SLA Policies:** Critical=24h, High=72h, Medium=168h (7d), Low=720h (30d)
+
+### BULK OPERATIONS (8 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/bulk/clusters/status` | POST | Bulk update cluster status |
+| 2 | `/api/v1/bulk/clusters/assign` | POST | Bulk assign clusters |
+| 3 | `/api/v1/bulk/clusters/accept-risk` | POST | Bulk accept risk |
+| 4 | `/api/v1/bulk/clusters/tickets` | POST | Bulk create tickets |
+| 5 | `/api/v1/bulk/clusters/export` | POST | Bulk export clusters |
+| 6 | `/api/v1/bulk/jobs` | GET | List all bulk jobs |
+| 7 | `/api/v1/bulk/jobs/{job_id}` | GET | Get job status and results |
+| 8 | `/api/v1/bulk/jobs/{job_id}/cancel` | POST | Cancel running job |
+
+**Features:** Async job execution, per-item outcomes, partial failure handling, progress tracking
+
+### TEAM COLLABORATION (12 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/collaboration/comments` | POST | Add comment with mention extraction |
+| 2 | `/api/v1/collaboration/comments` | GET | Get comments for entity |
+| 3 | `/api/v1/collaboration/comments/{comment_id}/promote` | PUT | Promote comment to compliance evidence |
+| 4 | `/api/v1/collaboration/watchers` | POST | Add watcher to entity |
+| 5 | `/api/v1/collaboration/watchers` | DELETE | Remove watcher from entity |
+| 6 | `/api/v1/collaboration/watchers` | GET | Get watchers for entity |
+| 7 | `/api/v1/collaboration/watchers/user/{user_id}` | GET | Get entities watched by user |
+| 8 | `/api/v1/collaboration/activities` | POST | Record activity in feed |
+| 9 | `/api/v1/collaboration/activities` | GET | Get activity feed with filters |
+| 10 | `/api/v1/collaboration/mentions/{user_id}` | GET | Get mentions for user |
+| 11 | `/api/v1/collaboration/mentions/{mention_id}/acknowledge` | PUT | Acknowledge mention |
+| 12 | `/api/v1/collaboration/entity-types` | GET | List valid entity types |
+
+**Features:** Append-only comments, @mention extraction, activity feeds, evidence promotion
+
+### VULNERABILITY INTELLIGENCE FEEDS (20 API Endpoints)
+
+| # | API Endpoint | Method | Description |
+|---|--------------|--------|-------------|
+| 1 | `/api/v1/feeds/epss` | GET | Get EPSS scores for CVEs |
+| 2 | `/api/v1/feeds/epss/refresh` | POST | Refresh EPSS feed from FIRST.org |
+| 3 | `/api/v1/feeds/kev` | GET | Get CISA KEV entries |
+| 4 | `/api/v1/feeds/kev/refresh` | POST | Refresh KEV feed from CISA |
+| 5 | `/api/v1/feeds/exploits/{cve_id}` | GET | Get exploit intelligence for CVE |
+| 6 | `/api/v1/feeds/threat-actors/{cve_id}` | GET | Get threat actor mappings for CVE |
+| 7 | `/api/v1/feeds/threat-actors/by-actor/{actor}` | GET | Get CVEs used by threat actor |
+| 8 | `/api/v1/feeds/supply-chain/{package}` | GET | Get supply chain vulnerabilities |
+| 9 | `/api/v1/feeds/cloud-bulletins` | GET | Get cloud security bulletins |
+| 10 | `/api/v1/feeds/early-signals` | GET | Get zero-day early signals |
+| 11 | `/api/v1/feeds/national-certs` | GET | Get national CERT advisories |
+| 12 | `/api/v1/feeds/exploit-confidence/{cve_id}` | GET | Get exploit confidence score |
+| 13 | `/api/v1/feeds/geo-risk/{cve_id}` | GET | Get geo-weighted risk score |
+| 14 | `/api/v1/feeds/enrich` | POST | Comprehensive finding enrichment |
+| 15 | `/api/v1/feeds/stats` | GET | Get feed statistics across all categories |
+| 16 | `/api/v1/feeds/refresh/all` | POST | Refresh all feed categories |
+| 17 | `/api/v1/feeds/categories` | GET | List all feed categories |
+| 18 | `/api/v1/feeds/sources` | GET | List all feed sources |
+| 19 | `/api/v1/feeds/health` | GET | Feed health and freshness status |
+| 20 | `/api/v1/feeds/scheduler/status` | GET | Feed scheduler status |
+
+**Feed Categories (8):**
+1. **Global Authoritative** - NVD, CVE Program, MITRE, CISA KEV, CERT/CC, US-CERT, ICS-CERT
+2. **National CERTs** - NCSC UK, BSI, ANSSI, JPCERT, CERT-In, ACSC, SingCERT, KISA
+3. **Exploit Intelligence** - Exploit-DB, Metasploit, Packet Storm, Vulners, GreyNoise, Shodan, Censys
+4. **Threat Actor Intelligence** - MITRE ATT&CK, AlienVault OTX, abuse.ch, Feodo Tracker
+5. **Supply-Chain & SBOM** - OSV, GitHub Advisory, Snyk, deps.dev, NPM/PyPI/RustSec
+6. **Cloud & Runtime** - AWS, Azure, GCP Security Bulletins, Kubernetes CVEs, Red Hat, Ubuntu
+7. **Zero-Day & Early-Signal** - Vendor blogs, GitHub commits, mailing lists
+8. **Internal Enterprise** - SAST/DAST/SCA, IaC, runtime detections, exposure graph
+
+**Key Features:**
+- Geo-weighted risk scoring (exploitation differs by country/region)
+- Exploit-confidence scoring (real-world exploitation vs CVSS fear-scoring)
+- Threat actor to CVE mapping with sector targeting
+- Reachable dependency analysis

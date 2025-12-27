@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePentagiData } from './hooks/usePentagiData'
 import { PentestRequest } from './lib/apiClient'
 import { Shield, Search, Plus, Play, XCircle, Calendar, Clock, CheckCircle, AlertTriangle, Filter, FileText, Settings, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 import { useSystemMode } from '@fixops/api-client'
 
 
@@ -133,7 +133,7 @@ export default function PentagiPage() {
   const requestFindings = apiFindings.filter(f => f.request_id === selectedRequest?.id)
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="pentagi">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -581,6 +581,6 @@ export default function PentagiPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

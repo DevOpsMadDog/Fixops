@@ -1,10 +1,40 @@
 'use client'
 
-import { useState } from 'react'
-import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useCallback, useMemo } from 'react'
+import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock, Loader2 } from 'lucide-react'
+import { AppShell } from '@fixops/ui'
+import { useEvidence, useSystemMode, useDemoMode } from '@fixops/api-client'
+import { Switch, StatusBadge, StatCard } from '@fixops/ui'
 
-const EVIDENCE_BUNDLES = [
+interface EvidenceBundle {
+  id: string
+  timestamp: string
+  issue_id: string
+  issue_title: string
+  severity: string
+  decision: {
+    verdict: string
+    confidence: number
+    outcome: string
+  }
+  signature: {
+    algorithm: string
+    public_key_id: string
+    signature_hex: string
+  }
+  retention: {
+    mode: string
+    days: number
+    retained_until: string
+  }
+  checksum: {
+    algorithm: string
+    value: string
+  }
+  size_bytes: number
+}
+
+const DEMO_EVIDENCE_BUNDLES: EvidenceBundle[] = [
   {
     id: 'eb-2024-001-a3f9c8',
     timestamp: '2024-11-21T10:30:00Z',
@@ -143,8 +173,55 @@ const EVIDENCE_BUNDLES = [
 ]
 
 export default function EvidencePage() {
-  const [selectedBundle, setSelectedBundle] = useState<typeof EVIDENCE_BUNDLES[0] | null>(null)
+  const [selectedBundle, setSelectedBundle] = useState<EvidenceBundle | null>(null)
   const [filterSeverity, setFilterSeverity] = useState<string>('all')
+
+  const { data: evidenceData, loading: apiLoading, error: apiError } = useEvidence()
+  const { mode } = useSystemMode()
+  const { demoEnabled, toggleDemoMode } = useDemoMode()
+
+  const transformApiData = useCallback((apiData: NonNullable<typeof evidenceData>): EvidenceBundle[] => {
+    return apiData.items.map((bundle, index) => ({
+      id: bundle.id || `eb-${index}`,
+      timestamp: bundle.timestamp || new Date().toISOString(),
+      issue_id: bundle.issue_id || String(index + 1),
+      issue_title: bundle.issue_title || 'Unknown Issue',
+      severity: bundle.severity || 'medium',
+      decision: {
+        verdict: bundle.decision?.verdict || 'review',
+        confidence: bundle.decision?.confidence ?? 0,
+        outcome: bundle.decision?.outcome || 'scheduled',
+      },
+      signature: {
+        algorithm: bundle.signature?.algorithm || 'RSA-SHA256',
+        public_key_id: bundle.signature?.public_key_id || 'fixops-prod-2024',
+        signature_hex: bundle.signature?.signature_hex || '',
+      },
+      retention: {
+        mode: bundle.retention?.mode || 'demo',
+        days: bundle.retention?.days ?? 90,
+        retained_until: bundle.retention?.retained_until || new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
+      },
+      checksum: {
+        algorithm: bundle.checksum?.algorithm || 'SHA256',
+        value: bundle.checksum?.value || '',
+      },
+      size_bytes: bundle.size_bytes ?? 0,
+    }))
+  }, [])
+
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = evidenceData?.items && evidenceData.items.length > 0
+  const evidenceBundles = useMemo(() => {
+    if (demoEnabled) {
+      return DEMO_EVIDENCE_BUNDLES
+    }
+    if (hasApiData) {
+      return transformApiData(evidenceData)
+    }
+    return [] // Empty state when no API data and demo mode is OFF
+  }, [evidenceData, transformApiData, demoEnabled, hasApiData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -182,52 +259,79 @@ export default function EvidencePage() {
   }
 
   const filteredBundles = filterSeverity === 'all' 
-    ? EVIDENCE_BUNDLES 
-    : EVIDENCE_BUNDLES.filter(b => b.severity === filterSeverity)
+    ? evidenceBundles 
+    : evidenceBundles.filter(b => b.severity === filterSeverity)
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="evidence">
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Filters */}
-      <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+      <div className="w-72 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-5 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[#6B5AED]">Evidence</h2>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B5AED] to-[#8B7CF7] flex items-center justify-center shadow-[0_0_20px_rgba(107,90,237,0.3)]">
+                <FileText size={16} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-semibold text-white tracking-tight">Evidence</h2>
+                <p className="text-[11px] text-slate-500">Cryptographically-signed bundles</p>
+              </div>
+            </div>
             <button
               onClick={() => window.location.href = '/triage'}
-              className="p-2 rounded-md border border-white/10 text-slate-400 hover:bg-white/5 transition-all"
+              className="p-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-slate-400 hover:bg-white/[0.08] hover:text-white transition-all"
               title="Back to Triage"
             >
               <ArrowLeft size={16} />
             </button>
           </div>
-          <p className="text-xs text-slate-500">Cryptographically-signed bundles</p>
+          
+          {/* Demo Mode Toggle - Apple-like */}
+          <div className="mt-4 p-3 rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06]">
+            <Switch
+              checked={demoEnabled}
+              onChange={toggleDemoMode}
+              label={demoEnabled ? 'Demo Mode' : 'Live Mode'}
+              size="sm"
+            />
+            {/* Status Badge */}
+            <div className="mt-2">
+              {apiLoading && !demoEnabled && (
+                <StatusBadge status="loading" label="Loading..." />
+              )}
+              {apiError && !apiLoading && !demoEnabled && (
+                <StatusBadge status="error" label="API Error" />
+              )}
+              {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
+                <StatusBadge status="warning" label="No Data" />
+              )}
+              {demoEnabled && (
+                <StatusBadge status="demo" label="Demo Data" />
+              )}
+              {!demoEnabled && hasApiData && !apiLoading && !apiError && (
+                <StatusBadge status="live" label={`Live (${mode})`} />
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="p-4 border-b border-white/10">
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Total Bundles</div>
-              <div className="text-xl font-semibold text-[#6B5AED]">{EVIDENCE_BUNDLES.length}</div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Retention</div>
-              <div className="text-xl font-semibold text-amber-500">90d</div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Critical</div>
-              <div className="text-xl font-semibold text-red-500">
-                {EVIDENCE_BUNDLES.filter(b => b.severity === 'critical').length}
-              </div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">High</div>
-              <div className="text-xl font-semibold text-orange-500">
-                {EVIDENCE_BUNDLES.filter(b => b.severity === 'high').length}
-              </div>
-            </div>
+        <div className="p-4 border-b border-white/[0.06]">
+          <div className="grid grid-cols-2 gap-2">
+            <StatCard label="Total Bundles" value={evidenceBundles.length} color="purple" />
+            <StatCard label="Retention" value="90d" color="amber" />
+            <StatCard 
+              label="Critical" 
+              value={evidenceBundles.filter(b => b.severity === 'critical').length} 
+              color="red" 
+            />
+            <StatCard 
+              label="High" 
+              value={evidenceBundles.filter(b => b.severity === 'high').length} 
+              color="amber" 
+            />
           </div>
         </div>
 
@@ -250,11 +354,11 @@ export default function EvidencePage() {
                 <span className="capitalize">{severity}</span>
                 {severity !== 'all' && (
                   <span className="ml-2 text-xs">
-                    ({EVIDENCE_BUNDLES.filter(b => b.severity === severity).length})
+                    ({evidenceBundles.filter(b => b.severity === severity).length})
                   </span>
                 )}
                 {severity === 'all' && (
-                  <span className="ml-2 text-xs">({EVIDENCE_BUNDLES.length})</span>
+                  <span className="ml-2 text-xs">({evidenceBundles.length})</span>
                 )}
               </button>
             ))}
@@ -611,6 +715,6 @@ export default function EvidencePage() {
         }
       `}</style>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

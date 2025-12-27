@@ -220,7 +220,7 @@ modules:
     top_k: 3
   enhanced_decision: { enabled: true }
   correlation_engine:
-    enabled: false
+    enabled: true
     strategies:
       - fingerprint
       - location

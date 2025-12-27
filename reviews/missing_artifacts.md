@@ -1,3 +1,0 @@
-- `.github/workflows/*.yml` (or other CI pipeline definitions) are absent; please provide the CI configuration that governs linting, tests, and deployments. 【983253†L1-L2】
-- Provide dependency lockfiles (e.g., `requirements.txt` with exact pins or `poetry.lock`) for each Python service to assess supply-chain hygiene beyond the loose demo requirements shown. 【F:apps/api/requirements.txt†L1-L7】
-- Supply production overlay profiles or environment-specific configuration (e.g., `config/fixops.overlay.enterprise.yml`) if behaviour diverges from the bundled demo-focused overlay. 【F:config/fixops.overlay.yml†L1-L152】

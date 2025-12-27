@@ -3249,6 +3249,405 @@ def _handle_reachability(args: argparse.Namespace) -> int:
     return 0
 
 
+def _handle_correlation(args: argparse.Namespace) -> int:
+    """Handle correlation subcommands."""
+    import requests
+
+    api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    headers = {"X-API-Key": api_token}
+
+    if args.correlation_command == "analyze":
+        print("Analyzing correlations for findings...")
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/process",
+                headers=headers,
+                json={"findings": [], "org_id": args.org_id or "default"},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.correlation_command in ("stats", "status"):
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/stats",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.correlation_command == "graph":
+        try:
+            params = {"limit": args.limit}
+            if args.cluster_id:
+                params["cluster_id"] = args.cluster_id
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/graph",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.correlation_command == "feedback":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/feedback",
+                headers=headers,
+                json={
+                    "cluster_id": args.cluster_id,
+                    "feedback_type": args.feedback_type,
+                    "reason": args.reason,
+                    "user_id": args.user_id or "cli-user",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    else:
+        print("Unknown correlation command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+def _handle_groups(args: argparse.Namespace) -> int:
+    """Handle groups (clusters) subcommands."""
+    import requests
+
+    api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    headers = {"X-API-Key": api_token}
+
+    if args.groups_command == "list":
+        try:
+            params = {"limit": args.limit, "offset": args.offset}
+            if args.status:
+                params["status"] = args.status
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/clusters",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if args.format == "table":
+                clusters = result.get("clusters", [])
+                if clusters:
+                    print(
+                        f"{'Cluster ID':<40} {'Status':<12} {'Events':<8} {'Severity':<10}"
+                    )
+                    print("-" * 70)
+                    for c in clusters:
+                        print(
+                            f"{c.get('cluster_id', '')[:38]:<40} {c.get('status', ''):<12} "
+                            f"{c.get('event_count', 0):<8} {c.get('severity', ''):<10}"
+                        )
+                else:
+                    print("No clusters found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.groups_command == "get":
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/clusters/{args.cluster_id}",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.groups_command == "merge":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/clusters/merge",
+                headers=headers,
+                json={
+                    "source_cluster_ids": args.source_ids.split(","),
+                    "target_cluster_id": args.target_id,
+                    "reason": args.reason,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.groups_command == "unmerge":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/clusters/{args.cluster_id}/split",
+                headers=headers,
+                json={
+                    "event_ids": args.event_ids.split(",") if args.event_ids else [],
+                    "reason": args.reason,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    else:
+        print("Unknown groups command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+def _handle_remediation_cli(args: argparse.Namespace) -> int:
+    """Handle remediation subcommands."""
+    import requests
+
+    api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    headers = {"X-API-Key": api_token}
+
+    if args.remediation_command == "list":
+        try:
+            params = {"limit": args.limit, "offset": args.offset}
+            if args.status:
+                params["status"] = args.status
+            if args.assignee:
+                params["assignee"] = args.assignee
+            response = requests.get(
+                f"{api_base}/api/v1/remediation/tasks",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if args.format == "table":
+                tasks = result.get("tasks", [])
+                if tasks:
+                    print(
+                        f"{'Task ID':<40} {'Status':<15} {'Severity':<10} {'Assignee':<20}"
+                    )
+                    print("-" * 85)
+                    for t in tasks:
+                        print(
+                            f"{t.get('task_id', '')[:38]:<40} {t.get('status', ''):<15} "
+                            f"{t.get('severity', ''):<10} {t.get('assignee', 'unassigned'):<20}"
+                        )
+                else:
+                    print("No remediation tasks found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "get":
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "assign":
+        try:
+            response = requests.put(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}/assign",
+                headers=headers,
+                json={"assignee": args.assignee},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "transition":
+        try:
+            response = requests.put(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}/transition",
+                headers=headers,
+                json={"new_status": args.status, "comment": args.comment},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "verify":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}/verify",
+                headers=headers,
+                json={
+                    "verification_type": args.verification_type,
+                    "evidence": args.evidence,
+                    "verified_by": args.verified_by or "cli-user",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "metrics":
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/remediation/metrics",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "sla":
+        try:
+            params = {}
+            if hasattr(args, "org_id") and args.org_id:
+                params["org_id"] = args.org_id
+            response = requests.post(
+                f"{api_base}/api/v1/remediation/sla/check",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if hasattr(args, "format") and args.format == "table":
+                breaches = result.get("breaches", [])
+                if breaches:
+                    print(f"{'Task ID':<40} {'Severity':<10} {'Hours Overdue':<15}")
+                    print("-" * 65)
+                    for b in breaches:
+                        print(
+                            f"{(b.get('task_id') or '')[:38]:<40} "
+                            f"{(b.get('severity') or ''):<10} "
+                            f"{(b.get('hours_overdue') or 0):<15.1f}"
+                        )
+                else:
+                    print("No SLA breaches found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    else:
+        print("Unknown remediation command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+def _handle_notifications(args: argparse.Namespace) -> int:
+    """Handle notifications subcommands."""
+    import time
+
+    from core.services.collaboration import CollaborationService
+
+    # Get db_path from environment or use default
+    data_dir = Path(os.environ.get("FIXOPS_DATA_DIR", ".fixops_data"))
+    db_path = data_dir / "collaboration" / "collaboration.db"
+
+    # Ensure parent directories exist
+    os.makedirs(db_path.parent, exist_ok=True)
+
+    if args.notifications_command == "worker":
+        service = CollaborationService(db_path=db_path)
+        slack_webhook = os.environ.get("FIXOPS_SLACK_WEBHOOK_URL")
+        email_config = None
+        smtp_host = os.environ.get("FIXOPS_SMTP_HOST")
+        if smtp_host:
+            email_config = {
+                "host": smtp_host,
+                "port": int(os.environ.get("FIXOPS_SMTP_PORT", "587")),
+                "username": os.environ.get("FIXOPS_SMTP_USERNAME"),
+                "password": os.environ.get("FIXOPS_SMTP_PASSWORD"),
+                "from_email": os.environ.get(
+                    "FIXOPS_SMTP_FROM_EMAIL", "noreply@fixops.io"
+                ),
+            }
+
+        interval = getattr(args, "interval", 10)
+        once = getattr(args, "once", False)
+        limit = getattr(args, "limit", 100)
+
+        print(f"Starting notification worker (interval={interval}s, once={once})")
+
+        while True:
+            try:
+                result = service.process_pending_notifications(
+                    slack_webhook=slack_webhook,
+                    email_config=email_config,
+                    limit=limit,
+                )
+                if result["processed"] > 0:
+                    print(
+                        f"Processed {result['processed']} notifications: "
+                        f"{result['sent']} sent, {result['failed']} failed, "
+                        f"{result['no_channels']} no channels"
+                    )
+            except Exception as e:
+                print(f"Error processing notifications: {e}", file=sys.stderr)
+
+            if once:
+                break
+
+            time.sleep(interval)
+
+        return 0
+
+    elif args.notifications_command == "pending":
+        service = CollaborationService(db_path=db_path)
+        limit = getattr(args, "limit", 100)
+        pending = service.get_pending_notifications(limit=limit)
+        print(json.dumps({"pending": pending, "count": len(pending)}, indent=2))
+        return 0
+
+    else:
+        print("Unknown notifications command", file=sys.stderr)
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -4149,6 +4548,198 @@ def build_parser() -> argparse.ArgumentParser:
     reach_status.add_argument("job_id", help="Job ID")
 
     reachability_parser.set_defaults(func=_handle_reachability)
+
+    # =========================================================================
+    # CORRELATION COMMANDS
+    # =========================================================================
+    correlation_parser = subparsers.add_parser(
+        "correlation", help="Manage finding correlations and deduplication"
+    )
+    correlation_subparsers = correlation_parser.add_subparsers(
+        dest="correlation_command"
+    )
+
+    corr_analyze = correlation_subparsers.add_parser(
+        "analyze", help="Analyze correlations for findings"
+    )
+    corr_analyze.add_argument("--org-id", help="Organization ID")
+
+    correlation_subparsers.add_parser("stats", help="Get correlation statistics")
+    correlation_subparsers.add_parser(
+        "status", help="Get correlation statistics (alias for stats)"
+    )
+
+    corr_graph = correlation_subparsers.add_parser(
+        "graph", help="View correlation graph"
+    )
+    corr_graph.add_argument("--cluster-id", help="Filter by cluster ID")
+    corr_graph.add_argument("--limit", type=int, default=100, help="Max results")
+
+    corr_feedback = correlation_subparsers.add_parser(
+        "feedback", help="Provide feedback on correlations"
+    )
+    corr_feedback.add_argument("--cluster-id", required=True, help="Cluster ID")
+    corr_feedback.add_argument(
+        "--feedback-type",
+        required=True,
+        choices=["merge_allowed", "merge_blocked", "split_cluster"],
+        help="Type of feedback",
+    )
+    corr_feedback.add_argument("--reason", help="Reason for feedback")
+    corr_feedback.add_argument("--user-id", help="User providing feedback")
+
+    correlation_parser.set_defaults(func=_handle_correlation)
+
+    # =========================================================================
+    # GROUPS (CLUSTERS) COMMANDS
+    # =========================================================================
+    groups_parser = subparsers.add_parser(
+        "groups", help="Manage finding groups (clusters)"
+    )
+    groups_subparsers = groups_parser.add_subparsers(dest="groups_command")
+
+    groups_list = groups_subparsers.add_parser("list", help="List finding groups")
+    groups_list.add_argument("--status", help="Filter by status")
+    groups_list.add_argument("--limit", type=int, default=100, help="Max results")
+    groups_list.add_argument(
+        "--offset", type=int, default=0, help="Offset for pagination"
+    )
+    groups_list.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
+    groups_get = groups_subparsers.add_parser("get", help="Get a specific group")
+    groups_get.add_argument("cluster_id", help="Cluster ID")
+
+    groups_merge = groups_subparsers.add_parser("merge", help="Merge groups together")
+    groups_merge.add_argument(
+        "--source-ids", required=True, help="Comma-separated source cluster IDs"
+    )
+    groups_merge.add_argument("--target-id", required=True, help="Target cluster ID")
+    groups_merge.add_argument("--reason", help="Reason for merge")
+
+    groups_unmerge = groups_subparsers.add_parser(
+        "unmerge", help="Split events from a group"
+    )
+    groups_unmerge.add_argument("cluster_id", help="Cluster ID to split")
+    groups_unmerge.add_argument(
+        "--event-ids", help="Comma-separated event IDs to split"
+    )
+    groups_unmerge.add_argument("--reason", help="Reason for split")
+
+    groups_parser.set_defaults(func=_handle_groups)
+
+    # =========================================================================
+    # REMEDIATION COMMANDS
+    # =========================================================================
+    remediation_parser = subparsers.add_parser(
+        "remediation", help="Manage remediation tasks"
+    )
+    remediation_subparsers = remediation_parser.add_subparsers(
+        dest="remediation_command"
+    )
+
+    rem_list = remediation_subparsers.add_parser("list", help="List remediation tasks")
+    rem_list.add_argument("--status", help="Filter by status")
+    rem_list.add_argument("--assignee", help="Filter by assignee")
+    rem_list.add_argument("--limit", type=int, default=100, help="Max results")
+    rem_list.add_argument("--offset", type=int, default=0, help="Offset for pagination")
+    rem_list.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
+    rem_get = remediation_subparsers.add_parser("get", help="Get a specific task")
+    rem_get.add_argument("task_id", help="Task ID")
+
+    rem_assign = remediation_subparsers.add_parser("assign", help="Assign a task")
+    rem_assign.add_argument("task_id", help="Task ID")
+    rem_assign.add_argument("--assignee", required=True, help="Assignee user ID")
+
+    rem_transition = remediation_subparsers.add_parser(
+        "transition", help="Transition task status"
+    )
+    rem_transition.add_argument("task_id", help="Task ID")
+    rem_transition.add_argument(
+        "--status",
+        required=True,
+        choices=[
+            "open",
+            "assigned",
+            "in_progress",
+            "verification",
+            "resolved",
+            "deferred",
+            "wont_fix",
+        ],
+        help="New status",
+    )
+    rem_transition.add_argument("--comment", help="Transition comment")
+
+    rem_verify = remediation_subparsers.add_parser(
+        "verify", help="Verify a remediation"
+    )
+    rem_verify.add_argument("task_id", help="Task ID")
+    rem_verify.add_argument(
+        "--verification-type",
+        required=True,
+        choices=["scan_result", "manual_review", "automated_test"],
+        help="Type of verification",
+    )
+    rem_verify.add_argument("--evidence", help="Evidence description or path")
+    rem_verify.add_argument("--verified-by", help="Verifier user ID")
+
+    remediation_subparsers.add_parser(
+        "metrics", help="Get remediation metrics (MTTR, etc.)"
+    )
+
+    rem_sla = remediation_subparsers.add_parser("sla", help="Get SLA compliance report")
+    rem_sla.add_argument("--org-id", help="Organization ID")
+    rem_sla.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
+    remediation_parser.set_defaults(func=_handle_remediation_cli)
+
+    # Notifications commands
+    notifications_parser = subparsers.add_parser(
+        "notifications", help="Notification queue management"
+    )
+    notifications_subparsers = notifications_parser.add_subparsers(
+        dest="notifications_command"
+    )
+
+    notif_worker = notifications_subparsers.add_parser(
+        "worker", help="Run notification worker to process pending notifications"
+    )
+    notif_worker.add_argument(
+        "--interval",
+        type=int,
+        default=10,
+        help="Polling interval in seconds (default: 10)",
+    )
+    notif_worker.add_argument(
+        "--once",
+        action="store_true",
+        help="Process once and exit (for cron jobs)",
+    )
+    notif_worker.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Max notifications to process per batch (default: 100)",
+    )
+
+    notif_pending = notifications_subparsers.add_parser(
+        "pending", help="List pending notifications"
+    )
+    notif_pending.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Max notifications to list (default: 100)",
+    )
+
+    notifications_parser.set_defaults(func=_handle_notifications)
 
     return parser
 
