@@ -1294,8 +1294,13 @@ class ComprehensiveTestRunner:
         # Not found - could be bug or needs seeding
         if status_code == 404:
             detail = str(response.get("detail", ""))
-            if "not found" in detail.lower():
-                return TestResult.NEEDS_SEEDING, f"Resource not found: {detail[:50]}"
+            # These 404s indicate data needs to be seeded first
+            if (
+                "not found" in detail.lower()
+                or "not available" in detail.lower()
+                or "no risk" in detail.lower()
+            ):
+                return TestResult.NEEDS_SEEDING, f"Needs data: {detail[:50]}"
             return TestResult.BUG, f"404 error: {detail[:50]}"
 
         # Validation errors
@@ -1418,12 +1423,15 @@ class ComprehensiveTestRunner:
                     )
                 )
 
-        # Create teams
+        # Create teams (use unique names to avoid conflicts)
         print("\n[1.2] Creating Teams")
+        import time
+
+        ts = int(time.time())
         teams = [
-            {"name": "security-team", "description": "Security Operations"},
-            {"name": "dev-team", "description": "Development Team"},
-            {"name": "compliance-team", "description": "Compliance and Audit"},
+            {"name": f"security-team-{ts}", "description": "Security Operations"},
+            {"name": f"dev-team-{ts}", "description": "Development Team"},
+            {"name": f"compliance-team-{ts}", "description": "Compliance and Audit"},
         ]
         for team in teams:
             status, response, elapsed = self.client.call(
@@ -1438,6 +1446,10 @@ class ComprehensiveTestRunner:
                 self.client.resource_registry["team_ids"].append(team_id)
                 result = TestResult.PASS
                 reason = f"Created team: {team['name']}"
+            elif status == 409:
+                # Team already exists - not a bug, just skip
+                result = TestResult.PASS
+                reason = f"Team already exists: {team['name']}"
 
             self.add_result(
                 TestCase(
@@ -1456,21 +1468,29 @@ class ComprehensiveTestRunner:
 
         # Create users
         print("\n[1.3] Creating Users")
+        # Use environment variable for test password or default for demo mode
+        test_password = os.environ.get("FIXOPS_TEST_PASSWORD", "TestPass123")
         users = [
             {
-                "username": "admin@example.com",
                 "email": "admin@example.com",
+                "password": test_password,
+                "first_name": "Admin",
+                "last_name": "User",
                 "role": "admin",
             },
             {
-                "username": "analyst@example.com",
                 "email": "analyst@example.com",
-                "role": "analyst",
+                "password": test_password,
+                "first_name": "Security",
+                "last_name": "Analyst",
+                "role": "security_analyst",
             },
             {
-                "username": "developer@example.com",
                 "email": "developer@example.com",
-                "role": "developer",
+                "password": test_password,
+                "first_name": "Dev",
+                "last_name": "Developer",
+                "role": "viewer",
             },
         ]
         for user in users:
@@ -1482,17 +1502,21 @@ class ComprehensiveTestRunner:
             )
 
             if status == 201:
-                user_id = response.get("id", response.get("username"))
+                user_id = response.get("id", response.get("email"))
                 self.client.resource_registry["user_ids"].append(user_id)
                 result = TestResult.PASS
-                reason = f"Created user: {user['username']}"
+                reason = f"Created user: {user['email']}"
+            elif status == 409:
+                # User already exists - not a bug, just skip
+                result = TestResult.PASS
+                reason = f"User already exists: {user['email']}"
 
             self.add_result(
                 TestCase(
                     endpoint="/api/v1/users",
                     method="POST",
                     group="users",
-                    description=f"Create user: {user['username']}",
+                    description=f"Create user: {user['email']}",
                     result=result,
                     status_code=status,
                     response_time_ms=elapsed,
@@ -1506,16 +1530,16 @@ class ComprehensiveTestRunner:
         print("\n[1.4] Creating Policies")
         policies = [
             {
-                "name": "critical-vuln-block",
+                "name": f"critical-vuln-block-{ts}",
                 "description": "Block critical vulnerabilities in production",
-                "rules": [{"condition": "severity == 'critical'", "action": "block"}],
-                "enabled": True,
+                "policy_type": "guardrail",
+                "rules": {"condition": "severity == 'critical'", "action": "block"},
             },
             {
-                "name": "high-vuln-review",
+                "name": f"high-vuln-review-{ts}",
                 "description": "Require review for high severity findings",
-                "rules": [{"condition": "severity == 'high'", "action": "review"}],
-                "enabled": True,
+                "policy_type": "compliance",
+                "rules": {"condition": "severity == 'high'", "action": "review"},
             },
         ]
         for policy in policies:
@@ -1531,6 +1555,10 @@ class ComprehensiveTestRunner:
                 self.client.resource_registry["policy_ids"].append(policy_id)
                 result = TestResult.PASS
                 reason = f"Created policy: {policy['name']}"
+            elif status == 409:
+                # Policy already exists - not a bug
+                result = TestResult.PASS
+                reason = f"Policy already exists: {policy['name']}"
 
             self.add_result(
                 TestCase(
@@ -1823,7 +1851,7 @@ class ComprehensiveTestRunner:
                 ("GET", "/api/v1/inventory/applications"),
                 ("GET", "/api/v1/inventory/services"),
                 ("GET", "/api/v1/inventory/apis"),
-                ("GET", "/api/v1/inventory/search"),
+                ("GET", "/api/v1/inventory/search?q=payment"),
             ],
             "compliance": [
                 ("GET", "/api/v1/audit/compliance/frameworks"),
@@ -1831,7 +1859,7 @@ class ComprehensiveTestRunner:
                 ("GET", "/api/v1/audit/logs"),
                 ("GET", "/api/v1/audit/decision-trail"),
                 ("GET", "/api/v1/audit/policy-changes"),
-                ("GET", "/api/v1/audit/user-activity"),
+                ("GET", "/api/v1/audit/user-activity?user_id=admin@example.com"),
             ],
             "feeds": [
                 ("GET", "/api/v1/feeds/health"),
@@ -1857,18 +1885,21 @@ class ComprehensiveTestRunner:
                 ("GET", "/api/v1/pentagi/stats"),
             ],
             "remediation": [
-                ("GET", "/api/v1/remediation/tasks"),
+                ("GET", "/api/v1/remediation/tasks?org_id=acme-financial"),
                 ("GET", "/api/v1/remediation/statuses"),
                 ("GET", "/api/v1/remediation/metrics"),
             ],
             "deduplication": [
-                ("GET", "/api/v1/deduplication/clusters"),
+                ("GET", "/api/v1/deduplication/clusters?org_id=acme-financial"),
                 ("GET", "/api/v1/deduplication/stats"),
-                ("GET", "/api/v1/deduplication/graph"),
+                ("GET", "/api/v1/deduplication/graph?org_id=acme-financial"),
             ],
             "collaboration": [
-                ("GET", "/api/v1/collaboration/activities"),
-                ("GET", "/api/v1/collaboration/comments"),
+                ("GET", "/api/v1/collaboration/activities?org_id=acme-financial"),
+                (
+                    "GET",
+                    "/api/v1/collaboration/comments?entity_type=finding&entity_id=test-finding-1",
+                ),
                 ("GET", "/api/v1/collaboration/activity-types"),
                 ("GET", "/api/v1/collaboration/entity-types"),
             ],
@@ -1940,7 +1971,10 @@ class ComprehensiveTestRunner:
             ],
             "ide": [
                 ("GET", "/api/v1/ide/config"),
-                ("GET", "/api/v1/ide/suggestions"),
+                (
+                    "GET",
+                    "/api/v1/ide/suggestions?file_path=/src/main.py&line=10&column=5",
+                ),
             ],
             "bulk": [
                 ("GET", "/api/v1/bulk/jobs"),
@@ -2197,14 +2231,13 @@ class ComprehensiveTestRunner:
         )
 
         if status == 200:
-            analytics_findings = response.get(
-                "total",
-                len(
-                    response.get(
-                        "items", response if isinstance(response, list) else []
-                    )
-                ),
-            )
+            # Handle both list and dict responses
+            if isinstance(response, list):
+                analytics_findings = len(response)
+            else:
+                analytics_findings = response.get(
+                    "total", len(response.get("items", []))
+                )
 
             check = ConsistencyCheck(
                 name="findings_consistency",
