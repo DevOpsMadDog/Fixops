@@ -1,0 +1,261 @@
+{
+  "scan_metadata": {
+    "scan_id": "SAST-MAJOR-CVE-2024-001",
+    "scan_type": "sast",
+    "scanner": "multi-scanner-aggregated",
+    "scanners_used": ["SonarQube", "Checkmarx", "Semgrep", "CodeQL", "Fortify"],
+    "scan_date": "2024-12-26T08:00:00Z",
+    "duration_seconds": 3456,
+    "files_scanned": 45678,
+    "lines_of_code": 2345678
+  },
+  "major_cve_findings": [
+    {
+      "finding_id": "CVE-2021-44228-LOG4SHELL-001",
+      "cve_id": "CVE-2021-44228",
+      "common_name": "Log4Shell",
+      "severity": "critical",
+      "cvss_score": 10.0,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+      "affected_applications": ["realtime-analytics", "legacy-mainframe-adapter"],
+      "affected_component": "org.apache.logging.log4j:log4j-core",
+      "affected_versions": ["2.0-beta9", "2.14.1"],
+      "fixed_version": "2.17.1",
+      "description": "Apache Log4j2 JNDI features do not protect against attacker controlled LDAP and other JNDI related endpoints",
+      "exploit_available": true,
+      "exploit_maturity": "weaponized",
+      "in_the_wild": true,
+      "ransomware_associated": true,
+      "cisa_kev": true,
+      "mitre_attack": ["T1190", "T1059.007", "T1105", "T1071.001"],
+      "correlation_id": "CORR-LOG4SHELL-001",
+      "locations": [
+        {
+          "application": "realtime-analytics",
+          "file": "src/main/scala/com/acme/analytics/StreamProcessor.scala",
+          "line": 45,
+          "code_snippet": "import org.apache.logging.log4j.LogManager"
+        },
+        {
+          "application": "legacy-mainframe-adapter",
+          "file": "src/Adapters/LoggingAdapter.cs",
+          "line": 23,
+          "code_snippet": "using log4net; // Vulnerable transitive dependency"
+        }
+      ],
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "2.22.0",
+        "breaking_changes": false,
+        "estimated_effort_hours": 4
+      }
+    },
+    {
+      "finding_id": "CVE-2022-22965-SPRING4SHELL-001",
+      "cve_id": "CVE-2022-22965",
+      "common_name": "Spring4Shell",
+      "severity": "critical",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "affected_applications": ["payment-gateway", "mobile-banking-bff"],
+      "affected_component": "org.springframework:spring-beans",
+      "affected_versions": ["5.3.0", "5.3.17"],
+      "fixed_version": "5.3.18",
+      "description": "Spring Framework RCE via Data Binding on JDK 9+",
+      "exploit_available": true,
+      "exploit_maturity": "weaponized",
+      "in_the_wild": true,
+      "ransomware_associated": false,
+      "cisa_kev": true,
+      "mitre_attack": ["T1190", "T1059", "T1068"],
+      "correlation_id": "CORR-SPRING4SHELL-001",
+      "locations": [
+        {
+          "application": "payment-gateway",
+          "file": "src/main/java/com/acme/payment/controllers/PaymentController.java",
+          "line": 89,
+          "code_snippet": "@PostMapping(\"/process\")\npublic ResponseEntity<?> processPayment(@ModelAttribute PaymentRequest request)"
+        }
+      ],
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "6.1.2",
+        "breaking_changes": true,
+        "estimated_effort_hours": 16
+      }
+    },
+    {
+      "finding_id": "CVE-2014-0160-HEARTBLEED-001",
+      "cve_id": "CVE-2014-0160",
+      "common_name": "Heartbleed",
+      "severity": "critical",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "affected_applications": ["gaming-matchmaker", "edge-cdn-service"],
+      "affected_component": "openssl",
+      "affected_versions": ["1.0.1", "1.0.1f"],
+      "fixed_version": "1.0.1g",
+      "description": "The TLS and DTLS implementations in OpenSSL do not properly handle Heartbeat Extension packets",
+      "exploit_available": true,
+      "exploit_maturity": "weaponized",
+      "in_the_wild": true,
+      "ransomware_associated": false,
+      "cisa_kev": false,
+      "mitre_attack": ["T1040", "T1552.004", "T1557"],
+      "correlation_id": "CORR-HEARTBLEED-001",
+      "locations": [
+        {
+          "application": "gaming-matchmaker",
+          "file": "src/network/tls_handler.cpp",
+          "line": 156,
+          "code_snippet": "#include <openssl/ssl.h> // Legacy OpenSSL version"
+        }
+      ],
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "3.2.0",
+        "breaking_changes": true,
+        "estimated_effort_hours": 24
+      }
+    },
+    {
+      "finding_id": "CVE-2021-45046-LOG4J-DOS-001",
+      "cve_id": "CVE-2021-45046",
+      "common_name": "Log4j DoS/RCE",
+      "severity": "critical",
+      "cvss_score": 9.0,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H",
+      "affected_applications": ["realtime-analytics"],
+      "affected_component": "org.apache.logging.log4j:log4j-core",
+      "affected_versions": ["2.15.0"],
+      "fixed_version": "2.17.0",
+      "description": "Apache Log4j2 Thread Context Lookup Pattern vulnerable to RCE in certain non-default configurations",
+      "exploit_available": true,
+      "exploit_maturity": "poc",
+      "in_the_wild": true,
+      "ransomware_associated": true,
+      "cisa_kev": true,
+      "mitre_attack": ["T1190", "T1499"],
+      "correlation_id": "CORR-LOG4J-DOS-001",
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "2.22.0",
+        "breaking_changes": false,
+        "estimated_effort_hours": 2
+      }
+    },
+    {
+      "finding_id": "CVE-2023-44487-HTTP2-RAPID-RESET-001",
+      "cve_id": "CVE-2023-44487",
+      "common_name": "HTTP/2 Rapid Reset",
+      "severity": "high",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "affected_applications": ["edge-cdn-service", "mobile-banking-bff", "trading-engine"],
+      "affected_component": "HTTP/2 implementation",
+      "affected_versions": ["all"],
+      "fixed_version": "varies",
+      "description": "HTTP/2 protocol allows denial of service via rapid stream resets",
+      "exploit_available": true,
+      "exploit_maturity": "weaponized",
+      "in_the_wild": true,
+      "ransomware_associated": false,
+      "cisa_kev": true,
+      "mitre_attack": ["T1498", "T1499.001"],
+      "correlation_id": "CORR-HTTP2-RESET-001",
+      "remediation": {
+        "action": "configure",
+        "description": "Implement rate limiting on RST_STREAM frames",
+        "estimated_effort_hours": 8
+      }
+    },
+    {
+      "finding_id": "CVE-2023-50164-STRUTS-RCE-001",
+      "cve_id": "CVE-2023-50164",
+      "common_name": "Apache Struts RCE",
+      "severity": "critical",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "affected_applications": ["legacy-mainframe-adapter"],
+      "affected_component": "org.apache.struts:struts2-core",
+      "affected_versions": ["2.0.0", "6.3.0"],
+      "fixed_version": "6.3.0.2",
+      "description": "File upload logic flaw allows path traversal and RCE",
+      "exploit_available": true,
+      "exploit_maturity": "weaponized",
+      "in_the_wild": true,
+      "ransomware_associated": true,
+      "cisa_kev": true,
+      "mitre_attack": ["T1190", "T1059", "T1105"],
+      "correlation_id": "CORR-STRUTS-RCE-001",
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "6.3.0.2",
+        "breaking_changes": false,
+        "estimated_effort_hours": 4
+      }
+    },
+    {
+      "finding_id": "CVE-2024-21626-RUNC-ESCAPE-001",
+      "cve_id": "CVE-2024-21626",
+      "common_name": "Leaky Vessels (runc)",
+      "severity": "critical",
+      "cvss_score": 8.6,
+      "cvss_vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:C/C:H/I:H/A:H",
+      "affected_applications": ["iot-device-hub", "ml-inference-service", "media-transcoder"],
+      "affected_component": "runc",
+      "affected_versions": ["1.0.0", "1.1.11"],
+      "fixed_version": "1.1.12",
+      "description": "Container escape via WORKDIR instruction",
+      "exploit_available": true,
+      "exploit_maturity": "poc",
+      "in_the_wild": false,
+      "ransomware_associated": false,
+      "cisa_kev": true,
+      "mitre_attack": ["T1611", "T1068"],
+      "correlation_id": "CORR-RUNC-ESCAPE-001",
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "1.1.12",
+        "breaking_changes": false,
+        "estimated_effort_hours": 2
+      }
+    },
+    {
+      "finding_id": "CVE-2023-4863-WEBP-HEAP-001",
+      "cve_id": "CVE-2023-4863",
+      "common_name": "libwebp Heap Buffer Overflow",
+      "severity": "critical",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "affected_applications": ["media-transcoder", "ml-inference-service"],
+      "affected_component": "libwebp",
+      "affected_versions": ["0.0.1", "1.3.1"],
+      "fixed_version": "1.3.2",
+      "description": "Heap buffer overflow in WebP image processing",
+      "exploit_available": true,
+      "exploit_maturity": "weaponized",
+      "in_the_wild": true,
+      "ransomware_associated": false,
+      "cisa_kev": true,
+      "mitre_attack": ["T1203", "T1204.002"],
+      "correlation_id": "CORR-WEBP-HEAP-001",
+      "remediation": {
+        "action": "upgrade",
+        "target_version": "1.3.2",
+        "breaking_changes": false,
+        "estimated_effort_hours": 4
+      }
+    }
+  ],
+  "summary": {
+    "total_major_cves": 8,
+    "critical": 7,
+    "high": 1,
+    "cisa_kev_count": 7,
+    "weaponized_exploits": 6,
+    "ransomware_associated": 3,
+    "applications_affected": 10,
+    "unique_mitre_techniques": 15
+  }
+}

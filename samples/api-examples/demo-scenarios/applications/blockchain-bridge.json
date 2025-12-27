@@ -1,0 +1,168 @@
+{
+  "application": {
+    "id": "app-blockchain-bridge-001",
+    "name": "blockchain-bridge",
+    "display_name": "Cross-Chain Bridge Service",
+    "description": "Secure cross-chain bridge for transferring assets between Ethereum, Polygon, and other EVM-compatible chains",
+    "portfolio": "Web3 Platform",
+    "business_unit": "Digital Assets",
+    "criticality": "critical",
+    "tier": "tier-1",
+    "data_classification": "highly-confidential",
+    "pii_data": false,
+    "pci_data": false,
+    "phi_data": false,
+    "architecture": {
+      "type": "distributed-consensus",
+      "deployment_model": "multi-cloud",
+      "cloud_provider": ["aws", "gcp", "azure"],
+      "regions": ["us-east-1", "eu-west-1", "ap-northeast-1"],
+      "container_orchestration": "Kubernetes",
+      "service_mesh": "Istio",
+      "blockchain_networks": ["Ethereum", "Polygon", "Arbitrum", "Optimism", "BSC"]
+    },
+    "tech_stack": {
+      "primary_language": "Solidity",
+      "secondary_language": "TypeScript",
+      "framework": "Hardhat/Node.js",
+      "runtime": "Node.js 20 LTS",
+      "database": ["PostgreSQL", "Redis", "IPFS"],
+      "message_queue": "RabbitMQ",
+      "cache": "Redis",
+      "additional": ["ethers.js", "OpenZeppelin", "Chainlink", "The Graph"]
+    },
+    "repository": {
+      "url": "https://github.com/acme-corp/blockchain-bridge",
+      "branch": "main",
+      "last_commit": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+      "ci_cd": "GitHub Actions",
+      "build_system": "Hardhat/npm"
+    },
+    "compliance_frameworks": ["soc2", "iso27001", "travel-rule", "fatf"],
+    "security_contacts": {
+      "primary": "web3-security@acme-corp.com",
+      "escalation": "ciso@acme-corp.com",
+      "on_call": "web3-oncall@acme-corp.com"
+    },
+    "sla": {
+      "availability": "99.99%",
+      "rto_hours": 0.5,
+      "rpo_hours": 0,
+      "critical_fix_hours": 1,
+      "high_fix_hours": 4
+    }
+  },
+  "sbom": {
+    "format": "CycloneDX",
+    "version": "1.5",
+    "generated_at": "2024-12-26T08:00:00Z",
+    "tool": "cyclonedx-npm",
+    "components_count": 456,
+    "direct_dependencies": 78,
+    "transitive_dependencies": 378,
+    "licenses": ["MIT", "Apache-2.0", "ISC", "BSD-3-Clause"],
+    "critical_components": [
+      {
+        "name": "@openzeppelin/contracts",
+        "version": "5.0.1",
+        "type": "library",
+        "purpose": "Smart contract security"
+      },
+      {
+        "name": "ethers",
+        "version": "6.9.0",
+        "type": "library",
+        "purpose": "Ethereum interaction"
+      },
+      {
+        "name": "hardhat",
+        "version": "2.19.2",
+        "type": "tool",
+        "purpose": "Smart contract development"
+      }
+    ]
+  },
+  "smart_contracts": {
+    "deployed_contracts": 12,
+    "total_value_locked_usd": 500000000,
+    "audit_status": "audited",
+    "auditors": ["Trail of Bits", "OpenZeppelin", "Consensys Diligence"],
+    "bug_bounty": {
+      "platform": "Immunefi",
+      "max_payout_usd": 1000000
+    }
+  },
+  "risk_profile": {
+    "overall_risk_score": 95,
+    "risk_factors": {
+      "data_sensitivity": "critical",
+      "internet_exposure": "critical",
+      "regulatory_impact": "critical",
+      "financial_impact": "critical",
+      "reputational_impact": "critical"
+    },
+    "attack_surface": {
+      "external_endpoints": 8,
+      "internal_endpoints": 34,
+      "api_endpoints": 56,
+      "admin_interfaces": 2,
+      "smart_contracts": 12,
+      "validator_nodes": 21
+    },
+    "threat_model": {
+      "primary_threats": [
+        "Smart contract exploits",
+        "Bridge draining attacks",
+        "Oracle manipulation",
+        "Validator collusion",
+        "Flash loan attacks",
+        "Reentrancy attacks",
+        "Private key compromise"
+      ],
+      "mitre_attack_techniques": [
+        "T1190",
+        "T1552",
+        "T1565",
+        "T1078",
+        "T1485",
+        "T1486"
+      ],
+      "web3_specific_attacks": [
+        "Reentrancy",
+        "Flash Loan",
+        "Oracle Manipulation",
+        "Front-running",
+        "Sandwich Attack",
+        "Governance Attack"
+      ]
+    }
+  },
+  "recent_findings_summary": {
+    "critical": 6,
+    "high": 9,
+    "medium": 14,
+    "low": 21,
+    "informational": 35,
+    "correlation_ids": [
+      "CORR-BRIDGE-REENTRANCY-001",
+      "CORR-BRIDGE-ORACLE-001",
+      "CORR-BRIDGE-ACCESS-001",
+      "CORR-BRIDGE-OVERFLOW-001"
+    ]
+  },
+  "integrations": {
+    "ticketing": "Linear",
+    "chat": "Discord",
+    "siem": "Forta",
+    "secrets_manager": "HashiCorp Vault",
+    "monitoring": "Tenderly"
+  },
+  "web3_security": {
+    "multisig_required": true,
+    "timelock_enabled": true,
+    "pause_mechanism": true,
+    "rate_limiting": true,
+    "circuit_breaker": true,
+    "formal_verification": "partial"
+  }
+}

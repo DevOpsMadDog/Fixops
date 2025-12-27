@@ -1,0 +1,177 @@
+{
+  "assessment_id": "gdpr-supply-2025-001",
+  "framework": "gdpr",
+  "framework_version": "2016/679",
+  "timestamp": "2025-01-15T21:30:00Z",
+  "application": "supply-chain-portal",
+  "scope": {
+    "data_controller": true,
+    "data_processor": false,
+    "personal_data_types": ["vendor_contacts", "employee_data", "supplier_pii"],
+    "data_subjects": ["EU vendors", "EU employees", "EU suppliers"],
+    "cross_border_transfers": true,
+    "dpo_appointed": true
+  },
+  "assessor": {
+    "type": "internal",
+    "name": "Privacy Team",
+    "dpo": "dpo@example.com"
+  },
+  "overall_status": "partially_compliant",
+  "articles": [
+    {
+      "article": "5",
+      "title": "Principles relating to processing of personal data",
+      "status": "compliant",
+      "implementation": [
+        "Data minimization implemented",
+        "Purpose limitation documented",
+        "Storage limitation enforced (3 years)",
+        "Accuracy maintained through regular updates"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "6",
+      "title": "Lawfulness of processing",
+      "status": "compliant",
+      "implementation": [
+        "Legitimate interest assessment completed",
+        "Consent management for marketing",
+        "Contract basis for vendor data"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "13",
+      "title": "Information to be provided",
+      "status": "compliant",
+      "implementation": [
+        "Privacy notice published",
+        "Data collection purposes disclosed",
+        "Retention periods communicated"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "17",
+      "title": "Right to erasure",
+      "status": "compliant",
+      "implementation": [
+        "Data deletion workflow implemented",
+        "Automated erasure after retention period",
+        "Deletion confirmation provided"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "25",
+      "title": "Data protection by design and default",
+      "status": "non_compliant",
+      "implementation": [],
+      "findings": [
+        {
+          "id": "GDPR-FIND-001",
+          "description": "SQL injection vulnerability exposes personal data",
+          "severity": "critical",
+          "remediation": "Implement parameterized queries",
+          "correlation_id": "CORR-SQL-003"
+        }
+      ],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "32",
+      "title": "Security of processing",
+      "status": "non_compliant",
+      "implementation": [],
+      "findings": [
+        {
+          "id": "GDPR-FIND-002",
+          "description": "SSL certificate verification disabled for external API calls",
+          "severity": "high",
+          "remediation": "Enable SSL verification for all external connections",
+          "correlation_id": "CORR-SSL-002"
+        },
+        {
+          "id": "GDPR-FIND-003",
+          "description": "Insecure deserialization via pickle",
+          "severity": "high",
+          "remediation": "Replace pickle with JSON serialization",
+          "correlation_id": "CORR-DESER-001"
+        },
+        {
+          "id": "GDPR-FIND-004",
+          "description": "Hardcoded SAP integration password",
+          "severity": "medium",
+          "remediation": "Use environment variables or secrets manager",
+          "correlation_id": "CORR-CRED-003"
+        }
+      ],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "33",
+      "title": "Notification of personal data breach",
+      "status": "compliant",
+      "implementation": [
+        "72-hour notification procedure documented",
+        "Breach assessment template ready",
+        "DPA contact information maintained"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "35",
+      "title": "Data protection impact assessment",
+      "status": "compliant",
+      "implementation": [
+        "DPIA completed for high-risk processing",
+        "Risk mitigation measures documented",
+        "DPO consultation recorded"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    },
+    {
+      "article": "44",
+      "title": "General principle for transfers",
+      "status": "compliant",
+      "implementation": [
+        "SCCs in place for US transfers",
+        "Transfer impact assessment completed",
+        "Supplementary measures documented"
+      ],
+      "findings": [],
+      "last_reviewed": "2025-01-01"
+    }
+  ],
+  "data_processing_records": {
+    "maintained": true,
+    "last_updated": "2025-01-01",
+    "processing_activities": 15
+  },
+  "summary": {
+    "total_articles": 9,
+    "compliant": 7,
+    "non_compliant": 2,
+    "critical_findings": 1,
+    "high_findings": 2,
+    "medium_findings": 1
+  },
+  "remediation_plan": {
+    "target_date": "2025-02-28",
+    "owner": "supply-chain-platform",
+    "dpo_approval": true,
+    "priority_items": [
+      {"finding": "GDPR-FIND-001", "target": "2025-01-30", "status": "in_progress"},
+      {"finding": "GDPR-FIND-002", "target": "2025-02-05", "status": "planned"},
+      {"finding": "GDPR-FIND-003", "target": "2025-02-10", "status": "planned"}
+    ]
+  }
+}

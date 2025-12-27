@@ -1,0 +1,110 @@
+{
+  "application_id": "app-supply-chain-portal",
+  "name": "supply-chain-portal",
+  "display_name": "Supply Chain Management Portal",
+  "version": "4.1.0",
+  "description": "Vendor management, procurement, inventory tracking, and supply chain risk assessment platform",
+  "status": "active",
+  "criticality": "high",
+  "tier": "tier-2",
+  "domain": "supply-chain",
+  "architecture": {
+    "type": "monolith-modular",
+    "pattern": "mvc",
+    "framework": "django",
+    "language": "python",
+    "language_version": "3.11",
+    "runtime": "kubernetes"
+  },
+  "repository": {
+    "url": "https://github.com/example/supply-chain-portal",
+    "branch": "main",
+    "ci_cd": {
+      "platform": "github-actions",
+      "pipeline": ".github/workflows/ci.yml",
+      "deployment": "argocd"
+    }
+  },
+  "deployment": {
+    "environments": [
+      {
+        "name": "production",
+        "cloud": "aws",
+        "region": "eu-west-1",
+        "cluster": "prod-eks-supply",
+        "namespace": "supply-chain",
+        "replicas": 4,
+        "resources": {"cpu": "2", "memory": "4Gi"}
+      },
+      {
+        "name": "staging",
+        "cloud": "aws",
+        "region": "eu-west-1",
+        "cluster": "staging-eks",
+        "namespace": "supply-chain",
+        "replicas": 2
+      },
+      {
+        "name": "development",
+        "cloud": "aws",
+        "region": "us-west-2",
+        "cluster": "dev-eks",
+        "namespace": "supply-chain",
+        "replicas": 1
+      }
+    ]
+  },
+  "data_classification": {
+    "level": "confidential",
+    "types": ["vendor_contracts", "pricing_data", "inventory_levels", "supplier_pii"],
+    "pii": true,
+    "phi": false,
+    "financial": true
+  },
+  "compliance": {
+    "frameworks": ["soc2-type2", "iso27001", "gdpr"],
+    "certifications": ["iso27001"],
+    "audit_frequency": "annual",
+    "last_audit": "2024-09-01",
+    "next_audit": "2025-09-01"
+  },
+  "security_tools": {
+    "sast": ["semgrep", "bandit", "sonarqube"],
+    "dast": ["owasp-zap"],
+    "sca": ["snyk", "safety", "dependabot"],
+    "container": ["grype", "trivy"],
+    "cloud": ["orca", "aws-security-hub"],
+    "runtime": ["datadog-security"]
+  },
+  "integrations": {
+    "alm": {
+      "jira_project": "SUPPLY",
+      "confluence_space": "SUPPLYCHAIN",
+      "servicenow_ci": "CI-SUPPLY-001"
+    },
+    "monitoring": {
+      "apm": "datadog",
+      "logging": "elasticsearch",
+      "alerting": "opsgenie"
+    },
+    "notifications": ["slack:#supply-chain-security", "email:supply-security@example.com"]
+  },
+  "ownership": {
+    "team": "supply-chain-platform",
+    "team_id": "team-supply-001",
+    "manager": "robert.kim@example.com",
+    "tech_lead": "lisa.anderson@example.com",
+    "security_champion": "james.wilson@example.com"
+  },
+  "dependencies": {
+    "upstream": ["user-identity-service", "payment-gateway"],
+    "downstream": ["reporting-service", "vendor-portal"],
+    "external": ["sap-api", "oracle-scm", "coupa-api"]
+  },
+  "sla": {
+    "availability": "99.9%",
+    "response_time_p99_ms": 1000,
+    "critical_vuln_sla_hours": 48,
+    "high_vuln_sla_hours": 168
+  }
+}

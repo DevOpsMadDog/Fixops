@@ -1,0 +1,150 @@
+{
+  "scan_id": "dependabot-iam-2025-001",
+  "tool": "dependabot",
+  "tool_version": "2.0",
+  "scan_type": "sca",
+  "timestamp": "2025-01-15T13:30:00Z",
+  "application": "user-identity-service",
+  "manifest_files": ["requirements.txt", "pyproject.toml"],
+  "package_manager": "pip",
+  "dependencies_scanned": 156,
+  "alerts": [
+    {
+      "id": "GHSA-jfmj-5v4g-7637",
+      "number": 1,
+      "state": "open",
+      "dependency": {
+        "package": {"ecosystem": "pip", "name": "cryptography"},
+        "manifest_path": "requirements.txt",
+        "scope": "runtime"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-jfmj-5v4g-7637",
+        "cve_id": "CVE-2023-49083",
+        "summary": "cryptography vulnerable to NULL-dereference when loading PKCS7 certificates",
+        "severity": "high",
+        "cvss_score": 7.5
+      },
+      "security_vulnerability": {
+        "package": {"ecosystem": "pip", "name": "cryptography"},
+        "severity": "high",
+        "vulnerable_version_range": "< 41.0.6",
+        "first_patched_version": {"identifier": "41.0.6"}
+      },
+      "vulnerable_version": "41.0.4",
+      "fixed_version": "41.0.6",
+      "correlation_id": "CORR-CRYPTO-004"
+    },
+    {
+      "id": "GHSA-v8gr-m533-ghj9",
+      "number": 2,
+      "state": "open",
+      "dependency": {
+        "package": {"ecosystem": "pip", "name": "pyjwt"},
+        "manifest_path": "requirements.txt",
+        "scope": "runtime"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-v8gr-m533-ghj9",
+        "cve_id": "CVE-2022-29217",
+        "summary": "PyJWT allows algorithm confusion",
+        "severity": "critical",
+        "cvss_score": 9.1
+      },
+      "security_vulnerability": {
+        "package": {"ecosystem": "pip", "name": "pyjwt"},
+        "severity": "critical",
+        "vulnerable_version_range": "< 2.4.0",
+        "first_patched_version": {"identifier": "2.4.0"}
+      },
+      "vulnerable_version": "2.3.0",
+      "fixed_version": "2.4.0",
+      "correlation_id": "CORR-JWT-001"
+    },
+    {
+      "id": "GHSA-r9hx-vwmv-q579",
+      "number": 3,
+      "state": "open",
+      "dependency": {
+        "package": {"ecosystem": "pip", "name": "requests"},
+        "manifest_path": "requirements.txt",
+        "scope": "runtime"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-r9hx-vwmv-q579",
+        "cve_id": "CVE-2023-32681",
+        "summary": "Requests Session object does not verify requests after making first request with verify=False",
+        "severity": "medium",
+        "cvss_score": 6.1
+      },
+      "security_vulnerability": {
+        "package": {"ecosystem": "pip", "name": "requests"},
+        "severity": "medium",
+        "vulnerable_version_range": "< 2.31.0",
+        "first_patched_version": {"identifier": "2.31.0"}
+      },
+      "vulnerable_version": "2.28.2",
+      "fixed_version": "2.31.0",
+      "correlation_id": "CORR-REQUESTS-001"
+    },
+    {
+      "id": "GHSA-5cpq-8wj7-hf2v",
+      "number": 4,
+      "state": "open",
+      "dependency": {
+        "package": {"ecosystem": "pip", "name": "sqlalchemy"},
+        "manifest_path": "requirements.txt",
+        "scope": "runtime"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-5cpq-8wj7-hf2v",
+        "cve_id": "CVE-2024-23689",
+        "summary": "SQLAlchemy SQL Injection vulnerability",
+        "severity": "high",
+        "cvss_score": 8.8
+      },
+      "security_vulnerability": {
+        "package": {"ecosystem": "pip", "name": "sqlalchemy"},
+        "severity": "high",
+        "vulnerable_version_range": "< 2.0.25",
+        "first_patched_version": {"identifier": "2.0.25"}
+      },
+      "vulnerable_version": "2.0.20",
+      "fixed_version": "2.0.25",
+      "correlation_id": "CORR-SQLALCHEMY-001"
+    },
+    {
+      "id": "GHSA-wfm5-v35h-vwf4",
+      "number": 5,
+      "state": "open",
+      "dependency": {
+        "package": {"ecosystem": "pip", "name": "werkzeug"},
+        "manifest_path": "requirements.txt",
+        "scope": "runtime"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-wfm5-v35h-vwf4",
+        "cve_id": "CVE-2024-34069",
+        "summary": "Werkzeug debugger vulnerable to remote code execution",
+        "severity": "critical",
+        "cvss_score": 9.8
+      },
+      "security_vulnerability": {
+        "package": {"ecosystem": "pip", "name": "werkzeug"},
+        "severity": "critical",
+        "vulnerable_version_range": "< 3.0.3",
+        "first_patched_version": {"identifier": "3.0.3"}
+      },
+      "vulnerable_version": "2.3.7",
+      "fixed_version": "3.0.3",
+      "correlation_id": "CORR-WERKZEUG-001"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "critical": 2,
+    "high": 2,
+    "medium": 1,
+    "low": 0
+  }
+}

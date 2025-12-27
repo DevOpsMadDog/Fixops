@@ -1,0 +1,70 @@
+{
+  "integration_id": "jira-prod-001",
+  "integration_type": "jira",
+  "name": "Production Jira Integration",
+  "status": "active",
+  "connection": {
+    "base_url": "https://example.atlassian.net",
+    "auth_type": "api_token",
+    "username": "automation@example.com",
+    "api_token_secret": "JIRA_API_TOKEN"
+  },
+  "project_mapping": {
+    "default_project": "SEC",
+    "mappings": [
+      {
+        "application": "payment-gateway",
+        "project": "PAY",
+        "component": "Security"
+      },
+      {
+        "application": "user-service",
+        "project": "USR",
+        "component": "Security"
+      }
+    ]
+  },
+  "issue_creation": {
+    "enabled": true,
+    "auto_create": {
+      "critical": true,
+      "high": true,
+      "medium": false,
+      "low": false
+    },
+    "issue_type": "Bug",
+    "priority_mapping": {
+      "critical": "Highest",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "labels": ["security", "vulnerability", "fixops"],
+    "custom_fields": {
+      "customfield_10001": "Security",
+      "customfield_10002": "Automated"
+    }
+  },
+  "issue_template": {
+    "summary": "[{severity}] {vulnerability_id}: {title}",
+    "description": "h2. Vulnerability Details\n\n*ID:* {vulnerability_id}\n*Severity:* {severity}\n*CVSS Score:* {cvss_score}\n*Affected Component:* {component}\n*Version:* {version}\n\nh2. Description\n{description}\n\nh2. Remediation\n{remediation}\n\nh2. References\n{references}\n\n----\n_Created by FixOps Security Platform_"
+  },
+  "sync_settings": {
+    "sync_status": true,
+    "sync_comments": true,
+    "sync_interval_minutes": 15,
+    "status_mapping": {
+      "To Do": "open",
+      "In Progress": "in_progress",
+      "In Review": "in_review",
+      "Done": "resolved",
+      "Won't Fix": "accepted_risk"
+    }
+  },
+  "filters": {
+    "min_severity": "high",
+    "exclude_applications": [],
+    "exclude_cves": [],
+    "only_exploitable": false
+  }
+}

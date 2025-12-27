@@ -1,0 +1,38 @@
+{
+  "comment_id": "comment-2025-001",
+  "entity_type": "vulnerability",
+  "entity_id": "vuln-CVE-2021-44228-payment-gateway",
+  "action": "add_comment",
+  "comment": {
+    "type": "discussion",
+    "content": "I've analyzed this vulnerability and confirmed it's reachable in our codebase. The vulnerable log4j method is called from our PaymentController when logging transaction details.\n\n**Impact Assessment:**\n- Severity: Critical\n- Exploitability: High (public exploits available)\n- Business Impact: Could lead to RCE and data breach\n\n**Recommended Actions:**\n1. Immediate: Apply WAF rules to block JNDI lookup patterns\n2. Short-term: Upgrade log4j-core to 2.17.1\n3. Verify fix with security scan\n\nI'll create a PR for the dependency update today.",
+    "visibility": "team",
+    "mentions": ["@jane.smith", "@security-team"],
+    "attachments": [
+      {
+        "name": "reachability-analysis.png",
+        "type": "image/png",
+        "size_bytes": 45678
+      }
+    ]
+  },
+  "author": {
+    "email": "bob.wilson@example.com",
+    "name": "Bob Wilson",
+    "role": "security_champion"
+  },
+  "metadata": {
+    "created_at": "2025-01-15T10:30:00Z",
+    "client": "web",
+    "ip_address": "10.0.1.50"
+  },
+  "notifications": {
+    "notify_assignee": true,
+    "notify_watchers": true,
+    "notify_mentioned": true
+  },
+  "thread": {
+    "parent_comment_id": null,
+    "is_reply": false
+  }
+}

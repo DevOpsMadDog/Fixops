@@ -1,0 +1,67 @@
+{
+  "dashboard_type": "security_overview",
+  "time_range": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2025-01-15T23:59:59Z",
+    "granularity": "day"
+  },
+  "filters": {
+    "applications": ["payment-gateway", "user-service", "api-gateway"],
+    "environments": ["production"],
+    "teams": ["payments-platform", "user-platform"],
+    "severity": ["critical", "high", "medium"]
+  },
+  "widgets": [
+    {
+      "id": "vuln-trend",
+      "type": "line_chart",
+      "title": "Vulnerability Trend",
+      "metrics": ["total_vulns", "critical_vulns", "high_vulns"],
+      "group_by": "date"
+    },
+    {
+      "id": "severity-dist",
+      "type": "pie_chart",
+      "title": "Severity Distribution",
+      "metric": "vulnerability_count",
+      "group_by": "severity"
+    },
+    {
+      "id": "mttr",
+      "type": "gauge",
+      "title": "Mean Time to Remediate",
+      "metric": "mttr_days",
+      "thresholds": {
+        "good": 7,
+        "warning": 14,
+        "critical": 30
+      }
+    },
+    {
+      "id": "top-vulns",
+      "type": "table",
+      "title": "Top 10 Vulnerabilities",
+      "columns": ["cve_id", "severity", "cvss", "epss", "affected_apps", "age_days"],
+      "sort_by": "cvss",
+      "limit": 10
+    },
+    {
+      "id": "compliance-status",
+      "type": "status_grid",
+      "title": "Compliance Status",
+      "frameworks": ["pci-dss", "soc2", "hipaa"]
+    },
+    {
+      "id": "risk-heatmap",
+      "type": "heatmap",
+      "title": "Risk Heatmap",
+      "x_axis": "application",
+      "y_axis": "vulnerability_type",
+      "metric": "risk_score"
+    }
+  ],
+  "export": {
+    "format": "pdf",
+    "include_raw_data": false
+  }
+}

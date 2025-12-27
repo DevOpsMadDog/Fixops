@@ -393,6 +393,9 @@ def get_exploit_confidence(cve_id: str) -> Dict[str, Any]:
     # Try to get cached score first
     cached = service.get_exploit_confidence(cve_id)
     if cached:
+        # Handle both dict and object returns
+        if hasattr(cached, "to_dict"):
+            return cached.to_dict()
         return cached
 
     # Calculate fresh score

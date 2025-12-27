@@ -1,0 +1,82 @@
+{
+  "application": {
+    "name": "payment-gateway",
+    "display_name": "Payment Gateway Service",
+    "version": "2.1.0",
+    "description": "Core payment processing microservice handling card transactions",
+    "type": "microservice",
+    "status": "active"
+  },
+  "ownership": {
+    "team": "payments-platform",
+    "team_id": "team-12345",
+    "owner": "john.doe@example.com",
+    "technical_lead": "jane.smith@example.com",
+    "security_champion": "bob.wilson@example.com"
+  },
+  "repository": {
+    "url": "https://github.com/example/payment-gateway",
+    "branch": "main",
+    "ci_cd": "github-actions",
+    "artifact_registry": "ecr"
+  },
+  "technology_stack": {
+    "language": "java",
+    "language_version": "17",
+    "framework": "spring-boot",
+    "framework_version": "3.2.0",
+    "runtime": "jvm",
+    "container_base": "eclipse-temurin:17-jre-alpine"
+  },
+  "deployment": {
+    "environments": [
+      {
+        "name": "production",
+        "cloud_provider": "aws",
+        "region": "us-east-1",
+        "platform": "kubernetes",
+        "cluster": "production-eks",
+        "namespace": "payments",
+        "replicas": 5
+      },
+      {
+        "name": "staging",
+        "cloud_provider": "aws",
+        "region": "us-east-1",
+        "platform": "kubernetes",
+        "cluster": "staging-eks",
+        "namespace": "payments",
+        "replicas": 2
+      }
+    ]
+  },
+  "classification": {
+    "criticality": "critical",
+    "data_classification": "pci-dss",
+    "internet_exposed": true,
+    "customer_facing": true,
+    "processes_pii": true,
+    "processes_financial_data": true
+  },
+  "compliance": {
+    "frameworks": ["pci-dss", "soc2", "gdpr"],
+    "certifications": ["iso27001"],
+    "audit_frequency": "quarterly"
+  },
+  "integrations": {
+    "upstream_dependencies": ["identity-service", "fraud-detection"],
+    "downstream_consumers": ["reporting-service", "analytics"],
+    "external_apis": ["stripe", "plaid"]
+  },
+  "monitoring": {
+    "apm": "datadog",
+    "logging": "elasticsearch",
+    "alerting": "pagerduty",
+    "sla_tier": "platinum"
+  },
+  "tags": {
+    "cost_center": "CC-12345",
+    "business_unit": "Financial Services",
+    "product_line": "Payments"
+  }
+}

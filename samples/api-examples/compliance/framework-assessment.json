@@ -1,0 +1,80 @@
+{
+  "assessment_id": "pci-dss-2025-q1",
+  "framework": "pci-dss",
+  "version": "4.0",
+  "scope": {
+    "applications": ["payment-gateway", "card-vault", "tokenization-service"],
+    "environments": ["production"],
+    "data_types": ["cardholder_data", "pan", "cvv"]
+  },
+  "organization": {
+    "name": "Example Financial Services",
+    "merchant_level": 1,
+    "qsa": "SecurityAudit Inc.",
+    "assessment_date": "2025-01-15"
+  },
+  "controls": [
+    {
+      "control_id": "1.1.1",
+      "requirement": "Install and maintain network security controls",
+      "status": "compliant",
+      "evidence": ["firewall_config.json", "network_diagram.pdf"],
+      "notes": "All network segments properly isolated"
+    },
+    {
+      "control_id": "2.2.1",
+      "requirement": "Develop configuration standards for all system components",
+      "status": "compliant",
+      "evidence": ["hardening_standards.md", "cis_benchmark_results.json"],
+      "notes": "CIS benchmarks applied to all systems"
+    },
+    {
+      "control_id": "3.4.1",
+      "requirement": "Render PAN unreadable anywhere it is stored",
+      "status": "compliant",
+      "evidence": ["encryption_policy.pdf", "key_management.json"],
+      "notes": "AES-256 encryption with HSM key management"
+    },
+    {
+      "control_id": "6.2.4",
+      "requirement": "Software development personnel receive training on secure coding",
+      "status": "partial",
+      "evidence": ["training_records.csv"],
+      "notes": "85% completion rate, 3 developers pending training",
+      "remediation": {
+        "action": "Complete secure coding training for remaining developers",
+        "due_date": "2025-02-01",
+        "owner": "security-team"
+      }
+    },
+    {
+      "control_id": "8.3.1",
+      "requirement": "All user access to system components is authenticated",
+      "status": "compliant",
+      "evidence": ["mfa_policy.pdf", "access_logs.json"],
+      "notes": "MFA enforced for all users"
+    },
+    {
+      "control_id": "10.2.1",
+      "requirement": "Audit logs are enabled and active for all system components",
+      "status": "compliant",
+      "evidence": ["logging_config.json", "siem_dashboard.png"],
+      "notes": "Centralized logging with 1-year retention"
+    },
+    {
+      "control_id": "11.3.1",
+      "requirement": "Internal vulnerability scans are performed at least quarterly",
+      "status": "compliant",
+      "evidence": ["vuln_scan_q4_2024.pdf", "scan_schedule.json"],
+      "notes": "Weekly automated scans with quarterly manual review"
+    }
+  ],
+  "summary": {
+    "total_controls": 250,
+    "compliant": 235,
+    "partial": 10,
+    "non_compliant": 5,
+    "not_applicable": 0,
+    "compliance_percentage": 94.0
+  }
+}

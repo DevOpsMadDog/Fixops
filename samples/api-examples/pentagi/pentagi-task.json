@@ -1,0 +1,87 @@
+{
+  "task_id": "pentagi-2025-001",
+  "name": "Automated Security Assessment - Payment Gateway",
+  "type": "comprehensive_assessment",
+  "target": {
+    "application": "payment-gateway",
+    "environment": "staging",
+    "endpoints": [
+      "https://staging-api.example.com/v1/payments",
+      "https://staging-api.example.com/v1/transactions"
+    ]
+  },
+  "configuration": {
+    "assessment_depth": "deep",
+    "ai_models": ["gpt-4", "claude-3", "gemini-pro"],
+    "consensus_threshold": 0.7,
+    "max_duration_hours": 4
+  },
+  "scope": {
+    "test_categories": [
+      "authentication_bypass",
+      "authorization_flaws",
+      "injection_attacks",
+      "business_logic",
+      "api_security",
+      "data_exposure"
+    ],
+    "excluded_tests": ["dos_attacks", "physical_security"],
+    "rate_limit": {
+      "requests_per_second": 10,
+      "concurrent_connections": 5
+    }
+  },
+  "credentials": {
+    "test_accounts": [
+      {
+        "role": "regular_user",
+        "username": "test_user@example.com",
+        "token_secret": "PENTAGI_USER_TOKEN"
+      },
+      {
+        "role": "admin",
+        "username": "test_admin@example.com",
+        "token_secret": "PENTAGI_ADMIN_TOKEN"
+      }
+    ]
+  },
+  "ai_directives": {
+    "focus_areas": [
+      "Payment flow manipulation",
+      "Transaction amount tampering",
+      "Race conditions in payment processing",
+      "PCI-DSS compliance gaps"
+    ],
+    "attack_scenarios": [
+      {
+        "name": "Price Manipulation",
+        "description": "Attempt to modify transaction amounts during checkout"
+      },
+      {
+        "name": "IDOR on Transactions",
+        "description": "Access other users' transaction history"
+      },
+      {
+        "name": "Replay Attack",
+        "description": "Replay successful payment requests"
+      }
+    ]
+  },
+  "reporting": {
+    "real_time_alerts": true,
+    "alert_threshold": "high",
+    "final_report_format": "pdf",
+    "include_ai_reasoning": true,
+    "include_remediation": true
+  },
+  "schedule": {
+    "start_time": "2025-01-20T02:00:00Z",
+    "timezone": "UTC",
+    "notify_on_start": true,
+    "notify_on_complete": true
+  },
+  "contacts": {
+    "security_team": "security@example.com",
+    "application_owner": "payments-team@example.com"
+  }
+}

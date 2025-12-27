@@ -1,0 +1,215 @@
+{
+  "tracker_id": "remediation-2025-001",
+  "timestamp": "2025-01-15T23:45:00Z",
+  "remediation_tasks": [
+    {
+      "task_id": "REM-PAY-001",
+      "title": "Upgrade Log4j to 2.17.1",
+      "vulnerability": {
+        "cve": "CVE-2021-44228",
+        "correlation_id": "CORR-LOG4J-001"
+      },
+      "application": "payment-gateway",
+      "status": "in_progress",
+      "priority": "critical",
+      "sla": {
+        "target_hours": 24,
+        "started_at": "2025-01-15T10:00:00Z",
+        "due_at": "2025-01-16T10:00:00Z",
+        "remaining_hours": 10,
+        "breached": false
+      },
+      "assignment": {
+        "team": "payments-platform",
+        "assignee": "bob.wilson@example.com",
+        "escalation": "john.doe@example.com"
+      },
+      "remediation_steps": [
+        {"step": 1, "description": "Update pom.xml with log4j-core 2.17.1", "status": "completed", "completed_at": "2025-01-15T11:00:00Z"},
+        {"step": 2, "description": "Run unit tests", "status": "completed", "completed_at": "2025-01-15T12:00:00Z"},
+        {"step": 3, "description": "Deploy to staging", "status": "completed", "completed_at": "2025-01-15T14:00:00Z"},
+        {"step": 4, "description": "Run security scan on staging", "status": "in_progress", "started_at": "2025-01-15T14:30:00Z"},
+        {"step": 5, "description": "Deploy to production", "status": "pending"},
+        {"step": 6, "description": "Verify fix in production", "status": "pending"}
+      ],
+      "verification": {
+        "method": "rescan",
+        "tool": "snyk",
+        "verified": false
+      },
+      "tracking": {
+        "jira_ticket": "PAY-1234",
+        "github_pr": "https://github.com/example/payment-gateway/pull/456",
+        "change_ticket": "CHG-2025-001"
+      },
+      "compliance_impact": ["PCI-DSS 6.3.1"]
+    },
+    {
+      "task_id": "REM-PAY-002",
+      "title": "Fix SQL Injection in TransactionDAO",
+      "vulnerability": {
+        "cwe": "CWE-89",
+        "correlation_id": "CORR-SQL-001"
+      },
+      "application": "payment-gateway",
+      "status": "planned",
+      "priority": "critical",
+      "sla": {
+        "target_hours": 72,
+        "started_at": null,
+        "due_at": "2025-01-18T10:00:00Z",
+        "remaining_hours": 58,
+        "breached": false
+      },
+      "assignment": {
+        "team": "payments-platform",
+        "assignee": "jane.smith@example.com"
+      },
+      "remediation_steps": [
+        {"step": 1, "description": "Refactor to use PreparedStatement", "status": "pending"},
+        {"step": 2, "description": "Add input validation", "status": "pending"},
+        {"step": 3, "description": "Write unit tests for SQL injection", "status": "pending"},
+        {"step": 4, "description": "Code review", "status": "pending"},
+        {"step": 5, "description": "Deploy and verify", "status": "pending"}
+      ],
+      "tracking": {
+        "jira_ticket": "PAY-1235"
+      },
+      "compliance_impact": ["PCI-DSS 6.2.4"]
+    },
+    {
+      "task_id": "REM-IAM-001",
+      "title": "Move JWT Secret to Secrets Manager",
+      "vulnerability": {
+        "cwe": "CWE-798",
+        "correlation_id": "CORR-CRED-002"
+      },
+      "application": "user-identity-service",
+      "status": "in_progress",
+      "priority": "critical",
+      "sla": {
+        "target_hours": 4,
+        "started_at": "2025-01-15T10:10:00Z",
+        "due_at": "2025-01-15T14:10:00Z",
+        "remaining_hours": 0,
+        "breached": true
+      },
+      "assignment": {
+        "team": "identity-platform",
+        "assignee": "diana.prince@example.com",
+        "escalation": "alice.johnson@example.com"
+      },
+      "remediation_steps": [
+        {"step": 1, "description": "Create secret in AWS Secrets Manager", "status": "completed", "completed_at": "2025-01-15T11:00:00Z"},
+        {"step": 2, "description": "Update application to read from Secrets Manager", "status": "completed", "completed_at": "2025-01-15T12:30:00Z"},
+        {"step": 3, "description": "Remove hardcoded secret from code", "status": "completed", "completed_at": "2025-01-15T13:00:00Z"},
+        {"step": 4, "description": "Rotate the compromised secret", "status": "in_progress", "started_at": "2025-01-15T13:30:00Z"},
+        {"step": 5, "description": "Deploy to production", "status": "pending"},
+        {"step": 6, "description": "Invalidate all existing tokens", "status": "pending"}
+      ],
+      "tracking": {
+        "jira_ticket": "IAM-567",
+        "github_pr": "https://github.com/example/user-identity-service/pull/234"
+      },
+      "compliance_impact": ["SOC2 CC6.6", "GDPR Art.32"],
+      "breach_notification": {
+        "required": true,
+        "reason": "SLA breached for critical auth vulnerability",
+        "notified": ["alice.johnson@example.com", "security-leadership@example.com"]
+      }
+    },
+    {
+      "task_id": "REM-HEALTH-001",
+      "title": "Fix IDOR Vulnerability in Patient Records",
+      "vulnerability": {
+        "cwe": "CWE-639",
+        "correlation_id": "CORR-IDOR-001"
+      },
+      "application": "healthcare-api",
+      "status": "planned",
+      "priority": "critical",
+      "sla": {
+        "target_hours": 24,
+        "started_at": null,
+        "due_at": "2025-01-16T10:15:00Z",
+        "remaining_hours": 10,
+        "breached": false
+      },
+      "assignment": {
+        "team": "healthcare-platform",
+        "assignee": "emily.watson@example.com"
+      },
+      "remediation_steps": [
+        {"step": 1, "description": "Implement authorization middleware", "status": "pending"},
+        {"step": 2, "description": "Add patient-user relationship validation", "status": "pending"},
+        {"step": 3, "description": "Write authorization unit tests", "status": "pending"},
+        {"step": 4, "description": "Perform DAST retest", "status": "pending"},
+        {"step": 5, "description": "Deploy and verify", "status": "pending"}
+      ],
+      "tracking": {
+        "jira_ticket": "HEALTH-890"
+      },
+      "compliance_impact": ["HIPAA 164.312(a)(1)", "HIPAA 164.308(a)(4)"],
+      "hipaa_notification": {
+        "breach_assessment_required": true,
+        "phi_potentially_exposed": true,
+        "hipaa_officer_notified": true
+      }
+    },
+    {
+      "task_id": "REM-SUPPLY-001",
+      "title": "Upgrade Celery to 5.3.5",
+      "vulnerability": {
+        "cve": "CVE-2024-23829",
+        "correlation_id": "CORR-CELERY-001"
+      },
+      "application": "supply-chain-portal",
+      "status": "planned",
+      "priority": "critical",
+      "sla": {
+        "target_hours": 48,
+        "started_at": null,
+        "due_at": "2025-01-17T10:20:00Z",
+        "remaining_hours": 34,
+        "breached": false
+      },
+      "assignment": {
+        "team": "supply-chain-platform",
+        "assignee": "james.wilson@example.com"
+      },
+      "remediation_steps": [
+        {"step": 1, "description": "Update requirements.txt", "status": "pending"},
+        {"step": 2, "description": "Test Celery task compatibility", "status": "pending"},
+        {"step": 3, "description": "Update worker deployments", "status": "pending"},
+        {"step": 4, "description": "Deploy and verify", "status": "pending"}
+      ],
+      "tracking": {
+        "jira_ticket": "SUPPLY-234"
+      },
+      "compliance_impact": ["SOC2 CC7.1", "ISO27001 A.12.6.1", "GDPR Art.32"]
+    }
+  ],
+  "summary": {
+    "total_tasks": 5,
+    "by_status": {
+      "completed": 0,
+      "in_progress": 2,
+      "planned": 3
+    },
+    "by_priority": {
+      "critical": 5,
+      "high": 0,
+      "medium": 0
+    },
+    "sla_status": {
+      "on_track": 4,
+      "breached": 1
+    },
+    "by_application": {
+      "payment-gateway": 2,
+      "user-identity-service": 1,
+      "healthcare-api": 1,
+      "supply-chain-portal": 1
+    }
+  }
+}

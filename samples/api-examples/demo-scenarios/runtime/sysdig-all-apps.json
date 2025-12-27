@@ -1,0 +1,161 @@
+{
+  "scan_id": "sysdig-runtime-2025-001",
+  "tool": "sysdig-secure",
+  "tool_version": "6.0",
+  "scan_type": "runtime",
+  "timestamp": "2025-01-15T22:30:00Z",
+  "cluster": "prod-eks-all",
+  "policy_events": [
+    {
+      "id": "sysdig-event-pay-001",
+      "timestamp": "2025-01-15T22:10:00Z",
+      "policy": "PCI-DSS Runtime Policy",
+      "rule": "Cryptominer Detection",
+      "severity": "critical",
+      "description": "Potential cryptominer process detected in payment container",
+      "container": {
+        "id": "abc123def456",
+        "name": "payment-gateway",
+        "image": "ecr.aws/example/payment-gateway:3.2.1"
+      },
+      "kubernetes": {
+        "cluster": "prod-eks-payments",
+        "namespace": "payments",
+        "pod": "payment-gateway-7d8f9c6b5-x2k4m",
+        "deployment": "payment-gateway"
+      },
+      "process": {
+        "name": "xmrig",
+        "pid": 12345,
+        "cmdline": "xmrig -o pool.minexmr.com:4444",
+        "user": "www-data"
+      },
+      "network": {
+        "destination_ip": "51.15.xxx.xxx",
+        "destination_port": 4444,
+        "protocol": "tcp"
+      },
+      "mitre_attack": {
+        "tactic": "Impact",
+        "technique": "T1496",
+        "name": "Resource Hijacking"
+      },
+      "correlation_id": "CORR-CRYPTO-005",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "sysdig-event-iam-001",
+      "timestamp": "2025-01-15T22:15:00Z",
+      "policy": "SOC2 Runtime Policy",
+      "rule": "Sensitive File Access",
+      "severity": "high",
+      "description": "JWT secret file accessed by unexpected process",
+      "container": {
+        "id": "def456ghi789",
+        "name": "user-identity-service",
+        "image": "ecr.aws/example/user-identity-service:2.8.0"
+      },
+      "kubernetes": {
+        "cluster": "prod-eks-identity",
+        "namespace": "identity",
+        "pod": "user-identity-service-5c7d8e9f0-y3l5n",
+        "deployment": "user-identity-service"
+      },
+      "file": {
+        "path": "/app/secrets/jwt_secret.key",
+        "operation": "read",
+        "process": "curl"
+      },
+      "mitre_attack": {
+        "tactic": "Credential Access",
+        "technique": "T1552.001",
+        "name": "Credentials In Files"
+      },
+      "correlation_id": "CORR-JWT-002",
+      "application": "user-identity-service"
+    },
+    {
+      "id": "sysdig-event-health-001",
+      "timestamp": "2025-01-15T22:20:00Z",
+      "policy": "HIPAA Runtime Policy",
+      "rule": "PHI Data Exfiltration",
+      "severity": "critical",
+      "description": "Large data transfer to external IP detected from healthcare container",
+      "container": {
+        "id": "ghi789jkl012",
+        "name": "healthcare-api",
+        "image": "ecr.aws/example/healthcare-api:1.5.2"
+      },
+      "kubernetes": {
+        "cluster": "prod-eks-healthcare",
+        "namespace": "healthcare",
+        "pod": "healthcare-api-6d9e0f1g2-z4m6o",
+        "deployment": "healthcare-api"
+      },
+      "network": {
+        "destination_ip": "203.0.113.xxx",
+        "destination_port": 443,
+        "bytes_sent": 52428800,
+        "protocol": "tcp"
+      },
+      "mitre_attack": {
+        "tactic": "Exfiltration",
+        "technique": "T1041",
+        "name": "Exfiltration Over C2 Channel"
+      },
+      "correlation_id": "CORR-EXFIL-001",
+      "application": "healthcare-api"
+    },
+    {
+      "id": "sysdig-event-supply-001",
+      "timestamp": "2025-01-15T22:25:00Z",
+      "policy": "Container Drift Detection",
+      "rule": "New Executable in Container",
+      "severity": "high",
+      "description": "New executable file created in running container",
+      "container": {
+        "id": "jkl012mno345",
+        "name": "supply-chain-portal",
+        "image": "ecr.aws/example/supply-chain-portal:4.1.0"
+      },
+      "kubernetes": {
+        "cluster": "prod-eks-supply",
+        "namespace": "supply-chain",
+        "pod": "supply-chain-portal-8e0f1g2h3-a5n7p",
+        "deployment": "supply-chain-portal"
+      },
+      "file": {
+        "path": "/tmp/backdoor.sh",
+        "operation": "create",
+        "hash": "sha256:abc123...",
+        "permissions": "755"
+      },
+      "mitre_attack": {
+        "tactic": "Persistence",
+        "technique": "T1059.004",
+        "name": "Unix Shell"
+      },
+      "correlation_id": "CORR-DRIFT-001",
+      "application": "supply-chain-portal"
+    }
+  ],
+  "activity_audit": {
+    "total_syscalls": 15000000,
+    "network_connections": 45000,
+    "file_operations": 250000,
+    "process_spawns": 1200
+  },
+  "summary": {
+    "total_events": 4,
+    "critical": 2,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "by_application": {
+      "payment-gateway": 1,
+      "user-identity-service": 1,
+      "healthcare-api": 1,
+      "supply-chain-portal": 1
+    }
+  }
+}

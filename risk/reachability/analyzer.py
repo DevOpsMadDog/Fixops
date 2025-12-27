@@ -77,12 +77,18 @@ class VulnerabilityReachability:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
+        # Handle confidence as either enum or string (from cache)
+        confidence_value = (
+            self.confidence.value
+            if hasattr(self.confidence, "value")
+            else self.confidence
+        )
         return {
             "cve_id": self.cve_id,
             "component_name": self.component_name,
             "component_version": self.component_version,
             "is_reachable": self.is_reachable,
-            "confidence": self.confidence.value,
+            "confidence": confidence_value,
             "confidence_score": self.confidence_score,
             "code_paths": [
                 {

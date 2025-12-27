@@ -1,0 +1,176 @@
+{
+  "integration_id": "slack-fixops-2025",
+  "tool": "slack",
+  "timestamp": "2025-01-15T23:30:00Z",
+  "notifications_sent": [
+    {
+      "id": "slack-notif-001",
+      "channel": "#payments-security",
+      "timestamp": "2025-01-15T10:00:00Z",
+      "type": "critical_vulnerability",
+      "message": {
+        "blocks": [
+          {
+            "type": "header",
+            "text": {"type": "plain_text", "text": "CRITICAL: Log4Shell Vulnerability Detected"}
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Application:*\npayment-gateway"},
+              {"type": "mrkdwn", "text": "*CVE:*\nCVE-2021-44228"},
+              {"type": "mrkdwn", "text": "*CVSS Score:*\n10.0"},
+              {"type": "mrkdwn", "text": "*Environment:*\nproduction"}
+            ]
+          },
+          {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*Package:* log4j-core 2.14.1 -> 2.17.1\n*Compliance:* PCI-DSS 6.3.1\n*SLA:* 24 hours"}
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {"type": "button", "text": {"type": "plain_text", "text": "View in FixOps"}, "url": "https://fixops.example.com/vuln/CORR-LOG4J-001"},
+              {"type": "button", "text": {"type": "plain_text", "text": "View Jira Ticket"}, "url": "https://jira.example.com/browse/PAY-1234"}
+            ]
+          }
+        ]
+      },
+      "mentions": ["@bob.wilson", "@payments-oncall"],
+      "correlation_id": "CORR-LOG4J-001",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "slack-notif-002",
+      "channel": "#identity-security",
+      "timestamp": "2025-01-15T10:10:00Z",
+      "type": "critical_vulnerability",
+      "message": {
+        "blocks": [
+          {
+            "type": "header",
+            "text": {"type": "plain_text", "text": "CRITICAL: Hardcoded JWT Secret Detected"}
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Application:*\nuser-identity-service"},
+              {"type": "mrkdwn", "text": "*Type:*\nHardcoded Credentials"},
+              {"type": "mrkdwn", "text": "*CWE:*\nCWE-798"},
+              {"type": "mrkdwn", "text": "*File:*\njwt_handler.py:12"}
+            ]
+          },
+          {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*Compliance:* SOC2 CC6.6, GDPR Art.32\n*SLA:* 4 hours (critical auth service)"}
+          }
+        ]
+      },
+      "mentions": ["@diana.prince", "@identity-oncall"],
+      "correlation_id": "CORR-CRED-002",
+      "application": "user-identity-service"
+    },
+    {
+      "id": "slack-notif-003",
+      "channel": "#healthcare-security",
+      "timestamp": "2025-01-15T10:15:00Z",
+      "type": "compliance_violation",
+      "message": {
+        "blocks": [
+          {
+            "type": "header",
+            "text": {"type": "plain_text", "text": "HIPAA VIOLATION: Unauthorized PHI Access Possible"}
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Application:*\nhealthcare-api"},
+              {"type": "mrkdwn", "text": "*Vulnerability:*\nIDOR (CWE-639)"},
+              {"type": "mrkdwn", "text": "*HIPAA Control:*\n164.312(a)(1)"},
+              {"type": "mrkdwn", "text": "*Risk:*\nPHI Exposure"}
+            ]
+          },
+          {
+            "type": "context",
+            "elements": [
+              {"type": "mrkdwn", "text": "Immediate action required - potential breach notification may be needed"}
+            ]
+          }
+        ]
+      },
+      "mentions": ["@emily.watson", "@hipaa-officer", "@healthcare-oncall"],
+      "correlation_id": "CORR-IDOR-001",
+      "application": "healthcare-api"
+    },
+    {
+      "id": "slack-notif-004",
+      "channel": "#security-alerts",
+      "timestamp": "2025-01-15T22:10:00Z",
+      "type": "runtime_alert",
+      "message": {
+        "blocks": [
+          {
+            "type": "header",
+            "text": {"type": "plain_text", "text": "RUNTIME ALERT: Cryptominer Detected in Production"}
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Application:*\npayment-gateway"},
+              {"type": "mrkdwn", "text": "*Process:*\nxmrig"},
+              {"type": "mrkdwn", "text": "*Destination:*\npool.minexmr.com:4444"},
+              {"type": "mrkdwn", "text": "*MITRE ATT&CK:*\nT1496 Resource Hijacking"}
+            ]
+          },
+          {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*Immediate Actions:*\n1. Isolate affected pod\n2. Capture forensic evidence\n3. Investigate compromise vector"}
+          }
+        ]
+      },
+      "mentions": ["@security-oncall", "@incident-response"],
+      "correlation_id": "CORR-CRYPTO-005",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "slack-notif-005",
+      "channel": "#daily-security-summary",
+      "timestamp": "2025-01-15T23:00:00Z",
+      "type": "daily_summary",
+      "message": {
+        "blocks": [
+          {
+            "type": "header",
+            "text": {"type": "plain_text", "text": "Daily Security Summary - January 15, 2025"}
+          },
+          {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*New Vulnerabilities:* 25\n*Critical:* 8 | *High:* 12 | *Medium:* 5\n\n*Compliance Status:*\n- PCI-DSS: 4 non-compliant controls\n- SOC2: 2 exceptions\n- HIPAA: 6 non-compliant safeguards\n- GDPR: 2 non-compliant articles\n\n*Runtime Events:* 10 (2 critical)"}
+          },
+          {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "*Top Priority Items:*\n1. Log4Shell in payment-gateway (SLA: 9h remaining)\n2. JWT secret exposure in identity-service (SLA: 2h remaining)\n3. IDOR in healthcare-api (SLA: 20h remaining)"}
+          }
+        ]
+      },
+      "mentions": ["@security-team"],
+      "correlation_id": "DAILY-2025-01-15"
+    }
+  ],
+  "summary": {
+    "total_notifications": 5,
+    "by_type": {
+      "critical_vulnerability": 2,
+      "compliance_violation": 1,
+      "runtime_alert": 1,
+      "daily_summary": 1
+    },
+    "by_channel": {
+      "#payments-security": 1,
+      "#identity-security": 1,
+      "#healthcare-security": 1,
+      "#security-alerts": 1,
+      "#daily-security-summary": 1
+    }
+  }
+}

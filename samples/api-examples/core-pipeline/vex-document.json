@@ -1,0 +1,85 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://example.com/vex/payment-gateway-2025-01",
+  "author": "Security Team <security@example.com>",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "version": 1,
+  "tooling": "FixOps VEX Generator/1.0",
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+        "name": "CVE-2021-44228",
+        "description": "Log4Shell - Apache Log4j2 JNDI RCE"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/org.apache.logging.log4j/log4j-core@2.17.1",
+          "identifiers": {
+            "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.17.1"
+          }
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The application uses log4j-core 2.17.1 which includes the fix for CVE-2021-44228. JNDI lookups are disabled by default.",
+      "action_statement": "No action required. Continue monitoring for new vulnerabilities.",
+      "timestamp": "2025-01-15T10:30:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2022-22965",
+        "name": "CVE-2022-22965",
+        "description": "Spring4Shell - Spring Framework RCE"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/org.springframework/spring-core@6.1.0",
+          "identifiers": {
+            "purl": "pkg:maven/org.springframework/spring-core@6.1.0"
+          }
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "Using Spring Framework 6.1.0 which is not affected by this vulnerability.",
+      "timestamp": "2025-01-15T10:30:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-44487",
+        "name": "CVE-2023-44487",
+        "description": "HTTP/2 Rapid Reset Attack"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/io.netty/netty-handler@4.1.100.Final",
+          "identifiers": {
+            "purl": "pkg:maven/io.netty/netty-handler@4.1.100.Final"
+          }
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Upgrade to netty-handler 4.1.101.Final or later. Apply rate limiting as interim mitigation.",
+      "timestamp": "2025-01-15T10:30:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2024-0001",
+        "name": "CVE-2024-0001",
+        "description": "Example vulnerability for demonstration"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/com.example/demo-lib@1.0.0",
+          "identifiers": {
+            "purl": "pkg:maven/com.example/demo-lib@1.0.0"
+          }
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Currently investigating whether this vulnerability affects our deployment configuration.",
+      "timestamp": "2025-01-15T10:30:00Z"
+    }
+  ]
+}

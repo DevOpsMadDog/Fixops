@@ -1,0 +1,108 @@
+{
+  "bundle_id": "evidence-2025-001",
+  "name": "Q1 2025 Security Evidence Bundle",
+  "type": "compliance_audit",
+  "version": "1.0.0",
+  "created_at": "2025-01-15T10:30:00Z",
+  "created_by": "security-team@example.com",
+  "scope": {
+    "frameworks": ["pci-dss", "soc2", "hipaa"],
+    "applications": ["payment-gateway", "user-service"],
+    "period": {
+      "start": "2024-10-01",
+      "end": "2024-12-31"
+    }
+  },
+  "artifacts": [
+    {
+      "artifact_id": "art-001",
+      "name": "Vulnerability Scan Results",
+      "type": "scan_report",
+      "format": "pdf",
+      "file_path": "scans/vuln-scan-q4-2024.pdf",
+      "hash": "sha256:abc123...",
+      "size_bytes": 2456789,
+      "controls": ["PCI-DSS-11.3.1", "SOC2-CC7.1"]
+    },
+    {
+      "artifact_id": "art-002",
+      "name": "Penetration Test Report",
+      "type": "pentest_report",
+      "format": "pdf",
+      "file_path": "pentests/pentest-q4-2024.pdf",
+      "hash": "sha256:def456...",
+      "size_bytes": 5678901,
+      "controls": ["PCI-DSS-11.3.2", "SOC2-CC7.2"]
+    },
+    {
+      "artifact_id": "art-003",
+      "name": "Access Control Matrix",
+      "type": "access_control",
+      "format": "xlsx",
+      "file_path": "access/access-matrix-2024.xlsx",
+      "hash": "sha256:ghi789...",
+      "size_bytes": 123456,
+      "controls": ["PCI-DSS-7.1", "SOC2-CC6.1", "HIPAA-164.312(a)(1)"]
+    },
+    {
+      "artifact_id": "art-004",
+      "name": "Security Training Records",
+      "type": "training_records",
+      "format": "csv",
+      "file_path": "training/security-training-2024.csv",
+      "hash": "sha256:jkl012...",
+      "size_bytes": 45678,
+      "controls": ["PCI-DSS-12.6", "SOC2-CC1.4"]
+    },
+    {
+      "artifact_id": "art-005",
+      "name": "Incident Response Logs",
+      "type": "incident_logs",
+      "format": "json",
+      "file_path": "incidents/ir-logs-q4-2024.json",
+      "hash": "sha256:mno345...",
+      "size_bytes": 789012,
+      "controls": ["PCI-DSS-12.10", "SOC2-CC7.4"]
+    },
+    {
+      "artifact_id": "art-006",
+      "name": "Change Management Records",
+      "type": "change_records",
+      "format": "json",
+      "file_path": "changes/change-log-q4-2024.json",
+      "hash": "sha256:pqr678...",
+      "size_bytes": 234567,
+      "controls": ["PCI-DSS-6.4", "SOC2-CC8.1"]
+    }
+  ],
+  "attestations": [
+    {
+      "control": "PCI-DSS-11.3.1",
+      "status": "compliant",
+      "evidence": ["art-001"],
+      "notes": "Quarterly vulnerability scans completed with no critical findings"
+    },
+    {
+      "control": "PCI-DSS-11.3.2",
+      "status": "compliant",
+      "evidence": ["art-002"],
+      "notes": "Annual penetration test completed, all findings remediated"
+    }
+  ],
+  "encryption": {
+    "enabled": true,
+    "algorithm": "AES-256-GCM",
+    "key_id": "evidence-key-2025"
+  },
+  "retention": {
+    "policy": "7-years",
+    "expiry_date": "2032-01-15"
+  },
+  "signatures": [
+    {
+      "signer": "security-lead@example.com",
+      "timestamp": "2025-01-15T11:00:00Z",
+      "signature": "base64:..."
+    }
+  ]
+}

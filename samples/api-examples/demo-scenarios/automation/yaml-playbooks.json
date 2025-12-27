@@ -1,0 +1,177 @@
+{
+  "playbook_library": {
+    "library_id": "PLAYBOOK-LIB-ACME-001",
+    "version": "2.0.0",
+    "organization": "ACME Corporation",
+    "total_playbooks": 25,
+    "categories": ["remediation", "notification", "compliance", "integration", "automation"]
+  },
+  "pre_approved_actions": [
+    "create_jira_ticket",
+    "update_jira_ticket",
+    "close_jira_ticket",
+    "send_slack_notification",
+    "send_email_notification",
+    "create_pagerduty_incident",
+    "update_confluence_page",
+    "create_github_issue",
+    "create_github_pr",
+    "merge_github_pr",
+    "trigger_ci_pipeline",
+    "deploy_hotfix",
+    "rollback_deployment",
+    "update_waf_rules",
+    "block_ip_address",
+    "revoke_api_key",
+    "rotate_secrets",
+    "enable_mfa",
+    "quarantine_container",
+    "scale_down_service",
+    "enable_rate_limiting",
+    "update_security_group",
+    "create_snapshot",
+    "export_evidence_bundle",
+    "generate_compliance_report",
+    "update_deployment_gate",
+    "update_compliance_record",
+    "evaluate_threat"
+  ],
+  "playbooks": [
+    {
+      "playbook_id": "PLAYBOOK-CRITICAL-VULN-001",
+      "name": "Critical Vulnerability Response",
+      "description": "Automated response playbook for critical vulnerabilities (CVSS >= 9.0)",
+      "version": "1.2.0",
+      "trigger": {
+        "type": "vulnerability_detected",
+        "conditions": {
+          "severity": "critical",
+          "cvss_score": {"gte": 9.0},
+          "exploit_available": true
+        }
+      },
+      "yaml_definition": "name: Critical Vulnerability Response\nversion: 1.2.0\ntrigger:\n  type: vulnerability_detected\n  conditions:\n    severity: critical\n    cvss_score: \">=9.0\"\n    exploit_available: true\n\nsteps:\n  - name: Create P1 Jira Ticket\n    action: create_jira_ticket\n    params:\n      project: SEC\n      issue_type: Bug\n      priority: P1\n      summary: \"CRITICAL: {{ vulnerability.cve_id }} in {{ application.name }}\"\n      description: |\n        ## Vulnerability Details\n        - CVE: {{ vulnerability.cve_id }}\n        - CVSS: {{ vulnerability.cvss_score }}\n        - Component: {{ vulnerability.component }}\n        - Application: {{ application.name }}\n        \n        ## Risk Assessment\n        {{ vulnerability.risk_assessment }}\n        \n        ## Remediation\n        {{ vulnerability.remediation }}\n      labels:\n        - security\n        - critical\n        - automated\n      assignee: \"{{ application.security_contact }}\"\n    output: jira_ticket\n\n  - name: Send Slack Alert\n    action: send_slack_notification\n    params:\n      channel: \"#security-alerts\"\n      message: |\n        :rotating_light: *CRITICAL VULNERABILITY DETECTED*\n        \n        *CVE:* {{ vulnerability.cve_id }}\n        *Application:* {{ application.name }}\n        *CVSS:* {{ vulnerability.cvss_score }}\n        *Exploit Available:* Yes\n        \n        *Jira Ticket:* {{ jira_ticket.url }}\n        \n        @security-team Please investigate immediately.\n      priority: urgent\n\n  - name: Create PagerDuty Incident\n    action: create_pagerduty_incident\n    params:\n      service: security-oncall\n      severity: critical\n      title: \"Critical Vulnerability: {{ vulnerability.cve_id }}\"\n      details: \"{{ vulnerability.description }}\"\n\n  - name: Block Deployment\n    action: update_deployment_gate\n    params:\n      application: \"{{ application.name }}\"\n      status: blocked\n      reason: \"Critical vulnerability {{ vulnerability.cve_id }} detected\"\n\n  - name: Export Evidence\n    action: export_evidence_bundle\n    params:\n      bundle_type: vulnerability_assessment\n      include:\n        - scan_results\n        - risk_assessment\n        - remediation_plan",
+      "steps_summary": [
+        {"step": 1, "action": "create_jira_ticket", "description": "Create P1 Jira ticket with vulnerability details"},
+        {"step": 2, "action": "send_slack_notification", "description": "Send urgent Slack alert to #security-alerts"},
+        {"step": 3, "action": "create_pagerduty_incident", "description": "Page security on-call team"},
+        {"step": 4, "action": "update_deployment_gate", "description": "Block deployment pipeline"},
+        {"step": 5, "action": "export_evidence_bundle", "description": "Create signed evidence bundle"}
+      ],
+      "execution_stats": {
+        "total_executions": 47,
+        "successful_executions": 45,
+        "failed_executions": 2,
+        "average_duration_seconds": 12.5
+      }
+    },
+    {
+      "playbook_id": "PLAYBOOK-LOG4SHELL-001",
+      "name": "Log4Shell Emergency Response",
+      "description": "Specialized playbook for Log4Shell (CVE-2021-44228) detection and response",
+      "version": "2.0.0",
+      "trigger": {
+        "type": "vulnerability_detected",
+        "conditions": {
+          "cve_id": "CVE-2021-44228"
+        }
+      },
+      "yaml_definition": "name: Log4Shell Emergency Response\nversion: 2.0.0\ntrigger:\n  type: vulnerability_detected\n  conditions:\n    cve_id: CVE-2021-44228\n\nsteps:\n  - name: Immediate WAF Mitigation\n    action: update_waf_rules\n    params:\n      rule_set: log4shell-block\n      patterns:\n        - \"\\$\\{jndi:\"\n        - \"\\$\\{lower:\"\n        - \"\\$\\{upper:\"\n        - \"\\$\\{env:\"\n      action: block\n      log: true\n    output: waf_rule\n\n  - name: Create Emergency Ticket\n    action: create_jira_ticket\n    params:\n      project: SEC\n      issue_type: Incident\n      priority: P0\n      summary: \"EMERGENCY: Log4Shell (CVE-2021-44228) in {{ application.name }}\"\n      description: |\n        ## CRITICAL - LOG4SHELL DETECTED\n        \n        This is an automated emergency response for Log4Shell.\n        \n        ### Immediate Actions Taken\n        - WAF rules deployed: {{ waf_rule.id }}\n        - Deployment blocked\n        \n        ### Required Actions\n        1. Upgrade log4j-core to 2.22.0+\n        2. Verify no exploitation occurred\n        3. Review access logs for JNDI patterns\n        \n        ### Affected Component\n        - Component: {{ vulnerability.component }}\n        - Version: {{ vulnerability.version }}\n        - Location: {{ vulnerability.location }}\n      labels:\n        - log4shell\n        - emergency\n        - cisa-kev\n\n  - name: Executive Notification\n    action: send_email_notification\n    params:\n      to:\n        - ciso@acme-corp.com\n        - vp-engineering@acme-corp.com\n      subject: \"[EMERGENCY] Log4Shell Vulnerability Detected\"\n      template: executive_security_alert\n      priority: high\n\n  - name: Slack War Room\n    action: send_slack_notification\n    params:\n      channel: \"#incident-response\"\n      message: |\n        :fire: *LOG4SHELL EMERGENCY RESPONSE ACTIVATED*\n        \n        A Log4Shell vulnerability has been detected in production.\n        \n        *Application:* {{ application.name }}\n        *WAF Mitigation:* Deployed\n        *Deployment Status:* Blocked\n        \n        Please join the war room immediately.\n      create_thread: true\n\n  - name: Quarantine Affected Containers\n    action: quarantine_container\n    params:\n      application: \"{{ application.name }}\"\n      reason: \"Log4Shell vulnerability\"\n      preserve_logs: true\n\n  - name: Trigger Emergency Scan\n    action: trigger_ci_pipeline\n    params:\n      pipeline: security-emergency-scan\n      parameters:\n        target: \"{{ application.name }}\"\n        scan_type: deep\n        include_runtime: true",
+      "steps_summary": [
+        {"step": 1, "action": "update_waf_rules", "description": "Deploy WAF rules to block JNDI patterns"},
+        {"step": 2, "action": "create_jira_ticket", "description": "Create P0 emergency incident ticket"},
+        {"step": 3, "action": "send_email_notification", "description": "Notify CISO and VP Engineering"},
+        {"step": 4, "action": "send_slack_notification", "description": "Create incident war room"},
+        {"step": 5, "action": "quarantine_container", "description": "Isolate affected containers"},
+        {"step": 6, "action": "trigger_ci_pipeline", "description": "Run deep security scan"}
+      ],
+      "execution_stats": {
+        "total_executions": 3,
+        "successful_executions": 3,
+        "failed_executions": 0,
+        "average_duration_seconds": 45.2
+      }
+    },
+    {
+      "playbook_id": "PLAYBOOK-COMPLIANCE-REPORT-001",
+      "name": "Weekly Compliance Report Generation",
+      "description": "Automated weekly compliance report generation and distribution",
+      "version": "1.0.0",
+      "trigger": {
+        "type": "scheduled",
+        "schedule": "0 9 * * MON"
+      },
+      "yaml_definition": "name: Weekly Compliance Report Generation\nversion: 1.0.0\ntrigger:\n  type: scheduled\n  schedule: \"0 9 * * MON\"  # Every Monday at 9 AM\n\nsteps:\n  - name: Generate PCI-DSS Report\n    action: generate_compliance_report\n    params:\n      framework: pci-dss\n      version: \"4.0\"\n      scope:\n        - payment-gateway\n        - mobile-banking-bff\n      format: pdf\n      include_evidence: true\n    output: pci_report\n\n  - name: Generate SOC2 Report\n    action: generate_compliance_report\n    params:\n      framework: soc2\n      type: type-ii\n      scope:\n        - user-identity-service\n        - all-applications\n      format: pdf\n      include_evidence: true\n    output: soc2_report\n\n  - name: Generate HIPAA Report\n    action: generate_compliance_report\n    params:\n      framework: hipaa\n      scope:\n        - healthcare-api\n      format: pdf\n      include_evidence: true\n    output: hipaa_report\n\n  - name: Update Confluence\n    action: update_confluence_page\n    params:\n      space: SECURITY\n      page: \"Weekly Compliance Dashboard\"\n      content: |\n        h1. Weekly Compliance Report - {{ date }}\n        \n        h2. PCI-DSS 4.0\n        * Compliance Score: {{ pci_report.score }}%\n        * Critical Findings: {{ pci_report.critical_count }}\n        * [Full Report|{{ pci_report.url }}]\n        \n        h2. SOC2 Type II\n        * Compliance Score: {{ soc2_report.score }}%\n        * Control Exceptions: {{ soc2_report.exceptions }}\n        * [Full Report|{{ soc2_report.url }}]\n        \n        h2. HIPAA\n        * Compliance Score: {{ hipaa_report.score }}%\n        * PHI Exposure Risk: {{ hipaa_report.phi_risk }}\n        * [Full Report|{{ hipaa_report.url }}]\n\n  - name: Email Distribution\n    action: send_email_notification\n    params:\n      to:\n        - compliance@acme-corp.com\n        - security-leadership@acme-corp.com\n      subject: \"Weekly Compliance Report - {{ date }}\"\n      attachments:\n        - \"{{ pci_report.path }}\"\n        - \"{{ soc2_report.path }}\"\n        - \"{{ hipaa_report.path }}\"\n      template: compliance_weekly_summary",
+      "steps_summary": [
+        {"step": 1, "action": "generate_compliance_report", "description": "Generate PCI-DSS 4.0 report"},
+        {"step": 2, "action": "generate_compliance_report", "description": "Generate SOC2 Type II report"},
+        {"step": 3, "action": "generate_compliance_report", "description": "Generate HIPAA report"},
+        {"step": 4, "action": "update_confluence_page", "description": "Update compliance dashboard"},
+        {"step": 5, "action": "send_email_notification", "description": "Distribute reports via email"}
+      ],
+      "execution_stats": {
+        "total_executions": 52,
+        "successful_executions": 51,
+        "failed_executions": 1,
+        "average_duration_seconds": 180.5
+      }
+    },
+    {
+      "playbook_id": "PLAYBOOK-REMEDIATION-VERIFY-001",
+      "name": "Remediation Verification",
+      "description": "Verify remediation completion and update tracking systems",
+      "version": "1.1.0",
+      "trigger": {
+        "type": "remediation_completed",
+        "conditions": {
+          "status": "completed"
+        }
+      },
+      "yaml_definition": "name: Remediation Verification\nversion: 1.1.0\ntrigger:\n  type: remediation_completed\n  conditions:\n    status: completed\n\nsteps:\n  - name: Trigger Verification Scan\n    action: trigger_ci_pipeline\n    params:\n      pipeline: security-verification-scan\n      parameters:\n        target: \"{{ remediation.application }}\"\n        vulnerability: \"{{ remediation.cve_id }}\"\n        scan_type: targeted\n    output: scan_result\n    wait_for_completion: true\n\n  - name: Verify Remediation\n    condition: \"{{ scan_result.vulnerability_found == false }}\"\n    action: update_jira_ticket\n    params:\n      ticket: \"{{ remediation.jira_ticket }}\"\n      status: Resolved\n      resolution: Fixed\n      comment: |\n        Remediation verified by automated scan.\n        \n        *Scan ID:* {{ scan_result.scan_id }}\n        *Result:* Vulnerability not found\n        *Verified At:* {{ timestamp }}\n\n  - name: Export Evidence Bundle\n    action: export_evidence_bundle\n    params:\n      bundle_type: remediation_verification\n      remediation_id: \"{{ remediation.id }}\"\n      include:\n        - before_state\n        - remediation_action\n        - after_state\n        - verification_scan\n      sign: true\n\n  - name: Update Compliance Records\n    action: update_compliance_record\n    params:\n      finding_id: \"{{ remediation.finding_id }}\"\n      status: remediated\n      evidence_bundle: \"{{ evidence_bundle.id }}\"\n\n  - name: Notify Stakeholders\n    action: send_slack_notification\n    params:\n      channel: \"{{ remediation.notification_channel }}\"\n      message: |\n        :white_check_mark: *Remediation Verified*\n        \n        *Vulnerability:* {{ remediation.cve_id }}\n        *Application:* {{ remediation.application }}\n        *Remediation:* {{ remediation.action }}\n        *Verified:* {{ timestamp }}\n        \n        Evidence bundle created and signed.",
+      "steps_summary": [
+        {"step": 1, "action": "trigger_ci_pipeline", "description": "Run verification scan"},
+        {"step": 2, "action": "update_jira_ticket", "description": "Update Jira ticket status"},
+        {"step": 3, "action": "export_evidence_bundle", "description": "Create signed evidence bundle"},
+        {"step": 4, "action": "update_compliance_record", "description": "Update compliance tracking"},
+        {"step": 5, "action": "send_slack_notification", "description": "Notify stakeholders"}
+      ],
+      "execution_stats": {
+        "total_executions": 234,
+        "successful_executions": 228,
+        "failed_executions": 6,
+        "average_duration_seconds": 95.3
+      }
+    },
+    {
+      "playbook_id": "PLAYBOOK-RUNTIME-THREAT-001",
+      "name": "Runtime Threat Response",
+      "description": "Automated response to runtime security threats detected by Falco/Sysdig",
+      "version": "1.0.0",
+      "trigger": {
+        "type": "runtime_alert",
+        "conditions": {
+          "severity": {"gte": "warning"},
+          "source": ["falco", "sysdig"]
+        }
+      },
+      "yaml_definition": "name: Runtime Threat Response\nversion: 1.0.0\ntrigger:\n  type: runtime_alert\n  conditions:\n    severity: \">=warning\"\n    source:\n      - falco\n      - sysdig\n\nsteps:\n  - name: Assess Threat Level\n    action: evaluate_threat\n    params:\n      alert: \"{{ alert }}\"\n      context:\n        - container_info\n        - network_connections\n        - process_tree\n    output: threat_assessment\n\n  - name: Quarantine if Critical\n    condition: \"{{ threat_assessment.level == 'critical' }}\"\n    action: quarantine_container\n    params:\n      container_id: \"{{ alert.container_id }}\"\n      preserve_state: true\n      capture_memory: true\n      reason: \"{{ alert.rule }}\"\n\n  - name: Block Malicious IP\n    condition: \"{{ threat_assessment.malicious_ip != null }}\"\n    action: block_ip_address\n    params:\n      ip: \"{{ threat_assessment.malicious_ip }}\"\n      duration: 24h\n      reason: \"Runtime threat: {{ alert.rule }}\"\n\n  - name: Create Security Incident\n    action: create_jira_ticket\n    params:\n      project: SEC\n      issue_type: Incident\n      priority: \"{{ threat_assessment.priority }}\"\n      summary: \"Runtime Alert: {{ alert.rule }}\"\n      description: |\n        ## Runtime Security Alert\n        \n        *Rule:* {{ alert.rule }}\n        *Severity:* {{ alert.severity }}\n        *Container:* {{ alert.container_name }}\n        *Pod:* {{ alert.pod_name }}\n        *Namespace:* {{ alert.namespace }}\n        \n        ### Alert Details\n        {{ alert.output }}\n        \n        ### Threat Assessment\n        {{ threat_assessment.summary }}\n        \n        ### Actions Taken\n        {{ actions_summary }}\n\n  - name: Alert Security Team\n    action: send_slack_notification\n    params:\n      channel: \"#security-alerts\"\n      message: |\n        :warning: *Runtime Security Alert*\n        \n        *Rule:* {{ alert.rule }}\n        *Container:* {{ alert.container_name }}\n        *Severity:* {{ alert.severity }}\n        \n        {{ threat_assessment.summary }}\n        \n        *Actions Taken:* {{ actions_summary }}",
+      "steps_summary": [
+        {"step": 1, "action": "evaluate_threat", "description": "Assess threat level and context"},
+        {"step": 2, "action": "quarantine_container", "description": "Isolate container if critical"},
+        {"step": 3, "action": "block_ip_address", "description": "Block malicious IP addresses"},
+        {"step": 4, "action": "create_jira_ticket", "description": "Create security incident"},
+        {"step": 5, "action": "send_slack_notification", "description": "Alert security team"}
+      ],
+      "execution_stats": {
+        "total_executions": 156,
+        "successful_executions": 152,
+        "failed_executions": 4,
+        "average_duration_seconds": 8.7
+      }
+    }
+  ],
+  "overlay_configuration": {
+    "description": "YAML overlay configuration for customizing FixOps behavior",
+    "example": "# fixops.overlay.yml\n# Organization-specific configuration overlay\n\norganization:\n  name: ACME Corporation\n  id: acme-corp\n\nmodules:\n  policy_automation:\n    enabled: true\n    block_on_critical: true\n    block_on_kev: true\n  \n  compliance:\n    enabled: true\n    frameworks:\n      - pci-dss\n      - soc2\n      - hipaa\n      - gdpr\n  \n  probabilistic:\n    enabled: true\n    epss_threshold: 0.7\n    forecast_days: 30\n  \n  llm_consensus:\n    enabled: true\n    providers:\n      - openai\n      - anthropic\n      - google\n      - meta\n    consensus_threshold: 0.75\n  \n  micro_pentest:\n    enabled: true\n    auto_validate: true\n    safe_mode: true\n  \n  reachability:\n    enabled: true\n    depth: 5\n    include_cloud: true\n\nintegrations:\n  jira:\n    enabled: true\n    url: https://acme-corp.atlassian.net\n    project: SEC\n    auto_create_tickets: true\n  \n  slack:\n    enabled: true\n    channels:\n      critical: \"#security-alerts\"\n      high: \"#security-notifications\"\n      default: \"#security-general\"\n  \n  github:\n    enabled: true\n    auto_create_prs: true\n    require_approval: true\n\nevidence:\n  signing:\n    enabled: true\n    algorithm: RSA-SHA256\n    key_size: 4096\n  \n  retention:\n    default_years: 7\n    compliance_years: 7\n  \n  slsa:\n    enabled: true\n    level: 3\n\nnotifications:\n  escalation:\n    critical_sla_hours: 4\n    high_sla_hours: 24\n    medium_sla_hours: 72\n  \n  recipients:\n    critical:\n      - security-oncall@acme-corp.com\n      - ciso@acme-corp.com\n    high:\n      - security-team@acme-corp.com"
+  }
+}

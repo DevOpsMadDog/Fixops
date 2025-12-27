@@ -1,0 +1,115 @@
+{
+  "application_id": "app-healthcare-api",
+  "name": "healthcare-api",
+  "display_name": "Healthcare Data API",
+  "version": "1.5.2",
+  "description": "FHIR-compliant API for patient health records, appointments, prescriptions, and clinical data exchange",
+  "status": "active",
+  "criticality": "critical",
+  "tier": "tier-1",
+  "domain": "healthcare",
+  "architecture": {
+    "type": "microservice",
+    "pattern": "fhir-compliant",
+    "framework": "express",
+    "language": "typescript",
+    "language_version": "5.0",
+    "runtime": "kubernetes"
+  },
+  "repository": {
+    "url": "https://github.com/example/healthcare-api",
+    "branch": "main",
+    "ci_cd": {
+      "platform": "jenkins",
+      "pipeline": "Jenkinsfile",
+      "deployment": "argocd"
+    }
+  },
+  "deployment": {
+    "environments": [
+      {
+        "name": "production",
+        "cloud": "aws",
+        "region": "us-east-1",
+        "cluster": "prod-eks-healthcare",
+        "namespace": "healthcare",
+        "replicas": 6,
+        "resources": {"cpu": "4", "memory": "8Gi"},
+        "hipaa_compliant": true
+      },
+      {
+        "name": "staging",
+        "cloud": "aws",
+        "region": "us-east-1",
+        "cluster": "staging-eks",
+        "namespace": "healthcare",
+        "replicas": 2,
+        "hipaa_compliant": true
+      },
+      {
+        "name": "development",
+        "cloud": "aws",
+        "region": "us-west-2",
+        "cluster": "dev-eks",
+        "namespace": "healthcare",
+        "replicas": 1,
+        "hipaa_compliant": false
+      }
+    ]
+  },
+  "data_classification": {
+    "level": "restricted",
+    "types": ["phi", "patient_records", "prescriptions", "lab_results", "diagnoses"],
+    "pii": true,
+    "phi": true,
+    "financial": true
+  },
+  "compliance": {
+    "frameworks": ["hipaa", "gdpr", "hitrust"],
+    "certifications": ["hitrust-csf"],
+    "audit_frequency": "annual",
+    "last_audit": "2024-08-01",
+    "next_audit": "2025-08-01",
+    "baa_required": true
+  },
+  "security_tools": {
+    "sast": ["checkmarx", "sonarqube"],
+    "dast": ["burp-suite", "owasp-zap"],
+    "sca": ["snyk", "npm-audit"],
+    "container": ["trivy", "prisma-cloud"],
+    "cloud": ["wiz", "aws-security-hub"],
+    "runtime": ["falco", "sysdig"]
+  },
+  "integrations": {
+    "alm": {
+      "jira_project": "HEALTH",
+      "confluence_space": "HEALTHCARE",
+      "servicenow_ci": "CI-HEALTH-001"
+    },
+    "monitoring": {
+      "apm": "newrelic",
+      "logging": "splunk",
+      "alerting": "pagerduty"
+    },
+    "notifications": ["slack:#healthcare-security", "email:healthcare-security@example.com"]
+  },
+  "ownership": {
+    "team": "healthcare-platform",
+    "team_id": "team-healthcare-001",
+    "manager": "dr.sarah.chen@example.com",
+    "tech_lead": "michael.torres@example.com",
+    "security_champion": "emily.watson@example.com",
+    "hipaa_officer": "compliance@example.com"
+  },
+  "dependencies": {
+    "upstream": ["user-identity-service", "ehr-connector"],
+    "downstream": ["patient-portal", "provider-dashboard", "analytics"],
+    "external": ["epic-fhir-api", "cerner-api", "surescripts"]
+  },
+  "sla": {
+    "availability": "99.95%",
+    "response_time_p99_ms": 500,
+    "critical_vuln_sla_hours": 24,
+    "high_vuln_sla_hours": 72
+  }
+}

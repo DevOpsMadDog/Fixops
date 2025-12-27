@@ -1,0 +1,110 @@
+{
+  "application_id": "app-user-identity-service",
+  "name": "user-identity-service",
+  "display_name": "User Identity & Access Service",
+  "version": "2.8.0",
+  "description": "Central authentication and authorization service handling user identity, SSO, MFA, and access control",
+  "status": "active",
+  "criticality": "critical",
+  "tier": "tier-1",
+  "domain": "identity-access-management",
+  "architecture": {
+    "type": "microservice",
+    "pattern": "api-gateway",
+    "framework": "fastapi",
+    "language": "python",
+    "language_version": "3.11",
+    "runtime": "kubernetes"
+  },
+  "repository": {
+    "url": "https://github.com/example/user-identity-service",
+    "branch": "main",
+    "ci_cd": {
+      "platform": "gitlab-ci",
+      "pipeline": ".gitlab-ci.yml",
+      "deployment": "argocd"
+    }
+  },
+  "deployment": {
+    "environments": [
+      {
+        "name": "production",
+        "cloud": "aws",
+        "region": "us-east-1",
+        "cluster": "prod-eks-identity",
+        "namespace": "identity",
+        "replicas": 8,
+        "resources": {"cpu": "2", "memory": "4Gi"}
+      },
+      {
+        "name": "staging",
+        "cloud": "aws",
+        "region": "us-east-1",
+        "cluster": "staging-eks",
+        "namespace": "identity",
+        "replicas": 2
+      },
+      {
+        "name": "development",
+        "cloud": "aws",
+        "region": "us-west-2",
+        "cluster": "dev-eks",
+        "namespace": "identity",
+        "replicas": 1
+      }
+    ]
+  },
+  "data_classification": {
+    "level": "highly-confidential",
+    "types": ["user_credentials", "session_tokens", "mfa_secrets", "personal_data"],
+    "pii": true,
+    "phi": false,
+    "financial": false
+  },
+  "compliance": {
+    "frameworks": ["soc2-type2", "gdpr", "iso27001"],
+    "certifications": ["soc2-type2"],
+    "audit_frequency": "annual",
+    "last_audit": "2024-06-01",
+    "next_audit": "2025-06-01"
+  },
+  "security_tools": {
+    "sast": ["semgrep", "bandit"],
+    "dast": ["owasp-zap"],
+    "sca": ["snyk", "safety"],
+    "container": ["trivy", "grype"],
+    "cloud": ["aws-security-hub", "orca"],
+    "runtime": ["sysdig", "datadog-security"]
+  },
+  "integrations": {
+    "alm": {
+      "jira_project": "IAM",
+      "confluence_space": "IDENTITY",
+      "servicenow_ci": "CI-IAM-001"
+    },
+    "monitoring": {
+      "apm": "datadog",
+      "logging": "splunk",
+      "alerting": "pagerduty"
+    },
+    "notifications": ["slack:#identity-security", "email:identity-team@example.com"]
+  },
+  "ownership": {
+    "team": "identity-platform",
+    "team_id": "team-identity-001",
+    "manager": "alice.johnson@example.com",
+    "tech_lead": "charlie.brown@example.com",
+    "security_champion": "diana.prince@example.com"
+  },
+  "dependencies": {
+    "upstream": ["ldap-connector", "okta-integration"],
+    "downstream": ["payment-gateway", "healthcare-api", "supply-chain-portal", "all-services"],
+    "external": ["okta-api", "auth0-api", "google-oauth"]
+  },
+  "sla": {
+    "availability": "99.999%",
+    "response_time_p99_ms": 100,
+    "critical_vuln_sla_hours": 4,
+    "high_vuln_sla_hours": 24
+  }
+}

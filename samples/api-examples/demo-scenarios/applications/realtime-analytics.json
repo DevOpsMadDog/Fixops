@@ -1,0 +1,148 @@
+{
+  "application": {
+    "id": "app-realtime-analytics-001",
+    "name": "realtime-analytics",
+    "display_name": "Real-Time Analytics Platform",
+    "description": "Streaming analytics platform processing billions of events for business intelligence and fraud detection",
+    "portfolio": "Data Platform",
+    "business_unit": "Business Intelligence",
+    "criticality": "high",
+    "tier": "tier-1",
+    "data_classification": "confidential",
+    "pii_data": true,
+    "pci_data": false,
+    "phi_data": false,
+    "architecture": {
+      "type": "streaming-distributed",
+      "deployment_model": "cloud-native",
+      "cloud_provider": "aws",
+      "regions": ["us-east-1", "eu-west-1", "ap-northeast-1"],
+      "container_orchestration": "EKS",
+      "service_mesh": "Istio"
+    },
+    "tech_stack": {
+      "primary_language": "Scala",
+      "framework": "Apache Spark Structured Streaming",
+      "runtime": "JVM 17",
+      "database": ["Apache Cassandra", "ClickHouse", "S3/Iceberg"],
+      "message_queue": "Apache Kafka",
+      "cache": "Apache Ignite",
+      "additional": ["Apache Flink", "Presto", "dbt", "Airflow"]
+    },
+    "repository": {
+      "url": "https://github.com/acme-corp/realtime-analytics",
+      "branch": "main",
+      "last_commit": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+      "ci_cd": "Jenkins",
+      "build_system": "sbt"
+    },
+    "compliance_frameworks": ["gdpr", "ccpa", "soc2", "iso27001"],
+    "security_contacts": {
+      "primary": "data-security@acme-corp.com",
+      "escalation": "ciso@acme-corp.com",
+      "on_call": "data-oncall@acme-corp.com"
+    },
+    "sla": {
+      "availability": "99.9%",
+      "rto_hours": 2,
+      "rpo_hours": 0.5,
+      "critical_fix_hours": 12,
+      "high_fix_hours": 48
+    }
+  },
+  "sbom": {
+    "format": "CycloneDX",
+    "version": "1.5",
+    "generated_at": "2024-12-26T08:00:00Z",
+    "tool": "sbt-bom",
+    "components_count": 567,
+    "direct_dependencies": 89,
+    "transitive_dependencies": 478,
+    "licenses": ["Apache-2.0", "MIT", "BSD-3-Clause"],
+    "critical_components": [
+      {
+        "name": "org.apache.spark:spark-core",
+        "version": "3.5.0",
+        "type": "framework",
+        "purpose": "Distributed computing"
+      },
+      {
+        "name": "org.apache.kafka:kafka-clients",
+        "version": "3.6.1",
+        "type": "library",
+        "purpose": "Event streaming"
+      },
+      {
+        "name": "org.apache.logging.log4j:log4j-core",
+        "version": "2.14.1",
+        "type": "library",
+        "purpose": "Logging",
+        "cve_history": ["CVE-2021-44228", "CVE-2021-45046", "CVE-2021-45105"]
+      }
+    ]
+  },
+  "risk_profile": {
+    "overall_risk_score": 72,
+    "risk_factors": {
+      "data_sensitivity": "high",
+      "internet_exposure": "low",
+      "regulatory_impact": "high",
+      "financial_impact": "medium",
+      "reputational_impact": "high"
+    },
+    "attack_surface": {
+      "external_endpoints": 5,
+      "internal_endpoints": 156,
+      "api_endpoints": 78,
+      "admin_interfaces": 8,
+      "kafka_topics": 234,
+      "spark_jobs": 89
+    },
+    "threat_model": {
+      "primary_threats": [
+        "Data lake poisoning",
+        "Kafka topic hijacking",
+        "Spark job injection",
+        "PII data leakage",
+        "Unauthorized data access",
+        "Log4Shell exploitation"
+      ],
+      "mitre_attack_techniques": [
+        "T1565.001",
+        "T1071.001",
+        "T1059.007",
+        "T1530",
+        "T1213",
+        "T1190"
+      ]
+    }
+  },
+  "recent_findings_summary": {
+    "critical": 3,
+    "high": 8,
+    "medium": 21,
+    "low": 45,
+    "informational": 78,
+    "correlation_ids": [
+      "CORR-ANALYTICS-LOG4J-001",
+      "CORR-ANALYTICS-KAFKA-001",
+      "CORR-ANALYTICS-SPARK-001",
+      "CORR-ANALYTICS-PII-001"
+    ]
+  },
+  "integrations": {
+    "ticketing": "Jira",
+    "chat": "Slack",
+    "siem": "Splunk",
+    "secrets_manager": "HashiCorp Vault",
+    "data_catalog": "Apache Atlas"
+  },
+  "data_security": {
+    "encryption_at_rest": true,
+    "encryption_in_transit": true,
+    "column_level_encryption": true,
+    "data_masking": true,
+    "access_logging": true,
+    "data_lineage": true
+  }
+}

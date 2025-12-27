@@ -1,0 +1,107 @@
+{
+  "discovery_id": "disc-2025-01-15-001",
+  "discovery_type": "cloud_infrastructure",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "source": {
+    "provider": "aws",
+    "account_id": "123456789012",
+    "regions": ["us-east-1", "us-west-2", "eu-west-1"]
+  },
+  "discovered_assets": [
+    {
+      "asset_id": "i-0abc123def456789",
+      "asset_type": "ec2_instance",
+      "name": "payment-api-prod-1",
+      "region": "us-east-1",
+      "vpc_id": "vpc-0abc123",
+      "subnet_id": "subnet-0def456",
+      "instance_type": "m5.xlarge",
+      "state": "running",
+      "tags": {
+        "Environment": "production",
+        "Application": "payment-gateway",
+        "Team": "payments-platform"
+      },
+      "security_groups": ["sg-web", "sg-internal"],
+      "iam_role": "payment-api-role",
+      "public_ip": null,
+      "private_ip": "10.0.1.50"
+    },
+    {
+      "asset_id": "arn:aws:rds:us-east-1:123456789012:db:payment-db-prod",
+      "asset_type": "rds_instance",
+      "name": "payment-db-prod",
+      "region": "us-east-1",
+      "engine": "postgresql",
+      "engine_version": "15.4",
+      "instance_class": "db.r5.2xlarge",
+      "storage_encrypted": true,
+      "multi_az": true,
+      "publicly_accessible": false,
+      "tags": {
+        "Environment": "production",
+        "Application": "payment-gateway",
+        "DataClassification": "pci-dss"
+      }
+    },
+    {
+      "asset_id": "arn:aws:s3:::payment-logs-prod",
+      "asset_type": "s3_bucket",
+      "name": "payment-logs-prod",
+      "region": "us-east-1",
+      "versioning": true,
+      "encryption": "aws:kms",
+      "public_access_blocked": true,
+      "logging_enabled": true,
+      "tags": {
+        "Environment": "production",
+        "Application": "payment-gateway"
+      }
+    },
+    {
+      "asset_id": "arn:aws:eks:us-east-1:123456789012:cluster/production-eks",
+      "asset_type": "eks_cluster",
+      "name": "production-eks",
+      "region": "us-east-1",
+      "kubernetes_version": "1.28",
+      "endpoint_public_access": false,
+      "endpoint_private_access": true,
+      "encryption_config": {
+        "provider": "aws-kms",
+        "resources": ["secrets"]
+      },
+      "logging": {
+        "api": true,
+        "audit": true,
+        "authenticator": true
+      }
+    },
+    {
+      "asset_id": "arn:aws:lambda:us-east-1:123456789012:function:payment-webhook",
+      "asset_type": "lambda_function",
+      "name": "payment-webhook",
+      "region": "us-east-1",
+      "runtime": "nodejs18.x",
+      "memory_mb": 512,
+      "timeout_seconds": 30,
+      "vpc_config": {
+        "vpc_id": "vpc-0abc123",
+        "subnet_ids": ["subnet-0def456", "subnet-0ghi789"]
+      },
+      "environment_variables_encrypted": true
+    }
+  ],
+  "summary": {
+    "total_assets": 5,
+    "by_type": {
+      "ec2_instance": 1,
+      "rds_instance": 1,
+      "s3_bucket": 1,
+      "eks_cluster": 1,
+      "lambda_function": 1
+    },
+    "by_region": {
+      "us-east-1": 5
+    }
+  }
+}
