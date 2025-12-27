@@ -29,7 +29,7 @@ OUTPUT_DIR = os.environ.get(
 )
 
 
-class TestResult(Enum):
+class E2ETestResult(Enum):
     PASS = "PASS"
     BUG = "BUG"
     GAP = "GAP"
@@ -39,14 +39,14 @@ class TestResult(Enum):
 
 
 @dataclass
-class TestCase:
+class E2ETestCase:
     """Individual test case result"""
 
     endpoint: str
     method: str
     group: str
     description: str
-    result: TestResult
+    result: E2ETestResult
     status_code: int
     response_time_ms: float
     response_snippet: str
@@ -1231,7 +1231,7 @@ class ComprehensiveTestRunner:
 
     def __init__(self, client: FixOpsClient):
         self.client = client
-        self.results: List[TestCase] = []
+        self.results: List[E2ETestCase] = []
         self.consistency_checks: List[ConsistencyCheck] = []
         self.stats = {
             "total": 0,
@@ -1248,7 +1248,7 @@ class ComprehensiveTestRunner:
         self.ingested_cves_count = 0
         self.registered_apps = []
 
-    def add_result(self, test: TestCase):
+    def add_result(self, test: E2ETestCase):
         """Add test result and update stats."""
         self.results.append(test)
         self.stats["total"] += 1
@@ -1256,12 +1256,12 @@ class ComprehensiveTestRunner:
 
         # Print progress
         status_color = {
-            TestResult.PASS: "\033[92m",  # Green
-            TestResult.BUG: "\033[91m",  # Red
-            TestResult.GAP: "\033[93m",  # Yellow
-            TestResult.NEEDS_SEEDING: "\033[94m",  # Blue
-            TestResult.NOT_APPLICABLE: "\033[90m",  # Gray
-            TestResult.SKIPPED: "\033[90m",  # Gray
+            E2ETestResult.PASS: "\033[92m",  # Green
+            E2ETestResult.BUG: "\033[91m",  # Red
+            E2ETestResult.GAP: "\033[93m",  # Yellow
+            E2ETestResult.NEEDS_SEEDING: "\033[94m",  # Blue
+            E2ETestResult.NOT_APPLICABLE: "\033[90m",  # Gray
+            E2ETestResult.SKIPPED: "\033[90m",  # Gray
         }
         reset = "\033[0m"
         print(
@@ -1275,21 +1275,21 @@ class ComprehensiveTestRunner:
         status_code: int,
         response: dict,
         expected_data: bool = True,
-    ) -> Tuple[TestResult, str]:
+    ) -> Tuple[E2ETestResult, str]:
         """Classify API response into result category."""
 
         # Server errors are always bugs
         if status_code >= 500:
             return (
-                TestResult.BUG,
+                E2ETestResult.BUG,
                 f"Server error: {status_code} - {str(response.get('detail', response))[:50]}",
             )
 
         # Auth errors
         if status_code == 401:
-            return TestResult.BUG, "Authentication failed unexpectedly"
+            return E2ETestResult.BUG, "Authentication failed unexpectedly"
         if status_code == 403:
-            return TestResult.GAP, "Permission denied - may need role/scope"
+            return E2ETestResult.GAP, "Permission denied - may need role/scope"
 
         # Not found - could be bug or needs seeding
         if status_code == 404:
@@ -1300,20 +1300,20 @@ class ComprehensiveTestRunner:
                 or "not available" in detail.lower()
                 or "no risk" in detail.lower()
             ):
-                return TestResult.NEEDS_SEEDING, f"Needs data: {detail[:50]}"
-            return TestResult.BUG, f"404 error: {detail[:50]}"
+                return E2ETestResult.NEEDS_SEEDING, f"Needs data: {detail[:50]}"
+            return E2ETestResult.BUG, f"404 error: {detail[:50]}"
 
         # Validation errors
         if status_code == 422:
             detail = response.get("detail", [])
             if isinstance(detail, list) and len(detail) > 0:
-                return TestResult.BUG, f"Validation error: {str(detail[0])[:50]}"
-            return TestResult.BUG, f"Validation error: {str(detail)[:50]}"
+                return E2ETestResult.BUG, f"Validation error: {str(detail[0])[:50]}"
+            return E2ETestResult.BUG, f"Validation error: {str(detail)[:50]}"
 
         # Other 4xx errors
         if status_code >= 400:
             return (
-                TestResult.BUG,
+                E2ETestResult.BUG,
                 f"Client error {status_code}: {str(response.get('detail', response))[:50]}",
             )
 
@@ -1326,21 +1326,21 @@ class ComprehensiveTestRunner:
                     # Check common patterns for empty data
                     if response.get("items") == [] and response.get("total", 0) == 0:
                         return (
-                            TestResult.NEEDS_SEEDING,
+                            E2ETestResult.NEEDS_SEEDING,
                             "Empty list - needs data seeding",
                         )
                     if response.get("findings") == []:
                         return (
-                            TestResult.NEEDS_SEEDING,
+                            E2ETestResult.NEEDS_SEEDING,
                             "No findings - needs data seeding",
                         )
                     if response.get("results") == []:
                         return (
-                            TestResult.NEEDS_SEEDING,
+                            E2ETestResult.NEEDS_SEEDING,
                             "No results - needs data seeding",
                         )
                 elif isinstance(response, list) and len(response) == 0:
-                    return TestResult.NEEDS_SEEDING, "Empty list response"
+                    return E2ETestResult.NEEDS_SEEDING, "Empty list response"
 
             # Check for successful ingestion
             if "status" in response and response.get("status") == "ok":
@@ -1348,22 +1348,28 @@ class ComprehensiveTestRunner:
                 finding_count = metadata.get("finding_count", 0)
                 component_count = metadata.get("component_count", 0)
                 if finding_count > 0:
-                    return TestResult.PASS, f"Ingested {finding_count} findings"
+                    return E2ETestResult.PASS, f"Ingested {finding_count} findings"
                 if component_count > 0:
-                    return TestResult.PASS, f"Ingested {component_count} components"
+                    return E2ETestResult.PASS, f"Ingested {component_count} components"
                 if response.get("row_count", 0) > 0:
-                    return TestResult.PASS, f"Ingested {response.get('row_count')} rows"
+                    return (
+                        E2ETestResult.PASS,
+                        f"Ingested {response.get('row_count')} rows",
+                    )
                 if response.get("record_count", 0) > 0:
                     return (
-                        TestResult.PASS,
+                        E2ETestResult.PASS,
                         f"Ingested {response.get('record_count')} records",
                     )
                 # Ingestion returned ok but count=0 - potential issue
-                return TestResult.GAP, "Ingestion ok but count=0 - verify data format"
+                return (
+                    E2ETestResult.GAP,
+                    "Ingestion ok but count=0 - verify data format",
+                )
 
-            return TestResult.PASS, "Success"
+            return E2ETestResult.PASS, "Success"
 
-        return TestResult.BUG, f"Unexpected status: {status_code}"
+        return E2ETestResult.BUG, f"Unexpected status: {status_code}"
 
     # ========================================================================
     # PHASE 1: INFRASTRUCTURE SETUP
@@ -1405,11 +1411,11 @@ class ComprehensiveTestRunner:
                     app_id = response.get("id", response.get("name", app_name))
                     self.client.resource_registry["app_ids"].append(app_id)
                     self.registered_apps.append(app_name)
-                    result = TestResult.PASS
+                    result = E2ETestResult.PASS
                     reason = f"Created: {app_name}"
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint="/api/v1/inventory/applications",
                         method="POST",
                         group="inventory",
@@ -1444,15 +1450,15 @@ class ComprehensiveTestRunner:
             if status == 201:
                 team_id = response.get("id", response.get("name"))
                 self.client.resource_registry["team_ids"].append(team_id)
-                result = TestResult.PASS
+                result = E2ETestResult.PASS
                 reason = f"Created team: {team['name']}"
             elif status == 409:
                 # Team already exists - not a bug, just skip
-                result = TestResult.PASS
+                result = E2ETestResult.PASS
                 reason = f"Team already exists: {team['name']}"
 
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/teams",
                     method="POST",
                     group="teams",
@@ -1504,15 +1510,15 @@ class ComprehensiveTestRunner:
             if status == 201:
                 user_id = response.get("id", response.get("email"))
                 self.client.resource_registry["user_ids"].append(user_id)
-                result = TestResult.PASS
+                result = E2ETestResult.PASS
                 reason = f"Created user: {user['email']}"
             elif status == 409:
                 # User already exists - not a bug, just skip
-                result = TestResult.PASS
+                result = E2ETestResult.PASS
                 reason = f"User already exists: {user['email']}"
 
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/users",
                     method="POST",
                     group="users",
@@ -1553,15 +1559,15 @@ class ComprehensiveTestRunner:
             if status == 201:
                 policy_id = response.get("id", response.get("name"))
                 self.client.resource_registry["policy_ids"].append(policy_id)
-                result = TestResult.PASS
+                result = E2ETestResult.PASS
                 reason = f"Created policy: {policy['name']}"
             elif status == 409:
                 # Policy already exists - not a bug
-                result = TestResult.PASS
+                result = E2ETestResult.PASS
                 reason = f"Policy already exists: {policy['name']}"
 
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/policies",
                     method="POST",
                     group="policies",
@@ -1622,14 +1628,14 @@ class ComprehensiveTestRunner:
                     response.get("id", fw["name"])
                 )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/audit/compliance/frameworks",
                     method="POST",
                     group="seeding",
                     description=f"Seed framework: {fw['name']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1668,14 +1674,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/audit/compliance/controls", json=ctrl
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/audit/compliance/controls",
                     method="POST",
                     group="seeding",
                     description=f"Seed control: {ctrl['control_id']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1717,14 +1723,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/audit/logs", json=log
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/audit/logs",
                     method="POST",
                     group="seeding",
                     description=f"Seed audit log: {log['action']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1761,14 +1767,14 @@ class ComprehensiveTestRunner:
                     "pentagi_config_ids", []
                 ).append(response.get("id", cfg["name"]))
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/pentagi/configs",
                     method="POST",
                     group="seeding",
                     description=f"Seed pentagi config: {cfg['name']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1803,14 +1809,14 @@ class ComprehensiveTestRunner:
                     "pentagi_request_ids", []
                 ).append(response.get("id", response.get("request_id")))
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/pentagi/requests",
                     method="POST",
                     group="seeding",
                     description=f"Seed pentagi request: {req['target'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1845,14 +1851,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/pentagi/results", json=res
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/pentagi/results",
                     method="POST",
                     group="seeding",
                     description=f"Seed pentagi result: {res['finding_type']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1889,14 +1895,14 @@ class ComprehensiveTestRunner:
                     response.get("id", rpt["name"])
                 )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/reports",
                     method="POST",
                     group="seeding",
                     description=f"Seed report: {rpt['name'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1927,14 +1933,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/reports/templates", json=tpl
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/reports/templates",
                     method="POST",
                     group="seeding",
                     description=f"Seed template: {tpl['name'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -1967,14 +1973,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/reports/schedules", json=sched
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/reports/schedules",
                     method="POST",
                     group="seeding",
                     description=f"Seed schedule: {sched['name'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2019,14 +2025,14 @@ class ComprehensiveTestRunner:
                     response.get("id", wf["name"])
                 )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/workflows",
                     method="POST",
                     group="seeding",
                     description=f"Seed workflow: {wf['name'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2066,14 +2072,14 @@ class ComprehensiveTestRunner:
                     response.get("id", intg["name"])
                 )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/integrations",
                     method="POST",
                     group="seeding",
                     description=f"Seed integration: {intg['name'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2108,14 +2114,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/secrets", json=sec
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/secrets",
                     method="POST",
                     group="seeding",
                     description=f"Seed secret: {sec['secret_type']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2150,14 +2156,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/iac", json=iac
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/iac",
                     method="POST",
                     group="seeding",
                     description=f"Seed IAC: {iac['rule'][:30]}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2189,14 +2195,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/webhooks/outbox", json=wh
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/webhooks/outbox",
                     method="POST",
                     group="seeding",
                     description=f"Seed webhook: {wh['event_type']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2229,14 +2235,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/inventory/services", json=svc
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/inventory/services",
                     method="POST",
                     group="seeding",
                     description=f"Seed service: {svc['name']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2269,14 +2275,14 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/inventory/apis", json=api
             )
             self.add_result(
-                TestCase(
+                E2ETestCase(
                     endpoint="/api/v1/inventory/apis",
                     method="POST",
                     group="seeding",
                     description=f"Seed API: {api['name']}",
-                    result=TestResult.PASS
+                    result=E2ETestResult.PASS
                     if status in [200, 201, 409]
-                    else TestResult.NEEDS_SEEDING,
+                    else E2ETestResult.NEEDS_SEEDING,
                     status_code=status,
                     response_time_ms=elapsed,
                     response_snippet=json.dumps(response)[:200]
@@ -2320,11 +2326,11 @@ class ComprehensiveTestRunner:
                 finding_count = response.get("metadata", {}).get("finding_count", 0)
                 if finding_count > 0:
                     self.ingested_findings_count += finding_count
-                    result = TestResult.PASS
+                    result = E2ETestResult.PASS
                     reason = f"Ingested {finding_count} SAST findings"
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint="/inputs/sarif",
                         method="POST",
                         group="ingestion",
@@ -2354,11 +2360,11 @@ class ComprehensiveTestRunner:
                 component_count = response.get("metadata", {}).get("component_count", 0)
                 if component_count > 0:
                     self.ingested_components_count += component_count
-                    result = TestResult.PASS
+                    result = E2ETestResult.PASS
                     reason = f"Ingested {component_count} components"
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint="/inputs/sbom",
                         method="POST",
                         group="ingestion",
@@ -2385,14 +2391,14 @@ class ComprehensiveTestRunner:
                 record_count = response.get("record_count", 0)
                 if record_count > 0:
                     self.ingested_cves_count += record_count
-                    result = TestResult.PASS
+                    result = E2ETestResult.PASS
                     reason = f"Ingested {record_count} CVEs"
                     # Note validation errors but don't fail
                     if response.get("validation_errors"):
                         reason += f" (with {len(response['validation_errors'])} schema warnings)"
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint="/inputs/cve",
                         method="POST",
                         group="ingestion",
@@ -2420,11 +2426,11 @@ class ComprehensiveTestRunner:
                     "/inputs/cnapp", "POST", status, response
                 )
                 if status == 200:
-                    result = TestResult.PASS
+                    result = E2ETestResult.PASS
                     reason = f"Ingested CNAPP findings for {customer['cloud']}"
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint="/inputs/cnapp",
                         method="POST",
                         group="ingestion",
@@ -2449,11 +2455,11 @@ class ComprehensiveTestRunner:
                 )
                 row_count = response.get("row_count", 0)
                 if row_count > 0:
-                    result = TestResult.PASS
+                    result = E2ETestResult.PASS
                     reason = f"Ingested {row_count} threat model rows"
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint="/inputs/design",
                         method="POST",
                         group="ingestion",
@@ -2484,13 +2490,13 @@ class ComprehensiveTestRunner:
         result, reason = self.classify_result("/pipeline/run", "GET", status, response)
 
         if status == 200 and response.get("status") == "ok":
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             sarif_summary = response.get("sarif_summary", {})
             sbom_summary = response.get("sbom_summary", {})
             reason = f"Pipeline completed: {sarif_summary.get('finding_count', 0)} findings, {sbom_summary.get('component_count', 0)} components"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/pipeline/run",
                 method="GET",
                 group="pipeline",
@@ -2509,11 +2515,11 @@ class ComprehensiveTestRunner:
 
         result, reason = self.classify_result("/pipeline/run", "POST", status, response)
         if status == 200:
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             reason = "POST pipeline execution successful"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/pipeline/run",
                 method="POST",
                 group="pipeline",
@@ -2709,7 +2715,7 @@ class ComprehensiveTestRunner:
                 )
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint=endpoint,
                         method=method,
                         group=group_name,
@@ -3133,7 +3139,7 @@ class ComprehensiveTestRunner:
                 )
 
                 self.add_result(
-                    TestCase(
+                    E2ETestCase(
                         endpoint=path,
                         method=method,
                         group="openapi_coverage",
@@ -3173,14 +3179,14 @@ class ComprehensiveTestRunner:
 
         # Should get 401 or 403
         if status in [401, 403]:
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             reason = f"Correctly rejected unauthenticated request: {status}"
         else:
-            result = TestResult.BUG
+            result = E2ETestResult.BUG
             reason = f"Should reject unauthenticated request, got {status}"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/api/v1/inventory/applications",
                 method="GET",
                 group="negative",
@@ -3205,14 +3211,14 @@ class ComprehensiveTestRunner:
         )
 
         if status in [401, 403]:
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             reason = f"Correctly rejected invalid API key: {status}"
         else:
-            result = TestResult.BUG
+            result = E2ETestResult.BUG
             reason = f"Should reject invalid API key, got {status}"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/api/v1/inventory/applications",
                 method="GET",
                 group="negative",
@@ -3235,14 +3241,14 @@ class ComprehensiveTestRunner:
         )
 
         if status == 404:
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             reason = "Correctly returned 404 for non-existent resource"
         else:
-            result = TestResult.BUG
+            result = E2ETestResult.BUG
             reason = f"Should return 404 for non-existent resource, got {status}"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/api/v1/inventory/applications/non-existent-app-12345",
                 method="GET",
                 group="negative",
@@ -3265,14 +3271,14 @@ class ComprehensiveTestRunner:
         )
 
         if status in [400, 422]:
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             reason = f"Correctly rejected malformed JSON: {status}"
         else:
-            result = TestResult.BUG
+            result = E2ETestResult.BUG
             reason = f"Should reject malformed JSON, got {status}"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/api/v1/inventory/applications",
                 method="POST",
                 group="negative",
@@ -3297,14 +3303,14 @@ class ComprehensiveTestRunner:
         )
 
         if status in [400, 415, 422]:
-            result = TestResult.PASS
+            result = E2ETestResult.PASS
             reason = f"Correctly rejected wrong content type: {status}"
         else:
-            result = TestResult.GAP if status == 200 else TestResult.BUG
+            result = E2ETestResult.GAP if status == 200 else E2ETestResult.BUG
             reason = f"Should validate content type, got {status}"
 
         self.add_result(
-            TestCase(
+            E2ETestCase(
                 endpoint="/inputs/sarif",
                 method="POST",
                 group="negative",
@@ -3476,10 +3482,10 @@ class ComprehensiveTestRunner:
                 )
 
         # Bugs and gaps markdown
-        bugs = [t for t in self.results if t.result == TestResult.BUG]
-        gaps = [t for t in self.results if t.result == TestResult.GAP]
+        bugs = [t for t in self.results if t.result == E2ETestResult.BUG]
+        gaps = [t for t in self.results if t.result == E2ETestResult.GAP]
         needs_seeding = [
-            t for t in self.results if t.result == TestResult.NEEDS_SEEDING
+            t for t in self.results if t.result == E2ETestResult.NEEDS_SEEDING
         ]
 
         with open(f"{OUTPUT_DIR}/bugs_and_gaps.md", "w") as f:
