@@ -115,7 +115,10 @@ class GitRepositoryAnalyzer:
         """
         # Handle file:// URLs - these are local paths, no cloning needed
         if repository.url.startswith("file://"):
-            local_path = Path(repository.url.replace("file://", ""))
+            # Use urlparse for proper file:// URL parsing instead of fragile string replace
+            # This correctly handles file://localhost/path and file:///path formats
+            parsed_url = urlparse(repository.url)
+            local_path = Path(parsed_url.path)
             if not local_path.exists():
                 raise RuntimeError(
                     f"Local repository path does not exist: {local_path}"

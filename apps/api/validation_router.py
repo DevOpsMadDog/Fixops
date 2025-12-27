@@ -70,13 +70,36 @@ class CompatibilityReport(BaseModel):
 
 
 async def _read_file_content(file: UploadFile) -> tuple[bytes, str]:
-    """Read file content with size limit."""
-    content = await file.read()
-    if len(content) > MAX_VALIDATION_SIZE:
+    """Read file content with size limit.
+
+    Checks file size before fully loading into memory to prevent
+    memory exhaustion from oversized uploads.
+    """
+    # Check content-length header first if available to avoid loading large files
+    if file.size is not None and file.size > MAX_VALIDATION_SIZE:
         raise HTTPException(
             status_code=413,
             detail=f"File too large. Maximum size is {MAX_VALIDATION_SIZE // (1024*1024)}MB",
         )
+
+    # Read in chunks to handle streaming uploads and enforce size limit
+    chunks = []
+    total_size = 0
+    chunk_size = 64 * 1024  # 64KB chunks
+
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_size += len(chunk)
+        if total_size > MAX_VALIDATION_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size is {MAX_VALIDATION_SIZE // (1024*1024)}MB",
+            )
+        chunks.append(chunk)
+
+    content = b"".join(chunks)
     file_hash = hashlib.sha256(content).hexdigest()
     return content, file_hash
 

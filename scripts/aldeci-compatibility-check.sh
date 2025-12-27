@@ -525,7 +525,11 @@ output_json() {
             status="error"
         fi
         
-        results+=("{\"file\":\"$filename\",\"type\":\"$file_type\",\"status\":\"$status\"}")
+        # Use jq to properly escape special characters in filenames
+        local json_entry
+        json_entry=$(jq -n --arg file "$filename" --arg type "$file_type" --arg status "$status" \
+            '{file: $file, type: $type, status: $status}')
+        results+=("$json_entry")
     done
     
     local json_results

@@ -9,8 +9,8 @@
 
 ### 2. Install Required Tools
 ```bash
-# Python 3.12
-brew install python@3.12
+# Python 3.11 (matches project requirements)
+brew install python@3.11
 
 # Docker Desktop for Mac (Apple Silicon native)
 brew install --cask docker
@@ -36,7 +36,7 @@ cd Fixops
 
 ### Step 2: Create Python Virtual Environment
 ```bash
-python3.12 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -160,10 +160,10 @@ lsof -ti:8002 | xargs kill -9
 ### Python Version Issues
 ```bash
 # Verify Python version
-python3 --version  # Should be 3.12.x
+python3 --version  # Should be 3.11.x
 
 # If wrong version, use explicit path
-/opt/homebrew/bin/python3.12 -m venv .venv
+/opt/homebrew/bin/python3.11 -m venv .venv
 ```
 
 ### Docker Issues on M5 Silicon
@@ -176,7 +176,7 @@ Docker Desktop for Mac runs natively on Apple Silicon. If you encounter issues:
 ```bash
 # Remove and recreate virtual environment
 rm -rf .venv
-python3.12 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```

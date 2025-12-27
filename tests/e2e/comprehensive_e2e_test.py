@@ -44,7 +44,8 @@ import requests
 BASE_URL = os.environ.get("FIXOPS_API_URL", "http://localhost:8002")
 API_KEY = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
 OUTPUT_DIR = os.environ.get(
-    "FIXOPS_TEST_OUTPUT", "/home/ubuntu/fixops_comprehensive_test/results"
+    "FIXOPS_TEST_OUTPUT",
+    os.path.join(os.path.expanduser("~"), "fixops_comprehensive_test", "results"),
 )
 
 
@@ -3976,7 +3977,7 @@ class ComprehensiveTestRunner:
             f.write("## Summary\n\n")
             f.write(f"- **Total Tests**: {self.stats['total']}\n")
             f.write(
-                f"- **PASS**: {self.stats['pass']} ({self.stats['pass']/self.stats['total']*100:.1f}%)\n"
+                f"- **PASS**: {self.stats['pass']} ({self.stats['pass']/max(self.stats['total'], 1)*100:.1f}%)\n"
             )
             f.write(f"- **BUG**: {self.stats['bug']}\n")
             f.write(f"- **GAP**: {self.stats['gap']}\n")
@@ -4083,7 +4084,7 @@ class ComprehensiveTestRunner:
         </div>
         <div class="stat-box">
             <h3>PASS RATE</h3>
-            <div class="value">{self.stats['pass']/self.stats['total']*100:.1f}%</div>
+            <div class="value">{self.stats['pass']/max(self.stats['total'], 1)*100:.1f}%</div>
         </div>
     </div>
 
