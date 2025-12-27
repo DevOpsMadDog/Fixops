@@ -1576,6 +1576,719 @@ class ComprehensiveTestRunner:
             )
 
     # ========================================================================
+    # PHASE 1.5: COMPREHENSIVE DATA SEEDING
+    # ========================================================================
+
+    def phase1_5_data_seeding(self):
+        """Seed data for all NEEDS-SEEDING endpoints."""
+        print("\n" + "=" * 80)
+        print("PHASE 1.5: COMPREHENSIVE DATA SEEDING")
+        print("=" * 80)
+
+        import time
+
+        ts = int(time.time())
+
+        # 1. Seed compliance frameworks
+        print("\n[1.5.1] Seeding Compliance Frameworks")
+        frameworks = [
+            {
+                "name": "SOC2",
+                "description": "SOC 2 Type II Compliance",
+                "version": "2023",
+            },
+            {
+                "name": "PCI-DSS",
+                "description": "Payment Card Industry Data Security Standard",
+                "version": "4.0",
+            },
+            {
+                "name": "HIPAA",
+                "description": "Health Insurance Portability and Accountability Act",
+                "version": "2023",
+            },
+            {
+                "name": "ISO27001",
+                "description": "Information Security Management",
+                "version": "2022",
+            },
+        ]
+        for fw in frameworks:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/audit/compliance/frameworks", json=fw
+            )
+            if status in [200, 201]:
+                self.client.resource_registry.setdefault("framework_ids", []).append(
+                    response.get("id", fw["name"])
+                )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/audit/compliance/frameworks",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed framework: {fw['name']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason=f"Seeded {fw['name']}"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 2. Seed compliance controls
+        print("\n[1.5.2] Seeding Compliance Controls")
+        controls = [
+            {
+                "framework": "SOC2",
+                "control_id": "CC6.1",
+                "name": "Logical Access Controls",
+                "description": "Access to systems is restricted",
+            },
+            {
+                "framework": "PCI-DSS",
+                "control_id": "6.5.1",
+                "name": "Injection Flaws",
+                "description": "Protect against injection attacks",
+            },
+            {
+                "framework": "HIPAA",
+                "control_id": "164.312(a)",
+                "name": "Access Control",
+                "description": "Unique user identification",
+            },
+        ]
+        for ctrl in controls:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/audit/compliance/controls", json=ctrl
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/audit/compliance/controls",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed control: {ctrl['control_id']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason=f"Seeded {ctrl['control_id']}"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 3. Seed audit logs
+        print("\n[1.5.3] Seeding Audit Logs")
+        audit_logs = [
+            {
+                "action": "policy_created",
+                "user_id": "admin@example.com",
+                "resource_type": "policy",
+                "resource_id": "critical-vuln-block",
+                "details": {"name": "critical-vuln-block"},
+            },
+            {
+                "action": "user_login",
+                "user_id": "analyst@example.com",
+                "resource_type": "session",
+                "resource_id": f"session-{ts}",
+                "details": {"ip": "192.168.1.100"},
+            },
+            {
+                "action": "finding_triaged",
+                "user_id": "analyst@example.com",
+                "resource_type": "finding",
+                "resource_id": "CVE-2021-44228",
+                "details": {"decision": "accept_risk"},
+            },
+        ]
+        for log in audit_logs:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/audit/logs", json=log
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/audit/logs",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed audit log: {log['action']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason=f"Seeded {log['action']}"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 4. Seed PentAGI configs (per CreatePenTestConfigModel schema)
+        print("\n[1.5.4] Seeding PentAGI Configs")
+        pentagi_configs = [
+            {
+                "name": f"web-app-scan-{ts}",
+                "pentagi_url": "https://pentagi.acme.com",
+                "enabled": True,
+                "target_environments": ["staging", "production"],
+            },
+            {
+                "name": f"api-security-{ts}",
+                "pentagi_url": "https://pentagi-api.acme.com",
+                "enabled": True,
+                "target_environments": ["dev", "staging"],
+            },
+        ]
+        for cfg in pentagi_configs:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/pentagi/configs", json=cfg
+            )
+            if status in [200, 201]:
+                self.client.resource_registry.setdefault(
+                    "pentagi_config_ids", []
+                ).append(response.get("id", cfg["name"]))
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/pentagi/configs",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed pentagi config: {cfg['name']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason=f"Seeded {cfg['name']}"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 5. Seed PentAGI requests
+        print("\n[1.5.5] Seeding PentAGI Requests")
+        pentagi_requests = [
+            {
+                "target": "https://payment-gateway.acme.com",
+                "scan_type": "vulnerability",
+                "priority": "high",
+            },
+            {
+                "target": "https://api.acme.com/v1",
+                "scan_type": "api_security",
+                "priority": "medium",
+            },
+        ]
+        for req in pentagi_requests:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/pentagi/requests", json=req
+            )
+            if status in [200, 201]:
+                self.client.resource_registry.setdefault(
+                    "pentagi_request_ids", []
+                ).append(response.get("id", response.get("request_id")))
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/pentagi/requests",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed pentagi request: {req['target'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded request"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 6. Seed PentAGI results
+        print("\n[1.5.6] Seeding PentAGI Results")
+        pentagi_results = [
+            {
+                "request_id": "test-request-1",
+                "finding_type": "sql_injection",
+                "severity": "critical",
+                "target": "https://payment-gateway.acme.com/api/checkout",
+                "details": {"payload": "' OR 1=1--"},
+            },
+            {
+                "request_id": "test-request-2",
+                "finding_type": "xss",
+                "severity": "high",
+                "target": "https://api.acme.com/v1/search",
+                "details": {"payload": "<script>alert(1)</script>"},
+            },
+        ]
+        for res in pentagi_results:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/pentagi/results", json=res
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/pentagi/results",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed pentagi result: {res['finding_type']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason=f"Seeded {res['finding_type']}"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 7. Seed reports (per ReportCreate schema: name, report_type required)
+        print("\n[1.5.7] Seeding Reports")
+        reports = [
+            {
+                "name": f"Security Assessment Q4-{ts}",
+                "report_type": "security_summary",
+                "format": "pdf",
+                "parameters": {"applications": ["payment-gateway"]},
+            },
+            {
+                "name": f"Compliance Report SOC2-{ts}",
+                "report_type": "compliance",
+                "format": "pdf",
+                "parameters": {"framework": "SOC2"},
+            },
+        ]
+        for rpt in reports:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/reports", json=rpt
+            )
+            if status in [200, 201]:
+                self.client.resource_registry.setdefault("report_ids", []).append(
+                    response.get("id", rpt["name"])
+                )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/reports",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed report: {rpt['name'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded report"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 8. Seed report templates
+        print("\n[1.5.8] Seeding Report Templates")
+        templates = [
+            {
+                "name": f"Executive Summary-{ts}",
+                "type": "executive",
+                "sections": ["overview", "findings", "recommendations"],
+            },
+            {
+                "name": f"Technical Detail-{ts}",
+                "type": "technical",
+                "sections": ["methodology", "findings", "evidence", "remediation"],
+            },
+        ]
+        for tpl in templates:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/reports/templates", json=tpl
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/reports/templates",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed template: {tpl['name'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded template"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 9. Seed report schedules
+        print("\n[1.5.9] Seeding Report Schedules")
+        schedules = [
+            {
+                "name": f"Weekly Security-{ts}",
+                "report_type": "security_assessment",
+                "frequency": "weekly",
+                "recipients": ["security@acme.com"],
+            },
+            {
+                "name": f"Monthly Compliance-{ts}",
+                "report_type": "compliance",
+                "frequency": "monthly",
+                "recipients": ["compliance@acme.com"],
+            },
+        ]
+        for sched in schedules:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/reports/schedules", json=sched
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/reports/schedules",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed schedule: {sched['name'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded schedule"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 10. Seed workflows (per WorkflowCreate schema: name, description required)
+        print("\n[1.5.10] Seeding Workflows")
+        workflows = [
+            {
+                "name": f"Critical Vuln Response-{ts}",
+                "description": "Auto-respond to critical vulnerabilities",
+                "steps": [
+                    {"action": "notify", "target": "security-team"},
+                    {"action": "create_ticket", "target": "jira"},
+                ],
+                "triggers": {"event": "finding_critical"},
+                "enabled": True,
+            },
+            {
+                "name": f"Compliance Review-{ts}",
+                "description": "Review compliance violations",
+                "steps": [
+                    {"action": "notify", "target": "compliance-team"},
+                    {"action": "block_deploy", "target": "pipeline"},
+                ],
+                "triggers": {"event": "compliance_violation"},
+                "enabled": True,
+            },
+        ]
+        for wf in workflows:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/workflows", json=wf
+            )
+            if status in [200, 201]:
+                self.client.resource_registry.setdefault("workflow_ids", []).append(
+                    response.get("id", wf["name"])
+                )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/workflows",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed workflow: {wf['name'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded workflow"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 11. Seed integrations (per IntegrationCreate schema: name, integration_type required)
+        print("\n[1.5.11] Seeding Integrations")
+        integrations = [
+            {
+                "name": f"Jira-{ts}",
+                "integration_type": "jira",
+                "config": {"url": "https://acme.atlassian.net", "project": "SEC"},
+            },
+            {
+                "name": f"Slack-{ts}",
+                "integration_type": "slack",
+                "config": {"webhook_url": "https://hooks.slack.com/services/xxx"},
+            },
+            {
+                "name": f"GitHub-{ts}",
+                "integration_type": "github",
+                "config": {"org": "acme-corp", "repo": "security-findings"},
+            },
+        ]
+        for intg in integrations:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/integrations", json=intg
+            )
+            if status in [200, 201]:
+                self.client.resource_registry.setdefault("integration_ids", []).append(
+                    response.get("id", intg["name"])
+                )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/integrations",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed integration: {intg['name'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded integration"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 12. Seed secrets (per SecretFindingCreate schema)
+        print("\n[1.5.12] Seeding Secrets (detected)")
+        secrets = [
+            {
+                "secret_type": "aws_key",
+                "file_path": "src/config.py",
+                "line_number": 42,
+                "repository": "acme/payment-gateway",
+                "branch": "main",
+            },
+            {
+                "secret_type": "api_key",
+                "file_path": ".env",
+                "line_number": 15,
+                "repository": "acme/api-service",
+                "branch": "develop",
+            },
+        ]
+        for sec in secrets:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/secrets", json=sec
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/secrets",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed secret: {sec['secret_type']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded secret"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 13. Seed IAC findings
+        print("\n[1.5.13] Seeding IAC Findings")
+        iac_findings = [
+            {
+                "resource": "aws_s3_bucket.data",
+                "rule": "S3_BUCKET_PUBLIC_ACCESS",
+                "severity": "critical",
+                "file": "terraform/s3.tf",
+                "line": 15,
+            },
+            {
+                "resource": "aws_security_group.web",
+                "rule": "SG_OPEN_TO_WORLD",
+                "severity": "high",
+                "file": "terraform/security.tf",
+                "line": 42,
+            },
+        ]
+        for iac in iac_findings:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/iac", json=iac
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/iac",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed IAC: {iac['rule'][:30]}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded IAC" if status in [200, 201] else f"Status {status}",
+                )
+            )
+
+        # 14. Seed webhook outbox
+        print("\n[1.5.14] Seeding Webhook Outbox")
+        webhooks = [
+            {
+                "event_type": "finding_created",
+                "payload": {"finding_id": "CVE-2021-44228", "severity": "critical"},
+                "destination": "jira",
+            },
+            {
+                "event_type": "policy_violation",
+                "payload": {
+                    "policy_id": "critical-vuln-block",
+                    "app": "payment-gateway",
+                },
+                "destination": "slack",
+            },
+        ]
+        for wh in webhooks:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/webhooks/outbox", json=wh
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/webhooks/outbox",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed webhook: {wh['event_type']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded webhook"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 15. Seed services (inventory)
+        print("\n[1.5.15] Seeding Services")
+        services = [
+            {
+                "name": "payment-api",
+                "type": "api",
+                "owner": "payment-team",
+                "endpoints": ["/api/v1/checkout", "/api/v1/refund"],
+            },
+            {
+                "name": "auth-service",
+                "type": "microservice",
+                "owner": "platform-team",
+                "endpoints": ["/auth/login", "/auth/token"],
+            },
+        ]
+        for svc in services:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/inventory/services", json=svc
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/inventory/services",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed service: {svc['name']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded service"
+                    if status in [200, 201]
+                    else f"Status {status}",
+                )
+            )
+
+        # 16. Seed APIs (inventory)
+        print("\n[1.5.16] Seeding APIs")
+        apis = [
+            {
+                "name": "Payment API v1",
+                "version": "1.0",
+                "spec_url": "https://api.acme.com/payment/openapi.json",
+                "owner": "payment-team",
+            },
+            {
+                "name": "User API v2",
+                "version": "2.0",
+                "spec_url": "https://api.acme.com/users/openapi.json",
+                "owner": "platform-team",
+            },
+        ]
+        for api in apis:
+            status, response, elapsed = self.client.call(
+                "POST", "/api/v1/inventory/apis", json=api
+            )
+            self.add_result(
+                TestCase(
+                    endpoint="/api/v1/inventory/apis",
+                    method="POST",
+                    group="seeding",
+                    description=f"Seed API: {api['name']}",
+                    result=TestResult.PASS
+                    if status in [200, 201, 409]
+                    else TestResult.NEEDS_SEEDING,
+                    status_code=status,
+                    response_time_ms=elapsed,
+                    response_snippet=json.dumps(response)[:200]
+                    if isinstance(response, dict)
+                    else str(response)[:200],
+                    reason="Seeded API" if status in [200, 201] else f"Status {status}",
+                )
+            )
+
+        print("\n[1.5] Data seeding complete")
+
+    # ========================================================================
     # PHASE 2: DATA INGESTION
     # ========================================================================
 
@@ -2010,6 +2723,434 @@ class ComprehensiveTestRunner:
                         reason=reason,
                     )
                 )
+
+    def _get_sample_payload(self, path: str, method: str) -> dict:
+        """Generate sample payload based on endpoint path and OpenAPI schemas."""
+        import time
+
+        ts = int(time.time())
+
+        # Map endpoint patterns to sample payloads based on actual OpenAPI schemas
+        payload_map = {
+            # Enhanced/Analysis endpoints
+            "/api/v1/enhanced/analysis": {
+                "service_name": f"test-service-{ts}",
+                "security_findings": [
+                    {
+                        "rule_id": "TEST001",
+                        "severity": "high",
+                        "description": "Test finding",
+                    }
+                ],
+                "business_context": {"environment": "test", "criticality": "medium"},
+            },
+            "/api/v1/enhanced/compare-llms": {
+                "service_name": f"test-service-{ts}",
+                "security_findings": [
+                    {
+                        "rule_id": "TEST001",
+                        "severity": "high",
+                        "description": "Test finding",
+                    }
+                ],
+                "business_context": {"environment": "test", "criticality": "medium"},
+            },
+            # Deduplication endpoints (per actual schemas)
+            "/api/v1/deduplication/correlations": {
+                "org_id": "test-org",
+                "stage": "sast",
+                "findings": [
+                    {
+                        "id": f"finding-{ts}",
+                        "title": "Test Finding",
+                        "severity": "high",
+                        "source": "test",
+                    }
+                ],
+            },
+            "/api/v1/deduplication/correlate/cross-stage": {
+                "org_id": "test-org",
+                "findings": [
+                    {
+                        "id": f"finding-{ts}",
+                        "title": "Test Finding",
+                        "severity": "high",
+                        "source": "test",
+                        "stage": "sast",
+                    }
+                ],
+            },
+            "/api/v1/deduplication/feedback": {
+                "cluster_id": f"cluster-{ts}",
+                "feedback_type": "confirm",
+                "user_id": "test-user",
+            },
+            "/api/v1/deduplication/baseline/compare": {
+                "org_id": "test-org",
+                "baseline_id": f"baseline-{ts}",
+                "current_findings": [],
+            },
+            "/api/v1/deduplication/clusters/merge": {
+                "source_cluster_id": f"cluster-{ts}-1",
+                "target_cluster_id": f"cluster-{ts}-2",
+            },
+            # Remediation endpoints (per RemediationTaskCreate schema)
+            "/api/v1/remediation/tasks": {
+                "org_id": "test-org",
+                "cluster_id": f"cluster-{ts}",
+                "title": "Test Remediation Task",
+                "description": "Test description",
+                "priority": "high",
+                "assignee": "test-user",
+            },
+            "/api/v1/remediation/sla/check": {
+                "org_id": "test-org",
+                "task_ids": [f"task-{ts}"],
+            },
+            # Collaboration endpoints (per actual schemas)
+            "/api/v1/collaboration/comments": {
+                "entity_type": "finding",
+                "entity_id": f"finding-{ts}",
+                "org_id": "test-org",
+                "author": "test-user",
+                "content": "Test comment",
+            },
+            "/api/v1/collaboration/watchers": {
+                "entity_type": "finding",
+                "entity_id": f"finding-{ts}",
+                "user_id": "test-user",
+            },
+            "/api/v1/collaboration/activities": {
+                "entity_type": "finding",
+                "entity_id": f"finding-{ts}",
+                "org_id": "test-org",
+                "user_id": "test-user",
+                "activity_type": "view",
+            },
+            "/api/v1/collaboration/notifications/queue": {
+                "user_id": "test-user",
+                "org_id": "test-org",
+                "notification_type": "finding_update",
+                "title": "Test",
+                "message": "Test notification",
+            },
+            "/api/v1/collaboration/notifications/notify-watchers": {
+                "entity_type": "finding",
+                "entity_id": f"finding-{ts}",
+                "event_type": "status_change",
+                "event_data": {},
+            },
+            # Webhooks endpoints (per actual schemas)
+            "/api/v1/webhooks/mappings": {
+                "cluster_id": f"cluster-{ts}",
+                "integration_type": "jira",
+                "external_id": "SEC-123",
+            },
+            "/api/v1/webhooks/alm/work-items": {
+                "cluster_id": f"cluster-{ts}",
+                "integration_type": "jira",
+                "project_key": "SEC",
+                "issue_type": "Bug",
+            },
+            "/api/v1/webhooks/jira": {
+                "webhookEvent": "jira:issue_updated",
+                "issue": {"key": "SEC-123", "fields": {"summary": "Test"}},
+            },
+            "/api/v1/webhooks/servicenow": {
+                "sys_id": "INC123",
+                "number": "INC0010001",
+                "state": "1",
+            },
+            "/api/v1/webhooks/gitlab": {
+                "object_kind": "merge_request",
+                "project": {"id": 123},
+                "object_attributes": {"id": 1},
+            },
+            "/api/v1/webhooks/azure-devops": {
+                "eventType": "workitem.updated",
+                "resource": {"id": 123, "workItemId": 456},
+            },
+            # Feeds endpoints (per actual schemas)
+            "/api/v1/feeds/exploits": {
+                "cve_id": "CVE-2024-0001",
+                "exploit_source": "exploit-db",
+            },
+            "/api/v1/feeds/threat-actors": {
+                "cve_id": "CVE-2024-0001",
+                "threat_actor": "APT29",
+            },
+            "/api/v1/feeds/supply-chain": {
+                "vuln_id": f"VULN-{ts}",
+                "ecosystem": "npm",
+                "package_name": "test-package",
+            },
+            "/api/v1/feeds/enrich": {"cve_ids": ["CVE-2024-0001"]},
+            # Validation endpoints (file upload - skip with empty)
+            "/api/v1/validate/input": {},
+            "/api/v1/validate/batch": {},
+            # Marketplace endpoints (per ContributeRequest schema)
+            "/api/v1/marketplace/contribute": {
+                "item_type": "policy",
+                "name": f"Test Policy {ts}",
+                "description": "Test policy",
+                "content": {"rules": []},
+                "framework": "SOC2",
+            },
+            # Inputs endpoints (file upload - skip with empty)
+            "/inputs/vex": {},
+            "/inputs/context": {},
+            # PentAGI endpoints (per actual schemas)
+            "/api/v1/pentagi/requests": {
+                "config_id": "test-config",
+                "target_url": "https://example.com",
+                "scan_type": "quick",
+            },
+            "/api/v1/pentagi/results": {
+                "request_id": "test-request",
+                "findings": [],
+                "status": "completed",
+            },
+            "/api/v1/pentagi/verify": {
+                "finding_id": f"finding-{ts}",
+                "verification_type": "exploit",
+            },
+            "/api/v1/pentagi/monitoring": {
+                "config_id": "test-config",
+                "enabled": True,
+                "schedule": "daily",
+            },
+            "/api/v1/pentagi/scan/comprehensive": {
+                "target_url": "https://example.com",
+                "scan_options": {},
+            },
+            # Reachability endpoints
+            "/api/v1/reachability/analyze": {
+                "sbom": {"components": [{"name": "test-pkg", "version": "1.0.0"}]},
+                "cve_id": "CVE-2024-0001",
+            },
+            "/api/v1/reachability/analyze/bulk": {
+                "analyses": [{"sbom": {"components": []}, "cve_id": "CVE-2024-0001"}]
+            },
+            # Bulk endpoints
+            "/api/v1/bulk/findings": {
+                "findings": [
+                    {"id": f"finding-{ts}", "title": "Test", "severity": "high"}
+                ]
+            },
+        }
+
+        # Check for exact match first
+        if path in payload_map:
+            return payload_map[path]
+
+        # Check for pattern matches (endpoints with path params)
+        for pattern, payload in payload_map.items():
+            if pattern.replace("{", "").replace("}", "") in path:
+                return payload
+
+        # Default payloads based on path patterns (per actual schemas)
+        if "/status" in path or "/transition" in path:
+            return {"status": "in_progress", "notes": "Status update"}
+        elif "/assign" in path:
+            return {"assignee": "test-user"}
+        elif "/verify" in path or "/verification" in path:
+            return {
+                "verified": True,
+                "verification_notes": "Test verification",
+                "verified_by": "test-user",
+            }
+        elif "/ticket" in path:
+            return {
+                "ticket_id": "TICKET-123",
+                "ticket_url": "https://jira.example.com/TICKET-123",
+                "ticket_status": "open",
+            }
+        elif "/promote" in path:
+            return {"promoted": True, "promoted_by": "test-user"}
+        elif "/sync" in path:
+            return {"force": False}
+        elif "/resolve" in path:
+            return {
+                "resolution": "fixed",
+                "resolution_notes": "Resolved",
+                "resolved_by": "test-user",
+            }
+        elif "/process" in path:
+            return {"processed": True}
+        elif "/retry" in path:
+            return {"retry": True}
+        elif "/rate" in path:
+            return {"rating": 5, "review": "Great!"}
+        elif "/purchase" in path:
+            return {"quantity": 1}
+        elif "/acknowledge" in path:
+            return {"acknowledged": True}
+        elif "/chunks" in path:
+            return {"chunk_data": "test data", "chunk_index": 0}
+        elif "/compliance-content" in path:
+            return {"framework": "SOC2", "stage": "design"}
+
+        # Generic fallback
+        return {"test": True, "timestamp": ts}
+
+    # ========================================================================
+    # PHASE 4.5: OPENAPI-DRIVEN FULL COVERAGE
+    # ========================================================================
+
+    def phase4_5_openapi_coverage(self):
+        """Test ALL 291 OpenAPI operations not already covered."""
+        print("\n" + "=" * 80)
+        print("PHASE 4.5: OPENAPI-DRIVEN FULL COVERAGE (291 Operations)")
+        print("=" * 80)
+
+        # Fetch OpenAPI spec
+        status, openapi_spec, _ = self.client.call("GET", "/openapi.json")
+        if status != 200:
+            print("[ERROR] Could not fetch OpenAPI spec")
+            return
+
+        # Extract all operations from OpenAPI spec
+        all_operations = []
+        for path, methods in openapi_spec.get("paths", {}).items():
+            for method in methods.keys():
+                if method.upper() in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
+                    all_operations.append((method.upper(), path))
+
+        print(f"[4.5] Found {len(all_operations)} operations in OpenAPI spec")
+
+        # Track already tested endpoints
+        tested_endpoints = set()
+        for tc in self.results:
+            tested_endpoints.add((tc.method, tc.endpoint.split("?")[0]))
+
+        # Test operations not already covered
+        untested = [(m, p) for m, p in all_operations if (m, p) not in tested_endpoints]
+        print(f"[4.5] Testing {len(untested)} untested operations")
+
+        # Group by path prefix for organized output
+        from collections import defaultdict
+
+        grouped = defaultdict(list)
+        for method, path in untested:
+            prefix = path.split("/")[1] if "/" in path else "root"
+            grouped[prefix].append((method, path))
+
+        counter = 1
+        for prefix, ops in sorted(grouped.items()):
+            print(
+                f"\n[4.5.{counter}] Testing {prefix.upper()} endpoints ({len(ops)} ops)"
+            )
+            counter += 1
+
+            for method, path in ops:
+                # Skip paths with path parameters for now (need IDs)
+                if "{" in path:
+                    # Try to substitute with real IDs from registry
+                    substituted_path = path
+                    if "{config_id}" in path and self.client.resource_registry.get(
+                        "pentagi_config_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{config_id}",
+                            str(self.client.resource_registry["pentagi_config_ids"][0]),
+                        )
+                    elif "{request_id}" in path and self.client.resource_registry.get(
+                        "pentagi_request_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{request_id}",
+                            str(
+                                self.client.resource_registry["pentagi_request_ids"][0]
+                            ),
+                        )
+                    elif "{workflow_id}" in path and self.client.resource_registry.get(
+                        "workflow_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{workflow_id}",
+                            str(self.client.resource_registry["workflow_ids"][0]),
+                        )
+                    elif "{policy_id}" in path and self.client.resource_registry.get(
+                        "policy_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{policy_id}",
+                            str(self.client.resource_registry["policy_ids"][0]),
+                        )
+                    elif "{team_id}" in path and self.client.resource_registry.get(
+                        "team_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{team_id}",
+                            str(self.client.resource_registry["team_ids"][0]),
+                        )
+                    elif "{user_id}" in path and self.client.resource_registry.get(
+                        "user_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{user_id}",
+                            str(self.client.resource_registry["user_ids"][0]),
+                        )
+                    elif "{report_id}" in path and self.client.resource_registry.get(
+                        "report_ids"
+                    ):
+                        substituted_path = path.replace(
+                            "{report_id}",
+                            str(self.client.resource_registry["report_ids"][0]),
+                        )
+                    elif (
+                        "{integration_id}" in path
+                        and self.client.resource_registry.get("integration_ids")
+                    ):
+                        substituted_path = path.replace(
+                            "{integration_id}",
+                            str(self.client.resource_registry["integration_ids"][0]),
+                        )
+                    elif "{" in substituted_path:
+                        # Still has unsubstituted params - use placeholder
+                        substituted_path = substituted_path.replace(
+                            "{", "test-"
+                        ).replace("}", "")
+                    path = substituted_path
+
+                # For POST/PUT/DELETE, provide sample payload based on endpoint
+                payload = None
+                if method in ["POST", "PUT", "PATCH"]:
+                    payload = self._get_sample_payload(path, method)
+
+                try:
+                    if payload is not None:
+                        status, response, elapsed = self.client.call(
+                            method, path, json=payload
+                        )
+                    else:
+                        status, response, elapsed = self.client.call(method, path)
+                except Exception as e:
+                    status, response, elapsed = 500, {"error": str(e)}, 0
+
+                result, reason = self.classify_result(
+                    path, method, status, response, True
+                )
+
+                self.add_result(
+                    TestCase(
+                        endpoint=path,
+                        method=method,
+                        group="openapi_coverage",
+                        description=f"OpenAPI: {method} {path[:40]}",
+                        result=result,
+                        status_code=status,
+                        response_time_ms=elapsed,
+                        response_snippet=json.dumps(response)[:200]
+                        if isinstance(response, dict)
+                        else str(response)[:200],
+                        reason=reason,
+                    )
+                )
+
+        print(
+            f"\n[4.5] OpenAPI coverage complete - tested {len(untested)} additional operations"
+        )
 
     # ========================================================================
     # PHASE 5: NEGATIVE TESTS
@@ -2569,9 +3710,11 @@ class ComprehensiveTestRunner:
 
         try:
             self.phase1_infrastructure_setup()
+            self.phase1_5_data_seeding()
             self.phase2_data_ingestion()
             self.phase3_pipeline_execution()
             self.phase4_api_coverage()
+            self.phase4_5_openapi_coverage()
             self.phase5_negative_tests()
             self.phase6_consistency_checks()
         except Exception as e:
