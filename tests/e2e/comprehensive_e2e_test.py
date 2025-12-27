@@ -48,7 +48,7 @@ OUTPUT_DIR = os.environ.get(
 )
 
 
-class TestMode(Enum):
+class E2ETestMode(Enum):
     """Test execution modes for different deployment scenarios."""
 
     PLATFORM_READINESS = "platform-readiness"
@@ -1256,7 +1256,7 @@ class FixOpsClient:
 class ComprehensiveTestRunner:
     """Runs comprehensive end-to-end tests across all APIs."""
 
-    def __init__(self, client: FixOpsClient, mode: TestMode = TestMode.FULL):
+    def __init__(self, client: FixOpsClient, mode: E2ETestMode = E2ETestMode.FULL):
         self.client = client
         self.mode = mode
         self.results: List[E2ETestCase] = []
@@ -1315,10 +1315,10 @@ class ComprehensiveTestRunner:
 
         def handle_needs_seeding(reason: str) -> Tuple[E2ETestResult, str]:
             """Handle NEEDS-SEEDING based on test mode."""
-            if self.mode == TestMode.PLATFORM_READINESS:
+            if self.mode == E2ETestMode.PLATFORM_READINESS:
                 # Fresh install - empty data is expected and OK
                 return E2ETestResult.PASS, f"[Platform OK] {reason}"
-            elif self.mode == TestMode.ONBOARDING_VALIDATION:
+            elif self.mode == E2ETestMode.ONBOARDING_VALIDATION:
                 # Post-onboarding - data should exist, this is an issue
                 return E2ETestResult.GAP, f"[Missing Data] {reason}"
             else:
@@ -1339,12 +1339,12 @@ class ComprehensiveTestRunner:
                     "not reachable",
                 ]
                 if any(p in detail.lower() for p in optional_integration_patterns):
-                    if self.mode == TestMode.PLATFORM_READINESS:
+                    if self.mode == E2ETestMode.PLATFORM_READINESS:
                         return (
                             E2ETestResult.PASS,
                             f"[Platform OK] Optional integration not configured: {detail[:40]}",
                         )
-                    elif self.mode == TestMode.ONBOARDING_VALIDATION:
+                    elif self.mode == E2ETestMode.ONBOARDING_VALIDATION:
                         return (
                             E2ETestResult.GAP,
                             f"[Missing Config] Optional integration: {detail[:40]}",
@@ -4187,9 +4187,9 @@ class ComprehensiveTestRunner:
     def run_all(self):
         """Run all test phases."""
         mode_descriptions = {
-            TestMode.PLATFORM_READINESS: "Platform Readiness (fresh install validation)",
-            TestMode.ONBOARDING_VALIDATION: "Onboarding Validation (post-data-ingestion)",
-            TestMode.FULL: "Full Analysis (detailed classification)",
+            E2ETestMode.PLATFORM_READINESS: "Platform Readiness (fresh install validation)",
+            E2ETestMode.ONBOARDING_VALIDATION: "Onboarding Validation (post-data-ingestion)",
+            E2ETestMode.FULL: "Full Analysis (detailed classification)",
         }
 
         print("\n" + "=" * 80)
@@ -4203,12 +4203,12 @@ class ComprehensiveTestRunner:
         print("=" * 80)
 
         # Mode-specific guidance
-        if self.mode == TestMode.PLATFORM_READINESS:
+        if self.mode == E2ETestMode.PLATFORM_READINESS:
             print("\n[INFO] Platform Readiness Mode:")
             print("  - Empty responses (no data) are counted as PASS")
             print("  - Use this for fresh deployments and CI/CD validation")
             print("  - Focus: API availability, auth, endpoint contracts")
-        elif self.mode == TestMode.ONBOARDING_VALIDATION:
+        elif self.mode == E2ETestMode.ONBOARDING_VALIDATION:
             print("\n[INFO] Onboarding Validation Mode:")
             print("  - Empty responses are counted as GAP (data should exist)")
             print("  - Use this after: ingest data + run pipeline")
@@ -4239,11 +4239,11 @@ class ComprehensiveTestRunner:
         print(f"  PASS:          {self.stats['pass']} ({pass_rate:.1f}%)")
         print(f"  BUG:           {self.stats['bug']}")
         print(f"  GAP:           {self.stats['gap']}")
-        if self.mode == TestMode.FULL:
+        if self.mode == E2ETestMode.FULL:
             print(f"  NEEDS-SEEDING: {self.stats['needs_seeding']}")
 
         # Mode-specific summary
-        if self.mode == TestMode.PLATFORM_READINESS:
+        if self.mode == E2ETestMode.PLATFORM_READINESS:
             functional_rate = (
                 (self.stats["pass"] + self.stats["not_applicable"])
                 / max(self.stats["total"], 1)
@@ -4256,7 +4256,7 @@ class ComprehensiveTestRunner:
                 print(
                     f"  [WARN] {self.stats['bug']} bugs need fixing before deployment"
                 )
-        elif self.mode == TestMode.ONBOARDING_VALIDATION:
+        elif self.mode == E2ETestMode.ONBOARDING_VALIDATION:
             if self.stats["gap"] > 0:
                 print(f"\n  [WARN] {self.stats['gap']} endpoints missing expected data")
                 print(
@@ -4327,9 +4327,9 @@ Examples:
 
     # Parse mode
     mode_map = {
-        "platform-readiness": TestMode.PLATFORM_READINESS,
-        "onboarding-validation": TestMode.ONBOARDING_VALIDATION,
-        "full": TestMode.FULL,
+        "platform-readiness": E2ETestMode.PLATFORM_READINESS,
+        "onboarding-validation": E2ETestMode.ONBOARDING_VALIDATION,
+        "full": E2ETestMode.FULL,
     }
     mode = mode_map[args.mode]
 
