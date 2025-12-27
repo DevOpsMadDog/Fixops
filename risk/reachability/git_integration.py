@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import unquote, urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
 
@@ -117,8 +117,9 @@ class GitRepositoryAnalyzer:
         if repository.url.startswith("file://"):
             # Use urlparse for proper file:// URL parsing instead of fragile string replace
             # This correctly handles file://localhost/path and file:///path formats
+            # Use unquote() to decode percent-encoded characters (e.g., %20 for spaces)
             parsed_url = urlparse(repository.url)
-            local_path = Path(parsed_url.path)
+            local_path = Path(unquote(parsed_url.path))
             if not local_path.exists():
                 raise RuntimeError(
                     f"Local repository path does not exist: {local_path}"

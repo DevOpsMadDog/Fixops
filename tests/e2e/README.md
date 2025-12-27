@@ -63,18 +63,18 @@ At a client site, follow this process:
 2. **Ingest Customer Data**
    ```bash
    # Upload SBOM from their security tools (Trivy, Syft, etc.)
-   curl -F "file=@sbom.json" http://fixops:8002/inputs/sbom
+   curl -F "file=@sbom.json" http://localhost:8002/inputs/sbom
    
    # Upload SARIF from their scanners (SonarQube, Checkmarx, etc.)
-   curl -F "file=@scan.sarif" http://fixops:8002/inputs/sarif
+   curl -F "file=@scan.sarif" http://localhost:8002/inputs/sarif
    
    # Upload CVE feed
-   curl -F "file=@cve.json" http://fixops:8002/inputs/cve
+   curl -F "file=@cve.json" http://localhost:8002/inputs/cve
    ```
 
 3. **Run Pipeline**
    ```bash
-   curl http://fixops:8002/pipeline/run
+   curl http://localhost:8002/pipeline/run
    ```
 
 4. **Validate Onboarding**

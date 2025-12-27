@@ -2840,10 +2840,8 @@ class ComprehensiveTestRunner:
         reg = self.client.resource_registry
 
         # Use real org IDs from our 3 customers
-        org_id = "acme-corp"  # Default to first customer
-        if reg.get("app_ids"):
-            # Use first registered app's org
-            org_id = "acme-corp"
+        # Default to first customer's ID from CUSTOMERS list
+        org_id = CUSTOMERS[0]["id"] if CUSTOMERS else "acme-financial"
 
         # Get real app ID if available
         app_id = (
