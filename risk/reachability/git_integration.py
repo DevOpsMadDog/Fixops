@@ -32,8 +32,10 @@ class GitRepository:
         if not self.url:
             raise ValueError("Repository URL is required")
 
-        # Normalize URL
-        if not self.url.startswith(("http://", "https://", "git@", "git://")):
+        # Normalize URL - but preserve file:// URLs for local repos
+        if not self.url.startswith(
+            ("http://", "https://", "git@", "git://", "file://")
+        ):
             # Assume it's a GitHub-style URL
             if "/" in self.url and "@" not in self.url:
                 self.url = f"https://github.com/{self.url}.git"
@@ -111,6 +113,19 @@ class GitRepositoryAnalyzer:
         Path
             Path to cloned repository.
         """
+        # Handle file:// URLs - these are local paths, no cloning needed
+        if repository.url.startswith("file://"):
+            local_path = Path(repository.url.replace("file://", ""))
+            if not local_path.exists():
+                raise RuntimeError(
+                    f"Local repository path does not exist: {local_path}"
+                )
+            if not (local_path / ".git").exists():
+                raise RuntimeError(f"Not a Git repository: {local_path}")
+            logger.info(f"Using local repository: {local_path}")
+            self._cloned_repos[repository.url] = local_path
+            return local_path
+
         # Generate cache key
         cache_key = self._generate_cache_key(repository)
         cached_path = self.cache_dir / cache_key

@@ -239,11 +239,35 @@ async def analyze_reachability(
                 created_at=datetime.now(timezone.utc).isoformat(),
             )
 
-    except ValueError:
+    except ValueError as e:
         logger.exception("Invalid request parameters")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid request parameters",
+            detail=f"Invalid request parameters: {str(e)}",
+        )
+    except RuntimeError as e:
+        # Handle git clone failures gracefully - this is an operational issue, not a server bug
+        error_msg = str(e)
+        if "Git clone failed" in error_msg or "clone" in error_msg.lower():
+            logger.warning(f"Repository access failed: {error_msg}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "error": "repository_unreachable",
+                    "message": "Unable to access the specified repository. Please verify the URL, branch, and credentials.",
+                    "details": error_msg,
+                    "remediation": [
+                        "Verify the repository URL is correct and accessible",
+                        "Check if authentication credentials are required",
+                        "Ensure the specified branch exists",
+                        "For private repositories, provide auth_token or auth_username/auth_password",
+                    ],
+                },
+            )
+        logger.exception("Reachability analysis failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Analysis failed",
         )
     except Exception:
         logger.exception("Reachability analysis failed")
