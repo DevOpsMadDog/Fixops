@@ -1,0 +1,40 @@
+{
+  "query_type": "audit_events",
+  "time_range": {
+    "start": "2025-01-01T00:00:00Z",
+    "end": "2025-01-15T23:59:59Z"
+  },
+  "filters": {
+    "event_types": [
+      "policy_change",
+      "exception_granted",
+      "deployment_blocked",
+      "user_access_change",
+      "integration_modified"
+    ],
+    "actors": [],
+    "resources": [],
+    "outcomes": ["success", "failure"]
+  },
+  "search": {
+    "query": "",
+    "fields": ["description", "resource_name", "actor_email"]
+  },
+  "sort": {
+    "field": "timestamp",
+    "order": "desc"
+  },
+  "pagination": {
+    "page": 1,
+    "page_size": 50
+  },
+  "include": {
+    "actor_details": true,
+    "resource_details": true,
+    "change_diff": true
+  },
+  "export": {
+    "format": "json",
+    "include_all_pages": false
+  }
+}

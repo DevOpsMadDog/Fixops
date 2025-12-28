@@ -1,0 +1,62 @@
+{
+  "dedup_id": "dedup-2025-001",
+  "operation": "correlate_findings",
+  "scope": {
+    "applications": ["payment-gateway"],
+    "sources": ["sast", "dast", "sca", "container_scan", "cloud_scan"],
+    "time_range": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-01-15T23:59:59Z"
+    }
+  },
+  "correlation_rules": [
+    {
+      "rule_id": "cve-match",
+      "name": "CVE ID Matching",
+      "description": "Correlate findings with same CVE ID",
+      "match_fields": ["cve_id"],
+      "confidence": 1.0
+    },
+    {
+      "rule_id": "cwe-location",
+      "name": "CWE + Location Matching",
+      "description": "Correlate findings with same CWE and similar location",
+      "match_fields": ["cwe_id", "file_path"],
+      "similarity_threshold": 0.85,
+      "confidence": 0.9
+    },
+    {
+      "rule_id": "component-vuln",
+      "name": "Component Vulnerability Matching",
+      "description": "Correlate SCA findings for same component",
+      "match_fields": ["component_name", "component_version", "vulnerability_id"],
+      "confidence": 0.95
+    },
+    {
+      "rule_id": "fuzzy-description",
+      "name": "Fuzzy Description Matching",
+      "description": "Correlate findings with similar descriptions",
+      "match_fields": ["description"],
+      "similarity_algorithm": "cosine",
+      "similarity_threshold": 0.8,
+      "confidence": 0.7
+    }
+  ],
+  "deduplication_strategy": {
+    "primary_source_priority": ["sast", "dast", "sca", "container_scan", "cloud_scan"],
+    "merge_strategy": "highest_severity",
+    "preserve_all_evidence": true,
+    "create_correlation_links": true
+  },
+  "output": {
+    "create_unified_findings": true,
+    "tag_duplicates": true,
+    "generate_report": true,
+    "notify_on_completion": true
+  },
+  "options": {
+    "dry_run": false,
+    "auto_suppress_duplicates": false,
+    "require_approval": true
+  }
+}

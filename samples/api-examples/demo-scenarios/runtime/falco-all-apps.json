@@ -1,0 +1,145 @@
+{
+  "scan_id": "falco-runtime-2025-001",
+  "tool": "falco",
+  "tool_version": "0.37.0",
+  "scan_type": "runtime",
+  "timestamp": "2025-01-15T22:00:00Z",
+  "cluster": "prod-eks-all",
+  "rules_version": "falco-rules-2.0.0",
+  "events": [
+    {
+      "id": "falco-event-pay-001",
+      "timestamp": "2025-01-15T21:45:23Z",
+      "rule": "Terminal shell in container",
+      "priority": "warning",
+      "output": "A shell was spawned in a container with an attached terminal (user=root container_id=abc123 container_name=payment-gateway shell=bash)",
+      "source": "syscall",
+      "tags": ["container", "shell", "mitre_execution"],
+      "fields": {
+        "container.id": "abc123def456",
+        "container.name": "payment-gateway",
+        "container.image.repository": "ecr.aws/example/payment-gateway",
+        "k8s.ns.name": "payments",
+        "k8s.pod.name": "payment-gateway-7d8f9c6b5-x2k4m",
+        "user.name": "root",
+        "proc.name": "bash",
+        "proc.cmdline": "bash"
+      },
+      "correlation_id": "CORR-SHELL-001",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "falco-event-pay-002",
+      "timestamp": "2025-01-15T21:47:15Z",
+      "rule": "Read sensitive file untrusted",
+      "priority": "warning",
+      "output": "Sensitive file opened for reading by non-trusted program (user=root file=/etc/shadow container_id=abc123)",
+      "source": "syscall",
+      "tags": ["filesystem", "mitre_credential_access"],
+      "fields": {
+        "container.id": "abc123def456",
+        "container.name": "payment-gateway",
+        "k8s.ns.name": "payments",
+        "k8s.pod.name": "payment-gateway-7d8f9c6b5-x2k4m",
+        "fd.name": "/etc/shadow",
+        "proc.name": "cat",
+        "user.name": "root"
+      },
+      "correlation_id": "CORR-SHADOW-001",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "falco-event-iam-001",
+      "timestamp": "2025-01-15T21:50:00Z",
+      "rule": "Outbound connection to C2 server",
+      "priority": "critical",
+      "output": "Outbound connection to known C2 server detected (container_id=def456 dest=185.234.xxx.xxx:443)",
+      "source": "syscall",
+      "tags": ["network", "mitre_command_and_control"],
+      "fields": {
+        "container.id": "def456ghi789",
+        "container.name": "user-identity-service",
+        "k8s.ns.name": "identity",
+        "k8s.pod.name": "user-identity-service-5c7d8e9f0-y3l5n",
+        "fd.sip": "10.0.1.50",
+        "fd.dip": "185.234.xxx.xxx",
+        "fd.dport": "443",
+        "proc.name": "python"
+      },
+      "correlation_id": "CORR-C2-001",
+      "application": "user-identity-service"
+    },
+    {
+      "id": "falco-event-health-001",
+      "timestamp": "2025-01-15T21:52:30Z",
+      "rule": "Write below etc",
+      "priority": "error",
+      "output": "File below /etc opened for writing (user=root file=/etc/passwd container_id=ghi789)",
+      "source": "syscall",
+      "tags": ["filesystem", "mitre_persistence"],
+      "fields": {
+        "container.id": "ghi789jkl012",
+        "container.name": "healthcare-api",
+        "k8s.ns.name": "healthcare",
+        "k8s.pod.name": "healthcare-api-6d9e0f1g2-z4m6o",
+        "fd.name": "/etc/passwd",
+        "proc.name": "node",
+        "user.name": "root"
+      },
+      "correlation_id": "CORR-PASSWD-001",
+      "application": "healthcare-api"
+    },
+    {
+      "id": "falco-event-health-002",
+      "timestamp": "2025-01-15T21:55:00Z",
+      "rule": "Contact K8S API Server From Container",
+      "priority": "notice",
+      "output": "Unexpected connection to K8s API server from container (container_id=ghi789 proc=curl)",
+      "source": "syscall",
+      "tags": ["network", "k8s", "mitre_discovery"],
+      "fields": {
+        "container.id": "ghi789jkl012",
+        "container.name": "healthcare-api",
+        "k8s.ns.name": "healthcare",
+        "k8s.pod.name": "healthcare-api-6d9e0f1g2-z4m6o",
+        "fd.dip": "10.100.0.1",
+        "fd.dport": "443",
+        "proc.name": "curl"
+      },
+      "correlation_id": "CORR-K8SAPI-001",
+      "application": "healthcare-api"
+    },
+    {
+      "id": "falco-event-supply-001",
+      "timestamp": "2025-01-15T21:58:00Z",
+      "rule": "Launch Privileged Container",
+      "priority": "critical",
+      "output": "Privileged container started (container_id=jkl012 image=supply-chain-portal:4.1.0)",
+      "source": "k8s_audit",
+      "tags": ["container", "k8s", "mitre_privilege_escalation"],
+      "fields": {
+        "container.id": "jkl012mno345",
+        "container.name": "supply-chain-portal",
+        "container.image.repository": "ecr.aws/example/supply-chain-portal",
+        "k8s.ns.name": "supply-chain",
+        "k8s.pod.name": "supply-chain-portal-8e0f1g2h3-a5n7p",
+        "container.privileged": "true"
+      },
+      "correlation_id": "CORR-PRIV-001",
+      "application": "supply-chain-portal"
+    }
+  ],
+  "summary": {
+    "total_events": 6,
+    "critical": 2,
+    "error": 1,
+    "warning": 2,
+    "notice": 1,
+    "by_application": {
+      "payment-gateway": 2,
+      "user-identity-service": 1,
+      "healthcare-api": 2,
+      "supply-chain-portal": 1
+    }
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "workflow_id": "vuln-remediation-001",
+  "name": "Critical Vulnerability Remediation Workflow",
+  "description": "Automated workflow for handling critical vulnerabilities",
+  "version": "1.0.0",
+  "status": "active",
+  "trigger": {
+    "type": "vulnerability_detected",
+    "conditions": {
+      "severity": ["critical"],
+      "environment": ["production"],
+      "kev_listed": true
+    }
+  },
+  "steps": [
+    {
+      "step_id": "notify",
+      "name": "Send Immediate Notification",
+      "type": "notification",
+      "config": {
+        "channels": ["slack", "email", "pagerduty"],
+        "recipients": ["security-oncall", "team-lead"],
+        "message_template": "critical_vuln_alert",
+        "priority": "urgent"
+      },
+      "on_failure": "continue"
+    },
+    {
+      "step_id": "create_ticket",
+      "name": "Create Jira Ticket",
+      "type": "integration",
+      "config": {
+        "integration": "jira",
+        "action": "create_issue",
+        "project": "SEC",
+        "issue_type": "Bug",
+        "priority": "Highest",
+        "labels": ["critical", "security", "automated"]
+      },
+      "on_failure": "retry",
+      "retry_config": {
+        "max_attempts": 3,
+        "delay_seconds": 60
+      }
+    },
+    {
+      "step_id": "risk_assessment",
+      "name": "Perform Risk Assessment",
+      "type": "analysis",
+      "config": {
+        "analysis_type": "ssvc",
+        "include_epss": true,
+        "include_threat_intel": true
+      },
+      "on_failure": "continue"
+    },
+    {
+      "step_id": "block_deployment",
+      "name": "Block Affected Deployments",
+      "type": "policy_action",
+      "config": {
+        "action": "block_deployment",
+        "scope": "affected_applications",
+        "message": "Deployment blocked due to critical vulnerability"
+      },
+      "condition": {
+        "risk_score": ">= 9.0"
+      },
+      "on_failure": "alert"
+    },
+    {
+      "step_id": "assign_owner",
+      "name": "Assign to Application Owner",
+      "type": "assignment",
+      "config": {
+        "assignment_type": "application_owner",
+        "fallback": "security-team",
+        "sla_hours": 4
+      },
+      "on_failure": "continue"
+    },
+    {
+      "step_id": "schedule_review",
+      "name": "Schedule Security Review",
+      "type": "calendar",
+      "config": {
+        "meeting_type": "security_review",
+        "attendees": ["security-team", "application-owner", "team-lead"],
+        "duration_minutes": 30,
+        "within_hours": 24
+      },
+      "on_failure": "continue"
+    },
+    {
+      "step_id": "monitor_progress",
+      "name": "Monitor Remediation Progress",
+      "type": "monitoring",
+      "config": {
+        "check_interval_hours": 4,
+        "escalation_after_hours": 24,
+        "escalation_to": "security-manager"
+      },
+      "on_failure": "continue"
+    }
+  ],
+  "sla": {
+    "critical": {
+      "response_hours": 4,
+      "resolution_hours": 24
+    }
+  },
+  "notifications": {
+    "on_start": true,
+    "on_complete": true,
+    "on_failure": true,
+    "on_sla_breach": true
+  }
+}

@@ -2,6 +2,7 @@
 import logging
 from typing import List, Optional
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -405,10 +406,33 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
         return result
     except HTTPException:
         raise
+    except (
+        httpx.ConnectError,
+        httpx.TimeoutException,
+        ConnectionError,
+        OSError,
+        TimeoutError,
+    ) as e:
+        logger.warning(f"Pentagi service unavailable: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Pentagi service unavailable. External pen testing service is not reachable.",
+        )
     except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).error(f"Failed to verify vulnerability: {e}")
+        # Check if it's a connection-related error
+        error_str = str(e).lower()
+        if (
+            "connect" in error_str
+            or "timeout" in error_str
+            or "refused" in error_str
+            or "name or service not known" in error_str
+        ):
+            logger.warning(f"Pentagi service unavailable: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Pentagi service unavailable. External pen testing service is not reachable.",
+            )
+        logger.error(f"Failed to verify vulnerability: {e}")
         raise HTTPException(status_code=500, detail="Failed to verify vulnerability")
 
 
@@ -433,10 +457,33 @@ async def setup_continuous_monitoring(data: ContinuousMonitoringModel):
         return {"status": "monitoring_setup", "jobs": job_ids}
     except HTTPException:
         raise
+    except (
+        httpx.ConnectError,
+        httpx.TimeoutException,
+        ConnectionError,
+        OSError,
+        TimeoutError,
+    ) as e:
+        logger.warning(f"Pentagi service unavailable: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Pentagi service unavailable. External pen testing service is not reachable.",
+        )
     except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).error(f"Failed to setup monitoring: {e}")
+        # Check if it's a connection-related error
+        error_str = str(e).lower()
+        if (
+            "connect" in error_str
+            or "timeout" in error_str
+            or "refused" in error_str
+            or "name or service not known" in error_str
+        ):
+            logger.warning(f"Pentagi service unavailable: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Pentagi service unavailable. External pen testing service is not reachable.",
+            )
+        logger.error(f"Failed to setup monitoring: {e}")
         raise HTTPException(status_code=500, detail="Failed to setup monitoring")
 
 
@@ -471,10 +518,33 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
         }
     except HTTPException:
         raise
+    except (
+        httpx.ConnectError,
+        httpx.TimeoutException,
+        ConnectionError,
+        OSError,
+        TimeoutError,
+    ) as e:
+        logger.warning(f"Pentagi service unavailable: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Pentagi service unavailable. External pen testing service is not reachable.",
+        )
     except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).error(f"Failed to start comprehensive scan: {e}")
+        # Check if it's a connection-related error
+        error_str = str(e).lower()
+        if (
+            "connect" in error_str
+            or "timeout" in error_str
+            or "refused" in error_str
+            or "name or service not known" in error_str
+        ):
+            logger.warning(f"Pentagi service unavailable: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Pentagi service unavailable. External pen testing service is not reachable.",
+            )
+        logger.error(f"Failed to start comprehensive scan: {e}")
         raise HTTPException(
             status_code=500, detail="Failed to start comprehensive scan"
         )

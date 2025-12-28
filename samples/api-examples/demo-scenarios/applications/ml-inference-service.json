@@ -1,0 +1,150 @@
+{
+  "application": {
+    "id": "app-ml-inference-001",
+    "name": "ml-inference-service",
+    "display_name": "ML Model Inference Service",
+    "description": "Real-time machine learning inference platform for fraud detection, recommendations, and risk scoring",
+    "portfolio": "AI/ML Platform",
+    "business_unit": "Data Science",
+    "criticality": "high",
+    "tier": "tier-1",
+    "data_classification": "highly-confidential",
+    "pii_data": true,
+    "pci_data": true,
+    "phi_data": false,
+    "architecture": {
+      "type": "serverless-hybrid",
+      "deployment_model": "cloud-native",
+      "cloud_provider": "gcp",
+      "regions": ["us-central1", "europe-west1", "asia-east1"],
+      "container_orchestration": "GKE Autopilot",
+      "service_mesh": "Anthos Service Mesh",
+      "gpu_enabled": true
+    },
+    "tech_stack": {
+      "primary_language": "Python",
+      "framework": "FastAPI",
+      "runtime": "Python 3.11",
+      "ml_frameworks": ["TensorFlow 2.15", "PyTorch 2.1", "ONNX Runtime"],
+      "database": ["BigQuery", "Firestore", "Redis"],
+      "message_queue": "Pub/Sub",
+      "cache": "Memorystore",
+      "additional": ["Vertex AI", "TensorRT", "Triton Inference Server"]
+    },
+    "repository": {
+      "url": "https://github.com/acme-corp/ml-inference-service",
+      "branch": "main",
+      "last_commit": "f1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0",
+      "ci_cd": "Cloud Build",
+      "build_system": "Poetry"
+    },
+    "compliance_frameworks": ["soc2", "gdpr", "ccpa", "ai-act"],
+    "security_contacts": {
+      "primary": "ml-security@acme-corp.com",
+      "escalation": "ciso@acme-corp.com",
+      "on_call": "ml-oncall@acme-corp.com"
+    },
+    "sla": {
+      "availability": "99.9%",
+      "rto_hours": 2,
+      "rpo_hours": 0.5,
+      "critical_fix_hours": 8,
+      "high_fix_hours": 24
+    }
+  },
+  "sbom": {
+    "format": "CycloneDX",
+    "version": "1.5",
+    "generated_at": "2024-12-26T08:00:00Z",
+    "tool": "cyclonedx-python",
+    "components_count": 423,
+    "direct_dependencies": 67,
+    "transitive_dependencies": 356,
+    "licenses": ["Apache-2.0", "MIT", "BSD-3-Clause", "LGPL-3.0"],
+    "critical_components": [
+      {
+        "name": "tensorflow",
+        "version": "2.15.0",
+        "type": "library",
+        "purpose": "ML framework"
+      },
+      {
+        "name": "numpy",
+        "version": "1.26.2",
+        "type": "library",
+        "purpose": "Numerical computing",
+        "cve_history": ["CVE-2021-33430", "CVE-2021-41496"]
+      },
+      {
+        "name": "pillow",
+        "version": "10.1.0",
+        "type": "library",
+        "purpose": "Image processing",
+        "cve_history": ["CVE-2023-44271", "CVE-2023-50447"]
+      }
+    ]
+  },
+  "risk_profile": {
+    "overall_risk_score": 75,
+    "risk_factors": {
+      "data_sensitivity": "critical",
+      "internet_exposure": "medium",
+      "regulatory_impact": "high",
+      "financial_impact": "high",
+      "reputational_impact": "high"
+    },
+    "attack_surface": {
+      "external_endpoints": 8,
+      "internal_endpoints": 45,
+      "api_endpoints": 89,
+      "admin_interfaces": 3,
+      "ml_models_deployed": 47
+    },
+    "threat_model": {
+      "primary_threats": [
+        "Model poisoning attacks",
+        "Adversarial input manipulation",
+        "Model extraction/theft",
+        "Training data exfiltration",
+        "Inference API abuse",
+        "Prompt injection (LLM models)"
+      ],
+      "mitre_attack_techniques": [
+        "T1059.006",
+        "T1027",
+        "T1530",
+        "T1567",
+        "T1499.004",
+        "AML.T0043"
+      ]
+    }
+  },
+  "recent_findings_summary": {
+    "critical": 3,
+    "high": 7,
+    "medium": 15,
+    "low": 28,
+    "informational": 52,
+    "correlation_ids": [
+      "CORR-ML-PICKLE-001",
+      "CORR-ML-NUMPY-001",
+      "CORR-ML-PILLOW-001",
+      "CORR-ML-DESERIALIZATION-001"
+    ]
+  },
+  "integrations": {
+    "ticketing": "Jira",
+    "chat": "Slack",
+    "siem": "Chronicle",
+    "secrets_manager": "GCP Secret Manager",
+    "ml_ops": "MLflow"
+  },
+  "ai_security": {
+    "model_signing": true,
+    "input_validation": "strict",
+    "output_filtering": true,
+    "rate_limiting": "adaptive",
+    "bias_monitoring": true,
+    "explainability": "SHAP"
+  }
+}

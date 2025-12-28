@@ -1,0 +1,80 @@
+{
+  "integration_id": "slack-prod-001",
+  "integration_type": "slack",
+  "name": "Security Alerts Slack Integration",
+  "status": "active",
+  "connection": {
+    "webhook_url_secret": "SLACK_WEBHOOK_URL",
+    "bot_token_secret": "SLACK_BOT_TOKEN",
+    "signing_secret": "SLACK_SIGNING_SECRET"
+  },
+  "channels": {
+    "default": "#security-alerts",
+    "critical": "#security-critical",
+    "compliance": "#compliance-alerts",
+    "team_notifications": {
+      "payments-platform": "#payments-security",
+      "user-platform": "#user-security"
+    }
+  },
+  "notifications": {
+    "vulnerability_alerts": {
+      "enabled": true,
+      "min_severity": "high",
+      "include_kev": true,
+      "include_epss_threshold": 0.5
+    },
+    "policy_violations": {
+      "enabled": true,
+      "channel": "#security-alerts"
+    },
+    "compliance_alerts": {
+      "enabled": true,
+      "channel": "#compliance-alerts"
+    },
+    "deployment_blocks": {
+      "enabled": true,
+      "channel": "#security-critical"
+    },
+    "daily_summary": {
+      "enabled": true,
+      "channel": "#security-alerts",
+      "time": "09:00",
+      "timezone": "America/New_York"
+    }
+  },
+  "message_format": {
+    "include_severity_emoji": true,
+    "include_cvss_score": true,
+    "include_epss_score": true,
+    "include_remediation": true,
+    "include_links": true,
+    "mention_on_critical": ["@security-oncall"]
+  },
+  "interactive": {
+    "enabled": true,
+    "actions": [
+      {
+        "name": "acknowledge",
+        "label": "Acknowledge",
+        "style": "primary"
+      },
+      {
+        "name": "create_ticket",
+        "label": "Create Jira Ticket",
+        "style": "default"
+      },
+      {
+        "name": "accept_risk",
+        "label": "Accept Risk",
+        "style": "danger",
+        "require_reason": true
+      }
+    ]
+  },
+  "rate_limiting": {
+    "max_messages_per_minute": 10,
+    "batch_similar": true,
+    "batch_window_seconds": 60
+  }
+}
