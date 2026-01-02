@@ -104,7 +104,7 @@ services:
     networks:
       - fixops-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys, http.client; conn=http.client.HTTPConnection('localhost', 8001); conn.request('GET', '/health'); sys.exit(0) if conn.getresponse().status == 200 else sys.exit(1)"]
+      test: ["CMD", "python", "-c", "import sys, http.client; conn=http.client.HTTPConnection('localhost', 8000); conn.request('GET', '/health'); sys.exit(0) if conn.getresponse().status == 200 else sys.exit(1)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -128,9 +128,9 @@ services:
       fixops-backend:
         condition: service_healthy
     environment:
-      BACKEND_URL: http://fixops-backend:8001
-      VITE_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8001}
-      REACT_APP_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8001}
+      BACKEND_URL: http://fixops-backend:8000
+      VITE_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8000}
+      REACT_APP_API_BASE_URL: ${FRONTEND_API_URL:-http://localhost:8000}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     networks:
