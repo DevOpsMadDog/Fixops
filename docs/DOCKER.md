@@ -341,9 +341,9 @@ curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/status
 ```bash
 export FIXOPS_API_TOKEN="demo-token"
 
-# Upload artifacts
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/scan.sarif" http://localhost:8000/inputs/sarif
+# Upload artifacts (note: content-type is required)
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@simulations/demo_pack/sbom.json;type=application/json" http://localhost:8000/inputs/sbom
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@simulations/demo_pack/scanner.sarif;type=application/json" http://localhost:8000/inputs/sarif
 
 # Run pipeline
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
