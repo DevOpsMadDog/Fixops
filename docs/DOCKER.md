@@ -38,8 +38,10 @@ FixOps uses token-based authentication by default. The API token is set via the 
 To authenticate API requests, include the token in the `X-API-Key` header:
 
 ```bash
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/health
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/api/v1/status
 ```
+
+Note: Health/liveness endpoints (`/health`, `/api/v1/health`) do not require authentication and can be used for container health checks.
 
 ---
 
