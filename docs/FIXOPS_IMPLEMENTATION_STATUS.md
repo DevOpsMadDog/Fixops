@@ -766,7 +766,58 @@ app_module: str = "apps.api.app:create_app"
 
 ---
 
-## Appendix B: API Coverage Statistics
+## Appendix B: Test Coverage Status
+
+### Current Coverage Metrics (January 2, 2026)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Global Coverage** | 18.95% | Measured on core/ + apps/ modules |
+| **Total Statements** | 28,254 | In core/ and apps/ directories |
+| **Covered Statements** | 5,580 | Statements with test coverage |
+| **Uncovered Statements** | 22,674 | Statements needing tests |
+| **Tests Passing** | 44/46 | 2 tests failing due to env issues |
+
+### Coverage Policy: "100% Always"
+
+Starting January 2, 2026, FixOps enforces **100% test coverage on all new and modified code** via diff-coverage in CI.
+
+**Policy Details:**
+1. **New code must have 100% coverage** - Any lines added or modified in a PR must be covered by tests
+2. **Global baseline increases over time** - Systematic coverage improvement on existing code
+3. **Critical modules have priority** - Decision engine, evidence generation, auth boundaries first
+
+### Module-Level Coverage
+
+**Well-Covered Modules (>70%):**
+| Module | Coverage |
+|--------|----------|
+| `core/severity_promotion.py` | 90.15% |
+| `core/performance.py` | 85.90% |
+| `core/storage.py` | 85.42% |
+| `core/probabilistic.py` | 80.75% |
+| `core/vector_store.py` | 70.31% |
+
+**Uncovered Modules (0%):**
+- `core/pentagi_*.py` - Pen testing integration
+- `core/stage_runner.py` - Pipeline stage execution
+- `risk/reachability/*.py` - Reachability analysis
+- `risk/feeds/*.py` - Vulnerability feeds
+
+### Phased Coverage Improvement Plan
+
+| Phase | Target | Timeline | Focus Areas |
+|-------|--------|----------|-------------|
+| Phase 1 | 25% | Jan 2026 | Decision engine, evidence generation |
+| Phase 2 | 50% | Feb 2026 | Policy enforcement, auth boundaries |
+| Phase 3 | 70% | Mar 2026 | Database operations, API endpoints |
+| Phase 4 | 100% | Apr 2026 | All remaining modules |
+
+**Full coverage plan:** See [COVERAGE_PLAN.md](./COVERAGE_PLAN.md)
+
+---
+
+## Appendix C: API Handler Statistics
 
 | Metric | Count |
 |--------|-------|
@@ -786,11 +837,12 @@ app_module: str = "apps.api.app:create_app"
 
 ---
 
-## Appendix C: Update Log
+## Appendix D: Update Log
 
 | Date | Author | Changes |
 |------|--------|---------|
 | 2026-01-02 | Devin | Initial document creation |
+| 2026-01-02 | Devin | Added Appendix B: Test Coverage Status with 18.95% baseline and "100% Always" policy |
 
 ---
 
