@@ -48,22 +48,27 @@ FixOps is designed for **single-tenant, on-premises deployment**. This means:
 **Subtitle:** On-Prem Security Decision & Verification Engine
 
 ```
-TIMELINE BAR:
-[Sep 2025] -----> [Oct 2025] -----> [Dec 2025] -----> [Late Dec 2025] -----> [Next]
-   |                  |                  |                   |                  |
-Foundation      Decision           Integrations &      Intelligence &     Governance &
-               Automation          Workflows           Analytics          Operability
+TIMELINE BAR (Jan - Dec 2025):
+
+[Jan-Mar] -----> [Apr-Jun] -----> [Jul-Aug] -----> [Sep] -----> [Oct] -----> [Dec] -----> [Next]
+    |                |                |              |            |            |            |
+ Problem         Prototype &      Pre-Product    Platform    Decision    Enterprise    Governance
+ Discovery &     Feasibility      Hardening     Foundation  Automation  Intelligence  & Operability
+ Architecture    Validation
 ```
 
-| Phase | What Customers Get |
-|-------|-------------------|
-| **Foundation** (Sep 2025) | Platform architecture, configuration system, API scaffolding |
-| **Decision Automation** (Oct 2025) | Ingest scanner outputs, automated decisions, evidence bundles |
-| **Integrations & Workflows** (Dec 2025) | Jira/ServiceNow/GitLab sync, remediation lifecycle, collaboration |
-| **Intelligence & Analytics** (Late Dec 2025) | Deduplication, ROI dashboards, noise reduction, vulnerability feeds |
-| **Governance & Operability** (Next) | RBAC, background jobs, migrations, offline mode |
+| Phase | Timeline | What Customers Get |
+|-------|----------|-------------------|
+| **Problem Discovery & Architecture** | Jan-Mar 2025 | Requirements analysis, reference architecture, API contracts, threat model |
+| **Prototype & Feasibility** | Apr-Jun 2025 | Validated approach for normalization, decisioning, and evidence generation |
+| **Pre-Product Hardening** | Jul-Aug 2025 | Module boundaries, on-prem requirements, test strategy, internal alpha |
+| **Platform Foundation** | Sep 2025 | Production codebase, configuration system, API scaffolding |
+| **Decision Automation** | Oct 2025 | Ingest scanner outputs, automated decisions, evidence bundles |
+| **Enterprise Intelligence** | Dec 2025 | Integrations, deduplication, analytics, workflow automation |
+| **Governance & Operability** | Next | RBAC, background jobs, migrations, offline mode |
 
 **Proof Points:**
+- 12-month development cycle from ideation to production-ready
 - 286/288 OpenAPI operations have handlers (99.3% coverage)
 - 100% E2E test pass rate achieved
 - Evidence bundles: checksum + encryption today; signing integration next
@@ -295,23 +300,109 @@ These endpoints exist but return empty arrays, static data, or "not implemented"
 
 ---
 
-## Part 4: Product Roadmap Timeline (From Git History)
+## Part 4: Product Roadmap Timeline (January - December 2025)
 
-### Phase 0: Foundation (September 2025)
-
-**Business Value:** Platform architecture and configuration system
-
-**Key Deliverables:**
-- Initial project scaffolding
-- Core directory structure
-- Configuration overlay system
-- API/CLI scaffolding
-
-**Anchor Commit:** `2025-09-11` - Initial commit
+> **Note:** January through August 2025 represents founder-led architecture and prototype work. September onward is fully evidenced by git history.
 
 ---
 
-### Phase 1: Security Decision Automation (October 2025)
+### Phase 1: Problem Discovery & Reference Architecture (January - March 2025)
+
+**Business Value:** Deep understanding of the problem space and a validated technical approach
+
+**Key Activities:**
+- Interviewed security engineering and AppSec leads across multiple organizations
+- Mapped pain points: alert fatigue, inconsistent decisions, evidence gaps, tool sprawl
+- Defined the operating model: scanner-agnostic decision layer that sits on top of existing tools
+- Created reference architecture for the data model (findings, run IDs, evidence bundles)
+- Established API-first design principles with OpenAPI contracts
+- Selected deployment posture: on-premises, single-tenant, local-first operation
+- Conducted threat modeling for the platform itself
+
+**Key Deliverables:**
+- Reference architecture diagrams
+- Product requirements documents (PRDs)
+- Threat model documentation
+- Initial OpenAPI contract specifications
+- Competitive analysis of existing solutions
+
+**Customer Impact:** Clear product vision aligned with real security team needs
+
+---
+
+### Phase 2: Prototype & Feasibility Validation (April - June 2025)
+
+**Business Value:** Validated technical approach for the hardest problems before committing to production code
+
+**Key Activities:**
+- Built throwaway POCs for critical technical risks:
+  - Normalizing SARIF/SBOM/CVE into a common schema
+  - Experimenting with deterministic vs LLM-assisted decisioning
+  - Designing evidence bundle format (manifest + checksum + encryption)
+  - Testing integration feasibility with Jira/ServiceNow webhook payloads
+- Validated core capabilities:
+  - "Ingest and normalize" - can we handle diverse scanner outputs?
+  - "Produce consistent decisions" - can we reduce noise reliably?
+  - "Generate audit artifacts" - can we meet compliance requirements?
+- Iterated on data model based on prototype learnings
+
+**Key Deliverables:**
+- Working prototype demonstrating end-to-end flow
+- Validated normalization approach for SARIF, SBOM, CVE formats
+- Evidence bundle format specification
+- Integration feasibility report for ticketing systems
+
+**Customer Impact:** Confidence that the technical approach would work at scale
+
+---
+
+### Phase 3: Pre-Product Hardening (July - August 2025)
+
+**Business Value:** Transition from prototype to product-ready architecture
+
+**Key Activities:**
+- Defined module boundaries:
+  - Pipeline orchestrator (crosswalk, severity promotion, guardrails)
+  - Normalizers (SARIF, SBOM, CVE, VEX, CNAPP)
+  - Decision engine (multi-LLM consensus, policy overrides)
+  - Connectors (Jira, ServiceNow, Slack, Confluence)
+  - Evidence hub (compression, encryption, checksums)
+- Established operational requirements for on-prem deployment:
+  - Secrets management approach
+  - Offline mode concept for air-gapped environments
+  - Data retention policies
+- Selected storage approach: SQLite for single-tenant simplicity
+- Designed E2E test harness architecture
+- Created internal alpha deployment plan
+
+**Key Deliverables:**
+- Module architecture documentation
+- On-premises deployment requirements
+- E2E test strategy
+- Internal alpha milestone achieved
+
+**Customer Impact:** Production-ready architecture with clear module boundaries
+
+---
+
+### Phase 4: Platform Foundation (September 2025)
+
+**Business Value:** Production codebase with solid architectural foundation
+
+**Key Deliverables:**
+- Initial project scaffolding in production repository
+- Core directory structure
+- Configuration overlay system (`fixops.overlay.yml`)
+- API/CLI scaffolding
+- FastAPI application factory
+
+**Anchor Commit:** `2025-09-11` - Initial commit (repository inception)
+
+**Customer Impact:** Stable foundation for rapid feature development
+
+---
+
+### Phase 5: Security Decision Automation (October 2025)
 
 **Business Value:** Ingest scanner outputs, make automated decisions, generate evidence bundles
 
@@ -337,7 +428,7 @@ These endpoints exist but return empty arrays, static data, or "not implemented"
 
 ---
 
-### Phase 2: Operational Workflows & Integrations (December 1-20, 2025)
+### Phase 6: Operational Workflows & Integrations (December 1-20, 2025)
 
 **Business Value:** Connect decisions to action - ticketing, collaboration, remediation tracking
 
@@ -365,7 +456,7 @@ These endpoints exist but return empty arrays, static data, or "not implemented"
 
 ---
 
-### Phase 3: Enterprise-Grade Intelligence Layer (December 21-25, 2025)
+### Phase 7: Enterprise-Grade Intelligence Layer (December 21-25, 2025)
 
 **Business Value:** Reduce noise, scale decisioning, prove ROI
 
@@ -392,7 +483,7 @@ These endpoints exist but return empty arrays, static data, or "not implemented"
 
 ---
 
-### Phase 4: Assurance & Reliability (December 26-28, 2025)
+### Phase 8: Assurance & Reliability (December 26-28, 2025)
 
 **Business Value:** Prove it works - comprehensive testing and documentation
 
