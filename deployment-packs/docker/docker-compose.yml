@@ -94,9 +94,9 @@ services:
       # Performance
       UVICORN_WORKERS: ${WORKERS:-4}
       UVICORN_HOST: 0.0.0.0
-      UVICORN_PORT: 8001
+      UVICORN_PORT: 8000
     ports:
-      - "${BACKEND_PORT:-8001}:8001"
+      - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - evidence_data:/app/data/evidence
       - uploads_data:/app/data/uploads

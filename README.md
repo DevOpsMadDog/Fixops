@@ -575,6 +575,39 @@ When proprietary scanners aren't available, FixOps integrates with open-source t
 
 ## Deployment
 
+### Docker (Recommended for Local Development)
+
+All Docker configurations use **port 8000** for the API by default.
+
+**Quick Start:**
+```bash
+# Option 1: Use the setup wizard (generates .env and starts services)
+./scripts/setup-wizard.sh
+
+# Option 2: Manual setup with main docker-compose
+docker compose up -d
+
+# Verify it's running
+curl http://localhost:8000/health
+
+# Run the pipeline
+export FIXOPS_API_TOKEN="demo-token"
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
+```
+
+**Available Docker Configurations:**
+
+| File | Purpose | Token |
+|------|---------|-------|
+| `docker-compose.yml` | Main dev stack with sidecars | `demo-token` |
+| `docker-compose.demo.yml` | Demo with OpenTelemetry | (env var) |
+| `docker-compose.enterprise.yml` | Enterprise with ChromaDB | `enterprise-token` |
+| `docker-compose.vc-demo.yml` | VC demonstrations | `demo-token` |
+| `deployment-packs/docker/docker-compose.yml` | Production template | (env var) |
+
+For detailed Docker documentation, see [Docker Guide](docs/DOCKER.md).
+
 ### AWS
 ```bash
 ./scripts/deploy-aws.sh
@@ -583,12 +616,6 @@ When proprietary scanners aren't available, FixOps integrates with open-source t
 ### GCP
 ```bash
 ./scripts/deploy-gcp.sh
-```
-
-### Docker Compose
-```bash
-cp .env.example .env
-docker-compose -f deployment-packs/docker/docker-compose.yml up -d
 ```
 
 ---
@@ -612,6 +639,7 @@ pytest --cov=core --cov=apps
 
 | Document | Description |
 |----------|-------------|
+| [Docker Guide](docs/DOCKER.md) | Complete Docker and docker-compose documentation |
 | [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (322 endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
