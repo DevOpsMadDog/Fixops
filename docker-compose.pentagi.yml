@@ -1,5 +1,3 @@
-version: '3.8'
-
 # PentAGI Integration for FixOps
 # This compose file adds PentAGI micro-pentest capabilities to FixOps
 # Usage: docker compose -f docker-compose.yml -f docker-compose.pentagi.yml up -d
