@@ -299,6 +299,69 @@ These endpoints exist but return empty arrays, static data, or "not implemented"
 
 **Code Reference:** `apps/api/marketplace_router.py:34-74` - Demo fallback pattern
 
+### 3.6 Scanner Adapter Wiring (Code Exists, Not Exposed)
+
+Full adapter implementations exist in `core/adapters.py` (1,149 lines) but are **not wired to any API endpoints**.
+
+| Adapter | Code Location | What It Does | What's Needed |
+|---------|---------------|--------------|---------------|
+| `TrivyAdapter` | `core/adapters.py:460-614` | Parses Trivy JSON, handles vulnerabilities + misconfigurations | API route + CLI command |
+| `ProwlerAdapter` | `core/adapters.py:617-718` | Parses Prowler JSON/CSV, AWS CIS benchmarks | API route + CLI command |
+| `OWASPZAPAdapter` | `core/adapters.py:721-827` | Parses ZAP JSON or fetches from ZAP API | API route + CLI command |
+| `SemgrepAdapter` | `core/adapters.py:830-951` | Parses Semgrep SARIF/JSON output | API route + CLI command |
+| `CheckovAdapter` | `core/adapters.py:954-1077` | Parses Checkov JSON for IaC findings | API route + CLI command |
+| `AdapterRegistry` | `core/adapters.py:1080-1133` | Manages all adapters, `fetch_all()` method | Wire to pipeline |
+
+**Also includes:** `GitLabAdapter`, `AzureDevOpsAdapter`, `SnykAdapter` - all fully implemented.
+
+**Effort Estimate:** 2-3 days to wire all adapters to API endpoints
+
+**Suggested API Routes:**
+- `POST /api/v1/adapters/{adapter_name}/ingest` - Generic ingestion endpoint
+- `GET /api/v1/adapters` - List available adapters
+- `GET /api/v1/adapters/{adapter_name}/status` - Check adapter configuration
+
+### 3.7 Cross-Stage Correlation (Partial)
+
+The deduplication engine correlates findings within stages but does not track the full lifecycle.
+
+| Feature | Current State | What's Needed |
+|---------|---------------|---------------|
+| Finding correlation | Working (7 strategies) | None |
+| Lifecycle stage tracking | Not implemented | Add `lifecycle_stage` field to findings |
+| Design → Build correlation | Not implemented | Link design findings to SARIF results |
+| Build → Deploy correlation | Not implemented | Link SARIF to deployment artifacts |
+| Deploy → Runtime correlation | Not implemented | Link deployment to runtime events |
+
+**Code Reference:** `core/services/deduplication.py` - Add `lifecycle_stage` enum and cross-stage linking
+
+**Effort Estimate:** 1-2 weeks for full cross-stage correlation
+
+### 3.8 Runtime Event Ingestion (Not Implemented)
+
+No endpoint exists for ingesting runtime security events (WAF logs, exploit attempts, anomalies).
+
+| Feature | Current State | What's Needed |
+|---------|---------------|---------------|
+| Runtime event model | Not implemented | Define `RuntimeEvent` schema |
+| Event ingestion endpoint | Not implemented | `POST /api/v1/events/ingest` |
+| Event-to-finding correlation | Not implemented | Link runtime events to CVE findings |
+| Severity escalation | Not implemented | Escalate findings with active exploit attempts |
+
+**Effort Estimate:** 1 week for basic runtime event ingestion
+
+### 3.9 OSS Fallback Engine (Code Exists, Not Wired)
+
+Full OSS fallback engine exists but is not integrated into the pipeline.
+
+| Component | Code Location | What It Does | What's Needed |
+|-----------|---------------|--------------|---------------|
+| `OSSFallbackEngine` | `core/oss_fallback.py:58-377` | Manages proprietary-first, OSS fallback strategy | Wire to pipeline |
+| `FallbackStrategy` | `core/oss_fallback.py:17-23` | Enum: proprietary_first, oss_first, etc. | Config in overlay |
+| Tool parsers | `core/oss_fallback.py:273-319` | Parses Semgrep, Bandit output | Add more tool parsers |
+
+**Effort Estimate:** 3-5 days to wire into pipeline with config
+
 ---
 
 ## Part 4: Product Roadmap Timeline (January - December 2025)
@@ -845,6 +908,7 @@ Starting January 2, 2026, FixOps enforces **100% test coverage on all new and mo
 | 2026-01-02 | Devin | Initial document creation |
 | 2026-01-02 | Devin | Added Appendix B: Test Coverage Status with 18.95% baseline and "100% Always" policy |
 | 2026-01-03 | Devin | Added PentAGI Docker integration status; updated pending items |
+| 2026-01-03 | Devin | Added Part 3 sections 3.6-3.9: Scanner adapter wiring, cross-stage correlation, runtime events, OSS fallback |
 
 ---
 
