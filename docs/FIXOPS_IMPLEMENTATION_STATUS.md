@@ -901,7 +901,84 @@ Starting January 2, 2026, FixOps enforces **100% test coverage on all new and mo
 
 ---
 
-## Appendix D: Update Log
+## Appendix D: Pitch Deck Gap Analysis (AlDeci Rebrand)
+
+**Analysis Date:** January 3, 2026  
+**Source:** AlDeci Story Pitch Deck v10
+
+This section tracks the gap between marketing claims in the AlDeci pitch deck and actual implementation status. Items are categorized by implementation readiness to guide development prioritization.
+
+### Yellow Items: Partially Implemented (Scaffolded/Mocked)
+
+These features have code structure but require completion to match pitch deck claims.
+
+| Pitch Deck Claim | Current Reality | Gap | Effort Estimate | Priority |
+|------------------|-----------------|-----|-----------------|----------|
+| **67 CLI Commands** | 30 top-level commands exist | Subcommands may add more, but not 67 total | 1-2 weeks to add missing commands | Medium |
+| **Multi-LLM Consensus (≥85% agreement)** | Provider classes exist in `core/llm_providers.py`; consensus logic in `core/enhanced_decision.py` | `_call_llm()` in `core/pentagi_advanced.py` returns **mocked JSON responses** | 3-5 days to wire real LLM providers | **High** |
+| **Micro-Pentest Engine (SQLi, XSS, RCE sandbox)** | `core/exploit_generator.py` has exploit templates and types | LLM calls are mocked; no real sandbox execution environment | 2-3 weeks for real sandbox + LLM integration | **High** |
+| **"GPT-5, Claude-3, Gemini-2, Sentinel" 4-model consensus** | OpenAI, Anthropic, Gemini, Sentinel providers exist | "GPT-5" doesn't exist (marketing); Sentinel is threat intel, not a 4th LLM model | Clarify marketing vs. reality; wire actual models | Medium |
+
+**Code References for Yellow Items:**
+- Multi-LLM Consensus: `core/enhanced_decision.py:1-1280`, `core/llm_providers.py:1-660`
+- Mocked LLM calls: `core/pentagi_advanced.py:258-273` (hardcoded JSON responses)
+- Exploit Generator: `core/exploit_generator.py:102-508`
+- CLI Commands: `core/cli.py` (30 top-level commands)
+
+### Red Items: Not Implemented (Marketing/Roadmap)
+
+These features are claimed in the pitch deck but do not exist in the codebase.
+
+| Pitch Deck Claim | Current Reality | What's Needed | Effort Estimate | Priority |
+|------------------|-----------------|---------------|-----------------|----------|
+| **Cryptographically signed evidence (RSA-SHA256, SLSA v1)** | Evidence has checksums + Fernet encryption only | Implement RSA signing, SLSA v1 attestation format, signature verification | 2-3 weeks | **Critical** |
+| **7-year WORM-compliant retention** | SQLite storage with soft deletes | Implement WORM storage backend (S3 Object Lock, Azure Immutable Blob, or dedicated WORM appliance integration) | 3-4 weeks | **Critical** |
+| **30-minute time-to-value onboarding** | Requires LLM API keys, Docker setup, env configuration | Create automated setup wizard, pre-configured demo mode, one-click deployment | 2-3 weeks | High |
+| **SLSA v1 Provenance Chain** | No SLSA implementation | Implement SLSA provenance generation, in-toto attestations | 2-3 weeks | High |
+
+**Code References for Red Items:**
+- Current Evidence Implementation: `core/evidence.py:1-327` (compression, Fernet encryption, SHA256 checksums)
+- Enterprise Crypto Module (ready to wire): `fixops-enterprise/src/utils/crypto.py:1-724`
+- Legacy "Immutable" references (not production): `archive/enterprise_legacy/src/services/evidence_lake.py`
+
+### Implementation Roadmap for Gap Closure
+
+**Phase 1: Wire Real LLM Providers (Week 1-2)**
+1. Replace mocked `_call_llm()` in `core/pentagi_advanced.py` with actual provider calls
+2. Add error handling and fallback logic for provider failures
+3. Implement consensus threshold configuration (currently hardcoded)
+4. Add unit tests for consensus logic with mocked providers
+
+**Phase 2: Evidence Signing & SLSA (Week 3-5)**
+1. Wire `fixops-enterprise/src/utils/crypto.py` RSA signing to `core/evidence.py`
+2. Implement SLSA v1 provenance format for evidence bundles
+3. Add signature verification endpoint
+4. Create key management documentation
+
+**Phase 3: WORM Storage Integration (Week 6-8)**
+1. Abstract storage backend in `core/evidence.py`
+2. Implement S3 Object Lock adapter for AWS deployments
+3. Implement Azure Immutable Blob adapter for Azure deployments
+4. Add retention policy configuration to overlay
+
+**Phase 4: Micro-Pentest Sandbox (Week 9-12)**
+1. Design isolated sandbox architecture (Docker-in-Docker or VM-based)
+2. Implement safe payload execution with timeout and resource limits
+3. Wire real LLM calls for payload generation
+4. Add evidence capture for exploit verification
+
+### Metrics to Track
+
+| Metric | Current | Target | Measurement |
+|--------|---------|--------|-------------|
+| CLI Commands | 30 | 67 | `python -m core.cli --help \| grep -E "^    [a-z]" \| wc -l` |
+| LLM Providers Wired | 0 (mocked) | 4 | Count of providers with real API calls |
+| Evidence Signing | None | RSA-SHA256 + SLSA v1 | Signature verification test |
+| WORM Storage | None | S3 Object Lock | Retention policy enforcement test |
+
+---
+
+## Appendix E: Update Log
 
 | Date | Author | Changes |
 |------|--------|---------|
@@ -909,6 +986,7 @@ Starting January 2, 2026, FixOps enforces **100% test coverage on all new and mo
 | 2026-01-02 | Devin | Added Appendix B: Test Coverage Status with 18.95% baseline and "100% Always" policy |
 | 2026-01-03 | Devin | Added PentAGI Docker integration status; updated pending items |
 | 2026-01-03 | Devin | Added Part 3 sections 3.6-3.9: Scanner adapter wiring, cross-stage correlation, runtime events, OSS fallback |
+| 2026-01-03 | Devin | Added Appendix D: Pitch Deck Gap Analysis with Yellow (partially implemented) and Red (not implemented) items from AlDeci pitch deck v10 |
 
 ---
 
