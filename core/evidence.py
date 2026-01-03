@@ -53,8 +53,8 @@ except ImportError:
 
         _rsa_sign = _alt_rsa_sign  # pragma: no cover
         _rsa_verify = _alt_rsa_verify  # pragma: no cover
-    except ImportError:
-        pass  # RSA signing not available - pragma: no cover
+    except ImportError:  # pragma: no cover
+        pass  # RSA signing not available
 
 
 _SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
