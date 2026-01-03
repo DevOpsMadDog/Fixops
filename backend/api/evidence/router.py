@@ -25,11 +25,12 @@ except ImportError:
     try:
         import sys
 
-        sys.path.insert(
-            0,
+        # Use append instead of insert(0) to avoid shadowing repo root packages
+        # like services.graph when the enterprise path is searched first
+        sys.path.append(
             str(
                 Path(__file__).parent.parent.parent.parent / "fixops-enterprise" / "src"
-            ),
+            )
         )
         from utils.crypto import rsa_verify as _alt_rsa_verify
 
