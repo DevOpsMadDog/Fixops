@@ -33,8 +33,8 @@ jobs:
           pip install black==23.7.0 isort==5.12.0 flake8 pytest pytest-cov
       - name: Run format check
         run: |
-          black --check . --exclude archive/
-          isort --check-only . --skip archive
+          black --check . --exclude '(archive/|\.git/)'
+          isort --check-only . --skip archive --skip .git
       - name: Lint
         run: flake8
       - name: Test with Coverage (fail if below 18% baseline)
