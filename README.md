@@ -799,9 +799,6 @@ For detailed Docker documentation, see [Docker Guide](docs/DOCKER.md).
 
 # GCP deployment
 ./scripts/deploy-gcp.sh
-
-# Azure deployment
-./scripts/deploy-azure.sh
 ```
 
 ### Makefile Targets Reference
@@ -823,17 +820,21 @@ For detailed Docker documentation, see [Docker Guide](docs/DOCKER.md).
 
 ### Air-Gapped / Offline Deployment
 
-For environments without internet access:
+For environments without internet access, choose one of the following options:
+
+**Option A: Using Official Images**
+
+The official PentAGI images work offline but include VXControl Cloud SDK (which will fail gracefully without connectivity).
 
 ```bash
 # 1. Pre-pull all required images on a connected machine
 docker pull vxcontrol/pentagi:latest
-docker pull ankane/pgvector:latest
+docker pull vxcontrol/pgvector:latest
 docker pull vxcontrol/scraper:latest
 
 # 2. Save images to tar files
 docker save vxcontrol/pentagi:latest > pentagi.tar
-docker save ankane/pgvector:latest > pgvector.tar
+docker save vxcontrol/pgvector:latest > pgvector.tar
 docker save vxcontrol/scraper:latest > scraper.tar
 
 # 3. Transfer tar files to air-gapped environment
@@ -843,12 +844,36 @@ docker load < pentagi.tar
 docker load < pgvector.tar
 docker load < scraper.tar
 
-# 5. Use the fork image for no cloud dependencies
-export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
+# 5. Start FixOps with PentAGI
 make up-pentagi
 ```
 
-The [DevOpsMadDog/pentagi_fork](https://github.com/DevOpsMadDog/pentagi_fork) has VXControl Cloud SDK removed for fully offline operation with no phone-home behavior.
+**Option B: Using Fork Images (No Cloud SDK)**
+
+The [DevOpsMadDog/pentagi_fork](https://github.com/DevOpsMadDog/pentagi_fork) has VXControl Cloud SDK completely removed for fully offline operation with no phone-home behavior.
+
+```bash
+# 1. Pre-pull fork image on a connected machine
+docker pull ghcr.io/devopsmaddog/pentagi_fork:latest
+docker pull vxcontrol/pgvector:latest
+docker pull vxcontrol/scraper:latest
+
+# 2. Save images to tar files
+docker save ghcr.io/devopsmaddog/pentagi_fork:latest > pentagi-fork.tar
+docker save vxcontrol/pgvector:latest > pgvector.tar
+docker save vxcontrol/scraper:latest > scraper.tar
+
+# 3. Transfer tar files to air-gapped environment
+
+# 4. Load images on air-gapped machine
+docker load < pentagi-fork.tar
+docker load < pgvector.tar
+docker load < scraper.tar
+
+# 5. Start FixOps with fork image
+export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
+make up-pentagi
+```
 
 ---
 

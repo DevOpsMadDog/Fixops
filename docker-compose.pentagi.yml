@@ -48,10 +48,10 @@ services:
       - INSTALLATION_ID=${PENTAGI_INSTALLATION_ID:-}
       - LICENSE_KEY=${PENTAGI_LICENSE_KEY:-}
       
-      # LLM Provider Configuration (reuse FixOps keys)
-      - OPEN_AI_KEY=${OPENAI_API_KEY:-}
+      # LLM Provider Configuration
+      - OPEN_AI_KEY=${OPEN_AI_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - GEMINI_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       
       # Database
       - DATABASE_URL=postgres://${PENTAGI_POSTGRES_USER:-pentagi}:${PENTAGI_POSTGRES_PASSWORD:-pentagi}@pentagi-db:5432/${PENTAGI_POSTGRES_DB:-pentagidb}?sslmode=disable
@@ -61,8 +61,8 @@ services:
       
       # Docker configuration for sandboxed execution
       - DOCKER_HOST=${DOCKER_HOST:-unix:///var/run/docker.sock}
-      - DOCKER_INSIDE=${PENTAGI_DOCKER_INSIDE:-false}
-      - DOCKER_NET_ADMIN=${PENTAGI_DOCKER_NET_ADMIN:-false}
+      - DOCKER_INSIDE=${DOCKER_INSIDE:-true}
+      - DOCKER_NET_ADMIN=${DOCKER_NET_ADMIN:-false}
       
       # Search providers (optional)
       - DUCKDUCKGO_ENABLED=${PENTAGI_DUCKDUCKGO_ENABLED:-true}
