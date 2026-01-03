@@ -40,6 +40,9 @@ This document consolidates all planned features and "What's Needed" items into a
 | Background Job Store | BackgroundTasks pattern used | Persistent job store (SQLite table) | 1-2 weeks | `apps/api/bulk_router.py` |
 | IaC Scanning | Returns "scanning" stub | Integrate checkov/tfsec | 1 week | `apps/api/iac_router.py:122-130` |
 | Secrets Scanning | Returns "scanning" stub | Integrate gitleaks/trufflehog | 1 week | `apps/api/secrets_router.py:116-124` |
+| **Design Intake: Gliffy → JSON** | Not implemented | Parser for Gliffy JSON export to FixOps schema | 3-5 days | New module |
+| **Design Intake: Visio → JSON** | Not implemented | Parser for Visio export to FixOps schema | 3-5 days | New module |
+| **Design Risk Simulation** | Not implemented | `POST /api/v1/design/simulate-risk` endpoint | 2-3 days | New endpoint |
 
 ### Medium Priority (Feature Gaps)
 
@@ -94,6 +97,27 @@ This document consolidates all planned features and "What's Needed" items into a
 - [ ] Integrate gitleaks/trufflehog for secrets scanning
 - [ ] Design isolated sandbox architecture
 - [ ] Implement safe payload execution
+
+---
+
+## Connectors & Integrations (Implemented)
+
+These connectors are fully implemented and production-ready:
+
+| Connector | Status | Features | Code Reference |
+|-----------|--------|----------|----------------|
+| **Jira** | Complete | Bidirectional sync, HMAC signature verification, status mapping, drift detection | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` |
+| **ServiceNow** | Complete | Webhook receiver, state mapping, incident sync | `apps/api/webhooks_router.py:353-433` |
+| **GitLab** | Complete | Issue sync, label-to-status mapping, webhook receiver | `apps/api/webhooks_router.py:1110-1227` |
+| **Azure DevOps** | Complete | Work item sync, state mapping, webhook receiver | `apps/api/webhooks_router.py:1261-1357` |
+| **Slack** | Complete | Notifications via incoming webhook | `core/connectors.py:213-248` |
+| **Confluence** | Complete | Page publishing for audit evidence | `core/connectors.py:127-210` |
+
+**Webhook Management Features:**
+- Integration mappings with drift detection
+- Outbox pattern with retry logic (max 3 retries)
+- Status sync between FixOps and external systems
+- HMAC signature verification for security
 
 ---
 

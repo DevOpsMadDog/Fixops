@@ -400,8 +400,10 @@ Full OSS fallback engine exists but is not integrated into the pipeline.
 | **Jul-Aug** | Pre-Product Hardening | Module boundaries (pipeline, normalizers, decision engine, connectors, evidence hub), SQLite storage, E2E test strategy | - | Complete |
 | **Sep** | Platform Foundation | FastAPI app factory, overlay config system, CLI scaffolding, 276 API endpoints across 25 routers | - | Complete |
 | **Oct** | Decision Automation | Pipeline orchestration, severity promotion (KEV/EPSS), evidence bundle generation, demo orchestrator, scanner comparison | - | Complete |
-| **Dec** | Enterprise Intelligence | Deduplication engine (1,158 lines), reachability analysis (810 lines), PentAGI integration, webhooks (Jira/ServiceNow/GitLab), collaboration system | - | Complete |
+| **Dec** | Enterprise Intelligence | Deduplication engine (1,158 lines), reachability analysis (810 lines), PentAGI integration, collaboration system | - | Complete |
+| **Dec** | Connectors & Integrations | Jira (bidirectional sync, HMAC verification), ServiceNow (webhook receiver), GitLab (issue sync), Azure DevOps (work items), Slack (notifications), Confluence (page publishing) | - | Complete |
 | **Next** | Governance & Operability | RBAC middleware exists | Evidence signing (wire RSA), WORM storage, real LLM providers, micro-pentest sandbox | In Progress |
+| **Next** | Design Intake Automation | Design CSV ingestion exists | Gliffy/Visio → JSON extraction, micro-pentest risk simulation, overlay toggle | Planned |
 
 ---
 
@@ -807,6 +809,70 @@ def evaluate_rotation_health(provider, max_age_days) -> Dict[str, Any]
 
 ---
 
+### 5H: Design Intake Automation (Diagrams → Risk)
+
+**Business Value:** Automatically extract security-relevant components from architecture diagrams and assess risk before code is written
+
+**Timeline:** 3-4 weeks
+
+**What Already Exists:**
+- Design CSV ingestion with component/subcomponent/owner/data_class fields (`inputs/APP*/design.csv`)
+- Severity promotion engine with scoring rules (`core/severity_promotion.py`)
+- Micro-pentest integration with PentAGI (`integrations/pentagi_decision_integration.py`)
+- Overlay configuration system for feature toggles
+
+**Code References:**
+- Design CSV format: `inputs/APP1/design.csv` (component, subcomponent, owner, data_class, description, control_scope)
+- Scoring engine: `core/severity_promotion.py:87-197` (SeverityPromotionEngine)
+- PentAGI integration: `integrations/pentagi_decision_integration.py:15-277`
+
+**Two Methods for Design Input:**
+
+**Method 1: Manual Template & CSV Load**
+- Use existing CSV format with columns: component, subcomponent, owner, data_class, description, control_scope
+- Upload via `/inputs/design` endpoint
+- Automatically parsed and fed into risk assessment pipeline
+
+**Method 2: Diagram Extraction → Micro-Pentest Risk Simulation**
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ Gliffy/Visio│ ──> │ JSON Export │ ──> │ Micro-Pentest│ ──> │ Risk Score  │
+│ Diagram     │     │ (shapes,    │     │ Simulator   │     │ + Evidence  │
+│             │     │  connections)│     │             │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+```
+
+**What's Needed:**
+
+| Component | Status | What's Needed | Effort |
+|-----------|--------|---------------|--------|
+| Gliffy → JSON | External | Gliffy exports to JSON natively; need parser for FixOps schema | 3-5 days |
+| Visio → JSON | External | Use `python-pptx` or Visio API; need parser for FixOps schema | 3-5 days |
+| Design Model Normalizer | Not started | Convert diagram JSON to canonical `DesignModel` schema | 3-5 days |
+| Risk Simulation Endpoint | Not started | `POST /api/v1/design/simulate-risk` → calls micro-pentest | 2-3 days |
+| Overlay Toggle | Not started | `modules.design_intake.micro_pentest_enabled: true/false` | 1 day |
+| Evidence Storage | Exists | Store results as micro-pentest run artifact | Integration only |
+
+**Overlay Configuration (Proposed):**
+```yaml
+modules:
+  design_intake:
+    enabled: true
+    micro_pentest_enabled: false  # Only run micro-pentests when explicitly enabled
+    scoring_method: "severity_promotion"  # Use existing scoring engine
+    supported_formats:
+      - csv
+      - gliffy_json
+      - visio_json
+```
+
+**Risk Scoring Integration:**
+- Use existing `SeverityPromotionEngine` for base scoring
+- Enhance with design-specific rules (data classification, control scope, exposure)
+- Store results as evidence bundle with full audit trail
+
+---
+
 ## Timeline Summary
 
 | Phase | Original Estimate | Revised Estimate | Reason |
@@ -1022,6 +1088,8 @@ These features are claimed in the pitch deck but do not exist in the codebase.
 | 2026-01-03 | Devin | Added PentAGI Docker integration status; updated pending items |
 | 2026-01-03 | Devin | Added Part 3 sections 3.6-3.9: Scanner adapter wiring, cross-stage correlation, runtime events, OSS fallback |
 | 2026-01-03 | Devin | Added Appendix D: Pitch Deck Gap Analysis with Yellow (partially implemented) and Red (not implemented) items from AlDeci pitch deck v10 |
+| 2026-01-03 | Devin | Added visual timeline bar with detailed phase descriptions; added Connectors & Integrations row (Jira, ServiceNow, GitLab, Azure DevOps, Slack, Confluence) |
+| 2026-01-03 | Devin | Added 5H: Design Intake Automation milestone (Gliffy/Visio → JSON → micro-pentest risk simulation) |
 
 ---
 
