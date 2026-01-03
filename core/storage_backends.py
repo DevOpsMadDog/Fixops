@@ -941,22 +941,28 @@ def create_storage_backend(
     Raises:
         ConfigurationError: If backend type is unknown or misconfigured
     """
-    backend_type = backend_type or os.getenv("FIXOPS_STORAGE_BACKEND", "local")
-    backend_type = backend_type.lower()
+    resolved_backend_type: str = (
+        backend_type or os.getenv("FIXOPS_STORAGE_BACKEND", "local") or "local"
+    )
+    resolved_backend_type = resolved_backend_type.lower()
 
-    if backend_type == "local":
-        base_path = kwargs.get("base_path") or os.getenv(
-            "FIXOPS_EVIDENCE_PATH", "data/evidence"
+    if resolved_backend_type == "local":
+        base_path: str = str(
+            kwargs.get("base_path")
+            or os.getenv("FIXOPS_EVIDENCE_PATH", "data/evidence")
+            or "data/evidence"
         )
         return LocalFileBackend(
             base_path, **{k: v for k, v in kwargs.items() if k != "base_path"}
         )
-    elif backend_type == "s3":
+    elif resolved_backend_type == "s3":
         return S3ObjectLockBackend(**kwargs)
-    elif backend_type == "azure":
+    elif resolved_backend_type == "azure":
         return AzureImmutableBlobBackend(**kwargs)
     else:
-        raise ConfigurationError(f"Unknown storage backend type: {backend_type}")
+        raise ConfigurationError(
+            f"Unknown storage backend type: {resolved_backend_type}"
+        )
 
 
 __all__ = [
