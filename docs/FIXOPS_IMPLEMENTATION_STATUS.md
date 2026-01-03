@@ -1090,6 +1090,87 @@ These features are claimed in the pitch deck but do not exist in the codebase.
 | 2026-01-03 | Devin | Added Appendix D: Pitch Deck Gap Analysis with Yellow (partially implemented) and Red (not implemented) items from AlDeci pitch deck v10 |
 | 2026-01-03 | Devin | Added visual timeline bar with detailed phase descriptions; added Connectors & Integrations row (Jira, ServiceNow, GitLab, Azure DevOps, Slack, Confluence) |
 | 2026-01-03 | Devin | Added 5H: Design Intake Automation milestone (Gliffy/Visio → JSON → micro-pentest risk simulation) |
+| 2026-01-03 | Devin | Added Appendix F: Persona Tool Coverage Matrix - maps pitch deck persona tools to FixOps integration status (12 supported, 3 partial, 8 gaps) |
+
+---
+
+## Appendix F: Persona Tool Coverage Matrix
+
+**Analysis Date:** January 3, 2026  
+**Source:** AlDeci Pitch Deck v10 - Persona Analysis (Page 10)
+
+This section maps tools mentioned in the pitch deck persona analysis to FixOps integration status.
+
+### Integration Types
+
+| Type | Description |
+|------|-------------|
+| **Native Adapter** | Dedicated parser/connector in `core/adapters.py` |
+| **SARIF Ingestion** | Tool exports SARIF; FixOps ingests via `/inputs/sarif` |
+| **JSON Converter** | FixOps converts tool's native JSON to SARIF |
+| **Webhook Receiver** | Bidirectional sync via `apps/api/webhooks_router.py` |
+| **Sample Exists** | Demo/sample file exists in `samples/` |
+| **Gap** | Not currently supported |
+
+### Tool Coverage by Persona
+
+| Tool | Persona(s) | Integration Type | Status | Code Reference |
+|------|------------|------------------|--------|----------------|
+| **Snyk** | VM Analyst, App Lead | JSON Converter + Native Adapter | Complete | `apps/api/normalizers.py:226-326`, `core/adapters.py` |
+| **Trivy** | VM Engineer | Native Adapter | Complete | `core/adapters.py:460-614` |
+| **Semgrep** | Security Engineer | Native Adapter + SARIF | Complete | `core/adapters.py:830-951` |
+| **Checkov** | DevOps Engineer | Native Adapter | Complete | `core/adapters.py:954-1077` |
+| **OWASP ZAP** | VA Analyst | Native Adapter | Complete | `core/adapters.py:721-827` |
+| **Prowler** | Cloud Security | Native Adapter | Complete | `core/adapters.py:617-718` |
+| **Jira** | All Personas | Webhook + Connector | Complete | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` |
+| **ServiceNow** | VM Manager, GRC | Webhook Receiver | Complete | `apps/api/webhooks_router.py:353-433` |
+| **GitLab** | Security Engineer | Native Adapter + Webhook | Complete | `core/adapters.py`, `apps/api/webhooks_router.py:1110-1227` |
+| **Azure DevOps** | DevOps Engineer | Native Adapter + Webhook | Complete | `core/adapters.py`, `apps/api/webhooks_router.py:1261-1357` |
+| **Wiz** | CNAPP, Cloud | Sample Exists | Partial | `samples/wiz_sample.json`, `samples/api-examples/demo-scenarios/scans/cloud/wiz-all-apps.json` |
+| **Checkmarx** | SAST, App Lead | Sample Exists | Partial | `samples/api-examples/demo-scenarios/scans/sast/checkmarx-*.json` |
+| **Burp Suite** | VA Analyst | Sample Exists | Partial | `samples/api-examples/demo-scenarios/scans/dast/burp-healthcare-api.json` |
+| **GitHub Advanced Security** | Security Engineer | SARIF Ingestion | Supported | Exports SARIF natively; use `/inputs/sarif` |
+| **Nessus** | VM Analyst, VA Analyst | Gap | Not Implemented | Needs adapter for Nessus XML/JSON |
+| **Qualys** | VM Analyst, VM Specialist | Gap | Not Implemented | Needs adapter for Qualys API/XML |
+| **Rapid7** | VM Analyst | Gap | Not Implemented | Needs adapter for Rapid7 InsightVM |
+| **Tenable.io** | VM Engineer | Gap | Not Implemented | Needs adapter for Tenable API |
+| **Nmap** | VA Analyst | Gap | Not Implemented | Needs adapter for Nmap XML |
+| **OpenVAS** | VA Analyst | Gap | Not Implemented | Needs adapter for OpenVAS reports |
+| **Splunk** | VM Engineer, SOC | Gap | Not Implemented | Needs SIEM event ingestion |
+| **Apiiro** | ASPM | Gap | Not Implemented | Needs adapter for Apiiro API |
+
+### Gap Summary
+
+**Fully Supported (12 tools):** Snyk, Trivy, Semgrep, Checkov, OWASP ZAP, Prowler, Jira, ServiceNow, GitLab, Azure DevOps, GitHub Advanced Security, Slack, Confluence
+
+**Partially Supported (3 tools):** Wiz, Checkmarx, Burp Suite (samples exist, need formal adapter)
+
+**Not Supported - Gaps (8 tools):** Nessus, Qualys, Rapid7, Tenable.io, Nmap, OpenVAS, Splunk, Apiiro
+
+### Recommended Adapter Priorities
+
+| Priority | Tool | Reason | Effort |
+|----------|------|--------|--------|
+| **High** | Nessus | Most common enterprise VM scanner | 1-2 weeks |
+| **High** | Qualys | Enterprise VM + compliance | 1-2 weeks |
+| **High** | Tenable.io | Modern cloud VM platform | 1-2 weeks |
+| **Medium** | Wiz | Formalize existing samples | 3-5 days |
+| **Medium** | Checkmarx | Formalize existing samples | 3-5 days |
+| **Medium** | Burp Suite | Formalize existing samples | 3-5 days |
+| **Low** | Rapid7 | Less common in target market | 1 week |
+| **Low** | Nmap | Network scanning (niche use case) | 3-5 days |
+| **Low** | OpenVAS | OSS alternative to Nessus | 3-5 days |
+| **Low** | Splunk | SIEM integration (complex) | 2-3 weeks |
+| **Low** | Apiiro | Niche ASPM tool | 1 week |
+
+### SIEM/EDR Integration Gap
+
+The pitch deck mentions SOC analysts using "SIEM, EDR, VM Scanners" but FixOps currently lacks:
+- Runtime event ingestion endpoint (documented in Part 3.8)
+- SIEM log parsing (Splunk, Elastic, etc.)
+- EDR alert correlation (CrowdStrike, SentinelOne, etc.)
+
+This is a significant gap for the "Security Analyst (SOC + VM)" persona.
 
 ---
 

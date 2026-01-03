@@ -145,6 +145,30 @@ GET  /api/v1/adapters/{adapter_name}/status
 
 ---
 
+## Persona Tool Gaps (From Pitch Deck)
+
+These tools are mentioned in the pitch deck persona analysis but lack native FixOps integration:
+
+| Tool | Persona | Gap Type | Priority | Effort |
+|------|---------|----------|----------|--------|
+| **Nessus** | VM Analyst, VA Analyst | No adapter | High | 1-2 weeks |
+| **Qualys** | VM Analyst, VM Specialist | No adapter | High | 1-2 weeks |
+| **Tenable.io** | VM Engineer | No adapter | High | 1-2 weeks |
+| **Wiz** | CNAPP, Cloud | Sample only, no formal adapter | Medium | 3-5 days |
+| **Checkmarx** | SAST, App Lead | Sample only, no formal adapter | Medium | 3-5 days |
+| **Burp Suite** | VA Analyst | Sample only, no formal adapter | Medium | 3-5 days |
+| **Rapid7** | VM Analyst | No adapter | Low | 1 week |
+| **Nmap** | VA Analyst | No adapter | Low | 3-5 days |
+| **OpenVAS** | VA Analyst | No adapter | Low | 3-5 days |
+| **Splunk** | VM Engineer, SOC | No SIEM integration | Low | 2-3 weeks |
+| **Apiiro** | ASPM | No adapter | Low | 1 week |
+
+**SIEM/EDR Gap:** SOC analysts need runtime event ingestion, SIEM log parsing, and EDR alert correlation - none currently implemented.
+
+**Full analysis:** See `FIXOPS_IMPLEMENTATION_STATUS.md` Appendix F: Persona Tool Coverage Matrix
+
+---
+
 ## Metrics Dashboard
 
 | Metric | Current | Target | How to Measure |
