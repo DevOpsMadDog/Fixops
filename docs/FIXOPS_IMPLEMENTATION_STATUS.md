@@ -368,6 +368,41 @@ Full OSS fallback engine exists but is not integrated into the pipeline.
 
 > **Note:** January through August 2025 represents founder-led architecture and prototype work. September onward is fully evidenced by git history.
 
+### Visual Timeline
+
+```
+[Jan-Mar] ────────> [Apr-Jun] ────────> [Jul-Aug] ────────> [Sep] ────────> [Oct] ────────> [Dec] ────────> [Next]
+    │                   │                   │                 │               │               │               │
+ PROBLEM             PROTOTYPE          PRE-PRODUCT       PLATFORM        DECISION       ENTERPRISE      GOVERNANCE
+ DISCOVERY &         & FEASIBILITY      HARDENING         FOUNDATION      AUTOMATION     INTELLIGENCE    & OPERABILITY
+ ARCHITECTURE        VALIDATION
+    │                   │                   │                 │               │               │               │
+    ▼                   ▼                   ▼                 ▼               ▼               ▼               ▼
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ • Customer  │  │ • SARIF/SBOM│  │ • Module    │  │ • FastAPI   │  │ • Pipeline  │  │ • Dedup     │  │ • RBAC      │
+│   interviews│  │   normalizer│  │   boundaries│  │   factory   │  │   orchestr. │  │   engine    │  │ • Evidence  │
+│ • Pain point│  │ • Evidence  │  │ • SQLite    │  │ • Overlay   │  │ • Severity  │  │ • Webhooks  │  │   signing   │
+│   mapping   │  │   bundle POC│  │   storage   │  │   config    │  │   promotion │  │ • Reach-    │  │ • WORM      │
+│ • Reference │  │ • Jira/SNOW │  │ • E2E test  │  │ • CLI       │  │ • Demo      │  │   ability   │  │   storage   │
+│   architect.│  │   feasibility│  │   strategy  │  │   scaffold  │  │   system    │  │ • PentAGI   │  │ • LLM wire  │
+│ • API-first │  │ • LLM vs    │  │ • Offline   │  │ • 276 API   │  │ • KEV/EPSS  │  │ • Collab    │  │ • Sandbox   │
+│   design    │  │   determin. │  │   mode plan │  │   endpoints │  │   feeds     │  │   system    │  │   execution │
+└─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
+     DONE            DONE            DONE            DONE            DONE            DONE           IN PROGRESS
+```
+
+### Layer Summary
+
+| Phase | Layer | What We Built | What's Still Needed | Status |
+|-------|-------|---------------|---------------------|--------|
+| **Jan-Mar** | Problem Discovery & Architecture | Reference architecture, PRDs, threat model, OpenAPI contracts, competitive analysis | - | Complete |
+| **Apr-Jun** | Prototype & Feasibility | SARIF/SBOM/CVE normalizers, evidence bundle format, Jira webhook POC, LLM vs deterministic experiments | - | Complete |
+| **Jul-Aug** | Pre-Product Hardening | Module boundaries (pipeline, normalizers, decision engine, connectors, evidence hub), SQLite storage, E2E test strategy | - | Complete |
+| **Sep** | Platform Foundation | FastAPI app factory, overlay config system, CLI scaffolding, 276 API endpoints across 25 routers | - | Complete |
+| **Oct** | Decision Automation | Pipeline orchestration, severity promotion (KEV/EPSS), evidence bundle generation, demo orchestrator, scanner comparison | - | Complete |
+| **Dec** | Enterprise Intelligence | Deduplication engine (1,158 lines), reachability analysis (810 lines), PentAGI integration, webhooks (Jira/ServiceNow/GitLab), collaboration system | - | Complete |
+| **Next** | Governance & Operability | RBAC middleware exists | Evidence signing (wire RSA), WORM storage, real LLM providers, micro-pentest sandbox | In Progress |
+
 ---
 
 ### Phase 1: Problem Discovery & Reference Architecture (January - March 2025)
