@@ -39,9 +39,11 @@ except ImportError:
     try:
         import sys
 
-        sys.path.insert(
-            0, str(Path(__file__).parent.parent / "fixops-enterprise" / "src")
+        enterprise_path = str(
+            Path(__file__).parent.parent / "fixops-enterprise" / "src"
         )
+        if enterprise_path not in sys.path:
+            sys.path.append(enterprise_path)
         from utils.crypto import rsa_sign as _alt_rsa_sign
         from utils.crypto import rsa_verify as _alt_rsa_verify
 

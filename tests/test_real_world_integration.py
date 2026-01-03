@@ -358,15 +358,21 @@ class TestRealWorldCLIIntegration:
             "/tmp/real_world_pipeline_output.json",
         ]
 
+        # Get the repo root directory for PYTHONPATH
+        repo_root = Path(__file__).parent.parent
+
         env = os.environ.copy()
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
         env["FIXOPS_API_TOKEN"] = API_TOKEN
+        # Ensure the repo root is in PYTHONPATH so services package can be found
+        env["PYTHONPATH"] = str(repo_root)
 
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             env=env,
+            cwd=str(repo_root),
             timeout=120,
         )
 
@@ -401,10 +407,15 @@ class TestRealWorldAPIServerIntegration:
             s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
 
+        # Get the repo root directory for PYTHONPATH
+        repo_root = Path(__file__).parent.parent
+
         env = os.environ.copy()
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
         env["FIXOPS_API_TOKEN"] = API_TOKEN
         env["FIXOPS_MODE"] = "demo"
+        # Ensure the repo root is in PYTHONPATH so services package can be found
+        env["PYTHONPATH"] = str(repo_root)
 
         # Start server - use DEVNULL to avoid unclosed pipe warnings
         # (we don't need to capture output for this integration test)
@@ -419,6 +430,7 @@ class TestRealWorldAPIServerIntegration:
                 str(port),
             ],
             env=env,
+            cwd=str(repo_root),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )

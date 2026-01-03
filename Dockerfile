@@ -95,6 +95,8 @@ ENV FIXOPS_API_URL=http://localhost:8000
 ENV PYTHONUNBUFFERED=1
 ENV FIXOPS_DISABLE_TELEMETRY=1
 ENV TERM=xterm-256color
+# Ensure /app is on Python's module search path for local packages
+ENV PYTHONPATH=/app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
