@@ -226,6 +226,7 @@ These features are fully implemented but require API keys, tokens, or network ac
 | **Multi-LLM Consensus** | `/api/v1/enhanced/*` | OpenAI/Anthropic/Gemini API keys | `core/llm_providers.py` (660 lines) |
 | **Webhook Integrations** | `/api/v1/webhooks/*` | Webhook secrets + incoming webhooks | `apps/api/webhooks_router.py` (1,580 lines) |
 | **Pentagi Integration** | `/api/v1/pentagi/*` | Pentagi service endpoint | `apps/api/pentagi_router_enhanced.py` (620 lines) |
+| **Pentagi Docker Layer** | N/A (Docker Compose) | `docker-compose.pentagi.yml` overlay | See `docs/PENTAGI_INTEGRATION.md` |
 | **Reachability Analysis** | `/api/v1/reachability/*` | Git clone access to target repos | `risk/reachability/analyzer.py` (810 lines) |
 | **Notification Delivery** | `/api/v1/collaboration/notifications/*/deliver` | Slack/email credentials | `core/connectors.py` |
 | **Vulnerability Feeds** | `/api/v1/feeds/*` | Network access for NVD/CISA KEV | `data/feeds/` |
@@ -843,6 +844,7 @@ Starting January 2, 2026, FixOps enforces **100% test coverage on all new and mo
 |------|--------|---------|
 | 2026-01-02 | Devin | Initial document creation |
 | 2026-01-02 | Devin | Added Appendix B: Test Coverage Status with 18.95% baseline and "100% Always" policy |
+| 2026-01-03 | Devin | Added PentAGI Docker integration status; updated pending items |
 
 ---
 
