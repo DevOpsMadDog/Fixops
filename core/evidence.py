@@ -2,24 +2,53 @@
 
 from __future__ import annotations
 
+import base64
 import gzip
 import hashlib
 import json
+import logging
 import os
 import re
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 from core.configuration import OverlayConfig
 from core.paths import ensure_secure_directory
 from fixops.utils.paths import resolve_within_root
 
+logger = logging.getLogger(__name__)
+
 try:  # Optional dependency used when regulated tenants request encryption
     from cryptography.fernet import Fernet
 except Exception:  # pragma: no cover - cryptography is optional
     Fernet = None  # type: ignore[misc,assignment,import]
+
+# RSA signing functions - optional enterprise feature
+_rsa_sign: Optional[Callable[[bytes], Tuple[bytes, str]]] = None
+_rsa_verify: Optional[Callable[[bytes, bytes, str], bool]] = None
+
+try:
+    from fixops_enterprise.src.utils.crypto import rsa_sign as _enterprise_rsa_sign
+    from fixops_enterprise.src.utils.crypto import rsa_verify as _enterprise_rsa_verify
+
+    _rsa_sign = _enterprise_rsa_sign
+    _rsa_verify = _enterprise_rsa_verify
+except ImportError:
+    try:
+        import sys
+
+        sys.path.insert(
+            0, str(Path(__file__).parent.parent / "fixops-enterprise" / "src")
+        )
+        from utils.crypto import rsa_sign as _alt_rsa_sign
+        from utils.crypto import rsa_verify as _alt_rsa_verify
+
+        _rsa_sign = _alt_rsa_sign
+        _rsa_verify = _alt_rsa_verify
+    except ImportError:
+        pass  # RSA signing not available
 
 
 _SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -139,6 +168,34 @@ class EvidenceHub:
             self.retention_days = int(retention_value)
         except (TypeError, ValueError):
             self.retention_days = 2555
+
+        sign_flag = limits.get("sign") if isinstance(limits, Mapping) else False
+        try:
+            sign_flag = overlay.flag_provider.bool(
+                "fixops.feature.evidence.signing", sign_flag
+            )
+        except Exception:
+            pass
+
+        self.sign_bundles = bool(sign_flag)
+        if self.sign_bundles and _rsa_sign is None:
+            mode = str(getattr(overlay, "mode", "production") or "production").lower()
+            is_ci_env = (
+                os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+            )
+            if mode in ("demo", "test", "ci", "vc-demo") or is_ci_env:
+                logger.warning(
+                    "Evidence signing requested but RSA signing module not available. "
+                    f"Running in mode={mode} (CI={is_ci_env}) - disabling signing. "
+                    "Install fixops-enterprise package for production deployments."
+                )
+                self.sign_bundles = False
+            else:
+                logger.warning(
+                    "Evidence signing requested but RSA signing module not available. "
+                    "Install fixops-enterprise package to enable RSA-SHA256 signing."
+                )
+                self.sign_bundles = False
 
     def _base_directory(self) -> Path:
         directory = self.overlay.data_directories.get("evidence_dir")
@@ -271,7 +328,32 @@ class EvidenceHub:
         bundle_hash = hashlib.sha256(final_bytes).hexdigest()
         _atomic_write(final_path, final_bytes)
 
-        manifest = {
+        signed = False
+        signature_b64: Optional[str] = None
+        fingerprint: Optional[str] = None
+        signed_at: Optional[str] = None
+
+        if self.sign_bundles and _rsa_sign is not None:
+            try:
+                signature_bytes, fingerprint = _rsa_sign(final_bytes)
+                signature_b64 = base64.b64encode(signature_bytes).decode("utf-8")
+                signed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                signed = True
+                logger.info(
+                    "Evidence bundle signed with RSA-SHA256",
+                    extra={
+                        "run_id": run_id,
+                        "fingerprint": fingerprint,
+                        "signed_at": signed_at,
+                    },
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to sign evidence bundle: {exc}. "
+                    "Bundle will be persisted without signature."
+                )
+
+        manifest: Dict[str, Any] = {
             "run_id": run_id,
             "mode": self.overlay.mode,
             "bundle": str(final_path),
@@ -285,12 +367,20 @@ class EvidenceHub:
             "sha256": bundle_hash,
             "retention_days": self.retention_days,
         }
+
+        if signed:
+            manifest["signed"] = True
+            manifest["signature"] = signature_b64
+            manifest["fingerprint"] = fingerprint
+            manifest["signed_at"] = signed_at
+            manifest["signature_algorithm"] = "RSA-SHA256"
+
         manifest_path = resolve_within_root(base_dir, "manifest.json")
         manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
         _atomic_write(manifest_path, manifest_bytes)
         self._record_audit_entry(run_id, final_path, bundle_hash)
 
-        return {
+        result: Dict[str, Any] = {
             "bundle_id": run_id,
             "directory": str(base_dir),
             "files": {
@@ -303,6 +393,13 @@ class EvidenceHub:
             "sha256": bundle_hash,
             "retention_days": self.retention_days,
         }
+
+        if signed:
+            result["signed"] = True
+            result["fingerprint"] = fingerprint
+            result["signed_at"] = signed_at
+
+        return result
 
     def _record_audit_entry(
         self, run_id: str, bundle_path: Path, checksum: str

@@ -38,7 +38,9 @@ FixOps is designed for **single-tenant, on-premises deployment**. This means:
 | **Analytics & ROI** | Production Ready | Dashboard, trends, MTTR metrics |
 | **Deduplication** | Production Ready | Correlation, fingerprinting, baseline comparison |
 | **RBAC** | In Progress | Role model exists, middleware needed |
-| **Evidence Signing** | Integration Pending | Crypto module complete, wiring needed |
+| **Evidence Signing** | **Production Ready** | RSA-SHA256 signing wired to EvidenceHub |
+| **SLSA v1 Provenance** | **Production Ready** | In-toto attestation format with signing |
+| **Evidence Verification** | **Production Ready** | POST /api/v1/evidence/verify endpoint |
 
 ---
 
@@ -71,7 +73,7 @@ TIMELINE BAR (Jan - Dec 2025):
 - 12-month development cycle from ideation to production-ready
 - 286/288 OpenAPI operations have handlers (99.3% coverage)
 - 100% E2E test pass rate achieved
-- Evidence bundles: checksum + encryption today; signing integration next
+- Evidence bundles: checksum + encryption + RSA-SHA256 signing + SLSA v1 provenance
 
 **Deployment:** On-premises, single-tenant, local-first operation
 
@@ -203,17 +205,20 @@ SQLite-backed collaboration features.
 
 ### 1.8 Evidence & Compliance
 
-Evidence bundle generation and compliance mapping.
+Evidence bundle generation and compliance mapping with cryptographic signing.
 
 | Feature | Endpoints | Implementation |
 |---------|-----------|----------------|
-| Evidence Bundles | `/api/v1/evidence/*` | Gzip, Fernet encryption, SHA256 |
+| Evidence Bundles | `/api/v1/evidence/*` | Gzip, Fernet encryption, SHA256, RSA-SHA256 signing |
+| Evidence Verification | `POST /api/v1/evidence/verify` | RSA signature verification endpoint |
 | Compliance | `/api/v1/compliance/*` | SOC2/ISO27001/PCI-DSS/GDPR mapping |
-| Provenance | `/provenance/*` | Attestation tracking |
+| Provenance | `/provenance/*` | SLSA v1 attestation with in-toto envelope format |
 | Graph | `/graph/*` | Artifact relationship graphs |
 
 **Code References:**
-- `core/evidence.py` (327 lines) - `EvidenceHub` with compression, encryption, checksums
+- `core/evidence.py` (422 lines) - `EvidenceHub` with compression, encryption, checksums, RSA-SHA256 signing
+- `backend/api/evidence/router.py` (307 lines) - Evidence verification endpoint
+- `services/provenance/attestation.py` (653 lines) - SLSA v1 provenance with in-toto attestation format
 
 ---
 

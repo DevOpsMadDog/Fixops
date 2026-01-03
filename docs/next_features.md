@@ -24,9 +24,9 @@ This document consolidates all planned features and "What's Needed" items into a
 
 | Feature | Current State | What's Needed | Effort | Code Reference |
 |---------|---------------|---------------|--------|----------------|
-| RSA-SHA256 Evidence Signing | Checksums + Fernet encryption only | Wire `rsa_sign()` into `EvidenceHub.persist()` | 2-3 days | `fixops-enterprise/src/utils/crypto.py` |
-| SLSA v1 Provenance | Not implemented | Implement SLSA provenance format, in-toto attestations | 2-3 weeks | New module |
-| Evidence Verification Endpoint | Not implemented | Add `/api/v1/evidence/verify` that calls `rsa_verify()` | 1-2 days | `core/evidence.py` |
+| RSA-SHA256 Evidence Signing | **COMPLETED** | ~~Wire `rsa_sign()` into `EvidenceHub.persist()`~~ | ~~2-3 days~~ | `core/evidence.py:329-397` |
+| SLSA v1 Provenance | **COMPLETED** | ~~Implement SLSA provenance format, in-toto attestations~~ | ~~2-3 weeks~~ | `services/provenance/attestation.py` |
+| Evidence Verification Endpoint | **COMPLETED** | ~~Add `/api/v1/evidence/verify` that calls `rsa_verify()`~~ | ~~1-2 days~~ | `backend/api/evidence/router.py:162-303` |
 | WORM-Compliant Storage | SQLite with soft deletes | S3 Object Lock / Azure Immutable Blob adapter | 3-4 weeks | `core/evidence.py` |
 | Wire Real LLM Providers | `_call_llm()` returns mocked JSON | Replace mocked responses with actual provider calls | 3-5 days | `core/pentagi_advanced.py:258-273` |
 
@@ -74,11 +74,11 @@ This document consolidates all planned features and "What's Needed" items into a
 
 ## Implementation Phases
 
-### Phase 1: Evidence Integrity (Weeks 1-3)
-- [ ] Wire RSA signing to EvidenceHub
-- [ ] Add evidence verification endpoint
-- [ ] Implement SLSA v1 provenance format
-- [ ] Store signature + fingerprint in manifest
+### Phase 1: Evidence Integrity (Weeks 1-3) - COMPLETED
+- [x] Wire RSA signing to EvidenceHub
+- [x] Add evidence verification endpoint
+- [x] Implement SLSA v1 provenance format
+- [x] Store signature + fingerprint in manifest
 
 ### Phase 2: AI Consensus (Weeks 4-5)
 - [ ] Replace mocked `_call_llm()` with real provider calls
@@ -190,8 +190,9 @@ These tools are mentioned in the pitch deck persona analysis but lack native Fix
 
 | Metric | Current | Target | How to Measure |
 |--------|---------|--------|----------------|
-| API Endpoints | 276 | 300+ | `grep -rh "@router\." apps/api/*.py \| wc -l` |
+| API Endpoints | 277 | 300+ | `grep -rh "@router\." apps/api/*.py \| wc -l` |
 | CLI Commands | 30 | 67 | `python -m core.cli --help \| grep -E "^    [a-z]" \| wc -l` |
 | Test Coverage | 18.95% | 70%+ | `pytest --cov` |
 | LLM Providers Wired | 0 | 4 | Count of non-mocked providers |
-| Evidence Signing | None | RSA-SHA256 | Signature verification test |
+| Evidence Signing | **RSA-SHA256** | RSA-SHA256 | `POST /api/v1/evidence/verify` |
+| SLSA Provenance | **v1 + in-toto** | SLSA v1 | `services/provenance/attestation.py` |

@@ -1,13 +1,62 @@
+import base64
+import json
+import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Optional
 
 import yaml  # type: ignore[import]
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
 from core.paths import verify_allowlisted_path
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/evidence", tags=["evidence"])
+
+_rsa_verify: Optional[Callable[[bytes, bytes, str], bool]] = None
+
+try:
+    from fixops_enterprise.src.utils.crypto import rsa_verify as _enterprise_rsa_verify
+
+    _rsa_verify = _enterprise_rsa_verify
+except ImportError:
+    try:
+        import sys
+
+        sys.path.insert(
+            0,
+            str(
+                Path(__file__).parent.parent.parent.parent / "fixops-enterprise" / "src"
+            ),
+        )
+        from utils.crypto import rsa_verify as _alt_rsa_verify
+
+        _rsa_verify = _alt_rsa_verify
+    except ImportError:
+        pass
+
+
+class EvidenceVerifyRequest(BaseModel):
+    bundle_id: str = Field(..., description="The evidence bundle ID to verify")
+    signature: Optional[str] = Field(
+        None,
+        description="Base64-encoded RSA signature (optional, will be read from manifest if not provided)",
+    )
+    fingerprint: Optional[str] = Field(
+        None,
+        description="Public key fingerprint (optional, will be read from manifest if not provided)",
+    )
+
+
+class EvidenceVerifyResponse(BaseModel):
+    bundle_id: str
+    verified: bool
+    fingerprint: Optional[str] = None
+    signed_at: Optional[str] = None
+    signature_algorithm: Optional[str] = None
+    error: Optional[str] = None
 
 
 def _resolve_directories(request: Request) -> tuple[Path, Path]:
@@ -114,6 +163,160 @@ async def download_evidence_bundle(bundle_id: str, request: Request):
             "Content-Disposition": f'attachment; filename="fixops-evidence-{safe_bundle_id}.json.gz"',
             "Access-Control-Expose-Headers": "Content-Disposition",
         },
+    )
+
+
+@router.post("/verify", response_model=EvidenceVerifyResponse)
+async def verify_evidence(
+    request: Request, body: EvidenceVerifyRequest
+) -> EvidenceVerifyResponse:
+    """
+    Verify the RSA-SHA256 signature of an evidence bundle.
+
+    This endpoint verifies that an evidence bundle has not been tampered with
+    by checking its cryptographic signature against the stored fingerprint.
+
+    The signature and fingerprint can be provided in the request body, or they
+    will be read from the bundle's manifest if not provided.
+    """
+    if _rsa_verify is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RSA verification module not available. Install fixops-enterprise package.",
+        )
+
+    bundle_id = body.bundle_id
+
+    safe_bundle_id = Path(bundle_id).name
+    if ".." in safe_bundle_id or "/" in safe_bundle_id or "\\" in safe_bundle_id:
+        raise HTTPException(status_code=400, detail="Invalid bundle ID")
+
+    evidence_base = Path("data/data/evidence")
+    if not evidence_base.exists():
+        evidence_base = Path("data/evidence")
+
+    manifest_path: Optional[Path] = None
+    bundle_path: Optional[Path] = None
+
+    for mode_dir in evidence_base.glob("*"):
+        if mode_dir.is_dir():
+            run_dir = mode_dir / safe_bundle_id
+            if run_dir.is_dir():
+                potential_manifest = run_dir / "manifest.json"
+                if potential_manifest.exists():
+                    try:
+                        manifest_path = verify_allowlisted_path(
+                            potential_manifest, [evidence_base]
+                        )
+                        break
+                    except PermissionError:
+                        continue
+
+    if manifest_path is None:
+        for mode_dir in evidence_base.glob("*"):
+            if mode_dir.is_dir():
+                for run_dir in mode_dir.glob("*"):
+                    if run_dir.is_dir() and run_dir.name == safe_bundle_id:
+                        potential_manifest = run_dir / "manifest.json"
+                        if potential_manifest.exists():
+                            try:
+                                manifest_path = verify_allowlisted_path(
+                                    potential_manifest, [evidence_base]
+                                )
+                                break
+                            except PermissionError:
+                                continue
+
+    if manifest_path is None:
+        raise HTTPException(status_code=404, detail="Evidence manifest not found")
+
+    try:
+        with manifest_path.open("r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read manifest: {e}")
+
+    signature_b64 = body.signature or manifest.get("signature")
+    fingerprint = body.fingerprint or manifest.get("fingerprint")
+    signed_at = manifest.get("signed_at")
+    signature_algorithm = manifest.get("signature_algorithm", "RSA-SHA256")
+
+    if not signature_b64:
+        return EvidenceVerifyResponse(
+            bundle_id=bundle_id,
+            verified=False,
+            fingerprint=fingerprint,
+            signed_at=signed_at,
+            signature_algorithm=signature_algorithm,
+            error="No signature found in manifest or request",
+        )
+
+    if not fingerprint:
+        return EvidenceVerifyResponse(
+            bundle_id=bundle_id,
+            verified=False,
+            signed_at=signed_at,
+            signature_algorithm=signature_algorithm,
+            error="No fingerprint found in manifest or request",
+        )
+
+    bundle_file = manifest.get("bundle")
+    if not bundle_file:
+        raise HTTPException(
+            status_code=500, detail="Manifest does not contain bundle path"
+        )
+
+    bundle_path = Path(bundle_file)
+    if not bundle_path.is_absolute():
+        bundle_path = manifest_path.parent / bundle_path.name
+
+    try:
+        bundle_path = verify_allowlisted_path(
+            bundle_path, [evidence_base, manifest_path.parent]
+        )
+    except PermissionError:
+        raise HTTPException(status_code=400, detail="Invalid bundle path")
+
+    if not bundle_path.exists():
+        raise HTTPException(status_code=404, detail="Evidence bundle file not found")
+
+    try:
+        bundle_bytes = bundle_path.read_bytes()
+    except IOError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read bundle: {e}")
+
+    try:
+        signature_bytes = base64.b64decode(signature_b64)
+    except Exception as e:
+        return EvidenceVerifyResponse(
+            bundle_id=bundle_id,
+            verified=False,
+            fingerprint=fingerprint,
+            signed_at=signed_at,
+            signature_algorithm=signature_algorithm,
+            error=f"Invalid signature encoding: {e}",
+        )
+
+    try:
+        verified = _rsa_verify(bundle_bytes, signature_bytes, fingerprint)
+    except Exception as e:
+        logger.warning(f"RSA verification failed for bundle {bundle_id}: {e}")
+        return EvidenceVerifyResponse(
+            bundle_id=bundle_id,
+            verified=False,
+            fingerprint=fingerprint,
+            signed_at=signed_at,
+            signature_algorithm=signature_algorithm,
+            error=f"Verification error: {e}",
+        )
+
+    return EvidenceVerifyResponse(
+        bundle_id=bundle_id,
+        verified=verified,
+        fingerprint=fingerprint,
+        signed_at=signed_at,
+        signature_algorithm=signature_algorithm,
+        error=None if verified else "Signature verification failed",
     )
 
 
