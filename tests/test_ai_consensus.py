@@ -252,6 +252,20 @@ class TestMultiAIOrchestrator:
         )
         assert "Aggressive" in orchestrator._derive_strategy(high_confidence)
 
+        medium_high_confidence = LLMResponse(
+            recommended_action="test",
+            confidence=0.7,
+            reasoning="test",
+        )
+        assert "Multi-stage" in orchestrator._derive_strategy(medium_high_confidence)
+
+        medium_confidence = LLMResponse(
+            recommended_action="test",
+            confidence=0.5,
+            reasoning="test",
+        )
+        assert "Conservative" in orchestrator._derive_strategy(medium_confidence)
+
         low_confidence = LLMResponse(
             recommended_action="test",
             confidence=0.3,
@@ -281,6 +295,20 @@ class TestMultiAIOrchestrator:
             reasoning="test",
         )
         assert "Critical" in orchestrator._assess_business_impact(critical)
+
+        high = LLMResponse(
+            recommended_action="test",
+            confidence=0.7,
+            reasoning="test",
+        )
+        assert "High" in orchestrator._assess_business_impact(high)
+
+        medium = LLMResponse(
+            recommended_action="test",
+            confidence=0.5,
+            reasoning="test",
+        )
+        assert "Medium" in orchestrator._assess_business_impact(medium)
 
         low = LLMResponse(
             recommended_action="test",
