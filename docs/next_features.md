@@ -145,6 +145,23 @@ GET  /api/v1/adapters/{adapter_name}/status
 
 ---
 
+## Current Work: Connector Expansion (NOW Phase)
+
+These are the items actively being built or planned for immediate development:
+
+| Item | Status | Priority | Effort |
+|------|--------|----------|--------|
+| **Nessus Adapter** | In Progress | High | 1-2 weeks |
+| **Qualys Adapter** | In Progress | High | 1-2 weeks |
+| **Tenable.io Adapter** | In Progress | High | 1-2 weeks |
+| **Wiz Adapter** (formalize samples) | Planned | Medium | 3-5 days |
+| **Checkmarx Adapter** (formalize samples) | Planned | Medium | 3-5 days |
+| **Burp Suite Adapter** (formalize samples) | Planned | Medium | 3-5 days |
+| **SIEM/EDR Integration** | Planned | Medium | 2-3 weeks |
+| **Design Intake Automation** | Planned | Medium | 3-4 weeks |
+
+---
+
 ## Persona Tool Gaps (From Pitch Deck)
 
 These tools are mentioned in the pitch deck persona analysis but lack native FixOps integration:

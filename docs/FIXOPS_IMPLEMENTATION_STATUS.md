@@ -371,25 +371,25 @@ Full OSS fallback engine exists but is not integrated into the pipeline.
 ### Visual Timeline
 
 ```
-[Jan-Mar] ────────> [Apr-Jun] ────────> [Jul-Aug] ────────> [Sep] ────────> [Oct] ────────> [Dec] ────────> [Next]
-    │                   │                   │                 │               │               │               │
- PROBLEM             PROTOTYPE          PRE-PRODUCT       PLATFORM        DECISION       ENTERPRISE      GOVERNANCE
- DISCOVERY &         & FEASIBILITY      HARDENING         FOUNDATION      AUTOMATION     INTELLIGENCE    & OPERABILITY
- ARCHITECTURE        VALIDATION
-    │                   │                   │                 │               │               │               │
-    ▼                   ▼                   ▼                 ▼               ▼               ▼               ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│ • Customer  │  │ • SARIF/SBOM│  │ • Module    │  │ • FastAPI   │  │ • Pipeline  │  │ • Dedup     │  │ • RBAC      │
-│   interviews│  │   normalizer│  │   boundaries│  │   factory   │  │   orchestr. │  │   engine    │  │ • Evidence  │
-│ • Pain point│  │ • Evidence  │  │ • SQLite    │  │ • Overlay   │  │ • Severity  │  │ • Webhooks  │  │   signing   │
-│   mapping   │  │   bundle POC│  │   storage   │  │   config    │  │   promotion │  │ • Reach-    │  │ • WORM      │
-│ • Reference │  │ • Jira/SNOW │  │ • E2E test  │  │ • CLI       │  │ • Demo      │  │   ability   │  │   storage   │
-│   architect.│  │   feasibility│  │   strategy  │  │   scaffold  │  │   system    │  │ • PentAGI   │  │ • LLM wire  │
-│ • API-first │  │ • LLM vs    │  │ • Offline   │  │ • 276 API   │  │ • KEV/EPSS  │  │ • Collab    │  │ • Sandbox   │
-│   design    │  │   determin. │  │   mode plan │  │   endpoints │  │   feeds     │  │   system    │  │   execution │
-└─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
-     DONE            DONE            DONE            DONE            DONE            DONE           IN PROGRESS
+[Jan-Mar] ───> [Apr-Jun] ───> [Jul-Aug] ───> [Sep] ───> [Oct] ───> [Dec] ───> [NOW] ───> [Next]
+    │              │              │            │          │          │          │          │
+ PROBLEM        PROTOTYPE     PRE-PRODUCT  PLATFORM   DECISION  ENTERPRISE  CONNECTOR  GOVERNANCE
+ DISCOVERY      FEASIBILITY   HARDENING    FOUNDATION AUTOMATION INTEL      EXPANSION  & OPERABILITY
+    │              │              │            │          │          │          │          │
+    ▼              ▼              ▼            ▼          ▼          ▼          ▼          ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│• Customer│ │• SARIF/  │ │• Module  │ │• FastAPI │ │• Pipeline│ │• Dedup   │ │• Nessus  │ │• RBAC    │
+│  research│ │  SBOM    │ │  bounds  │ │  factory │ │  orchestr│ │  engine  │ │• Qualys  │ │• Evidence│
+│• Pain    │ │• Evidence│ │• SQLite  │ │• Overlay │ │• Severity│ │• Webhooks│ │• Tenable │ │  signing │
+│  mapping │ │  bundle  │ │  storage │ │  config  │ │  promote │ │• Reach-  │ │• Wiz     │ │• WORM    │
+│• Ref arch│ │• Jira POC│ │• E2E test│ │• 276 APIs│ │• KEV/EPSS│ │  ability │ │• SIEM/EDR│ │• LLM wire│
+│• API-1st │ │• LLM exp │ │• Offline │ │• CLI     │ │• Demo    │ │• PentAGI │ │• Design  │ │• Sandbox │
+│  design  │ │          │ │  plan    │ │          │ │  system  │ │• Collab  │ │  intake  │ │          │
+└──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
+    DONE         DONE         DONE         DONE         DONE     IMPLEMENTED  IN PROGRESS   PLANNED
 ```
+
+**Legend:** DONE = Complete | IMPLEMENTED = Code exists, needs production validation | IN PROGRESS = Active development | PLANNED = Roadmap
 
 ### Layer Summary
 
@@ -400,9 +400,11 @@ Full OSS fallback engine exists but is not integrated into the pipeline.
 | **Jul-Aug** | Pre-Product Hardening | Module boundaries (pipeline, normalizers, decision engine, connectors, evidence hub), SQLite storage, E2E test strategy | - | Complete |
 | **Sep** | Platform Foundation | FastAPI app factory, overlay config system, CLI scaffolding, 276 API endpoints across 25 routers | - | Complete |
 | **Oct** | Decision Automation | Pipeline orchestration, severity promotion (KEV/EPSS), evidence bundle generation, demo orchestrator, scanner comparison | - | Complete |
-| **Dec** | Enterprise Intelligence | Deduplication engine (1,158 lines), reachability analysis (810 lines), PentAGI integration, collaboration system | - | Complete |
-| **Dec** | Connectors & Integrations | Jira (bidirectional sync, HMAC verification), ServiceNow (webhook receiver), GitLab (issue sync), Azure DevOps (work items), Slack (notifications), Confluence (page publishing) | - | Complete |
-| **Next** | Governance & Operability | RBAC middleware exists | Evidence signing (wire RSA), WORM storage, real LLM providers, micro-pentest sandbox | In Progress |
+| **Dec** | Enterprise Intelligence | Deduplication engine (1,158 lines), reachability analysis (810 lines), PentAGI integration, collaboration system | - | Implemented |
+| **Dec** | Connector Framework | Jira (create issues), ServiceNow (webhook receiver), GitLab (webhook receiver), Azure DevOps (webhook receiver), Slack (notifications), Confluence (page publishing) | Full bidirectional sync, scheduled sync, rate limiting | Implemented |
+| **Now** | Connector Expansion | Samples exist for Wiz, Checkmarx, Burp | Nessus, Qualys, Tenable.io adapters; formalize Wiz/Checkmarx/Burp adapters | **In Progress** |
+| **Now** | SIEM/EDR Integration | - | Runtime event ingestion, Splunk/Elastic parsing, EDR alert correlation | **Planned** |
+| **Next** | Governance & Operability | RBAC middleware exists | Evidence signing (wire RSA), WORM storage, real LLM providers, micro-pentest sandbox | Planned |
 | **Next** | Design Intake Automation | Design CSV ingestion exists | Gliffy/Visio → JSON extraction, micro-pentest risk simulation, overlay toggle | Planned |
 
 ---
@@ -1091,6 +1093,7 @@ These features are claimed in the pitch deck but do not exist in the codebase.
 | 2026-01-03 | Devin | Added visual timeline bar with detailed phase descriptions; added Connectors & Integrations row (Jira, ServiceNow, GitLab, Azure DevOps, Slack, Confluence) |
 | 2026-01-03 | Devin | Added 5H: Design Intake Automation milestone (Gliffy/Visio → JSON → micro-pentest risk simulation) |
 | 2026-01-03 | Devin | Added Appendix F: Persona Tool Coverage Matrix - maps pitch deck persona tools to FixOps integration status (12 supported, 3 partial, 8 gaps) |
+| 2026-01-03 | Devin | Fixed timeline to accurately reflect what's built vs being built: added "NOW" phase for Connector Expansion (Nessus/Qualys/Tenable/SIEM), changed "Complete" to "Implemented" for Dec items, added legend |
 
 ---
 
