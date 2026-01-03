@@ -593,7 +593,7 @@ docker-compose -f deployment-packs/docker/docker-compose.yml up -d
 
 ### Docker Compose with PentAGI Integration
 
-FixOps can be deployed with integrated PentAGI for autonomous micro-pentest capabilities. This enables automated vulnerability verification directly from the Risk Graph UI.
+FixOps can be deployed with integrated PentAGI for autonomous micro-pentest capabilities. PentAGI is added as a **layer** that works with ANY FixOps docker-compose file.
 
 ```bash
 # Copy environment files
@@ -604,7 +604,16 @@ cp env.pentagi.example .env.pentagi
 # OPENAI_API_KEY=sk-...
 # ANTHROPIC_API_KEY=sk-ant-...
 
-# Start FixOps with PentAGI
+# Start with any compose variant using Makefile targets:
+make up-pentagi                    # Default (docker-compose.yml)
+make up-pentagi-enterprise         # Enterprise mode
+make up-pentagi-demo               # Demo mode with telemetry
+make up-pentagi-deployment         # Production deployment pack
+
+# Or use BASE_COMPOSE variable:
+make up-pentagi BASE_COMPOSE=docker-compose.enterprise.yml
+
+# Or manually:
 docker compose -f docker-compose.yml -f docker-compose.pentagi.yml --env-file .env.pentagi up -d
 ```
 
@@ -613,7 +622,13 @@ PentAGI will be available at `https://localhost:8443` (self-signed SSL). The int
 - **pgvector** - PostgreSQL with vector extensions for memory/embeddings
 - **Scraper** - Web scraping service for reconnaissance
 
-Note: This integration uses the official PentAGI images with VXControl Cloud SDK disabled for fully offline/air-gapped operation. No phone-home behavior, no external cloud dependencies.
+**Using your own fork (no VXControl Cloud SDK):**
+```bash
+export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
+make up-pentagi
+```
+
+Note: The fork at [DevOpsMadDog/pentagi_fork](https://github.com/DevOpsMadDog/pentagi_fork) has VXControl Cloud SDK removed for fully offline/air-gapped operation. No phone-home behavior, no external cloud dependencies.
 
 ---
 

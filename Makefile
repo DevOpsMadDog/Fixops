@@ -18,10 +18,13 @@ help:
 	@echo "  make inventory      Rebuild the file usage inventory artefacts"
 	@echo "  make clean          Remove cached artefacts and the virtual environment"
 	@echo ""
-	@echo "PentAGI Integration:"
-	@echo "  make up-pentagi     Start FixOps with PentAGI micro-pentest integration"
-	@echo "  make down-pentagi   Stop FixOps + PentAGI services"
-	@echo "  make logs-pentagi   View PentAGI container logs"
+	@echo "PentAGI Integration (layer for any compose file):"
+	@echo "  make up-pentagi              Start FixOps + PentAGI (default compose)"
+	@echo "  make up-pentagi-enterprise   Start FixOps Enterprise + PentAGI"
+	@echo "  make up-pentagi-demo         Start FixOps Demo + PentAGI"
+	@echo "  make up-pentagi-deployment   Start Deployment Pack + PentAGI"
+	@echo "  make down-pentagi            Stop services (use BASE_COMPOSE for variants)"
+	@echo "  make logs-pentagi            View PentAGI container logs"
 
 $(VENV):
 	$(PYTHON) -m venv $(VENV)
@@ -155,30 +158,83 @@ demo-clean:
 # ===================================================================
 # PentAGI Integration Targets
 # ===================================================================
+# PentAGI can be added as a layer to ANY docker-compose file:
+#   make up-pentagi                    # with docker-compose.yml (default)
+#   make up-pentagi-enterprise         # with docker-compose.enterprise.yml
+#   make up-pentagi-demo               # with docker-compose.demo.yml
+#   make up-pentagi-deployment         # with deployment-packs/docker/docker-compose.yml
+#
+# Or use BASE_COMPOSE variable:
+#   make up-pentagi BASE_COMPOSE=docker-compose.enterprise.yml
+
+BASE_COMPOSE ?= docker-compose.yml
+PENTAGI_COMPOSE := docker-compose.pentagi.yml
 
 .PHONY: up-pentagi down-pentagi logs-pentagi
+.PHONY: up-pentagi-enterprise down-pentagi-enterprise
+.PHONY: up-pentagi-demo down-pentagi-demo
+.PHONY: up-pentagi-deployment down-pentagi-deployment
 
-up-pentagi:
-	@echo "Starting FixOps with PentAGI integration..."
+_pentagi-env-check:
 	@if [ ! -f .env.pentagi ]; then \
 		echo "Creating .env.pentagi from template..."; \
 		cp env.pentagi.example .env.pentagi; \
 		echo "⚠️  Please configure LLM API keys in .env.pentagi"; \
 	fi
-	docker compose -f docker-compose.yml -f docker-compose.pentagi.yml --env-file .env.pentagi up -d
+
+_pentagi-start-msg:
 	@echo ""
 	@echo "✓ FixOps + PentAGI started"
-	@echo "  FixOps API: http://localhost:8000"
 	@echo "  PentAGI:    https://localhost:8443 (self-signed SSL)"
 	@echo ""
 	@echo "To use your fork's image (no VXControl Cloud SDK):"
-	@echo "  export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi:latest"
-	@echo "  make up-pentagi"
+	@echo "  export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest"
+
+up-pentagi: _pentagi-env-check
+	@echo "Starting FixOps ($(BASE_COMPOSE)) with PentAGI integration..."
+	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
+	@$(MAKE) _pentagi-start-msg
+	@echo "  FixOps API: http://localhost:8000"
 
 down-pentagi:
 	@echo "Stopping FixOps + PentAGI..."
-	docker compose -f docker-compose.yml -f docker-compose.pentagi.yml down
+	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) down
 	@echo "✓ Services stopped"
 
 logs-pentagi:
-	docker compose -f docker-compose.yml -f docker-compose.pentagi.yml logs -f pentagi
+	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) logs -f pentagi
+
+up-pentagi-enterprise: _pentagi-env-check
+	@echo "Starting FixOps Enterprise with PentAGI integration..."
+	docker compose -f docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
+	@$(MAKE) _pentagi-start-msg
+	@echo "  FixOps Enterprise: http://localhost:8000"
+
+down-pentagi-enterprise:
+	@echo "Stopping FixOps Enterprise + PentAGI..."
+	docker compose -f docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) down
+	@echo "✓ Services stopped"
+
+up-pentagi-demo: _pentagi-env-check
+	@echo "Starting FixOps Demo with PentAGI integration..."
+	docker compose -f docker-compose.demo.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
+	@$(MAKE) _pentagi-start-msg
+	@echo "  FixOps Demo API: http://localhost:8000"
+	@echo "  Dashboard:       http://localhost:8080"
+
+down-pentagi-demo:
+	@echo "Stopping FixOps Demo + PentAGI..."
+	docker compose -f docker-compose.demo.yml -f $(PENTAGI_COMPOSE) down
+	@echo "✓ Services stopped"
+
+up-pentagi-deployment: _pentagi-env-check
+	@echo "Starting FixOps Deployment Pack with PentAGI integration..."
+	docker compose -f deployment-packs/docker/docker-compose.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
+	@$(MAKE) _pentagi-start-msg
+	@echo "  FixOps Backend:  http://localhost:8001"
+	@echo "  FixOps Frontend: http://localhost:3000 (if enabled)"
+
+down-pentagi-deployment:
+	@echo "Stopping FixOps Deployment Pack + PentAGI..."
+	docker compose -f deployment-packs/docker/docker-compose.yml -f $(PENTAGI_COMPOSE) down
+	@echo "✓ Services stopped"
