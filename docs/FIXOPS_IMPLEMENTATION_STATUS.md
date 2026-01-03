@@ -368,6 +368,45 @@ Full OSS fallback engine exists but is not integrated into the pipeline.
 
 > **Note:** January through August 2025 represents founder-led architecture and prototype work. September onward is fully evidenced by git history.
 
+### Visual Timeline
+
+```
+[Jan-Mar] ───> [Apr-Jun] ───> [Jul-Aug] ───> [Sep] ───> [Oct] ───> [Dec] ───> [NOW] ───> [Next]
+    │              │              │            │          │          │          │          │
+ PROBLEM        PROTOTYPE     PRE-PRODUCT  PLATFORM   DECISION  ENTERPRISE  CONNECTOR  GOVERNANCE
+ DISCOVERY      FEASIBILITY   HARDENING    FOUNDATION AUTOMATION INTEL      EXPANSION  & OPERABILITY
+    │              │              │            │          │          │          │          │
+    ▼              ▼              ▼            ▼          ▼          ▼          ▼          ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│• Customer│ │• SARIF/  │ │• Module  │ │• FastAPI │ │• Pipeline│ │• Dedup   │ │• Nessus  │ │• RBAC    │
+│  research│ │  SBOM    │ │  bounds  │ │  factory │ │  orchestr│ │  engine  │ │• Qualys  │ │• Evidence│
+│• Pain    │ │• Evidence│ │• SQLite  │ │• Overlay │ │• Severity│ │• Webhooks│ │• Tenable │ │  signing │
+│  mapping │ │  bundle  │ │  storage │ │  config  │ │  promote │ │• Reach-  │ │• Wiz     │ │• WORM    │
+│• Ref arch│ │• Jira POC│ │• E2E test│ │• 276 APIs│ │• KEV/EPSS│ │  ability │ │• SIEM/EDR│ │• LLM wire│
+│• API-1st │ │• LLM exp │ │• Offline │ │• CLI     │ │• Demo    │ │• PentAGI │ │• Design  │ │• Sandbox │
+│  design  │ │          │ │  plan    │ │          │ │  system  │ │• Collab  │ │  intake  │ │          │
+└──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
+    DONE         DONE         DONE         DONE         DONE     IMPLEMENTED  IN PROGRESS   PLANNED
+```
+
+**Legend:** DONE = Complete | IMPLEMENTED = Code exists, needs production validation | IN PROGRESS = Active development | PLANNED = Roadmap
+
+### Layer Summary
+
+| Phase | Layer | What We Built | What's Still Needed | Status |
+|-------|-------|---------------|---------------------|--------|
+| **Jan-Mar** | Problem Discovery & Architecture | Reference architecture, PRDs, threat model, OpenAPI contracts, competitive analysis | - | Complete |
+| **Apr-Jun** | Prototype & Feasibility | SARIF/SBOM/CVE normalizers, evidence bundle format, Jira webhook POC, LLM vs deterministic experiments | - | Complete |
+| **Jul-Aug** | Pre-Product Hardening | Module boundaries (pipeline, normalizers, decision engine, connectors, evidence hub), SQLite storage, E2E test strategy | - | Complete |
+| **Sep** | Platform Foundation | FastAPI app factory, overlay config system, CLI scaffolding, 276 API endpoints across 25 routers | - | Complete |
+| **Oct** | Decision Automation | Pipeline orchestration, severity promotion (KEV/EPSS), evidence bundle generation, demo orchestrator, scanner comparison | - | Complete |
+| **Dec** | Enterprise Intelligence | Deduplication engine (1,158 lines), reachability analysis (810 lines), PentAGI integration, collaboration system | - | Implemented |
+| **Dec** | Connector Framework | Jira (create issues), ServiceNow (webhook receiver), GitLab (webhook receiver), Azure DevOps (webhook receiver), Slack (notifications), Confluence (page publishing) | Full bidirectional sync, scheduled sync, rate limiting | Implemented |
+| **Now** | Connector Expansion | Samples exist for Wiz, Checkmarx, Burp | Nessus, Qualys, Tenable.io adapters; formalize Wiz/Checkmarx/Burp adapters | **In Progress** |
+| **Now** | SIEM/EDR Integration | - | Runtime event ingestion, Splunk/Elastic parsing, EDR alert correlation | **Planned** |
+| **Next** | Governance & Operability | RBAC middleware exists | Evidence signing (wire RSA), WORM storage, real LLM providers, micro-pentest sandbox | Planned |
+| **Next** | Design Intake Automation | Design CSV ingestion exists | Gliffy/Visio → JSON extraction, micro-pentest risk simulation, overlay toggle | Planned |
+
 ---
 
 ### Phase 1: Problem Discovery & Reference Architecture (January - March 2025)
@@ -772,6 +811,70 @@ def evaluate_rotation_health(provider, max_age_days) -> Dict[str, Any]
 
 ---
 
+### 5H: Design Intake Automation (Diagrams → Risk)
+
+**Business Value:** Automatically extract security-relevant components from architecture diagrams and assess risk before code is written
+
+**Timeline:** 3-4 weeks
+
+**What Already Exists:**
+- Design CSV ingestion with component/subcomponent/owner/data_class fields (`inputs/APP*/design.csv`)
+- Severity promotion engine with scoring rules (`core/severity_promotion.py`)
+- Micro-pentest integration with PentAGI (`integrations/pentagi_decision_integration.py`)
+- Overlay configuration system for feature toggles
+
+**Code References:**
+- Design CSV format: `inputs/APP1/design.csv` (component, subcomponent, owner, data_class, description, control_scope)
+- Scoring engine: `core/severity_promotion.py:87-197` (SeverityPromotionEngine)
+- PentAGI integration: `integrations/pentagi_decision_integration.py:15-277`
+
+**Two Methods for Design Input:**
+
+**Method 1: Manual Template & CSV Load**
+- Use existing CSV format with columns: component, subcomponent, owner, data_class, description, control_scope
+- Upload via `/inputs/design` endpoint
+- Automatically parsed and fed into risk assessment pipeline
+
+**Method 2: Diagram Extraction → Micro-Pentest Risk Simulation**
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ Gliffy/Visio│ ──> │ JSON Export │ ──> │ Micro-Pentest│ ──> │ Risk Score  │
+│ Diagram     │     │ (shapes,    │     │ Simulator   │     │ + Evidence  │
+│             │     │  connections)│     │             │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+```
+
+**What's Needed:**
+
+| Component | Status | What's Needed | Effort |
+|-----------|--------|---------------|--------|
+| Gliffy → JSON | External | Gliffy exports to JSON natively; need parser for FixOps schema | 3-5 days |
+| Visio → JSON | External | Use `python-pptx` or Visio API; need parser for FixOps schema | 3-5 days |
+| Design Model Normalizer | Not started | Convert diagram JSON to canonical `DesignModel` schema | 3-5 days |
+| Risk Simulation Endpoint | Not started | `POST /api/v1/design/simulate-risk` → calls micro-pentest | 2-3 days |
+| Overlay Toggle | Not started | `modules.design_intake.micro_pentest_enabled: true/false` | 1 day |
+| Evidence Storage | Exists | Store results as micro-pentest run artifact | Integration only |
+
+**Overlay Configuration (Proposed):**
+```yaml
+modules:
+  design_intake:
+    enabled: true
+    micro_pentest_enabled: false  # Only run micro-pentests when explicitly enabled
+    scoring_method: "severity_promotion"  # Use existing scoring engine
+    supported_formats:
+      - csv
+      - gliffy_json
+      - visio_json
+```
+
+**Risk Scoring Integration:**
+- Use existing `SeverityPromotionEngine` for base scoring
+- Enhance with design-specific rules (data classification, control scope, exposure)
+- Store results as evidence bundle with full audit trail
+
+---
+
 ## Timeline Summary
 
 | Phase | Original Estimate | Revised Estimate | Reason |
@@ -901,7 +1004,84 @@ Starting January 2, 2026, FixOps enforces **100% test coverage on all new and mo
 
 ---
 
-## Appendix D: Update Log
+## Appendix D: Pitch Deck Gap Analysis (AlDeci Rebrand)
+
+**Analysis Date:** January 3, 2026  
+**Source:** AlDeci Story Pitch Deck v10
+
+This section tracks the gap between marketing claims in the AlDeci pitch deck and actual implementation status. Items are categorized by implementation readiness to guide development prioritization.
+
+### Yellow Items: Partially Implemented (Scaffolded/Mocked)
+
+These features have code structure but require completion to match pitch deck claims.
+
+| Pitch Deck Claim | Current Reality | Gap | Effort Estimate | Priority |
+|------------------|-----------------|-----|-----------------|----------|
+| **67 CLI Commands** | 30 top-level commands exist | Subcommands may add more, but not 67 total | 1-2 weeks to add missing commands | Medium |
+| **Multi-LLM Consensus (≥85% agreement)** | Provider classes exist in `core/llm_providers.py`; consensus logic in `core/enhanced_decision.py` | `_call_llm()` in `core/pentagi_advanced.py` returns **mocked JSON responses** | 3-5 days to wire real LLM providers | **High** |
+| **Micro-Pentest Engine (SQLi, XSS, RCE sandbox)** | `core/exploit_generator.py` has exploit templates and types | LLM calls are mocked; no real sandbox execution environment | 2-3 weeks for real sandbox + LLM integration | **High** |
+| **"GPT-5, Claude-3, Gemini-2, Sentinel" 4-model consensus** | OpenAI, Anthropic, Gemini, Sentinel providers exist | "GPT-5" doesn't exist (marketing); Sentinel is threat intel, not a 4th LLM model | Clarify marketing vs. reality; wire actual models | Medium |
+
+**Code References for Yellow Items:**
+- Multi-LLM Consensus: `core/enhanced_decision.py:1-1280`, `core/llm_providers.py:1-660`
+- Mocked LLM calls: `core/pentagi_advanced.py:258-273` (hardcoded JSON responses)
+- Exploit Generator: `core/exploit_generator.py:102-508`
+- CLI Commands: `core/cli.py` (30 top-level commands)
+
+### Red Items: Not Implemented (Marketing/Roadmap)
+
+These features are claimed in the pitch deck but do not exist in the codebase.
+
+| Pitch Deck Claim | Current Reality | What's Needed | Effort Estimate | Priority |
+|------------------|-----------------|---------------|-----------------|----------|
+| **Cryptographically signed evidence (RSA-SHA256, SLSA v1)** | Evidence has checksums + Fernet encryption only | Implement RSA signing, SLSA v1 attestation format, signature verification | 2-3 weeks | **Critical** |
+| **7-year WORM-compliant retention** | SQLite storage with soft deletes | Implement WORM storage backend (S3 Object Lock, Azure Immutable Blob, or dedicated WORM appliance integration) | 3-4 weeks | **Critical** |
+| **30-minute time-to-value onboarding** | Requires LLM API keys, Docker setup, env configuration | Create automated setup wizard, pre-configured demo mode, one-click deployment | 2-3 weeks | High |
+| **SLSA v1 Provenance Chain** | No SLSA implementation | Implement SLSA provenance generation, in-toto attestations | 2-3 weeks | High |
+
+**Code References for Red Items:**
+- Current Evidence Implementation: `core/evidence.py:1-327` (compression, Fernet encryption, SHA256 checksums)
+- Enterprise Crypto Module (ready to wire): `fixops-enterprise/src/utils/crypto.py:1-724`
+- Legacy "Immutable" references (not production): `archive/enterprise_legacy/src/services/evidence_lake.py`
+
+### Implementation Roadmap for Gap Closure
+
+**Phase 1: Wire Real LLM Providers (Week 1-2)**
+1. Replace mocked `_call_llm()` in `core/pentagi_advanced.py` with actual provider calls
+2. Add error handling and fallback logic for provider failures
+3. Implement consensus threshold configuration (currently hardcoded)
+4. Add unit tests for consensus logic with mocked providers
+
+**Phase 2: Evidence Signing & SLSA (Week 3-5)**
+1. Wire `fixops-enterprise/src/utils/crypto.py` RSA signing to `core/evidence.py`
+2. Implement SLSA v1 provenance format for evidence bundles
+3. Add signature verification endpoint
+4. Create key management documentation
+
+**Phase 3: WORM Storage Integration (Week 6-8)**
+1. Abstract storage backend in `core/evidence.py`
+2. Implement S3 Object Lock adapter for AWS deployments
+3. Implement Azure Immutable Blob adapter for Azure deployments
+4. Add retention policy configuration to overlay
+
+**Phase 4: Micro-Pentest Sandbox (Week 9-12)**
+1. Design isolated sandbox architecture (Docker-in-Docker or VM-based)
+2. Implement safe payload execution with timeout and resource limits
+3. Wire real LLM calls for payload generation
+4. Add evidence capture for exploit verification
+
+### Metrics to Track
+
+| Metric | Current | Target | Measurement |
+|--------|---------|--------|-------------|
+| CLI Commands | 30 | 67 | `python -m core.cli --help \| grep -E "^    [a-z]" \| wc -l` |
+| LLM Providers Wired | 0 (mocked) | 4 | Count of providers with real API calls |
+| Evidence Signing | None | RSA-SHA256 + SLSA v1 | Signature verification test |
+| WORM Storage | None | S3 Object Lock | Retention policy enforcement test |
+
+---
+
+## Appendix E: Update Log
 
 | Date | Author | Changes |
 |------|--------|---------|
@@ -909,6 +1089,91 @@ Starting January 2, 2026, FixOps enforces **100% test coverage on all new and mo
 | 2026-01-02 | Devin | Added Appendix B: Test Coverage Status with 18.95% baseline and "100% Always" policy |
 | 2026-01-03 | Devin | Added PentAGI Docker integration status; updated pending items |
 | 2026-01-03 | Devin | Added Part 3 sections 3.6-3.9: Scanner adapter wiring, cross-stage correlation, runtime events, OSS fallback |
+| 2026-01-03 | Devin | Added Appendix D: Pitch Deck Gap Analysis with Yellow (partially implemented) and Red (not implemented) items from AlDeci pitch deck v10 |
+| 2026-01-03 | Devin | Added visual timeline bar with detailed phase descriptions; added Connectors & Integrations row (Jira, ServiceNow, GitLab, Azure DevOps, Slack, Confluence) |
+| 2026-01-03 | Devin | Added 5H: Design Intake Automation milestone (Gliffy/Visio → JSON → micro-pentest risk simulation) |
+| 2026-01-03 | Devin | Added Appendix F: Persona Tool Coverage Matrix - maps pitch deck persona tools to FixOps integration status (12 supported, 3 partial, 8 gaps) |
+| 2026-01-03 | Devin | Fixed timeline to accurately reflect what's built vs being built: added "NOW" phase for Connector Expansion (Nessus/Qualys/Tenable/SIEM), changed "Complete" to "Implemented" for Dec items, added legend |
+
+---
+
+## Appendix F: Persona Tool Coverage Matrix
+
+**Analysis Date:** January 3, 2026  
+**Source:** AlDeci Pitch Deck v10 - Persona Analysis (Page 10)
+
+This section maps tools mentioned in the pitch deck persona analysis to FixOps integration status.
+
+### Integration Types
+
+| Type | Description |
+|------|-------------|
+| **Native Adapter** | Dedicated parser/connector in `core/adapters.py` |
+| **SARIF Ingestion** | Tool exports SARIF; FixOps ingests via `/inputs/sarif` |
+| **JSON Converter** | FixOps converts tool's native JSON to SARIF |
+| **Webhook Receiver** | Bidirectional sync via `apps/api/webhooks_router.py` |
+| **Sample Exists** | Demo/sample file exists in `samples/` |
+| **Gap** | Not currently supported |
+
+### Tool Coverage by Persona
+
+| Tool | Persona(s) | Integration Type | Status | Code Reference |
+|------|------------|------------------|--------|----------------|
+| **Snyk** | VM Analyst, App Lead | JSON Converter + Native Adapter | Complete | `apps/api/normalizers.py:226-326`, `core/adapters.py` |
+| **Trivy** | VM Engineer | Native Adapter | Complete | `core/adapters.py:460-614` |
+| **Semgrep** | Security Engineer | Native Adapter + SARIF | Complete | `core/adapters.py:830-951` |
+| **Checkov** | DevOps Engineer | Native Adapter | Complete | `core/adapters.py:954-1077` |
+| **OWASP ZAP** | VA Analyst | Native Adapter | Complete | `core/adapters.py:721-827` |
+| **Prowler** | Cloud Security | Native Adapter | Complete | `core/adapters.py:617-718` |
+| **Jira** | All Personas | Webhook + Connector | Complete | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` |
+| **ServiceNow** | VM Manager, GRC | Webhook Receiver | Complete | `apps/api/webhooks_router.py:353-433` |
+| **GitLab** | Security Engineer | Native Adapter + Webhook | Complete | `core/adapters.py`, `apps/api/webhooks_router.py:1110-1227` |
+| **Azure DevOps** | DevOps Engineer | Native Adapter + Webhook | Complete | `core/adapters.py`, `apps/api/webhooks_router.py:1261-1357` |
+| **Wiz** | CNAPP, Cloud | Sample Exists | Partial | `samples/wiz_sample.json`, `samples/api-examples/demo-scenarios/scans/cloud/wiz-all-apps.json` |
+| **Checkmarx** | SAST, App Lead | Sample Exists | Partial | `samples/api-examples/demo-scenarios/scans/sast/checkmarx-*.json` |
+| **Burp Suite** | VA Analyst | Sample Exists | Partial | `samples/api-examples/demo-scenarios/scans/dast/burp-healthcare-api.json` |
+| **GitHub Advanced Security** | Security Engineer | SARIF Ingestion | Supported | Exports SARIF natively; use `/inputs/sarif` |
+| **Nessus** | VM Analyst, VA Analyst | Gap | Not Implemented | Needs adapter for Nessus XML/JSON |
+| **Qualys** | VM Analyst, VM Specialist | Gap | Not Implemented | Needs adapter for Qualys API/XML |
+| **Rapid7** | VM Analyst | Gap | Not Implemented | Needs adapter for Rapid7 InsightVM |
+| **Tenable.io** | VM Engineer | Gap | Not Implemented | Needs adapter for Tenable API |
+| **Nmap** | VA Analyst | Gap | Not Implemented | Needs adapter for Nmap XML |
+| **OpenVAS** | VA Analyst | Gap | Not Implemented | Needs adapter for OpenVAS reports |
+| **Splunk** | VM Engineer, SOC | Gap | Not Implemented | Needs SIEM event ingestion |
+| **Apiiro** | ASPM | Gap | Not Implemented | Needs adapter for Apiiro API |
+
+### Gap Summary
+
+**Fully Supported (13 tools):** Snyk, Trivy, Semgrep, Checkov, OWASP ZAP, Prowler, Jira, ServiceNow, GitLab, Azure DevOps, GitHub Advanced Security, Slack, Confluence
+
+**Partially Supported (3 tools):** Wiz, Checkmarx, Burp Suite (samples exist, need formal adapter)
+
+**Not Supported - Gaps (8 tools):** Nessus, Qualys, Rapid7, Tenable.io, Nmap, OpenVAS, Splunk, Apiiro
+
+### Recommended Adapter Priorities
+
+| Priority | Tool | Reason | Effort |
+|----------|------|--------|--------|
+| **High** | Nessus | Most common enterprise VM scanner | 1-2 weeks |
+| **High** | Qualys | Enterprise VM + compliance | 1-2 weeks |
+| **High** | Tenable.io | Modern cloud VM platform | 1-2 weeks |
+| **Medium** | Wiz | Formalize existing samples | 3-5 days |
+| **Medium** | Checkmarx | Formalize existing samples | 3-5 days |
+| **Medium** | Burp Suite | Formalize existing samples | 3-5 days |
+| **Low** | Rapid7 | Less common in target market | 1 week |
+| **Low** | Nmap | Network scanning (niche use case) | 3-5 days |
+| **Low** | OpenVAS | OSS alternative to Nessus | 3-5 days |
+| **Low** | Splunk | SIEM integration (complex) | 2-3 weeks |
+| **Low** | Apiiro | Niche ASPM tool | 1 week |
+
+### SIEM/EDR Integration Gap
+
+The pitch deck mentions SOC analysts using "SIEM, EDR, VM Scanners" but FixOps currently lacks:
+- Runtime event ingestion endpoint (documented in Part 3.8)
+- SIEM log parsing (Splunk, Elastic, etc.)
+- EDR alert correlation (CrowdStrike, SentinelOne, etc.)
+
+This is a significant gap for the "Security Analyst (SOC + VM)" persona.
 
 ---
 
