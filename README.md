@@ -598,7 +598,7 @@ FixOps can be deployed with integrated PentAGI for autonomous micro-pentest capa
 ```bash
 # Copy environment files
 cp .env.example .env
-cp .env.pentagi.example .env.pentagi
+cp env.pentagi.example .env.pentagi
 
 # Configure LLM API keys in .env.pentagi (at least one required)
 # OPENAI_API_KEY=sk-...
