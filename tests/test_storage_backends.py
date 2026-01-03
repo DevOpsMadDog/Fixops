@@ -260,6 +260,44 @@ class TestLocalFileBackend:
         meta = backend.put("../../../etc/passwd", b"malicious")
         assert ".." not in meta.path
 
+    def test_put_with_binary_io(self, backend):
+        """Test put() with a file-like object (BinaryIO) instead of bytes."""
+        import io
+
+        data = b"test content from file-like object"
+        file_obj = io.BytesIO(data)
+        meta = backend.put("test/file_io.txt", file_obj)
+
+        assert meta.size_bytes == len(data)
+        retrieved = backend.get("test/file_io.txt")
+        assert retrieved == data
+
+    def test_put_overwrite_under_retention_raises(self, backend):
+        """Test that overwriting an object under retention raises error."""
+        # First, put an object with retention policy
+        policy = RetentionPolicy(
+            mode=RetentionMode.COMPLIANCE,
+            retain_until_days=30,
+        )
+        backend.put("test/retained.txt", b"original content", retention_policy=policy)
+
+        # Try to overwrite it - should raise RetentionViolationError
+        with pytest.raises(RetentionViolationError):
+            backend.put("test/retained.txt", b"new content")
+
+    def test_load_metadata_with_corrupted_file(self, backend):
+        """Test that corrupted metadata file returns None."""
+        # First, put a valid object
+        backend.put("test/file.txt", b"content")
+
+        # Corrupt the metadata file
+        metadata_path = backend._metadata_path("test/file.txt")
+        metadata_path.write_text("not valid json {{{")
+
+        # _load_metadata should return None for corrupted files
+        result = backend._load_metadata("test/file.txt")
+        assert result is None
+
 
 class TestS3ObjectLockBackend:
     """Tests for S3ObjectLockBackend with mocked boto3."""

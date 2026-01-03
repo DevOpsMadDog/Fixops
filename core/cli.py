@@ -12,7 +12,7 @@ from pathlib import Path
 # Add fixops-enterprise to path if not already present (done once at module load)
 # Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
 ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-enterprise"
-if ENTERPRISE_SRC.exists():
+if ENTERPRISE_SRC.exists():  # pragma: no cover - enterprise path setup
     enterprise_path = str(ENTERPRISE_SRC)
     if enterprise_path not in sys.path:
         sys.path.append(enterprise_path)
