@@ -448,7 +448,7 @@ class InTotoStatement:
             "predicate": self.predicate,
         }
 
-    def to_json(self, *, indent: int = 2) -> str:
+    def to_json(self, *, indent: Optional[int] = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, sort_keys=True)
 
     @classmethod
