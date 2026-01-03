@@ -591,6 +591,30 @@ cp .env.example .env
 docker-compose -f deployment-packs/docker/docker-compose.yml up -d
 ```
 
+### Docker Compose with PentAGI Integration
+
+FixOps can be deployed with integrated PentAGI for autonomous micro-pentest capabilities. This enables automated vulnerability verification directly from the Risk Graph UI.
+
+```bash
+# Copy environment files
+cp .env.example .env
+cp .env.pentagi.example .env.pentagi
+
+# Configure LLM API keys in .env.pentagi (at least one required)
+# OPENAI_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-...
+
+# Start FixOps with PentAGI
+docker compose -f docker-compose.yml -f docker-compose.pentagi.yml --env-file .env.pentagi up -d
+```
+
+PentAGI will be available at `https://localhost:8443` (self-signed SSL). The integration includes:
+- **PentAGI** - Autonomous AI penetration testing agent
+- **pgvector** - PostgreSQL with vector extensions for memory/embeddings
+- **Scraper** - Web scraping service for reconnaissance
+
+Note: This integration uses the official PentAGI images with VXControl Cloud SDK disabled for fully offline/air-gapped operation. No phone-home behavior, no external cloud dependencies.
+
 ---
 
 ## Testing
