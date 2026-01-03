@@ -8,15 +8,20 @@ PYTHON_BIN := $(VENV)/bin/python
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  make bootstrap   Create a local virtual environment and install dependencies"
-	@echo "  make fmt          Run isort and black formatters"
-	@echo "  make lint         Run flake8 lint checks"
-	@echo "  make test         Run pytest with coverage gate"
-	@echo "  make sim          Generate SSDLC simulation artifacts (design & test)"
-	@echo "  make demo         Run the FixOps demo pipeline end-to-end"
+	@echo "  make bootstrap      Create a local virtual environment and install dependencies"
+	@echo "  make fmt            Run isort and black formatters"
+	@echo "  make lint           Run flake8 lint checks"
+	@echo "  make test           Run pytest with coverage gate"
+	@echo "  make sim            Generate SSDLC simulation artifacts (design & test)"
+	@echo "  make demo           Run the FixOps demo pipeline end-to-end"
 	@echo "  make demo-enterprise Run the FixOps enterprise pipeline with hardened overlay"
-	@echo "  make inventory    Rebuild the file usage inventory artefacts"
-	@echo "  make clean        Remove cached artefacts and the virtual environment"
+	@echo "  make inventory      Rebuild the file usage inventory artefacts"
+	@echo "  make clean          Remove cached artefacts and the virtual environment"
+	@echo ""
+	@echo "PentAGI Integration:"
+	@echo "  make up-pentagi     Start FixOps with PentAGI micro-pentest integration"
+	@echo "  make down-pentagi   Stop FixOps + PentAGI services"
+	@echo "  make logs-pentagi   View PentAGI container logs"
 
 $(VENV):
 	$(PYTHON) -m venv $(VENV)
@@ -146,3 +151,34 @@ demo-clean:
 	@rm -rf artifacts/* reports/demo_summary_*.md
 	@rm -f data/inputs/findings.ndjson data/inputs/findings_stats.json
 	@echo "✓ Demo artifacts cleaned (feeds preserved)"
+
+# ===================================================================
+# PentAGI Integration Targets
+# ===================================================================
+
+.PHONY: up-pentagi down-pentagi logs-pentagi
+
+up-pentagi:
+	@echo "Starting FixOps with PentAGI integration..."
+	@if [ ! -f .env.pentagi ]; then \
+		echo "Creating .env.pentagi from template..."; \
+		cp env.pentagi.example .env.pentagi; \
+		echo "⚠️  Please configure LLM API keys in .env.pentagi"; \
+	fi
+	docker compose -f docker-compose.yml -f docker-compose.pentagi.yml --env-file .env.pentagi up -d
+	@echo ""
+	@echo "✓ FixOps + PentAGI started"
+	@echo "  FixOps API: http://localhost:8000"
+	@echo "  PentAGI:    https://localhost:8443 (self-signed SSL)"
+	@echo ""
+	@echo "To use your fork's image (no VXControl Cloud SDK):"
+	@echo "  export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi:latest"
+	@echo "  make up-pentagi"
+
+down-pentagi:
+	@echo "Stopping FixOps + PentAGI..."
+	docker compose -f docker-compose.yml -f docker-compose.pentagi.yml down
+	@echo "✓ Services stopped"
+
+logs-pentagi:
+	docker compose -f docker-compose.yml -f docker-compose.pentagi.yml logs -f pentagi

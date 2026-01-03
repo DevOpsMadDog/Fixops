@@ -1,6 +1,12 @@
 # PentAGI Integration for FixOps
 # This compose file adds PentAGI micro-pentest capabilities to FixOps
 # Usage: docker compose -f docker-compose.yml -f docker-compose.pentagi.yml up -d
+#
+# To use your own fork's image (with VXControl Cloud SDK removed):
+#   export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi:latest
+#   docker compose -f docker-compose.yml -f docker-compose.pentagi.yml up -d
+#
+# Or use the Makefile: make up-pentagi
 
 volumes:
   pentagi-data:
@@ -19,9 +25,9 @@ networks:
 
 services:
   # PentAGI - Autonomous AI Penetration Testing Agent
-  # Note: VXControl Cloud SDK has been removed from our fork for offline/air-gapped operation
+  # Default: upstream image. Set PENTAGI_IMAGE to use your fork with VXControl Cloud SDK removed.
   pentagi:
-    image: vxcontrol/pentagi:latest
+    image: ${PENTAGI_IMAGE:-vxcontrol/pentagi:latest}
     restart: unless-stopped
     container_name: pentagi
     hostname: pentagi
