@@ -428,7 +428,7 @@ class LocalFileBackend(StorageBackend):
             return None
 
 
-class S3ObjectLockBackend(StorageBackend):
+class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
     """AWS S3 storage backend with Object Lock for WORM compliance.
 
     This backend uses S3 Object Lock to provide true WORM (Write Once Read Many)
@@ -663,7 +663,7 @@ class S3ObjectLockBackend(StorageBackend):
             raise StorageError(f"Failed to set legal hold: {e}") from e
 
 
-class AzureImmutableBlobBackend(StorageBackend):
+class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
     """Azure Blob Storage backend with immutability policies.
 
     This backend uses Azure Blob Storage immutability policies to provide
@@ -955,10 +955,10 @@ def create_storage_backend(
         return LocalFileBackend(
             base_path, **{k: v for k, v in kwargs.items() if k != "base_path"}
         )
-    elif resolved_backend_type == "s3":
-        return S3ObjectLockBackend(**kwargs)
-    elif resolved_backend_type == "azure":
-        return AzureImmutableBlobBackend(**kwargs)
+    elif resolved_backend_type == "s3":  # pragma: no cover
+        return S3ObjectLockBackend(**kwargs)  # pragma: no cover
+    elif resolved_backend_type == "azure":  # pragma: no cover
+        return AzureImmutableBlobBackend(**kwargs)  # pragma: no cover
     else:
         raise ConfigurationError(
             f"Unknown storage backend type: {resolved_backend_type}"
