@@ -41,6 +41,8 @@ FixOps is designed for **single-tenant, on-premises deployment**. This means:
 | **Evidence Signing** | **Production Ready** | RSA-SHA256 signing wired to EvidenceHub |
 | **SLSA v1 Provenance** | **Production Ready** | In-toto attestation format with signing |
 | **Evidence Verification** | **Production Ready** | POST /api/v1/evidence/verify endpoint |
+| **AI Consensus** | **Production Ready** | Real LLM provider integration with fallback logic |
+| **Enterprise Storage** | **Production Ready** | S3 Object Lock, Azure Immutable Blob, WORM compliance |
 
 ---
 

@@ -27,8 +27,8 @@ This document consolidates all planned features and "What's Needed" items into a
 | RSA-SHA256 Evidence Signing | **COMPLETED** | ~~Wire `rsa_sign()` into `EvidenceHub.persist()`~~ | ~~2-3 days~~ | `core/evidence.py:329-397` |
 | SLSA v1 Provenance | **COMPLETED** | ~~Implement SLSA provenance format, in-toto attestations~~ | ~~2-3 weeks~~ | `services/provenance/attestation.py` |
 | Evidence Verification Endpoint | **COMPLETED** | ~~Add `/api/v1/evidence/verify` that calls `rsa_verify()`~~ | ~~1-2 days~~ | `backend/api/evidence/router.py:162-303` |
-| WORM-Compliant Storage | SQLite with soft deletes | S3 Object Lock / Azure Immutable Blob adapter | 3-4 weeks | `core/evidence.py` |
-| Wire Real LLM Providers | `_call_llm()` returns mocked JSON | Replace mocked responses with actual provider calls | 3-5 days | `core/pentagi_advanced.py:258-273` |
+| WORM-Compliant Storage | **COMPLETED** | ~~S3 Object Lock / Azure Immutable Blob adapter~~ | ~~3-4 weeks~~ | `core/storage_backends.py` |
+| Wire Real LLM Providers | **COMPLETED** | ~~Replace mocked responses with actual provider calls~~ | ~~3-5 days~~ | `core/pentagi_advanced.py:354-460` |
 
 ### High Priority (Product Completeness)
 
@@ -80,17 +80,17 @@ This document consolidates all planned features and "What's Needed" items into a
 - [x] Implement SLSA v1 provenance format
 - [x] Store signature + fingerprint in manifest
 
-### Phase 2: AI Consensus (Weeks 4-5)
-- [ ] Replace mocked `_call_llm()` with real provider calls
-- [ ] Add error handling and fallback logic
-- [ ] Implement consensus threshold configuration
-- [ ] Add unit tests for consensus logic
+### Phase 2: AI Consensus (Weeks 4-5) - COMPLETED
+- [x] Replace mocked `_call_llm()` with real LLMProviderManager integration
+- [x] Add error handling with retry logic and fallback to deterministic responses
+- [x] Implement consensus threshold configuration via environment variables
+- [x] Add unit tests for consensus logic
 
-### Phase 3: Enterprise Storage (Weeks 6-8)
-- [ ] Abstract storage backend in evidence module
-- [ ] Implement S3 Object Lock adapter
-- [ ] Implement Azure Immutable Blob adapter
-- [ ] Add retention policy configuration
+### Phase 3: Enterprise Storage (Weeks 6-8) - COMPLETED
+- [x] Abstract storage backend with `StorageBackend` base class
+- [x] Implement S3 Object Lock adapter with WORM compliance
+- [x] Implement Azure Immutable Blob adapter with immutability policies
+- [x] Add retention policy configuration with environment variable support
 
 ### Phase 4: Scanning & Sandbox (Weeks 9-12)
 - [ ] Integrate checkov/tfsec for IaC scanning
@@ -193,6 +193,8 @@ These tools are mentioned in the pitch deck persona analysis but lack native Fix
 | API Endpoints | 277 | 300+ | `grep -rh "@router\." apps/api/*.py \| wc -l` |
 | CLI Commands | 30 | 67 | `python -m core.cli --help \| grep -E "^    [a-z]" \| wc -l` |
 | Test Coverage | 18.95% | 70%+ | `pytest --cov` |
-| LLM Providers Wired | 0 | 4 | Count of non-mocked providers |
+| LLM Providers Wired | **4** | 4 | OpenAI, Anthropic, Gemini, SentinelCyber |
 | Evidence Signing | **RSA-SHA256** | RSA-SHA256 | `POST /api/v1/evidence/verify` |
 | SLSA Provenance | **v1 + in-toto** | SLSA v1 | `services/provenance/attestation.py` |
+| Storage Backends | **3** | 3 | Local, S3 Object Lock, Azure Immutable Blob |
+| AI Consensus | **Real LLM** | Real LLM | `core/pentagi_advanced.py` |
