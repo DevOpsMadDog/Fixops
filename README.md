@@ -653,6 +653,7 @@ pytest --cov=core --cov=apps
 |----------|-------------|
 | [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (322 endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
+| [PentAGI Integration](docs/PENTAGI_INTEGRATION.md) | Micro-pentest deployment and configuration guide |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
 | [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
 | [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) | AI-indexed documentation with search |
