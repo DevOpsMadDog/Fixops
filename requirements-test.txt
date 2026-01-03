@@ -37,6 +37,7 @@ py-spy>=0.3.14  # Performance profiling
 # Coverage
 coverage>=7.3.0
 coveralls>=3.3.1
+diff-cover>=8.0.0  # Enforce 100% coverage on new/changed code
 
 # Integration Testing
 docker>=6.1.0  # Docker integration tests

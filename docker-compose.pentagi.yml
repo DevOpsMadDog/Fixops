@@ -1,0 +1,143 @@
+# PentAGI Integration for FixOps
+# This compose file adds PentAGI micro-pentest capabilities to FixOps
+# Usage: docker compose -f docker-compose.yml -f docker-compose.pentagi.yml up -d
+#
+# To use your own fork's image (with VXControl Cloud SDK removed):
+#   export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi:latest
+#   docker compose -f docker-compose.yml -f docker-compose.pentagi.yml up -d
+#
+# Or use the Makefile: make up-pentagi
+
+volumes:
+  pentagi-data:
+    driver: local
+  pentagi-ssl:
+    driver: local
+  pentagi-postgres-data:
+    driver: local
+  scraper-ssl:
+    driver: local
+
+networks:
+  pentagi-network:
+    driver: bridge
+    name: pentagi-network
+
+services:
+  # PentAGI - Autonomous AI Penetration Testing Agent
+  # Default: upstream image. Set PENTAGI_IMAGE to use your fork with VXControl Cloud SDK removed.
+  pentagi:
+    image: ${PENTAGI_IMAGE:-vxcontrol/pentagi:latest}
+    restart: unless-stopped
+    container_name: pentagi
+    hostname: pentagi
+    ports:
+      - "${PENTAGI_LISTEN_IP:-127.0.0.1}:${PENTAGI_LISTEN_PORT:-8443}:8443"
+    depends_on:
+      pentagi-db:
+        condition: service_started
+    environment:
+      # Core settings
+      - DEBUG=${PENTAGI_DEBUG:-false}
+      - DOCKER_GID=998
+      - SERVER_PORT=8443
+      - SERVER_HOST=0.0.0.0
+      - SERVER_USE_SSL=${PENTAGI_USE_SSL:-true}
+      
+      # License and installation (no cloud validation - works offline)
+      - INSTALLATION_ID=${PENTAGI_INSTALLATION_ID:-}
+      - LICENSE_KEY=${PENTAGI_LICENSE_KEY:-}
+      
+      # LLM Provider Configuration
+      - OPEN_AI_KEY=${OPEN_AI_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      
+      # Database
+      - DATABASE_URL=postgres://${PENTAGI_POSTGRES_USER:-pentagi}:${PENTAGI_POSTGRES_PASSWORD:-pentagi}@pentagi-db:5432/${PENTAGI_POSTGRES_DB:-pentagidb}?sslmode=disable
+      
+      # Scraper configuration
+      - SCRAPER_PRIVATE_URL=https://${LOCAL_SCRAPER_USERNAME:-scraper}:${LOCAL_SCRAPER_PASSWORD:-scraper}@pentagi-scraper:443
+      
+      # Docker configuration for sandboxed execution
+      - DOCKER_HOST=${DOCKER_HOST:-unix:///var/run/docker.sock}
+      - DOCKER_INSIDE=${DOCKER_INSIDE:-true}
+      - DOCKER_NET_ADMIN=${DOCKER_NET_ADMIN:-false}
+      
+      # Search providers (optional)
+      - DUCKDUCKGO_ENABLED=${PENTAGI_DUCKDUCKGO_ENABLED:-true}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      
+      # Disable external cloud services for air-gapped operation
+      - GRAPHITI_ENABLED=${PENTAGI_GRAPHITI_ENABLED:-false}
+      - LANGFUSE_BASE_URL=${PENTAGI_LANGFUSE_BASE_URL:-}
+      - OTEL_HOST=${PENTAGI_OTEL_HOST:-}
+      
+      # CORS for FixOps integration
+      - CORS_ORIGINS=${PENTAGI_CORS_ORIGINS:-http://localhost:8000,http://fixops:8000}
+      - PUBLIC_URL=${PENTAGI_PUBLIC_URL:-https://localhost:8443}
+    volumes:
+      - pentagi-data:/opt/pentagi/data
+      - pentagi-ssl:/opt/pentagi/ssl
+      - ${PENTAGI_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+    user: root:root
+    networks:
+      - pentagi-network
+      - default
+    logging:
+      options:
+        max-size: 50m
+        max-file: "7"
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:8443/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL with pgvector for PentAGI memory/embeddings
+  pentagi-db:
+    image: vxcontrol/pgvector:latest
+    restart: unless-stopped
+    container_name: pentagi-db
+    hostname: pentagi-db
+    expose:
+      - 5432/tcp
+    ports:
+      - "${PENTAGI_DB_LISTEN_IP:-127.0.0.1}:${PENTAGI_DB_LISTEN_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: ${PENTAGI_POSTGRES_USER:-pentagi}
+      POSTGRES_PASSWORD: ${PENTAGI_POSTGRES_PASSWORD:-pentagi}
+      POSTGRES_DB: ${PENTAGI_POSTGRES_DB:-pentagidb}
+    volumes:
+      - pentagi-postgres-data:/var/lib/postgresql/data
+    networks:
+      - pentagi-network
+    logging:
+      options:
+        max-size: 50m
+        max-file: "7"
+
+  # Web scraper for PentAGI reconnaissance
+  pentagi-scraper:
+    image: vxcontrol/scraper:latest
+    restart: unless-stopped
+    container_name: pentagi-scraper
+    hostname: pentagi-scraper
+    expose:
+      - 443/tcp
+    ports:
+      - "${PENTAGI_SCRAPER_LISTEN_IP:-127.0.0.1}:${PENTAGI_SCRAPER_LISTEN_PORT:-9443}:443"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=${PENTAGI_SCRAPER_MAX_SESSIONS:-10}
+      - USERNAME=${LOCAL_SCRAPER_USERNAME:-scraper}
+      - PASSWORD=${LOCAL_SCRAPER_PASSWORD:-scraper}
+    volumes:
+      - scraper-ssl:/usr/src/app/ssl
+    networks:
+      - pentagi-network
+    shm_size: 2g
+    logging:
+      options:
+        max-size: 50m
+        max-file: "7"

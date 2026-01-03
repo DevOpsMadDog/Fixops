@@ -406,8 +406,8 @@ async def run_custom_query(query: Dict[str, Any]):
 
 @router.get("/export")
 async def export_analytics(
-    format: str = Query("json", regex="^(json|csv)$"),
-    data_type: str = Query("findings", regex="^(findings|decisions|metrics)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
+    data_type: str = Query("findings", pattern="^(findings|decisions|metrics)$"),
 ):
     """Export analytics data in specified format."""
     if data_type == "findings":
