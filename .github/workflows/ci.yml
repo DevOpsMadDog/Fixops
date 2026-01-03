@@ -25,6 +25,8 @@ jobs:
       FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff-cover comparison with origin/main
       - name: Install dependencies
         run: |
           pip install -r requirements-test.txt
@@ -42,8 +44,6 @@ jobs:
         run: |
           # Fix git safe directory for diff-cover (uses --system to avoid HOME inconsistencies)
           git config --system --add safe.directory "$GITHUB_WORKSPACE"
-          # Fetch origin/main for diff-cover comparison (shallow clone doesn't include it)
-          git fetch origin main:refs/remotes/origin/main --depth=1 || true
           pip install diff-cover
           diff-cover coverage.xml --compare-branch=origin/main --fail-under=100 --html-report=diff-coverage.html
       - name: Run demo (optional)
