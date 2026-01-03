@@ -1144,7 +1144,7 @@ This section maps tools mentioned in the pitch deck persona analysis to FixOps i
 
 ### Gap Summary
 
-**Fully Supported (12 tools):** Snyk, Trivy, Semgrep, Checkov, OWASP ZAP, Prowler, Jira, ServiceNow, GitLab, Azure DevOps, GitHub Advanced Security, Slack, Confluence
+**Fully Supported (13 tools):** Snyk, Trivy, Semgrep, Checkov, OWASP ZAP, Prowler, Jira, ServiceNow, GitLab, Azure DevOps, GitHub Advanced Security, Slack, Confluence
 
 **Partially Supported (3 tools):** Wiz, Checkmarx, Burp Suite (samples exist, need formal adapter)
 
