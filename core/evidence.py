@@ -1,4 +1,15 @@
-"""Evidence hub responsible for persisting contextual bundles."""
+"""Evidence hub responsible for persisting contextual bundles.
+
+This module provides the EvidenceHub class for persisting evidence bundles
+with optional compression, encryption, and RSA-SHA256 signing.
+
+Production features:
+- Gzip compression for large bundles
+- Fernet encryption for sensitive data
+- RSA-SHA256 signing with key fingerprint tracking
+- Atomic writes for data integrity
+- Audit logging for compliance
+"""
 
 from __future__ import annotations
 
@@ -20,41 +31,31 @@ from fixops.utils.paths import resolve_within_root
 
 logger = logging.getLogger(__name__)
 
-try:  # Optional dependency used when regulated tenants request encryption
+# Fernet encryption - requires cryptography package
+try:
     from cryptography.fernet import Fernet
-except Exception:  # pragma: no cover - cryptography is optional
-    Fernet = None  # type: ignore[misc,assignment,import]
+except ImportError:
+    Fernet = None  # type: ignore[misc,assignment]
+    logger.warning(
+        "cryptography package not installed. Evidence encryption will not be available. "
+        "Install with: pip install cryptography"
+    )
 
-# RSA signing functions - optional enterprise feature
+# RSA signing - uses core.crypto module (production-ready, no external dependencies)
 _rsa_sign: Optional[Callable[[bytes], Tuple[bytes, str]]] = None
 _rsa_verify: Optional[Callable[[bytes, bytes, str], bool]] = None
 
 try:
-    from fixops_enterprise.src.utils.crypto import (
-        rsa_sign as _enterprise_rsa_sign,  # pragma: no cover
+    from core.crypto import rsa_sign as _core_rsa_sign
+    from core.crypto import rsa_verify as _core_rsa_verify
+
+    _rsa_sign = _core_rsa_sign
+    _rsa_verify = _core_rsa_verify
+    logger.info("RSA signing module loaded successfully")
+except ImportError as e:
+    logger.warning(
+        f"RSA signing module not available: {e}. " "Evidence signing will be disabled."
     )
-    from fixops_enterprise.src.utils.crypto import (
-        rsa_verify as _enterprise_rsa_verify,  # pragma: no cover
-    )
-
-    _rsa_sign = _enterprise_rsa_sign  # pragma: no cover
-    _rsa_verify = _enterprise_rsa_verify  # pragma: no cover
-except ImportError:
-    try:
-        import sys
-
-        enterprise_path = str(
-            Path(__file__).parent.parent / "fixops-enterprise" / "src"
-        )
-        if enterprise_path not in sys.path:  # pragma: no cover
-            sys.path.append(enterprise_path)  # pragma: no cover
-        from utils.crypto import rsa_sign as _alt_rsa_sign  # pragma: no cover
-        from utils.crypto import rsa_verify as _alt_rsa_verify  # pragma: no cover
-
-        _rsa_sign = _alt_rsa_sign  # pragma: no cover
-        _rsa_verify = _alt_rsa_verify  # pragma: no cover
-    except ImportError:  # pragma: no cover
-        pass  # RSA signing not available
 
 
 _SAFE_BUNDLE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -177,14 +178,14 @@ class EvidenceHub:
 
         sign_flag = limits.get("sign") if isinstance(limits, Mapping) else False
         try:
-            sign_flag = overlay.flag_provider.bool(  # pragma: no cover
+            sign_flag = overlay.flag_provider.bool(
                 "fixops.feature.evidence.signing", sign_flag
             )
-        except Exception:  # pragma: no cover
-            pass  # pragma: no cover
+        except Exception:
+            pass
 
         self.sign_bundles = bool(sign_flag)
-        if self.sign_bundles and _rsa_sign is None:  # pragma: no cover
+        if self.sign_bundles and _rsa_sign is None:
             mode = str(getattr(overlay, "mode", "production") or "production").lower()
             is_ci_env = (
                 os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
@@ -193,15 +194,15 @@ class EvidenceHub:
                 logger.warning(
                     "Evidence signing requested but RSA signing module not available. "
                     f"Running in mode={mode} (CI={is_ci_env}) - disabling signing. "
-                    "Install fixops-enterprise package for production deployments."
+                    "Ensure core.crypto module is properly installed."
                 )
                 self.sign_bundles = False
             else:
-                logger.warning(
+                raise RuntimeError(
                     "Evidence signing requested but RSA signing module not available. "
-                    "Install fixops-enterprise package to enable RSA-SHA256 signing."
+                    "This is a production deployment - signing is required. "
+                    "Ensure core.crypto module is properly installed."
                 )
-                self.sign_bundles = False
 
     def _base_directory(self) -> Path:
         directory = self.overlay.data_directories.get("evidence_dir")
@@ -339,19 +340,13 @@ class EvidenceHub:
         fingerprint: Optional[str] = None
         signed_at: Optional[str] = None
 
-        if self.sign_bundles and _rsa_sign is not None:  # pragma: no cover
-            try:  # pragma: no cover
-                signature_bytes, fingerprint = _rsa_sign(
-                    final_bytes
-                )  # pragma: no cover
-                signature_b64 = base64.b64encode(signature_bytes).decode(
-                    "utf-8"
-                )  # pragma: no cover
-                signed_at = time.strftime(
-                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
-                )  # pragma: no cover
-                signed = True  # pragma: no cover
-                logger.info(  # pragma: no cover
+        if self.sign_bundles and _rsa_sign is not None:
+            try:
+                signature_bytes, fingerprint = _rsa_sign(final_bytes)
+                signature_b64 = base64.b64encode(signature_bytes).decode("utf-8")
+                signed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                signed = True
+                logger.info(
                     "Evidence bundle signed with RSA-SHA256",
                     extra={
                         "run_id": run_id,
@@ -359,11 +354,15 @@ class EvidenceHub:
                         "signed_at": signed_at,
                     },
                 )
-            except Exception as exc:  # pragma: no cover
-                logger.warning(  # pragma: no cover
+            except Exception as exc:
+                logger.error(
                     f"Failed to sign evidence bundle: {exc}. "
-                    "Bundle will be persisted without signature."
+                    "This is a critical error in production."
                 )
+                raise RuntimeError(
+                    f"Evidence signing failed: {exc}. "
+                    "Bundle cannot be persisted without valid signature."
+                ) from exc
 
         manifest: Dict[str, Any] = {
             "run_id": run_id,
@@ -380,12 +379,12 @@ class EvidenceHub:
             "retention_days": self.retention_days,
         }
 
-        if signed:  # pragma: no cover
-            manifest["signed"] = True  # pragma: no cover
-            manifest["signature"] = signature_b64  # pragma: no cover
-            manifest["fingerprint"] = fingerprint  # pragma: no cover
-            manifest["signed_at"] = signed_at  # pragma: no cover
-            manifest["signature_algorithm"] = "RSA-SHA256"  # pragma: no cover
+        if signed:
+            manifest["signed"] = True
+            manifest["signature"] = signature_b64
+            manifest["fingerprint"] = fingerprint
+            manifest["signed_at"] = signed_at
+            manifest["signature_algorithm"] = "RSA-SHA256"
 
         manifest_path = resolve_within_root(base_dir, "manifest.json")
         manifest_bytes = json.dumps(manifest, indent=2).encode("utf-8")
@@ -406,10 +405,10 @@ class EvidenceHub:
             "retention_days": self.retention_days,
         }
 
-        if signed:  # pragma: no cover
-            result["signed"] = True  # pragma: no cover
-            result["fingerprint"] = fingerprint  # pragma: no cover
-            result["signed_at"] = signed_at  # pragma: no cover
+        if signed:
+            result["signed"] = True
+            result["fingerprint"] = fingerprint
+            result["signed_at"] = signed_at
 
         return result
 

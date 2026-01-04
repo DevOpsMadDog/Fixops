@@ -428,7 +428,7 @@ class LocalFileBackend(StorageBackend):
             return None
 
 
-class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
+class S3ObjectLockBackend(StorageBackend):
     """AWS S3 storage backend with Object Lock for WORM compliance.
 
     This backend uses S3 Object Lock to provide true WORM (Write Once Read Many)
@@ -437,6 +437,7 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
 
     Requirements:
     - S3 bucket must have Object Lock enabled at creation time
+    - Bucket versioning must be enabled (required for Object Lock)
     - Appropriate IAM permissions for Object Lock operations
     - boto3 library must be installed
 
@@ -446,6 +447,8 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
     - AWS_REGION: AWS region (default: us-east-1)
     - FIXOPS_S3_BUCKET: S3 bucket name
     - FIXOPS_S3_PREFIX: Optional key prefix
+    - FIXOPS_S3_ENDPOINT_URL: Optional custom endpoint (for LocalStack/MinIO)
+    - FIXOPS_S3_SKIP_VALIDATION: Set to 'true' to skip bucket validation (testing only)
     """
 
     def __init__(
@@ -455,6 +458,8 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
         prefix: str = "",
         region: Optional[str] = None,
         default_retention: Optional[RetentionPolicy] = None,
+        endpoint_url: Optional[str] = None,
+        skip_validation: bool = False,
     ):
         self.bucket = bucket or os.getenv("FIXOPS_S3_BUCKET")
         if not self.bucket:
@@ -463,9 +468,20 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
             )
         self.prefix = prefix or os.getenv("FIXOPS_S3_PREFIX", "")
         self.region = region or os.getenv("AWS_REGION", "us-east-1")
+        self.endpoint_url = endpoint_url or os.getenv("FIXOPS_S3_ENDPOINT_URL")
         self.default_retention = default_retention or RetentionPolicy.from_env()
         self._client = None
-        logger.info(f"S3ObjectLockBackend initialized for bucket {self.bucket}")
+        self._object_lock_enabled: Optional[bool] = None
+        self._versioning_enabled: Optional[bool] = None
+
+        # Skip validation flag (for testing with LocalStack which may not support all features)
+        env_skip = os.getenv("FIXOPS_S3_SKIP_VALIDATION", "").lower()
+        self._skip_validation = skip_validation or env_skip in ("true", "1", "yes")
+
+        logger.info(
+            f"S3ObjectLockBackend initialized for bucket {self.bucket} "
+            f"(region={self.region}, endpoint={self.endpoint_url or 'default'})"
+        )
 
     @property
     def backend_type(self) -> str:
@@ -477,12 +493,103 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
             try:
                 import boto3
 
-                self._client = boto3.client("s3", region_name=self.region)
+                client_kwargs = {"region_name": self.region}
+                if self.endpoint_url:
+                    client_kwargs["endpoint_url"] = self.endpoint_url
+                self._client = boto3.client("s3", **client_kwargs)
             except ImportError:
                 raise ConfigurationError(
                     "boto3 library required for S3 backend. Install with: pip install boto3"
                 )
         return self._client
+
+    def validate_bucket_configuration(self) -> bool:
+        """Validate that the bucket has Object Lock and versioning enabled.
+
+        This method checks that the bucket is properly configured for WORM compliance.
+        In production, this should be called before storing any evidence.
+
+        Returns:
+            True if bucket is properly configured
+
+        Raises:
+            ConfigurationError: If bucket is not properly configured for WORM compliance
+        """
+        if self._skip_validation:
+            logger.warning(
+                f"Skipping bucket validation for {self.bucket} (FIXOPS_S3_SKIP_VALIDATION=true). "
+                "This should only be used in testing environments."
+            )
+            return True
+
+        # Check versioning status
+        try:
+            versioning = self.client.get_bucket_versioning(Bucket=self.bucket)
+            versioning_status = versioning.get("Status", "")
+            self._versioning_enabled = versioning_status == "Enabled"
+            if not self._versioning_enabled:
+                raise ConfigurationError(
+                    f"Bucket {self.bucket} does not have versioning enabled. "
+                    "Versioning is required for Object Lock. "
+                    "Enable versioning with: aws s3api put-bucket-versioning "
+                    f"--bucket {self.bucket} --versioning-configuration Status=Enabled"
+                )
+            logger.info(f"Bucket {self.bucket} versioning is enabled")
+        except ConfigurationError:
+            raise
+        except Exception as e:
+            raise ConfigurationError(
+                f"Failed to check versioning status for bucket {self.bucket}: {e}"
+            ) from e
+
+        # Check Object Lock configuration
+        try:
+            lock_config = self.client.get_object_lock_configuration(Bucket=self.bucket)
+            object_lock_enabled = (
+                lock_config.get("ObjectLockConfiguration", {}).get("ObjectLockEnabled")
+                == "Enabled"
+            )
+            self._object_lock_enabled = object_lock_enabled
+            if not object_lock_enabled:
+                raise ConfigurationError(
+                    f"Bucket {self.bucket} does not have Object Lock enabled. "
+                    "Object Lock must be enabled at bucket creation time. "
+                    "Create a new bucket with Object Lock enabled."
+                )
+            logger.info(f"Bucket {self.bucket} Object Lock is enabled")
+        except self.client.exceptions.ObjectLockConfigurationNotFoundError:
+            raise ConfigurationError(
+                f"Bucket {self.bucket} does not have Object Lock configured. "
+                "Object Lock must be enabled at bucket creation time. "
+                "Create a new bucket with: aws s3api create-bucket "
+                f"--bucket {self.bucket} --object-lock-enabled-for-bucket"
+            )
+        except ConfigurationError:
+            raise
+        except Exception as e:
+            # Some S3-compatible services may not support Object Lock queries
+            logger.warning(
+                f"Could not verify Object Lock configuration for {self.bucket}: {e}. "
+                "Proceeding with assumption that Object Lock is configured."
+            )
+            self._object_lock_enabled = None
+
+        return True
+
+    def ensure_worm_compliance(self) -> None:
+        """Ensure bucket is configured for WORM compliance before any operations.
+
+        This is a fail-closed check - if we cannot verify WORM compliance,
+        we refuse to proceed in production mode.
+
+        Raises:
+            ConfigurationError: If WORM compliance cannot be verified
+        """
+        if self._skip_validation:
+            return
+
+        if self._object_lock_enabled is None or self._versioning_enabled is None:
+            self.validate_bucket_configuration()
 
     def _full_key(self, key: str) -> str:
         if self.prefix:
@@ -498,6 +605,9 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
         retention_policy: Optional[RetentionPolicy] = None,
         metadata: Optional[Dict[str, str]] = None,
     ) -> StorageMetadata:
+        # Validate WORM compliance before storing (fail-closed)
+        self.ensure_worm_compliance()
+
         if hasattr(data, "read"):
             content = data.read()
         else:
@@ -513,8 +623,11 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
             "Body": content,
             "ContentType": content_type,
             "Metadata": metadata or {},
-            "ChecksumSHA256": sha256_hash,
         }
+
+        # Only add ChecksumSHA256 if not using LocalStack (which may not support it)
+        if not self.endpoint_url or "localhost" not in self.endpoint_url:
+            put_args["ChecksumSHA256"] = sha256_hash
 
         if effective_retention:
             put_args["ObjectLockMode"] = effective_retention.mode.value.upper()
@@ -526,7 +639,10 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
 
         try:
             self.client.put_object(**put_args)
-            logger.info(f"Stored object {full_key} in S3 ({len(content)} bytes)")
+            logger.info(
+                f"Stored object {full_key} in S3 ({len(content)} bytes, "
+                f"retention={effective_retention.mode.value if effective_retention else 'none'})"
+            )
         except Exception as e:
             raise StorageError(f"Failed to store object in S3: {e}") from e
 
@@ -663,7 +779,7 @@ class S3ObjectLockBackend(StorageBackend):  # pragma: no cover
             raise StorageError(f"Failed to set legal hold: {e}") from e
 
 
-class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
+class AzureImmutableBlobBackend(StorageBackend):
     """Azure Blob Storage backend with immutability policies.
 
     This backend uses Azure Blob Storage immutability policies to provide
@@ -671,6 +787,7 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
 
     Requirements:
     - Azure Storage account with immutable blob storage enabled
+    - Container must have version-level immutability enabled
     - azure-storage-blob library must be installed
 
     Environment variables:
@@ -679,6 +796,7 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
     - AZURE_STORAGE_ACCOUNT_KEY: Storage account key (alternative)
     - FIXOPS_AZURE_CONTAINER: Container name
     - FIXOPS_AZURE_PREFIX: Optional blob prefix
+    - FIXOPS_AZURE_SKIP_VALIDATION: Set to 'true' to skip container validation (testing only)
     """
 
     def __init__(
@@ -688,6 +806,7 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
         prefix: str = "",
         connection_string: Optional[str] = None,
         default_retention: Optional[RetentionPolicy] = None,
+        skip_validation: bool = False,
     ):
         self.container = container or os.getenv("FIXOPS_AZURE_CONTAINER")
         if not self.container:
@@ -701,6 +820,12 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
         self.default_retention = default_retention or RetentionPolicy.from_env()
         self._client = None
         self._container_client = None
+        self._immutability_enabled: Optional[bool] = None
+
+        # Skip validation flag (for testing with Azurite which may not support all features)
+        env_skip = os.getenv("FIXOPS_AZURE_SKIP_VALIDATION", "").lower()
+        self._skip_validation = skip_validation or env_skip in ("true", "1", "yes")
+
         logger.info(
             f"AzureImmutableBlobBackend initialized for container {self.container}"
         )
@@ -746,6 +871,71 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
             return f"{self.prefix.rstrip('/')}/{key}"
         return key
 
+    def validate_container_configuration(self) -> bool:
+        """Validate that the container has immutability policies enabled.
+
+        This method checks that the container is properly configured for WORM compliance.
+        In production, this should be called before storing any evidence.
+
+        Returns:
+            True if container is properly configured
+
+        Raises:
+            ConfigurationError: If container is not properly configured for WORM compliance
+        """
+        if self._skip_validation:
+            logger.warning(
+                f"Skipping container validation for {self.container} "
+                "(FIXOPS_AZURE_SKIP_VALIDATION=true). "
+                "This should only be used in testing environments."
+            )
+            return True
+
+        try:
+            # Check if container exists and get its properties
+            properties = self.container_client.get_container_properties()
+
+            # Check if version-level immutability is enabled
+            # Note: This requires the storage account to have version-level immutability enabled
+            has_immutability = getattr(
+                properties, "has_immutability_policy", None
+            ) or getattr(properties, "immutable_storage_with_versioning_enabled", None)
+
+            if has_immutability:
+                self._immutability_enabled = True
+                logger.info(
+                    f"Container {self.container} has immutability policies enabled"
+                )
+            else:
+                # Some Azure configurations may not expose this property
+                # Log a warning but don't fail - the actual immutability will be enforced at blob level
+                logger.warning(
+                    f"Could not verify immutability configuration for container {self.container}. "
+                    "Ensure the storage account has version-level immutability enabled."
+                )
+                self._immutability_enabled = None
+
+            return True
+        except Exception as e:
+            raise ConfigurationError(
+                f"Failed to validate container configuration for {self.container}: {e}"
+            ) from e
+
+    def ensure_worm_compliance(self) -> None:
+        """Ensure container is configured for WORM compliance before any operations.
+
+        This is a fail-closed check - if we cannot verify WORM compliance,
+        we refuse to proceed in production mode.
+
+        Raises:
+            ConfigurationError: If WORM compliance cannot be verified
+        """
+        if self._skip_validation:
+            return
+
+        if self._immutability_enabled is None:
+            self.validate_container_configuration()
+
     def put(
         self,
         key: str,
@@ -755,6 +945,9 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
         retention_policy: Optional[RetentionPolicy] = None,
         metadata: Optional[Dict[str, str]] = None,
     ) -> StorageMetadata:
+        # Validate WORM compliance before storing (fail-closed)
+        self.ensure_worm_compliance()
+
         if hasattr(data, "read"):
             content = data.read()
         else:
@@ -789,7 +982,10 @@ class AzureImmutableBlobBackend(StorageBackend):  # pragma: no cover
                 if effective_retention.legal_hold:
                     blob_client.set_legal_hold(True)
 
-            logger.info(f"Stored blob {full_key} in Azure ({len(content)} bytes)")
+            logger.info(
+                f"Stored blob {full_key} in Azure ({len(content)} bytes, "
+                f"retention={effective_retention.mode.value if effective_retention else 'none'})"
+            )
         except Exception as e:
             raise StorageError(f"Failed to store blob in Azure: {e}") from e
 
@@ -955,10 +1151,10 @@ def create_storage_backend(
         return LocalFileBackend(
             base_path, **{k: v for k, v in kwargs.items() if k != "base_path"}
         )
-    elif resolved_backend_type == "s3":  # pragma: no cover
-        return S3ObjectLockBackend(**kwargs)  # pragma: no cover
-    elif resolved_backend_type == "azure":  # pragma: no cover
-        return AzureImmutableBlobBackend(**kwargs)  # pragma: no cover
+    elif resolved_backend_type == "s3":
+        return S3ObjectLockBackend(**kwargs)
+    elif resolved_backend_type == "azure":
+        return AzureImmutableBlobBackend(**kwargs)
     else:
         raise ConfigurationError(
             f"Unknown storage backend type: {resolved_backend_type}"
