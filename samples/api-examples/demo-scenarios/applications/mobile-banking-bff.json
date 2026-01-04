@@ -1,0 +1,146 @@
+{
+  "application": {
+    "id": "app-mobile-banking-bff-001",
+    "name": "mobile-banking-bff",
+    "display_name": "Mobile Banking Backend-for-Frontend",
+    "description": "Backend-for-Frontend service powering iOS and Android mobile banking applications",
+    "portfolio": "Consumer Banking",
+    "business_unit": "Retail Banking",
+    "criticality": "critical",
+    "tier": "tier-1",
+    "data_classification": "highly-confidential",
+    "pii_data": true,
+    "pci_data": true,
+    "phi_data": false,
+    "architecture": {
+      "type": "microservices",
+      "deployment_model": "cloud-native",
+      "cloud_provider": "aws",
+      "regions": ["us-east-1", "us-west-2", "eu-west-1"],
+      "container_orchestration": "EKS",
+      "service_mesh": "AWS App Mesh",
+      "cdn": "CloudFront"
+    },
+    "tech_stack": {
+      "primary_language": "Kotlin",
+      "framework": "Ktor",
+      "runtime": "JVM 21 (GraalVM)",
+      "database": ["Aurora PostgreSQL", "DynamoDB", "ElastiCache"],
+      "message_queue": "SQS/SNS",
+      "cache": "Redis Cluster",
+      "additional": ["GraphQL Federation", "gRPC", "WebSocket"]
+    },
+    "repository": {
+      "url": "https://github.com/acme-corp/mobile-banking-bff",
+      "branch": "main",
+      "last_commit": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+      "ci_cd": "GitHub Actions",
+      "build_system": "Gradle"
+    },
+    "compliance_frameworks": ["pci-dss", "soc2", "gdpr", "ccpa", "ffiec"],
+    "security_contacts": {
+      "primary": "mobile-security@acme-corp.com",
+      "escalation": "ciso@acme-corp.com",
+      "on_call": "mobile-oncall@acme-corp.com"
+    },
+    "sla": {
+      "availability": "99.99%",
+      "rto_hours": 0.5,
+      "rpo_hours": 0,
+      "critical_fix_hours": 4,
+      "high_fix_hours": 12
+    }
+  },
+  "sbom": {
+    "format": "CycloneDX",
+    "version": "1.5",
+    "generated_at": "2024-12-26T08:00:00Z",
+    "tool": "cyclonedx-gradle-plugin",
+    "components_count": 312,
+    "direct_dependencies": 58,
+    "transitive_dependencies": 254,
+    "licenses": ["Apache-2.0", "MIT", "EPL-2.0"],
+    "critical_components": [
+      {
+        "name": "io.ktor:ktor-server-core",
+        "version": "2.3.7",
+        "type": "framework",
+        "purpose": "HTTP server"
+      },
+      {
+        "name": "org.jetbrains.exposed:exposed-core",
+        "version": "0.45.0",
+        "type": "library",
+        "purpose": "SQL framework"
+      },
+      {
+        "name": "com.auth0:java-jwt",
+        "version": "4.4.0",
+        "type": "library",
+        "purpose": "JWT handling"
+      }
+    ]
+  },
+  "risk_profile": {
+    "overall_risk_score": 88,
+    "risk_factors": {
+      "data_sensitivity": "critical",
+      "internet_exposure": "critical",
+      "regulatory_impact": "critical",
+      "financial_impact": "critical",
+      "reputational_impact": "critical"
+    },
+    "attack_surface": {
+      "external_endpoints": 45,
+      "internal_endpoints": 123,
+      "api_endpoints": 289,
+      "admin_interfaces": 4,
+      "mobile_app_users": 5000000
+    },
+    "threat_model": {
+      "primary_threats": [
+        "Account takeover",
+        "Session hijacking",
+        "API abuse",
+        "Man-in-the-middle attacks",
+        "Credential stuffing",
+        "Mobile app reverse engineering"
+      ],
+      "mitre_attack_techniques": [
+        "T1078",
+        "T1539",
+        "T1557",
+        "T1110",
+        "T1185",
+        "T1056.001"
+      ]
+    }
+  },
+  "recent_findings_summary": {
+    "critical": 2,
+    "high": 6,
+    "medium": 14,
+    "low": 31,
+    "informational": 58,
+    "correlation_ids": [
+      "CORR-MOBILE-JWT-001",
+      "CORR-MOBILE-IDOR-001",
+      "CORR-MOBILE-CERT-001",
+      "CORR-MOBILE-GRAPHQL-001"
+    ]
+  },
+  "integrations": {
+    "ticketing": "Jira",
+    "chat": "Slack",
+    "siem": "Splunk",
+    "secrets_manager": "AWS Secrets Manager",
+    "waf": "AWS WAF"
+  },
+  "mobile_security": {
+    "certificate_pinning": true,
+    "root_detection": true,
+    "code_obfuscation": true,
+    "biometric_auth": true,
+    "device_binding": true
+  }
+}

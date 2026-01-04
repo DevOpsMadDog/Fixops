@@ -1,0 +1,158 @@
+{
+  "assessment_id": "soc2-iam-2025-001",
+  "framework": "soc2",
+  "framework_version": "type2",
+  "timestamp": "2025-01-15T20:30:00Z",
+  "application": "user-identity-service",
+  "scope": {
+    "trust_service_criteria": ["security", "availability", "confidentiality"],
+    "audit_period": {
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    },
+    "service_description": "User authentication and authorization service"
+  },
+  "auditor": {
+    "firm": "Big4 Audit LLP",
+    "lead_auditor": "Jane Auditor",
+    "report_date": "2025-02-15"
+  },
+  "overall_status": "qualified",
+  "trust_service_criteria": [
+    {
+      "category": "CC6",
+      "name": "Logical and Physical Access Controls",
+      "controls": [
+        {
+          "control_id": "CC6.1",
+          "title": "Logical access security software",
+          "status": "effective",
+          "evidence": [
+            "SSO integration with Okta verified",
+            "MFA enforced for all users",
+            "Role-based access control implemented"
+          ],
+          "findings": [],
+          "test_date": "2025-01-05"
+        },
+        {
+          "control_id": "CC6.2",
+          "title": "New user registration and authorization",
+          "status": "effective",
+          "evidence": [
+            "User provisioning workflow documented",
+            "Manager approval required for access",
+            "Quarterly access reviews performed"
+          ],
+          "findings": [],
+          "test_date": "2025-01-05"
+        },
+        {
+          "control_id": "CC6.3",
+          "title": "User access removal",
+          "status": "effective",
+          "evidence": [
+            "Automated deprovisioning via HR integration",
+            "Access revoked within 24 hours of termination",
+            "Quarterly orphan account review"
+          ],
+          "findings": [],
+          "test_date": "2025-01-05"
+        },
+        {
+          "control_id": "CC6.6",
+          "title": "Logical access restrictions",
+          "status": "exception",
+          "evidence": [],
+          "findings": [
+            {
+              "id": "SOC2-FIND-001",
+              "description": "Hardcoded JWT secret found in source code",
+              "severity": "high",
+              "remediation": "Move secret to environment variable or secrets manager",
+              "correlation_id": "CORR-CRED-002"
+            }
+          ],
+          "test_date": "2025-01-05"
+        }
+      ]
+    },
+    {
+      "category": "CC7",
+      "name": "System Operations",
+      "controls": [
+        {
+          "control_id": "CC7.1",
+          "title": "Detection of security events",
+          "status": "exception",
+          "evidence": [],
+          "findings": [
+            {
+              "id": "SOC2-FIND-002",
+              "description": "Critical vulnerability CVE-2024-34069 (Werkzeug RCE) not detected by scanning",
+              "severity": "critical",
+              "remediation": "Update vulnerability scanning tools and remediate finding",
+              "correlation_id": "CORR-WERKZEUG-001"
+            }
+          ],
+          "test_date": "2025-01-05"
+        },
+        {
+          "control_id": "CC7.2",
+          "title": "Monitoring of system components",
+          "status": "effective",
+          "evidence": [
+            "Datadog APM monitoring active",
+            "Alert thresholds configured",
+            "24/7 on-call rotation established"
+          ],
+          "findings": [],
+          "test_date": "2025-01-05"
+        },
+        {
+          "control_id": "CC7.3",
+          "title": "Security event evaluation",
+          "status": "effective",
+          "evidence": [
+            "Security incident response plan documented",
+            "Incident classification matrix defined",
+            "Escalation procedures tested quarterly"
+          ],
+          "findings": [],
+          "test_date": "2025-01-05"
+        }
+      ]
+    },
+    {
+      "category": "CC8",
+      "name": "Change Management",
+      "controls": [
+        {
+          "control_id": "CC8.1",
+          "title": "Change management process",
+          "status": "effective",
+          "evidence": [
+            "All changes require PR approval",
+            "CI/CD pipeline enforces security checks",
+            "Change advisory board reviews major changes"
+          ],
+          "findings": [],
+          "test_date": "2025-01-05"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_controls": 8,
+    "effective": 6,
+    "exception": 2,
+    "not_tested": 0,
+    "critical_findings": 1,
+    "high_findings": 1
+  },
+  "management_response": {
+    "acknowledgment": true,
+    "remediation_commitment": "2025-02-28",
+    "responsible_party": "identity-platform"
+  }
+}

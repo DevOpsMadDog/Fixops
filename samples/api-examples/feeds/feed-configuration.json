@@ -1,0 +1,122 @@
+{
+  "feed_id": "feed-config-001",
+  "name": "Vulnerability Intelligence Feeds Configuration",
+  "status": "active",
+  "feeds": [
+    {
+      "feed_type": "nvd",
+      "name": "NVD CVE Feed",
+      "enabled": true,
+      "source": "https://nvd.nist.gov/feeds/json/cve/1.1",
+      "refresh_interval_hours": 1,
+      "priority": 1,
+      "filters": {
+        "min_cvss": 0,
+        "include_rejected": false
+      }
+    },
+    {
+      "feed_type": "cisa_kev",
+      "name": "CISA Known Exploited Vulnerabilities",
+      "enabled": true,
+      "source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "refresh_interval_hours": 6,
+      "priority": 1,
+      "alerts": {
+        "on_new_entry": true,
+        "channels": ["slack:#security-critical", "pagerduty:security-oncall"]
+      }
+    },
+    {
+      "feed_type": "epss",
+      "name": "EPSS Scores",
+      "enabled": true,
+      "source": "https://api.first.org/data/v1/epss",
+      "refresh_interval_hours": 24,
+      "priority": 2,
+      "thresholds": {
+        "high_risk": 0.5,
+        "critical_risk": 0.8
+      }
+    },
+    {
+      "feed_type": "exploit_db",
+      "name": "Exploit Database",
+      "enabled": true,
+      "source": "https://www.exploit-db.com/feeds",
+      "refresh_interval_hours": 12,
+      "priority": 2,
+      "filters": {
+        "types": ["remote", "webapps", "local"]
+      }
+    },
+    {
+      "feed_type": "github_advisories",
+      "name": "GitHub Security Advisories",
+      "enabled": true,
+      "source": "https://api.github.com/advisories",
+      "refresh_interval_hours": 4,
+      "priority": 2,
+      "filters": {
+        "ecosystems": ["maven", "npm", "pip", "go"]
+      }
+    },
+    {
+      "feed_type": "osv",
+      "name": "Open Source Vulnerabilities",
+      "enabled": true,
+      "source": "https://osv.dev/api",
+      "refresh_interval_hours": 6,
+      "priority": 2
+    },
+    {
+      "feed_type": "threat_intel",
+      "name": "Threat Intelligence Feed",
+      "enabled": true,
+      "source": "custom",
+      "api_endpoint": "https://threatintel.example.com/api/v1/indicators",
+      "api_key_secret": "THREAT_INTEL_API_KEY",
+      "refresh_interval_hours": 1,
+      "priority": 1,
+      "data_types": ["ioc", "ttp", "threat_actor"]
+    }
+  ],
+  "enrichment": {
+    "enabled": true,
+    "sources": [
+      {
+        "type": "vendor_advisories",
+        "enabled": true
+      },
+      {
+        "type": "social_media",
+        "enabled": true,
+        "platforms": ["twitter", "reddit"]
+      },
+      {
+        "type": "security_blogs",
+        "enabled": true
+      }
+    ]
+  },
+  "correlation": {
+    "enabled": true,
+    "correlate_with_inventory": true,
+    "auto_create_findings": true,
+    "finding_threshold": {
+      "min_cvss": 4.0,
+      "or_kev_listed": true,
+      "or_epss_above": 0.3
+    }
+  },
+  "storage": {
+    "retention_days": 365,
+    "archive_after_days": 90,
+    "storage_backend": "postgresql"
+  },
+  "notifications": {
+    "on_feed_error": ["ops-team@example.com"],
+    "on_high_severity_cve": ["security-team@example.com"],
+    "on_kev_match": ["security-team@example.com", "slack:#security-critical"]
+  }
+}

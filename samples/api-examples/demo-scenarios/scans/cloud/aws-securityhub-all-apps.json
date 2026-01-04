@@ -1,0 +1,140 @@
+{
+  "scan_id": "securityhub-2025-001",
+  "tool": "aws-security-hub",
+  "tool_version": "2024.1",
+  "scan_type": "cloud",
+  "timestamp": "2025-01-15T17:00:00Z",
+  "account_id": "123456789012",
+  "region": "us-east-1",
+  "standards_enabled": ["aws-foundational-security-best-practices", "cis-aws-foundations-benchmark", "pci-dss"],
+  "findings": [
+    {
+      "id": "arn:aws:securityhub:us-east-1:123456789012:finding/payment-gateway-001",
+      "product_name": "Security Hub",
+      "generator_id": "aws-foundational-security-best-practices/v/1.0.0/EC2.19",
+      "title": "EC2.19 Security groups should not allow unrestricted access to ports with high risk",
+      "severity": "critical",
+      "compliance_status": "FAILED",
+      "resource": {
+        "type": "AwsEc2SecurityGroup",
+        "id": "sg-0abc123def456789",
+        "partition": "aws",
+        "region": "us-east-1",
+        "tags": {"Application": "payment-gateway", "Environment": "production"}
+      },
+      "description": "Security group sg-0abc123def456789 allows unrestricted ingress on port 22 (SSH)",
+      "remediation": "Restrict SSH access to specific IP ranges",
+      "standards": ["aws-foundational-security-best-practices", "pci-dss"],
+      "correlation_id": "CORR-SG-001",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "arn:aws:securityhub:us-east-1:123456789012:finding/payment-gateway-002",
+      "product_name": "Security Hub",
+      "generator_id": "aws-foundational-security-best-practices/v/1.0.0/S3.5",
+      "title": "S3.5 S3 buckets should require requests to use Secure Socket Layer",
+      "severity": "high",
+      "compliance_status": "FAILED",
+      "resource": {
+        "type": "AwsS3Bucket",
+        "id": "payment-gateway-logs-prod",
+        "partition": "aws",
+        "region": "us-east-1",
+        "tags": {"Application": "payment-gateway", "Environment": "production"}
+      },
+      "description": "S3 bucket payment-gateway-logs-prod does not require SSL",
+      "remediation": "Add bucket policy requiring SecureTransport",
+      "standards": ["aws-foundational-security-best-practices", "pci-dss"],
+      "correlation_id": "CORR-S3-001",
+      "application": "payment-gateway"
+    },
+    {
+      "id": "arn:aws:securityhub:us-east-1:123456789012:finding/identity-001",
+      "product_name": "Security Hub",
+      "generator_id": "aws-foundational-security-best-practices/v/1.0.0/RDS.3",
+      "title": "RDS.3 RDS DB instances should have encryption at rest enabled",
+      "severity": "critical",
+      "compliance_status": "FAILED",
+      "resource": {
+        "type": "AwsRdsDbInstance",
+        "id": "identity-db-prod",
+        "partition": "aws",
+        "region": "us-east-1",
+        "tags": {"Application": "user-identity-service", "Environment": "production"}
+      },
+      "description": "RDS instance identity-db-prod does not have encryption at rest enabled",
+      "remediation": "Enable encryption at rest for RDS instance",
+      "standards": ["aws-foundational-security-best-practices", "soc2"],
+      "correlation_id": "CORR-RDS-001",
+      "application": "user-identity-service"
+    },
+    {
+      "id": "arn:aws:securityhub:us-east-1:123456789012:finding/healthcare-001",
+      "product_name": "Security Hub",
+      "generator_id": "aws-foundational-security-best-practices/v/1.0.0/EKS.2",
+      "title": "EKS.2 EKS clusters should run on a supported Kubernetes version",
+      "severity": "high",
+      "compliance_status": "FAILED",
+      "resource": {
+        "type": "AwsEksCluster",
+        "id": "prod-eks-healthcare",
+        "partition": "aws",
+        "region": "us-east-1",
+        "tags": {"Application": "healthcare-api", "Environment": "production"}
+      },
+      "description": "EKS cluster prod-eks-healthcare is running Kubernetes 1.25 which is no longer supported",
+      "remediation": "Upgrade EKS cluster to Kubernetes 1.28 or later",
+      "standards": ["aws-foundational-security-best-practices", "hipaa"],
+      "correlation_id": "CORR-EKS-001",
+      "application": "healthcare-api"
+    },
+    {
+      "id": "arn:aws:securityhub:us-east-1:123456789012:finding/healthcare-002",
+      "product_name": "Security Hub",
+      "generator_id": "aws-foundational-security-best-practices/v/1.0.0/CloudTrail.1",
+      "title": "CloudTrail.1 CloudTrail should be enabled and configured with at least one multi-Region trail",
+      "severity": "high",
+      "compliance_status": "PASSED",
+      "resource": {
+        "type": "AwsCloudTrailTrail",
+        "id": "healthcare-audit-trail",
+        "partition": "aws",
+        "region": "us-east-1",
+        "tags": {"Application": "healthcare-api", "Environment": "production"}
+      },
+      "description": "CloudTrail is properly configured for HIPAA audit requirements",
+      "standards": ["aws-foundational-security-best-practices", "hipaa"],
+      "correlation_id": "CORR-CLOUDTRAIL-001",
+      "application": "healthcare-api"
+    },
+    {
+      "id": "arn:aws:securityhub:us-east-1:123456789012:finding/supply-001",
+      "product_name": "Security Hub",
+      "generator_id": "aws-foundational-security-best-practices/v/1.0.0/Lambda.2",
+      "title": "Lambda.2 Lambda functions should use supported runtimes",
+      "severity": "medium",
+      "compliance_status": "FAILED",
+      "resource": {
+        "type": "AwsLambdaFunction",
+        "id": "supply-chain-processor",
+        "partition": "aws",
+        "region": "eu-west-1",
+        "tags": {"Application": "supply-chain-portal", "Environment": "production"}
+      },
+      "description": "Lambda function supply-chain-processor uses Python 3.8 which is deprecated",
+      "remediation": "Upgrade Lambda runtime to Python 3.11 or later",
+      "standards": ["aws-foundational-security-best-practices"],
+      "correlation_id": "CORR-LAMBDA-001",
+      "application": "supply-chain-portal"
+    }
+  ],
+  "summary": {
+    "total_findings": 6,
+    "critical": 2,
+    "high": 3,
+    "medium": 1,
+    "low": 0,
+    "passed": 1,
+    "failed": 5
+  }
+}

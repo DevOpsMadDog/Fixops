@@ -1,5 +1,0 @@
-issue,severity,area,files,fix_strategy,ETA,owner
-"Add rate limiting middleware",P1,apps/api,"apps/api/app.py","Integrate Starlette-based limiter toggled via overlay",M,platform
-"Async webhook delivery",P2,core,"core/modules.py;core/performance.py","Introduce Celery/Redis worker with idempotent retry",L,platform
-"IaC drift detection",P1,enterprise,"enterprise/src/services/iac_posture.py","Compare Terraform plans against stored baselines",M,enterprise
-"Marketplace moderation dashboard",P2,enterprise,"enterprise/frontend/src/pages/Marketplace.jsx","Extend React views with review workflow",L,product

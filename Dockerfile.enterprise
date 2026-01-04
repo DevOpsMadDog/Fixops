@@ -40,6 +40,10 @@ COPY ssvc ./ssvc
 COPY data ./data
 COPY fixtures ./fixtures
 
+# Copy documentation for customer reference
+COPY README.md ./
+COPY docs/ ./docs/
+
 # Create directories
 RUN mkdir -p \
     demo_decision_inputs \

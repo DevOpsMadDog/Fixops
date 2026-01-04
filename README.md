@@ -418,65 +418,247 @@ Configurable retention policies for compliance requirements:
 
 ---
 
-## Quick Start
+## Installation Guide
+
+This section covers installation for local development, customer implementations, and production deployments.
 
 ### Prerequisites
-- Python 3.10+ (tested with CPython 3.11)
-- pip and virtualenv
-- Optional: Node.js 18+ for frontend development
 
-### 1. Setup
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| Python | 3.10+ (3.11 recommended) | Core runtime |
+| pip + virtualenv | Latest | Package management |
+| Docker + Docker Compose | 20.10+ / v2 | Container deployment |
+| Node.js | 18+ | Frontend development (optional) |
+| Git | 2.30+ | Version control |
+
+**System Requirements:**
+- 8GB RAM minimum (16GB recommended for full stack with PentAGI)
+- 20GB disk space
+- macOS, Linux, or Windows with WSL2
+
+### Option 1: Local Laptop Setup (Development/Testing)
+
+Best for developers and evaluators who want to test all FixOps features locally.
+
 ```bash
-# Run the setup wizard
+# 1. Clone the repository
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+
+# 2. Run the setup wizard (recommended)
 ./scripts/setup-wizard.sh
 
 # Or manual setup
-./scripts/bootstrap.sh
-```
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
-### 2. Configure Environment
-```bash
+# 3. Configure environment
 cp .env.example .env
 
-# Required
-export FIXOPS_API_TOKEN="your-api-token"
+# Edit .env and set required values:
+#   FIXOPS_API_TOKEN=your-secure-token
+#   FIXOPS_MODE=demo  # or 'enterprise' for full features
 
-# Optional LLM providers (all enabled by default)
+# 4. (Optional) Configure LLM providers for multi-AI consensus
 export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="sk-ant-..."
 export GOOGLE_API_KEY="..."
 
-# Optional integrations
-export FIXOPS_JIRA_TOKEN="..."
-export FIXOPS_CONFLUENCE_TOKEN="..."
+# 5. Start the API server
+uvicorn apps.api.app:create_app --factory --reload --host 0.0.0.0 --port 8000
+
+# 6. Verify installation
+curl http://localhost:8000/health
 ```
 
-### 3. Start the API
+### Option 2: Docker Compose (Recommended for Customers)
+
+Best for customer implementations and production-like environments.
+
 ```bash
-uvicorn apps.api.app:create_app --factory --reload
+# 1. Clone the repository
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# 3. Choose your deployment variant:
+
+# Development/Demo
+docker compose up -d
+
+# Enterprise with ChromaDB
+docker compose -f docker-compose.enterprise.yml up -d
+
+# Demo with telemetry
+docker compose -f docker-compose.demo.yml up -d
+
+# Production deployment
+docker compose -f deployment-packs/docker/docker-compose.yml up -d
+
+# 4. Verify services
+curl http://localhost:8000/health
 ```
 
-### 4. Run Your First Pipeline
+### Option 3: Full Stack with PentAGI (Micro-Pentest Capabilities)
+
+Best for security teams who want automated vulnerability verification.
+
 ```bash
-# Upload artifacts
+# 1. Clone and configure
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+cp .env.example .env
+cp env.pentagi.example .env.pentagi
+
+# 2. Configure LLM API keys in .env.pentagi (at least one required)
+# Edit .env.pentagi:
+#   OPENAI_API_KEY=sk-...
+#   ANTHROPIC_API_KEY=sk-ant-...
+
+# 3. Start FixOps with PentAGI
+make up-pentagi
+
+# Or for enterprise mode:
+make up-pentagi-enterprise
+
+# 4. Verify all services
+curl http://localhost:8000/health          # FixOps API
+curl -k https://localhost:8443/health      # PentAGI (self-signed SSL)
+
+# 5. (Optional) Use air-gapped fork without VXControl Cloud SDK
+export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
+make down-pentagi && make up-pentagi
+```
+
+See [PentAGI Integration Guide](docs/PENTAGI_INTEGRATION.md) for detailed configuration.
+
+---
+
+## Quick Start: Test All Features
+
+After installation, use these commands to verify all FixOps capabilities are working.
+
+### 1. Run the Demo Pipeline
+```bash
+# Quick demo (no external dependencies)
+python -m core.cli demo --mode demo
+
+# Enterprise demo (full features)
+python -m core.cli demo --mode enterprise --output results.json --pretty
+```
+
+### 2. Test API Endpoints
+```bash
+export FIXOPS_API_TOKEN="demo-token"  # Or your configured token
+
+# Upload security artifacts
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
   -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
 
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
   -F "file=@samples/scan.sarif" http://localhost:8000/inputs/sarif
 
-# Execute pipeline
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -F "file=@samples/cve.json" http://localhost:8000/inputs/cve
+
+# Execute pipeline and get decision
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
+
+# Check capabilities
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/api/v1/enhanced/capabilities | jq
 ```
 
-### 5. CLI Demo
+### 3. Test Multi-LLM Consensus
 ```bash
-# Demo mode (quick demonstration)
-python -m core.cli demo --mode demo
-
-# Enterprise mode (full features)
-python -m core.cli demo --mode enterprise --output results.json
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"service_name":"test-app","security_findings":[{"rule_id":"SAST001","severity":"high","description":"SQL injection"}],"business_context":{"environment":"production","criticality":"high"}}' \
+  http://localhost:8000/api/v1/enhanced/compare-llms | jq
 ```
+
+### 4. Interactive Demo Runner
+```bash
+# Animated demo with all 7 capability areas
+./scripts/aldeci-demo-runner.sh
+
+# Interactive API tester (300+ endpoints)
+./scripts/fixops-interactive.sh
+
+# Or via Docker
+docker build -f Dockerfile.interactive -t fixops-demo .
+docker run -it fixops-demo demo
+```
+
+### 5. Test PentAGI Integration (if installed)
+```bash
+# Verify PentAGI is running
+curl -k https://localhost:8443/health
+
+# Trigger a micro-pentest via FixOps
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"target":"https://example.com","cve":"CVE-2021-44228","scope":"verify"}' \
+  http://localhost:8000/api/v1/pentagi/micro-pentest | jq
+```
+
+### 6. Run Test Suite
+```bash
+# All tests
+pytest
+
+# With coverage
+pytest --cov=core --cov=apps
+
+# E2E tests
+./scripts/run_e2e_tests.sh
+```
+
+---
+
+## Feature Verification Checklist
+
+Use this checklist to verify all FixOps features are working in your installation:
+
+| Feature | Test Command | Expected Result |
+|---------|--------------|-----------------|
+| API Health | `curl http://localhost:8000/health` | `{"status":"healthy"}` |
+| SBOM Ingestion | `curl -F "file=@samples/sbom.json" .../inputs/sbom` | 200 OK |
+| SARIF Ingestion | `curl -F "file=@samples/scan.sarif" .../inputs/sarif` | 200 OK |
+| Pipeline Execution | `curl .../pipeline/run` | JSON with decision |
+| CLI Demo | `python -m core.cli demo --mode demo` | Pipeline output |
+| Multi-LLM Consensus | `curl -X POST .../compare-llms` | Consensus result |
+| Evidence Bundles | Check `data/evidence/` directory | Signed bundles |
+| PentAGI (optional) | `curl -k https://localhost:8443/health` | `{"status":"ok"}` |
+
+---
+
+## CLI Reference
+
+### Core Commands
+```bash
+# Pipeline execution
+python -m core.cli run --design design.csv --sbom sbom.json --sarif scan.sarif
+
+# Demo modes
+python -m core.cli demo --mode demo
+python -m core.cli demo --mode enterprise
+
+# Show configuration
+python -m core.cli show-overlay --overlay config/fixops.overlay.yml
+
+# Offline mode (no exploit feed refresh)
+python -m core.cli run --offline
+
+# Copy evidence for audits
+python -m core.cli copy-evidence --run results.json --target ./audit-handoff
+```
+
+### CLI Command Categories
 
 ---
 
@@ -573,37 +755,124 @@ When proprietary scanners aren't available, FixOps integrates with open-source t
 
 ---
 
-## Deployment
+## Production Deployment
+
+### Docker (Recommended for Local Development)
+
+All Docker configurations use **port 8000** for the API by default.
+
+**Quick Start:**
+```bash
+# Option 1: Use the setup wizard (generates .env and starts services)
+./scripts/setup-wizard.sh
+
+# Option 2: Manual setup with main docker-compose
+docker compose up -d
+
+# Verify it's running
+curl http://localhost:8000/health
+
+# Run the pipeline
+export FIXOPS_API_TOKEN="demo-token"
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
+```
+
+**Available Docker Configurations:**
+
+| File | Purpose | Token |
+|------|---------|-------|
+| `docker-compose.yml` | Main dev stack with sidecars | `demo-token` |
+| `docker-compose.demo.yml` | Demo with OpenTelemetry | (env var) |
+| `docker-compose.enterprise.yml` | Enterprise with ChromaDB | `enterprise-token` |
+| `docker-compose.vc-demo.yml` | VC demonstrations | `demo-token` |
+| `deployment-packs/docker/docker-compose.yml` | Production template | (env var) |
+
+For detailed Docker documentation, see [Docker Guide](docs/DOCKER.md).
+
+### Cloud Deployment Scripts
 
 ### AWS
 ```bash
+# AWS deployment
 ./scripts/deploy-aws.sh
-```
 
-### GCP
-```bash
+# GCP deployment
 ./scripts/deploy-gcp.sh
 ```
 
-### Docker Compose
-```bash
-cp .env.example .env
-docker-compose -f deployment-packs/docker/docker-compose.yml up -d
-```
+### Makefile Targets Reference
+
+| Target | Description |
+|--------|-------------|
+| `make help` | Show all available targets |
+| `make demo` | Run demo pipeline |
+| `make demo-enterprise` | Run enterprise pipeline |
+| `make up-pentagi` | Start FixOps + PentAGI (default compose) |
+| `make up-pentagi-enterprise` | Start FixOps Enterprise + PentAGI |
+| `make up-pentagi-demo` | Start FixOps Demo + PentAGI |
+| `make up-pentagi-deployment` | Start Deployment Pack + PentAGI |
+| `make down-pentagi` | Stop FixOps + PentAGI |
+| `make logs-pentagi` | View PentAGI logs |
+| `make clean` | Remove cached artifacts |
 
 ---
 
-## Testing
+### Air-Gapped / Offline Deployment
+
+For environments without internet access, choose one of the following options:
+
+**Option A: Using Official Images**
+
+The official PentAGI images work offline but include VXControl Cloud SDK (which will fail gracefully without connectivity).
 
 ```bash
-# Run all tests
-pytest
+# 1. Pre-pull all required images on a connected machine
+docker pull vxcontrol/pentagi:latest
+docker pull vxcontrol/pgvector:latest
+docker pull vxcontrol/scraper:latest
 
-# With coverage
-pytest --cov=core --cov=apps
+# 2. Save images to tar files
+docker save vxcontrol/pentagi:latest > pentagi.tar
+docker save vxcontrol/pgvector:latest > pgvector.tar
+docker save vxcontrol/scraper:latest > scraper.tar
 
-# E2E tests
-./scripts/run_e2e_tests.sh
+# 3. Transfer tar files to air-gapped environment
+
+# 4. Load images on air-gapped machine
+docker load < pentagi.tar
+docker load < pgvector.tar
+docker load < scraper.tar
+
+# 5. Start FixOps with PentAGI
+make up-pentagi
+```
+
+**Option B: Using Fork Images (No Cloud SDK)**
+
+The [DevOpsMadDog/pentagi_fork](https://github.com/DevOpsMadDog/pentagi_fork) has VXControl Cloud SDK completely removed for fully offline operation with no phone-home behavior.
+
+```bash
+# 1. Pre-pull fork image on a connected machine
+docker pull ghcr.io/devopsmaddog/pentagi_fork:latest
+docker pull vxcontrol/pgvector:latest
+docker pull vxcontrol/scraper:latest
+
+# 2. Save images to tar files
+docker save ghcr.io/devopsmaddog/pentagi_fork:latest > pentagi-fork.tar
+docker save vxcontrol/pgvector:latest > pgvector.tar
+docker save vxcontrol/scraper:latest > scraper.tar
+
+# 3. Transfer tar files to air-gapped environment
+
+# 4. Load images on air-gapped machine
+docker load < pentagi-fork.tar
+docker load < pgvector.tar
+docker load < scraper.tar
+
+# 5. Start FixOps with fork image
+export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
+make up-pentagi
 ```
 
 ---
@@ -612,8 +881,10 @@ pytest --cov=core --cov=apps
 
 | Document | Description |
 |----------|-------------|
+| [Docker Guide](docs/DOCKER.md) | Complete Docker and docker-compose documentation |
 | [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (322 endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
+| [PentAGI Integration](docs/PENTAGI_INTEGRATION.md) | Micro-pentest deployment and configuration guide |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
 | [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
 | [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) | AI-indexed documentation with search |

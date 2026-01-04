@@ -1,0 +1,246 @@
+{
+  "evidence_lake": {
+    "lake_id": "EVIDENCE-LAKE-ACME-001",
+    "organization": "ACME Corporation",
+    "created_at": "2024-01-01T00:00:00Z",
+    "retention_policy": {
+      "default_years": 7,
+      "pci_dss_years": 7,
+      "hipaa_years": 6,
+      "gdpr_years": 5,
+      "sox_years": 7
+    },
+    "integrity_verification": {
+      "algorithm": "SHA-256",
+      "merkle_tree_enabled": true,
+      "last_verification": "2024-12-26T00:00:00Z",
+      "verification_status": "VALID"
+    }
+  },
+  "evidence_bundles": [
+    {
+      "bundle_id": "EVIDENCE-BUNDLE-2024-12-26-001",
+      "bundle_type": "vulnerability_assessment",
+      "created_at": "2024-12-26T08:45:32Z",
+      "applications": ["realtime-analytics", "payment-gateway", "healthcare-api", "blockchain-bridge"],
+      "findings_count": 156,
+      "critical_findings": 12,
+      "signature": {
+        "algorithm": "RSA-SHA256",
+        "key_id": "FIXOPS-SIGNING-KEY-2024-001",
+        "key_size": 4096,
+        "signature_value": "MGUCMQCxY2Dz8K9vL3mN5pQ7rS1tU3wX5yZ7A9bC1dE3fG5hI7jK9lM1nO3pQ5rS7tU9vW==",
+        "signed_at": "2024-12-26T08:45:32Z",
+        "certificate_chain": [
+          "-----BEGIN CERTIFICATE-----\nMIIE... (FIXOPS Signing Certificate)\n-----END CERTIFICATE-----",
+          "-----BEGIN CERTIFICATE-----\nMIIF... (Intermediate CA)\n-----END CERTIFICATE-----",
+          "-----BEGIN CERTIFICATE-----\nMIIG... (Root CA)\n-----END CERTIFICATE-----"
+        ]
+      },
+      "integrity": {
+        "content_hash": "sha256:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+        "manifest_hash": "sha256:b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+        "merkle_root": "sha256:c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4"
+      },
+      "contents": {
+        "scan_results": {
+          "sast": ["sonarqube-scan.json", "checkmarx-scan.json", "semgrep-scan.json"],
+          "dast": ["zap-scan.json", "burp-scan.json"],
+          "sca": ["snyk-scan.json", "trivy-scan.json", "dependabot-scan.json"],
+          "container": ["trivy-container.json", "grype-container.json"],
+          "cloud": ["aws-securityhub.json", "wiz-scan.json"],
+          "runtime": ["falco-events.json", "sysdig-events.json"]
+        },
+        "analysis_results": {
+          "correlation_report": "correlation-analysis.json",
+          "risk_graph": "risk-graph.json",
+          "reachability_analysis": "reachability-analysis.json",
+          "micro_pentest_results": "micro-pentest-results.json"
+        },
+        "decision_records": {
+          "llm_consensus": "multi-llm-consensus.json",
+          "policy_evaluations": "policy-evaluations.json",
+          "risk_scores": "risk-scores.json"
+        },
+        "compliance_artifacts": {
+          "pci_dss_assessment": "pci-dss-assessment.json",
+          "soc2_assessment": "soc2-assessment.json",
+          "hipaa_assessment": "hipaa-assessment.json",
+          "gdpr_assessment": "gdpr-assessment.json"
+        },
+        "remediation_records": {
+          "remediation_plan": "remediation-plan.json",
+          "jira_tickets": "jira-tickets.json",
+          "sla_tracking": "sla-tracking.json"
+        }
+      },
+      "slsa_provenance": {
+        "version": "1.0",
+        "build_type": "https://fixops.io/provenance/v1",
+        "builder": {
+          "id": "https://fixops.io/builder/v1"
+        },
+        "invocation": {
+          "config_source": {
+            "uri": "git+https://github.com/acme-corp/security-config@refs/heads/main",
+            "digest": {"sha256": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5"},
+            "entry_point": "fixops-pipeline.yml"
+          },
+          "parameters": {
+            "applications": ["realtime-analytics", "payment-gateway", "healthcare-api", "blockchain-bridge"],
+            "scan_types": ["sast", "dast", "sca", "container", "cloud", "runtime"],
+            "compliance_frameworks": ["pci-dss", "soc2", "hipaa", "gdpr"]
+          },
+          "environment": {
+            "fixops_version": "3.2.1",
+            "runner": "github-actions",
+            "runner_version": "2.311.0"
+          }
+        },
+        "metadata": {
+          "build_started_on": "2024-12-26T08:00:00Z",
+          "build_finished_on": "2024-12-26T08:45:32Z",
+          "completeness": {
+            "parameters": true,
+            "environment": true,
+            "materials": true
+          },
+          "reproducible": false
+        },
+        "materials": [
+          {
+            "uri": "git+https://github.com/acme-corp/realtime-analytics@refs/heads/main",
+            "digest": {"sha256": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6"}
+          },
+          {
+            "uri": "git+https://github.com/acme-corp/payment-gateway@refs/heads/main",
+            "digest": {"sha256": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7"}
+          }
+        ]
+      },
+      "attestations": [
+        {
+          "type": "https://in-toto.io/Statement/v0.1",
+          "predicate_type": "https://fixops.io/attestation/vulnerability-scan/v1",
+          "subject": [
+            {
+              "name": "realtime-analytics",
+              "digest": {"sha256": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"}
+            }
+          ],
+          "predicate": {
+            "scanner": "fixops",
+            "scanner_version": "3.2.1",
+            "scan_date": "2024-12-26T08:00:00Z",
+            "findings_summary": {
+              "critical": 3,
+              "high": 5,
+              "medium": 8,
+              "low": 12
+            }
+          }
+        }
+      ]
+    },
+    {
+      "bundle_id": "EVIDENCE-BUNDLE-2024-12-26-002",
+      "bundle_type": "remediation_verification",
+      "created_at": "2024-12-26T12:30:00Z",
+      "applications": ["realtime-analytics"],
+      "remediation_id": "REM-LOG4J-001",
+      "verification_status": "VERIFIED",
+      "signature": {
+        "algorithm": "RSA-SHA256",
+        "key_id": "FIXOPS-SIGNING-KEY-2024-001",
+        "key_size": 4096,
+        "signature_value": "MGUCMQDxY3Ez9L0wM4oP6qR2sT4uV6xY8zA0bD2eF4gH6iJ8kL2mN4oP6qR8sT0uV2xY==",
+        "signed_at": "2024-12-26T12:30:00Z"
+      },
+      "integrity": {
+        "content_hash": "sha256:d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+        "manifest_hash": "sha256:e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6"
+      },
+      "contents": {
+        "before_state": {
+          "vulnerability": "CVE-2021-44228",
+          "component": "log4j-core",
+          "version": "2.14.1",
+          "scan_date": "2024-12-26T08:00:00Z"
+        },
+        "remediation_action": {
+          "type": "upgrade",
+          "target_version": "2.22.0",
+          "performed_by": "security-team@acme-corp.com",
+          "performed_at": "2024-12-26T10:00:00Z",
+          "jira_ticket": "SEC-1234"
+        },
+        "after_state": {
+          "component": "log4j-core",
+          "version": "2.22.0",
+          "rescan_date": "2024-12-26T12:00:00Z",
+          "vulnerability_status": "RESOLVED"
+        },
+        "verification_scan": {
+          "scanner": "snyk",
+          "scan_date": "2024-12-26T12:00:00Z",
+          "result": "NO_VULNERABILITIES_FOUND"
+        }
+      }
+    }
+  ],
+  "audit_trail": [
+    {
+      "event_id": "AUDIT-2024-12-26-001",
+      "timestamp": "2024-12-26T08:00:00Z",
+      "event_type": "SCAN_INITIATED",
+      "actor": "ci-pipeline@acme-corp.com",
+      "details": {
+        "applications": ["realtime-analytics", "payment-gateway", "healthcare-api", "blockchain-bridge"],
+        "trigger": "scheduled_scan"
+      }
+    },
+    {
+      "event_id": "AUDIT-2024-12-26-002",
+      "timestamp": "2024-12-26T08:45:32Z",
+      "event_type": "EVIDENCE_BUNDLE_CREATED",
+      "actor": "fixops-system",
+      "details": {
+        "bundle_id": "EVIDENCE-BUNDLE-2024-12-26-001",
+        "findings_count": 156
+      }
+    },
+    {
+      "event_id": "AUDIT-2024-12-26-003",
+      "timestamp": "2024-12-26T09:00:00Z",
+      "event_type": "DEPLOYMENT_BLOCKED",
+      "actor": "fixops-policy-engine",
+      "details": {
+        "reason": "CRITICAL_VULNERABILITIES",
+        "blocking_findings": ["CVE-2021-44228", "CVE-2022-22965"],
+        "llm_consensus": "BLOCK"
+      }
+    },
+    {
+      "event_id": "AUDIT-2024-12-26-004",
+      "timestamp": "2024-12-26T10:00:00Z",
+      "event_type": "REMEDIATION_STARTED",
+      "actor": "security-team@acme-corp.com",
+      "details": {
+        "remediation_id": "REM-LOG4J-001",
+        "vulnerability": "CVE-2021-44228",
+        "action": "upgrade"
+      }
+    },
+    {
+      "event_id": "AUDIT-2024-12-26-005",
+      "timestamp": "2024-12-26T12:30:00Z",
+      "event_type": "REMEDIATION_VERIFIED",
+      "actor": "fixops-system",
+      "details": {
+        "remediation_id": "REM-LOG4J-001",
+        "verification_status": "VERIFIED",
+        "bundle_id": "EVIDENCE-BUNDLE-2024-12-26-002"
+      }
+    }
+  ]
+}

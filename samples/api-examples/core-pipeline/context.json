@@ -1,0 +1,69 @@
+{
+  "application": {
+    "name": "payment-gateway",
+    "version": "2.1.0",
+    "team": "payments-platform",
+    "owner": "john.doe@example.com",
+    "repository": "https://github.com/example/payment-gateway",
+    "documentation": "https://docs.example.com/payment-gateway"
+  },
+  "business_context": {
+    "criticality": "critical",
+    "data_classification": "pci-dss",
+    "revenue_impact": "high",
+    "customer_facing": true,
+    "sla_tier": "platinum",
+    "business_unit": "Financial Services",
+    "cost_center": "CC-12345"
+  },
+  "environment": {
+    "type": "production",
+    "region": "us-east-1",
+    "cloud_provider": "aws",
+    "deployment_type": "kubernetes",
+    "cluster": "production-eks",
+    "namespace": "payments"
+  },
+  "compliance": {
+    "frameworks": ["pci-dss", "soc2", "gdpr", "hipaa"],
+    "audit_frequency": "quarterly",
+    "last_audit": "2024-10-15",
+    "next_audit": "2025-01-15",
+    "certifications": ["iso27001", "soc2-type2"]
+  },
+  "security": {
+    "threat_model_date": "2024-11-01",
+    "last_pentest": "2024-09-15",
+    "bug_bounty": true,
+    "security_champion": "jane.smith@example.com",
+    "incident_response_plan": true
+  },
+  "dependencies": {
+    "upstream": ["identity-service", "fraud-detection", "notification-service"],
+    "downstream": ["reporting-service", "analytics-platform"],
+    "external": ["stripe-api", "plaid-api", "twilio-api"]
+  },
+  "deployment": {
+    "ci_cd_platform": "github-actions",
+    "artifact_registry": "ecr",
+    "deployment_frequency": "daily",
+    "change_failure_rate": 0.02,
+    "mttr_hours": 0.5,
+    "rollback_capability": true
+  },
+  "monitoring": {
+    "apm": "datadog",
+    "logging": "elasticsearch",
+    "siem": "splunk",
+    "alerting": "pagerduty",
+    "dashboards": ["grafana", "datadog"]
+  },
+  "risk_factors": {
+    "internet_exposed": true,
+    "processes_pii": true,
+    "processes_financial_data": true,
+    "third_party_integrations": 3,
+    "legacy_components": false,
+    "technical_debt_score": 2.5
+  }
+}
