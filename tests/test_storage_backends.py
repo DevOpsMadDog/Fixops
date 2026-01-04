@@ -314,7 +314,7 @@ class TestS3ObjectLockBackend:
     @pytest.fixture
     def backend(self, mock_boto3):
         with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
-            backend = S3ObjectLockBackend()
+            backend = S3ObjectLockBackend(skip_validation=True)
             backend._client = mock_boto3
             return backend
 
@@ -379,7 +379,7 @@ class TestS3ObjectLockBackend:
                 "FIXOPS_S3_PREFIX": "evidence/",
             },
         ):
-            backend = S3ObjectLockBackend()
+            backend = S3ObjectLockBackend(skip_validation=True)
             backend._client = mock_boto3
             backend.put("test/file.txt", b"content")
 
@@ -449,7 +449,10 @@ class TestCreateStorageBackend:
                 assert isinstance(backend, LocalFileBackend)
 
     def test_create_s3_backend(self):
-        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+        with patch.dict(
+            os.environ,
+            {"FIXOPS_S3_BUCKET": "test-bucket", "FIXOPS_S3_SKIP_VALIDATION": "true"},
+        ):
             with patch.dict("sys.modules", {"boto3": MagicMock()}):
                 backend = create_storage_backend("s3")
                 assert isinstance(backend, S3ObjectLockBackend)
