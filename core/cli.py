@@ -9,11 +9,13 @@ import os
 import sys
 from pathlib import Path
 
+# Add fixops-enterprise to path if not already present (done once at module load)
+# Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
 ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-enterprise"
-if ENTERPRISE_SRC.exists():
+if ENTERPRISE_SRC.exists():  # pragma: no cover - enterprise path setup
     enterprise_path = str(ENTERPRISE_SRC)
     if enterprise_path not in sys.path:
-        sys.path.insert(0, enterprise_path)
+        sys.path.append(enterprise_path)
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Optional, Sequence
 
 if TYPE_CHECKING:
@@ -1596,9 +1598,15 @@ def _handle_compliance(args: argparse.Namespace) -> int:
             "total_controls": framework["total_controls"],
             "implemented_controls": framework["implemented_controls"],
             "coverage_percent": round(
-                (framework["implemented_controls"] / framework["total_controls"] * 100)
-                if framework["total_controls"] > 0
-                else 0,
+                (
+                    (
+                        framework["implemented_controls"]
+                        / framework["total_controls"]
+                        * 100
+                    )
+                    if framework["total_controls"] > 0
+                    else 0
+                ),
                 1,
             ),
             "control_status": control_status,
@@ -1667,12 +1675,14 @@ def _handle_compliance(args: argparse.Namespace) -> int:
                 "implemented_controls": framework["implemented_controls"],
                 "coverage_percent": round(
                     (
-                        framework["implemented_controls"]
-                        / framework["total_controls"]
-                        * 100
-                    )
-                    if framework["total_controls"] > 0
-                    else 0,
+                        (
+                            framework["implemented_controls"]
+                            / framework["total_controls"]
+                            * 100
+                        )
+                        if framework["total_controls"] > 0
+                        else 0
+                    ),
                     1,
                 ),
                 "open_gaps": len([g for g in gaps if g["status"] == "open"]),
@@ -2400,9 +2410,11 @@ def _handle_integrations(args: argparse.Namespace) -> int:
             "integration": integration["name"],
             "type": integration["integration_type"],
             "test_status": "success" if integration["enabled"] else "skipped",
-            "message": "Connection test passed"
-            if integration["enabled"]
-            else "Integration disabled",
+            "message": (
+                "Connection test passed"
+                if integration["enabled"]
+                else "Integration disabled"
+            ),
             "tested_at": datetime.now(timezone.utc).isoformat(),
         }
         print(json.dumps(test_result, indent=2))
@@ -2949,9 +2961,11 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
             "status": "completed",
             "started_at": datetime.now(timezone.utc).isoformat(),
             "target": getattr(args, "target", "https://staging.example.com"),
-            "cve_ids": getattr(args, "cves", "").split(",")
-            if getattr(args, "cves", None)
-            else [],
+            "cve_ids": (
+                getattr(args, "cves", "").split(",")
+                if getattr(args, "cves", None)
+                else []
+            ),
             "results": {
                 "vulnerabilities_tested": 5,
                 "exploitable": 1,
@@ -3018,9 +3032,11 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
         result = {
             "analysis_id": f"bia-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
             "target": getattr(args, "target", "payment-service"),
-            "cve_ids": getattr(args, "cves", "").split(",")
-            if getattr(args, "cves", None)
-            else ["CVE-2024-1234"],
+            "cve_ids": (
+                getattr(args, "cves", "").split(",")
+                if getattr(args, "cves", None)
+                else ["CVE-2024-1234"]
+            ),
             "impact_assessment": {
                 "financial_impact": {
                     "estimated_breach_cost": 4240000,

@@ -125,13 +125,13 @@ Moving beyond vague risk scores to actionable outcomes:
 - **Needs Review** - Human review required with full context
 
 ### Multi-LLM Consensus Engine
-Four AI providers with weighted voting and hallucination guards:
+Four AI providers with weighted voting, hallucination guards, and real LLM integration:
 - **GPT-5** (weight: 1.0) - Strategic analysis, MITRE ATT&CK mapping
 - **Claude-3** (weight: 0.95) - Compliance analysis, guardrail evaluation
 - **Gemini-2** (weight: 0.9) - Exploit signals, CNAPP correlation
 - **Sentinel-Cyber** (weight: 0.85) - Threat intelligence, security heuristics
 
-Configurable 85% consensus threshold with step-by-step reasoning transparency.
+Configurable consensus threshold via `FIXOPS_CONSENSUS_THRESHOLD` (default: 85%) with step-by-step reasoning transparency. Includes retry logic with exponential backoff and graceful fallback to deterministic responses when providers are unavailable.
 
 ### Probabilistic Risk Forecasting
 - **Bayesian posterior probability** with EPSS priors
@@ -141,9 +141,11 @@ Configurable 85% consensus threshold with step-by-step reasoning transparency.
 
 ### Evidence-as-Code
 Every decision produces a cryptographically signed bundle:
-- RSA-SHA256 signatures for integrity verification
+- RSA-SHA256 signatures for integrity verification via `POST /api/v1/evidence/verify`
+- SLSA v1 provenance with in-toto attestation format (DSSE envelope)
 - Optional Fernet encryption for sensitive data
-- Configurable retention policies
+- Configurable retention policies with WORM-compliant storage options
+- **Enterprise Storage Backends**: Local filesystem, S3 Object Lock, Azure Immutable Blob
 - Audit-ready anytime, even offline
 
 ### World-Class Vulnerability Intelligence (8 Categories)

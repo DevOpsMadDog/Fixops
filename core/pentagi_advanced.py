@@ -1,17 +1,32 @@
-"""Advanced PentAGI integration with multi-AI orchestration."""
+"""Advanced PentAGI integration with multi-AI orchestration.
+
+Phase 2 Implementation - AI Consensus
+This module implements multi-AI orchestration with real LLM provider integration,
+configurable consensus thresholds, and comprehensive error handling with fallbacks.
+
+Environment Variables:
+- FIXOPS_CONSENSUS_THRESHOLD: Minimum confidence for automated execution (default: 0.6)
+- FIXOPS_CONSENSUS_WEIGHTS_ARCHITECT: Weight for architect decisions (default: 0.35)
+- FIXOPS_CONSENSUS_WEIGHTS_DEVELOPER: Weight for developer decisions (default: 0.40)
+- FIXOPS_CONSENSUS_WEIGHTS_LEAD: Weight for lead decisions (default: 0.25)
+- FIXOPS_LLM_TIMEOUT: Timeout for LLM calls in seconds (default: 30)
+- FIXOPS_LLM_MAX_RETRIES: Maximum retries for LLM calls (default: 3)
+- FIXOPS_LLM_FALLBACK_ENABLED: Enable fallback to deterministic responses (default: true)
+"""
 
 import asyncio
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import aiohttp
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from core.llm_providers import LLMProviderManager
+from core.llm_providers import LLMProviderManager, LLMResponse
 from core.pentagi_db import PentagiDB
 from core.pentagi_models import (
     ExploitabilityLevel,
@@ -23,6 +38,65 @@ from core.pentagi_models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class LLMCallError(Exception):
+    """Raised when an LLM call fails after all retries."""
+
+
+@dataclass
+class ConsensusConfig:
+    """Configuration for AI consensus decision-making.
+
+    This configuration controls how multiple AI models collaborate to make
+    security decisions, including confidence thresholds and role weights.
+    """
+
+    threshold: float = 0.6
+    weights: Dict[str, float] = field(
+        default_factory=lambda: {
+            "architect": 0.35,
+            "developer": 0.40,
+            "lead": 0.25,
+        }
+    )
+    timeout_seconds: float = 30.0
+    max_retries: int = 3
+    fallback_enabled: bool = True
+
+    @classmethod
+    def from_env(cls) -> "ConsensusConfig":
+        """Load consensus configuration from environment variables."""
+        return cls(
+            threshold=float(os.getenv("FIXOPS_CONSENSUS_THRESHOLD", "0.6")),
+            weights={
+                "architect": float(
+                    os.getenv("FIXOPS_CONSENSUS_WEIGHTS_ARCHITECT", "0.35")
+                ),
+                "developer": float(
+                    os.getenv("FIXOPS_CONSENSUS_WEIGHTS_DEVELOPER", "0.40")
+                ),
+                "lead": float(os.getenv("FIXOPS_CONSENSUS_WEIGHTS_LEAD", "0.25")),
+            },
+            timeout_seconds=float(os.getenv("FIXOPS_LLM_TIMEOUT", "30")),
+            max_retries=int(os.getenv("FIXOPS_LLM_MAX_RETRIES", "3")),
+            fallback_enabled=os.getenv("FIXOPS_LLM_FALLBACK_ENABLED", "true").lower()
+            in ("true", "1", "yes"),
+        )
+
+    def validate(self) -> None:
+        """Validate configuration values."""
+        if not 0 <= self.threshold <= 1:
+            raise ValueError(
+                f"Consensus threshold must be between 0 and 1, got {self.threshold}"
+            )
+        total_weight = sum(self.weights.values())
+        if abs(total_weight - 1.0) > 0.01:
+            raise ValueError(f"Consensus weights must sum to 1.0, got {total_weight}")
+        if self.timeout_seconds <= 0:
+            raise ValueError(f"Timeout must be positive, got {self.timeout_seconds}")
+        if self.max_retries < 1:
+            raise ValueError(f"Max retries must be at least 1, got {self.max_retries}")
 
 
 class AIRole(Enum):
@@ -59,12 +133,38 @@ class ConsensusDecision:
 
 
 class MultiAIOrchestrator:
-    """Orchestrates multiple AI models for consensus-based decisions."""
+    """Orchestrates multiple AI models for consensus-based decisions.
 
-    def __init__(self, llm_manager: LLMProviderManager):
-        """Initialize the orchestrator."""
+    This orchestrator coordinates multiple LLM providers (OpenAI, Anthropic, Gemini)
+    to reach consensus on security decisions. Each provider plays a specific role:
+    - Gemini: Solution Architect (attack surface analysis, business impact)
+    - Claude: Developer (exploitability, tool selection, payload design)
+    - GPT: Team Lead (strategy, risk assessment, success criteria)
+
+    The orchestrator uses configurable weights and thresholds to combine
+    individual decisions into a final consensus.
+    """
+
+    def __init__(
+        self,
+        llm_manager: LLMProviderManager,
+        config: Optional[ConsensusConfig] = None,
+    ):
+        """Initialize the orchestrator.
+
+        Args:
+            llm_manager: LLM provider manager for making API calls
+            config: Optional consensus configuration (defaults to env-based config)
+        """
         self.llm_manager = llm_manager
+        self.config = config or ConsensusConfig.from_env()
+        self.config.validate()
         self.decision_history: List[ConsensusDecision] = []
+        self._call_count: Dict[str, int] = {"total": 0, "success": 0, "fallback": 0}
+        logger.info(
+            f"MultiAIOrchestrator initialized with threshold={self.config.threshold}, "
+            f"weights={self.config.weights}"
+        )
 
     async def get_architect_decision(
         self, context: Dict, vulnerability: Dict
@@ -255,53 +355,307 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
             # Fallback: simple averaging
             return self._fallback_consensus(architect, developer, lead)
 
-    async def _call_llm(self, provider: str, prompt: str) -> str:
-        """Call LLM provider with retry logic."""
-        # This would integrate with the actual LLM provider manager
-        # For now, return a mock response structure
-        return json.dumps(
-            {
-                "recommendation": "Proceed with automated testing",
-                "confidence": 0.85,
-                "reasoning": f"Analysis from {provider} indicates exploitable vulnerability",
-                "priority": 8,
-                "attack_vectors": ["SQL Injection", "XSS"],
-                "tools": ["sqlmap", "burp"],
-                "strategy": "Multi-stage exploitation",
-                "success_criteria": ["Exploit confirmed", "Evidence collected"],
-            }
+    async def _call_llm(
+        self,
+        provider: str,
+        prompt: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Call LLM provider with retry logic and fallback support.
+
+        This method integrates with the LLMProviderManager to make real API calls
+        to LLM providers (OpenAI, Anthropic, Gemini). It includes:
+        - Automatic retry with exponential backoff (uses config.max_retries)
+        - Timeout handling (uses config.timeout_seconds)
+        - Fallback to deterministic responses when providers are unavailable
+        - Comprehensive error handling and logging
+        - Call statistics tracking
+        - Non-blocking I/O via asyncio.to_thread()
+
+        Args:
+            provider: Name of the LLM provider ('openai', 'anthropic', 'gemini')
+            prompt: The prompt to send to the LLM
+            context: Optional context dictionary for the analysis
+
+        Returns:
+            JSON string containing the LLM response
+
+        Raises:
+            LLMCallError: If all retries fail and fallback is disabled
+        """
+        self._call_count["total"] += 1
+        context = context or {}
+
+        last_error: Optional[Exception] = None
+
+        # Retry loop using config.max_retries
+        for attempt in range(self.config.max_retries):
+            try:
+                # Wrap blocking LLM call in asyncio.to_thread to avoid blocking the event loop
+                # Apply timeout using config.timeout_seconds
+                response: LLMResponse = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self.llm_manager.analyse,
+                        provider,
+                        prompt=prompt,
+                        context=context,
+                        default_action="review",
+                        default_confidence=0.5,
+                        default_reasoning=f"Deterministic analysis from {provider}",
+                        mitigation_hints={
+                            "mitre_candidates": ["T1190", "T1059"],
+                            "compliance": ["PCI-DSS", "SOC2"],
+                            "attack_vectors": ["injection", "authentication_bypass"],
+                        },
+                    ),
+                    timeout=self.config.timeout_seconds,
+                )
+
+                is_fallback = response.metadata.get("mode") in (
+                    "deterministic",
+                    "fallback",
+                )
+
+                if is_fallback:
+                    self._call_count["fallback"] += 1
+                    logger.warning(
+                        f"LLM provider {provider} returned fallback response: "
+                        f"{response.metadata.get('reason', 'unknown')}"
+                    )
+                else:
+                    self._call_count["success"] += 1
+                    logger.info(
+                        f"LLM provider {provider} returned successful response "
+                        f"(confidence={response.confidence:.2f})"
+                    )
+
+                result = {
+                    "recommendation": response.recommended_action,
+                    "confidence": response.confidence,
+                    "reasoning": response.reasoning,
+                    "priority": self._confidence_to_priority(response.confidence),
+                    "attack_vectors": list(response.attack_vectors),
+                    "mitre_techniques": list(response.mitre_techniques),
+                    "compliance_concerns": list(response.compliance_concerns),
+                    "tools": self._suggest_tools(response.attack_vectors),
+                    "strategy": self._derive_strategy(response),
+                    "success_criteria": self._derive_success_criteria(response),
+                    "business_impact": self._assess_business_impact(response),
+                    "exploit_strategy": response.reasoning,
+                    "metadata": {
+                        "provider": provider,
+                        "mode": response.metadata.get("mode", "unknown"),
+                        "duration_ms": response.metadata.get("duration_ms"),
+                        "attempt": attempt + 1,
+                    },
+                }
+
+                return json.dumps(result)
+
+            except asyncio.TimeoutError:
+                last_error = asyncio.TimeoutError(
+                    f"LLM call to {provider} timed out after {self.config.timeout_seconds}s"
+                )
+                logger.warning(
+                    f"LLM call to {provider} timed out (attempt {attempt + 1}/{self.config.max_retries})"
+                )
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"LLM call to {provider} failed (attempt {attempt + 1}/{self.config.max_retries}): {e}"
+                )
+
+            # Exponential backoff before retry (except on last attempt)
+            if attempt < self.config.max_retries - 1:
+                backoff_seconds = min(2**attempt, 30)  # Cap at 30 seconds
+                logger.info(f"Retrying in {backoff_seconds}s...")
+                await asyncio.sleep(backoff_seconds)
+
+        # All retries exhausted
+        logger.error(
+            f"LLM call to {provider} failed after {self.config.max_retries} attempts: {last_error}"
         )
 
+        if self.config.fallback_enabled:
+            self._call_count["fallback"] += 1
+            return json.dumps(
+                {
+                    "recommendation": "Proceed with standard testing",
+                    "confidence": 0.5,
+                    "reasoning": f"Fallback response due to {provider} error after {self.config.max_retries} retries: {last_error}",
+                    "priority": 5,
+                    "attack_vectors": ["manual_review"],
+                    "tools": ["manual"],
+                    "strategy": "Conservative testing approach",
+                    "success_criteria": ["Manual verification required"],
+                    "metadata": {
+                        "fallback": True,
+                        "error": str(last_error),
+                        "retries_attempted": self.config.max_retries,
+                    },
+                }
+            )
+        else:
+            raise LLMCallError(
+                f"LLM call to {provider} failed after {self.config.max_retries} retries: {last_error}"
+            ) from last_error
+
+    def _confidence_to_priority(self, confidence: float) -> int:
+        """Convert confidence score to priority (1-10 scale)."""
+        return max(1, min(10, int(confidence * 10)))
+
+    def _suggest_tools(self, attack_vectors: Sequence[str]) -> List[str]:
+        """Suggest security testing tools based on attack vectors."""
+        tool_mapping = {
+            "injection": ["sqlmap", "burp"],
+            "sql_injection": ["sqlmap", "sqlninja"],
+            "xss": ["xsstrike", "dalfox"],
+            "authentication_bypass": ["hydra", "burp"],
+            "rce": ["metasploit", "commix"],
+            "ssrf": ["ssrfmap", "burp"],
+            "lfi": ["lfisuite", "burp"],
+            "xxe": ["xxeinjector", "burp"],
+        }
+        tools: set[str] = set()
+        for vector in attack_vectors:
+            vector_lower = vector.lower().replace(" ", "_")
+            if vector_lower in tool_mapping:
+                tools.update(tool_mapping[vector_lower])
+        return list(tools) if tools else ["burp", "manual"]
+
+    def _derive_strategy(self, response: LLMResponse) -> str:
+        """Derive testing strategy from LLM response."""
+        if response.confidence > 0.8:
+            return "Aggressive automated exploitation"
+        elif response.confidence > 0.6:
+            return "Multi-stage exploitation with validation"
+        elif response.confidence > 0.4:
+            return "Conservative testing with manual review"
+        else:
+            return "Manual analysis recommended"
+
+    def _derive_success_criteria(self, response: LLMResponse) -> List[str]:
+        """Derive success criteria from LLM response."""
+        criteria = ["Vulnerability confirmed", "Evidence collected"]
+        if response.compliance_concerns:
+            criteria.append("Compliance impact documented")
+        if response.mitre_techniques:
+            criteria.append("MITRE ATT&CK mapping verified")
+        return criteria
+
+    def _assess_business_impact(self, response: LLMResponse) -> str:
+        """Assess business impact based on LLM response."""
+        if response.confidence > 0.8:
+            return "Critical - Immediate remediation required"
+        elif response.confidence > 0.6:
+            return "High - Priority remediation needed"
+        elif response.confidence > 0.4:
+            return "Medium - Scheduled remediation"
+        else:
+            return "Low - Monitor and assess"
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get orchestrator call statistics."""
+        total = self._call_count["total"]
+        return {
+            "total_calls": total,
+            "successful_calls": self._call_count["success"],
+            "fallback_calls": self._call_count["fallback"],
+            "success_rate": self._call_count["success"] / total if total > 0 else 0,
+            "fallback_rate": self._call_count["fallback"] / total if total > 0 else 0,
+            "decisions_made": len(self.decision_history),
+            "config": {
+                "threshold": self.config.threshold,
+                "weights": self.config.weights,
+                "fallback_enabled": self.config.fallback_enabled,
+            },
+        }
+
     def _fallback_decision(self, role: AIRole, vulnerability: Dict) -> AIDecision:
-        """Fallback decision when AI call fails."""
+        """Fallback decision when AI call fails.
+
+        IMPORTANT: This is a deterministic fallback - NOT an AI-generated decision.
+        The response is explicitly labeled for audit trail compliance.
+        """
+        fallback_timestamp = datetime.utcnow().isoformat() + "Z"
+        vuln_id = vulnerability.get("id", "unknown")
+
+        logger.warning(
+            f"FALLBACK_DECISION: Using deterministic fallback for role={role.value}, "
+            f"vulnerability={vuln_id}. This is NOT an AI-generated decision."
+        )
+
         return AIDecision(
             role=role,
             recommendation="Proceed with standard testing",
             confidence=0.5,
-            reasoning="Fallback decision due to AI unavailability",
+            reasoning=(
+                "DETERMINISTIC FALLBACK: This decision was NOT generated by AI. "
+                "AI services were unavailable. Using conservative default behavior. "
+                "Manual review recommended before production deployment."
+            ),
             priority=5,
-            metadata={"fallback": True},
+            metadata={
+                "fallback": True,
+                "fallback_type": "deterministic",
+                "fallback_reason": "ai_unavailable",
+                "fallback_timestamp": fallback_timestamp,
+                "ai_generated": False,
+                "requires_manual_review": True,
+                "vulnerability_id": vuln_id,
+                "audit_label": "FALLBACK_DETERMINISTIC_DECISION",
+            },
         )
 
     def _fallback_consensus(
         self, architect: AIDecision, developer: AIDecision, lead: AIDecision
     ) -> ConsensusDecision:
-        """Fallback consensus when composition fails."""
+        """Fallback consensus when composition fails.
+
+        IMPORTANT: This is a deterministic fallback - NOT an AI-composed consensus.
+        The response is explicitly labeled for audit trail compliance.
+        """
+        fallback_timestamp = datetime.utcnow().isoformat() + "Z"
         avg_confidence = (
             architect.confidence + developer.confidence + lead.confidence
         ) / 3
 
+        # Check if any contributing decisions are also fallbacks
+        contributing_fallbacks = sum(
+            1 for d in [architect, developer, lead] if d.metadata.get("fallback", False)
+        )
+
+        logger.warning(
+            f"FALLBACK_CONSENSUS: Using deterministic consensus composition. "
+            f"Contributing fallback decisions: {contributing_fallbacks}/3. "
+            "This is NOT an AI-composed consensus."
+        )
+
         return ConsensusDecision(
             action="execute_pentest_with_caution",
             confidence=avg_confidence,
-            reasoning="Simple consensus due to composition failure",
+            reasoning=(
+                "DETERMINISTIC FALLBACK CONSENSUS: This consensus was NOT composed by AI. "
+                f"AI composition failed. {contributing_fallbacks}/3 contributing decisions "
+                "were also fallbacks. Using conservative execution plan. "
+                "Manual review REQUIRED before production deployment."
+            ),
             contributing_decisions=[architect, developer, lead],
             execution_plan=[
                 {"step": 1, "action": "Reconnaissance", "tool": "nmap"},
                 {"step": 2, "action": "Vulnerability validation", "tool": "automated"},
                 {"step": 3, "action": "Exploitation", "tool": "as_needed"},
             ],
-            metadata={"fallback": True},
+            metadata={
+                "fallback": True,
+                "fallback_type": "deterministic_consensus",
+                "fallback_reason": "ai_composition_failed",
+                "fallback_timestamp": fallback_timestamp,
+                "ai_generated": False,
+                "requires_manual_review": True,
+                "contributing_fallback_count": contributing_fallbacks,
+                "audit_label": "FALLBACK_DETERMINISTIC_CONSENSUS",
+            },
         )
 
 
@@ -732,8 +1086,8 @@ class AdvancedPentagiClient:
             "success_rate": completed_tests / total_tests if total_tests > 0 else 0,
             "confirmed_exploitable": confirmed_exploitable,
             "false_positives": false_positives,
-            "false_positive_rate": false_positives / len(all_results)
-            if all_results
-            else 0,
+            "false_positive_rate": (
+                false_positives / len(all_results) if all_results else 0
+            ),
             "average_execution_time_seconds": avg_execution_time,
         }

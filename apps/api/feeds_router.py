@@ -24,9 +24,10 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 # Add fixops-enterprise to path if not already present (done once at module load)
+# Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
 _ENTERPRISE_SRC = Path(__file__).resolve().parent.parent.parent / "fixops-enterprise"
 if _ENTERPRISE_SRC.exists() and str(_ENTERPRISE_SRC) not in sys.path:
-    sys.path.insert(0, str(_ENTERPRISE_SRC))
+    sys.path.append(str(_ENTERPRISE_SRC))  # pragma: no cover - enterprise path setup
 
 from src.services.feeds_service import (  # noqa: E402
     AUTHORITATIVE_FEEDS,
