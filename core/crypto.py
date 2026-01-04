@@ -440,9 +440,13 @@ class RSAVerifier:
             expected_fingerprint: Optional expected key fingerprint
 
         Returns:
-            True if signature is valid
+            True if signature is valid, False if invalid or malformed
         """
-        signature = base64.b64decode(signature_b64)
+        try:
+            signature = base64.b64decode(signature_b64)
+        except Exception:
+            logger.warning("Invalid base64 signature provided")
+            return False
         return self.verify(data, signature, expected_fingerprint)
 
 
