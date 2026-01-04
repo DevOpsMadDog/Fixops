@@ -1913,3 +1913,255 @@ class TestAzureImmutableBlobBackendCoverageGaps:
                 with pytest.raises(StorageError) as exc_info:
                     backend.set_legal_hold("test/file.txt", True)
                 assert "Failed to set legal hold" in str(exc_info.value)
+
+
+class TestS3ClientPropertyCoverage:
+    """Tests for S3ObjectLockBackend.client property to cover lazy initialization.
+
+    These tests cover lines 494-502 in storage_backends.py.
+    """
+
+    def test_client_property_creates_boto3_client(self):
+        """Test that accessing client property creates boto3 client.
+
+        Covers lines 494-500 in storage_backends.py.
+        """
+        mock_boto3 = MagicMock()
+        mock_client = MagicMock()
+        mock_boto3.client.return_value = mock_client
+
+        with patch.dict("sys.modules", {"boto3": mock_boto3}):
+            with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+                backend = S3ObjectLockBackend(skip_validation=True)
+                backend._client = None  # Reset to trigger lazy init
+
+                # Access the client property
+                client = backend.client
+
+                # Verify boto3.client was called
+                mock_boto3.client.assert_called_once()
+                assert client == mock_client
+
+    def test_client_property_with_endpoint_url(self):
+        """Test that client property uses endpoint_url when provided.
+
+        Covers lines 498-500 in storage_backends.py.
+        """
+        mock_boto3 = MagicMock()
+        mock_client = MagicMock()
+        mock_boto3.client.return_value = mock_client
+
+        with patch.dict("sys.modules", {"boto3": mock_boto3}):
+            with patch.dict(
+                os.environ,
+                {
+                    "FIXOPS_S3_BUCKET": "test-bucket",
+                    "FIXOPS_S3_ENDPOINT_URL": "http://localhost:4566",
+                },
+            ):
+                backend = S3ObjectLockBackend(skip_validation=True)
+                backend._client = None  # Reset to trigger lazy init
+
+                # Access the client property
+                _ = backend.client
+
+                # Verify boto3.client was called with endpoint_url
+                call_kwargs = mock_boto3.client.call_args.kwargs
+                assert call_kwargs.get("endpoint_url") == "http://localhost:4566"
+
+    def test_client_property_raises_on_import_error(self):
+        """Test that client property raises ConfigurationError when boto3 not installed.
+
+        Covers lines 501-504 in storage_backends.py.
+        """
+        # Create a backend with _client = None
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            with patch.dict("sys.modules", {"boto3": MagicMock()}):
+                backend = S3ObjectLockBackend(skip_validation=True)
+                backend._client = None  # Reset to trigger lazy init
+
+        # Now patch boto3 import to raise ImportError
+        def raise_import_error(*args, **kwargs):
+            raise ImportError("No module named 'boto3'")
+
+        with patch.dict("sys.modules", {"boto3": None}):
+            # Remove boto3 from sys.modules to simulate it not being installed
+            import sys
+
+            original_boto3 = sys.modules.get("boto3")
+            sys.modules["boto3"] = None
+
+            try:
+                # Patch the import inside the client property
+                with patch("builtins.__import__", side_effect=raise_import_error):
+                    with pytest.raises(ConfigurationError) as exc_info:
+                        _ = backend.client
+                    assert "boto3 library required" in str(exc_info.value)
+            finally:
+                if original_boto3 is not None:
+                    sys.modules["boto3"] = original_boto3
+
+
+class TestAzureContainerClientPropertyCoverage:
+    """Tests for AzureImmutableBlobBackend.container_client property.
+
+    These tests cover lines 844-872 in storage_backends.py.
+    """
+
+    def test_container_client_with_connection_string(self):
+        """Test container_client property with connection string.
+
+        Covers lines 844-851, 864-866, 872 in storage_backends.py.
+        """
+        mock_blob_service = MagicMock()
+        mock_container = MagicMock()
+        mock_blob_service.get_container_client.return_value = mock_container
+
+        # Create mock azure module
+        mock_azure_module = MagicMock()
+        mock_azure_module.BlobServiceClient.from_connection_string.return_value = (
+            mock_blob_service
+        )
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "azure": MagicMock(),
+                "azure.storage": MagicMock(),
+                "azure.storage.blob": mock_azure_module,
+            },
+        ):
+            with patch.dict(
+                os.environ,
+                {
+                    "FIXOPS_AZURE_CONTAINER": "test-container",
+                    "AZURE_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=test",
+                    "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+                },
+            ):
+                backend = AzureImmutableBlobBackend()
+                backend._container_client = None  # Reset to trigger lazy init
+
+                # Access the container_client property
+                client = backend.container_client
+
+                # Verify BlobServiceClient.from_connection_string was called
+                mock_azure_module.BlobServiceClient.from_connection_string.assert_called_once()
+                assert client == mock_container
+
+    def test_container_client_with_account_credentials(self):
+        """Test container_client property with account name and key.
+
+        Covers lines 852-866, 872 in storage_backends.py.
+        """
+        mock_blob_service = MagicMock()
+        mock_container = MagicMock()
+        mock_blob_service.get_container_client.return_value = mock_container
+
+        # Create mock azure module
+        mock_azure_module = MagicMock()
+        mock_azure_module.BlobServiceClient.return_value = mock_blob_service
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "azure": MagicMock(),
+                "azure.storage": MagicMock(),
+                "azure.storage.blob": mock_azure_module,
+            },
+        ):
+            with patch.dict(
+                os.environ,
+                {
+                    "FIXOPS_AZURE_CONTAINER": "test-container",
+                    "AZURE_STORAGE_ACCOUNT_NAME": "testaccount",
+                    "AZURE_STORAGE_ACCOUNT_KEY": "testkey123",
+                    "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+                },
+            ):
+                # Clear connection string to force account credentials path
+                os.environ.pop("AZURE_STORAGE_CONNECTION_STRING", None)
+
+                backend = AzureImmutableBlobBackend()
+                backend._container_client = None  # Reset to trigger lazy init
+                backend.connection_string = None  # Force account credentials path
+
+                # Access the container_client property
+                client = backend.container_client
+
+                # Verify BlobServiceClient was called with account URL
+                mock_azure_module.BlobServiceClient.assert_called_once()
+                call_kwargs = mock_azure_module.BlobServiceClient.call_args.kwargs
+                assert "testaccount" in call_kwargs.get("account_url", "")
+                assert client == mock_container
+
+    def test_container_client_missing_credentials_raises(self):
+        """Test container_client raises ConfigurationError when credentials missing.
+
+        Covers lines 855-859 in storage_backends.py.
+        """
+        mock_azure_module = MagicMock()
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "azure": MagicMock(),
+                "azure.storage": MagicMock(),
+                "azure.storage.blob": mock_azure_module,
+            },
+        ):
+            with patch.dict(
+                os.environ,
+                {
+                    "FIXOPS_AZURE_CONTAINER": "test-container",
+                    "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+                },
+                clear=True,
+            ):
+                # Ensure no credentials are set
+                os.environ.pop("AZURE_STORAGE_CONNECTION_STRING", None)
+                os.environ.pop("AZURE_STORAGE_ACCOUNT_NAME", None)
+                os.environ.pop("AZURE_STORAGE_ACCOUNT_KEY", None)
+
+                backend = AzureImmutableBlobBackend()
+                backend._container_client = None  # Reset to trigger lazy init
+                backend.connection_string = None  # Force account credentials path
+
+                # Access the container_client property should raise
+                with pytest.raises(ConfigurationError) as exc_info:
+                    _ = backend.container_client
+                assert "Azure credentials not configured" in str(exc_info.value)
+
+    def test_container_client_import_error_raises(self):
+        """Test container_client raises ConfigurationError when azure SDK not installed.
+
+        Covers lines 867-871 in storage_backends.py.
+        """
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            # Create backend first
+            with patch.dict(
+                "sys.modules",
+                {
+                    "azure": MagicMock(),
+                    "azure.storage": MagicMock(),
+                    "azure.storage.blob": MagicMock(),
+                },
+            ):
+                backend = AzureImmutableBlobBackend()
+                backend._container_client = None  # Reset to trigger lazy init
+
+            # Now simulate ImportError when accessing container_client
+            def raise_import_error(*args, **kwargs):
+                raise ImportError("No module named 'azure'")
+
+            with patch("builtins.__import__", side_effect=raise_import_error):
+                with pytest.raises(ConfigurationError) as exc_info:
+                    _ = backend.container_client
+                assert "azure-storage-blob library required" in str(exc_info.value)
