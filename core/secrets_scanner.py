@@ -166,16 +166,15 @@ class SecretsDetector:
         2. Normalize path to prevent traversal via os.path.normpath
         3. Reject absolute paths (must be relative to base_path)
         4. Reject path traversal attempts
-        5. Resolve under server-controlled base directory
-        6. Verify resolved path stays within base directory
+        5. Resolve under server-controlled base directory using os.path.realpath
+        6. Verify resolved path stays within base directory using os.path.commonpath
         """
-        # Sanitize the path string - remove null bytes
-        sanitized_path = target_path.replace("\x00", "")
-        if sanitized_path != target_path:
+        # Sanitize the path string - reject null bytes
+        if "\x00" in target_path:
             raise ValueError(f"Invalid path: {target_path} contains null bytes")
 
         # Normalize the path to collapse .. and . components
-        normalized = os.path.normpath(sanitized_path)
+        normalized = os.path.normpath(target_path)
 
         # Reject absolute paths - must be relative to base_path
         if os.path.isabs(normalized):
@@ -185,17 +184,18 @@ class SecretsDetector:
         if normalized.startswith("..") or "/../" in normalized or normalized == "..":
             raise ValueError(f"Path traversal detected: {target_path}")
 
-        # Get server-controlled base path
-        base = Path(self.config.base_path).resolve()
+        # Get server-controlled base path using realpath (CodeQL-recognized sanitizer)
+        base = os.path.realpath(self.config.base_path)
 
-        # Join with base path and resolve
-        resolved = (base / normalized).resolve()
+        # Join with base path and resolve using realpath
+        candidate = os.path.realpath(os.path.join(base, normalized))
 
-        # Verify the resolved path stays within the base directory
-        try:
-            resolved.relative_to(base)
-        except ValueError:
+        # Verify the resolved path stays within the base directory using commonpath
+        # This is the containment check that CodeQL recognizes
+        if os.path.commonpath([base, candidate]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
+
+        resolved = Path(candidate)
 
         if not resolved.exists():
             raise FileNotFoundError(f"Target path does not exist: {target_path}")
@@ -617,10 +617,38 @@ class SecretsDetector:
         Returns:
             SecretsScanResult with findings and metadata
         """
-        # Sanitize filename to prevent path traversal - use only the basename
-        safe_filename = Path(filename).name
-        if not safe_filename:
-            safe_filename = "content.txt"
+        # Generate a safe filename based on extension only - no user input in path
+        # Extract extension from filename using os.path.splitext (CodeQL-safe)
+        _, ext = os.path.splitext(os.path.basename(filename))
+        # Allowlist of valid source code extensions for secrets scanning
+        valid_extensions = {
+            ".py",
+            ".js",
+            ".ts",
+            ".java",
+            ".go",
+            ".rb",
+            ".php",
+            ".sh",
+            ".bash",
+            ".yaml",
+            ".yml",
+            ".json",
+            ".xml",
+            ".env",
+            ".conf",
+            ".cfg",
+            ".ini",
+            ".tf",
+            ".tfvars",
+            ".properties",
+            ".toml",
+            ".txt",
+        }
+        if ext.lower() not in valid_extensions:
+            ext = ".txt"  # Default to text
+        # Generate completely safe filename with no user input
+        safe_filename = f"content{ext}"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_file = Path(temp_dir) / safe_filename
