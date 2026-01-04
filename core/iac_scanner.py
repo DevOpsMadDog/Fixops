@@ -156,24 +156,29 @@ class IaCScanner:
         Prevents path traversal attacks by ensuring the resolved path
         stays within the allowed base directory.
         """
-        # Explicit string-level sanitization for path traversal patterns
-        # This check is recognized by static analysis tools like CodeQL
-        if ".." in target_path:
-            raise ValueError(f"Path traversal detected: {target_path} contains '..'")
-
-        # Sanitize the path string before creating Path object
-        sanitized_path = target_path.replace("\x00", "")  # Remove null bytes
+        # Sanitize the path string - remove null bytes and normalize
+        sanitized_path = target_path.replace("\x00", "")
         if sanitized_path != target_path:
             raise ValueError(f"Invalid path: {target_path} contains null bytes")
 
-        path = Path(sanitized_path)
+        # Use os.path.normpath to normalize the path and detect traversal
+        normalized = os.path.normpath(sanitized_path)
+
+        # Check for path traversal patterns after normalization
+        # This explicit check is recognized by static analysis tools
+        if normalized.startswith("..") or "/.." in normalized or "\\.." in normalized:
+            raise ValueError(f"Path traversal detected: {target_path}")
+
+        path = Path(normalized)
 
         if base_path:
-            # Also validate base_path
-            if ".." in base_path:
-                raise ValueError(f"Invalid base path: {base_path} contains '..'")
-            base = Path(base_path).resolve()
+            # Validate and normalize base_path
+            base_normalized = os.path.normpath(base_path.replace("\x00", ""))
+            if base_normalized.startswith(".."):
+                raise ValueError(f"Invalid base path: {base_path}")
+            base = Path(base_normalized).resolve()
             resolved = (base / path).resolve()
+            # Verify the resolved path is within the base directory
             try:
                 resolved.relative_to(base)
             except ValueError:
