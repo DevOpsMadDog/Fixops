@@ -238,6 +238,60 @@ class TestEvidenceHubCoverageGaps:
                 hub.persist(pipeline_result, None, None, None)
             assert "Evidence signing failed" in str(exc_info.value)
 
+    def test_persist_with_signing_failure_and_cleanup_failure(
+        self, tmp_path: Path, caplog
+    ) -> None:
+        """Test persist() handles cleanup failure after signing failure.
+
+        Covers lines 356-357 in evidence.py - the exception handling when
+        cleanup of orphaned bundle file fails.
+        """
+        overlay = OverlayConfig(
+            mode="enterprise",
+            data={"evidence_dir": str(tmp_path / "evidence")},
+            limits={
+                "evidence": {
+                    "bundle_max_bytes": 4096,
+                    "compress": False,
+                    "encrypt": False,
+                    "sign": True,
+                }
+            },
+        )
+        overlay.allowed_data_roots = (tmp_path,)
+
+        # Create a mock rsa_sign function that raises
+        def mock_rsa_sign_failure(data: bytes):
+            raise Exception("Signing failed")
+
+        # Track the original unlink method
+        original_unlink = Path.unlink
+
+        def mock_unlink_failure(self, missing_ok=False):
+            # Only fail for bundle files in the evidence directory
+            if "evidence" in str(self) and self.suffix == ".json":
+                raise PermissionError("Cannot delete file")
+            return original_unlink(self, missing_ok=missing_ok)
+
+        with patch("core.evidence._rsa_sign", mock_rsa_sign_failure):
+            with patch.object(Path, "unlink", mock_unlink_failure):
+                hub = EvidenceHub(overlay)
+                assert hub.sign_bundles is True
+
+                pipeline_result = {
+                    "design_summary": {"rows": 3},
+                }
+
+                with pytest.raises(RuntimeError) as exc_info:
+                    hub.persist(pipeline_result, None, None, None)
+                assert "Evidence signing failed" in str(exc_info.value)
+
+                # Verify the cleanup failure warning was logged
+                assert any(
+                    "Failed to clean up orphaned bundle file" in record.message
+                    for record in caplog.records
+                )
+
     def test_sign_bundles_disabled_in_ci_environment(self, tmp_path: Path) -> None:
         """Test that signing is disabled in CI environment when RSA unavailable.
 

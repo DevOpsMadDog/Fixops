@@ -262,6 +262,35 @@ class TestLocalFileBackend:
         meta = backend.put("../../../etc/passwd", b"malicious")
         assert ".." not in meta.path
 
+    def test_path_traversal_via_symlink_raises(self, temp_dir):
+        """Test that symlink escape attempts raise ValueError.
+
+        Covers lines 301-302 in storage_backends.py - the path traversal
+        detection that raises ValueError when resolved path escapes base_path.
+        """
+        # Create a symlink inside base_path that points outside
+        base_path = temp_dir / "storage"
+        base_path.mkdir(parents=True, exist_ok=True)
+
+        # Create a directory outside base_path
+        outside_dir = temp_dir / "outside"
+        outside_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create symlink inside base_path pointing to outside_dir
+        symlink_path = base_path / "escape_link"
+        try:
+            symlink_path.symlink_to(outside_dir)
+        except OSError:
+            pytest.skip("Symlink creation not supported on this platform")
+
+        backend = LocalFileBackend(str(base_path))
+
+        # Attempting to access a path through the symlink should raise ValueError
+        with pytest.raises(ValueError) as exc_info:
+            backend._object_path("escape_link/evil_file.txt")
+        assert "Path traversal detected" in str(exc_info.value)
+        assert "resolves outside base_path" in str(exc_info.value)
+
     def test_put_with_binary_io(self, backend):
         """Test put() with a file-like object (BinaryIO) instead of bytes."""
         import io
@@ -667,6 +696,63 @@ class TestS3ObjectLockBackendValidation:
             backend.ensure_worm_compliance()
             mock_boto3.get_bucket_versioning.assert_called_once()
 
+    def test_ensure_worm_compliance_object_lock_none_raises(self, mock_boto3):
+        """Test ensure_worm_compliance raises when Object Lock cannot be verified.
+
+        Covers lines 624-629 in storage_backends.py - the fail-closed check
+        when _object_lock_enabled is None after validation.
+        """
+        mock_boto3.get_bucket_versioning.return_value = {"Status": "Enabled"}
+        # Simulate exception that leaves _object_lock_enabled as None
+        mock_boto3.get_object_lock_configuration.side_effect = Exception(
+            "Cannot verify"
+        )
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.ObjectLockConfigurationNotFoundError = type(
+            "NotFound", (Exception,), {}
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+            backend._versioning_enabled = True  # Set versioning as verified
+            backend._object_lock_enabled = None  # Object Lock couldn't be verified
+
+            with pytest.raises(ConfigurationError) as exc_info:
+                backend.ensure_worm_compliance()
+            assert "Cannot verify Object Lock configuration" in str(exc_info.value)
+            assert "fail-closed" in str(exc_info.value)
+
+    def test_ensure_worm_compliance_versioning_none_raises(self, mock_boto3):
+        """Test ensure_worm_compliance raises when versioning cannot be verified.
+
+        Covers lines 631-636 in storage_backends.py - the fail-closed check
+        when _versioning_enabled is None after validation.
+        """
+        # Mock validate_bucket_configuration to leave _versioning_enabled as None
+        # but set _object_lock_enabled to True (simulating partial verification)
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.ObjectLockConfigurationNotFoundError = type(
+            "NotFound", (Exception,), {}
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+            # Simulate state after validation where Object Lock was verified
+            # but versioning couldn't be verified
+            backend._object_lock_enabled = True
+            backend._versioning_enabled = None
+
+            # Mock validate_bucket_configuration to do nothing (already called)
+            with patch.object(backend, "validate_bucket_configuration"):
+                with pytest.raises(ConfigurationError) as exc_info:
+                    backend.ensure_worm_compliance()
+                assert "Cannot verify versioning configuration" in str(exc_info.value)
+                assert "fail-closed" in str(exc_info.value)
+
     def test_put_with_binary_io(self, mock_boto3):
         """Test put with BinaryIO object.
 
@@ -868,6 +954,37 @@ class TestAzureImmutableBlobBackendValidation:
             ):
                 backend = AzureImmutableBlobBackend()
                 backend.ensure_worm_compliance()  # Should not raise
+
+    def test_ensure_worm_compliance_immutability_none_raises(self, mock_azure):
+        """Test ensure_worm_compliance raises when immutability cannot be verified.
+
+        Covers lines 991-996 in storage_backends.py - the fail-closed check
+        when _immutability_enabled is None after validation.
+        """
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(skip_validation=True)
+                backend._skip_validation = False
+                backend._immutability_enabled = (
+                    None  # Immutability couldn't be verified
+                )
+
+                # Mock validate_container_configuration to do nothing (already called)
+                with patch.object(backend, "validate_container_configuration"):
+                    with pytest.raises(ConfigurationError) as exc_info:
+                        backend.ensure_worm_compliance()
+                    assert "Cannot verify immutability configuration" in str(
+                        exc_info.value
+                    )
+                    assert "fail-closed" in str(exc_info.value)
 
 
 class TestS3ObjectLockBackendCoverageGaps:

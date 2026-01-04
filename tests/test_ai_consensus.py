@@ -168,6 +168,41 @@ class TestMultiAIOrchestrator:
             await orchestrator._call_llm("openai", "test prompt")
 
     @pytest.mark.asyncio
+    async def test_call_llm_timeout_with_fallback(self, mock_llm_manager, caplog):
+        """Test _call_llm handles asyncio.TimeoutError with fallback.
+
+        Covers lines 458, 461 in pentagi_advanced.py - the timeout error handling
+        that creates a TimeoutError with message and logs a warning.
+        """
+        import asyncio
+        from unittest.mock import patch
+
+        # Configure with short timeout and single retry for faster test
+        config = ConsensusConfig(
+            timeout_seconds=0.01,
+            max_retries=1,
+            fallback_enabled=True,
+        )
+        orchestrator = MultiAIOrchestrator(mock_llm_manager, config=config)
+
+        # Patch asyncio.wait_for to raise TimeoutError
+        async def mock_wait_for(coro, timeout):
+            # Cancel the coroutine to avoid warnings
+            coro.close()
+            raise asyncio.TimeoutError()
+
+        with patch("core.pentagi_advanced.asyncio.wait_for", mock_wait_for):
+            result = await orchestrator._call_llm("openai", "test prompt")
+
+        # Should return fallback response
+        parsed = json.loads(result)
+        assert parsed["metadata"]["fallback"] is True
+        assert "timed out" in parsed["reasoning"].lower()
+
+        # Verify timeout warning was logged
+        assert any("timed out" in record.message.lower() for record in caplog.records)
+
+    @pytest.mark.asyncio
     async def test_get_architect_decision(self, orchestrator, mock_llm_manager):
         context = {"service_name": "test-service"}
         vulnerability = {"id": "CVE-2024-1234", "severity": "high"}
@@ -364,6 +399,70 @@ class TestMultiAIOrchestrator:
         assert consensus.metadata.get("fallback") is True
         expected_confidence = (0.6 + 0.7 + 0.8) / 3
         assert abs(consensus.confidence - expected_confidence) < 0.01
+
+    def test_fallback_consensus_with_contributing_fallbacks(self, orchestrator):
+        """Test _fallback_consensus when contributing decisions are also fallbacks.
+
+        This test exercises the code path that counts contributing fallback decisions
+        and includes them in the consensus metadata and reasoning.
+        """
+        # Create decisions where some have fallback=True in metadata
+        architect = AIDecision(
+            role=AIRole.ARCHITECT,
+            recommendation="Fallback recommendation",
+            confidence=0.5,
+            reasoning="Fallback reasoning",
+            priority=5,
+            metadata={"fallback": True},  # This is a fallback decision
+        )
+        developer = AIDecision(
+            role=AIRole.DEVELOPER,
+            recommendation="Real recommendation",
+            confidence=0.7,
+            reasoning="Real reasoning",
+            priority=7,
+            metadata={"fallback": False},  # This is NOT a fallback
+        )
+        lead = AIDecision(
+            role=AIRole.LEAD,
+            recommendation="Fallback recommendation",
+            confidence=0.5,
+            reasoning="Fallback reasoning",
+            priority=5,
+            metadata={"fallback": True},  # This is a fallback decision
+        )
+
+        consensus = orchestrator._fallback_consensus(architect, developer, lead)
+
+        # Verify basic consensus properties
+        assert consensus.action == "execute_pentest_with_caution"
+        assert consensus.metadata.get("fallback") is True
+        assert consensus.metadata.get("fallback_type") == "deterministic_consensus"
+        assert consensus.metadata.get("fallback_reason") == "ai_composition_failed"
+        assert consensus.metadata.get("ai_generated") is False
+        assert consensus.metadata.get("requires_manual_review") is True
+        assert (
+            consensus.metadata.get("audit_label") == "FALLBACK_DETERMINISTIC_CONSENSUS"
+        )
+
+        # Verify contributing fallback count (2 out of 3 decisions are fallbacks)
+        assert consensus.metadata.get("contributing_fallback_count") == 2
+
+        # Verify reasoning mentions the fallback count
+        assert "2/3 contributing decisions" in consensus.reasoning
+        assert "DETERMINISTIC FALLBACK CONSENSUS" in consensus.reasoning
+        assert "Manual review REQUIRED" in consensus.reasoning
+
+        # Verify confidence is average of all three
+        expected_confidence = (0.5 + 0.7 + 0.5) / 3
+        assert abs(consensus.confidence - expected_confidence) < 0.01
+
+        # Verify execution plan is present
+        assert len(consensus.execution_plan) == 3
+        assert consensus.execution_plan[0]["action"] == "Reconnaissance"
+
+        # Verify fallback_timestamp is present
+        assert "fallback_timestamp" in consensus.metadata
 
 
 class TestLLMCallError:
