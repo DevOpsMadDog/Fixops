@@ -100,12 +100,12 @@ class RSAKeyManager:
             key_size: Key size for generation (2048, 3072, or 4096 bits)
             key_id: Optional key identifier for rotation tracking
         """
-        self.private_key_path = Path(
-            private_key_path or os.getenv("FIXOPS_RSA_PRIVATE_KEY_PATH", "")
+        _private_path = (
+            private_key_path or os.getenv("FIXOPS_RSA_PRIVATE_KEY_PATH") or ""
         )
-        self.public_key_path = Path(
-            public_key_path or os.getenv("FIXOPS_RSA_PUBLIC_KEY_PATH", "")
-        )
+        _public_path = public_key_path or os.getenv("FIXOPS_RSA_PUBLIC_KEY_PATH") or ""
+        self.private_key_path = Path(_private_path) if _private_path else Path()
+        self.public_key_path = Path(_public_path) if _public_path else Path()
 
         env_key_size = os.getenv("FIXOPS_RSA_KEY_SIZE")
         if env_key_size:
@@ -176,11 +176,12 @@ class RSAKeyManager:
         """Load private key from PEM file."""
         try:
             pem_data = self.private_key_path.read_bytes()
-            self._private_key = serialization.load_pem_private_key(
+            loaded_key = serialization.load_pem_private_key(
                 pem_data, password=None, backend=default_backend()
             )
-            if not isinstance(self._private_key, RSAPrivateKey):
+            if not isinstance(loaded_key, RSAPrivateKey):
                 raise CryptoError("Loaded key is not an RSA private key")
+            self._private_key = loaded_key
             self._public_key = self._private_key.public_key()
             self._compute_metadata()
             logger.info(
@@ -194,11 +195,12 @@ class RSAKeyManager:
         """Load public key from PEM file (for verification only)."""
         try:
             pem_data = self.public_key_path.read_bytes()
-            self._public_key = serialization.load_pem_public_key(
+            loaded_key = serialization.load_pem_public_key(
                 pem_data, backend=default_backend()
             )
-            if not isinstance(self._public_key, RSAPublicKey):
+            if not isinstance(loaded_key, RSAPublicKey):
                 raise CryptoError("Loaded key is not an RSA public key")
+            self._public_key = loaded_key
             self._compute_metadata()
             logger.info(
                 f"Loaded RSA public key from {self.public_key_path} "
