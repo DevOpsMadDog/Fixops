@@ -607,13 +607,12 @@ class TestCoverageGaps:
         # Generate keys first
         _ = manager.private_key
 
-        # Set an invalid path that will cause an exception
-        manager.private_key_path = Path(
-            "/nonexistent/directory/that/does/not/exist/private.pem"
-        )
-
-        # Should log warning but not raise
-        manager._save_private_key()
+        # Mock write_bytes to raise an exception
+        with patch.object(
+            Path, "write_bytes", side_effect=OSError("Permission denied")
+        ):
+            # Should log warning but not raise
+            manager._save_private_key()
 
     def test_save_public_key_exception_handling(self, temp_dir):
         """Test _save_public_key handles exceptions gracefully.
@@ -633,13 +632,12 @@ class TestCoverageGaps:
         # Generate keys first
         _ = manager.private_key
 
-        # Set an invalid path that will cause an exception
-        manager.public_key_path = Path(
-            "/nonexistent/directory/that/does/not/exist/public.pem"
-        )
-
-        # Should log warning but not raise
-        manager._save_public_key()
+        # Mock write_bytes to raise an exception
+        with patch.object(
+            Path, "write_bytes", side_effect=OSError("Permission denied")
+        ):
+            # Should log warning but not raise
+            manager._save_public_key()
 
     def test_sign_exception_handling(self, temp_dir):
         """Test sign raises CryptoError on signing failure.

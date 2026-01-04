@@ -7,6 +7,7 @@ Tests cover:
 - Storage backend factory function
 """
 
+import io
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -25,6 +26,7 @@ from core.storage_backends import (
     RetentionViolationError,
     S3ObjectLockBackend,
     StorageBackend,
+    StorageError,
     StorageMetadata,
     create_storage_backend,
 )
@@ -866,3 +868,1035 @@ class TestAzureImmutableBlobBackendValidation:
             ):
                 backend = AzureImmutableBlobBackend()
                 backend.ensure_worm_compliance()  # Should not raise
+
+
+class TestS3ObjectLockBackendCoverageGaps:
+    """Additional tests for S3ObjectLockBackend to cover missing lines."""
+
+    @pytest.fixture
+    def mock_boto3(self):
+        mock_client = MagicMock()
+        with patch.dict("sys.modules", {"boto3": MagicMock()}):
+            import sys
+
+            sys.modules["boto3"].client.return_value = mock_client
+            mock_client.exceptions = MagicMock()
+            mock_client.exceptions.NoSuchKey = type("NoSuchKey", (Exception,), {})
+            yield mock_client
+
+    def test_get_not_found_raises_object_not_found(self, mock_boto3):
+        """Test get raises ObjectNotFoundError when object not found.
+
+        Covers lines 669-670 in storage_backends.py.
+        """
+        mock_boto3.get_object.side_effect = mock_boto3.exceptions.NoSuchKey()
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(ObjectNotFoundError):
+                backend.get("test/file.txt")
+
+    def test_get_exception_raises_storage_error(self, mock_boto3):
+        """Test get raises StorageError on S3 exception.
+
+        Covers lines 671-672 in storage_backends.py.
+        """
+        mock_boto3.get_object.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(StorageError) as exc_info:
+                backend.get("test/file.txt")
+            assert "Failed to retrieve object" in str(exc_info.value)
+
+    def test_get_metadata_exception_raises_storage_error(self, mock_boto3):
+        """Test get_metadata raises StorageError on S3 exception.
+
+        Covers lines 711-712 in storage_backends.py.
+        """
+        mock_boto3.head_object.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(StorageError) as exc_info:
+                backend.get_metadata("test/file.txt")
+            assert "Failed to get metadata" in str(exc_info.value)
+
+    def test_exists_returns_false_on_exception(self, mock_boto3):
+        """Test exists returns False on S3 exception.
+
+        Covers lines 721-722 in storage_backends.py.
+        """
+        mock_boto3.head_object.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            result = backend.exists("test/file.txt")
+            assert result is False
+
+    def test_delete_with_legal_hold_raises(self, mock_boto3):
+        """Test delete raises RetentionViolationError when object has legal hold.
+
+        Covers lines 729-730 in storage_backends.py.
+        """
+        mock_boto3.head_object.return_value = {
+            "ContentLength": 1024,
+            "ObjectLockMode": "GOVERNANCE",
+            "ObjectLockRetainUntilDate": datetime.now(timezone.utc)
+            + timedelta(days=30),
+            "ObjectLockLegalHoldStatus": "ON",
+        }
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(RetentionViolationError) as exc_info:
+                backend.delete("test/file.txt")
+            assert "legal hold" in str(exc_info.value)
+
+    def test_delete_with_compliance_retention_raises(self, mock_boto3):
+        """Test delete raises RetentionViolationError when object has COMPLIANCE retention.
+
+        Covers lines 731-734 in storage_backends.py.
+        """
+        mock_boto3.head_object.return_value = {
+            "ContentLength": 1024,
+            "ObjectLockMode": "COMPLIANCE",
+            "ObjectLockRetainUntilDate": datetime.now(timezone.utc)
+            + timedelta(days=30),
+        }
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(RetentionViolationError) as exc_info:
+                backend.delete("test/file.txt")
+            assert "COMPLIANCE retention" in str(exc_info.value)
+
+    def test_delete_not_found_returns_false(self, mock_boto3):
+        """Test delete returns False when object not found.
+
+        Covers lines 738-739 in storage_backends.py.
+        """
+        mock_boto3.head_object.side_effect = mock_boto3.exceptions.NoSuchKey()
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            result = backend.delete("test/file.txt")
+            assert result is False
+
+    def test_delete_exception_raises_storage_error(self, mock_boto3):
+        """Test delete raises StorageError on S3 exception.
+
+        Covers lines 742-743 in storage_backends.py.
+        """
+        mock_boto3.head_object.return_value = {"ContentLength": 1024}
+        mock_boto3.delete_object.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(StorageError) as exc_info:
+                backend.delete("test/file.txt")
+            assert "Failed to delete object" in str(exc_info.value)
+
+    def test_list_objects_with_contents(self, mock_boto3):
+        """Test list_objects returns metadata for objects.
+
+        Covers lines 757-767 in storage_backends.py.
+        """
+        mock_paginator = MagicMock()
+        mock_paginator.paginate.return_value = [
+            {
+                "Contents": [
+                    {"Key": "prefix/file1.txt"},
+                    {"Key": "prefix/file2.txt"},
+                ]
+            }
+        ]
+        mock_boto3.get_paginator.return_value = mock_paginator
+        mock_boto3.head_object.return_value = {
+            "ContentLength": 1024,
+            "ContentType": "text/plain",
+            "Metadata": {},
+        }
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True, prefix="prefix/")
+            backend._client = mock_boto3
+
+            results = backend.list_objects("test/")
+            assert len(results) == 2
+
+    def test_list_objects_exception_raises_storage_error(self, mock_boto3):
+        """Test list_objects raises StorageError on S3 exception.
+
+        Covers lines 766-767 in storage_backends.py.
+        """
+        mock_boto3.get_paginator.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(StorageError) as exc_info:
+                backend.list_objects("test/")
+            assert "Failed to list objects" in str(exc_info.value)
+
+    def test_set_legal_hold_exception_raises_storage_error(self, mock_boto3):
+        """Test set_legal_hold raises StorageError on S3 exception.
+
+        Covers lines 781-784 in storage_backends.py.
+        """
+        mock_boto3.put_object_legal_hold.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(StorageError) as exc_info:
+                backend.set_legal_hold("test/file.txt", True)
+            assert "Failed to set legal hold" in str(exc_info.value)
+
+    def test_set_legal_hold_not_found_raises_object_not_found(self, mock_boto3):
+        """Test set_legal_hold raises ObjectNotFoundError when object doesn't exist.
+
+        Covers line 782 in storage_backends.py.
+        """
+        mock_boto3.exceptions.NoSuchKey = type("NoSuchKey", (Exception,), {})
+        mock_boto3.put_object_legal_hold.side_effect = mock_boto3.exceptions.NoSuchKey(
+            "Not found"
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(ObjectNotFoundError) as exc_info:
+                backend.set_legal_hold("test/file.txt", True)
+            assert "Object not found" in str(exc_info.value)
+
+    def test_list_objects_skips_failed_metadata(self, mock_boto3):
+        """Test list_objects continues when get_metadata fails for an object.
+
+        Covers lines 764-765 in storage_backends.py.
+        """
+        mock_paginator = MagicMock()
+        mock_boto3.get_paginator.return_value = mock_paginator
+        mock_paginator.paginate.return_value = [
+            {"Contents": [{"Key": "test/file1.txt"}, {"Key": "test/file2.txt"}]}
+        ]
+        mock_boto3.head_object.side_effect = Exception("Metadata error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            results = backend.list_objects("test/")
+            assert len(results) == 0
+
+
+class TestAzureImmutableBlobBackendCoverageGaps:
+    """Additional tests for AzureImmutableBlobBackend to cover missing lines."""
+
+    @pytest.fixture
+    def mock_azure(self):
+        with patch(
+            "core.storage_backends.BlobServiceClient", create=True
+        ) as mock_service:
+            mock_container = MagicMock()
+            mock_service.from_connection_string.return_value.get_container_client.return_value = (
+                mock_container
+            )
+            yield mock_container
+
+    def test_full_key_with_prefix(self, mock_azure):
+        """Test _full_key with prefix.
+
+        Covers lines 875-877 in storage_backends.py.
+        """
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(prefix="myprefix/")
+                full_key = backend._full_key("test/file.txt")
+                assert full_key == "myprefix/test/file.txt"
+
+    def test_validate_container_configuration_with_immutability(self, mock_azure):
+        """Test validate_container_configuration when immutability is enabled.
+
+        Covers lines 899-911 in storage_backends.py.
+        """
+        mock_properties = MagicMock()
+        mock_properties.has_immutability_policy = True
+        mock_azure.get_container_properties.return_value = mock_properties
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(skip_validation=True)
+                backend._skip_validation = False
+                result = backend.validate_container_configuration()
+                assert result is True
+                assert backend._immutability_enabled is True
+
+    def test_validate_container_configuration_without_immutability(self, mock_azure):
+        """Test validate_container_configuration when immutability is not enabled.
+
+        Covers lines 917, 921 in storage_backends.py.
+        """
+        mock_properties = MagicMock()
+        mock_properties.has_immutability_policy = None
+        mock_properties.immutable_storage_with_versioning_enabled = None
+        mock_azure.get_container_properties.return_value = mock_properties
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(skip_validation=True)
+                backend._skip_validation = False
+                result = backend.validate_container_configuration()
+                assert result is True
+                assert backend._immutability_enabled is None
+
+    def test_validate_container_configuration_exception(self, mock_azure):
+        """Test validate_container_configuration raises ConfigurationError on exception.
+
+        Covers lines 923-925 in storage_backends.py.
+        """
+        mock_azure.get_container_properties.side_effect = Exception("Azure error")
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(skip_validation=True)
+                backend._skip_validation = False
+                with pytest.raises(ConfigurationError) as exc_info:
+                    backend.validate_container_configuration()
+                assert "Failed to validate container configuration" in str(
+                    exc_info.value
+                )
+
+    def test_ensure_worm_compliance_calls_validate(self, mock_azure):
+        """Test ensure_worm_compliance calls validate when immutability is None.
+
+        Covers lines 941-942 in storage_backends.py.
+        """
+        mock_properties = MagicMock()
+        mock_properties.has_immutability_policy = True
+        mock_azure.get_container_properties.return_value = mock_properties
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(skip_validation=True)
+                backend._skip_validation = False
+                backend._immutability_enabled = None
+                backend.ensure_worm_compliance()
+                mock_azure.get_container_properties.assert_called_once()
+
+    def test_put_with_retention(self, mock_azure):
+        """Test put with retention policy.
+
+        Covers lines 954-995 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                with patch("core.storage_backends.ImmutabilityPolicy", create=True):
+                    backend = AzureImmutableBlobBackend()
+                    retention = RetentionPolicy(
+                        mode=RetentionMode.GOVERNANCE,
+                        retain_until_days=30,
+                        legal_hold=True,
+                    )
+                    metadata = backend.put(
+                        "test/file.txt",
+                        b"content",
+                        retention_policy=retention,
+                    )
+
+                    assert metadata.object_id == "test/file.txt"
+                    mock_blob_client.upload_blob.assert_called_once()
+                    mock_blob_client.set_immutability_policy.assert_called_once()
+                    mock_blob_client.set_legal_hold.assert_called_once_with(True)
+
+    def test_put_with_binary_io(self, mock_azure):
+        """Test put with BinaryIO data.
+
+        Covers lines 956-957 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                data = io.BytesIO(b"content")
+                metadata = backend.put("test/file.txt", data)
+
+                assert metadata.object_id == "test/file.txt"
+                mock_blob_client.upload_blob.assert_called_once()
+
+    def test_put_exception_raises_storage_error(self, mock_azure):
+        """Test put raises StorageError on Azure exception.
+
+        Covers lines 994-995 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.upload_blob.side_effect = Exception("Azure error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(StorageError) as exc_info:
+                    backend.put("test/file.txt", b"content")
+                assert "Failed to store blob" in str(exc_info.value)
+
+    def test_get_success(self, mock_azure):
+        """Test get returns blob content.
+
+        Covers lines 1008-1011 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.download_blob.return_value.readall.return_value = b"content"
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                result = backend.get("test/file.txt")
+                assert result == b"content"
+
+    def test_get_not_found_raises_object_not_found(self, mock_azure):
+        """Test get raises ObjectNotFoundError when blob not found.
+
+        Covers lines 1013-1014 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.download_blob.side_effect = Exception("BlobNotFound")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(ObjectNotFoundError):
+                    backend.get("test/file.txt")
+
+    def test_get_exception_raises_storage_error(self, mock_azure):
+        """Test get raises StorageError on Azure exception.
+
+        Covers lines 1015 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.download_blob.side_effect = Exception("Azure error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(StorageError) as exc_info:
+                    backend.get("test/file.txt")
+                assert "Failed to retrieve blob" in str(exc_info.value)
+
+    def test_get_metadata_success(self, mock_azure):
+        """Test get_metadata returns StorageMetadata.
+
+        Covers lines 1018-1055 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_properties = MagicMock()
+        mock_properties.size = 1024
+        mock_properties.content_settings.content_type = "application/json"
+        mock_properties.creation_time = datetime.now(timezone.utc)
+        mock_properties.metadata = {"custom": "value"}
+        mock_properties.immutability_policy = MagicMock()
+        mock_properties.immutability_policy.policy_mode = "Locked"
+        mock_properties.immutability_policy.expiry_time = datetime.now(
+            timezone.utc
+        ) + timedelta(days=30)
+        mock_properties.has_legal_hold = True
+        mock_blob_client.get_blob_properties.return_value = mock_properties
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                metadata = backend.get_metadata("test/file.txt")
+
+                assert metadata.size_bytes == 1024
+                assert metadata.content_type == "application/json"
+                assert metadata.retention_policy is not None
+                assert metadata.retention_policy.mode == RetentionMode.COMPLIANCE
+                assert metadata.retention_policy.legal_hold is True
+
+    def test_get_metadata_not_found_raises(self, mock_azure):
+        """Test get_metadata raises ObjectNotFoundError when blob not found.
+
+        Covers lines 1056-1058 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.get_blob_properties.side_effect = Exception("BlobNotFound")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(ObjectNotFoundError):
+                    backend.get_metadata("test/file.txt")
+
+    def test_get_metadata_exception_raises_storage_error(self, mock_azure):
+        """Test get_metadata raises StorageError on Azure exception.
+
+        Covers lines 1059 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.get_blob_properties.side_effect = Exception("Azure error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(StorageError) as exc_info:
+                    backend.get_metadata("test/file.txt")
+                assert "Failed to get blob metadata" in str(exc_info.value)
+
+    def test_exists_returns_true(self, mock_azure):
+        """Test exists returns True when blob exists.
+
+        Covers lines 1062-1066 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                result = backend.exists("test/file.txt")
+                assert result is True
+
+    def test_exists_returns_false_on_exception(self, mock_azure):
+        """Test exists returns False on exception.
+
+        Covers lines 1067-1068 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.get_blob_properties.side_effect = Exception("Azure error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                result = backend.exists("test/file.txt")
+                assert result is False
+
+    def test_delete_success(self, mock_azure):
+        """Test delete returns True on success.
+
+        Covers lines 1071-1084 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_properties = MagicMock()
+        mock_properties.size = 1024
+        mock_properties.content_settings.content_type = "text/plain"
+        mock_properties.creation_time = None
+        mock_properties.metadata = {}
+        mock_properties.immutability_policy = None
+        mock_properties.has_legal_hold = False
+        mock_blob_client.get_blob_properties.return_value = mock_properties
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                result = backend.delete("test/file.txt")
+                assert result is True
+                mock_blob_client.delete_blob.assert_called_once()
+
+    def test_delete_with_legal_hold_raises(self, mock_azure):
+        """Test delete raises RetentionViolationError when blob has legal hold.
+
+        Covers lines 1075-1076 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_properties = MagicMock()
+        mock_properties.size = 1024
+        mock_properties.content_settings.content_type = "text/plain"
+        mock_properties.creation_time = None
+        mock_properties.metadata = {}
+        mock_properties.immutability_policy = MagicMock()
+        mock_properties.immutability_policy.policy_mode = "Unlocked"
+        mock_properties.immutability_policy.expiry_time = None
+        mock_properties.has_legal_hold = True
+        mock_blob_client.get_blob_properties.return_value = mock_properties
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(RetentionViolationError) as exc_info:
+                    backend.delete("test/file.txt")
+                assert "legal hold" in str(exc_info.value)
+
+    def test_delete_with_compliance_retention_raises(self, mock_azure):
+        """Test delete raises RetentionViolationError when blob has COMPLIANCE retention.
+
+        Covers lines 1077-1080 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_properties = MagicMock()
+        mock_properties.size = 1024
+        mock_properties.content_settings.content_type = "text/plain"
+        mock_properties.creation_time = None
+        mock_properties.metadata = {}
+        mock_properties.immutability_policy = MagicMock()
+        mock_properties.immutability_policy.policy_mode = "Locked"
+        mock_properties.immutability_policy.expiry_time = datetime.now(
+            timezone.utc
+        ) + timedelta(days=30)
+        mock_properties.has_legal_hold = False
+        mock_blob_client.get_blob_properties.return_value = mock_properties
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(RetentionViolationError) as exc_info:
+                    backend.delete("test/file.txt")
+                assert "COMPLIANCE retention" in str(exc_info.value)
+
+    def test_delete_not_found_returns_false(self, mock_azure):
+        """Test delete returns False when blob not found.
+
+        Covers lines 1085-1086 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.get_blob_properties.side_effect = Exception("BlobNotFound")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                result = backend.delete("test/file.txt")
+                assert result is False
+
+    def test_delete_exception_raises_storage_error(self, mock_azure):
+        """Test delete raises StorageError on Azure exception.
+
+        Covers lines 1089-1090 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_properties = MagicMock()
+        mock_properties.size = 1024
+        mock_properties.content_settings.content_type = "text/plain"
+        mock_properties.creation_time = None
+        mock_properties.metadata = {}
+        mock_properties.immutability_policy = None
+        mock_properties.has_legal_hold = False
+        mock_blob_client.get_blob_properties.return_value = mock_properties
+        mock_blob_client.delete_blob.side_effect = Exception("Azure error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(StorageError) as exc_info:
+                    backend.delete("test/file.txt")
+                assert "Failed to delete blob" in str(exc_info.value)
+
+    def test_list_objects_success(self, mock_azure):
+        """Test list_objects returns metadata for blobs.
+
+        Covers lines 1095-1112 in storage_backends.py.
+        """
+        mock_blob1 = MagicMock()
+        mock_blob1.name = "prefix/file1.txt"
+        mock_blob2 = MagicMock()
+        mock_blob2.name = "prefix/file2.txt"
+        mock_azure.list_blobs.return_value = [mock_blob1, mock_blob2]
+
+        mock_blob_client = MagicMock()
+        mock_properties = MagicMock()
+        mock_properties.size = 1024
+        mock_properties.content_settings.content_type = "text/plain"
+        mock_properties.creation_time = None
+        mock_properties.metadata = {}
+        mock_properties.immutability_policy = None
+        mock_properties.has_legal_hold = False
+        mock_blob_client.get_blob_properties.return_value = mock_properties
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend(prefix="prefix/")
+                results = backend.list_objects("test/")
+                assert len(results) == 2
+
+    def test_list_objects_exception_raises_storage_error(self, mock_azure):
+        """Test list_objects raises StorageError on Azure exception.
+
+        Covers lines 1110-1111 in storage_backends.py.
+        """
+        mock_azure.list_blobs.side_effect = Exception("Azure error")
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(StorageError) as exc_info:
+                    backend.list_objects("test/")
+                assert "Failed to list blobs" in str(exc_info.value)
+
+    def test_list_objects_with_limit_breaks_early(self, mock_azure):
+        """Test list_objects breaks when limit is reached.
+
+        Covers line 1101 in storage_backends.py.
+        """
+        mock_blob1 = MagicMock()
+        mock_blob1.name = "test/file1.txt"
+        mock_blob2 = MagicMock()
+        mock_blob2.name = "test/file2.txt"
+        mock_blob3 = MagicMock()
+        mock_blob3.name = "test/file3.txt"
+        mock_azure.list_blobs.return_value = [mock_blob1, mock_blob2, mock_blob3]
+
+        mock_blob_client = MagicMock()
+        mock_blob_client.get_blob_properties.return_value = MagicMock(
+            size=1024,
+            content_settings=MagicMock(content_type="application/octet-stream"),
+            creation_time=datetime.now(timezone.utc),
+            metadata={},
+            immutability_policy=None,
+            has_legal_hold=False,
+        )
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                results = backend.list_objects("test/", limit=2)
+                assert len(results) == 2
+
+    def test_list_objects_skips_failed_metadata(self, mock_azure):
+        """Test list_objects continues when get_metadata fails for a blob.
+
+        Covers lines 1108-1109 in storage_backends.py.
+        """
+        mock_blob1 = MagicMock()
+        mock_blob1.name = "test/file1.txt"
+        mock_blob2 = MagicMock()
+        mock_blob2.name = "test/file2.txt"
+        mock_azure.list_blobs.return_value = [mock_blob1, mock_blob2]
+
+        mock_blob_client = MagicMock()
+        mock_blob_client.get_blob_properties.side_effect = Exception("Metadata error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                results = backend.list_objects("test/")
+                assert len(results) == 0
+
+    def test_set_legal_hold_success(self, mock_azure):
+        """Test set_legal_hold calls Azure API.
+
+        Covers lines 1115-1121 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                backend.set_legal_hold("test/file.txt", True)
+                mock_blob_client.set_legal_hold.assert_called_once_with(True)
+
+    def test_set_legal_hold_not_found_raises(self, mock_azure):
+        """Test set_legal_hold raises ObjectNotFoundError when blob not found.
+
+        Covers lines 1122-1124 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.set_legal_hold.side_effect = Exception("BlobNotFound")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(ObjectNotFoundError):
+                    backend.set_legal_hold("test/file.txt", True)
+
+    def test_set_legal_hold_exception_raises_storage_error(self, mock_azure):
+        """Test set_legal_hold raises StorageError on Azure exception.
+
+        Covers lines 1125 in storage_backends.py.
+        """
+        mock_blob_client = MagicMock()
+        mock_blob_client.set_legal_hold.side_effect = Exception("Azure error")
+        mock_azure.get_blob_client.return_value = mock_blob_client
+
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                with pytest.raises(StorageError) as exc_info:
+                    backend.set_legal_hold("test/file.txt", True)
+                assert "Failed to set legal hold" in str(exc_info.value)

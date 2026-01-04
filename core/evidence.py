@@ -119,9 +119,6 @@ class EvidenceHub:
                 )
 
                 if mode in ("demo", "test", "ci", "vc-demo") or is_ci_env:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
                     logger.warning(
                         f"Evidence encryption requested but {encryption_env} not set. "
                         f"Running in mode={mode} (CI={is_ci_env}) - disabling encryption. "
@@ -129,9 +126,6 @@ class EvidenceHub:
                     )
                     self.encrypt_bundles = False
                 else:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
                     logger.warning(
                         f"Evidence encryption requested but {encryption_env} not set. "
                         f"Using hardcoded sample key for mode={mode}. "
@@ -147,9 +141,6 @@ class EvidenceHub:
                         or os.getenv("GITHUB_ACTIONS") == "true"
                     )
                     if is_ci_env:
-                        import logging
-
-                        logger = logging.getLogger(__name__)
                         logger.warning(
                             f"Invalid evidence encryption key supplied in CI environment. "
                             f"Disabling encryption for tests. Error: {exc}"
