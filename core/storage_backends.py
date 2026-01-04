@@ -277,8 +277,33 @@ class LocalFileBackend(StorageBackend):
         return "local"
 
     def _object_path(self, key: str) -> Path:
+        """Get the filesystem path for an object key with path traversal protection.
+
+        This method sanitizes the key and verifies the resolved path stays within
+        the base_path to prevent directory traversal attacks.
+
+        Args:
+            key: Object key (may contain path separators)
+
+        Returns:
+            Resolved Path within base_path
+
+        Raises:
+            ValueError: If the resolved path would escape base_path
+        """
+        # Basic sanitization: replace .. and strip leading slashes
         safe_key = key.replace("..", "_").lstrip("/")
-        return self.base_path / safe_key
+        candidate_path = (self.base_path / safe_key).resolve()
+
+        # Verify the resolved path is within base_path (prevents symlink attacks too)
+        try:
+            candidate_path.relative_to(self.base_path)
+        except ValueError:
+            raise ValueError(
+                f"Path traversal detected: key '{key}' resolves outside base_path"
+            )
+
+        return candidate_path
 
     def _metadata_path(self, key: str) -> Path:
         return self._object_path(key).with_suffix(
@@ -581,16 +606,34 @@ class S3ObjectLockBackend(StorageBackend):
         """Ensure bucket is configured for WORM compliance before any operations.
 
         This is a fail-closed check - if we cannot verify WORM compliance,
-        we refuse to proceed in production mode.
+        we refuse to proceed. The check enforces three states:
+        - True: WORM compliance verified, proceed
+        - False: WORM compliance explicitly disabled, raise error
+        - None: Could not verify, raise error (fail-closed)
 
         Raises:
-            ConfigurationError: If WORM compliance cannot be verified
+            ConfigurationError: If WORM compliance cannot be verified or is disabled
         """
         if self._skip_validation:
             return
 
         if self._object_lock_enabled is None or self._versioning_enabled is None:
             self.validate_bucket_configuration()
+
+        # Fail-closed: if we still can't confirm WORM compliance, refuse to proceed
+        if self._object_lock_enabled is None:
+            raise ConfigurationError(
+                f"Cannot verify Object Lock configuration for bucket {self.bucket}. "
+                "WORM compliance could not be confirmed - refusing to proceed (fail-closed). "
+                "Use skip_validation=True only for testing with known-compliant buckets."
+            )
+
+        if self._versioning_enabled is None:
+            raise ConfigurationError(
+                f"Cannot verify versioning configuration for bucket {self.bucket}. "
+                "WORM compliance could not be confirmed - refusing to proceed (fail-closed). "
+                "Use skip_validation=True only for testing with known-compliant buckets."
+            )
 
     def _full_key(self, key: str) -> str:
         if self.prefix:
@@ -930,16 +973,27 @@ class AzureImmutableBlobBackend(StorageBackend):
         """Ensure container is configured for WORM compliance before any operations.
 
         This is a fail-closed check - if we cannot verify WORM compliance,
-        we refuse to proceed in production mode.
+        we refuse to proceed. The check enforces three states:
+        - True: WORM compliance verified, proceed
+        - False: WORM compliance explicitly disabled, raise error
+        - None: Could not verify, raise error (fail-closed)
 
         Raises:
-            ConfigurationError: If WORM compliance cannot be verified
+            ConfigurationError: If WORM compliance cannot be verified or is disabled
         """
         if self._skip_validation:
             return
 
         if self._immutability_enabled is None:
             self.validate_container_configuration()
+
+        # Fail-closed: if we still can't confirm WORM compliance, refuse to proceed
+        if self._immutability_enabled is None:
+            raise ConfigurationError(
+                f"Cannot verify immutability configuration for container {self.container}. "
+                "WORM compliance could not be confirmed - refusing to proceed (fail-closed). "
+                "Use skip_validation=True only for testing with known-compliant containers."
+            )
 
     def put(
         self,

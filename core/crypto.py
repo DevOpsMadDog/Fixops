@@ -512,9 +512,11 @@ def rsa_verify(data: bytes, signature: bytes, fingerprint: str) -> bool:
         True if signature is valid
 
     Raises:
-        SignatureVerificationError: If verification fails
+        SignatureVerificationError: If verification fails or fingerprint mismatch
     """
-    return _get_default_verifier().verify(data, signature, fingerprint)
+    return _get_default_verifier().verify(
+        data, signature, fingerprint, raise_on_failure=True
+    )
 
 
 def generate_key_pair(

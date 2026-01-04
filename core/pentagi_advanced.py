@@ -367,10 +367,12 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
 
         This method integrates with the LLMProviderManager to make real API calls
         to LLM providers (OpenAI, Anthropic, Gemini). It includes:
-        - Automatic retry with exponential backoff
+        - Automatic retry with exponential backoff (uses config.max_retries)
+        - Timeout handling (uses config.timeout_seconds)
         - Fallback to deterministic responses when providers are unavailable
         - Comprehensive error handling and logging
         - Call statistics tracking
+        - Non-blocking I/O via asyncio.to_thread()
 
         Args:
             provider: Name of the LLM provider ('openai', 'anthropic', 'gemini')
@@ -386,78 +388,119 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
         self._call_count["total"] += 1
         context = context or {}
 
-        try:
-            response: LLMResponse = self.llm_manager.analyse(
-                provider,
-                prompt=prompt,
-                context=context,
-                default_action="review",
-                default_confidence=0.5,
-                default_reasoning=f"Deterministic analysis from {provider}",
-                mitigation_hints={
-                    "mitre_candidates": ["T1190", "T1059"],
-                    "compliance": ["PCI-DSS", "SOC2"],
-                    "attack_vectors": ["injection", "authentication_bypass"],
-                },
-            )
+        last_error: Optional[Exception] = None
 
-            is_fallback = response.metadata.get("mode") in ("deterministic", "fallback")
+        # Retry loop using config.max_retries
+        for attempt in range(self.config.max_retries):
+            try:
+                # Wrap blocking LLM call in asyncio.to_thread to avoid blocking the event loop
+                # Apply timeout using config.timeout_seconds
+                response: LLMResponse = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self.llm_manager.analyse,
+                        provider,
+                        prompt=prompt,
+                        context=context,
+                        default_action="review",
+                        default_confidence=0.5,
+                        default_reasoning=f"Deterministic analysis from {provider}",
+                        mitigation_hints={
+                            "mitre_candidates": ["T1190", "T1059"],
+                            "compliance": ["PCI-DSS", "SOC2"],
+                            "attack_vectors": ["injection", "authentication_bypass"],
+                        },
+                    ),
+                    timeout=self.config.timeout_seconds,
+                )
 
-            if is_fallback:
-                self._call_count["fallback"] += 1
+                is_fallback = response.metadata.get("mode") in (
+                    "deterministic",
+                    "fallback",
+                )
+
+                if is_fallback:
+                    self._call_count["fallback"] += 1
+                    logger.warning(
+                        f"LLM provider {provider} returned fallback response: "
+                        f"{response.metadata.get('reason', 'unknown')}"
+                    )
+                else:
+                    self._call_count["success"] += 1
+                    logger.info(
+                        f"LLM provider {provider} returned successful response "
+                        f"(confidence={response.confidence:.2f})"
+                    )
+
+                result = {
+                    "recommendation": response.recommended_action,
+                    "confidence": response.confidence,
+                    "reasoning": response.reasoning,
+                    "priority": self._confidence_to_priority(response.confidence),
+                    "attack_vectors": list(response.attack_vectors),
+                    "mitre_techniques": list(response.mitre_techniques),
+                    "compliance_concerns": list(response.compliance_concerns),
+                    "tools": self._suggest_tools(response.attack_vectors),
+                    "strategy": self._derive_strategy(response),
+                    "success_criteria": self._derive_success_criteria(response),
+                    "business_impact": self._assess_business_impact(response),
+                    "exploit_strategy": response.reasoning,
+                    "metadata": {
+                        "provider": provider,
+                        "mode": response.metadata.get("mode", "unknown"),
+                        "duration_ms": response.metadata.get("duration_ms"),
+                        "attempt": attempt + 1,
+                    },
+                }
+
+                return json.dumps(result)
+
+            except asyncio.TimeoutError:
+                last_error = asyncio.TimeoutError(
+                    f"LLM call to {provider} timed out after {self.config.timeout_seconds}s"
+                )
                 logger.warning(
-                    f"LLM provider {provider} returned fallback response: "
-                    f"{response.metadata.get('reason', 'unknown')}"
+                    f"LLM call to {provider} timed out (attempt {attempt + 1}/{self.config.max_retries})"
                 )
-            else:
-                self._call_count["success"] += 1
-                logger.info(
-                    f"LLM provider {provider} returned successful response "
-                    f"(confidence={response.confidence:.2f})"
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"LLM call to {provider} failed (attempt {attempt + 1}/{self.config.max_retries}): {e}"
                 )
 
-            result = {
-                "recommendation": response.recommended_action,
-                "confidence": response.confidence,
-                "reasoning": response.reasoning,
-                "priority": self._confidence_to_priority(response.confidence),
-                "attack_vectors": list(response.attack_vectors),
-                "mitre_techniques": list(response.mitre_techniques),
-                "compliance_concerns": list(response.compliance_concerns),
-                "tools": self._suggest_tools(response.attack_vectors),
-                "strategy": self._derive_strategy(response),
-                "success_criteria": self._derive_success_criteria(response),
-                "business_impact": self._assess_business_impact(response),
-                "exploit_strategy": response.reasoning,
-                "metadata": {
-                    "provider": provider,
-                    "mode": response.metadata.get("mode", "unknown"),
-                    "duration_ms": response.metadata.get("duration_ms"),
-                },
-            }
+            # Exponential backoff before retry (except on last attempt)
+            if attempt < self.config.max_retries - 1:
+                backoff_seconds = min(2**attempt, 30)  # Cap at 30 seconds
+                logger.info(f"Retrying in {backoff_seconds}s...")
+                await asyncio.sleep(backoff_seconds)
 
-            return json.dumps(result)
+        # All retries exhausted
+        logger.error(
+            f"LLM call to {provider} failed after {self.config.max_retries} attempts: {last_error}"
+        )
 
-        except Exception as e:
-            logger.error(f"LLM call to {provider} failed: {e}")
-
-            if self.config.fallback_enabled:
-                self._call_count["fallback"] += 1
-                return json.dumps(
-                    {
-                        "recommendation": "Proceed with standard testing",
-                        "confidence": 0.5,
-                        "reasoning": f"Fallback response due to {provider} error: {e}",
-                        "priority": 5,
-                        "attack_vectors": ["manual_review"],
-                        "tools": ["manual"],
-                        "strategy": "Conservative testing approach",
-                        "success_criteria": ["Manual verification required"],
-                        "metadata": {"fallback": True, "error": str(e)},
-                    }
-                )
-            else:
-                raise LLMCallError(f"LLM call to {provider} failed: {e}") from e
+        if self.config.fallback_enabled:
+            self._call_count["fallback"] += 1
+            return json.dumps(
+                {
+                    "recommendation": "Proceed with standard testing",
+                    "confidence": 0.5,
+                    "reasoning": f"Fallback response due to {provider} error after {self.config.max_retries} retries: {last_error}",
+                    "priority": 5,
+                    "attack_vectors": ["manual_review"],
+                    "tools": ["manual"],
+                    "strategy": "Conservative testing approach",
+                    "success_criteria": ["Manual verification required"],
+                    "metadata": {
+                        "fallback": True,
+                        "error": str(last_error),
+                        "retries_attempted": self.config.max_retries,
+                    },
+                }
+            )
+        else:
+            raise LLMCallError(
+                f"LLM call to {provider} failed after {self.config.max_retries} retries: {last_error}"
+            ) from last_error
 
     def _confidence_to_priority(self, confidence: float) -> int:
         """Convert confidence score to priority (1-10 scale)."""

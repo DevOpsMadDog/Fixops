@@ -346,6 +346,17 @@ class EvidenceHub:
                     },
                 )
             except Exception as exc:
+                # Clean up orphaned bundle file on signing failure to maintain data integrity
+                try:
+                    if final_path.exists():
+                        final_path.unlink()
+                        logger.info(
+                            f"Cleaned up orphaned bundle file after signing failure: {final_path}"
+                        )
+                except Exception as cleanup_exc:
+                    logger.warning(
+                        f"Failed to clean up orphaned bundle file {final_path}: {cleanup_exc}"
+                    )
                 logger.error(
                     f"Failed to sign evidence bundle: {exc}. "
                     "This is a critical error in production."

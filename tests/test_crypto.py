@@ -419,7 +419,12 @@ class TestModuleFunctions:
             assert result is True
 
     def test_rsa_verify_invalid(self, temp_dir):
-        """Test rsa_verify with invalid signature."""
+        """Test rsa_verify raises SignatureVerificationError with invalid signature.
+
+        The rsa_verify convenience function uses raise_on_failure=True by default,
+        so it raises SignatureVerificationError on invalid signatures rather than
+        returning False. This matches the documented behavior in the docstring.
+        """
         private_path = os.path.join(temp_dir, "private.pem")
         public_path = os.path.join(temp_dir, "public.pem")
 
@@ -439,8 +444,10 @@ class TestModuleFunctions:
             # Generate keys first
             _, fingerprint = rsa_sign(b"dummy")
 
-            result = rsa_verify(b"data", b"invalid", fingerprint)
-            assert result is False
+            # rsa_verify raises SignatureVerificationError on invalid signature
+            with pytest.raises(SignatureVerificationError) as exc_info:
+                rsa_verify(b"data", b"invalid", fingerprint)
+            assert "Signature verification failed" in str(exc_info.value)
 
 
 class TestExceptionClasses:

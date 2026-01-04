@@ -22,7 +22,8 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
     volumes:
       - localstack_data:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock
+      # NOTE: Docker socket mount removed for security - it grants container root access to host
+      # LocalStack basic S3 operations work without it; only Lambda/ECS features require it
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s
