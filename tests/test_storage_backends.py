@@ -1252,6 +1252,9 @@ class TestAzureImmutableBlobBackendCoverageGaps:
         mock_blob_client = MagicMock()
         mock_azure.get_blob_client.return_value = mock_blob_client
 
+        # Create a mock ImmutabilityPolicy class
+        mock_immutability_policy = MagicMock()
+
         with patch.dict(
             os.environ,
             {
@@ -1263,7 +1266,12 @@ class TestAzureImmutableBlobBackendCoverageGaps:
             with patch.object(
                 AzureImmutableBlobBackend, "container_client", mock_azure
             ):
-                with patch("core.storage_backends.ImmutabilityPolicy", create=True):
+                # Mock the azure.storage.blob module import inside put()
+                mock_azure_module = MagicMock()
+                mock_azure_module.ImmutabilityPolicy = mock_immutability_policy
+                with patch.dict(
+                    "sys.modules", {"azure.storage.blob": mock_azure_module}
+                ):
                     backend = AzureImmutableBlobBackend()
                     retention = RetentionPolicy(
                         mode=RetentionMode.GOVERNANCE,
@@ -1300,12 +1308,17 @@ class TestAzureImmutableBlobBackendCoverageGaps:
             with patch.object(
                 AzureImmutableBlobBackend, "container_client", mock_azure
             ):
-                backend = AzureImmutableBlobBackend()
-                data = io.BytesIO(b"content")
-                metadata = backend.put("test/file.txt", data)
+                # Mock the azure.storage.blob module import inside put()
+                mock_azure_module = MagicMock()
+                with patch.dict(
+                    "sys.modules", {"azure.storage.blob": mock_azure_module}
+                ):
+                    backend = AzureImmutableBlobBackend()
+                    data = io.BytesIO(b"content")
+                    metadata = backend.put("test/file.txt", data)
 
-                assert metadata.object_id == "test/file.txt"
-                mock_blob_client.upload_blob.assert_called_once()
+                    assert metadata.object_id == "test/file.txt"
+                    mock_blob_client.upload_blob.assert_called_once()
 
     def test_put_exception_raises_storage_error(self, mock_azure):
         """Test put raises StorageError on Azure exception.
