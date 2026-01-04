@@ -813,8 +813,10 @@ class TestCoverageGaps:
         # Call _save_private_key - should skip saving without error
         manager._save_private_key()
 
-        # Verify no file was created in current directory
-        assert not os.path.exists(".") or not os.path.isfile(".")
+        # Verify no private.pem file was created in current directory
+        # (the test should not create files outside temp_dir)
+        cwd_private_pem = Path.cwd() / "private.pem"
+        assert not cwd_private_pem.exists(), "private.pem should not be created in cwd"
 
     def test_save_public_key_skips_when_no_path_configured(self, temp_dir):
         """Test _save_public_key skips saving when path resolves to current directory.
@@ -839,5 +841,7 @@ class TestCoverageGaps:
         # Call _save_public_key - should skip saving without error
         manager._save_public_key()
 
-        # Verify no file was created in current directory
-        assert not os.path.exists(".") or not os.path.isfile(".")
+        # Verify no public.pem file was created in current directory
+        # (the test should not create files outside temp_dir)
+        cwd_public_pem = Path.cwd() / "public.pem"
+        assert not cwd_public_pem.exists(), "public.pem should not be created in cwd"
