@@ -84,8 +84,8 @@ class TestConsensusConfig:
             config.validate()
 
     def test_validate_invalid_retries(self):
-        config = ConsensusConfig(max_retries=-1)
-        with pytest.raises(ValueError, match="Max retries must be non-negative"):
+        config = ConsensusConfig(max_retries=0)
+        with pytest.raises(ValueError, match="Max retries must be at least 1"):
             config.validate()
 
 
