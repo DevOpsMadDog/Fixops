@@ -114,18 +114,10 @@ class TestSecretsDetector:
         result = detector._validate_path(str(test_file))
         assert result.exists()
 
-    def test_validate_path_with_base_path(self, detector, temp_dir):
-        """Test path validation with base path."""
-        test_file = Path(temp_dir) / "config.py"
-        test_file.write_text("API_KEY = 'secret'")
-
-        result = detector._validate_path("config.py", temp_dir)
-        assert result.exists()
-
-    def test_validate_path_traversal_attack(self, detector, temp_dir):
-        """Test path validation prevents traversal attacks."""
-        with pytest.raises(ValueError, match="Path traversal detected"):
-            detector._validate_path("../../../etc/passwd", temp_dir)
+    def test_validate_path_null_bytes(self, detector, temp_dir):
+        """Test path validation rejects null bytes."""
+        with pytest.raises(ValueError, match="contains null bytes"):
+            detector._validate_path("/test/file\x00.py")
 
     def test_validate_path_nonexistent(self, detector):
         """Test path validation with nonexistent path."""
@@ -370,12 +362,12 @@ class TestSecretsDetector:
         assert "does not exist" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_scan_path_traversal(self, detector, temp_dir):
-        """Test scan with path traversal attempt."""
-        result = await detector.scan("../../../etc/passwd", base_path=temp_dir)
+    async def test_scan_nonexistent_path(self, detector):
+        """Test scan with nonexistent path returns failed status."""
+        result = await detector.scan("/nonexistent/path/to/file.py")
 
         assert result.status == SecretsScanStatus.FAILED
-        assert "Path traversal detected" in result.error_message
+        assert "does not exist" in result.error_message
 
     @pytest.mark.asyncio
     async def test_scan_with_gitleaks(self, detector, temp_dir):

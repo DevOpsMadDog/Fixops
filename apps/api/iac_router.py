@@ -5,7 +5,9 @@ Provides enterprise-grade IaC security scanning with checkov and tfsec integrati
 """
 
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -19,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/iac", tags=["iac"])
 db = IaCDB()
+
+# Server-side configured base path for scanning - NOT user-controllable
+SCAN_BASE_PATH = os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans")
 
 
 class IaCFindingCreate(BaseModel):
@@ -129,16 +134,16 @@ async def resolve_iac_finding(id: str):
 class IaCScanRequest(BaseModel):
     """Request model for IaC scan."""
 
-    file_path: str = Field(..., description="Path to file or directory to scan")
+    file_path: str = Field(
+        ...,
+        description="Relative path to file or directory to scan (under configured base path)",
+    )
     provider: Optional[IaCProvider] = Field(
         None, description="IaC provider type (auto-detected if not specified)"
     )
     scanner: Optional[str] = Field(
         None,
         description="Scanner to use: 'checkov' or 'tfsec' (auto-selected if not specified)",
-    )
-    base_path: Optional[str] = Field(
-        None, description="Base path for security validation"
     )
 
 
@@ -179,6 +184,46 @@ async def get_scanner_status():
     }
 
 
+def _validate_scan_path(file_path: str) -> str:
+    """
+    Validate and resolve the scan path securely.
+
+    Security measures:
+    1. Reject absolute paths from user input
+    2. Reject path traversal attempts
+    3. Resolve path under server-controlled base directory
+    4. Verify resolved path stays within base directory
+    """
+    # Reject absolute paths - user must provide relative paths only
+    if Path(file_path).is_absolute():
+        raise HTTPException(
+            status_code=400,
+            detail="Absolute paths are not allowed. Provide a relative path.",
+        )
+
+    # Reject obvious path traversal attempts
+    if ".." in file_path or file_path.startswith("/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Path traversal is not allowed.",
+        )
+
+    # Resolve under server-controlled base path
+    base = Path(SCAN_BASE_PATH).resolve()
+    resolved = (base / file_path).resolve()
+
+    # Verify the resolved path stays within the base directory
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Path traversal detected: path escapes base directory.",
+        )
+
+    return str(resolved)
+
+
 @router.post("/scan", response_model=IaCScanResponse)
 async def scan_iac(request: IaCScanRequest):
     """
@@ -193,7 +238,13 @@ async def scan_iac(request: IaCScanRequest):
     - checkov is used for all other providers
 
     Findings are automatically persisted to the database.
+
+    Security: Only relative paths under the configured FIXOPS_SCAN_BASE_PATH
+    are allowed. Absolute paths and path traversal attempts are rejected.
     """
+    # Validate and resolve the path securely using server-side base path
+    validated_path = _validate_scan_path(request.file_path)
+
     scanner = get_iac_scanner()
 
     scanner_type = None
@@ -207,11 +258,11 @@ async def scan_iac(request: IaCScanRequest):
             )
 
     try:
+        # Pass the validated path directly - no user-controlled base_path
         result = await scanner.scan(
-            target_path=request.file_path,
+            target_path=validated_path,
             provider=request.provider,
             scanner=scanner_type,
-            base_path=request.base_path,
         )
     except Exception as e:
         logger.exception(f"IaC scan failed: {e}")

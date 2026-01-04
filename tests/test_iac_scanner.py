@@ -122,18 +122,10 @@ class TestIaCScanner:
         result = scanner._validate_path(str(test_file))
         assert result.exists()
 
-    def test_validate_path_with_base_path(self, scanner, temp_dir):
-        """Test path validation with base path."""
-        test_file = Path(temp_dir) / "test.tf"
-        test_file.write_text("resource {}")
-
-        result = scanner._validate_path("test.tf", temp_dir)
-        assert result.exists()
-
-    def test_validate_path_traversal_attack(self, scanner, temp_dir):
-        """Test path validation prevents traversal attacks."""
-        with pytest.raises(ValueError, match="Path traversal detected"):
-            scanner._validate_path("../../../etc/passwd", temp_dir)
+    def test_validate_path_null_bytes(self, scanner, temp_dir):
+        """Test path validation rejects null bytes."""
+        with pytest.raises(ValueError, match="contains null bytes"):
+            scanner._validate_path("/test/file\x00.tf")
 
     def test_validate_path_nonexistent(self, scanner):
         """Test path validation with nonexistent path."""
@@ -318,12 +310,12 @@ class TestIaCScanner:
         assert "does not exist" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_scan_path_traversal(self, scanner, temp_dir):
-        """Test scan with path traversal attempt."""
-        result = await scanner.scan("../../../etc/passwd", base_path=temp_dir)
+    async def test_scan_nonexistent_path(self, scanner):
+        """Test scan with nonexistent path returns failed status."""
+        result = await scanner.scan("/nonexistent/path/to/file.tf")
 
         assert result.status == ScanStatus.FAILED
-        assert "Path traversal detected" in result.error_message
+        assert "does not exist" in result.error_message
 
     @pytest.mark.asyncio
     async def test_scan_with_checkov(self, scanner, temp_dir):

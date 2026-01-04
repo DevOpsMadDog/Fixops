@@ -152,45 +152,22 @@ class SecretsDetector:
             available.append(SecretsScanner.TRUFFLEHOG)
         return available
 
-    def _validate_path(self, target_path: str, base_path: Optional[str] = None) -> Path:
+    def _validate_path(self, target_path: str) -> Path:
         """
-        Validate and resolve the target path with security checks.
+        Validate the target path exists.
 
-        Prevents path traversal attacks by ensuring the resolved path
-        stays within the allowed base directory.
+        Note: Path traversal protection is handled at the API layer using
+        server-side configured base paths. This method only validates that
+        the path exists and is accessible.
         """
-        # Sanitize the path string - remove null bytes and normalize
+        # Sanitize the path string - remove null bytes
         sanitized_path = target_path.replace("\x00", "")
         if sanitized_path != target_path:
             raise ValueError(f"Invalid path: {target_path} contains null bytes")
 
-        # Use os.path.normpath to normalize the path and detect traversal
-        normalized = os.path.normpath(sanitized_path)
-
-        # Check for path traversal patterns after normalization
-        # This explicit check is recognized by static analysis tools
-        if normalized.startswith("..") or "/.." in normalized or "\\.." in normalized:
-            raise ValueError(f"Path traversal detected: {target_path}")
-
-        path = Path(normalized)
-
-        if base_path:
-            # Validate and normalize base_path
-            base_normalized = os.path.normpath(base_path.replace("\x00", ""))
-            if base_normalized.startswith(".."):
-                raise ValueError(f"Invalid base path: {base_path}")
-            base = Path(base_normalized).resolve()
-            resolved = (base / path).resolve()
-            # Verify the resolved path is within the base directory
-            try:
-                resolved.relative_to(base)
-            except ValueError:
-                raise ValueError(
-                    f"Path traversal detected: {target_path} escapes base path {base_path}"
-                )
-            return resolved
-
+        path = Path(sanitized_path)
         resolved = path.resolve()
+
         if not resolved.exists():
             raise FileNotFoundError(f"Target path does not exist: {target_path}")
 
@@ -490,26 +467,28 @@ class SecretsDetector:
         repository: Optional[str] = None,
         branch: Optional[str] = None,
         scanner: Optional[SecretsScanner] = None,
-        base_path: Optional[str] = None,
     ) -> SecretsScanResult:
         """
         Perform a secrets scan.
 
         Args:
-            target_path: Path to file or directory to scan
+            target_path: Path to file or directory to scan (must be pre-validated by caller)
             repository: Repository name (auto-detected if not specified)
             branch: Branch name (auto-detected if not specified)
             scanner: Scanner to use (auto-selected if not specified)
-            base_path: Base path for security validation (optional)
 
         Returns:
             SecretsScanResult with findings and metadata
+
+        Note: Path traversal protection is handled at the API layer using
+        server-side configured base paths. Callers must validate paths before
+        calling this method.
         """
         scan_id = str(uuid4())
         started_at = datetime.utcnow()
 
         try:
-            resolved_path = self._validate_path(target_path, base_path)
+            resolved_path = self._validate_path(target_path)
         except (ValueError, FileNotFoundError) as e:
             return SecretsScanResult(
                 scan_id=scan_id,
@@ -618,7 +597,6 @@ class SecretsDetector:
                 repository=repository,
                 branch=branch,
                 scanner=scanner,
-                base_path=temp_dir,
             )
 
             for finding in result.findings:
@@ -632,28 +610,30 @@ class SecretsDetector:
         repository: Optional[str] = None,
         branch: Optional[str] = None,
         scanner: Optional[SecretsScanner] = None,
-        base_path: Optional[str] = None,
         max_concurrent: int = 5,
     ) -> List[SecretsScanResult]:
         """
         Scan multiple paths concurrently.
 
         Args:
-            target_paths: List of paths to scan
+            target_paths: List of paths to scan (must be pre-validated by caller)
             repository: Repository name (auto-detected per path if not specified)
             branch: Branch name (auto-detected per path if not specified)
             scanner: Scanner to use (auto-selected if not specified)
-            base_path: Base path for security validation (optional)
             max_concurrent: Maximum concurrent scans
 
         Returns:
             List of SecretsScanResults
+
+        Note: Path traversal protection is handled at the API layer using
+        server-side configured base paths. Callers must validate paths before
+        calling this method.
         """
         semaphore = asyncio.Semaphore(max_concurrent)
 
         async def scan_with_semaphore(path: str) -> SecretsScanResult:
             async with semaphore:
-                return await self.scan(path, repository, branch, scanner, base_path)
+                return await self.scan(path, repository, branch, scanner)
 
         tasks = [scan_with_semaphore(path) for path in target_paths]
         return await asyncio.gather(*tasks)
