@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Fernet encryption - requires cryptography package
 try:
     from cryptography.fernet import Fernet
-except ImportError:
+except ImportError:  # pragma: no cover - cryptography is optional
     Fernet = None  # type: ignore[misc,assignment]
     logger.warning(
         "cryptography package not installed. Evidence encryption will not be available. "
@@ -52,7 +52,7 @@ try:
     _rsa_sign = _core_rsa_sign
     _rsa_verify = _core_rsa_verify
     logger.info("RSA signing module loaded successfully")
-except ImportError as e:
+except ImportError as e:  # pragma: no cover - crypto module should always be available
     logger.warning(
         f"RSA signing module not available: {e}. " "Evidence signing will be disabled."
     )

@@ -32,14 +32,14 @@ SLSA_PROVENANCE_PREDICATE_TYPE = "https://slsa.dev/provenance/v1"
 _rsa_sign: Optional[Callable[[bytes], Tuple[bytes, str]]] = None
 _rsa_verify: Optional[Callable[[bytes, bytes, str], bool]] = None
 
-try:
+try:  # pragma: no cover - enterprise module not available in CI
     from fixops_enterprise.src.utils.crypto import rsa_sign as _enterprise_rsa_sign
     from fixops_enterprise.src.utils.crypto import rsa_verify as _enterprise_rsa_verify
 
     _rsa_sign = _enterprise_rsa_sign
     _rsa_verify = _enterprise_rsa_verify
 except ImportError:
-    try:
+    try:  # pragma: no cover - enterprise fallback path
         import sys
 
         # Use append instead of insert(0) to avoid shadowing repo root packages

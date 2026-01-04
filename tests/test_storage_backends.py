@@ -488,3 +488,381 @@ class TestStorageBackendInterface:
             assert hasattr(backend, "list_objects")
             assert hasattr(backend, "set_legal_hold")
             assert hasattr(backend, "backend_type")
+
+
+class TestS3ObjectLockBackendValidation:
+    """Tests for S3ObjectLockBackend validation and error handling.
+
+    These tests cover the validation logic and error paths that are
+    exercised during bucket configuration checks.
+    """
+
+    @pytest.fixture
+    def mock_boto3(self):
+        mock_client = MagicMock()
+        with patch.dict("sys.modules", {"boto3": MagicMock()}):
+            import sys
+
+            sys.modules["boto3"].client.return_value = mock_client
+            yield mock_client
+
+    def test_skip_validation_logs_warning(self, mock_boto3):
+        """Test that skip_validation=True logs a warning.
+
+        Covers lines 519-524 in storage_backends.py.
+        """
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            # validate_bucket_configuration should return True without calling S3
+            result = backend.validate_bucket_configuration()
+            assert result is True
+            # S3 methods should not be called
+            mock_boto3.get_bucket_versioning.assert_not_called()
+
+    def test_versioning_not_enabled_raises(self, mock_boto3):
+        """Test that missing versioning raises ConfigurationError.
+
+        Covers lines 527-537 in storage_backends.py.
+        """
+        mock_boto3.get_bucket_versioning.return_value = {"Status": "Suspended"}
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False  # Enable validation for this test
+            backend._client = mock_boto3
+
+            with pytest.raises(ConfigurationError) as exc_info:
+                backend.validate_bucket_configuration()
+            assert "versioning enabled" in str(exc_info.value).lower()
+
+    def test_versioning_check_exception_raises(self, mock_boto3):
+        """Test that versioning check exception raises ConfigurationError.
+
+        Covers lines 541-544 in storage_backends.py.
+        """
+        mock_boto3.get_bucket_versioning.side_effect = Exception("Access denied")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+
+            with pytest.raises(ConfigurationError) as exc_info:
+                backend.validate_bucket_configuration()
+            assert "Failed to check versioning" in str(exc_info.value)
+
+    def test_object_lock_not_enabled_raises(self, mock_boto3):
+        """Test that missing Object Lock raises ConfigurationError.
+
+        Covers lines 547-560 in storage_backends.py.
+        """
+        mock_boto3.get_bucket_versioning.return_value = {"Status": "Enabled"}
+        mock_boto3.get_object_lock_configuration.return_value = {
+            "ObjectLockConfiguration": {"ObjectLockEnabled": "Disabled"}
+        }
+        # Set up exceptions attribute properly
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.ObjectLockConfigurationNotFoundError = type(
+            "NotFound", (Exception,), {}
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+
+            with pytest.raises(ConfigurationError) as exc_info:
+                backend.validate_bucket_configuration()
+            assert "Object Lock enabled" in str(exc_info.value)
+
+    def test_object_lock_not_found_raises(self, mock_boto3):
+        """Test that ObjectLockConfigurationNotFoundError raises ConfigurationError.
+
+        Covers lines 561-567 in storage_backends.py.
+        """
+        mock_boto3.get_bucket_versioning.return_value = {"Status": "Enabled"}
+
+        # Create a mock exception class
+        class ObjectLockConfigurationNotFoundError(Exception):
+            pass
+
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.ObjectLockConfigurationNotFoundError = (
+            ObjectLockConfigurationNotFoundError
+        )
+        mock_boto3.get_object_lock_configuration.side_effect = (
+            ObjectLockConfigurationNotFoundError()
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+
+            with pytest.raises(ConfigurationError) as exc_info:
+                backend.validate_bucket_configuration()
+            assert "Object Lock configured" in str(exc_info.value)
+
+    def test_object_lock_check_exception_logs_warning(self, mock_boto3):
+        """Test that Object Lock check exception logs warning and continues.
+
+        Covers lines 570-577 in storage_backends.py.
+        """
+        mock_boto3.get_bucket_versioning.return_value = {"Status": "Enabled"}
+        mock_boto3.get_object_lock_configuration.side_effect = Exception(
+            "Not supported"
+        )
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.ObjectLockConfigurationNotFoundError = type(
+            "NotFound", (Exception,), {}
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+
+            # Should succeed but with object_lock_enabled = None
+            result = backend.validate_bucket_configuration()
+            assert result is True
+            assert backend._object_lock_enabled is None
+
+    def test_ensure_worm_compliance_skip_validation(self, mock_boto3):
+        """Test ensure_worm_compliance returns early when skip_validation=True.
+
+        Covers lines 589-590 in storage_backends.py.
+        """
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            # Should return without calling validate_bucket_configuration
+            backend.ensure_worm_compliance()
+            mock_boto3.get_bucket_versioning.assert_not_called()
+
+    def test_ensure_worm_compliance_calls_validate(self, mock_boto3):
+        """Test ensure_worm_compliance calls validate when not validated.
+
+        Covers lines 592-593 in storage_backends.py.
+        """
+        mock_boto3.get_bucket_versioning.return_value = {"Status": "Enabled"}
+        mock_boto3.get_object_lock_configuration.return_value = {
+            "ObjectLockConfiguration": {"ObjectLockEnabled": "Enabled"}
+        }
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.ObjectLockConfigurationNotFoundError = type(
+            "NotFound", (Exception,), {}
+        )
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._skip_validation = False
+            backend._client = mock_boto3
+
+            # First call should trigger validation
+            backend.ensure_worm_compliance()
+            mock_boto3.get_bucket_versioning.assert_called_once()
+
+    def test_put_with_binary_io(self, mock_boto3):
+        """Test put with BinaryIO object.
+
+        Covers line 613 in storage_backends.py.
+        """
+        from io import BytesIO
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            data = BytesIO(b"test content")
+            backend.put("test/file.txt", data)
+
+            call_args = mock_boto3.put_object.call_args
+            assert call_args.kwargs["Body"] == b"test content"
+
+    def test_put_with_legal_hold(self, mock_boto3):
+        """Test put with legal hold enabled.
+
+        Covers line 643 in storage_backends.py.
+        """
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            policy = RetentionPolicy(legal_hold=True)
+            backend.put("test/file.txt", b"content", retention_policy=policy)
+
+            call_args = mock_boto3.put_object.call_args
+            assert call_args.kwargs["ObjectLockLegalHoldStatus"] == "ON"
+
+    def test_put_exception_raises_storage_error(self, mock_boto3):
+        """Test put raises StorageError on S3 exception.
+
+        Covers lines 651-652 in storage_backends.py.
+        """
+        from core.storage_backends import StorageError
+
+        mock_boto3.put_object.side_effect = Exception("S3 error")
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(StorageError) as exc_info:
+                backend.put("test/file.txt", b"content")
+            assert "Failed to store object" in str(exc_info.value)
+
+    def test_get_metadata(self, mock_boto3):
+        """Test get_metadata returns StorageMetadata.
+
+        Covers lines 674-712 in storage_backends.py.
+        """
+        mock_boto3.head_object.return_value = {
+            "ContentLength": 1024,
+            "ContentType": "application/json",
+            "Metadata": {"custom": "value"},
+            "ObjectLockMode": "GOVERNANCE",
+            "ObjectLockRetainUntilDate": datetime.now(timezone.utc)
+            + timedelta(days=30),
+            "ObjectLockLegalHoldStatus": "OFF",
+        }
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            metadata = backend.get_metadata("test/file.txt")
+
+            assert metadata.size_bytes == 1024
+            assert metadata.content_type == "application/json"
+            assert metadata.custom_metadata == {"custom": "value"}
+
+    def test_get_metadata_not_found_raises(self, mock_boto3):
+        """Test get_metadata raises ObjectNotFoundError when not found.
+
+        Covers lines 709-712 in storage_backends.py.
+        """
+
+        class NoSuchKeyError(Exception):
+            pass
+
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.NoSuchKey = NoSuchKeyError
+        mock_boto3.head_object.side_effect = NoSuchKeyError()
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            with pytest.raises(ObjectNotFoundError):
+                backend.get_metadata("test/file.txt")
+
+    def test_delete_calls_s3(self, mock_boto3):
+        """Test delete calls S3 API.
+
+        Covers lines 724-743 in storage_backends.py.
+        """
+        # Set up exceptions for delete operation
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.NoSuchKey = type("NoSuchKey", (Exception,), {})
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            # Mock get_metadata to return metadata without retention
+            mock_metadata = MagicMock()
+            mock_metadata.retention_policy = None
+            with patch.object(backend, "get_metadata", return_value=mock_metadata):
+                backend.delete("test/file.txt")
+
+            mock_boto3.delete_object.assert_called_once()
+
+    def test_list_objects_empty(self, mock_boto3):
+        """Test list_objects returns empty list when no contents.
+
+        Covers lines 745-768 in storage_backends.py.
+        """
+        mock_boto3.list_objects_v2.return_value = {}
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.NoSuchKey = type("NoSuchKey", (Exception,), {})
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            result = backend.list_objects("test/")
+
+            assert result == []
+
+    def test_set_legal_hold(self, mock_boto3):
+        """Test set_legal_hold calls S3 API.
+
+        Covers lines 770-784 in storage_backends.py.
+        """
+        mock_boto3.exceptions = MagicMock()
+        mock_boto3.exceptions.NoSuchKey = type("NoSuchKey", (Exception,), {})
+
+        with patch.dict(os.environ, {"FIXOPS_S3_BUCKET": "test-bucket"}):
+            backend = S3ObjectLockBackend(skip_validation=True)
+            backend._client = mock_boto3
+
+            backend.set_legal_hold("test/file.txt", True)
+
+            mock_boto3.put_object_legal_hold.assert_called_once()
+
+
+class TestAzureImmutableBlobBackendValidation:
+    """Tests for AzureImmutableBlobBackend validation and error handling."""
+
+    @pytest.fixture
+    def mock_azure(self):
+        with patch(
+            "core.storage_backends.BlobServiceClient", create=True
+        ) as mock_service:
+            mock_container = MagicMock()
+            mock_service.from_connection_string.return_value.get_container_client.return_value = (
+                mock_container
+            )
+            yield mock_container
+
+    def test_validate_container_configuration_skip(self, mock_azure):
+        """Test validate_container_configuration with skip_validation=True.
+
+        Covers lines 891-892 in storage_backends.py.
+        """
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                result = backend.validate_container_configuration()
+                assert result is True
+
+    def test_ensure_worm_compliance_skip(self, mock_azure):
+        """Test ensure_worm_compliance with skip_validation=True.
+
+        Covers lines 938-939 in storage_backends.py.
+        """
+        with patch.dict(
+            os.environ,
+            {
+                "FIXOPS_AZURE_CONTAINER": "test-container",
+                "AZURE_STORAGE_CONNECTION_STRING": "test-connection",
+                "FIXOPS_AZURE_SKIP_VALIDATION": "true",
+            },
+        ):
+            with patch.object(
+                AzureImmutableBlobBackend, "container_client", mock_azure
+            ):
+                backend = AzureImmutableBlobBackend()
+                backend.ensure_worm_compliance()  # Should not raise

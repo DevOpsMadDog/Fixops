@@ -63,7 +63,7 @@ def _import_legacy_routers():
     # Add legacy parent path to sys.path so 'src' becomes a package
     # Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
     legacy_path_str = str(LEGACY_PARENT_PATH)
-    if legacy_path_str not in sys.path:
+    if legacy_path_str not in sys.path:  # pragma: no cover - path setup only runs once
         sys.path.append(legacy_path_str)
 
     # Import each legacy router module

@@ -461,3 +461,326 @@ class TestExceptionClasses:
     def test_key_generation_error(self):
         with pytest.raises(KeyGenerationError):
             raise KeyGenerationError("generation failed")
+
+
+class TestCoverageGaps:
+    """Tests to cover specific missing coverage lines."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield tmpdir
+
+    def test_verify_with_raise_on_failure_fingerprint_mismatch(self, temp_dir):
+        """Test verify raises SignatureVerificationError on fingerprint mismatch when raise_on_failure=True.
+
+        Covers line 406 in crypto.py.
+        """
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        signer = RSASigner(manager)
+        verifier = RSAVerifier(manager)
+
+        data = b"test data"
+        signature, _ = signer.sign(data)
+
+        # Should raise when fingerprint doesn't match and raise_on_failure=True
+        with pytest.raises(SignatureVerificationError) as exc_info:
+            verifier.verify(data, signature, "wrong-fingerprint", raise_on_failure=True)
+        assert "fingerprint mismatch" in str(exc_info.value).lower()
+
+    def test_verify_with_raise_on_failure_invalid_signature(self, temp_dir):
+        """Test verify raises SignatureVerificationError on invalid signature when raise_on_failure=True.
+
+        Covers line 424 in crypto.py.
+        """
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        verifier = RSAVerifier(manager)
+        fingerprint = manager.metadata.fingerprint
+
+        data = b"test data"
+        invalid_signature = b"invalid signature bytes"
+
+        # Should raise when signature is invalid and raise_on_failure=True
+        with pytest.raises(SignatureVerificationError) as exc_info:
+            verifier.verify(data, invalid_signature, fingerprint, raise_on_failure=True)
+        assert "verification failed" in str(exc_info.value).lower()
+
+    def test_save_private_key_when_none(self, temp_dir):
+        """Test _save_private_key returns early when private key is None.
+
+        Covers line 239 in crypto.py.
+        """
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+
+        # Set private key to None and try to save
+        manager._private_key = None
+        manager._save_private_key()  # Should return early without error
+
+        # File should still exist from initial generation
+        assert os.path.exists(private_path)
+
+    def test_save_public_key_when_none(self, temp_dir):
+        """Test _save_public_key returns early when public key is None.
+
+        Covers line 257 in crypto.py.
+        """
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+
+        # Set public key to None and try to save
+        manager._public_key = None
+        manager._save_public_key()  # Should return early without error
+
+        # File should still exist from initial generation
+        assert os.path.exists(public_path)
+
+    def test_compute_metadata_when_public_key_none(self, temp_dir):
+        """Test _compute_metadata returns early when public key is None.
+
+        Covers line 272 in crypto.py.
+        """
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+        original_metadata = manager._metadata
+
+        # Set public key to None and try to compute metadata
+        manager._public_key = None
+        manager._compute_metadata()  # Should return early without error
+
+        # Metadata should be unchanged
+        assert manager._metadata == original_metadata
+
+    def test_save_private_key_exception_handling(self, temp_dir):
+        """Test _save_private_key handles exceptions gracefully.
+
+        Covers lines 251-252 in crypto.py.
+        """
+        from pathlib import Path
+
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+
+        # Set an invalid path that will cause an exception
+        manager.private_key_path = Path(
+            "/nonexistent/directory/that/does/not/exist/private.pem"
+        )
+
+        # Should log warning but not raise
+        manager._save_private_key()
+
+    def test_save_public_key_exception_handling(self, temp_dir):
+        """Test _save_public_key handles exceptions gracefully.
+
+        Covers lines 266-267 in crypto.py.
+        """
+        from pathlib import Path
+
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+
+        # Set an invalid path that will cause an exception
+        manager.public_key_path = Path(
+            "/nonexistent/directory/that/does/not/exist/public.pem"
+        )
+
+        # Should log warning but not raise
+        manager._save_public_key()
+
+    def test_sign_exception_handling(self, temp_dir):
+        """Test sign raises CryptoError on signing failure.
+
+        Covers lines 338-339 in crypto.py.
+        """
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        signer = RSASigner(manager)
+
+        # Generate keys first
+        _ = manager.private_key
+
+        # Mock the key_manager's private_key property to return a mock that raises
+        from unittest.mock import MagicMock, PropertyMock
+
+        mock_key = MagicMock()
+        mock_key.sign.side_effect = Exception("Signing failed")
+
+        with patch.object(
+            type(manager),
+            "private_key",
+            new_callable=PropertyMock,
+            return_value=mock_key,
+        ):
+            with pytest.raises(CryptoError) as exc_info:
+                signer.sign(b"test data")
+            assert "Failed to sign data" in str(exc_info.value)
+
+    def test_key_generation_exception_handling(self, temp_dir):
+        """Test key generation raises KeyGenerationError on failure.
+
+        Covers lines 233-234 in crypto.py.
+        """
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        # Mock rsa.generate_private_key to raise an exception
+        with patch.object(
+            rsa, "generate_private_key", side_effect=Exception("Key generation failed")
+        ):
+            manager = RSAKeyManager(
+                private_key_path=private_path,
+                public_key_path=public_path,
+                key_size=2048,
+            )
+            with pytest.raises(KeyGenerationError) as exc_info:
+                _ = manager.private_key
+            assert "Failed to generate key pair" in str(exc_info.value)
+
+    def test_load_ec_private_key_raises_crypto_error(self, temp_dir):
+        """Test loading an EC private key (non-RSA) raises CryptoError.
+
+        Covers line 183 in crypto.py.
+        """
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+
+        # Generate an EC key (not RSA)
+        ec_private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        ec_pem = ec_private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+        private_path = os.path.join(temp_dir, "ec_private.pem")
+        with open(private_path, "wb") as f:
+            f.write(ec_pem)
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            key_size=2048,
+        )
+
+        with pytest.raises(CryptoError) as exc_info:
+            _ = manager.private_key
+        assert "not an RSA private key" in str(exc_info.value)
+
+    def test_load_ec_public_key_raises_crypto_error(self, temp_dir):
+        """Test loading an EC public key (non-RSA) raises CryptoError.
+
+        Covers line 202 in crypto.py.
+        """
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+
+        # Generate an EC key (not RSA)
+        ec_private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        ec_public_key = ec_private_key.public_key()
+        ec_pem = ec_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        public_path = os.path.join(temp_dir, "ec_public.pem")
+        with open(public_path, "wb") as f:
+            f.write(ec_pem)
+
+        # Set private_key_path to a non-existent file so it doesn't try to load from cwd
+        private_path = os.path.join(temp_dir, "nonexistent_private.pem")
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+
+        with pytest.raises(CryptoError) as exc_info:
+            _ = manager.public_key
+        assert "not an RSA public key" in str(exc_info.value)
+
+    def test_load_public_key_exception_handling(self, temp_dir):
+        """Test loading corrupted public key raises CryptoError.
+
+        Covers lines 209-210 in crypto.py.
+        """
+        public_path = os.path.join(temp_dir, "corrupted_public.pem")
+        # Write a file that looks like a PEM but is corrupted
+        with open(public_path, "wb") as f:
+            f.write(
+                b"-----BEGIN PUBLIC KEY-----\ncorrupted data\n-----END PUBLIC KEY-----"
+            )
+
+        # Set private_key_path to a non-existent file so it doesn't try to load from cwd
+        private_path = os.path.join(temp_dir, "nonexistent_private.pem")
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+
+        with pytest.raises(CryptoError) as exc_info:
+            _ = manager.public_key
+        assert "Failed to load public key" in str(exc_info.value)
