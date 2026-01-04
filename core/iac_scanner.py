@@ -181,7 +181,10 @@ class IaCScanner:
             suffix = target_path.suffix.lower()
             name = target_path.name.lower()
 
-            if suffix in (".tf", ".tfvars"):
+            # Check for Helm Chart.yaml first (before other YAML checks)
+            if name == "chart.yaml":
+                return IaCProvider.HELM
+            elif suffix in (".tf", ".tfvars"):
                 return IaCProvider.TERRAFORM
             elif suffix in (".yaml", ".yml"):
                 content = target_path.read_text(errors="ignore")[:1000]
@@ -195,8 +198,6 @@ class IaCScanner:
                 content = target_path.read_text(errors="ignore")[:1000]
                 if "AWSTemplateFormatVersion" in content:
                     return IaCProvider.CLOUDFORMATION
-            elif name == "chart.yaml":
-                return IaCProvider.HELM
 
         elif target_path.is_dir():
             for child in target_path.iterdir():

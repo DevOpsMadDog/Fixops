@@ -187,6 +187,14 @@ class SecretsDetector:
             return SecretType.AWS_KEY
         elif "api" in rule_lower or "api" in desc_lower:
             return SecretType.API_KEY
+        # Check database-related patterns BEFORE password to handle "database-password"
+        elif (
+            "database" in rule_lower
+            or "mysql" in rule_lower
+            or "postgres" in rule_lower
+            or ("db" in rule_lower and "password" in rule_lower)
+        ):
+            return SecretType.DATABASE_CREDENTIAL
         elif "password" in rule_lower or "password" in desc_lower:
             return SecretType.PASSWORD
         elif "token" in rule_lower or "token" in desc_lower:
@@ -195,13 +203,6 @@ class SecretsDetector:
             return SecretType.PRIVATE_KEY
         elif "certificate" in rule_lower or "cert" in rule_lower:
             return SecretType.CERTIFICATE
-        elif (
-            "database" in rule_lower
-            or "db" in rule_lower
-            or "mysql" in rule_lower
-            or "postgres" in rule_lower
-        ):
-            return SecretType.DATABASE_CREDENTIAL
         else:
             return SecretType.GENERIC
 
