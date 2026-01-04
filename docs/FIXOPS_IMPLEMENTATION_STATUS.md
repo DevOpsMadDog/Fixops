@@ -1041,7 +1041,7 @@ These features are claimed in the pitch deck but do not exist in the codebase.
 | Pitch Deck Claim | Current Reality | What's Needed | Effort Estimate | Priority |
 |------------------|-----------------|---------------|-----------------|----------|
 | **Cryptographically signed evidence (RSA-SHA256, SLSA v1)** | **IMPLEMENTED** - RSA-SHA256 signing in `core/crypto.py`, wired to `EvidenceHub.persist()`, verification endpoint at `POST /api/v1/evidence/verify` | None - feature complete | N/A | **Complete** |
-| **7-year WORM-compliant retention** | **IMPLEMENTED** - S3 Object Lock backend (`S3ObjectLockBackend`) and Azure Immutable Blob backend (`AzureImmutableBlobBackend`) in `core/storage_backends.py` with WORM compliance validation | None - feature complete | N/A | **Complete** |
+| **7-year WORM-compliant retention** | **IMPLEMENTED** - S3 Object Lock backend (`S3ObjectLockBackend`) and Azure Immutable Blob backend (`AzureImmutableBlobBackend`) in `core/storage_backends.py` with WORM compliance validation | Production validation with real S3 Object Lock and Azure Immutable Blob services required before deployment | 1-2 days | **Complete (needs prod validation)** |
 | **30-minute time-to-value onboarding** | Requires LLM API keys, Docker setup, env configuration | Create automated setup wizard, pre-configured demo mode, one-click deployment | 2-3 weeks | High |
 | **SLSA v1 Provenance Chain** | **IMPLEMENTED** - SLSA v1 provenance with in-toto attestation format in `services/provenance/attestation.py` (InTotoStatement, InTotoEnvelope classes) | None - feature complete | N/A | **Complete** |
 

@@ -237,6 +237,10 @@ class RSAKeyManager:
         """Save private key to PEM file."""
         if self._private_key is None:
             return
+        # Don't save if no path was configured (Path() resolves to '.')
+        if not str(self.private_key_path) or str(self.private_key_path) == ".":
+            logger.debug("No private key path configured, skipping save")
+            return
         try:
             self.private_key_path.parent.mkdir(parents=True, exist_ok=True)
             pem_data = self._private_key.private_bytes(
@@ -254,6 +258,10 @@ class RSAKeyManager:
     def _save_public_key(self) -> None:
         """Save public key to PEM file."""
         if self._public_key is None:
+            return
+        # Don't save if no path was configured (Path() resolves to '.')
+        if not str(self.public_key_path) or str(self.public_key_path) == ".":
+            logger.debug("No public key path configured, skipping save")
             return
         try:
             self.public_key_path.parent.mkdir(parents=True, exist_ok=True)

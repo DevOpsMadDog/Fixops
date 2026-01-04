@@ -95,10 +95,8 @@ class ConsensusConfig:
             raise ValueError(f"Consensus weights must sum to 1.0, got {total_weight}")
         if self.timeout_seconds <= 0:
             raise ValueError(f"Timeout must be positive, got {self.timeout_seconds}")
-        if self.max_retries < 0:
-            raise ValueError(
-                f"Max retries must be non-negative, got {self.max_retries}"
-            )
+        if self.max_retries < 1:
+            raise ValueError(f"Max retries must be at least 1, got {self.max_retries}")
 
 
 class AIRole(Enum):
