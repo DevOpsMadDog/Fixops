@@ -38,8 +38,8 @@ This document consolidates all planned features and "What's Needed" items into a
 | 30-min Onboarding | Manual setup required | Automated setup wizard, one-click deployment | 2-3 weeks | New tooling |
 | RBAC Middleware | Role model exists | Add role-checking middleware/decorator | 1-1.5 weeks | `apps/api/users_router.py` |
 | Background Job Store | BackgroundTasks pattern used | Persistent job store (SQLite table) | 1-2 weeks | `apps/api/bulk_router.py` |
-| IaC Scanning | Returns "scanning" stub | Integrate checkov/tfsec | 1 week | `apps/api/iac_router.py:122-130` |
-| Secrets Scanning | Returns "scanning" stub | Integrate gitleaks/trufflehog | 1 week | `apps/api/secrets_router.py:116-124` |
+| IaC Scanning | **COMPLETED** | ~~Integrate checkov/tfsec~~ | ~~1 week~~ | `core/iac_scanner.py`, `apps/api/iac_router.py:187-310` |
+| Secrets Scanning | **COMPLETED** | ~~Integrate gitleaks/trufflehog~~ | ~~1 week~~ | `core/secrets_scanner.py`, `apps/api/secrets_router.py:185-353` |
 | **Design Intake: Gliffy → JSON** | Not implemented | Parser for Gliffy JSON export to FixOps schema | 3-5 days | New module |
 | **Design Intake: Visio → JSON** | Not implemented | Parser for Visio export to FixOps schema | 3-5 days | New module |
 | **Design Risk Simulation** | Not implemented | `POST /api/v1/design/simulate-risk` endpoint | 2-3 days | New endpoint |
@@ -92,9 +92,9 @@ This document consolidates all planned features and "What's Needed" items into a
 - [x] Implement Azure Immutable Blob adapter with immutability policies
 - [x] Add retention policy configuration with environment variable support
 
-### Phase 4: Scanning & Sandbox (Weeks 9-12)
-- [ ] Integrate checkov/tfsec for IaC scanning
-- [ ] Integrate gitleaks/trufflehog for secrets scanning
+### Phase 4: Scanning & Sandbox (Weeks 9-12) - IN PROGRESS
+- [x] Integrate checkov/tfsec for IaC scanning (`core/iac_scanner.py`)
+- [x] Integrate gitleaks/trufflehog for secrets scanning (`core/secrets_scanner.py`)
 - [ ] Design isolated sandbox architecture
 - [ ] Implement safe payload execution
 

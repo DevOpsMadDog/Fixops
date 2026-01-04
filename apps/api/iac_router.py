@@ -1,6 +1,10 @@
 """
 IaC scanning API endpoints.
+
+Provides enterprise-grade IaC security scanning with checkov and tfsec integration.
 """
+
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -9,6 +13,9 @@ from pydantic import BaseModel, Field
 
 from core.iac_db import IaCDB
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
+from core.iac_scanner import ScannerType, get_iac_scanner
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/iac", tags=["iac"])
 db = IaCDB()
@@ -119,12 +126,181 @@ async def resolve_iac_finding(id: str):
     return IaCFindingResponse(**updated_finding.to_dict())
 
 
-@router.post("/scan")
-async def scan_iac(provider: IaCProvider, file_path: str):
-    """Trigger IaC scan for a file or directory."""
+class IaCScanRequest(BaseModel):
+    """Request model for IaC scan."""
+
+    file_path: str = Field(..., description="Path to file or directory to scan")
+    provider: Optional[IaCProvider] = Field(
+        None, description="IaC provider type (auto-detected if not specified)"
+    )
+    scanner: Optional[str] = Field(
+        None,
+        description="Scanner to use: 'checkov' or 'tfsec' (auto-selected if not specified)",
+    )
+    base_path: Optional[str] = Field(
+        None, description="Base path for security validation"
+    )
+
+
+class IaCScanResponse(BaseModel):
+    """Response model for IaC scan."""
+
+    scan_id: str
+    status: str
+    scanner: str
+    provider: str
+    target_path: str
+    findings_count: int
+    findings: List[IaCFindingResponse]
+    started_at: Optional[str]
+    completed_at: Optional[str]
+    duration_seconds: Optional[float]
+    error_message: Optional[str]
+    metadata: Dict[str, Any]
+
+
+class ScannerStatusResponse(BaseModel):
+    """Response model for scanner status."""
+
+    checkov_available: bool
+    tfsec_available: bool
+    available_scanners: List[str]
+
+
+@router.get("/scanners/status", response_model=ScannerStatusResponse)
+async def get_scanner_status():
+    """Get status of available IaC scanners."""
+    scanner = get_iac_scanner()
+    available = scanner.get_available_scanners()
     return {
-        "provider": provider.value,
-        "file_path": file_path,
-        "status": "scanning",
-        "message": "IaC scan initiated",
+        "checkov_available": scanner._is_checkov_available(),
+        "tfsec_available": scanner._is_tfsec_available(),
+        "available_scanners": [s.value for s in available],
     }
+
+
+@router.post("/scan", response_model=IaCScanResponse)
+async def scan_iac(request: IaCScanRequest):
+    """
+    Trigger IaC security scan for a file or directory.
+
+    Uses checkov or tfsec to scan Infrastructure-as-Code files for security
+    misconfigurations. Supports Terraform, CloudFormation, Kubernetes, Ansible,
+    and Helm.
+
+    The scanner is auto-selected based on availability and provider:
+    - tfsec is preferred for Terraform files
+    - checkov is used for all other providers
+
+    Findings are automatically persisted to the database.
+    """
+    scanner = get_iac_scanner()
+
+    scanner_type = None
+    if request.scanner:
+        try:
+            scanner_type = ScannerType(request.scanner.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid scanner: {request.scanner}. Use 'checkov' or 'tfsec'.",
+            )
+
+    try:
+        result = await scanner.scan(
+            target_path=request.file_path,
+            provider=request.provider,
+            scanner=scanner_type,
+            base_path=request.base_path,
+        )
+    except Exception as e:
+        logger.exception(f"IaC scan failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+    for finding in result.findings:
+        try:
+            db.create_finding(finding)
+        except Exception as e:
+            logger.warning(f"Failed to persist finding: {e}")
+
+    return IaCScanResponse(
+        scan_id=result.scan_id,
+        status=result.status.value,
+        scanner=result.scanner.value,
+        provider=result.provider.value,
+        target_path=result.target_path,
+        findings_count=len(result.findings),
+        findings=[IaCFindingResponse(**f.to_dict()) for f in result.findings],
+        started_at=result.started_at.isoformat() if result.started_at else None,
+        completed_at=result.completed_at.isoformat() if result.completed_at else None,
+        duration_seconds=result.duration_seconds,
+        error_message=result.error_message,
+        metadata=result.metadata,
+    )
+
+
+class IaCScanContentRequest(BaseModel):
+    """Request model for scanning IaC content."""
+
+    content: str = Field(..., description="IaC file content to scan")
+    filename: str = Field(..., description="Filename (used for provider detection)")
+    provider: Optional[IaCProvider] = Field(
+        None, description="IaC provider type (auto-detected if not specified)"
+    )
+    scanner: Optional[str] = Field(
+        None,
+        description="Scanner to use: 'checkov' or 'tfsec' (auto-selected if not specified)",
+    )
+
+
+@router.post("/scan/content", response_model=IaCScanResponse)
+async def scan_iac_content(request: IaCScanContentRequest):
+    """
+    Scan IaC content provided as a string.
+
+    Useful for scanning code snippets or content from CI/CD pipelines
+    without requiring file system access.
+    """
+    scanner = get_iac_scanner()
+
+    scanner_type = None
+    if request.scanner:
+        try:
+            scanner_type = ScannerType(request.scanner.lower())
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid scanner: {request.scanner}. Use 'checkov' or 'tfsec'.",
+            )
+
+    try:
+        result = await scanner.scan_content(
+            content=request.content,
+            filename=request.filename,
+            provider=request.provider,
+            scanner=scanner_type,
+        )
+    except Exception as e:
+        logger.exception(f"IaC content scan failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+    for finding in result.findings:
+        try:
+            db.create_finding(finding)
+        except Exception as e:
+            logger.warning(f"Failed to persist finding: {e}")
+
+    return IaCScanResponse(
+        scan_id=result.scan_id,
+        status=result.status.value,
+        scanner=result.scanner.value,
+        provider=result.provider.value,
+        target_path=result.target_path,
+        findings_count=len(result.findings),
+        findings=[IaCFindingResponse(**f.to_dict()) for f in result.findings],
+        started_at=result.started_at.isoformat() if result.started_at else None,
+        completed_at=result.completed_at.isoformat() if result.completed_at else None,
+        duration_seconds=result.duration_seconds,
+        error_message=result.error_message,
+        metadata=result.metadata,
+    )
