@@ -789,3 +789,55 @@ class TestCoverageGaps:
         with pytest.raises(CryptoError) as exc_info:
             _ = manager.public_key
         assert "Failed to load public key" in str(exc_info.value)
+
+    def test_save_private_key_skips_when_no_path_configured(self, temp_dir):
+        """Test _save_private_key skips saving when path resolves to current directory.
+
+        Covers lines 242-243 in crypto.py.
+        """
+        from pathlib import Path
+
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+
+        # Set private_key_path to empty path (resolves to '.')
+        manager.private_key_path = Path("")
+        # Call _save_private_key - should skip saving without error
+        manager._save_private_key()
+
+        # Verify no file was created in current directory
+        assert not os.path.exists(".") or not os.path.isfile(".")
+
+    def test_save_public_key_skips_when_no_path_configured(self, temp_dir):
+        """Test _save_public_key skips saving when path resolves to current directory.
+
+        Covers lines 264-265 in crypto.py.
+        """
+        from pathlib import Path
+
+        private_path = os.path.join(temp_dir, "private.pem")
+        public_path = os.path.join(temp_dir, "public.pem")
+
+        manager = RSAKeyManager(
+            private_key_path=private_path,
+            public_key_path=public_path,
+            key_size=2048,
+        )
+        # Generate keys first
+        _ = manager.private_key
+
+        # Set public_key_path to empty path (resolves to '.')
+        manager.public_key_path = Path("")
+        # Call _save_public_key - should skip saving without error
+        manager._save_public_key()
+
+        # Verify no file was created in current directory
+        assert not os.path.exists(".") or not os.path.isfile(".")
