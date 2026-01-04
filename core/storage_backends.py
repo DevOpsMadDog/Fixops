@@ -13,6 +13,7 @@ Phase 3 Implementation - Enterprise Storage
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
@@ -626,8 +627,12 @@ class S3ObjectLockBackend(StorageBackend):
         }
 
         # Only add ChecksumSHA256 if not using LocalStack (which may not support it)
+        # S3 expects base64-encoded SHA256 digest, not hex string
         if not self.endpoint_url or "localhost" not in self.endpoint_url:
-            put_args["ChecksumSHA256"] = sha256_hash
+            # Convert hex digest to base64: hex -> bytes -> base64
+            sha256_bytes = bytes.fromhex(sha256_hash)
+            sha256_b64 = base64.b64encode(sha256_bytes).decode("utf-8")
+            put_args["ChecksumSHA256"] = sha256_b64
 
         if effective_retention:
             put_args["ObjectLockMode"] = effective_retention.mode.value.upper()

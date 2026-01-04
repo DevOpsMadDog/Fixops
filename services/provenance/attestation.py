@@ -510,24 +510,55 @@ class InTotoEnvelope:
 
     @classmethod
     def from_statement(
-        cls, statement: InTotoStatement, *, sign: bool = True
+        cls,
+        statement: InTotoStatement,
+        *,
+        sign: bool = True,
+        require_signature: bool = False,
     ) -> "InTotoEnvelope":
+        """Create an envelope from an in-toto statement.
+
+        Args:
+            statement: The in-toto statement to wrap
+            sign: Whether to attempt signing (default True)
+            require_signature: If True, raise exception when signing fails (fail-closed)
+
+        Returns:
+            InTotoEnvelope containing the (optionally signed) statement
+
+        Raises:
+            RuntimeError: If require_signature=True and signing fails or is unavailable
+        """
         payload_bytes = statement.to_json(indent=None).encode("utf-8")
         payload_b64 = base64.b64encode(payload_bytes).decode("utf-8")
 
         signatures: list[dict[str, str]] = []
 
-        if sign and _rsa_sign is not None:
-            try:
-                signature_bytes, fingerprint = _rsa_sign(payload_bytes)
-                signature_b64 = base64.b64encode(signature_bytes).decode("utf-8")
-                signatures.append({"keyid": fingerprint, "sig": signature_b64})
-                logger.info(
-                    "In-toto statement signed with RSA-SHA256",
-                    extra={"fingerprint": fingerprint},
+        if sign:
+            if _rsa_sign is None:
+                if require_signature:
+                    raise RuntimeError(
+                        "Signing required but RSA signing module is not available. "
+                        "Install fixops-enterprise package or configure core.crypto module."
+                    )
+                logger.warning(
+                    "RSA signing module not available, envelope will be unsigned"
                 )
-            except Exception as exc:
-                logger.warning(f"Failed to sign in-toto statement: {exc}")
+            else:
+                try:
+                    signature_bytes, fingerprint = _rsa_sign(payload_bytes)
+                    signature_b64 = base64.b64encode(signature_bytes).decode("utf-8")
+                    signatures.append({"keyid": fingerprint, "sig": signature_b64})
+                    logger.info(
+                        "In-toto statement signed with RSA-SHA256",
+                        extra={"fingerprint": fingerprint},
+                    )
+                except Exception as exc:
+                    if require_signature:
+                        raise RuntimeError(
+                            f"Signing required but failed: {exc}"
+                        ) from exc
+                    logger.warning(f"Failed to sign in-toto statement: {exc}")
 
         return cls(
             payloadType="application/vnd.in-toto+json",
@@ -545,6 +576,7 @@ def generate_signed_attestation(
     materials: Sequence[Mapping[str, Any]] | None = None,
     metadata: Mapping[str, Any] | None = None,
     sign: bool = True,
+    require_signature: bool = False,
 ) -> InTotoEnvelope:
     """Generate a signed SLSA v1 provenance attestation in in-toto envelope format.
 
@@ -559,9 +591,13 @@ def generate_signed_attestation(
         materials: Optional list of build materials/dependencies
         metadata: Optional additional metadata
         sign: Whether to sign the attestation (default True)
+        require_signature: If True, raise exception when signing fails (fail-closed)
 
     Returns:
         InTotoEnvelope containing the signed attestation
+
+    Raises:
+        RuntimeError: If require_signature=True and signing fails or is unavailable
     """
     with _TRACER.start_as_current_span(
         "provenance.generate_signed_attestation"
@@ -576,7 +612,9 @@ def generate_signed_attestation(
         )
 
         statement = InTotoStatement.from_provenance(attestation)
-        envelope = InTotoEnvelope.from_statement(statement, sign=sign)
+        envelope = InTotoEnvelope.from_statement(
+            statement, sign=sign, require_signature=require_signature
+        )
 
         span.set_attribute("fixops.signed", len(envelope.signatures) > 0)
         _COUNTER.add(1, {"action": "generate_signed"})

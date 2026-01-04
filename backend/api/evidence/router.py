@@ -192,9 +192,15 @@ async def verify_evidence(
     if ".." in safe_bundle_id or "/" in safe_bundle_id or "\\" in safe_bundle_id:
         raise HTTPException(status_code=400, detail="Invalid bundle ID")
 
-    evidence_base = Path("data/data/evidence")
-    if not evidence_base.exists():
-        evidence_base = Path("data/evidence")
+    # Use configured evidence directories instead of hardcoded paths
+    try:
+        manifest_dir, bundle_dir = _resolve_directories(request)
+        evidence_base = bundle_dir.parent  # Evidence base is parent of bundle dir
+    except HTTPException:
+        # Fall back to default paths if not configured
+        evidence_base = Path("data/data/evidence")
+        if not evidence_base.exists():
+            evidence_base = Path("data/evidence")
 
     manifest_path: Optional[Path] = None
     bundle_path: Optional[Path] = None
