@@ -209,7 +209,7 @@ class SecretsDetector:
         self, output: str, repository: str, branch: str
     ) -> List[SecretFinding]:
         """Parse gitleaks JSON output into normalized findings."""
-        findings = []
+        findings: List[SecretFinding] = []
 
         if not output.strip():
             return findings
@@ -259,7 +259,7 @@ class SecretsDetector:
         self, output: str, repository: str, branch: str
     ) -> List[SecretFinding]:
         """Parse trufflehog JSON output into normalized findings."""
-        findings = []
+        findings: List[SecretFinding] = []
 
         if not output.strip():
             return findings

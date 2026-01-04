@@ -222,7 +222,7 @@ class IaCScanner:
         self, output: str, provider: IaCProvider, target_path: str
     ) -> List[IaCFinding]:
         """Parse checkov JSON output into normalized findings."""
-        findings = []
+        findings: List[IaCFinding] = []
 
         try:
             data = json.loads(output)
@@ -269,7 +269,7 @@ class IaCScanner:
         self, output: str, provider: IaCProvider, target_path: str
     ) -> List[IaCFinding]:
         """Parse tfsec JSON output into normalized findings."""
-        findings = []
+        findings: List[IaCFinding] = []
 
         try:
             data = json.loads(output)
