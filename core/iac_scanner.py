@@ -78,6 +78,9 @@ class ScanResult:
         }
 
 
+SCAN_BASE_PATH = os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans")
+
+
 @dataclass
 class ScannerConfig:
     """Configuration for IaC scanners."""
@@ -90,6 +93,7 @@ class ScannerConfig:
     custom_policies_dir: Optional[str] = None
     excluded_checks: List[str] = field(default_factory=list)
     soft_fail: bool = False
+    base_path: str = SCAN_BASE_PATH
 
     @classmethod
     def from_env(cls) -> "ScannerConfig":
@@ -107,6 +111,7 @@ class ScannerConfig:
                 else []
             ),
             soft_fail=os.getenv("FIXOPS_SOFT_FAIL", "false").lower() == "true",
+            base_path=os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans"),
         )
 
 
@@ -151,19 +156,43 @@ class IaCScanner:
 
     def _validate_path(self, target_path: str) -> Path:
         """
-        Validate the target path exists.
+        Validate and resolve the target path with security checks.
 
-        Note: Path traversal protection is handled at the API layer using
-        server-side configured base paths. This method only validates that
-        the path exists and is accessible.
+        Security measures:
+        1. Reject null bytes in path
+        2. Normalize path to prevent traversal via os.path.normpath
+        3. Reject absolute paths (must be relative to base_path)
+        4. Reject path traversal attempts
+        5. Resolve under server-controlled base directory
+        6. Verify resolved path stays within base directory
         """
         # Sanitize the path string - remove null bytes
         sanitized_path = target_path.replace("\x00", "")
         if sanitized_path != target_path:
             raise ValueError(f"Invalid path: {target_path} contains null bytes")
 
-        path = Path(sanitized_path)
-        resolved = path.resolve()
+        # Normalize the path to collapse .. and . components
+        normalized = os.path.normpath(sanitized_path)
+
+        # Reject absolute paths - must be relative to base_path
+        if os.path.isabs(normalized):
+            raise ValueError(f"Absolute paths not allowed: {target_path}")
+
+        # Reject path traversal attempts
+        if normalized.startswith("..") or "/../" in normalized or normalized == "..":
+            raise ValueError(f"Path traversal detected: {target_path}")
+
+        # Get server-controlled base path
+        base = Path(self.config.base_path).resolve()
+
+        # Join with base path and resolve
+        resolved = (base / normalized).resolve()
+
+        # Verify the resolved path stays within the base directory
+        try:
+            resolved.relative_to(base)
+        except ValueError:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
         if not resolved.exists():
             raise FileNotFoundError(f"Target path does not exist: {target_path}")
@@ -546,20 +575,90 @@ class IaCScanner:
         Returns:
             ScanResult with findings and metadata
         """
+        # Sanitize filename to prevent path traversal - use only the basename
+        safe_filename = Path(filename).name
+        if not safe_filename:
+            safe_filename = "content.txt"
+
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_file = Path(temp_dir) / filename
+            temp_file = Path(temp_dir) / safe_filename
             temp_file.write_text(content)
 
-            result = await self.scan(
-                str(temp_file),
-                provider=provider,
-                scanner=scanner,
-            )
+            # Scan the temp file directly (bypass _validate_path since it's in temp dir)
+            scan_id = str(uuid4())
+            started_at = datetime.now()
 
-            for finding in result.findings:
-                finding.file_path = filename
+            try:
+                detected_provider = provider or self._detect_provider(temp_file)
+                selected_scanner = scanner
 
-            return result
+                if not selected_scanner:
+                    available = self.get_available_scanners()
+                    if not available:
+                        return ScanResult(
+                            scan_id=scan_id,
+                            status=ScanStatus.FAILED,
+                            scanner=ScannerType.CHECKOV,
+                            provider=detected_provider,
+                            target_path=filename,
+                            started_at=started_at,
+                            completed_at=datetime.now(),
+                            error_message="No IaC scanner available",
+                        )
+                    selected_scanner = available[0]
+
+                if selected_scanner == ScannerType.CHECKOV:
+                    findings, raw_output, error = await self._run_checkov(
+                        temp_file, detected_provider
+                    )
+                else:
+                    findings, raw_output, error = await self._run_tfsec(
+                        temp_file, detected_provider
+                    )
+
+                completed_at = datetime.now()
+                duration = (completed_at - started_at).total_seconds()
+
+                if error:
+                    return ScanResult(
+                        scan_id=scan_id,
+                        status=ScanStatus.FAILED,
+                        scanner=selected_scanner,
+                        provider=detected_provider,
+                        target_path=filename,
+                        started_at=started_at,
+                        completed_at=completed_at,
+                        duration_seconds=duration,
+                        error_message=error,
+                        raw_output=raw_output,
+                    )
+
+                for finding in findings:
+                    finding.file_path = filename
+
+                return ScanResult(
+                    scan_id=scan_id,
+                    status=ScanStatus.COMPLETED,
+                    scanner=selected_scanner,
+                    provider=detected_provider,
+                    target_path=filename,
+                    findings=findings,
+                    started_at=started_at,
+                    completed_at=completed_at,
+                    duration_seconds=duration,
+                    raw_output=raw_output,
+                )
+            except Exception as e:
+                return ScanResult(
+                    scan_id=scan_id,
+                    status=ScanStatus.FAILED,
+                    scanner=scanner or ScannerType.CHECKOV,
+                    provider=provider or IaCProvider.TERRAFORM,
+                    target_path=filename,
+                    started_at=started_at,
+                    completed_at=datetime.now(),
+                    error_message=str(e),
+                )
 
     async def scan_multiple(
         self,

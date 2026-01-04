@@ -75,21 +75,22 @@ class TestSecretsDetector:
     """Tests for SecretsDetector class."""
 
     @pytest.fixture
-    def detector(self):
-        """Create a detector instance for testing."""
-        config = SecretsScannerConfig(timeout_seconds=30)
-        return SecretsDetector(config)
-
-    @pytest.fixture
     def temp_dir(self):
         """Create a temporary directory for testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             yield tmpdir
 
-    def test_detector_initialization(self, detector):
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return SecretsDetector(config)
+
+    def test_detector_initialization(self, detector, temp_dir):
         """Test detector initialization."""
         assert detector.config is not None
         assert detector.config.timeout_seconds == 30
+        assert detector.config.base_path == temp_dir
 
     def test_get_available_scanners(self, detector):
         """Test getting available scanners."""
@@ -107,22 +108,33 @@ class TestSecretsDetector:
                 assert len(available) == 0
 
     def test_validate_path_valid(self, detector, temp_dir):
-        """Test path validation with valid path."""
+        """Test path validation with valid relative path."""
         test_file = Path(temp_dir) / "config.py"
         test_file.write_text("API_KEY = 'secret'")
 
-        result = detector._validate_path(str(test_file))
+        # Use relative path (relative to base_path which is temp_dir)
+        result = detector._validate_path("config.py")
         assert result.exists()
 
     def test_validate_path_null_bytes(self, detector, temp_dir):
         """Test path validation rejects null bytes."""
         with pytest.raises(ValueError, match="contains null bytes"):
-            detector._validate_path("/test/file\x00.py")
+            detector._validate_path("test/file\x00.py")
 
-    def test_validate_path_nonexistent(self, detector):
-        """Test path validation with nonexistent path."""
+    def test_validate_path_absolute_rejected(self, detector, temp_dir):
+        """Test path validation rejects absolute paths."""
+        with pytest.raises(ValueError, match="Absolute paths not allowed"):
+            detector._validate_path("/absolute/path/file.py")
+
+    def test_validate_path_traversal_rejected(self, detector, temp_dir):
+        """Test path validation rejects path traversal."""
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            detector._validate_path("../../../etc/passwd")
+
+    def test_validate_path_nonexistent(self, detector, temp_dir):
+        """Test path validation with nonexistent relative path."""
         with pytest.raises(FileNotFoundError):
-            detector._validate_path("/nonexistent/path/file.py")
+            detector._validate_path("nonexistent/path/file.py")
 
     def test_map_secret_type_aws(self, detector):
         """Test secret type mapping for AWS keys."""
@@ -348,23 +360,24 @@ class TestSecretsDetector:
 
         with patch.object(detector, "_is_gitleaks_available", return_value=False):
             with patch.object(detector, "_is_trufflehog_available", return_value=False):
-                result = await detector.scan(str(test_file))
+                # Use relative path (relative to base_path which is temp_dir)
+                result = await detector.scan("config.py")
 
                 assert result.status == SecretsScanStatus.FAILED
                 assert "No secrets scanner available" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_scan_invalid_path(self, detector):
-        """Test scan with invalid path."""
+    async def test_scan_invalid_path(self, detector, temp_dir):
+        """Test scan with invalid (absolute) path."""
         result = await detector.scan("/nonexistent/path/file.py")
 
         assert result.status == SecretsScanStatus.FAILED
-        assert "does not exist" in result.error_message
+        assert "Absolute paths not allowed" in result.error_message
 
     @pytest.mark.asyncio
-    async def test_scan_nonexistent_path(self, detector):
-        """Test scan with nonexistent path returns failed status."""
-        result = await detector.scan("/nonexistent/path/to/file.py")
+    async def test_scan_nonexistent_path(self, detector, temp_dir):
+        """Test scan with nonexistent relative path returns failed status."""
+        result = await detector.scan("nonexistent/path/to/file.py")
 
         assert result.status == SecretsScanStatus.FAILED
         assert "does not exist" in result.error_message
@@ -387,7 +400,8 @@ class TestSecretsDetector:
                 mock_process.returncode = 0
                 mock_exec.return_value = mock_process
 
-                result = await detector.scan(str(test_file))
+                # Use relative path (relative to base_path which is temp_dir)
+                result = await detector.scan("config.py")
 
                 assert result.status == SecretsScanStatus.COMPLETED
                 assert result.scanner == SecretsScanner.GITLEAKS
@@ -411,7 +425,8 @@ class TestSecretsDetector:
                     mock_process.returncode = 0
                     mock_exec.return_value = mock_process
 
-                    result = await detector.scan(str(test_file))
+                    # Use relative path (relative to base_path which is temp_dir)
+                    result = await detector.scan("config.py")
 
                     assert result.status == SecretsScanStatus.COMPLETED
                     assert result.scanner == SecretsScanner.TRUFFLEHOG
@@ -428,7 +443,8 @@ class TestSecretsDetector:
                 mock_process.communicate.side_effect = asyncio.TimeoutError()
                 mock_exec.return_value = mock_process
 
-                result = await detector.scan(str(test_file))
+                # Use relative path (relative to base_path which is temp_dir)
+                result = await detector.scan("config.py")
 
                 assert result.status == SecretsScanStatus.FAILED
                 assert "timed out" in result.error_message
@@ -438,18 +454,8 @@ class TestSecretsDetector:
         """Test scanning content as string."""
         content = "API_KEY = 'AKIAIOSFODNN7EXAMPLE'"
 
-        mock_output = json.dumps([])
-
         with patch.object(detector, "_is_gitleaks_available", return_value=True):
-            with patch("asyncio.create_subprocess_exec") as mock_exec:
-                mock_process = AsyncMock()
-                mock_process.communicate.return_value = (
-                    mock_output.encode(),
-                    b"",
-                )
-                mock_process.returncode = 0
-                mock_exec.return_value = mock_process
-
+            with patch.object(detector, "_run_gitleaks", return_value=([], "[]", None)):
                 result = await detector.scan_content(content, "config.py")
 
                 assert result.status == SecretsScanStatus.COMPLETED
@@ -463,7 +469,8 @@ class TestSecretsDetector:
         for i in range(3):
             test_file = Path(temp_dir) / f"config{i}.py"
             test_file.write_text(f"API_KEY_{i} = 'secret{i}'")
-            files.append(str(test_file))
+            # Use relative paths (relative to base_path which is temp_dir)
+            files.append(f"config{i}.py")
 
         mock_output = json.dumps([])
 
@@ -501,8 +508,9 @@ class TestSecretsDetector:
                 mock_process.returncode = 0
                 mock_exec.return_value = mock_process
 
+                # Use relative path (relative to base_path which is temp_dir)
                 result = await detector.scan(
-                    str(test_file), scanner=SecretsScanner.TRUFFLEHOG
+                    "config.py", scanner=SecretsScanner.TRUFFLEHOG
                 )
 
                 assert result.scanner == SecretsScanner.TRUFFLEHOG
@@ -561,16 +569,16 @@ class TestGitleaksNoGit:
     """Tests for gitleaks with --no-git flag."""
 
     @pytest.fixture
-    def detector(self):
-        """Create a detector instance for testing."""
-        config = SecretsScannerConfig(scan_history=False)
-        return SecretsDetector(config)
-
-    @pytest.fixture
     def temp_dir(self):
         """Create a temporary directory for testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             yield tmpdir
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(scan_history=False, base_path=temp_dir)
+        return SecretsDetector(config)
 
     @pytest.mark.asyncio
     async def test_gitleaks_no_git_flag(self, detector, temp_dir):
@@ -590,7 +598,8 @@ class TestGitleaksNoGit:
                 mock_process.returncode = 0
                 mock_exec.return_value = mock_process
 
-                await detector.scan(str(test_file))
+                # Use relative path (relative to base_path which is temp_dir)
+                await detector.scan("config.py")
 
                 call_args = mock_exec.call_args[0]
                 assert "--no-git" in call_args
@@ -600,15 +609,16 @@ class TestTrufflehogModes:
     """Tests for trufflehog filesystem vs git modes."""
 
     @pytest.fixture
-    def detector(self):
-        """Create a detector instance for testing."""
-        return SecretsDetector()
-
-    @pytest.fixture
     def temp_dir(self):
         """Create a temporary directory for testing."""
         with tempfile.TemporaryDirectory() as tmpdir:
             yield tmpdir
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(base_path=temp_dir)
+        return SecretsDetector(config)
 
     @pytest.mark.asyncio
     async def test_trufflehog_filesystem_mode(self, detector, temp_dir):
@@ -629,7 +639,8 @@ class TestTrufflehogModes:
                     mock_process.returncode = 0
                     mock_exec.return_value = mock_process
 
-                    await detector.scan(str(test_file))
+                    # Use relative path (relative to base_path which is temp_dir)
+                    await detector.scan("config.py")
 
                     call_args = mock_exec.call_args[0]
                     assert "filesystem" in call_args
@@ -655,7 +666,8 @@ class TestTrufflehogModes:
                     mock_process.returncode = 0
                     mock_exec.return_value = mock_process
 
-                    await detector.scan(str(temp_dir))
+                    # Use "." to scan the base_path directory (which is temp_dir)
+                    await detector.scan(".")
 
                     call_args = mock_exec.call_args[0]
                     assert "git" in call_args
