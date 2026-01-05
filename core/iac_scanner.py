@@ -231,14 +231,19 @@ class IaCScanner:
 
         # Three-stage containment check with TRUSTED_ROOT anchor for CodeQL compliance
         trusted_root = os.path.realpath(TRUSTED_ROOT)
+        # Helper for startswith-based containment check (CodeQL-recognized pattern)
+        trusted_prefix = (
+            trusted_root if trusted_root.endswith(os.sep) else trusted_root + os.sep
+        )
+        base_prefix = base if base.endswith(os.sep) else base + os.sep
         # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-        if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+        if not (candidate == trusted_root or candidate.startswith(trusted_prefix)):
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
-        if os.path.commonpath([trusted_root, base]) != trusted_root:
+        if not (base == trusted_root or base.startswith(trusted_prefix)):
             raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
         # Stage 3: candidate must be under base
-        if os.path.commonpath([base, candidate]) != base:
+        if not (candidate == base or candidate.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
 
         # Verify path exists using os.path.exists (candidate is now de-tainted)
@@ -408,14 +413,21 @@ class IaCScanner:
         trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         verified_path = os.path.realpath(str(target_path))
+        # Helper for startswith-based containment check (CodeQL-recognized pattern)
+        trusted_prefix = (
+            trusted_root if trusted_root.endswith(os.sep) else trusted_root + os.sep
+        )
+        base_prefix = base if base.endswith(os.sep) else base + os.sep
         # Stage 1: candidate must be under trusted_root (de-taints for CodeQL)
-        if os.path.commonpath([trusted_root, verified_path]) != trusted_root:
+        if not (
+            verified_path == trusted_root or verified_path.startswith(trusted_prefix)
+        ):
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
-        if os.path.commonpath([trusted_root, base]) != trusted_root:
+        if not (base == trusted_root or base.startswith(trusted_prefix)):
             raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
         # Stage 3: candidate must be under base
-        if os.path.commonpath([base, verified_path]) != base:
+        if not (verified_path == base or verified_path.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
 
         # Check if path is directory (verified_path is now de-tainted)
@@ -500,14 +512,21 @@ class IaCScanner:
         trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         verified_path = os.path.realpath(str(target_path))
+        # Helper for startswith-based containment check (CodeQL-recognized pattern)
+        trusted_prefix = (
+            trusted_root if trusted_root.endswith(os.sep) else trusted_root + os.sep
+        )
+        base_prefix = base if base.endswith(os.sep) else base + os.sep
         # Stage 1: candidate must be under trusted_root (de-taints for CodeQL)
-        if os.path.commonpath([trusted_root, verified_path]) != trusted_root:
+        if not (
+            verified_path == trusted_root or verified_path.startswith(trusted_prefix)
+        ):
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
-        if os.path.commonpath([trusted_root, base]) != trusted_root:
+        if not (base == trusted_root or base.startswith(trusted_prefix)):
             raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
         # Stage 3: candidate must be under base
-        if os.path.commonpath([base, verified_path]) != base:
+        if not (verified_path == base or verified_path.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
 
         cmd = [

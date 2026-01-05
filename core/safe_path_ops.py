@@ -31,6 +31,13 @@ class PathContainmentError(ValueError):
     pass
 
 
+def _is_under(child: str, parent: str) -> bool:
+    """Check if child path is under parent path using startswith after normalization."""
+    # Ensure parent ends with separator for proper prefix matching
+    parent_prefix = parent if parent.endswith(os.sep) else parent + os.sep
+    return child == parent or child.startswith(parent_prefix)
+
+
 def safe_exists(path: Union[str, Path], base_path: str) -> bool:
     """
     Check if a path exists, with three-stage containment validation.
@@ -52,14 +59,14 @@ def safe_exists(path: Union[str, Path], base_path: str) -> bool:
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.path.exists(candidate)
 
@@ -81,14 +88,14 @@ def safe_isfile(path: Union[str, Path], base_path: str) -> bool:
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.path.isfile(candidate)
 
@@ -110,14 +117,14 @@ def safe_isdir(path: Union[str, Path], base_path: str) -> bool:
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.path.isdir(candidate)
 
@@ -139,9 +146,9 @@ def safe_listdir(path: Union[str, Path], base_path: str) -> List[str]:
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.listdir(candidate)
 
@@ -166,9 +173,9 @@ def safe_open_read(
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return open(candidate, "r", errors=errors)
 
@@ -191,14 +198,14 @@ def safe_read_text(path: Union[str, Path], base_path: str, max_bytes: int = -1) 
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     with open(candidate, "r", errors="ignore") as f:
         if max_bytes > 0:
@@ -221,14 +228,14 @@ def safe_write_text(path: Union[str, Path], base_path: str, content: str) -> Non
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     with open(candidate, "w") as f:
         f.write(content)
@@ -253,9 +260,9 @@ def safe_path_join(base_path: str, *parts: str, validate: bool = True) -> str:
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(os.path.join(base, *parts))
     if validate:
-        if os.path.commonpath([trusted_root, base]) != trusted_root:
+        if not _is_under(base, trusted_root):
             raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
-        if os.path.commonpath([base, candidate]) != base:
+        if not _is_under(candidate, base):
             raise PathContainmentError(
                 f"Path escapes base directory: {os.path.join(*parts)}"
             )
@@ -279,7 +286,7 @@ def safe_resolve_path(path: Union[str, Path], base_path: str) -> str:
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
 
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
 
     path_str = str(path)
@@ -288,7 +295,7 @@ def safe_resolve_path(path: Union[str, Path], base_path: str) -> str:
     else:
         candidate = os.path.realpath(os.path.join(base, path_str))
 
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return candidate
 
@@ -323,9 +330,9 @@ def safe_subprocess_run(
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(cwd))
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {cwd}")
     return subprocess.run(
         cmd,
@@ -364,9 +371,9 @@ async def safe_subprocess_exec(
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(cwd))
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {cwd}")
 
     process = await asyncio.create_subprocess_exec(
@@ -406,19 +413,19 @@ def safe_iterdir(path: Union[str, Path], base_path: str) -> Iterator[str]:
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
 
     for child_name in os.listdir(candidate):
         child_path = os.path.realpath(os.path.join(candidate, child_name))
-        if os.path.commonpath([base, child_path]) == base:
+        if _is_under(child_path, base):
             yield child_path
 
 
@@ -439,19 +446,19 @@ def safe_get_parent_dirs(path: Union[str, Path], base_path: str) -> Iterator[str
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
 
     current = candidate if os.path.isdir(candidate) else os.path.dirname(candidate)
     while current != os.path.dirname(current):
-        if os.path.commonpath([base, current]) != base:
+        if not _is_under(current, base):
             break
         yield current
         current = os.path.dirname(current)
@@ -475,14 +482,14 @@ def safe_makedirs(path: Union[str, Path], base_path: str, exist_ok: bool = True)
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     candidate = os.path.realpath(str(path))
     # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+    if not _is_under(candidate, trusted_root):
         raise PathContainmentError(f"Path escapes trusted root: {path}")
     base = os.path.realpath(base_path)
     # Stage 2: base must be under trusted_root
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Stage 3: candidate must be under base
-    if os.path.commonpath([base, candidate]) != base:
+    if not _is_under(candidate, base):
         raise PathContainmentError(f"Path escapes base directory: {path}")
     os.makedirs(candidate, exist_ok=exist_ok)
     return candidate
@@ -508,7 +515,7 @@ def safe_tempdir(base_path: str):
     trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     # Verify base is under trusted_root (de-taints base for CodeQL)
-    if os.path.commonpath([trusted_root, base]) != trusted_root:
+    if not _is_under(base, trusted_root):
         raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     # Create base directory if it doesn't exist
     os.makedirs(base, exist_ok=True)
@@ -516,6 +523,6 @@ def safe_tempdir(base_path: str):
     with tempfile.TemporaryDirectory(dir=base) as temp_dir:
         # Verify temp_dir is under base (should always be true, but check for safety)
         temp_resolved = os.path.realpath(temp_dir)
-        if os.path.commonpath([base, temp_resolved]) != base:
+        if not _is_under(temp_resolved, base):
             raise PathContainmentError(f"Temp directory escapes base: {temp_dir}")
         yield temp_resolved
