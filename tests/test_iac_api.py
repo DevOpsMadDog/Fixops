@@ -169,6 +169,33 @@ def test_scan_iac_path_traversal_rejected(client, db, monkeypatch):
     assert "traversal" in response.json()["detail"].lower()
 
 
+def test_scan_iac_symlink_escape_rejected(client, db, monkeypatch):
+    """Test that symlink escapes (commonpath check) are rejected."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    # Mock os.path.realpath to simulate a symlink that escapes the base directory
+    # This triggers line 231 (the commonpath check)
+    original_realpath = __import__("os").path.realpath
+
+    def mock_realpath(path):
+        # If the path contains "symlink_escape", return a path outside base
+        if "symlink_escape" in str(path):
+            return "/etc/passwd"
+        return original_realpath(path)
+
+    monkeypatch.setattr("os.path.realpath", mock_realpath)
+
+    response = client.post(
+        "/api/v1/iac/scan",
+        json={"provider": "terraform", "file_path": "symlink_escape"},
+    )
+    assert response.status_code == 400
+    assert (
+        "traversal" in response.json()["detail"].lower()
+        or "escapes" in response.json()["detail"].lower()
+    )
+
+
 def test_scan_iac_invalid_scanner(client, db, monkeypatch):
     """Test that invalid scanner type is rejected."""
     monkeypatch.setattr("apps.api.iac_router.db", db)

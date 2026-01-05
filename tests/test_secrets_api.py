@@ -181,6 +181,34 @@ def test_scan_secrets_path_traversal_rejected(client, db, monkeypatch, auth_head
     assert "traversal" in response.json()["detail"].lower()
 
 
+def test_scan_secrets_symlink_escape_rejected(client, db, monkeypatch, auth_headers):
+    """Test that symlink escapes (commonpath check) are rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    # Mock os.path.realpath to simulate a symlink that escapes the base directory
+    # This triggers line 229 (the commonpath check)
+    original_realpath = __import__("os").path.realpath
+
+    def mock_realpath(path):
+        # If the path contains "symlink_escape", return a path outside base
+        if "symlink_escape" in str(path):
+            return "/etc/passwd"
+        return original_realpath(path)
+
+    monkeypatch.setattr("os.path.realpath", mock_realpath)
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={"target_path": "symlink_escape"},
+    )
+    assert response.status_code == 400
+    assert (
+        "traversal" in response.json()["detail"].lower()
+        or "escapes" in response.json()["detail"].lower()
+    )
+
+
 def test_scan_secrets_invalid_scanner(client, db, monkeypatch, auth_headers):
     """Test that invalid scanner type is rejected."""
     monkeypatch.setattr("apps.api.secrets_router.db", db)

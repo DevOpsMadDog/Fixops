@@ -1110,25 +1110,43 @@ class TestGetRepoInfoException:
         test_path = Path(temp_dir) / "test.py"
         test_path.write_text("content")
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = Exception("Subprocess failed")
+        # Mock _is_git_repo to return True so we enter the try block
+        with patch.object(detector, "_is_git_repo", return_value=True):
+            # Mock subprocess.run to raise an exception
+            # Note: subprocess is imported inside the function, so we patch it globally
+            import subprocess as subprocess_module
 
-            repo_name, branch = detector._get_repo_info(test_path)
+            original_run = subprocess_module.run
 
-            assert repo_name == str(test_path)
-            assert branch == "main"
+            def mock_run(*args, **kwargs):
+                raise Exception("Subprocess failed")
+
+            subprocess_module.run = mock_run
+            try:
+                repo_name, branch = detector._get_repo_info(test_path)
+                assert repo_name == str(test_path)
+                assert branch == "main"
+            finally:
+                subprocess_module.run = original_run
 
     def test_get_repo_info_timeout(self, detector, temp_dir):
         """Test _get_repo_info returns defaults on timeout."""
-        import subprocess
+        import subprocess as subprocess_module
 
         test_path = Path(temp_dir) / "test.py"
         test_path.write_text("content")
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="git", timeout=5)
+        # Mock _is_git_repo to return True so we enter the try block
+        with patch.object(detector, "_is_git_repo", return_value=True):
+            original_run = subprocess_module.run
 
-            repo_name, branch = detector._get_repo_info(test_path)
+            def mock_run(*args, **kwargs):
+                raise subprocess_module.TimeoutExpired(cmd="git", timeout=5)
 
-            assert repo_name == str(test_path)
-            assert branch == "main"
+            subprocess_module.run = mock_run
+            try:
+                repo_name, branch = detector._get_repo_info(test_path)
+                assert repo_name == str(test_path)
+                assert branch == "main"
+            finally:
+                subprocess_module.run = original_run
