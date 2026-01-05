@@ -42,7 +42,8 @@ class TestSecretsScannerConfig:
         assert config.trufflehog_path == "trufflehog"
         assert config.timeout_seconds == 300
         assert config.max_file_size_mb == 50
-        assert config.custom_config_path is None
+        # custom_config_path is hardcoded to /var/fixops/configs/gitleaks.toml (not configurable)
+        assert config.custom_config_path == "/var/fixops/configs/gitleaks.toml"
         assert config.entropy_threshold == 4.5
         assert config.scan_history is True
         assert config.max_depth == 1000
@@ -56,7 +57,7 @@ class TestSecretsScannerConfig:
                 "FIXOPS_TRUFFLEHOG_PATH": "/custom/trufflehog",
                 "FIXOPS_SECRETS_SCAN_TIMEOUT": "600",
                 "FIXOPS_MAX_FILE_SIZE_MB": "100",
-                "FIXOPS_SECRETS_CONFIG_PATH": "/config/gitleaks.toml",
+                # Note: FIXOPS_SECRETS_CONFIG_PATH is no longer used - hardcoded for security
                 "FIXOPS_ENTROPY_THRESHOLD": "5.0",
                 "FIXOPS_SCAN_HISTORY": "false",
                 "FIXOPS_SCAN_MAX_DEPTH": "500",
@@ -67,7 +68,8 @@ class TestSecretsScannerConfig:
             assert config.trufflehog_path == "/custom/trufflehog"
             assert config.timeout_seconds == 600
             assert config.max_file_size_mb == 100
-            assert config.custom_config_path == "/config/gitleaks.toml"
+            # custom_config_path is hardcoded to /var/fixops/configs/gitleaks.toml (not configurable)
+            assert config.custom_config_path == "/var/fixops/configs/gitleaks.toml"
             assert config.entropy_threshold == 5.0
             assert config.scan_history is False
             assert config.max_depth == 500
@@ -618,7 +620,12 @@ class TestSecretsParsingEdgeCases:
 
 
 class TestGitleaksCustomConfig:
-    """Test gitleaks with custom config path."""
+    """Test gitleaks with custom config path.
+
+    Note: custom_config_path is now hardcoded to /var/fixops/configs/gitleaks.toml
+    for security reasons (to prevent CodeQL py/path-injection alerts).
+    The --config flag is only added if the hardcoded config file exists.
+    """
 
     @pytest.fixture
     def temp_dir(self):
@@ -629,42 +636,41 @@ class TestGitleaksCustomConfig:
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
-    def detector_with_custom_config(self, temp_dir):
-        """Create a detector with custom config path."""
-        # Line 358: cmd.extend(["--config", self.config.custom_config_path])
+    def detector(self, temp_dir):
+        """Create a detector with default config (hardcoded custom_config_path)."""
         config = SecretsScannerConfig(
             timeout_seconds=30,
             base_path=temp_dir,
-            custom_config_path="/path/to/custom/.gitleaks.toml",
         )
         return SecretsDetector(config)
 
     @pytest.mark.asyncio
-    async def test_gitleaks_with_custom_config(
-        self, detector_with_custom_config, temp_dir
+    async def test_gitleaks_with_custom_config_when_file_exists(
+        self, detector, temp_dir
     ):
-        """Test that custom config path is passed to gitleaks."""
+        """Test that custom config path is passed to gitleaks when the file exists."""
         # Create a test file
         test_file = Path(temp_dir) / "test.py"
         test_file.write_text("API_KEY = 'secret'")
 
-        with patch.object(
-            detector_with_custom_config, "_is_gitleaks_available", return_value=True
-        ):
-            with patch("asyncio.create_subprocess_exec") as mock_exec:
-                mock_process = MagicMock()
-                mock_process.communicate = AsyncMock(return_value=(b"[]", b""))
-                mock_process.returncode = 0
-                mock_exec.return_value = mock_process
+        with patch.object(detector, "_is_gitleaks_available", return_value=True):
+            # Mock os.path.isfile to return True for the hardcoded config path
+            with patch("os.path.isfile") as mock_isfile:
+                mock_isfile.return_value = True
+                with patch("asyncio.create_subprocess_exec") as mock_exec:
+                    mock_process = MagicMock()
+                    mock_process.communicate = AsyncMock(return_value=(b"[]", b""))
+                    mock_process.returncode = 0
+                    mock_exec.return_value = mock_process
 
-                await detector_with_custom_config._run_gitleaks(
-                    Path(temp_dir), "test-repo", "main", False
-                )
+                    await detector._run_gitleaks(
+                        Path(temp_dir), "test-repo", "main", False
+                    )
 
-                # Verify custom config was passed
-                call_args = mock_exec.call_args[0]
-                assert "--config" in call_args
-                assert "/path/to/custom/.gitleaks.toml" in call_args
+                    # Verify custom config was passed (hardcoded path)
+                    call_args = mock_exec.call_args[0]
+                    assert "--config" in call_args
+                    assert "/var/fixops/configs/gitleaks.toml" in call_args
 
 
 class TestGetRepoInfoException:

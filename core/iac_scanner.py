@@ -87,10 +87,13 @@ class ScanResult:
         }
 
 
-# Hardcoded base path under TRUSTED_ROOT - NOT configurable via environment variable
+# Hardcoded paths under TRUSTED_ROOT - NOT configurable via environment variables
 # This is intentional to prevent CodeQL py/path-injection alerts
-# The base path MUST be under TRUSTED_ROOT (/var/fixops) for security
+# All paths MUST be under TRUSTED_ROOT (/var/fixops) for security
 SCAN_BASE_PATH = TRUSTED_ROOT + "/scans"
+# Custom policies directory is hardcoded under TRUSTED_ROOT to prevent path injection
+# Operators can place custom checkov policies in this directory
+CUSTOM_POLICIES_PATH = TRUSTED_ROOT + "/policies"
 
 
 @dataclass
@@ -102,7 +105,9 @@ class ScannerConfig:
     timeout_seconds: int = 300
     max_file_size_mb: int = 50
     skip_download: bool = False
-    custom_policies_dir: Optional[str] = None
+    # custom_policies_dir is hardcoded to CUSTOM_POLICIES_PATH - NOT configurable
+    # Operators can place custom checkov policies in /var/fixops/policies
+    custom_policies_dir: str = CUSTOM_POLICIES_PATH
     excluded_checks: List[str] = field(default_factory=list)
     soft_fail: bool = False
     # base_path is hardcoded to SCAN_BASE_PATH (under TRUSTED_ROOT) - NOT configurable
@@ -112,15 +117,16 @@ class ScannerConfig:
     @classmethod
     def from_env(cls) -> "ScannerConfig":
         """Create config from environment variables."""
-        # Note: base_path is intentionally NOT configurable via environment variable
-        # to prevent CodeQL py/path-injection alerts
+        # Note: base_path and custom_policies_dir are intentionally NOT configurable
+        # via environment variables to prevent CodeQL py/path-injection alerts
         return cls(
             checkov_path=os.getenv("FIXOPS_CHECKOV_PATH", "checkov"),
             tfsec_path=os.getenv("FIXOPS_TFSEC_PATH", "tfsec"),
             timeout_seconds=int(os.getenv("FIXOPS_SCAN_TIMEOUT", "300")),
             max_file_size_mb=int(os.getenv("FIXOPS_MAX_FILE_SIZE_MB", "50")),
             skip_download=os.getenv("FIXOPS_SKIP_DOWNLOAD", "false").lower() == "true",
-            custom_policies_dir=os.getenv("FIXOPS_CUSTOM_POLICIES_DIR"),
+            # custom_policies_dir uses hardcoded constant, not environment variable
+            custom_policies_dir=CUSTOM_POLICIES_PATH,
             excluded_checks=(
                 os.getenv("FIXOPS_EXCLUDED_CHECKS", "").split(",")
                 if os.getenv("FIXOPS_EXCLUDED_CHECKS")
@@ -389,7 +395,11 @@ class IaCScanner:
         if self.config.skip_download:
             cmd.append("--skip-download")
 
-        if self.config.custom_policies_dir:
+        # Only use custom policies if the hardcoded policies directory exists
+        # This allows operators to optionally place policies in /var/fixops/policies/
+        if self.config.custom_policies_dir and os.path.isdir(
+            self.config.custom_policies_dir
+        ):
             cmd.extend(["--external-checks-dir", self.config.custom_policies_dir])
 
         for check in self.config.excluded_checks:

@@ -89,10 +89,13 @@ class SecretsScanResult:
         }
 
 
-# Hardcoded base path under TRUSTED_ROOT - NOT configurable via environment variable
+# Hardcoded paths under TRUSTED_ROOT - NOT configurable via environment variables
 # This is intentional to prevent CodeQL py/path-injection alerts
-# The base path MUST be under TRUSTED_ROOT (/var/fixops) for security
+# All paths MUST be under TRUSTED_ROOT (/var/fixops) for security
 SCAN_BASE_PATH = TRUSTED_ROOT + "/scans"
+# Custom config directory is hardcoded under TRUSTED_ROOT to prevent path injection
+# Operators can place custom gitleaks config in this directory
+CUSTOM_CONFIG_PATH = TRUSTED_ROOT + "/configs/gitleaks.toml"
 
 
 @dataclass
@@ -103,7 +106,9 @@ class SecretsScannerConfig:
     trufflehog_path: str = "trufflehog"
     timeout_seconds: int = 300
     max_file_size_mb: int = 50
-    custom_config_path: Optional[str] = None
+    # custom_config_path is hardcoded to CUSTOM_CONFIG_PATH - NOT configurable
+    # Operators can place custom gitleaks config in /var/fixops/configs/gitleaks.toml
+    custom_config_path: str = CUSTOM_CONFIG_PATH
     entropy_threshold: float = 4.5
     scan_history: bool = True
     max_depth: int = 1000
@@ -114,14 +119,15 @@ class SecretsScannerConfig:
     @classmethod
     def from_env(cls) -> "SecretsScannerConfig":
         """Create config from environment variables."""
-        # Note: base_path is intentionally NOT configurable via environment variable
-        # to prevent CodeQL py/path-injection alerts
+        # Note: base_path and custom_config_path are intentionally NOT configurable
+        # via environment variables to prevent CodeQL py/path-injection alerts
         return cls(
             gitleaks_path=os.getenv("FIXOPS_GITLEAKS_PATH", "gitleaks"),
             trufflehog_path=os.getenv("FIXOPS_TRUFFLEHOG_PATH", "trufflehog"),
             timeout_seconds=int(os.getenv("FIXOPS_SECRETS_SCAN_TIMEOUT", "300")),
             max_file_size_mb=int(os.getenv("FIXOPS_MAX_FILE_SIZE_MB", "50")),
-            custom_config_path=os.getenv("FIXOPS_SECRETS_CONFIG_PATH"),
+            # custom_config_path uses hardcoded constant, not environment variable
+            custom_config_path=CUSTOM_CONFIG_PATH,
             entropy_threshold=float(os.getenv("FIXOPS_ENTROPY_THRESHOLD", "4.5")),
             scan_history=os.getenv("FIXOPS_SCAN_HISTORY", "true").lower() == "true",
             max_depth=int(os.getenv("FIXOPS_SCAN_MAX_DEPTH", "1000")),
@@ -373,7 +379,11 @@ class SecretsDetector:
         if not is_git_repo or not self.config.scan_history:
             cmd.append("--no-git")
 
-        if self.config.custom_config_path:
+        # Only use custom config if the hardcoded config file exists
+        # This allows operators to optionally place a config in /var/fixops/configs/
+        if self.config.custom_config_path and os.path.isfile(
+            self.config.custom_config_path
+        ):
             cmd.extend(["--config", self.config.custom_config_path])
 
         logger.info(f"Running gitleaks: {' '.join(cmd)}")

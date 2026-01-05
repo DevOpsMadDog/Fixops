@@ -43,7 +43,8 @@ class TestScannerConfig:
         assert config.timeout_seconds == 300
         assert config.max_file_size_mb == 50
         assert config.skip_download is False
-        assert config.custom_policies_dir is None
+        # custom_policies_dir is hardcoded to /var/fixops/policies (not configurable)
+        assert config.custom_policies_dir == "/var/fixops/policies"
         assert config.excluded_checks == []
         assert config.soft_fail is False
 
@@ -57,7 +58,7 @@ class TestScannerConfig:
                 "FIXOPS_SCAN_TIMEOUT": "600",
                 "FIXOPS_MAX_FILE_SIZE_MB": "100",
                 "FIXOPS_SKIP_DOWNLOAD": "true",
-                "FIXOPS_CUSTOM_POLICIES_DIR": "/policies",
+                # Note: FIXOPS_CUSTOM_POLICIES_DIR is no longer used - hardcoded for security
                 "FIXOPS_EXCLUDED_CHECKS": "CKV_AWS_1,CKV_AWS_2",
                 "FIXOPS_SOFT_FAIL": "true",
             },
@@ -68,7 +69,8 @@ class TestScannerConfig:
             assert config.timeout_seconds == 600
             assert config.max_file_size_mb == 100
             assert config.skip_download is True
-            assert config.custom_policies_dir == "/policies"
+            # custom_policies_dir is hardcoded to /var/fixops/policies (not configurable)
+            assert config.custom_policies_dir == "/var/fixops/policies"
             assert config.excluded_checks == ["CKV_AWS_1", "CKV_AWS_2"]
             assert config.soft_fail is True
 
