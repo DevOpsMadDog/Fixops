@@ -131,3 +131,101 @@ def test_scan_iac(client, db, monkeypatch):
         assert data["status"] in ("scanning", "completed", "failed")
     else:
         assert "detail" in data
+
+
+def test_scan_iac_null_bytes_rejected(client, db, monkeypatch):
+    """Test that null bytes in path are rejected."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    response = client.post(
+        "/api/v1/iac/scan",
+        json={"provider": "terraform", "file_path": "terraform/\x00malicious.tf"},
+    )
+    assert response.status_code == 400
+    assert "null bytes" in response.json()["detail"].lower()
+
+
+def test_scan_iac_absolute_path_rejected(client, db, monkeypatch):
+    """Test that absolute paths are rejected."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    response = client.post(
+        "/api/v1/iac/scan",
+        json={"provider": "terraform", "file_path": "/etc/passwd"},
+    )
+    assert response.status_code == 400
+    assert "absolute" in response.json()["detail"].lower()
+
+
+def test_scan_iac_path_traversal_rejected(client, db, monkeypatch):
+    """Test that path traversal attempts are rejected."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    response = client.post(
+        "/api/v1/iac/scan",
+        json={"provider": "terraform", "file_path": "../../../etc/passwd"},
+    )
+    assert response.status_code == 400
+    assert "traversal" in response.json()["detail"].lower()
+
+
+def test_scan_iac_invalid_scanner(client, db, monkeypatch):
+    """Test that invalid scanner type is rejected."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    response = client.post(
+        "/api/v1/iac/scan",
+        json={
+            "provider": "terraform",
+            "file_path": "terraform/",
+            "scanner": "invalid_scanner",
+        },
+    )
+    assert response.status_code == 400
+    assert "invalid scanner" in response.json()["detail"].lower()
+
+
+def test_scan_iac_content(client, db, monkeypatch):
+    """Test scanning IaC content."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    response = client.post(
+        "/api/v1/iac/scan/content",
+        json={
+            "content": 'resource "aws_s3_bucket" "test" { bucket = "test" }',
+            "filename": "main.tf",
+            "provider": "terraform",
+        },
+    )
+    # Expect 200 or 500 depending on scanner availability
+    assert response.status_code in (200, 500)
+    data = response.json()
+    if response.status_code == 200:
+        assert "scan_id" in data
+    else:
+        assert "detail" in data
+
+
+def test_scan_iac_content_invalid_scanner(client, db, monkeypatch):
+    """Test that invalid scanner type is rejected for content scan."""
+    monkeypatch.setattr("apps.api.iac_router.db", db)
+
+    response = client.post(
+        "/api/v1/iac/scan/content",
+        json={
+            "content": 'resource "aws_s3_bucket" "test" { bucket = "test" }',
+            "filename": "main.tf",
+            "scanner": "invalid_scanner",
+        },
+    )
+    assert response.status_code == 400
+    assert "invalid scanner" in response.json()["detail"].lower()
+
+
+def test_get_scanner_status(client):
+    """Test getting scanner status."""
+    response = client.get("/api/v1/iac/scanners/status")
+    assert response.status_code == 200
+    data = response.json()
+    assert "available_scanners" in data
+    assert isinstance(data["available_scanners"], list)

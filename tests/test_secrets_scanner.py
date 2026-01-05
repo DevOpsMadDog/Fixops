@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from core.secrets_models import SecretType
+from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import (
     SecretsDetector,
     SecretsScanner,
@@ -731,3 +731,256 @@ class TestMatchedPatternTruncation:
 
         assert len(findings) == 1
         assert len(findings[0].matched_pattern) == 100
+
+
+class TestSecretsDetectorErrorHandling:
+    """Test secrets detector error handling paths."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory for tests."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield tmpdir
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return SecretsDetector(config)
+
+    @pytest.mark.asyncio
+    async def test_gitleaks_nonzero_exit_code(self, detector, temp_dir):
+        """Test gitleaks with non-zero/non-one exit code."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_gitleaks_available", return_value=True):
+            with patch("asyncio.create_subprocess_exec") as mock_exec:
+                mock_process = AsyncMock()
+                mock_process.communicate.return_value = (b"", b"Error occurred")
+                mock_process.returncode = 2
+                mock_exec.return_value = mock_process
+
+                result = await detector.scan("config.py")
+
+                assert result.status == SecretsScanStatus.FAILED
+                assert "exited with code 2" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_gitleaks_not_installed(self, detector, temp_dir):
+        """Test gitleaks when not installed."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_gitleaks_available", return_value=True):
+            with patch("asyncio.create_subprocess_exec") as mock_exec:
+                mock_exec.side_effect = FileNotFoundError("gitleaks not found")
+
+                result = await detector.scan("config.py")
+
+                assert result.status == SecretsScanStatus.FAILED
+                assert "not installed" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_gitleaks_generic_exception(self, detector, temp_dir):
+        """Test gitleaks with generic exception."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_gitleaks_available", return_value=True):
+            with patch("asyncio.create_subprocess_exec") as mock_exec:
+                mock_exec.side_effect = RuntimeError("Unexpected error")
+
+                result = await detector.scan("config.py")
+
+                assert result.status == SecretsScanStatus.FAILED
+                assert "failed" in result.error_message.lower()
+
+    @pytest.mark.asyncio
+    async def test_trufflehog_nonzero_exit_code(self, detector, temp_dir):
+        """Test trufflehog with non-zero/non-one exit code."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_trufflehog_available", return_value=True):
+            with patch.object(detector, "_is_gitleaks_available", return_value=False):
+                with patch("asyncio.create_subprocess_exec") as mock_exec:
+                    mock_process = AsyncMock()
+                    mock_process.communicate.return_value = (b"", b"Error occurred")
+                    mock_process.returncode = 2
+                    mock_exec.return_value = mock_process
+
+                    result = await detector.scan("config.py")
+
+                    assert result.status == SecretsScanStatus.FAILED
+                    assert "exited with code 2" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_trufflehog_timeout(self, detector, temp_dir):
+        """Test trufflehog timeout handling."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_trufflehog_available", return_value=True):
+            with patch.object(detector, "_is_gitleaks_available", return_value=False):
+                with patch("asyncio.create_subprocess_exec") as mock_exec:
+                    mock_process = AsyncMock()
+                    mock_process.communicate.side_effect = asyncio.TimeoutError()
+                    mock_exec.return_value = mock_process
+
+                    result = await detector.scan("config.py")
+
+                    assert result.status == SecretsScanStatus.FAILED
+                    assert "timed out" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_trufflehog_not_installed(self, detector, temp_dir):
+        """Test trufflehog when not installed."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_trufflehog_available", return_value=True):
+            with patch.object(detector, "_is_gitleaks_available", return_value=False):
+                with patch("asyncio.create_subprocess_exec") as mock_exec:
+                    mock_exec.side_effect = FileNotFoundError("trufflehog not found")
+
+                    result = await detector.scan("config.py")
+
+                    assert result.status == SecretsScanStatus.FAILED
+                    assert "not installed" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_trufflehog_generic_exception(self, detector, temp_dir):
+        """Test trufflehog with generic exception."""
+        test_file = Path(temp_dir) / "config.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(detector, "_is_trufflehog_available", return_value=True):
+            with patch.object(detector, "_is_gitleaks_available", return_value=False):
+                with patch("asyncio.create_subprocess_exec") as mock_exec:
+                    mock_exec.side_effect = RuntimeError("Unexpected error")
+
+                    result = await detector.scan("config.py")
+
+                    assert result.status == SecretsScanStatus.FAILED
+                    assert "failed" in result.error_message.lower()
+
+
+class TestScanContentSecretsEdgeCases:
+    """Test scan_content edge cases for secrets scanner."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory for tests."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield tmpdir
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return SecretsDetector(config)
+
+    @pytest.mark.asyncio
+    async def test_scan_content_no_scanner_available(self, detector):
+        """Test scan_content when no scanner is available."""
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            result = await detector.scan_content(
+                content="API_KEY = 'secret'",
+                filename="config.py",
+            )
+
+            assert result.status == SecretsScanStatus.FAILED
+            assert "No secrets scanner available" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_scan_content_invalid_extension(self, detector):
+        """Test scan_content with invalid extension defaults to .py."""
+        with patch.object(
+            detector, "get_available_scanners", return_value=[SecretsScanner.GITLEAKS]
+        ):
+            with patch.object(detector, "_run_gitleaks") as mock_run:
+                mock_run.return_value = ([], "", None)
+
+                result = await detector.scan_content(
+                    content="API_KEY = 'secret'",
+                    filename="config.invalid",
+                )
+
+                assert result.status == SecretsScanStatus.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_scan_content_with_trufflehog(self, detector):
+        """Test scan_content using trufflehog scanner."""
+        with patch.object(
+            detector, "get_available_scanners", return_value=[SecretsScanner.TRUFFLEHOG]
+        ):
+            with patch.object(detector, "_run_trufflehog") as mock_run:
+                mock_run.return_value = ([], "", None)
+
+                result = await detector.scan_content(
+                    content="API_KEY = 'secret'",
+                    filename="config.py",
+                )
+
+                assert result.status == SecretsScanStatus.COMPLETED
+                mock_run.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_scan_content_with_error(self, detector):
+        """Test scan_content when scanner returns error."""
+        with patch.object(
+            detector, "get_available_scanners", return_value=[SecretsScanner.GITLEAKS]
+        ):
+            with patch.object(detector, "_run_gitleaks") as mock_run:
+                mock_run.return_value = ([], "raw output", "Scanner error")
+
+                result = await detector.scan_content(
+                    content="API_KEY = 'secret'",
+                    filename="config.py",
+                )
+
+                assert result.status == SecretsScanStatus.FAILED
+                assert result.error_message == "Scanner error"
+
+    @pytest.mark.asyncio
+    async def test_scan_content_with_findings(self, detector):
+        """Test scan_content with findings updates file_path."""
+        finding = SecretFinding(
+            id="test-id",
+            secret_type=SecretType.API_KEY,
+            status=SecretStatus.ACTIVE,
+            file_path="/tmp/content.py",
+            line_number=1,
+            repository="test-repo",
+            branch="main",
+        )
+
+        with patch.object(
+            detector, "get_available_scanners", return_value=[SecretsScanner.GITLEAKS]
+        ):
+            with patch.object(detector, "_run_gitleaks") as mock_run:
+                mock_run.return_value = ([finding], "", None)
+
+                result = await detector.scan_content(
+                    content="API_KEY = 'secret'",
+                    filename="config.py",
+                )
+
+                assert result.status == SecretsScanStatus.COMPLETED
+                assert len(result.findings) == 1
+                assert result.findings[0].file_path == "config.py"
+
+    @pytest.mark.asyncio
+    async def test_scan_content_exception(self, detector):
+        """Test scan_content with exception."""
+        with patch.object(detector, "get_available_scanners") as mock_get:
+            mock_get.side_effect = RuntimeError("Unexpected error")
+
+            result = await detector.scan_content(
+                content="API_KEY = 'secret'",
+                filename="config.py",
+            )
+
+            assert result.status == SecretsScanStatus.FAILED
+            assert "Unexpected error" in result.error_message

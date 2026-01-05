@@ -140,3 +140,146 @@ def test_scan_repository(client, db, monkeypatch, auth_headers):
         assert data["status"] in ("scanning", "completed", "failed")
     else:
         assert "detail" in data
+
+
+def test_scan_secrets_null_bytes_rejected(client, db, monkeypatch, auth_headers):
+    """Test that null bytes in path are rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={"target_path": "repo/\x00malicious.py"},
+    )
+    assert response.status_code == 400
+    assert "null bytes" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_absolute_path_rejected(client, db, monkeypatch, auth_headers):
+    """Test that absolute paths are rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={"target_path": "/etc/passwd"},
+    )
+    assert response.status_code == 400
+    assert "absolute" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_path_traversal_rejected(client, db, monkeypatch, auth_headers):
+    """Test that path traversal attempts are rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={"target_path": "../../../etc/passwd"},
+    )
+    assert response.status_code == 400
+    assert "traversal" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_invalid_scanner(client, db, monkeypatch, auth_headers):
+    """Test that invalid scanner type is rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={
+            "target_path": "repo/",
+            "scanner": "invalid_scanner",
+        },
+    )
+    assert response.status_code == 400
+    assert "invalid scanner" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_content(client, db, monkeypatch, auth_headers):
+    """Test scanning content for secrets."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/content",
+        headers=auth_headers,
+        json={
+            "content": "API_KEY = 'sk-1234567890abcdef'",
+            "filename": "config.py",
+            "repository": "test-repo",
+            "branch": "main",
+        },
+    )
+    # Expect 200 or 500 depending on scanner availability
+    assert response.status_code in (200, 500)
+    data = response.json()
+    if response.status_code == 200:
+        assert "scan_id" in data
+    else:
+        assert "detail" in data
+
+
+def test_scan_secrets_content_invalid_scanner(client, db, monkeypatch, auth_headers):
+    """Test that invalid scanner type is rejected for content scan."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/content",
+        headers=auth_headers,
+        json={
+            "content": "API_KEY = 'sk-1234567890abcdef'",
+            "filename": "config.py",
+            "scanner": "invalid_scanner",
+        },
+    )
+    assert response.status_code == 400
+    assert "invalid scanner" in response.json()["detail"].lower()
+
+
+def test_get_detector_status(client, auth_headers):
+    """Test getting detector status."""
+    response = client.get("/api/v1/secrets/scanners/status", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "available_scanners" in data
+    assert isinstance(data["available_scanners"], list)
+
+
+def test_scan_repository_null_bytes_rejected(client, db, monkeypatch, auth_headers):
+    """Test that null bytes in repository path are rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/repository",
+        headers=auth_headers,
+        params={"repository": "repo/\x00malicious", "branch": "main"},
+    )
+    assert response.status_code == 400
+    assert "null bytes" in response.json()["detail"].lower()
+
+
+def test_scan_repository_absolute_path_rejected(client, db, monkeypatch, auth_headers):
+    """Test that absolute paths in repository are rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/repository",
+        headers=auth_headers,
+        params={"repository": "/etc/passwd", "branch": "main"},
+    )
+    assert response.status_code == 400
+    assert "absolute" in response.json()["detail"].lower()
+
+
+def test_scan_repository_path_traversal_rejected(client, db, monkeypatch, auth_headers):
+    """Test that path traversal in repository is rejected."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/repository",
+        headers=auth_headers,
+        params={"repository": "../../../etc/passwd", "branch": "main"},
+    )
+    assert response.status_code == 400
+    assert "traversal" in response.json()["detail"].lower()
