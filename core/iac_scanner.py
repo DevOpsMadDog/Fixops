@@ -225,17 +225,11 @@ class IaCScanner:
 
         return resolved
 
-    def _detect_provider(
-        self, target_path: Path, skip_containment_check: bool = False
-    ) -> IaCProvider:
+    def _detect_provider(self, target_path: Path) -> IaCProvider:
         """Auto-detect IaC provider from file contents or extension."""
         # Re-verify containment before file operations (CodeQL-recognized sanitizer)
-        # Skip for server-controlled temp files (scan_content creates safe temp files)
-        if skip_containment_check:
-            safe_path = target_path
-        else:
-            verified_path = self._verify_containment(target_path)
-            safe_path = Path(verified_path)
+        verified_path = self._verify_containment(target_path)
+        safe_path = Path(verified_path)
 
         if safe_path.is_file():
             suffix = safe_path.suffix.lower()
@@ -382,17 +376,11 @@ class IaCScanner:
         self,
         target_path: Path,
         provider: IaCProvider,
-        skip_containment_check: bool = False,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run checkov scanner asynchronously."""
         # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        # Skip for server-controlled temp files (scan_content creates safe temp files)
-        if skip_containment_check:
-            verified_path = str(target_path)
-            safe_path = target_path
-        else:
-            verified_path = self._verify_containment(target_path)
-            safe_path = Path(verified_path)
+        verified_path = self._verify_containment(target_path)
+        safe_path = Path(verified_path)
 
         cmd = [
             self.config.checkov_path,
@@ -464,18 +452,13 @@ class IaCScanner:
         self,
         target_path: Path,
         provider: IaCProvider,
-        skip_containment_check: bool = False,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run tfsec scanner asynchronously."""
         if provider != IaCProvider.TERRAFORM:
             return [], "", "tfsec only supports Terraform files"
 
         # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        # Skip for server-controlled temp files (scan_content creates safe temp files)
-        if skip_containment_check:
-            verified_path = str(target_path)
-        else:
-            verified_path = self._verify_containment(target_path)
+        verified_path = self._verify_containment(target_path)
 
         cmd = [
             self.config.tfsec_path,
@@ -628,7 +611,8 @@ class IaCScanner:
         """
         Scan IaC content provided as a string.
 
-        Creates a temporary file, scans it, and cleans up.
+        Creates a temporary file under the base path, scans it, and cleans up.
+        This ensures the temp file passes containment checks.
 
         Args:
             content: IaC file content as string
@@ -649,19 +633,21 @@ class IaCScanner:
         # Generate completely safe filename with no user input
         safe_filename = f"content{ext}"
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        # Create temp directory under base_path so containment checks pass
+        # This ensures CodeQL sees the sanitization pattern
+        base = os.path.realpath(self.config.base_path)
+        os.makedirs(base, exist_ok=True)
+
+        with tempfile.TemporaryDirectory(dir=base) as temp_dir:
             temp_file = Path(temp_dir) / safe_filename
             temp_file.write_text(content)
 
-            # Scan the temp file directly (bypass _validate_path since it's in temp dir)
             scan_id = str(uuid4())
             started_at = datetime.now()
 
             try:
-                # Skip containment check for server-controlled temp files
-                detected_provider = provider or self._detect_provider(
-                    temp_file, skip_containment_check=True
-                )
+                # Containment check will pass since temp_dir is under base_path
+                detected_provider = provider or self._detect_provider(temp_file)
                 selected_scanner = scanner
 
                 if not selected_scanner:
@@ -681,11 +667,11 @@ class IaCScanner:
 
                 if selected_scanner == ScannerType.CHECKOV:
                     findings, raw_output, error = await self._run_checkov(
-                        temp_file, detected_provider, skip_containment_check=True
+                        temp_file, detected_provider
                     )
                 else:
                     findings, raw_output, error = await self._run_tfsec(
-                        temp_file, detected_provider, skip_containment_check=True
+                        temp_file, detected_provider
                     )
 
                 completed_at = datetime.now()

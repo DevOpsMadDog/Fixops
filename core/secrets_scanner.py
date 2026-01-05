@@ -362,15 +362,10 @@ class SecretsDetector:
         repository: str,
         branch: str,
         is_git_repo: bool,
-        skip_containment_check: bool = False,
     ) -> Tuple[List[SecretFinding], str, Optional[str]]:
         """Run gitleaks scanner asynchronously."""
         # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        # Skip for server-controlled temp files (scan_content creates safe temp files)
-        if skip_containment_check:
-            verified_path = str(target_path)
-        else:
-            verified_path = self._verify_containment(target_path)
+        verified_path = self._verify_containment(target_path)
 
         cmd = [
             self.config.gitleaks_path,
@@ -434,15 +429,10 @@ class SecretsDetector:
         repository: str,
         branch: str,
         is_git_repo: bool,
-        skip_containment_check: bool = False,
     ) -> Tuple[List[SecretFinding], str, Optional[str]]:
         """Run trufflehog scanner asynchronously."""
         # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        # Skip for server-controlled temp files (scan_content creates safe temp files)
-        if skip_containment_check:
-            verified_path = str(target_path)
-        else:
-            verified_path = self._verify_containment(target_path)
+        verified_path = self._verify_containment(target_path)
 
         if is_git_repo and self.config.scan_history:
             cmd = [
@@ -500,46 +490,35 @@ class SecretsDetector:
         except Exception as e:
             return [], "", f"Trufflehog scan failed: {str(e)}"
 
-    def _is_git_repo(self, path: Path, skip_containment_check: bool = False) -> bool:
+    def _is_git_repo(self, path: Path) -> bool:
         """Check if the path is inside a git repository."""
         # Re-verify containment before file operations (CodeQL-recognized sanitizer)
-        # Skip for server-controlled temp files (scan_content creates safe temp files)
-        if skip_containment_check:
-            safe_path = path
-        else:
-            verified_path = self._verify_containment(path)
-            safe_path = Path(verified_path)
+        verified_path = self._verify_containment(path)
+        safe_path = Path(verified_path)
 
         current = safe_path if safe_path.is_dir() else safe_path.parent
         base = os.path.realpath(self.config.base_path)
         while current != current.parent:
-            # Verify each parent is also within base directory (skip for temp files)
-            if not skip_containment_check:
-                current_str = os.path.realpath(str(current))
-                if os.path.commonpath([base, current_str]) != base:
-                    break  # Stop if we've gone outside base directory
+            # Verify each parent is also within base directory
+            current_str = os.path.realpath(str(current))
+            if os.path.commonpath([base, current_str]) != base:
+                break  # Stop if we've gone outside base directory
             if (current / ".git").exists():
                 return True
             current = current.parent
         return False
 
-    def _get_repo_info(
-        self, path: Path, skip_containment_check: bool = False
-    ) -> Tuple[str, str]:
+    def _get_repo_info(self, path: Path) -> Tuple[str, str]:
         """Extract repository name and branch from git repo."""
-        if not self._is_git_repo(path, skip_containment_check):
+        if not self._is_git_repo(path):
             return str(path), "main"
 
         try:
             import subprocess
 
             # Re-verify containment before using path in subprocess cwd (CodeQL-recognized sanitizer)
-            # Skip for server-controlled temp files (scan_content creates safe temp files)
-            if skip_containment_check:
-                safe_path = path
-            else:
-                verified_path = self._verify_containment(path)
-                safe_path = Path(verified_path)
+            verified_path = self._verify_containment(path)
+            safe_path = Path(verified_path)
             cwd_path = str(safe_path if safe_path.is_dir() else safe_path.parent)
 
             result = subprocess.run(
@@ -680,7 +659,8 @@ class SecretsDetector:
         """
         Scan content provided as a string for secrets.
 
-        Creates a temporary file, scans it, and cleans up.
+        Creates a temporary file under the base path, scans it, and cleans up.
+        This ensures the temp file passes containment checks.
 
         Args:
             content: File content as string
@@ -725,11 +705,15 @@ class SecretsDetector:
         # Generate completely safe filename with no user input
         safe_filename = f"content{ext}"
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        # Create temp directory under base_path so containment checks pass
+        # This ensures CodeQL sees the sanitization pattern
+        base = os.path.realpath(self.config.base_path)
+        os.makedirs(base, exist_ok=True)
+
+        with tempfile.TemporaryDirectory(dir=base) as temp_dir:
             temp_file = Path(temp_dir) / safe_filename
             temp_file.write_text(content)
 
-            # Scan the temp file directly (bypass _validate_path since it's in temp dir)
             scan_id = str(uuid4())
             started_at = datetime.now()
 
@@ -755,13 +739,13 @@ class SecretsDetector:
                 # Temp files are never in a git repo
                 is_git_repo = False
 
+                # Containment check will pass since temp_dir is under base_path
                 if selected_scanner == SecretsScanner.GITLEAKS:
                     findings, raw_output, error = await self._run_gitleaks(
                         temp_file,
                         repository,
                         branch,
                         is_git_repo,
-                        skip_containment_check=True,
                     )
                 else:
                     findings, raw_output, error = await self._run_trufflehog(
@@ -769,7 +753,6 @@ class SecretsDetector:
                         repository,
                         branch,
                         is_git_repo,
-                        skip_containment_check=True,
                     )
 
                 completed_at = datetime.now()
