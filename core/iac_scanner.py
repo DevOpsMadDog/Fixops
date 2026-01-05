@@ -87,7 +87,10 @@ class ScanResult:
         }
 
 
-SCAN_BASE_PATH = os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans")
+# Hardcoded base path under TRUSTED_ROOT - NOT configurable via environment variable
+# This is intentional to prevent CodeQL py/path-injection alerts
+# The base path MUST be under TRUSTED_ROOT (/var/fixops) for security
+SCAN_BASE_PATH = TRUSTED_ROOT + "/scans"
 
 
 @dataclass
@@ -102,11 +105,15 @@ class ScannerConfig:
     custom_policies_dir: Optional[str] = None
     excluded_checks: List[str] = field(default_factory=list)
     soft_fail: bool = False
+    # base_path is hardcoded to SCAN_BASE_PATH (under TRUSTED_ROOT) - NOT configurable
+    # This prevents CodeQL py/path-injection alerts by ensuring the base is a constant
     base_path: str = SCAN_BASE_PATH
 
     @classmethod
     def from_env(cls) -> "ScannerConfig":
         """Create config from environment variables."""
+        # Note: base_path is intentionally NOT configurable via environment variable
+        # to prevent CodeQL py/path-injection alerts
         return cls(
             checkov_path=os.getenv("FIXOPS_CHECKOV_PATH", "checkov"),
             tfsec_path=os.getenv("FIXOPS_TFSEC_PATH", "tfsec"),
@@ -120,7 +127,8 @@ class ScannerConfig:
                 else []
             ),
             soft_fail=os.getenv("FIXOPS_SOFT_FAIL", "false").lower() == "true",
-            base_path=os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans"),
+            # base_path uses hardcoded constant, not environment variable
+            base_path=SCAN_BASE_PATH,
         )
 
 

@@ -89,7 +89,10 @@ class SecretsScanResult:
         }
 
 
-SCAN_BASE_PATH = os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans")
+# Hardcoded base path under TRUSTED_ROOT - NOT configurable via environment variable
+# This is intentional to prevent CodeQL py/path-injection alerts
+# The base path MUST be under TRUSTED_ROOT (/var/fixops) for security
+SCAN_BASE_PATH = TRUSTED_ROOT + "/scans"
 
 
 @dataclass
@@ -104,11 +107,15 @@ class SecretsScannerConfig:
     entropy_threshold: float = 4.5
     scan_history: bool = True
     max_depth: int = 1000
+    # base_path is hardcoded to SCAN_BASE_PATH (under TRUSTED_ROOT) - NOT configurable
+    # This prevents CodeQL py/path-injection alerts by ensuring the base is a constant
     base_path: str = SCAN_BASE_PATH
 
     @classmethod
     def from_env(cls) -> "SecretsScannerConfig":
         """Create config from environment variables."""
+        # Note: base_path is intentionally NOT configurable via environment variable
+        # to prevent CodeQL py/path-injection alerts
         return cls(
             gitleaks_path=os.getenv("FIXOPS_GITLEAKS_PATH", "gitleaks"),
             trufflehog_path=os.getenv("FIXOPS_TRUFFLEHOG_PATH", "trufflehog"),
@@ -118,7 +125,8 @@ class SecretsScannerConfig:
             entropy_threshold=float(os.getenv("FIXOPS_ENTROPY_THRESHOLD", "4.5")),
             scan_history=os.getenv("FIXOPS_SCAN_HISTORY", "true").lower() == "true",
             max_depth=int(os.getenv("FIXOPS_SCAN_MAX_DEPTH", "1000")),
-            base_path=os.getenv("FIXOPS_SCAN_BASE_PATH", "/var/fixops/scans"),
+            # base_path uses hardcoded constant, not environment variable
+            base_path=SCAN_BASE_PATH,
         )
 
 
