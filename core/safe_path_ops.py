@@ -17,6 +17,8 @@ which CodeQL recognizes as non-user-controlled.
 
 import os
 import subprocess
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import IO, Iterator, List, Optional, Union
 
@@ -453,3 +455,67 @@ def safe_get_parent_dirs(path: Union[str, Path], base_path: str) -> Iterator[str
             break
         yield current
         current = os.path.dirname(current)
+
+
+def safe_makedirs(path: Union[str, Path], base_path: str, exist_ok: bool = True) -> str:
+    """
+    Create directories with three-stage containment validation.
+
+    Args:
+        path: The directory path to create
+        base_path: The base directory that must contain the path
+        exist_ok: If True, don't raise if directory exists
+
+    Returns:
+        The validated path as a string
+
+    Raises:
+        PathContainmentError: If the path escapes allowed directories
+    """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
+    candidate = os.path.realpath(str(path))
+    # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
+    if os.path.commonpath([trusted_root, candidate]) != trusted_root:
+        raise PathContainmentError(f"Path escapes trusted root: {path}")
+    base = os.path.realpath(base_path)
+    # Stage 2: base must be under trusted_root
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
+    # Stage 3: candidate must be under base
+    if os.path.commonpath([base, candidate]) != base:
+        raise PathContainmentError(f"Path escapes base directory: {path}")
+    os.makedirs(candidate, exist_ok=exist_ok)
+    return candidate
+
+
+@contextmanager
+def safe_tempdir(base_path: str):
+    """
+    Create a temporary directory with three-stage containment validation.
+
+    This is a context manager that creates a temp directory under base_path
+    and cleans it up when done. The base_path must be under TRUSTED_ROOT.
+
+    Args:
+        base_path: The base directory under which to create the temp dir
+
+    Yields:
+        The path to the temporary directory as a string
+
+    Raises:
+        PathContainmentError: If base_path escapes TRUSTED_ROOT
+    """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
+    base = os.path.realpath(base_path)
+    # Verify base is under trusted_root (de-taints base for CodeQL)
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
+    # Create base directory if it doesn't exist
+    os.makedirs(base, exist_ok=True)
+    # Create temp directory under the validated base
+    with tempfile.TemporaryDirectory(dir=base) as temp_dir:
+        # Verify temp_dir is under base (should always be true, but check for safety)
+        temp_resolved = os.path.realpath(temp_dir)
+        if os.path.commonpath([base, temp_resolved]) != base:
+            raise PathContainmentError(f"Temp directory escapes base: {temp_dir}")
+        yield temp_resolved

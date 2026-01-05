@@ -11,7 +11,6 @@ import json
 import logging
 import os
 import shutil
-import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -27,6 +26,7 @@ from core.safe_path_ops import (
     safe_isfile,
     safe_iterdir,
     safe_read_text,
+    safe_tempdir,
     safe_write_text,
 )
 
@@ -683,16 +683,10 @@ class IaCScanner:
         # Generate completely safe filename with no user input
         safe_filename = f"content{ext}"
 
-        # Create temp directory under base_path so containment checks pass
-        # Two-stage containment check (CodeQL requires TRUSTED_ROOT anchor)
-        trusted_root = os.path.realpath(TRUSTED_ROOT)
+        # Use safe_tempdir wrapper which has inline sanitization for CodeQL
+        # This ensures the temp directory is created under a validated base path
         base_path = self.config.base_path
-        base = os.path.realpath(base_path)
-        if os.path.commonpath([trusted_root, base]) != trusted_root:
-            raise ValueError(f"Base path escapes trusted root: {base_path}")
-        os.makedirs(base, exist_ok=True)
-
-        with tempfile.TemporaryDirectory(dir=base) as temp_dir:
+        with safe_tempdir(base_path) as temp_dir:
             # Use os.path.join instead of Path() to avoid CodeQL sink
             temp_file = os.path.join(temp_dir, safe_filename)
             # Use safe_write_text wrapper which has inline sanitization for CodeQL
