@@ -21,6 +21,7 @@ from uuid import uuid4
 
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
 from core.safe_path_ops import (
+    TRUSTED_ROOT,
     PathContainmentError,
     safe_exists,
     safe_isdir,
@@ -146,8 +147,9 @@ class IaCScanner:
         """
         Verify that a path is contained within the base directory.
 
-        This is a CodeQL-recognized sanitizer pattern that must be called
-        close to file operation sinks to satisfy taint analysis.
+        This is a CodeQL-recognized sanitizer pattern using two-stage containment:
+        1. Verify base_path is under TRUSTED_ROOT constant (untaints base_path)
+        2. Verify candidate path is under base_path
 
         Args:
             path: Path to verify
@@ -158,8 +160,11 @@ class IaCScanner:
         Raises:
             ValueError: If path escapes the base directory
         """
+        trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         candidate = os.path.realpath(str(path))
+        if os.path.commonpath([trusted_root, base]) != trusted_root:
+            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
         if os.path.commonpath([base, candidate]) != base:
             raise ValueError(f"Path escapes base directory: {path}")
         return candidate
@@ -479,9 +484,12 @@ class IaCScanner:
         if provider != IaCProvider.TERRAFORM:
             return [], "", "tfsec only supports Terraform files"
 
-        # Inline sanitization check (CodeQL requires this pattern at each sink)
+        # Two-stage containment check (CodeQL requires TRUSTED_ROOT anchor)
+        trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         verified_path = os.path.realpath(str(target_path))
+        if os.path.commonpath([trusted_root, base]) != trusted_root:
+            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
         if os.path.commonpath([base, verified_path]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 
