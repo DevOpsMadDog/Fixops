@@ -100,21 +100,22 @@ CUSTOM_CONFIG_PATH = TRUSTED_ROOT + "/configs/gitleaks.toml"
 
 @dataclass
 class SecretsScannerConfig:
-    """Configuration for secrets scanners."""
+    """Configuration for secrets scanners.
+
+    Note: base_path and custom_config_path are NOT configurable - they are
+    hardcoded constants under TRUSTED_ROOT to prevent CodeQL py/path-injection alerts.
+    All file operations use SCAN_BASE_PATH and CUSTOM_CONFIG_PATH directly.
+    """
 
     gitleaks_path: str = "gitleaks"
     trufflehog_path: str = "trufflehog"
     timeout_seconds: int = 300
     max_file_size_mb: int = 50
-    # custom_config_path is hardcoded to CUSTOM_CONFIG_PATH - NOT configurable
-    # Operators can place custom gitleaks config in /var/fixops/configs/gitleaks.toml
-    custom_config_path: str = CUSTOM_CONFIG_PATH
     entropy_threshold: float = 4.5
     scan_history: bool = True
     max_depth: int = 1000
-    # base_path is hardcoded to SCAN_BASE_PATH (under TRUSTED_ROOT) - NOT configurable
-    # This prevents CodeQL py/path-injection alerts by ensuring the base is a constant
-    base_path: str = SCAN_BASE_PATH
+    # Note: base_path and custom_config_path are removed from config
+    # Use SCAN_BASE_PATH and CUSTOM_CONFIG_PATH constants directly
 
     @classmethod
     def from_env(cls) -> "SecretsScannerConfig":
@@ -126,13 +127,9 @@ class SecretsScannerConfig:
             trufflehog_path=os.getenv("FIXOPS_TRUFFLEHOG_PATH", "trufflehog"),
             timeout_seconds=int(os.getenv("FIXOPS_SECRETS_SCAN_TIMEOUT", "300")),
             max_file_size_mb=int(os.getenv("FIXOPS_MAX_FILE_SIZE_MB", "50")),
-            # custom_config_path uses hardcoded constant, not environment variable
-            custom_config_path=CUSTOM_CONFIG_PATH,
             entropy_threshold=float(os.getenv("FIXOPS_ENTROPY_THRESHOLD", "4.5")),
             scan_history=os.getenv("FIXOPS_SCAN_HISTORY", "true").lower() == "true",
             max_depth=int(os.getenv("FIXOPS_SCAN_MAX_DEPTH", "1000")),
-            # base_path uses hardcoded constant, not environment variable
-            base_path=SCAN_BASE_PATH,
         )
 
 
@@ -173,10 +170,11 @@ class SecretsDetector:
             ValueError: If path escapes the base directory
         """
         trusted_root = os.path.realpath(TRUSTED_ROOT)
-        base = os.path.realpath(self.config.base_path)
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base = os.path.realpath(SCAN_BASE_PATH)
         candidate = os.path.realpath(str(path))
         if os.path.commonpath([trusted_root, base]) != trusted_root:
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+            raise ValueError(f"Base path escapes trusted root: {SCAN_BASE_PATH}")
         if os.path.commonpath([base, candidate]) != base:
             raise ValueError(f"Path escapes base directory: {path}")
         return candidate
@@ -344,7 +342,8 @@ class SecretsDetector:
         """Run gitleaks scanner asynchronously."""
         # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
-        base = os.path.realpath(self.config.base_path)
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base = os.path.realpath(SCAN_BASE_PATH)
         verified_path = os.path.realpath(str(target_path))
         # Helper for startswith-based containment check (CodeQL-recognized pattern)
         trusted_prefix = (
@@ -358,7 +357,7 @@ class SecretsDetector:
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
         if not (base == trusted_root or base.startswith(trusted_prefix)):
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+            raise ValueError(f"Base path escapes trusted root: {SCAN_BASE_PATH}")
         # Stage 3: candidate must be under base
         if not (verified_path == base or verified_path.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
@@ -381,10 +380,9 @@ class SecretsDetector:
 
         # Only use custom config if the hardcoded config file exists
         # This allows operators to optionally place a config in /var/fixops/configs/
-        if self.config.custom_config_path and os.path.isfile(
-            self.config.custom_config_path
-        ):
-            cmd.extend(["--config", self.config.custom_config_path])
+        # Use hardcoded CUSTOM_CONFIG_PATH constant - NOT configurable
+        if os.path.isfile(CUSTOM_CONFIG_PATH):
+            cmd.extend(["--config", CUSTOM_CONFIG_PATH])
 
         logger.info(f"Running gitleaks: {' '.join(cmd)}")
 
@@ -433,7 +431,8 @@ class SecretsDetector:
         """Run trufflehog scanner asynchronously."""
         # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
-        base = os.path.realpath(self.config.base_path)
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base = os.path.realpath(SCAN_BASE_PATH)
         verified_path = os.path.realpath(str(target_path))
         # Helper for startswith-based containment check (CodeQL-recognized pattern)
         trusted_prefix = (
@@ -447,7 +446,7 @@ class SecretsDetector:
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
         if not (base == trusted_root or base.startswith(trusted_prefix)):
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+            raise ValueError(f"Base path escapes trusted root: {SCAN_BASE_PATH}")
         # Stage 3: candidate must be under base
         if not (verified_path == base or verified_path.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
@@ -511,7 +510,8 @@ class SecretsDetector:
     def _is_git_repo(self, path: str) -> bool:
         """Check if the path is inside a git repository."""
         path_str = str(path)
-        base_path = self.config.base_path
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base_path = SCAN_BASE_PATH
 
         # Use safe sink wrappers which have inline sanitization for CodeQL
         try:
@@ -533,7 +533,8 @@ class SecretsDetector:
 
         try:
             path_str = str(path)
-            base_path = self.config.base_path
+            # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+            base_path = SCAN_BASE_PATH
 
             # Determine cwd using safe_isdir wrapper
             try:
@@ -626,7 +627,8 @@ class SecretsDetector:
 
         # Use safe_tempdir wrapper which has inline sanitization for CodeQL
         # This ensures the temp directory is created under a validated base path
-        base_path = self.config.base_path
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base_path = SCAN_BASE_PATH
         with safe_tempdir(base_path) as temp_dir:
             # Use os.path.join instead of Path() to avoid CodeQL sink
             temp_file = os.path.join(temp_dir, safe_filename)

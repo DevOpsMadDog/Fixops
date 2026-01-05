@@ -42,8 +42,8 @@ class TestSecretsScannerConfig:
         assert config.trufflehog_path == "trufflehog"
         assert config.timeout_seconds == 300
         assert config.max_file_size_mb == 50
-        # custom_config_path is hardcoded to /var/fixops/configs/gitleaks.toml (not configurable)
-        assert config.custom_config_path == "/var/fixops/configs/gitleaks.toml"
+        # Note: base_path and custom_config_path are removed from config
+        # They are hardcoded constants in the module (SCAN_BASE_PATH, CUSTOM_CONFIG_PATH)
         assert config.entropy_threshold == 4.5
         assert config.scan_history is True
         assert config.max_depth == 1000
@@ -68,8 +68,8 @@ class TestSecretsScannerConfig:
             assert config.trufflehog_path == "/custom/trufflehog"
             assert config.timeout_seconds == 600
             assert config.max_file_size_mb == 100
-            # custom_config_path is hardcoded to /var/fixops/configs/gitleaks.toml (not configurable)
-            assert config.custom_config_path == "/var/fixops/configs/gitleaks.toml"
+            # Note: base_path and custom_config_path are removed from config
+            # They are hardcoded constants in the module (SCAN_BASE_PATH, CUSTOM_CONFIG_PATH)
             assert config.entropy_threshold == 5.0
             assert config.scan_history is False
             assert config.max_depth == 500
@@ -80,23 +80,33 @@ class TestSecretsDetector:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
-        """Create a detector instance for testing with temp_dir as base_path."""
-        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a detector instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        Tests use temp_dir under TRUSTED_TEST_ROOT for file operations.
+        """
+        config = SecretsScannerConfig(timeout_seconds=30)
         return SecretsDetector(config)
 
     def test_detector_initialization(self, detector, temp_dir):
         """Test detector initialization."""
         assert detector.config is not None
         assert detector.config.timeout_seconds == 30
-        assert detector.config.base_path == temp_dir
+        # Note: base_path is no longer a config parameter - it's hardcoded
 
     def test_get_available_scanners(self, detector):
         """Test getting available scanners."""
@@ -445,16 +455,25 @@ class TestScanContentSecretsEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
-        """Create a detector instance for testing with temp_dir as base_path."""
-        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a detector instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = SecretsScannerConfig(timeout_seconds=30)
         return SecretsDetector(config)
 
     @pytest.mark.asyncio
@@ -567,16 +586,25 @@ class TestSecretsParsingEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
-        """Create a detector instance for testing with temp_dir as base_path."""
-        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a detector instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = SecretsScannerConfig(timeout_seconds=30)
         return SecretsDetector(config)
 
     def test_parse_gitleaks_output_single_object(self, detector):
@@ -629,19 +657,26 @@ class TestGitleaksCustomConfig:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
-        """Create a detector with default config (hardcoded custom_config_path)."""
-        config = SecretsScannerConfig(
-            timeout_seconds=30,
-            base_path=temp_dir,
-        )
+        """Create a detector with default config.
+
+        Note: base_path and custom_config_path are no longer configurable -
+        they are hardcoded constants in the module.
+        """
+        config = SecretsScannerConfig(timeout_seconds=30)
         return SecretsDetector(config)
 
     @pytest.mark.asyncio
@@ -678,16 +713,25 @@ class TestGetRepoInfoException:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
-        """Create a detector instance for testing with temp_dir as base_path."""
-        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a detector instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = SecretsScannerConfig(timeout_seconds=30)
         return SecretsDetector(config)
 
     def test_get_repo_info_exception(self, detector, temp_dir):
@@ -743,16 +787,25 @@ class TestPathContainmentErrorHandling:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
-        """Create a detector instance for testing with temp_dir as base_path."""
-        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a detector instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = SecretsScannerConfig(timeout_seconds=30)
         return SecretsDetector(config)
 
     def test_verify_containment_valid_path(self, detector, temp_dir):
@@ -832,78 +885,93 @@ class TestPathContainmentErrorHandling:
                     assert repo_name == str(Path(test_file))
                     assert branch == "main"
 
-    def test_verify_containment_base_path_escapes_trusted_root(self):
-        """Test _verify_containment raises ValueError when base_path escapes TRUSTED_ROOT."""
-        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
-        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        detector = SecretsDetector(config)
-        os.makedirs("/tmp/untrusted", exist_ok=True)
-        test_file = "/tmp/untrusted/test.py"
-        with open(test_file, "w") as f:
-            f.write("content")
+    def test_verify_containment_stage3_path_escapes_base(self, detector, temp_dir):
+        """Test _verify_containment raises ValueError when path escapes SCAN_BASE_PATH (Stage 3).
+
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        This test verifies that paths under TRUSTED_ROOT but outside SCAN_BASE_PATH are rejected.
+        """
+        # Create a file under TRUSTED_TEST_ROOT which is under TRUSTED_ROOT
+        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
+        stage3_test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(stage3_test_dir, exist_ok=True)
         try:
+            test_file = os.path.join(stage3_test_dir, "test.py")
+            with open(test_file, "w") as f:
+                f.write("content")
+            # Stage 1 passes (file is under TRUSTED_ROOT)
+            # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
+            # Stage 3 fails (file is not under SCAN_BASE_PATH)
             with pytest.raises(ValueError) as exc_info:
                 detector._verify_containment(Path(test_file))
-            assert "Base path escapes trusted root" in str(exc_info.value)
+            assert "Path escapes base directory" in str(exc_info.value)
         finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+            shutil.rmtree(stage3_test_dir, ignore_errors=True)
 
     @pytest.mark.asyncio
-    async def test_run_gitleaks_base_path_escapes_trusted_root(self, temp_dir):
-        """Test _run_gitleaks three-stage containment check - Stage 2 (base outside trusted root)."""
-        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
-        # but target_path inside TRUSTED_ROOT so Stage 1 passes and Stage 2 fails
-        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        detector = SecretsDetector(config)
-        os.makedirs("/tmp/untrusted", exist_ok=True)
-        # Use a file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
-        test_file = os.path.join(temp_dir, "test.py")
-        with open(test_file, "w") as f:
-            f.write("content")
+    async def test_run_gitleaks_stage3_path_escapes_base(self, detector, temp_dir):
+        """Test _run_gitleaks Stage 3 containment check - path under TRUSTED_ROOT but outside SCAN_BASE_PATH.
+
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        """
+        # Create a file under TRUSTED_TEST_ROOT which is under TRUSTED_ROOT
+        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
+        stage3_test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(stage3_test_dir, exist_ok=True)
         try:
+            test_file = os.path.join(stage3_test_dir, "test.py")
+            with open(test_file, "w") as f:
+                f.write("content")
             with patch.object(detector, "_is_gitleaks_available", return_value=True):
                 with pytest.raises(ValueError) as exc_info:
                     await detector._run_gitleaks(test_file, "repo", "main", False)
                 # Stage 1 passes (file is under TRUSTED_ROOT)
-                # Stage 2 fails (base is outside TRUSTED_ROOT)
-                assert "Base path escapes trusted root" in str(exc_info.value)
+                # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
+                # Stage 3 fails (file is not under SCAN_BASE_PATH)
+                assert "Path escapes base directory" in str(exc_info.value)
         finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+            shutil.rmtree(stage3_test_dir, ignore_errors=True)
 
     @pytest.mark.asyncio
-    async def test_run_trufflehog_base_path_escapes_trusted_root(self, temp_dir):
-        """Test _run_trufflehog three-stage containment check - Stage 2 (base outside trusted root)."""
-        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
-        # but target_path inside TRUSTED_ROOT so Stage 1 passes and Stage 2 fails
-        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        detector = SecretsDetector(config)
-        os.makedirs("/tmp/untrusted", exist_ok=True)
-        # Use a file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
-        test_file = os.path.join(temp_dir, "test.py")
-        with open(test_file, "w") as f:
-            f.write("content")
+    async def test_run_trufflehog_stage3_path_escapes_base(self, detector, temp_dir):
+        """Test _run_trufflehog Stage 3 containment check - path under TRUSTED_ROOT but outside SCAN_BASE_PATH.
+
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        """
+        # Create a file under TRUSTED_TEST_ROOT which is under TRUSTED_ROOT
+        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
+        stage3_test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(stage3_test_dir, exist_ok=True)
         try:
+            test_file = os.path.join(stage3_test_dir, "test.py")
+            with open(test_file, "w") as f:
+                f.write("content")
             with patch.object(detector, "_is_trufflehog_available", return_value=True):
                 with pytest.raises(ValueError) as exc_info:
                     await detector._run_trufflehog(test_file, "repo", "main", False)
                 # Stage 1 passes (file is under TRUSTED_ROOT)
-                # Stage 2 fails (base is outside TRUSTED_ROOT)
-                assert "Base path escapes trusted root" in str(exc_info.value)
+                # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
+                # Stage 3 fails (file is not under SCAN_BASE_PATH)
+                assert "Path escapes base directory" in str(exc_info.value)
         finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+            shutil.rmtree(stage3_test_dir, ignore_errors=True)
 
     @pytest.mark.asyncio
-    async def test_scan_content_base_path_escapes_trusted_root(self):
-        """Test scan_content raises ValueError when base_path escapes TRUSTED_ROOT."""
-        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
-        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        detector = SecretsDetector(config)
-        try:
-            with pytest.raises(ValueError) as exc_info:
-                await detector.scan_content(
-                    content="aws_secret_access_key = AKIAIOSFODNN7EXAMPLE",
-                    filename="test.py",
-                )
-            assert "Base path escapes trusted root" in str(exc_info.value)
-        finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+    async def test_scan_content_uses_hardcoded_base_path(self, detector):
+        """Test scan_content uses hardcoded SCAN_BASE_PATH for temp files.
+
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        This test verifies that scan_content creates temp files under SCAN_BASE_PATH.
+        """
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            result = await detector.scan_content(
+                content="aws_secret_access_key = AKIAIOSFODNN7EXAMPLE",
+                filename="test.py",
+            )
+            # Should fail because no scanner is available, not because of path issues
+            assert result.status == SecretsScanStatus.FAILED
+            assert "No secrets scanner available" in result.error_message

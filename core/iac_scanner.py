@@ -98,21 +98,22 @@ CUSTOM_POLICIES_PATH = TRUSTED_ROOT + "/policies"
 
 @dataclass
 class ScannerConfig:
-    """Configuration for IaC scanners."""
+    """Configuration for IaC scanners.
+
+    Note: base_path and custom_policies_dir are NOT configurable - they are
+    hardcoded constants under TRUSTED_ROOT to prevent CodeQL py/path-injection alerts.
+    All file operations use SCAN_BASE_PATH and CUSTOM_POLICIES_PATH directly.
+    """
 
     checkov_path: str = "checkov"
     tfsec_path: str = "tfsec"
     timeout_seconds: int = 300
     max_file_size_mb: int = 50
     skip_download: bool = False
-    # custom_policies_dir is hardcoded to CUSTOM_POLICIES_PATH - NOT configurable
-    # Operators can place custom checkov policies in /var/fixops/policies
-    custom_policies_dir: str = CUSTOM_POLICIES_PATH
     excluded_checks: List[str] = field(default_factory=list)
     soft_fail: bool = False
-    # base_path is hardcoded to SCAN_BASE_PATH (under TRUSTED_ROOT) - NOT configurable
-    # This prevents CodeQL py/path-injection alerts by ensuring the base is a constant
-    base_path: str = SCAN_BASE_PATH
+    # Note: base_path and custom_policies_dir are removed from config
+    # Use SCAN_BASE_PATH and CUSTOM_POLICIES_PATH constants directly
 
     @classmethod
     def from_env(cls) -> "ScannerConfig":
@@ -125,16 +126,12 @@ class ScannerConfig:
             timeout_seconds=int(os.getenv("FIXOPS_SCAN_TIMEOUT", "300")),
             max_file_size_mb=int(os.getenv("FIXOPS_MAX_FILE_SIZE_MB", "50")),
             skip_download=os.getenv("FIXOPS_SKIP_DOWNLOAD", "false").lower() == "true",
-            # custom_policies_dir uses hardcoded constant, not environment variable
-            custom_policies_dir=CUSTOM_POLICIES_PATH,
             excluded_checks=(
                 os.getenv("FIXOPS_EXCLUDED_CHECKS", "").split(",")
                 if os.getenv("FIXOPS_EXCLUDED_CHECKS")
                 else []
             ),
             soft_fail=os.getenv("FIXOPS_SOFT_FAIL", "false").lower() == "true",
-            # base_path uses hardcoded constant, not environment variable
-            base_path=SCAN_BASE_PATH,
         )
 
 
@@ -174,10 +171,11 @@ class IaCScanner:
             ValueError: If path escapes the base directory
         """
         trusted_root = os.path.realpath(TRUSTED_ROOT)
-        base = os.path.realpath(self.config.base_path)
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base = os.path.realpath(SCAN_BASE_PATH)
         candidate = os.path.realpath(str(path))
         if os.path.commonpath([trusted_root, base]) != trusted_root:
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+            raise ValueError(f"Base path escapes trusted root: {SCAN_BASE_PATH}")
         if os.path.commonpath([base, candidate]) != base:
             raise ValueError(f"Path escapes base directory: {path}")
         return candidate
@@ -206,7 +204,8 @@ class IaCScanner:
     def _detect_provider(self, target_path: str) -> IaCProvider:
         """Auto-detect IaC provider from file contents or extension."""
         path_str = target_path
-        base_path = self.config.base_path
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base_path = SCAN_BASE_PATH
 
         # Use safe sink wrappers which have inline sanitization for CodeQL
         try:
@@ -361,7 +360,8 @@ class IaCScanner:
         """Run checkov scanner asynchronously."""
         # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
-        base = os.path.realpath(self.config.base_path)
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base = os.path.realpath(SCAN_BASE_PATH)
         verified_path = os.path.realpath(str(target_path))
         # Helper for startswith-based containment check (CodeQL-recognized pattern)
         trusted_prefix = (
@@ -375,7 +375,7 @@ class IaCScanner:
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
         if not (base == trusted_root or base.startswith(trusted_prefix)):
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+            raise ValueError(f"Base path escapes trusted root: {SCAN_BASE_PATH}")
         # Stage 3: candidate must be under base
         if not (verified_path == base or verified_path.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
@@ -397,10 +397,9 @@ class IaCScanner:
 
         # Only use custom policies if the hardcoded policies directory exists
         # This allows operators to optionally place policies in /var/fixops/policies/
-        if self.config.custom_policies_dir and os.path.isdir(
-            self.config.custom_policies_dir
-        ):
-            cmd.extend(["--external-checks-dir", self.config.custom_policies_dir])
+        # Use hardcoded CUSTOM_POLICIES_PATH constant - NOT configurable
+        if os.path.isdir(CUSTOM_POLICIES_PATH):
+            cmd.extend(["--external-checks-dir", CUSTOM_POLICIES_PATH])
 
         for check in self.config.excluded_checks:
             if check.strip():
@@ -464,7 +463,8 @@ class IaCScanner:
 
         # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
-        base = os.path.realpath(self.config.base_path)
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        base = os.path.realpath(SCAN_BASE_PATH)
         verified_path = os.path.realpath(str(target_path))
         # Helper for startswith-based containment check (CodeQL-recognized pattern)
         trusted_prefix = (
@@ -478,7 +478,7 @@ class IaCScanner:
             raise ValueError(f"Path escapes trusted root: {target_path}")
         # Stage 2: base must be under trusted_root
         if not (base == trusted_root or base.startswith(trusted_prefix)):
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+            raise ValueError(f"Base path escapes trusted root: {SCAN_BASE_PATH}")
         # Stage 3: candidate must be under base
         if not (verified_path == base or verified_path.startswith(base_prefix)):
             raise ValueError(f"Path escapes base directory: {target_path}")
@@ -568,12 +568,12 @@ class IaCScanner:
 
         # Use safe_tempdir wrapper which has inline sanitization for CodeQL
         # This ensures the temp directory is created under a validated base path
-        base_path = self.config.base_path
-        with safe_tempdir(base_path) as temp_dir:
+        # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
+        with safe_tempdir(SCAN_BASE_PATH) as temp_dir:
             # Use os.path.join instead of Path() to avoid CodeQL sink
             temp_file = os.path.join(temp_dir, safe_filename)
             # Use safe_write_text wrapper which has inline sanitization for CodeQL
-            safe_write_text(temp_file, base_path, content)
+            safe_write_text(temp_file, SCAN_BASE_PATH, content)
 
             scan_id = str(uuid4())
             started_at = datetime.now()

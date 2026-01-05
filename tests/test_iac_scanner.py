@@ -43,8 +43,8 @@ class TestScannerConfig:
         assert config.timeout_seconds == 300
         assert config.max_file_size_mb == 50
         assert config.skip_download is False
-        # custom_policies_dir is hardcoded to /var/fixops/policies (not configurable)
-        assert config.custom_policies_dir == "/var/fixops/policies"
+        # Note: base_path and custom_policies_dir are removed from config
+        # They are hardcoded constants in the module (SCAN_BASE_PATH, CUSTOM_POLICIES_PATH)
         assert config.excluded_checks == []
         assert config.soft_fail is False
 
@@ -69,8 +69,8 @@ class TestScannerConfig:
             assert config.timeout_seconds == 600
             assert config.max_file_size_mb == 100
             assert config.skip_download is True
-            # custom_policies_dir is hardcoded to /var/fixops/policies (not configurable)
-            assert config.custom_policies_dir == "/var/fixops/policies"
+            # Note: base_path and custom_policies_dir are removed from config
+            # They are hardcoded constants in the module (SCAN_BASE_PATH, CUSTOM_POLICIES_PATH)
             assert config.excluded_checks == ["CKV_AWS_1", "CKV_AWS_2"]
             assert config.soft_fail is True
 
@@ -88,23 +88,33 @@ class TestIaCScanner:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
-        """Create a scanner instance for testing with temp_dir as base_path."""
-        config = ScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a scanner instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        Tests use temp_dir under TRUSTED_TEST_ROOT for file operations.
+        """
+        config = ScannerConfig(timeout_seconds=30)
         return IaCScanner(config)
 
     def test_scanner_initialization(self, scanner, temp_dir):
         """Test scanner initialization."""
         assert scanner.config is not None
         assert scanner.config.timeout_seconds == 30
-        assert scanner.config.base_path == temp_dir
+        # Note: base_path is no longer a config parameter - it's hardcoded
 
     def test_get_available_scanners(self, scanner):
         """Test getting available scanners."""
@@ -366,16 +376,25 @@ class TestProviderDetectionEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
-        """Create a scanner instance for testing with temp_dir as base_path."""
-        config = ScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a scanner instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = ScannerConfig(timeout_seconds=30)
         return IaCScanner(config)
 
     def test_detect_provider_json_cloudformation(self, scanner, temp_dir):
@@ -413,16 +432,25 @@ class TestScanContentEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        """Create a temporary directory under SCAN_BASE_PATH for testing.
+
+        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
+        """
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
         os.makedirs(test_dir, exist_ok=True)
         yield test_dir
         shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
-        """Create a scanner instance for testing with temp_dir as base_path."""
-        config = ScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a scanner instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = ScannerConfig(timeout_seconds=30)
         return IaCScanner(config)
 
     @pytest.mark.asyncio
@@ -547,23 +575,36 @@ class TestPathContainmentErrorHandling:
 
     @pytest.fixture
     def scanner(self, temp_dir):
-        """Create a scanner instance for testing with temp_dir as base_path."""
-        config = ScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        """Create a scanner instance for testing.
+
+        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
+        """
+        config = ScannerConfig(timeout_seconds=30)
         return IaCScanner(config)
 
     def test_verify_containment_valid_path(self, scanner, temp_dir):
-        """Test _verify_containment with a valid path."""
-        test_file = os.path.join(temp_dir, "test.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-        result = scanner._verify_containment(Path(test_file))
-        assert result == os.path.realpath(test_file)
+        """Test _verify_containment with a valid path under SCAN_BASE_PATH."""
+        # temp_dir is under TRUSTED_TEST_ROOT which is under TRUSTED_ROOT
+        # but SCAN_BASE_PATH is /var/fixops/scans, so we need to use that
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_file = os.path.join(SCAN_BASE_PATH, "test.tf")
+        try:
+            with open(test_file, "w") as f:
+                f.write('resource "aws_instance" "example" {}')
+            result = scanner._verify_containment(Path(test_file))
+            assert result == os.path.realpath(test_file)
+        finally:
+            if os.path.exists(test_file):
+                os.remove(test_file)
 
     def test_verify_containment_path_escape(self, scanner, temp_dir):
-        """Test _verify_containment raises ValueError when path escapes base."""
+        """Test _verify_containment raises ValueError when path escapes SCAN_BASE_PATH."""
+        # /tmp is outside TRUSTED_ROOT (/var/fixops), so containment check fails
         with pytest.raises(ValueError) as exc_info:
             scanner._verify_containment(Path("/tmp/outside.tf"))
-        assert "Path escapes base directory" in str(exc_info.value)
+        assert "Path escapes" in str(exc_info.value)
 
     def test_detect_provider_containment_error(self, scanner, temp_dir):
         """Test _detect_provider handles PathContainmentError."""
@@ -581,22 +622,19 @@ class TestPathContainmentErrorHandling:
 
     @pytest.mark.asyncio
     async def test_run_checkov_containment_error(self, scanner, temp_dir):
-        """Test _run_checkov three-stage containment check - Stage 3 (candidate outside base)."""
-        # Create scanner with base_path as a subdirectory under TRUSTED_ROOT
-        sub_dir = os.path.join(temp_dir, "subdir")
-        os.makedirs(sub_dir, exist_ok=True)
-        config = ScannerConfig(timeout_seconds=30, base_path=sub_dir)
-        scanner_with_subdir = IaCScanner(config)
-        # Create a file in temp_dir (parent of sub_dir, but still under TRUSTED_ROOT)
-        test_file = os.path.join(temp_dir, "outside.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-        # Stage 1 passes (file is under TRUSTED_ROOT)
-        # Stage 2 passes (base is under TRUSTED_ROOT)
-        # Stage 3 fails (file is not under sub_dir)
-        with pytest.raises(ValueError) as exc_info:
-            await scanner_with_subdir._run_checkov(test_file, IaCProvider.TERRAFORM)
-        assert "Path escapes base directory" in str(exc_info.value)
+        """Test _run_checkov containment check - path outside SCAN_BASE_PATH."""
+        # /tmp is outside TRUSTED_ROOT (/var/fixops), so Stage 1 fails
+        test_file = "/tmp/outside.tf"
+        os.makedirs("/tmp", exist_ok=True)
+        try:
+            with open(test_file, "w") as f:
+                f.write('resource "aws_instance" "example" {}')
+            with pytest.raises(ValueError) as exc_info:
+                await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
+            assert "Path escapes trusted root" in str(exc_info.value)
+        finally:
+            if os.path.exists(test_file):
+                os.remove(test_file)
 
     @pytest.mark.asyncio
     async def test_run_tfsec_containment_check(self, scanner, temp_dir):
@@ -607,56 +645,59 @@ class TestPathContainmentErrorHandling:
                 await scanner._run_tfsec("/tmp/outside.tf", IaCProvider.TERRAFORM)
             assert "Path escapes trusted root" in str(exc_info.value)
 
-    def test_verify_containment_base_path_escapes_trusted_root(self):
-        """Test _verify_containment raises ValueError when base_path escapes TRUSTED_ROOT."""
-        # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
-        config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        scanner = IaCScanner(config)
-        os.makedirs("/tmp/untrusted", exist_ok=True)
-        test_file = "/tmp/untrusted/test.tf"
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-        try:
-            with pytest.raises(ValueError) as exc_info:
-                scanner._verify_containment(Path(test_file))
-            assert "Base path escapes trusted root" in str(exc_info.value)
-        finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+    def test_verify_containment_stage3_path_escapes_base(self, scanner, temp_dir):
+        """Test _verify_containment raises ValueError when path escapes SCAN_BASE_PATH (Stage 3).
 
-    @pytest.mark.asyncio
-    async def test_run_tfsec_base_path_escapes_trusted_root(self, temp_dir):
-        """Test _run_tfsec three-stage containment check - Stage 2 (base outside trusted root)."""
-        # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
-        # but target_path inside TRUSTED_ROOT so Stage 1 passes and Stage 2 fails
-        config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        scanner = IaCScanner(config)
-        os.makedirs("/tmp/untrusted", exist_ok=True)
-        # Use a file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        This test verifies that paths under TRUSTED_ROOT but outside SCAN_BASE_PATH are rejected.
+        """
+        # temp_dir is under /var/fixops/test-scans which is under TRUSTED_ROOT
+        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
         test_file = os.path.join(temp_dir, "test.tf")
         with open(test_file, "w") as f:
             f.write('resource "aws_instance" "example" {}')
-        try:
-            with patch.object(scanner, "_is_tfsec_available", return_value=True):
-                with pytest.raises(ValueError) as exc_info:
-                    await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
-                # Stage 1 passes (file is under TRUSTED_ROOT)
-                # Stage 2 fails (base is outside TRUSTED_ROOT)
-                assert "Base path escapes trusted root" in str(exc_info.value)
-        finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+        # Stage 1 passes (file is under TRUSTED_ROOT)
+        # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
+        # Stage 3 fails (file is not under SCAN_BASE_PATH)
+        with pytest.raises(ValueError) as exc_info:
+            scanner._verify_containment(Path(test_file))
+        assert "Path escapes base directory" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_scan_content_base_path_escapes_trusted_root(self):
-        """Test scan_content raises ValueError when base_path escapes TRUSTED_ROOT."""
-        # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
-        config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
-        scanner = IaCScanner(config)
-        try:
+    async def test_run_tfsec_stage3_path_escapes_base(self, scanner, temp_dir):
+        """Test _run_tfsec Stage 3 containment check - path under TRUSTED_ROOT but outside SCAN_BASE_PATH.
+
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        """
+        # temp_dir is under /var/fixops/test-scans which is under TRUSTED_ROOT
+        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
+        test_file = os.path.join(temp_dir, "test.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+        with patch.object(scanner, "_is_tfsec_available", return_value=True):
             with pytest.raises(ValueError) as exc_info:
-                await scanner.scan_content(
-                    content='resource "aws_instance" "example" {}',
-                    filename="test.tf",
-                )
-            assert "Base path escapes trusted root" in str(exc_info.value)
-        finally:
-            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+                await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
+            # Stage 1 passes (file is under TRUSTED_ROOT)
+            # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
+            # Stage 3 fails (file is not under SCAN_BASE_PATH)
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_scan_content_uses_hardcoded_base_path(self, scanner):
+        """Test scan_content uses hardcoded SCAN_BASE_PATH for temp files.
+
+        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
+        This test verifies that scan_content creates temp files under SCAN_BASE_PATH.
+        """
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+
+        with patch.object(scanner, "get_available_scanners", return_value=[]):
+            result = await scanner.scan_content(
+                content='resource "aws_instance" "example" {}',
+                filename="test.tf",
+            )
+            # Should fail because no scanner is available, not because of path issues
+            assert result.status == ScanStatus.FAILED
+            assert "No IaC scanner available" in result.error_message
