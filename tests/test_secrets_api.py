@@ -283,3 +283,260 @@ def test_scan_repository_path_traversal_rejected(client, db, monkeypatch, auth_h
     )
     assert response.status_code == 400
     assert "traversal" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_scanner_exception(client, db, monkeypatch, auth_headers):
+    """Test that scanner exceptions are handled and return 500."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    # Mock the detector to raise an exception
+    class MockDetector:
+        async def scan(self, *args, **kwargs):
+            raise RuntimeError("Scanner crashed unexpectedly")
+
+    monkeypatch.setattr(
+        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+    )
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={"target_path": "repo/"},
+    )
+    assert response.status_code == 500
+    assert "scan failed" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_content_scanner_exception(client, db, monkeypatch, auth_headers):
+    """Test that scanner exceptions during content scan are handled and return 500."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    # Mock the detector to raise an exception
+    class MockDetector:
+        async def scan_content(self, *args, **kwargs):
+            raise RuntimeError("Content scanner crashed unexpectedly")
+
+    monkeypatch.setattr(
+        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+    )
+
+    response = client.post(
+        "/api/v1/secrets/scan/content",
+        headers=auth_headers,
+        json={
+            "content": "API_KEY = 'sk-1234567890abcdef'",
+            "filename": "config.py",
+        },
+    )
+    assert response.status_code == 500
+    assert "scan failed" in response.json()["detail"].lower()
+
+
+def test_scan_repository_scanner_exception(client, db, monkeypatch, auth_headers):
+    """Test that scanner exceptions during repository scan are handled and return 500."""
+    monkeypatch.setattr("apps.api.secrets_router.db", db)
+
+    # Mock the detector to raise an exception
+    class MockDetector:
+        async def scan(self, *args, **kwargs):
+            raise RuntimeError("Repository scanner crashed unexpectedly")
+
+    monkeypatch.setattr(
+        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+    )
+
+    response = client.post(
+        "/api/v1/secrets/scan/repository",
+        headers=auth_headers,
+        params={"repository": "myapp", "branch": "main"},
+    )
+    assert response.status_code == 500
+    assert "scan failed" in response.json()["detail"].lower()
+
+
+def test_scan_secrets_finding_persist_failure(client, db, monkeypatch, auth_headers):
+    """Test that finding persist failures are logged but don't fail the scan."""
+    from datetime import datetime
+    from unittest.mock import MagicMock
+
+    from core.secrets_models import SecretFinding, SecretStatus, SecretType
+    from core.secrets_scanner import (
+        SecretsScanner,
+        SecretsScanResult,
+        SecretsScanStatus,
+    )
+
+    # Create a mock detector that returns findings
+    mock_result = SecretsScanResult(
+        scan_id="test-scan-id",
+        status=SecretsScanStatus.COMPLETED,
+        scanner=SecretsScanner.GITLEAKS,
+        target_path="/test/path",
+        repository="test-repo",
+        branch="main",
+        findings=[
+            SecretFinding(
+                id="finding-1",
+                secret_type=SecretType.API_KEY,
+                status=SecretStatus.ACTIVE,
+                file_path="config.py",
+                line_number=1,
+                repository="test-repo",
+                branch="main",
+            )
+        ],
+        started_at=datetime.utcnow(),
+        completed_at=datetime.utcnow(),
+        duration_seconds=1.0,
+    )
+
+    class MockDetector:
+        async def scan(self, *args, **kwargs):
+            return mock_result
+
+    monkeypatch.setattr(
+        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+    )
+
+    # Mock db to raise exception on create_finding
+    mock_db = MagicMock()
+    mock_db.create_finding.side_effect = Exception("Database error")
+    monkeypatch.setattr("apps.api.secrets_router.db", mock_db)
+
+    response = client.post(
+        "/api/v1/secrets/scan",
+        headers=auth_headers,
+        json={"target_path": "repo/"},
+    )
+    # Should still return 200 even if persist fails
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["findings_count"] == 1
+
+
+def test_scan_secrets_content_finding_persist_failure(
+    client, db, monkeypatch, auth_headers
+):
+    """Test that finding persist failures during content scan are logged but don't fail."""
+    from datetime import datetime
+    from unittest.mock import MagicMock
+
+    from core.secrets_models import SecretFinding, SecretStatus, SecretType
+    from core.secrets_scanner import (
+        SecretsScanner,
+        SecretsScanResult,
+        SecretsScanStatus,
+    )
+
+    # Create a mock detector that returns findings
+    mock_result = SecretsScanResult(
+        scan_id="test-scan-id",
+        status=SecretsScanStatus.COMPLETED,
+        scanner=SecretsScanner.GITLEAKS,
+        target_path="config.py",
+        repository="test-repo",
+        branch="main",
+        findings=[
+            SecretFinding(
+                id="finding-1",
+                secret_type=SecretType.API_KEY,
+                status=SecretStatus.ACTIVE,
+                file_path="config.py",
+                line_number=1,
+                repository="test-repo",
+                branch="main",
+            )
+        ],
+        started_at=datetime.utcnow(),
+        completed_at=datetime.utcnow(),
+        duration_seconds=1.0,
+    )
+
+    class MockDetector:
+        async def scan_content(self, *args, **kwargs):
+            return mock_result
+
+    monkeypatch.setattr(
+        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+    )
+
+    # Mock db to raise exception on create_finding
+    mock_db = MagicMock()
+    mock_db.create_finding.side_effect = Exception("Database error")
+    monkeypatch.setattr("apps.api.secrets_router.db", mock_db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/content",
+        headers=auth_headers,
+        json={
+            "content": "API_KEY = 'sk-1234567890abcdef'",
+            "filename": "config.py",
+        },
+    )
+    # Should still return 200 even if persist fails
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["findings_count"] == 1
+
+
+def test_scan_repository_finding_persist_failure(client, db, monkeypatch, auth_headers):
+    """Test that finding persist failures during repository scan are logged but don't fail."""
+    from datetime import datetime
+    from unittest.mock import MagicMock
+
+    from core.secrets_models import SecretFinding, SecretStatus, SecretType
+    from core.secrets_scanner import (
+        SecretsScanner,
+        SecretsScanResult,
+        SecretsScanStatus,
+    )
+
+    # Create a mock detector that returns findings
+    mock_result = SecretsScanResult(
+        scan_id="test-scan-id",
+        status=SecretsScanStatus.COMPLETED,
+        scanner=SecretsScanner.GITLEAKS,
+        target_path="/test/path",
+        repository="myapp",
+        branch="main",
+        findings=[
+            SecretFinding(
+                id="finding-1",
+                secret_type=SecretType.API_KEY,
+                status=SecretStatus.ACTIVE,
+                file_path="config.py",
+                line_number=1,
+                repository="myapp",
+                branch="main",
+            )
+        ],
+        started_at=datetime.utcnow(),
+        completed_at=datetime.utcnow(),
+        duration_seconds=1.0,
+    )
+
+    class MockDetector:
+        async def scan(self, *args, **kwargs):
+            return mock_result
+
+    monkeypatch.setattr(
+        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+    )
+
+    # Mock db to raise exception on create_finding
+    mock_db = MagicMock()
+    mock_db.create_finding.side_effect = Exception("Database error")
+    monkeypatch.setattr("apps.api.secrets_router.db", mock_db)
+
+    response = client.post(
+        "/api/v1/secrets/scan/repository",
+        headers=auth_headers,
+        params={"repository": "myapp", "branch": "main"},
+    )
+    # Should still return 200 even if persist fails
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["findings_count"] == 1

@@ -15,7 +15,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -984,3 +984,151 @@ class TestScanContentSecretsEdgeCases:
 
             assert result.status == SecretsScanStatus.FAILED
             assert "Unexpected error" in result.error_message
+
+
+class TestSecretsParsingEdgeCases:
+    """Test edge cases in parsing gitleaks and trufflehog output."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory for tests."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield tmpdir
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return SecretsDetector(config)
+
+    def test_parse_gitleaks_output_single_object(self, detector):
+        """Test parsing gitleaks output when it's a single object instead of array."""
+        # Line 253: data = [data] if data else []
+        single_finding = json.dumps(
+            {
+                "RuleID": "generic-api-key",
+                "Description": "API key detected",
+                "File": "config.py",
+                "StartLine": 10,
+                "Match": "api_key=secret123",
+            }
+        )
+
+        findings = detector._parse_gitleaks_output(single_finding, "test-repo", "main")
+
+        assert len(findings) == 1
+        assert findings[0].file_path == "config.py"
+        assert findings[0].line_number == 10
+
+    def test_parse_trufflehog_output_with_empty_lines(self, detector):
+        """Test parsing trufflehog output with empty lines between JSON objects."""
+        # Line 298: continue (empty line)
+        output_with_empty_lines = (
+            '{"DetectorName": "AWS", "Raw": "AKIAIOSFODNN7EXAMPLE", '
+            '"SourceMetadata": {"Data": {"Filesystem": {"file": "config.py", "line": 5}}}}\n'
+            "\n"
+            "\n"
+            '{"DetectorName": "Generic", "Raw": "secret123", '
+            '"SourceMetadata": {"Data": {"Filesystem": {"file": "app.py", "line": 10}}}}'
+        )
+
+        findings = detector._parse_trufflehog_output(
+            output_with_empty_lines, "test-repo", "main"
+        )
+
+        assert len(findings) == 2
+        assert findings[0].file_path == "config.py"
+        assert findings[1].file_path == "app.py"
+
+
+class TestGitleaksCustomConfig:
+    """Test gitleaks with custom config path."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory for tests."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield tmpdir
+
+    @pytest.fixture
+    def detector_with_custom_config(self, temp_dir):
+        """Create a detector with custom config path."""
+        # Line 358: cmd.extend(["--config", self.config.custom_config_path])
+        config = SecretsScannerConfig(
+            timeout_seconds=30,
+            base_path=temp_dir,
+            custom_config_path="/path/to/custom/.gitleaks.toml",
+        )
+        return SecretsDetector(config)
+
+    @pytest.mark.asyncio
+    async def test_gitleaks_with_custom_config(
+        self, detector_with_custom_config, temp_dir
+    ):
+        """Test that custom config path is passed to gitleaks."""
+        # Create a test file
+        test_file = Path(temp_dir) / "test.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        with patch.object(
+            detector_with_custom_config, "_is_gitleaks_available", return_value=True
+        ):
+            with patch("asyncio.create_subprocess_exec") as mock_exec:
+                mock_process = MagicMock()
+                mock_process.communicate = AsyncMock(return_value=(b"[]", b""))
+                mock_process.returncode = 0
+                mock_exec.return_value = mock_process
+
+                await detector_with_custom_config._run_gitleaks(
+                    Path(temp_dir), "test-repo", "main", False
+                )
+
+                # Verify custom config was passed
+                call_args = mock_exec.call_args[0]
+                assert "--config" in call_args
+                assert "/path/to/custom/.gitleaks.toml" in call_args
+
+
+class TestGetRepoInfoException:
+    """Test _get_repo_info exception handling."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory for tests."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield tmpdir
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return SecretsDetector(config)
+
+    def test_get_repo_info_exception(self, detector, temp_dir):
+        """Test _get_repo_info returns defaults when subprocess raises exception."""
+        # Lines 494-495: except Exception: return str(path), "main"
+        test_path = Path(temp_dir) / "test.py"
+        test_path.write_text("content")
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = Exception("Subprocess failed")
+
+            repo_name, branch = detector._get_repo_info(test_path)
+
+            assert repo_name == str(test_path)
+            assert branch == "main"
+
+    def test_get_repo_info_timeout(self, detector, temp_dir):
+        """Test _get_repo_info returns defaults on timeout."""
+        import subprocess
+
+        test_path = Path(temp_dir) / "test.py"
+        test_path.write_text("content")
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = subprocess.TimeoutExpired(cmd="git", timeout=5)
+
+            repo_name, branch = detector._get_repo_info(test_path)
+
+            assert repo_name == str(test_path)
+            assert branch == "main"
