@@ -400,7 +400,7 @@ class IaCScanner:
 
     async def _run_checkov(
         self,
-        target_path: Path,
+        target_path: str,
         provider: IaCProvider,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run checkov scanner asynchronously."""
@@ -484,7 +484,7 @@ class IaCScanner:
 
     async def _run_tfsec(
         self,
-        target_path: Path,
+        target_path: str,
         provider: IaCProvider,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run tfsec scanner asynchronously."""

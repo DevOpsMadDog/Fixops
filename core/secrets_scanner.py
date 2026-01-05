@@ -381,7 +381,7 @@ class SecretsDetector:
 
     async def _run_gitleaks(
         self,
-        target_path: Path,
+        target_path: str,
         repository: str,
         branch: str,
         is_git_repo: bool,
@@ -454,7 +454,7 @@ class SecretsDetector:
 
     async def _run_trufflehog(
         self,
-        target_path: Path,
+        target_path: str,
         repository: str,
         branch: str,
         is_git_repo: bool,
@@ -525,7 +525,7 @@ class SecretsDetector:
         except Exception as e:
             return [], "", f"Trufflehog scan failed: {str(e)}"
 
-    def _is_git_repo(self, path: Path) -> bool:
+    def _is_git_repo(self, path: str) -> bool:
         """Check if the path is inside a git repository."""
         path_str = str(path)
         base_path = self.config.base_path
@@ -543,7 +543,7 @@ class SecretsDetector:
 
         return False
 
-    def _get_repo_info(self, path: Path) -> Tuple[str, str]:
+    def _get_repo_info(self, path: str) -> Tuple[str, str]:
         """Extract repository name and branch from git repo."""
         if not self._is_git_repo(path):
             return str(path), "main"
