@@ -121,10 +121,22 @@ class TestSecretsDetector:
         with pytest.raises(ValueError, match="contains null bytes"):
             detector._validate_path("test/file\x00.py")
 
-    def test_validate_path_absolute_rejected(self, detector, temp_dir):
-        """Test path validation rejects absolute paths."""
-        with pytest.raises(ValueError, match="Absolute paths not allowed"):
+    def test_validate_path_absolute_outside_base_rejected(self, detector, temp_dir):
+        """Test path validation rejects absolute paths outside base directory."""
+        # Absolute path outside base directory should be rejected
+        with pytest.raises(ValueError, match="Path escapes base directory"):
             detector._validate_path("/absolute/path/file.py")
+
+    def test_validate_path_absolute_inside_base_accepted(self, detector, temp_dir):
+        """Test path validation accepts absolute paths inside base directory."""
+        # Create a test file inside the base directory
+        test_file = Path(temp_dir) / "test_absolute.py"
+        test_file.write_text("API_KEY = 'secret'")
+
+        # Absolute path inside base directory should be accepted
+        result = detector._validate_path(str(test_file))
+        assert result.exists()
+        assert str(result) == str(test_file)
 
     def test_validate_path_traversal_rejected(self, detector, temp_dir):
         """Test path validation rejects path traversal."""
@@ -368,11 +380,11 @@ class TestSecretsDetector:
 
     @pytest.mark.asyncio
     async def test_scan_invalid_path(self, detector, temp_dir):
-        """Test scan with invalid (absolute) path."""
+        """Test scan with invalid (absolute) path outside base directory."""
         result = await detector.scan("/nonexistent/path/file.py")
 
         assert result.status == SecretsScanStatus.FAILED
-        assert "Absolute paths not allowed" in result.error_message
+        assert "Path escapes base directory" in result.error_message
 
     @pytest.mark.asyncio
     async def test_scan_nonexistent_path(self, detector, temp_dir):

@@ -164,9 +164,9 @@ class SecretsDetector:
         Security measures:
         1. Reject null bytes in path
         2. Normalize path to prevent traversal via os.path.normpath
-        3. Reject absolute paths (must be relative to base_path)
-        4. Reject path traversal attempts
-        5. Resolve under server-controlled base directory using os.path.realpath
+        3. For relative paths: join with base_path and resolve
+        4. For absolute paths: verify they're within base_path (pre-validated by router)
+        5. Resolve using os.path.realpath (CodeQL-recognized sanitizer)
         6. Verify resolved path stays within base directory using os.path.commonpath
         """
         # Sanitize the path string - reject null bytes
@@ -176,19 +176,23 @@ class SecretsDetector:
         # Normalize the path to collapse .. and . components
         normalized = os.path.normpath(target_path)
 
-        # Reject absolute paths - must be relative to base_path
-        if os.path.isabs(normalized):
-            raise ValueError(f"Absolute paths not allowed: {target_path}")
-
-        # Reject path traversal attempts
-        if normalized.startswith("..") or "/../" in normalized or normalized == "..":
-            raise ValueError(f"Path traversal detected: {target_path}")
-
         # Get server-controlled base path using realpath (CodeQL-recognized sanitizer)
         base = os.path.realpath(self.config.base_path)
 
-        # Join with base path and resolve using realpath
-        candidate = os.path.realpath(os.path.join(base, normalized))
+        # Handle both relative and absolute paths
+        if os.path.isabs(normalized):
+            # For absolute paths (pre-validated by router), resolve and verify containment
+            candidate = os.path.realpath(normalized)
+        else:
+            # Reject path traversal attempts in relative paths
+            if (
+                normalized.startswith("..")
+                or "/../" in normalized
+                or normalized == ".."
+            ):
+                raise ValueError(f"Path traversal detected: {target_path}")
+            # Join with base path and resolve using realpath
+            candidate = os.path.realpath(os.path.join(base, normalized))
 
         # Verify the resolved path stays within the base directory using commonpath
         # This is the containment check that CodeQL recognizes
