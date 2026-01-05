@@ -404,17 +404,22 @@ class IaCScanner:
         provider: IaCProvider,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run checkov scanner asynchronously."""
-        path_str = str(target_path)
-        base_path = self.config.base_path
-
-        # Use safe sink wrapper which has inline sanitization for CodeQL
-        try:
-            is_dir = safe_isdir(path_str, base_path)
-        except PathContainmentError:
+        # Three-stage containment check (CodeQL requires inline check before sink)
+        trusted_root = os.path.realpath(TRUSTED_ROOT)
+        base = os.path.realpath(self.config.base_path)
+        verified_path = os.path.realpath(str(target_path))
+        # Stage 1: candidate must be under trusted_root (de-taints for CodeQL)
+        if os.path.commonpath([trusted_root, verified_path]) != trusted_root:
+            raise ValueError(f"Path escapes trusted root: {target_path}")
+        # Stage 2: base must be under trusted_root
+        if os.path.commonpath([trusted_root, base]) != trusted_root:
+            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+        # Stage 3: candidate must be under base
+        if os.path.commonpath([base, verified_path]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 
-        # Get the resolved path for command execution
-        verified_path = os.path.realpath(path_str)
+        # Check if path is directory (verified_path is now de-tainted)
+        is_dir = os.path.isdir(verified_path)
 
         cmd = [
             self.config.checkov_path,
@@ -491,12 +496,17 @@ class IaCScanner:
         if provider != IaCProvider.TERRAFORM:
             return [], "", "tfsec only supports Terraform files"
 
-        # Two-stage containment check (CodeQL requires TRUSTED_ROOT anchor)
+        # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         verified_path = os.path.realpath(str(target_path))
+        # Stage 1: candidate must be under trusted_root (de-taints for CodeQL)
+        if os.path.commonpath([trusted_root, verified_path]) != trusted_root:
+            raise ValueError(f"Path escapes trusted root: {target_path}")
+        # Stage 2: base must be under trusted_root
         if os.path.commonpath([trusted_root, base]) != trusted_root:
             raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+        # Stage 3: candidate must be under base
         if os.path.commonpath([base, verified_path]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 

@@ -387,12 +387,17 @@ class SecretsDetector:
         is_git_repo: bool,
     ) -> Tuple[List[SecretFinding], str, Optional[str]]:
         """Run gitleaks scanner asynchronously."""
-        # Two-stage containment check (CodeQL requires TRUSTED_ROOT anchor)
+        # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         verified_path = os.path.realpath(str(target_path))
+        # Stage 1: candidate must be under trusted_root (de-taints for CodeQL)
+        if os.path.commonpath([trusted_root, verified_path]) != trusted_root:
+            raise ValueError(f"Path escapes trusted root: {target_path}")
+        # Stage 2: base must be under trusted_root
         if os.path.commonpath([trusted_root, base]) != trusted_root:
             raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+        # Stage 3: candidate must be under base
         if os.path.commonpath([base, verified_path]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 
@@ -460,12 +465,17 @@ class SecretsDetector:
         is_git_repo: bool,
     ) -> Tuple[List[SecretFinding], str, Optional[str]]:
         """Run trufflehog scanner asynchronously."""
-        # Two-stage containment check (CodeQL requires TRUSTED_ROOT anchor)
+        # Three-stage containment check (CodeQL requires inline check before sink)
         trusted_root = os.path.realpath(TRUSTED_ROOT)
         base = os.path.realpath(self.config.base_path)
         verified_path = os.path.realpath(str(target_path))
+        # Stage 1: candidate must be under trusted_root (de-taints for CodeQL)
+        if os.path.commonpath([trusted_root, verified_path]) != trusted_root:
+            raise ValueError(f"Path escapes trusted root: {target_path}")
+        # Stage 2: base must be under trusted_root
         if os.path.commonpath([trusted_root, base]) != trusted_root:
             raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
+        # Stage 3: candidate must be under base
         if os.path.commonpath([base, verified_path]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 

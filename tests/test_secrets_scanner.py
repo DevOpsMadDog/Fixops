@@ -1253,23 +1253,21 @@ class TestPathContainmentErrorHandling:
 
     @pytest.mark.asyncio
     async def test_run_gitleaks_containment_check(self, detector, temp_dir):
-        """Test _run_gitleaks inline containment check."""
+        """Test _run_gitleaks three-stage containment check - Stage 1 (candidate outside trusted root)."""
+        # /tmp/outside.py is outside TRUSTED_ROOT (/var/fixops), so Stage 1 fails
         with patch.object(detector, "_is_gitleaks_available", return_value=True):
             with pytest.raises(ValueError) as exc_info:
-                await detector._run_gitleaks(
-                    Path("/tmp/outside.py"), "repo", "main", False
-                )
-            assert "Path escapes base directory" in str(exc_info.value)
+                await detector._run_gitleaks("/tmp/outside.py", "repo", "main", False)
+            assert "Path escapes trusted root" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_run_trufflehog_containment_check(self, detector, temp_dir):
-        """Test _run_trufflehog inline containment check."""
+        """Test _run_trufflehog three-stage containment check - Stage 1 (candidate outside trusted root)."""
+        # /tmp/outside.py is outside TRUSTED_ROOT (/var/fixops), so Stage 1 fails
         with patch.object(detector, "_is_trufflehog_available", return_value=True):
             with pytest.raises(ValueError) as exc_info:
-                await detector._run_trufflehog(
-                    Path("/tmp/outside.py"), "repo", "main", False
-                )
-            assert "Path escapes base directory" in str(exc_info.value)
+                await detector._run_trufflehog("/tmp/outside.py", "repo", "main", False)
+            assert "Path escapes trusted root" in str(exc_info.value)
 
     def test_is_git_repo_containment_error(self, detector, temp_dir):
         """Test _is_git_repo handles PathContainmentError."""
@@ -1333,39 +1331,45 @@ class TestPathContainmentErrorHandling:
             shutil.rmtree("/tmp/untrusted", ignore_errors=True)
 
     @pytest.mark.asyncio
-    async def test_run_gitleaks_base_path_escapes_trusted_root(self):
-        """Test _run_gitleaks raises ValueError when base_path escapes TRUSTED_ROOT."""
+    async def test_run_gitleaks_base_path_escapes_trusted_root(self, temp_dir):
+        """Test _run_gitleaks three-stage containment check - Stage 2 (base outside trusted root)."""
         # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        # but target_path inside TRUSTED_ROOT so Stage 1 passes and Stage 2 fails
         config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
         detector = SecretsDetector(config)
         os.makedirs("/tmp/untrusted", exist_ok=True)
-        test_file = "/tmp/untrusted/test.py"
+        # Use a file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
+        test_file = os.path.join(temp_dir, "test.py")
         with open(test_file, "w") as f:
             f.write("content")
         try:
             with patch.object(detector, "_is_gitleaks_available", return_value=True):
                 with pytest.raises(ValueError) as exc_info:
-                    await detector._run_gitleaks(Path(test_file), "repo", "main", False)
+                    await detector._run_gitleaks(test_file, "repo", "main", False)
+                # Stage 1 passes (file is under TRUSTED_ROOT)
+                # Stage 2 fails (base is outside TRUSTED_ROOT)
                 assert "Base path escapes trusted root" in str(exc_info.value)
         finally:
             shutil.rmtree("/tmp/untrusted", ignore_errors=True)
 
     @pytest.mark.asyncio
-    async def test_run_trufflehog_base_path_escapes_trusted_root(self):
-        """Test _run_trufflehog raises ValueError when base_path escapes TRUSTED_ROOT."""
+    async def test_run_trufflehog_base_path_escapes_trusted_root(self, temp_dir):
+        """Test _run_trufflehog three-stage containment check - Stage 2 (base outside trusted root)."""
         # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        # but target_path inside TRUSTED_ROOT so Stage 1 passes and Stage 2 fails
         config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
         detector = SecretsDetector(config)
         os.makedirs("/tmp/untrusted", exist_ok=True)
-        test_file = "/tmp/untrusted/test.py"
+        # Use a file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
+        test_file = os.path.join(temp_dir, "test.py")
         with open(test_file, "w") as f:
             f.write("content")
         try:
             with patch.object(detector, "_is_trufflehog_available", return_value=True):
                 with pytest.raises(ValueError) as exc_info:
-                    await detector._run_trufflehog(
-                        Path(test_file), "repo", "main", False
-                    )
+                    await detector._run_trufflehog(test_file, "repo", "main", False)
+                # Stage 1 passes (file is under TRUSTED_ROOT)
+                # Stage 2 fails (base is outside TRUSTED_ROOT)
                 assert "Base path escapes trusted root" in str(exc_info.value)
         finally:
             shutil.rmtree("/tmp/untrusted", ignore_errors=True)

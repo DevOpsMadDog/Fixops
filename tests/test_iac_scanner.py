@@ -1124,26 +1124,31 @@ class TestPathContainmentErrorHandling:
 
     @pytest.mark.asyncio
     async def test_run_checkov_containment_error(self, scanner, temp_dir):
-        """Test _run_checkov handles PathContainmentError from safe_isdir."""
-        test_file = os.path.join(temp_dir, "test.tf")
+        """Test _run_checkov three-stage containment check - Stage 3 (candidate outside base)."""
+        # Create scanner with base_path as a subdirectory under TRUSTED_ROOT
+        sub_dir = os.path.join(temp_dir, "subdir")
+        os.makedirs(sub_dir, exist_ok=True)
+        config = ScannerConfig(timeout_seconds=30, base_path=sub_dir)
+        scanner_with_subdir = IaCScanner(config)
+        # Create a file in temp_dir (parent of sub_dir, but still under TRUSTED_ROOT)
+        test_file = os.path.join(temp_dir, "outside.tf")
         with open(test_file, "w") as f:
             f.write('resource "aws_instance" "example" {}')
-
-        with patch("core.iac_scanner.safe_isdir") as mock_safe_isdir:
-            from core.safe_path_ops import PathContainmentError
-
-            mock_safe_isdir.side_effect = PathContainmentError("Path escapes")
-            with pytest.raises(ValueError) as exc_info:
-                await scanner._run_checkov(Path(test_file), IaCProvider.TERRAFORM)
-            assert "Path escapes base directory" in str(exc_info.value)
+        # Stage 1 passes (file is under TRUSTED_ROOT)
+        # Stage 2 passes (base is under TRUSTED_ROOT)
+        # Stage 3 fails (file is not under sub_dir)
+        with pytest.raises(ValueError) as exc_info:
+            await scanner_with_subdir._run_checkov(test_file, IaCProvider.TERRAFORM)
+        assert "Path escapes base directory" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_run_tfsec_containment_check(self, scanner, temp_dir):
-        """Test _run_tfsec inline containment check."""
+        """Test _run_tfsec three-stage containment check - Stage 1 (candidate outside trusted root)."""
+        # /tmp/outside.tf is outside TRUSTED_ROOT (/var/fixops), so Stage 1 fails
         with patch.object(scanner, "_is_tfsec_available", return_value=True):
             with pytest.raises(ValueError) as exc_info:
-                await scanner._run_tfsec(Path("/tmp/outside.tf"), IaCProvider.TERRAFORM)
-            assert "Path escapes base directory" in str(exc_info.value)
+                await scanner._run_tfsec("/tmp/outside.tf", IaCProvider.TERRAFORM)
+            assert "Path escapes trusted root" in str(exc_info.value)
 
     def test_verify_containment_base_path_escapes_trusted_root(self):
         """Test _verify_containment raises ValueError when base_path escapes TRUSTED_ROOT."""
@@ -1162,19 +1167,23 @@ class TestPathContainmentErrorHandling:
             shutil.rmtree("/tmp/untrusted", ignore_errors=True)
 
     @pytest.mark.asyncio
-    async def test_run_tfsec_base_path_escapes_trusted_root(self):
-        """Test _run_tfsec raises ValueError when base_path escapes TRUSTED_ROOT."""
+    async def test_run_tfsec_base_path_escapes_trusted_root(self, temp_dir):
+        """Test _run_tfsec three-stage containment check - Stage 2 (base outside trusted root)."""
         # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
+        # but target_path inside TRUSTED_ROOT so Stage 1 passes and Stage 2 fails
         config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
         scanner = IaCScanner(config)
         os.makedirs("/tmp/untrusted", exist_ok=True)
-        test_file = "/tmp/untrusted/test.tf"
+        # Use a file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
+        test_file = os.path.join(temp_dir, "test.tf")
         with open(test_file, "w") as f:
             f.write('resource "aws_instance" "example" {}')
         try:
             with patch.object(scanner, "_is_tfsec_available", return_value=True):
                 with pytest.raises(ValueError) as exc_info:
-                    await scanner._run_tfsec(Path(test_file), IaCProvider.TERRAFORM)
+                    await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
+                # Stage 1 passes (file is under TRUSTED_ROOT)
+                # Stage 2 fails (base is outside TRUSTED_ROOT)
                 assert "Base path escapes trusted root" in str(exc_info.value)
         finally:
             shutil.rmtree("/tmp/untrusted", ignore_errors=True)
