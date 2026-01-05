@@ -1211,6 +1211,46 @@ class TestPathContainmentErrorHandling:
             detector._validate_path("/tmp/outside/test.py")
         assert "Path escapes trusted root" in str(exc_info.value)
 
+    def test_validate_path_base_path_escapes_trusted_root(self, temp_dir):
+        """Test _validate_path raises ValueError when base_path escapes TRUSTED_ROOT.
+
+        This tests Stage 2 of the three-stage containment check.
+        To reach Stage 2, we need:
+        - Stage 1 to pass: candidate must be under TRUSTED_ROOT
+        - Stage 2 to fail: base_path must NOT be under TRUSTED_ROOT
+
+        We achieve this by passing an absolute path under TRUSTED_ROOT
+        to a detector configured with base_path outside TRUSTED_ROOT.
+        """
+        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        detector = SecretsDetector(config)
+        # Create a test file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
+        test_file = os.path.join(temp_dir, "test.py")
+        with open(test_file, "w") as f:
+            f.write("API_KEY = 'secret'")
+        # Pass absolute path under TRUSTED_ROOT to detector with base_path outside TRUSTED_ROOT
+        with pytest.raises(ValueError) as exc_info:
+            detector._validate_path(test_file)
+        assert "Base path escapes trusted root" in str(exc_info.value)
+
+    def test_validate_path_escapes_base_directory(self, temp_dir):
+        """Test _validate_path raises ValueError when path escapes base directory."""
+        # Create detector with base_path under TRUSTED_ROOT
+        # Create a subdirectory to use as base_path
+        sub_dir = os.path.join(temp_dir, "subdir")
+        os.makedirs(sub_dir, exist_ok=True)
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=sub_dir)
+        detector = SecretsDetector(config)
+        # Create a file in temp_dir (parent of sub_dir)
+        test_file = os.path.join(temp_dir, "outside.py")
+        with open(test_file, "w") as f:
+            f.write("API_KEY = 'secret'")
+        # Try to access the file from detector with sub_dir as base_path
+        with pytest.raises(ValueError) as exc_info:
+            detector._validate_path(test_file)
+        assert "Path escapes base directory" in str(exc_info.value)
+
     @pytest.mark.asyncio
     async def test_run_gitleaks_containment_check(self, detector, temp_dir):
         """Test _run_gitleaks inline containment check."""

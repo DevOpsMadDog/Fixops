@@ -1068,6 +1068,46 @@ class TestPathContainmentErrorHandling:
             scanner._validate_path("/tmp/outside/test.tf")
         assert "Path escapes trusted root" in str(exc_info.value)
 
+    def test_validate_path_base_path_escapes_trusted_root(self, temp_dir):
+        """Test _validate_path raises ValueError when base_path escapes TRUSTED_ROOT.
+
+        This tests Stage 2 of the three-stage containment check.
+        To reach Stage 2, we need:
+        - Stage 1 to pass: candidate must be under TRUSTED_ROOT
+        - Stage 2 to fail: base_path must NOT be under TRUSTED_ROOT
+
+        We achieve this by passing an absolute path under TRUSTED_ROOT
+        to a scanner configured with base_path outside TRUSTED_ROOT.
+        """
+        # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        scanner = IaCScanner(config)
+        # Create a test file under TRUSTED_ROOT (temp_dir is under /var/fixops/test-scans)
+        test_file = os.path.join(temp_dir, "test.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+        # Pass absolute path under TRUSTED_ROOT to scanner with base_path outside TRUSTED_ROOT
+        with pytest.raises(ValueError) as exc_info:
+            scanner._validate_path(test_file)
+        assert "Base path escapes trusted root" in str(exc_info.value)
+
+    def test_validate_path_escapes_base_directory(self, temp_dir):
+        """Test _validate_path raises ValueError when path escapes base directory."""
+        # Create scanner with base_path under TRUSTED_ROOT
+        # Create a subdirectory to use as base_path
+        sub_dir = os.path.join(temp_dir, "subdir")
+        os.makedirs(sub_dir, exist_ok=True)
+        config = ScannerConfig(timeout_seconds=30, base_path=sub_dir)
+        scanner = IaCScanner(config)
+        # Create a file in temp_dir (parent of sub_dir)
+        test_file = os.path.join(temp_dir, "outside.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+        # Try to access the file from scanner with sub_dir as base_path
+        with pytest.raises(ValueError) as exc_info:
+            scanner._validate_path(test_file)
+        assert "Path escapes base directory" in str(exc_info.value)
+
     def test_detect_provider_containment_error(self, scanner, temp_dir):
         """Test _detect_provider handles PathContainmentError."""
         test_file = os.path.join(temp_dir, "test.tf")
