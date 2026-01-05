@@ -72,10 +72,19 @@ class TestSafeExists:
         test_file = os.path.join(temp_dir, "nonexistent.txt")
         assert safe_exists(test_file, temp_dir) is False
 
-    def test_safe_exists_base_path_escapes_trusted_root(self, temp_dir):
-        """Test safe_exists raises when base_path escapes TRUSTED_ROOT."""
+    def test_safe_exists_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_exists raises when path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
             safe_exists("/tmp/test.txt", "/tmp")
+        assert "Path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_exists_base_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_exists raises when base_path escapes TRUSTED_ROOT."""
+        test_file = os.path.join(temp_dir, "test.txt")
+        with open(test_file, "w") as f:
+            f.write("test")
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_exists(test_file, "/tmp")
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_exists_path_escapes_base_directory(self, temp_dir):
@@ -107,10 +116,19 @@ class TestSafeIsfile:
         """Test safe_isfile with a directory returns False."""
         assert safe_isfile(temp_dir, temp_dir) is False
 
-    def test_safe_isfile_base_path_escapes_trusted_root(self, temp_dir):
-        """Test safe_isfile raises when base_path escapes TRUSTED_ROOT."""
+    def test_safe_isfile_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_isfile raises when path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
             safe_isfile("/tmp/test.txt", "/tmp")
+        assert "Path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_isfile_base_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_isfile raises when base_path escapes TRUSTED_ROOT."""
+        test_file = os.path.join(temp_dir, "test.txt")
+        with open(test_file, "w") as f:
+            f.write("test")
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_isfile(test_file, "/tmp")
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_isfile_path_escapes_base_directory(self, temp_dir):
@@ -142,10 +160,16 @@ class TestSafeIsdir:
             f.write("test")
         assert safe_isdir(test_file, temp_dir) is False
 
+    def test_safe_isdir_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_isdir raises when path escapes TRUSTED_ROOT."""
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_isdir("/tmp/test", "/tmp")
+        assert "Path escapes trusted root" in str(exc_info.value)
+
     def test_safe_isdir_base_path_escapes_trusted_root(self, temp_dir):
         """Test safe_isdir raises when base_path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_isdir("/tmp/test", "/tmp")
+            safe_isdir(temp_dir, "/tmp")
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_isdir_path_escapes_base_directory(self, temp_dir):
@@ -252,10 +276,19 @@ class TestSafeReadText:
         content = safe_read_text(test_file, temp_dir, max_bytes=4)
         assert content == "test"
 
-    def test_safe_read_text_base_path_escapes_trusted_root(self, temp_dir):
-        """Test safe_read_text raises when base_path escapes TRUSTED_ROOT."""
+    def test_safe_read_text_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_read_text raises when path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
             safe_read_text("/tmp/test.txt", "/tmp")
+        assert "Path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_read_text_base_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_read_text raises when base_path escapes TRUSTED_ROOT."""
+        test_file = os.path.join(temp_dir, "test.txt")
+        with open(test_file, "w") as f:
+            f.write("test")
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_read_text(test_file, "/tmp")
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_read_text_path_escapes_base_directory(self, temp_dir):
@@ -284,10 +317,17 @@ class TestSafeWriteText:
             content = f.read()
         assert content == "test content"
 
-    def test_safe_write_text_base_path_escapes_trusted_root(self, temp_dir):
-        """Test safe_write_text raises when base_path escapes TRUSTED_ROOT."""
+    def test_safe_write_text_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_write_text raises when path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
             safe_write_text("/tmp/test.txt", "/tmp", "content")
+        assert "Path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_write_text_base_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_write_text raises when base_path escapes TRUSTED_ROOT."""
+        test_file = os.path.join(temp_dir, "test.txt")
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_write_text(test_file, "/tmp", "content")
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_write_text_path_escapes_base_directory(self, temp_dir):
@@ -468,10 +508,16 @@ class TestSafeIterdir:
         result = list(safe_iterdir(temp_dir, temp_dir))
         assert result == []
 
+    def test_safe_iterdir_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_iterdir raises when path escapes TRUSTED_ROOT."""
+        with pytest.raises(PathContainmentError) as exc_info:
+            list(safe_iterdir("/tmp", "/tmp"))
+        assert "Path escapes trusted root" in str(exc_info.value)
+
     def test_safe_iterdir_base_path_escapes_trusted_root(self, temp_dir):
         """Test safe_iterdir raises when base_path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
-            list(safe_iterdir("/tmp", "/tmp"))
+            list(safe_iterdir(temp_dir, "/tmp"))
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_iterdir_path_escapes_base_directory(self, temp_dir):
@@ -509,10 +555,18 @@ class TestSafeGetParentDirs:
         assert len(result) >= 1
         assert temp_dir in result
 
-    def test_safe_get_parent_dirs_base_path_escapes_trusted_root(self, temp_dir):
-        """Test safe_get_parent_dirs raises when base_path escapes TRUSTED_ROOT."""
+    def test_safe_get_parent_dirs_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_get_parent_dirs raises when path escapes TRUSTED_ROOT."""
         with pytest.raises(PathContainmentError) as exc_info:
             list(safe_get_parent_dirs("/tmp/subdir", "/tmp"))
+        assert "Path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_get_parent_dirs_base_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_get_parent_dirs raises when base_path escapes TRUSTED_ROOT."""
+        subdir = os.path.join(temp_dir, "subdir")
+        os.makedirs(subdir, exist_ok=True)
+        with pytest.raises(PathContainmentError) as exc_info:
+            list(safe_get_parent_dirs(subdir, "/tmp"))
         assert "Base path escapes trusted root" in str(exc_info.value)
 
     def test_safe_get_parent_dirs_path_escapes_base_directory(self, temp_dir):
