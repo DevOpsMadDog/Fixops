@@ -127,7 +127,8 @@ class TestIaCScanner:
 
         # Use relative path (relative to base_path which is temp_dir)
         result = scanner._validate_path("test.tf")
-        assert result.exists()
+        # _validate_path now returns str instead of Path
+        assert os.path.exists(result)
 
     def test_validate_path_null_bytes(self, scanner, temp_dir):
         """Test path validation rejects null bytes."""
@@ -136,8 +137,8 @@ class TestIaCScanner:
 
     def test_validate_path_absolute_outside_base_rejected(self, scanner, temp_dir):
         """Test path validation rejects absolute paths outside base directory."""
-        # Absolute path outside base directory should be rejected
-        with pytest.raises(ValueError, match="Path escapes base directory"):
+        # Absolute path outside TRUSTED_ROOT should be rejected
+        with pytest.raises(ValueError, match="Path escapes trusted root"):
             scanner._validate_path("/absolute/path/file.tf")
 
     def test_validate_path_absolute_inside_base_accepted(self, scanner, temp_dir):
@@ -148,8 +149,9 @@ class TestIaCScanner:
 
         # Absolute path inside base directory should be accepted
         result = scanner._validate_path(str(test_file))
-        assert result.exists()
-        assert str(result) == str(test_file)
+        # _validate_path now returns str instead of Path
+        assert os.path.exists(result)
+        assert result == str(test_file)
 
     def test_validate_path_traversal_rejected(self, scanner, temp_dir):
         """Test path validation rejects path traversal."""
@@ -337,7 +339,7 @@ class TestIaCScanner:
         result = await scanner.scan("/nonexistent/path/file.tf")
 
         assert result.status == ScanStatus.FAILED
-        assert "Path escapes base directory" in result.error_message
+        assert "Path escapes trusted root" in result.error_message
 
     @pytest.mark.asyncio
     async def test_scan_nonexistent_path(self, scanner, temp_dir):
@@ -1060,18 +1062,11 @@ class TestPathContainmentErrorHandling:
         assert "Path escapes base directory" in str(exc_info.value)
 
     def test_validate_path_containment_error(self, scanner, temp_dir):
-        """Test _validate_path handles PathContainmentError from safe_exists."""
-        test_file = os.path.join(temp_dir, "test.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("core.iac_scanner.safe_exists") as mock_safe_exists:
-            from core.safe_path_ops import PathContainmentError
-
-            mock_safe_exists.side_effect = PathContainmentError("Path escapes")
-            with pytest.raises(ValueError) as exc_info:
-                scanner._validate_path(test_file)
-            assert "Path escapes base directory" in str(exc_info.value)
+        """Test _validate_path raises ValueError for paths outside trusted root."""
+        # Test that paths outside TRUSTED_ROOT are rejected
+        with pytest.raises(ValueError) as exc_info:
+            scanner._validate_path("/tmp/outside/test.tf")
+        assert "Path escapes trusted root" in str(exc_info.value)
 
     def test_detect_provider_containment_error(self, scanner, temp_dir):
         """Test _detect_provider handles PathContainmentError."""

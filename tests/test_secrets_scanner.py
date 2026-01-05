@@ -119,7 +119,8 @@ class TestSecretsDetector:
 
         # Use relative path (relative to base_path which is temp_dir)
         result = detector._validate_path("config.py")
-        assert result.exists()
+        # _validate_path now returns str instead of Path
+        assert os.path.exists(result)
 
     def test_validate_path_null_bytes(self, detector, temp_dir):
         """Test path validation rejects null bytes."""
@@ -128,8 +129,8 @@ class TestSecretsDetector:
 
     def test_validate_path_absolute_outside_base_rejected(self, detector, temp_dir):
         """Test path validation rejects absolute paths outside base directory."""
-        # Absolute path outside base directory should be rejected
-        with pytest.raises(ValueError, match="Path escapes base directory"):
+        # Absolute path outside TRUSTED_ROOT should be rejected
+        with pytest.raises(ValueError, match="Path escapes trusted root"):
             detector._validate_path("/absolute/path/file.py")
 
     def test_validate_path_absolute_inside_base_accepted(self, detector, temp_dir):
@@ -140,8 +141,9 @@ class TestSecretsDetector:
 
         # Absolute path inside base directory should be accepted
         result = detector._validate_path(str(test_file))
-        assert result.exists()
-        assert str(result) == str(test_file)
+        # _validate_path now returns str instead of Path
+        assert os.path.exists(result)
+        assert result == str(test_file)
 
     def test_validate_path_traversal_rejected(self, detector, temp_dir):
         """Test path validation rejects path traversal."""
@@ -389,7 +391,7 @@ class TestSecretsDetector:
         result = await detector.scan("/nonexistent/path/file.py")
 
         assert result.status == SecretsScanStatus.FAILED
-        assert "Path escapes base directory" in result.error_message
+        assert "Path escapes trusted root" in result.error_message
 
     @pytest.mark.asyncio
     async def test_scan_nonexistent_path(self, detector, temp_dir):
@@ -1203,18 +1205,11 @@ class TestPathContainmentErrorHandling:
         assert "Path escapes base directory" in str(exc_info.value)
 
     def test_validate_path_containment_error(self, detector, temp_dir):
-        """Test _validate_path handles PathContainmentError from safe_exists."""
-        test_file = os.path.join(temp_dir, "test.py")
-        with open(test_file, "w") as f:
-            f.write("content")
-
-        with patch("core.secrets_scanner.safe_exists") as mock_safe_exists:
-            from core.safe_path_ops import PathContainmentError
-
-            mock_safe_exists.side_effect = PathContainmentError("Path escapes")
-            with pytest.raises(ValueError) as exc_info:
-                detector._validate_path(test_file)
-            assert "Path escapes base directory" in str(exc_info.value)
+        """Test _validate_path raises ValueError for paths outside trusted root."""
+        # Test that paths outside TRUSTED_ROOT are rejected
+        with pytest.raises(ValueError) as exc_info:
+            detector._validate_path("/tmp/outside/test.py")
+        assert "Path escapes trusted root" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_run_gitleaks_containment_check(self, detector, temp_dir):
