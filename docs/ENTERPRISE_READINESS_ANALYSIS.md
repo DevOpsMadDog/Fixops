@@ -20,6 +20,34 @@ This analysis traces actual code paths (not documentation) to classify FixOps co
 
 ---
 
+## What You Can Confidently NOT Build Yet
+
+These items are **NOT REQUIRED** for enterprise plug-and-play deployment:
+
+| Category | Item | Why Not Required |
+|----------|------|------------------|
+| **Advanced Analytics** | Risk quantification ($) | Doesn't affect core decision/remediation workflow |
+| **Advanced Analytics** | Industry benchmarking | No dependency for any stakeholder workflow |
+| **Advanced Analytics** | ROI calculator | Nice-to-have for budget justification, not operational |
+| **Advanced Analytics** | Maturity scoring | Customer-specific, not deployment blocker |
+| **Executive Features** | Board-ready dashboards | API + basic UI sufficient for initial rollout |
+| **Executive Features** | Trend forecasting | Historical data not needed for day-1 operations |
+| **Niche Integrations** | SIEM (Splunk/Sentinel) | Build when customer demands, not baseline |
+| **Niche Integrations** | CMDB sync | Customer-specific, not universal requirement |
+| **Niche Integrations** | Patch management tools | Operational integration, not core workflow |
+| **Niche Integrations** | IOC enrichment | SOC-specific, not vulnerability management core |
+| **UI Polish** | 27 MFEs fully polished | API-first is acceptable; UI is enhancement |
+| **UI Polish** | Developer portal | Self-service is nice-to-have, not blocker |
+| **Workflow Extras** | PoC exploit repository | Assessment team nice-to-have |
+| **Workflow Extras** | Manual pentest scheduling | Can use external tools |
+| **Workflow Extras** | Scanner health dashboard | Operational monitoring, not core |
+| **Workflow Extras** | Workload balancing | Team management nice-to-have |
+| **Workflow Extras** | Capacity planning | Resource planning, not operational |
+
+**Key Principle:** If it doesn't block (1) deploying safely, (2) making decisions, (3) tracking remediation, or (4) generating audit evidence, it's NOT REQUIRED for initial enterprise rollout.
+
+---
+
 ## Part 1: What IS Production-Ready
 
 ### 1.1 External Connectors (core/connectors.py) - REAL
@@ -302,7 +330,16 @@ But there is **NO WORKER** that:
 
 ## Part 5: Enterprise Plug-and-Play Build Plan
 
-### P0: Make It Deployable (Weeks 1-4)
+### Build Priority Legend
+
+| Priority | Meaning | Action |
+|----------|---------|--------|
+| **MUST** | Blocks enterprise deployment | Build immediately |
+| **SHOULD** | High value, recommended | Build in first release |
+| **OPTIONAL** | Nice-to-have | Build if time permits |
+| **NOT REQUIRED** | Can skip entirely | Defer or never build |
+
+### P0: Make It Deployable (Weeks 1-4) - ALL MUST
 
 #### 1. Database Abstraction + PostgreSQL
 **Files to modify:**

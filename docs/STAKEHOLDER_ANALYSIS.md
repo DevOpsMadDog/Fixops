@@ -349,37 +349,49 @@ Based on deep code analysis (tracing actual code paths, not documentation), here
 
 ---
 
-## Feature Gap Summary
+## Feature Gap Summary (with Enterprise Requirement Status)
 
-### High Priority Gaps (Recommended for Next Phase)
+### Enterprise Deployment Requirements
 
-| Gap | Stakeholders Affected | Effort Estimate |
-|-----|----------------------|-----------------|
-| **SIEM Integration** | SOC Analyst, CISO | Large |
-| **Executive Dashboard** | CISO, VM Manager | Medium |
-| **Developer Portal** | DevSecOps, App Lead | Large |
-| **PR/MR Annotations** | DevSecOps, App Lead | Medium |
-| **Patch Management Integration** | DevOps/Platform | Large |
-| **Risk Acceptance Workflow** | GRC Officer, CISO | Medium |
+| Gap | Stakeholders | Effort | Required? | Notes |
+|-----|--------------|--------|-----------|-------|
+| **PostgreSQL Migration** | All | Large | **MUST** | Blocks HA/scaling |
+| **Background Workers** | All | Medium | **MUST** | Outbox never processes |
+| **Fix No-Op Endpoints** | All | Small | **MUST** | Integration sync is fake |
+| **Outbound Connectors** | DevSecOps, App Lead | Large | **SHOULD** | At least Jira works |
+| **OIDC/SAML Auth** | All | Medium | **SHOULD** | API keys work for now |
+| **Multi-Tenancy** | All | Large | **SHOULD** | Single-tenant works initially |
 
-### Medium Priority Gaps
+### Feature Gaps (Prioritized by Requirement)
 
-| Gap | Stakeholders Affected | Effort Estimate |
-|-----|----------------------|-----------------|
-| **Risk Quantification ($)** | CISO, GRC | Medium |
-| **Manual Pentest Workflow** | Assessment Analyst | Small |
-| **Integration Health Dashboard** | TVM Engineer | Small |
-| **Trend Analysis Visualization** | VM Manager, CISO | Medium |
-| **Exception Management** | GRC Officer | Medium |
+| Gap | Stakeholders Affected | Effort | Required? |
+|-----|----------------------|--------|-----------|
+| **PR/MR Annotations** | DevSecOps, App Lead | Medium | **SHOULD** - High value for adoption |
+| **Risk Acceptance Workflow** | GRC Officer, CISO | Medium | **SHOULD** - Compliance need |
+| **Executive Dashboard** | CISO, VM Manager | Medium | **OPTIONAL** - API data exists |
+| **Developer Portal** | DevSecOps, App Lead | Large | **OPTIONAL** - API-first works |
+| **SIEM Integration** | SOC Analyst, CISO | Large | **NOT REQUIRED** - Build when demanded |
+| **Patch Management Integration** | DevOps/Platform | Large | **NOT REQUIRED** - Niche integration |
+| **Risk Quantification ($)** | CISO, GRC | Medium | **NOT REQUIRED** - Nice-to-have |
+| **Trend Analysis Visualization** | VM Manager, CISO | Medium | **NOT REQUIRED** - Day-2 feature |
+| **Industry Benchmarking** | CISO | Medium | **NOT REQUIRED** - No customer data yet |
 
-### Low Priority Gaps
+### Explicitly NOT REQUIRED for Enterprise Baseline
 
-| Gap | Stakeholders Affected | Effort Estimate |
-|-----|----------------------|-----------------|
-| **Workload Balancing** | VM Analyst | Small |
-| **Scanner Health Monitoring** | VM Analyst, TVM Engineer | Small |
-| **Custom Connector SDK** | TVM Engineer | Medium |
-| **Assessment Scheduling** | Assessment Analyst | Small |
+These can be safely deferred or skipped entirely for initial enterprise rollout:
+
+| Gap | Why Not Required |
+|-----|------------------|
+| **Workload Balancing Dashboard** | Team management nice-to-have, not operational |
+| **Scanner Health Monitoring** | Operational monitoring, not core workflow |
+| **Custom Connector SDK** | Build connectors directly, SDK is polish |
+| **Assessment Scheduling** | Use external calendar/tools |
+| **Manual Pentest Workflow** | Assessment team can use existing tools |
+| **Integration Health Dashboard** | Logs/metrics sufficient initially |
+| **PoC Exploit Repository** | Security team nice-to-have |
+| **Developer Training Links** | External LMS integration, not core |
+| **Capacity Planning** | Resource planning, not operational |
+| **ROI Calculator** | Budget justification, not operational |
 
 ---
 
