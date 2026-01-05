@@ -278,12 +278,12 @@ def test_scan_iac_finding_persist_failure(client, db, monkeypatch):
     from unittest.mock import MagicMock
 
     from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
-    from core.iac_scanner import IaCScanResult, IaCScanStatus, ScannerType
+    from core.iac_scanner import ScannerType, ScanResult, ScanStatus
 
     # Create a mock scanner that returns findings
-    mock_result = IaCScanResult(
+    mock_result = ScanResult(
         scan_id="test-scan-id",
-        status=IaCScanStatus.COMPLETED,
+        status=ScanStatus.COMPLETED,
         scanner=ScannerType.CHECKOV,
         provider=IaCProvider.TERRAFORM,
         target_path="/test/path",
@@ -335,12 +335,12 @@ def test_scan_iac_content_finding_persist_failure(client, db, monkeypatch):
     from unittest.mock import MagicMock
 
     from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
-    from core.iac_scanner import IaCScanResult, IaCScanStatus, ScannerType
+    from core.iac_scanner import ScannerType, ScanResult, ScanStatus
 
     # Create a mock scanner that returns findings
-    mock_result = IaCScanResult(
+    mock_result = ScanResult(
         scan_id="test-scan-id",
-        status=IaCScanStatus.COMPLETED,
+        status=ScanStatus.COMPLETED,
         scanner=ScannerType.CHECKOV,
         provider=IaCProvider.TERRAFORM,
         target_path="main.tf",
