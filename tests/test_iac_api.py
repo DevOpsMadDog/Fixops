@@ -114,104 +114,6 @@ def test_resolve_iac_finding(client, db, monkeypatch):
     assert response.json()["status"] == "resolved"
 
 
-def test_scan_iac(client, db, monkeypatch):
-    """Test triggering IaC scan."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "terraform/"},
-    )
-    # Expect 500 because the path doesn't exist in test environment
-    # The API correctly validates and attempts to scan
-    assert response.status_code in (200, 500)
-    data = response.json()
-    # If 200, check status; if 500, check error message
-    if response.status_code == 200:
-        assert data["status"] in ("scanning", "completed", "failed")
-    else:
-        assert "detail" in data
-
-
-def test_scan_iac_null_bytes_rejected(client, db, monkeypatch):
-    """Test that null bytes in path are rejected."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "terraform/\x00malicious.tf"},
-    )
-    assert response.status_code == 400
-    assert "null bytes" in response.json()["detail"].lower()
-
-
-def test_scan_iac_absolute_path_rejected(client, db, monkeypatch):
-    """Test that absolute paths are rejected."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "/etc/passwd"},
-    )
-    assert response.status_code == 400
-    assert "absolute" in response.json()["detail"].lower()
-
-
-def test_scan_iac_path_traversal_rejected(client, db, monkeypatch):
-    """Test that path traversal attempts are rejected."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "../../../etc/passwd"},
-    )
-    assert response.status_code == 400
-    assert "traversal" in response.json()["detail"].lower()
-
-
-def test_scan_iac_symlink_escape_rejected(client, db, monkeypatch):
-    """Test that symlink escapes (commonpath check) are rejected."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    # Mock os.path.realpath to simulate a symlink that escapes the base directory
-    # This triggers line 231 (the commonpath check)
-    original_realpath = __import__("os").path.realpath
-
-    def mock_realpath(path):
-        # If the path contains "symlink_escape", return a path outside base
-        if "symlink_escape" in str(path):
-            return "/etc/passwd"
-        return original_realpath(path)
-
-    monkeypatch.setattr("os.path.realpath", mock_realpath)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "symlink_escape"},
-    )
-    assert response.status_code == 400
-    assert (
-        "traversal" in response.json()["detail"].lower()
-        or "escapes" in response.json()["detail"].lower()
-    )
-
-
-def test_scan_iac_invalid_scanner(client, db, monkeypatch):
-    """Test that invalid scanner type is rejected."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={
-            "provider": "terraform",
-            "file_path": "terraform/",
-            "scanner": "invalid_scanner",
-        },
-    )
-    assert response.status_code == 400
-    assert "invalid scanner" in response.json()["detail"].lower()
-
-
 def test_scan_iac_content(client, db, monkeypatch):
     """Test scanning IaC content."""
     monkeypatch.setattr("apps.api.iac_router.db", db)
@@ -258,25 +160,6 @@ def test_get_scanner_status(client):
     assert isinstance(data["available_scanners"], list)
 
 
-def test_scan_iac_scanner_exception(client, db, monkeypatch):
-    """Test that scanner exceptions are handled and return 500."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
-
-    # Mock the scanner to raise an exception
-    class MockScanner:
-        async def scan(self, *args, **kwargs):
-            raise RuntimeError("Scanner crashed unexpectedly")
-
-    monkeypatch.setattr("apps.api.iac_router.get_iac_scanner", lambda: MockScanner())
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "terraform/"},
-    )
-    assert response.status_code == 500
-    assert "scan failed" in response.json()["detail"].lower()
-
-
 def test_scan_iac_content_scanner_exception(client, db, monkeypatch):
     """Test that scanner exceptions during content scan are handled and return 500."""
     monkeypatch.setattr("apps.api.iac_router.db", db)
@@ -297,63 +180,6 @@ def test_scan_iac_content_scanner_exception(client, db, monkeypatch):
     )
     assert response.status_code == 500
     assert "scan failed" in response.json()["detail"].lower()
-
-
-def test_scan_iac_finding_persist_failure(client, db, monkeypatch):
-    """Test that finding persist failures are logged but don't fail the scan."""
-    from datetime import datetime
-    from unittest.mock import MagicMock
-
-    from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
-    from core.iac_scanner import ScannerType, ScanResult, ScanStatus
-
-    # Create a mock scanner that returns findings
-    mock_result = ScanResult(
-        scan_id="test-scan-id",
-        status=ScanStatus.COMPLETED,
-        scanner=ScannerType.CHECKOV,
-        provider=IaCProvider.TERRAFORM,
-        target_path="/test/path",
-        findings=[
-            IaCFinding(
-                id="finding-1",
-                provider=IaCProvider.TERRAFORM,
-                severity="high",
-                title="Test finding",
-                description="Test description",
-                file_path="main.tf",
-                line_number=1,
-                resource_type="aws_s3_bucket",
-                resource_name="test",
-                rule_id="TEST001",
-                status=IaCFindingStatus.OPEN,
-            )
-        ],
-        started_at=datetime.utcnow(),
-        completed_at=datetime.utcnow(),
-        duration_seconds=1.0,
-    )
-
-    class MockScanner:
-        async def scan(self, *args, **kwargs):
-            return mock_result
-
-    monkeypatch.setattr("apps.api.iac_router.get_iac_scanner", lambda: MockScanner())
-
-    # Mock db to raise exception on create_finding
-    mock_db = MagicMock()
-    mock_db.create_finding.side_effect = Exception("Database error")
-    monkeypatch.setattr("apps.api.iac_router.db", mock_db)
-
-    response = client.post(
-        "/api/v1/iac/scan",
-        json={"provider": "terraform", "file_path": "terraform/"},
-    )
-    # Should still return 200 even if persist fails
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "completed"
-    assert data["findings_count"] == 1
 
 
 def test_scan_iac_content_finding_persist_failure(client, db, monkeypatch):

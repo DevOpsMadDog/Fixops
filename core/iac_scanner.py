@@ -189,70 +189,6 @@ class IaCScanner:
             available.append(ScannerType.TFSEC)
         return available
 
-    def _validate_path(self, target_path: str) -> str:
-        """
-        Validate and resolve the target path with security checks.
-
-        Security measures:
-        1. Reject null bytes in path
-        2. Normalize path to prevent traversal via os.path.normpath
-        3. For relative paths: join with base_path and resolve
-        4. For absolute paths: verify they're within base_path (pre-validated by router)
-        5. Resolve using os.path.realpath (CodeQL-recognized sanitizer)
-        6. Three-stage containment check with TRUSTED_ROOT anchor for CodeQL compliance
-
-        Returns:
-            Validated path as string (not Path object to avoid CodeQL sink)
-        """
-        # Sanitize the path string - reject null bytes
-        if "\x00" in target_path:
-            raise ValueError(f"Invalid path: {target_path} contains null bytes")
-
-        # Normalize the path to collapse .. and . components
-        normalized = os.path.normpath(target_path)
-
-        # Get server-controlled base path using realpath (CodeQL-recognized sanitizer)
-        base = os.path.realpath(self.config.base_path)
-
-        # Handle both relative and absolute paths
-        if os.path.isabs(normalized):
-            # For absolute paths (pre-validated by router), resolve and verify containment
-            candidate = os.path.realpath(normalized)
-        else:
-            # Reject path traversal attempts in relative paths
-            if (
-                normalized.startswith("..")
-                or "/../" in normalized
-                or normalized == ".."
-            ):
-                raise ValueError(f"Path traversal detected: {target_path}")
-            # Join with base path and resolve using realpath
-            candidate = os.path.realpath(os.path.join(base, normalized))
-
-        # Three-stage containment check with TRUSTED_ROOT anchor for CodeQL compliance
-        trusted_root = os.path.realpath(TRUSTED_ROOT)
-        # Helper for startswith-based containment check (CodeQL-recognized pattern)
-        trusted_prefix = (
-            trusted_root if trusted_root.endswith(os.sep) else trusted_root + os.sep
-        )
-        base_prefix = base if base.endswith(os.sep) else base + os.sep
-        # Stage 1: candidate must be under trusted_root (de-taints candidate for CodeQL)
-        if not (candidate == trusted_root or candidate.startswith(trusted_prefix)):
-            raise ValueError(f"Path escapes trusted root: {target_path}")
-        # Stage 2: base must be under trusted_root
-        if not (base == trusted_root or base.startswith(trusted_prefix)):
-            raise ValueError(f"Base path escapes trusted root: {self.config.base_path}")
-        # Stage 3: candidate must be under base
-        if not (candidate == base or candidate.startswith(base_prefix)):
-            raise ValueError(f"Path escapes base directory: {target_path}")
-
-        # Verify path exists using os.path.exists (candidate is now de-tainted)
-        if not os.path.exists(candidate):
-            raise FileNotFoundError(f"Target path does not exist: {target_path}")
-
-        # Return string instead of Path to avoid CodeQL sink
-        return candidate
-
     def _detect_provider(self, target_path: str) -> IaCProvider:
         """Auto-detect IaC provider from file contents or extension."""
         path_str = target_path
@@ -580,96 +516,6 @@ class IaCScanner:
         except Exception as e:
             return [], "", f"tfsec scan failed: {str(e)}"
 
-    async def scan(
-        self,
-        target_path: str,
-        provider: Optional[IaCProvider] = None,
-        scanner: Optional[ScannerType] = None,
-    ) -> ScanResult:
-        """
-        Perform an IaC security scan.
-
-        Args:
-            target_path: Path to file or directory to scan (must be pre-validated by caller)
-            provider: IaC provider type (auto-detected if not specified)
-            scanner: Scanner to use (auto-selected if not specified)
-
-        Returns:
-            ScanResult with findings and metadata
-
-        Note: Path traversal protection is handled at the API layer using
-        server-side configured base paths. Callers must validate paths before
-        calling this method.
-        """
-        scan_id = str(uuid4())
-        started_at = datetime.utcnow()
-
-        try:
-            resolved_path = self._validate_path(target_path)
-        except (ValueError, FileNotFoundError) as e:
-            return ScanResult(
-                scan_id=scan_id,
-                status=ScanStatus.FAILED,
-                scanner=scanner or ScannerType.CHECKOV,
-                provider=provider or IaCProvider.TERRAFORM,
-                target_path=target_path,
-                started_at=started_at,
-                completed_at=datetime.utcnow(),
-                error_message=str(e),
-            )
-
-        if provider is None:
-            provider = self._detect_provider(resolved_path)
-
-        if scanner is None:
-            if provider == IaCProvider.TERRAFORM and self._is_tfsec_available():
-                scanner = ScannerType.TFSEC
-            elif self._is_checkov_available():
-                scanner = ScannerType.CHECKOV
-            else:
-                return ScanResult(
-                    scan_id=scan_id,
-                    status=ScanStatus.FAILED,
-                    scanner=ScannerType.CHECKOV,
-                    provider=provider,
-                    target_path=target_path,
-                    started_at=started_at,
-                    completed_at=datetime.utcnow(),
-                    error_message="No IaC scanner available. Install checkov or tfsec.",
-                )
-
-        if scanner == ScannerType.CHECKOV:
-            findings, raw_output, error = await self._run_checkov(
-                resolved_path, provider
-            )
-        else:
-            findings, raw_output, error = await self._run_tfsec(resolved_path, provider)
-
-        completed_at = datetime.utcnow()
-        duration = (completed_at - started_at).total_seconds()
-
-        return ScanResult(
-            scan_id=scan_id,
-            status=ScanStatus.FAILED if error else ScanStatus.COMPLETED,
-            scanner=scanner,
-            provider=provider,
-            target_path=target_path,
-            findings=findings,
-            started_at=started_at,
-            completed_at=completed_at,
-            duration_seconds=duration,
-            error_message=error,
-            raw_output=raw_output if error else None,
-            metadata={
-                "resolved_path": str(resolved_path),
-                "findings_by_severity": {
-                    "high": len([f for f in findings if f.severity == "high"]),
-                    "medium": len([f for f in findings if f.severity == "medium"]),
-                    "low": len([f for f in findings if f.severity == "low"]),
-                },
-            },
-        )
-
     async def scan_content(
         self,
         content: str,
@@ -786,38 +632,6 @@ class IaCScanner:
                     completed_at=datetime.now(),
                     error_message=str(e),
                 )
-
-    async def scan_multiple(
-        self,
-        target_paths: List[str],
-        provider: Optional[IaCProvider] = None,
-        scanner: Optional[ScannerType] = None,
-        max_concurrent: int = 5,
-    ) -> List[ScanResult]:
-        """
-        Scan multiple paths concurrently.
-
-        Args:
-            target_paths: List of paths to scan (must be pre-validated by caller)
-            provider: IaC provider type (auto-detected per path if not specified)
-            scanner: Scanner to use (auto-selected if not specified)
-            max_concurrent: Maximum concurrent scans
-
-        Returns:
-            List of ScanResults
-
-        Note: Path traversal protection is handled at the API layer using
-        server-side configured base paths. Callers must validate paths before
-        calling this method.
-        """
-        semaphore = asyncio.Semaphore(max_concurrent)
-
-        async def scan_with_semaphore(path: str) -> ScanResult:
-            async with semaphore:
-                return await self.scan(path, provider, scanner)
-
-        tasks = [scan_with_semaphore(path) for path in target_paths]
-        return await asyncio.gather(*tasks)
 
 
 _default_scanner: Optional[IaCScanner] = None
