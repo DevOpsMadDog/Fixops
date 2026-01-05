@@ -44,6 +44,41 @@ FixOps is designed for **single-tenant, on-premises deployment**. This means:
 | **AI Consensus** | **Production Ready** | Real LLM provider integration with fallback logic |
 | **Enterprise Storage** | **Production Ready** | S3 Object Lock, Azure Immutable Blob, WORM compliance |
 
+### Enterprise Deployment Reality Check
+
+**Deep code analysis (not trusting docs) reveals:**
+
+| Component | Claimed | Actual | Notes |
+|-----------|---------|--------|-------|
+| **Jira Connector** | Complete | **REAL** | `core/connectors.py:70-124` makes actual HTTP calls |
+| **Slack Connector** | Complete | **REAL** | Real webhook POST with SSRF protection |
+| **Confluence Connector** | Complete | **REAL** | Real REST API calls to `/rest/api/content` |
+| **Integration Sync** | Complete | **NO-OP** | `trigger_sync()` stamps "success" without syncing |
+| **ALM Work Items** | Complete | **QUEUED ONLY** | Items queued but no worker processes them |
+| **Background Workers** | Implied | **MISSING** | Outbox exists but no processor |
+| **Database** | SQLite | **12+ SEPARATE DBs** | Hardcoded paths like `data/users.db` |
+
+### What's NOT REQUIRED for Enterprise Baseline
+
+These can be safely deferred or skipped for initial enterprise deployment:
+
+| Category | Item | Why Not Required |
+|----------|------|------------------|
+| **Advanced Analytics** | Risk quantification ($) | Doesn't affect core decision/remediation workflow |
+| **Advanced Analytics** | Industry benchmarking | No dependency for any stakeholder workflow |
+| **Advanced Analytics** | ROI calculator | Nice-to-have for budget justification, not operational |
+| **Executive Features** | Board-ready dashboards | API + basic UI sufficient for initial rollout |
+| **Executive Features** | Trend forecasting | Historical data not needed for day-1 operations |
+| **Niche Integrations** | SIEM (Splunk/Sentinel) | Build when customer demands, not baseline |
+| **Niche Integrations** | CMDB sync | Customer-specific, not universal requirement |
+| **Niche Integrations** | Patch management tools | Operational integration, not core workflow |
+| **UI Polish** | 27 MFEs fully polished | API-first is acceptable; UI is enhancement |
+| **UI Polish** | Developer portal | Self-service is nice-to-have, not blocker |
+| **Workflow Extras** | Manual pentest scheduling | Can use external tools |
+| **Workflow Extras** | Scanner health dashboard | Operational monitoring, not core |
+
+**Key Principle:** If it doesn't block (1) deploying safely, (2) making decisions, (3) tracking remediation, or (4) generating audit evidence, it's NOT REQUIRED for initial enterprise rollout.
+
 ---
 
 ## PPT Slide Content (One-Slide Summary)

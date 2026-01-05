@@ -9,12 +9,20 @@ This document consolidates all planned features and "What's Needed" items into a
 
 ## Priority Legend
 
-| Priority | Meaning |
-|----------|---------|
-| **Critical** | Required for pitch deck claims to be true |
-| **High** | Important for product completeness |
-| **Medium** | Nice to have, improves UX |
-| **Low** | Future enhancement |
+| Priority | Meaning | Action |
+|----------|---------|--------|
+| **MUST** | Blocks enterprise deployment | Build immediately |
+| **SHOULD** | High value, recommended | Build in first release |
+| **OPTIONAL** | Nice to have, improves UX | Build if time permits |
+| **NOT REQUIRED** | Can skip entirely | Defer or never build |
+
+### Legacy Priority Mapping
+| Old Priority | New Classification |
+|--------------|-------------------|
+| Critical | MUST (if deployment blocker) or SHOULD |
+| High | SHOULD |
+| Medium | OPTIONAL |
+| Low | NOT REQUIRED |
 
 ---
 
@@ -57,18 +65,46 @@ This document consolidates all planned features and "What's Needed" items into a
 | IDE Analysis | Returns empty findings | Analysis engine integration | 1-2 weeks | `apps/api/ide_router.py:58-81` |
 | IDE Suggestions | Returns empty suggestions | Suggestion engine | 1-2 weeks | `apps/api/ide_router.py` |
 
-### Low Priority (Future Enhancements)
+### NOT REQUIRED for Enterprise Baseline
 
-| Feature | Current State | What's Needed | Effort | Code Reference |
-|---------|---------------|---------------|--------|----------------|
-| Application Components | Returns `[]` | Populate from SBOM uploads | 3-5 days | `apps/api/inventory_router.py:152-204` |
-| Application APIs | Returns `[]` | API catalog integration | 1 week | `apps/api/inventory_router.py` |
-| Application Dependencies | Returns `[]` | Dependency graph from SBOM | 3-5 days | `apps/api/inventory_router.py` |
-| Service Registry | Returns `[]` or 404 | Service registry integration | 1-2 weeks | `apps/api/inventory_router.py` |
-| Lifecycle Stage Tracking | Not implemented | Add `lifecycle_stage` field | 1-2 weeks | `core/services/deduplication.py` |
-| Cross-Stage Correlation | Not implemented | Link findings across stages | 1-2 weeks | `core/services/deduplication.py` |
-| Runtime Event Ingestion | Not implemented | `POST /api/v1/events/ingest` | 1 week | New endpoint |
-| OSS Fallback Wiring | Code exists, not wired | Wire to pipeline with config | 3-5 days | `core/oss_fallback.py` |
+These can be safely deferred or skipped entirely for initial enterprise deployment:
+
+| Feature | Why NOT REQUIRED | Category |
+|---------|------------------|----------|
+| Application Components | SBOM data exists, UI enhancement only | UI Polish |
+| Application APIs | API catalog is nice-to-have | UI Polish |
+| Application Dependencies | Dependency graph is visualization only | UI Polish |
+| Service Registry | External service discovery, not core | Niche Integration |
+| Lifecycle Stage Tracking | Advanced analytics, not operational | Advanced Analytics |
+| Cross-Stage Correlation | Advanced analytics, not operational | Advanced Analytics |
+| Runtime Event Ingestion | SIEM integration, build when demanded | Niche Integration |
+| OSS Fallback Wiring | Proprietary tools work, OSS is backup | Optional |
+| Risk Quantification ($) | Budget justification, not operational | Advanced Analytics |
+| Industry Benchmarking | No customer data yet | Advanced Analytics |
+| ROI Calculator | Nice-to-have for execs | Advanced Analytics |
+| Board-ready Dashboards | API data exists, UI is enhancement | UI Polish |
+| Trend Forecasting | Historical data not needed day-1 | Advanced Analytics |
+| SIEM (Splunk/Sentinel) | Build when customer demands | Niche Integration |
+| CMDB Sync | Customer-specific integration | Niche Integration |
+| Patch Management Tools | Operational integration, not core | Niche Integration |
+| Developer Portal | Self-service is nice-to-have | UI Polish |
+| Manual Pentest Scheduling | Use external tools | Workflow Extra |
+| Scanner Health Dashboard | Operational monitoring, not core | Workflow Extra |
+
+**Key Principle:** If it doesn't block (1) deploying safely, (2) making decisions, (3) tracking remediation, or (4) generating audit evidence, it's NOT REQUIRED for initial enterprise rollout.
+
+### Low Priority (Future Enhancements) - OPTIONAL/NOT REQUIRED
+
+| Feature | Current State | What's Needed | Effort | Required? |
+|---------|---------------|---------------|--------|-----------|
+| Application Components | Returns `[]` | Populate from SBOM uploads | 3-5 days | NOT REQUIRED |
+| Application APIs | Returns `[]` | API catalog integration | 1 week | NOT REQUIRED |
+| Application Dependencies | Returns `[]` | Dependency graph from SBOM | 3-5 days | NOT REQUIRED |
+| Service Registry | Returns `[]` or 404 | Service registry integration | 1-2 weeks | NOT REQUIRED |
+| Lifecycle Stage Tracking | Not implemented | Add `lifecycle_stage` field | 1-2 weeks | NOT REQUIRED |
+| Cross-Stage Correlation | Not implemented | Link findings across stages | 1-2 weeks | NOT REQUIRED |
+| Runtime Event Ingestion | Not implemented | `POST /api/v1/events/ingest` | 1 week | NOT REQUIRED |
+| OSS Fallback Wiring | Code exists, not wired | Wire to pipeline with config | 3-5 days | OPTIONAL |
 
 ---
 
@@ -162,25 +198,25 @@ These are the items actively being built or planned for immediate development:
 
 ---
 
-## Persona Tool Gaps (From Pitch Deck)
+## Persona Tool Gaps (From Pitch Deck) - With Requirement Status
 
 These tools are mentioned in the pitch deck persona analysis but lack native FixOps integration:
 
-| Tool | Persona | Gap Type | Priority | Effort |
-|------|---------|----------|----------|--------|
-| **Nessus** | VM Analyst, VA Analyst | No adapter | High | 1-2 weeks |
-| **Qualys** | VM Analyst, VM Specialist | No adapter | High | 1-2 weeks |
-| **Tenable.io** | VM Engineer | No adapter | High | 1-2 weeks |
-| **Wiz** | CNAPP, Cloud | Sample only, no formal adapter | Medium | 3-5 days |
-| **Checkmarx** | SAST, App Lead | Sample only, no formal adapter | Medium | 3-5 days |
-| **Burp Suite** | VA Analyst | Sample only, no formal adapter | Medium | 3-5 days |
-| **Rapid7** | VM Analyst | No adapter | Low | 1 week |
-| **Nmap** | VA Analyst | No adapter | Low | 3-5 days |
-| **OpenVAS** | VA Analyst | No adapter | Low | 3-5 days |
-| **Splunk** | VM Engineer, SOC | No SIEM integration | Low | 2-3 weeks |
-| **Apiiro** | ASPM | No adapter | Low | 1 week |
+| Tool | Persona | Gap Type | Required? | Effort |
+|------|---------|----------|-----------|--------|
+| **Nessus** | VM Analyst, VA Analyst | No adapter | SHOULD | 1-2 weeks |
+| **Qualys** | VM Analyst, VM Specialist | No adapter | SHOULD | 1-2 weeks |
+| **Tenable.io** | VM Engineer | No adapter | SHOULD | 1-2 weeks |
+| **Wiz** | CNAPP, Cloud | Sample only, no formal adapter | OPTIONAL | 3-5 days |
+| **Checkmarx** | SAST, App Lead | Sample only, no formal adapter | OPTIONAL | 3-5 days |
+| **Burp Suite** | VA Analyst | Sample only, no formal adapter | OPTIONAL | 3-5 days |
+| **Rapid7** | VM Analyst | No adapter | NOT REQUIRED | 1 week |
+| **Nmap** | VA Analyst | No adapter | NOT REQUIRED | 3-5 days |
+| **OpenVAS** | VA Analyst | No adapter | NOT REQUIRED | 3-5 days |
+| **Splunk** | VM Engineer, SOC | No SIEM integration | NOT REQUIRED | 2-3 weeks |
+| **Apiiro** | ASPM | No adapter | NOT REQUIRED | 1 week |
 
-**SIEM/EDR Gap:** SOC analysts need runtime event ingestion, SIEM log parsing, and EDR alert correlation - none currently implemented.
+**SIEM/EDR Gap:** SOC analysts need runtime event ingestion, SIEM log parsing, and EDR alert correlation - **NOT REQUIRED** for initial enterprise baseline. Build when customer demands.
 
 **Full analysis:** See `FIXOPS_IMPLEMENTATION_STATUS.md` Appendix F: Persona Tool Coverage Matrix
 
