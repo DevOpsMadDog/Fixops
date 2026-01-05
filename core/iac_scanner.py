@@ -20,6 +20,15 @@ from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
+from core.safe_path_ops import (
+    PathContainmentError,
+    safe_exists,
+    safe_isdir,
+    safe_isfile,
+    safe_iterdir,
+    safe_read_text,
+    safe_write_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -218,60 +227,58 @@ class IaCScanner:
         if os.path.commonpath([base, candidate]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 
-        resolved = Path(candidate)
+        # Use safe_exists wrapper which has inline sanitization for CodeQL
+        try:
+            if not safe_exists(candidate, self.config.base_path):
+                raise FileNotFoundError(f"Target path does not exist: {target_path}")
+        except PathContainmentError:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
-        if not resolved.exists():
-            raise FileNotFoundError(f"Target path does not exist: {target_path}")
-
-        return resolved
+        return Path(candidate)
 
     def _detect_provider(self, target_path: Path) -> IaCProvider:
         """Auto-detect IaC provider from file contents or extension."""
-        # Inline sanitization check (CodeQL requires this pattern at each sink)
-        base = os.path.realpath(self.config.base_path)
-        candidate = os.path.realpath(str(target_path))
-        if os.path.commonpath([base, candidate]) != base:
-            raise ValueError(f"Path escapes base directory: {target_path}")
+        path_str = str(target_path)
+        base_path = self.config.base_path
 
-        # Use the sanitized candidate path directly (not reconstructed from user input)
-        if os.path.isfile(candidate):
-            suffix = os.path.splitext(candidate)[1].lower()
-            name = os.path.basename(candidate).lower()
+        # Use safe sink wrappers which have inline sanitization for CodeQL
+        try:
+            if safe_isfile(path_str, base_path):
+                suffix = os.path.splitext(path_str)[1].lower()
+                name = os.path.basename(path_str).lower()
 
-            # Check for Helm Chart.yaml first (before other YAML checks)
-            if name == "chart.yaml":
-                return IaCProvider.HELM
-            elif suffix in (".tf", ".tfvars"):
-                return IaCProvider.TERRAFORM
-            elif suffix in (".yaml", ".yml"):
-                # Read file using sanitized path
-                with open(candidate, "r", errors="ignore") as f:
-                    content = f.read(1000)
-                if "AWSTemplateFormatVersion" in content or "Resources:" in content:
-                    return IaCProvider.CLOUDFORMATION
-                elif "apiVersion:" in content and "kind:" in content:
-                    return IaCProvider.KUBERNETES
-                elif "hosts:" in content or "tasks:" in content:
-                    return IaCProvider.ANSIBLE
-            elif suffix == ".json":
-                # Read file using sanitized path
-                with open(candidate, "r", errors="ignore") as f:
-                    content = f.read(1000)
-                if "AWSTemplateFormatVersion" in content:
-                    return IaCProvider.CLOUDFORMATION
-
-        elif os.path.isdir(candidate):
-            # Iterate directory using sanitized path
-            for child_name in os.listdir(candidate):
-                child_path = os.path.realpath(os.path.join(candidate, child_name))
-                # Verify each child is also within base directory
-                if os.path.commonpath([base, child_path]) != base:
-                    continue  # Skip files outside base directory
-                child_suffix = os.path.splitext(child_name)[1].lower()
-                if child_suffix == ".tf":
-                    return IaCProvider.TERRAFORM
-                elif child_name.lower() == "chart.yaml":
+                # Check for Helm Chart.yaml first (before other YAML checks)
+                if name == "chart.yaml":
                     return IaCProvider.HELM
+                elif suffix in (".tf", ".tfvars"):
+                    return IaCProvider.TERRAFORM
+                elif suffix in (".yaml", ".yml"):
+                    # Read file using safe wrapper
+                    content = safe_read_text(path_str, base_path, max_bytes=1000)
+                    if "AWSTemplateFormatVersion" in content or "Resources:" in content:
+                        return IaCProvider.CLOUDFORMATION
+                    elif "apiVersion:" in content and "kind:" in content:
+                        return IaCProvider.KUBERNETES
+                    elif "hosts:" in content or "tasks:" in content:
+                        return IaCProvider.ANSIBLE
+                elif suffix == ".json":
+                    # Read file using safe wrapper
+                    content = safe_read_text(path_str, base_path, max_bytes=1000)
+                    if "AWSTemplateFormatVersion" in content:
+                        return IaCProvider.CLOUDFORMATION
+
+            elif safe_isdir(path_str, base_path):
+                # Iterate directory using safe wrapper
+                for child_path in safe_iterdir(path_str, base_path):
+                    child_name = os.path.basename(child_path)
+                    child_suffix = os.path.splitext(child_name)[1].lower()
+                    if child_suffix == ".tf":
+                        return IaCProvider.TERRAFORM
+                    elif child_name.lower() == "chart.yaml":
+                        return IaCProvider.HELM
+
+        except PathContainmentError:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
         return IaCProvider.TERRAFORM
 
@@ -385,15 +392,21 @@ class IaCScanner:
         provider: IaCProvider,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run checkov scanner asynchronously."""
-        # Inline sanitization check (CodeQL requires this pattern at each sink)
-        base = os.path.realpath(self.config.base_path)
-        verified_path = os.path.realpath(str(target_path))
-        if os.path.commonpath([base, verified_path]) != base:
+        path_str = str(target_path)
+        base_path = self.config.base_path
+
+        # Use safe sink wrapper which has inline sanitization for CodeQL
+        try:
+            is_dir = safe_isdir(path_str, base_path)
+        except PathContainmentError:
             raise ValueError(f"Path escapes base directory: {target_path}")
+
+        # Get the resolved path for command execution
+        verified_path = os.path.realpath(path_str)
 
         cmd = [
             self.config.checkov_path,
-            "-d" if os.path.isdir(verified_path) else "-f",
+            "-d" if is_dir else "-f",
             verified_path,
             "--output",
             "json",
@@ -647,12 +660,14 @@ class IaCScanner:
 
         # Create temp directory under base_path so containment checks pass
         # This ensures CodeQL sees the sanitization pattern
-        base = os.path.realpath(self.config.base_path)
+        base_path = self.config.base_path
+        base = os.path.realpath(base_path)
         os.makedirs(base, exist_ok=True)
 
         with tempfile.TemporaryDirectory(dir=base) as temp_dir:
             temp_file = Path(temp_dir) / safe_filename
-            temp_file.write_text(content)
+            # Use safe_write_text wrapper which has inline sanitization for CodeQL
+            safe_write_text(str(temp_file), base_path, content)
 
             scan_id = str(uuid4())
             started_at = datetime.now()

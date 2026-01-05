@@ -19,6 +19,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
+from core.safe_path_ops import (
+    PathContainmentError,
+    safe_exists,
+    safe_get_parent_dirs,
+    safe_isdir,
+    safe_subprocess_run,
+    safe_write_text,
+)
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 
 logger = logging.getLogger(__name__)
@@ -221,12 +229,14 @@ class SecretsDetector:
         if os.path.commonpath([base, candidate]) != base:
             raise ValueError(f"Path escapes base directory: {target_path}")
 
-        resolved = Path(candidate)
+        # Use safe_exists wrapper which has inline sanitization for CodeQL
+        try:
+            if not safe_exists(candidate, self.config.base_path):
+                raise FileNotFoundError(f"Target path does not exist: {target_path}")
+        except PathContainmentError:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
-        if not resolved.exists():
-            raise FileNotFoundError(f"Target path does not exist: {target_path}")
-
-        return resolved
+        return Path(candidate)
 
     def _map_secret_type(self, rule_id: str, description: str = "") -> SecretType:
         """Map scanner-specific rule to normalized secret type."""
@@ -498,27 +508,20 @@ class SecretsDetector:
 
     def _is_git_repo(self, path: Path) -> bool:
         """Check if the path is inside a git repository."""
-        # Inline sanitization check (CodeQL requires this pattern at each sink)
-        base = os.path.realpath(self.config.base_path)
-        verified_path = os.path.realpath(str(path))
-        if os.path.commonpath([base, verified_path]) != base:
+        path_str = str(path)
+        base_path = self.config.base_path
+
+        # Use safe sink wrappers which have inline sanitization for CodeQL
+        try:
+            # Iterate through parent directories looking for .git
+            for parent_dir in safe_get_parent_dirs(path_str, base_path):
+                git_dir = os.path.join(parent_dir, ".git")
+                # Use safe_exists to check for .git directory
+                if safe_exists(git_dir, base_path):
+                    return True
+        except PathContainmentError:
             raise ValueError(f"Path escapes base directory: {path}")
 
-        # Use os.path functions with sanitized path
-        current = (
-            verified_path
-            if os.path.isdir(verified_path)
-            else os.path.dirname(verified_path)
-        )
-        while current != os.path.dirname(current):
-            # Verify each parent is also within base directory
-            current_resolved = os.path.realpath(current)
-            if os.path.commonpath([base, current_resolved]) != base:
-                break  # Stop if we've gone outside base directory
-            git_dir = os.path.join(current, ".git")
-            if os.path.exists(git_dir):
-                return True
-            current = os.path.dirname(current)
         return False
 
     def _get_repo_info(self, path: Path) -> Tuple[str, str]:
@@ -527,41 +530,38 @@ class SecretsDetector:
             return str(path), "main"
 
         try:
-            import subprocess
+            path_str = str(path)
+            base_path = self.config.base_path
 
-            # Inline sanitization check (CodeQL requires this pattern at each sink)
-            base = os.path.realpath(self.config.base_path)
-            verified_path = os.path.realpath(str(path))
-            if os.path.commonpath([base, verified_path]) != base:
+            # Determine cwd using safe_isdir wrapper
+            try:
+                is_dir = safe_isdir(path_str, base_path)
+            except PathContainmentError:
                 raise ValueError(f"Path escapes base directory: {path}")
 
-            # Use sanitized path for subprocess cwd
-            cwd_path = (
-                verified_path
-                if os.path.isdir(verified_path)
-                else os.path.dirname(verified_path)
-            )
+            cwd_path = path_str if is_dir else os.path.dirname(path_str)
 
-            result = subprocess.run(
+            # Use safe_subprocess_run wrapper which has inline sanitization for CodeQL
+            result = safe_subprocess_run(
                 ["git", "rev-parse", "--show-toplevel"],
                 cwd=cwd_path,
-                capture_output=True,
-                text=True,
+                base_path=base_path,
                 timeout=5,
             )
             repo_path = result.stdout.strip() if result.returncode == 0 else str(path)
             repo_name = os.path.basename(repo_path)
 
-            result = subprocess.run(
+            result = safe_subprocess_run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
                 cwd=cwd_path,
-                capture_output=True,
-                text=True,
+                base_path=base_path,
                 timeout=5,
             )
             branch = result.stdout.strip() if result.returncode == 0 else "main"
 
             return repo_name, branch
+        except PathContainmentError:
+            return str(path), "main"
         except Exception:
             return str(path), "main"
 
@@ -728,12 +728,14 @@ class SecretsDetector:
 
         # Create temp directory under base_path so containment checks pass
         # This ensures CodeQL sees the sanitization pattern
-        base = os.path.realpath(self.config.base_path)
+        base_path = self.config.base_path
+        base = os.path.realpath(base_path)
         os.makedirs(base, exist_ok=True)
 
         with tempfile.TemporaryDirectory(dir=base) as temp_dir:
             temp_file = Path(temp_dir) / safe_filename
-            temp_file.write_text(content)
+            # Use safe_write_text wrapper which has inline sanitization for CodeQL
+            safe_write_text(str(temp_file), base_path, content)
 
             scan_id = str(uuid4())
             started_at = datetime.now()
