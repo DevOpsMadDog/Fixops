@@ -1334,3 +1334,19 @@ class TestPathContainmentErrorHandling:
                 assert "Base path escapes trusted root" in str(exc_info.value)
         finally:
             shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+
+    @pytest.mark.asyncio
+    async def test_scan_content_base_path_escapes_trusted_root(self):
+        """Test scan_content raises ValueError when base_path escapes TRUSTED_ROOT."""
+        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        detector = SecretsDetector(config)
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                await detector.scan_content(
+                    content="aws_secret_access_key = AKIAIOSFODNN7EXAMPLE",
+                    filename="test.py",
+                )
+            assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree("/tmp/untrusted", ignore_errors=True)

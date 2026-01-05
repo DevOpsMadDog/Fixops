@@ -738,9 +738,12 @@ class SecretsDetector:
         safe_filename = f"content{ext}"
 
         # Create temp directory under base_path so containment checks pass
-        # This ensures CodeQL sees the sanitization pattern
+        # Two-stage containment check (CodeQL requires TRUSTED_ROOT anchor)
+        trusted_root = os.path.realpath(TRUSTED_ROOT)
         base_path = self.config.base_path
         base = os.path.realpath(base_path)
+        if os.path.commonpath([trusted_root, base]) != trusted_root:
+            raise ValueError(f"Base path escapes trusted root: {base_path}")
         os.makedirs(base, exist_ok=True)
 
         with tempfile.TemporaryDirectory(dir=base) as temp_dir:
