@@ -586,3 +586,104 @@ class TestTrustedRootConstant:
     def test_trusted_root_is_string(self):
         """Test TRUSTED_ROOT is a string."""
         assert isinstance(TRUSTED_ROOT, str)
+
+
+class TestSafeMakedirs:
+    """Tests for safe_makedirs function."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under TRUSTED_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_safe_makedirs_valid_path(self, temp_dir):
+        """Test safe_makedirs creates directory under valid base path."""
+        from core.safe_path_ops import safe_makedirs
+
+        new_dir = os.path.join(temp_dir, "new_subdir")
+        result = safe_makedirs(new_dir, temp_dir)
+        assert os.path.isdir(new_dir)
+        assert result == os.path.realpath(new_dir)
+
+    def test_safe_makedirs_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_makedirs raises when path escapes TRUSTED_ROOT."""
+        from core.safe_path_ops import safe_makedirs
+
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_makedirs("/tmp/outside", temp_dir)
+        assert "Path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_makedirs_base_path_escapes_trusted_root(self, temp_dir):
+        """Test safe_makedirs raises when base_path escapes TRUSTED_ROOT."""
+        from core.safe_path_ops import safe_makedirs
+
+        new_dir = os.path.join(temp_dir, "new_subdir")
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_makedirs(new_dir, "/tmp")
+        assert "Base path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_makedirs_path_escapes_base_directory(self, temp_dir):
+        """Test safe_makedirs raises when path escapes base_path."""
+        from core.safe_path_ops import safe_makedirs
+
+        with pytest.raises(PathContainmentError) as exc_info:
+            safe_makedirs("/var/fixops/other", temp_dir)
+        assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_safe_makedirs_exist_ok(self, temp_dir):
+        """Test safe_makedirs with exist_ok=True."""
+        from core.safe_path_ops import safe_makedirs
+
+        # Create directory first
+        new_dir = os.path.join(temp_dir, "existing_dir")
+        os.makedirs(new_dir, exist_ok=True)
+        # Should not raise with exist_ok=True
+        result = safe_makedirs(new_dir, temp_dir, exist_ok=True)
+        assert os.path.isdir(new_dir)
+        assert result == os.path.realpath(new_dir)
+
+
+class TestSafeTempdir:
+    """Tests for safe_tempdir context manager."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under TRUSTED_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_safe_tempdir_valid_base_path(self, temp_dir):
+        """Test safe_tempdir creates temp directory under valid base path."""
+        from core.safe_path_ops import safe_tempdir
+
+        with safe_tempdir(temp_dir) as temp_path:
+            assert os.path.isdir(temp_path)
+            assert temp_path.startswith(os.path.realpath(temp_dir))
+        # Temp directory should be cleaned up after context exits
+        assert not os.path.exists(temp_path)
+
+    def test_safe_tempdir_base_path_escapes_trusted_root(self):
+        """Test safe_tempdir raises when base_path escapes TRUSTED_ROOT."""
+        from core.safe_path_ops import safe_tempdir
+
+        with pytest.raises(PathContainmentError) as exc_info:
+            with safe_tempdir("/tmp"):
+                pass
+        assert "Base path escapes trusted root" in str(exc_info.value)
+
+    def test_safe_tempdir_creates_base_if_not_exists(self, temp_dir):
+        """Test safe_tempdir creates base directory if it doesn't exist."""
+        from core.safe_path_ops import safe_tempdir
+
+        new_base = os.path.join(temp_dir, "new_base")
+        assert not os.path.exists(new_base)
+        with safe_tempdir(new_base) as temp_path:
+            assert os.path.isdir(temp_path)
+            assert os.path.isdir(new_base)
+        # Base directory should still exist after context exits
+        assert os.path.isdir(new_base)

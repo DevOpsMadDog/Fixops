@@ -10,12 +10,13 @@ Tests cover:
 - Error handling and edge cases
 """
 
+import asyncio
 import json
 import os
 import shutil
 import uuid
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -701,3 +702,384 @@ class TestPathContainmentErrorHandling:
             # Should fail because no scanner is available, not because of path issues
             assert result.status == ScanStatus.FAILED
             assert "No IaC scanner available" in result.error_message
+
+
+class TestRunCheckovSubprocess:
+    """Tests for _run_checkov subprocess execution paths."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under SCAN_BASE_PATH for testing."""
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def scanner(self):
+        """Create a scanner instance for testing."""
+        config = ScannerConfig(timeout_seconds=30)
+        return IaCScanner(config)
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_success(self, scanner, temp_dir):
+        """Test _run_checkov successful execution with valid output."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        # Mock subprocess to return valid checkov output
+        mock_output = json.dumps(
+            {
+                "results": {
+                    "failed_checks": [
+                        {
+                            "check_id": "CKV_AWS_1",
+                            "check_name": "Test check",
+                            "check_result": {"result": "FAILED"},
+                            "file_path": test_file,
+                            "file_line_range": [1, 1],
+                            "resource": "aws_instance.example",
+                            "guideline": "https://example.com",
+                        }
+                    ]
+                }
+            }
+        )
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(mock_output.encode(), b"")
+            )
+            mock_process.returncode = 0
+
+            findings, output, error = await scanner._run_checkov(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert error is None
+            assert len(findings) == 1
+            assert findings[0].rule_id == "CKV_AWS_1"
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_nonzero_exit_code(self, scanner, temp_dir):
+        """Test _run_checkov with non-zero/non-one exit code."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(b"output", b"error message")
+            )
+            mock_process.returncode = 2
+
+            findings, output, error = await scanner._run_checkov(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "Checkov exited with code 2" in error
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_timeout(self, scanner, temp_dir):
+        """Test _run_checkov timeout handling."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
+
+            findings, output, error = await scanner._run_checkov(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "timed out" in error
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_file_not_found(self, scanner, temp_dir):
+        """Test _run_checkov when checkov is not installed."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = FileNotFoundError()
+
+            findings, output, error = await scanner._run_checkov(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "not installed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_generic_exception(self, scanner, temp_dir):
+        """Test _run_checkov generic exception handling."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = RuntimeError("Unexpected error")
+
+            findings, output, error = await scanner._run_checkov(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "Checkov scan failed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_with_skip_download(self, scanner, temp_dir):
+        """Test _run_checkov with skip_download option."""
+        scanner.config.skip_download = True
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+            mock_process.returncode = 0
+
+            await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
+
+            # Verify --skip-download was in the command
+            call_args = mock_exec.call_args[0]
+            assert "--skip-download" in call_args
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_with_excluded_checks(self, scanner, temp_dir):
+        """Test _run_checkov with excluded checks."""
+        scanner.config.excluded_checks = ["CKV_AWS_1", "CKV_AWS_2"]
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+            mock_process.returncode = 0
+
+            await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
+
+            # Verify --skip-check was in the command
+            call_args = mock_exec.call_args[0]
+            assert "--skip-check" in call_args
+            assert "CKV_AWS_1" in call_args
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_with_framework(self, scanner, temp_dir):
+        """Test _run_checkov with different frameworks."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+            mock_process.returncode = 0
+
+            await scanner._run_checkov(test_file, IaCProvider.KUBERNETES)
+
+            # Verify --framework was in the command
+            call_args = mock_exec.call_args[0]
+            assert "--framework" in call_args
+            assert "kubernetes" in call_args
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_directory(self, scanner, temp_dir):
+        """Test _run_checkov with a directory path."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+            mock_process.returncode = 0
+
+            await scanner._run_checkov(temp_dir, IaCProvider.TERRAFORM)
+
+            # Verify -d flag was used for directory
+            call_args = mock_exec.call_args[0]
+            assert "-d" in call_args
+
+
+class TestRunTfsecSubprocess:
+    """Tests for _run_tfsec subprocess execution paths."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under SCAN_BASE_PATH for testing."""
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def scanner(self):
+        """Create a scanner instance for testing."""
+        config = ScannerConfig(timeout_seconds=30)
+        return IaCScanner(config)
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_success(self, scanner, temp_dir):
+        """Test _run_tfsec successful execution with valid output."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        mock_output = json.dumps(
+            {
+                "results": [
+                    {
+                        "rule_id": "AWS001",
+                        "rule_description": "Test rule",
+                        "severity": "HIGH",
+                        "location": {
+                            "filename": test_file,
+                            "start_line": 1,
+                            "end_line": 1,
+                        },
+                        "resource": "aws_instance.example",
+                        "resolution": "Fix it",
+                    }
+                ]
+            }
+        )
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(mock_output.encode(), b"")
+            )
+            mock_process.returncode = 0
+
+            findings, output, error = await scanner._run_tfsec(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert error is None
+            assert len(findings) == 1
+            assert findings[0].rule_id == "AWS001"
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_nonzero_exit_code(self, scanner, temp_dir):
+        """Test _run_tfsec with non-zero/non-one exit code."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(b"output", b"error message")
+            )
+            mock_process.returncode = 2
+
+            findings, output, error = await scanner._run_tfsec(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "tfsec exited with code 2" in error
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_timeout(self, scanner, temp_dir):
+        """Test _run_tfsec timeout handling."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
+
+            findings, output, error = await scanner._run_tfsec(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "timed out" in error
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_file_not_found(self, scanner, temp_dir):
+        """Test _run_tfsec when tfsec is not installed."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = FileNotFoundError()
+
+            findings, output, error = await scanner._run_tfsec(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "not installed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_generic_exception(self, scanner, temp_dir):
+        """Test _run_tfsec generic exception handling."""
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = RuntimeError("Unexpected error")
+
+            findings, output, error = await scanner._run_tfsec(
+                test_file, IaCProvider.TERRAFORM
+            )
+
+            assert findings == []
+            assert "tfsec scan failed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_with_soft_fail(self, scanner, temp_dir):
+        """Test _run_tfsec with soft_fail option."""
+        scanner.config.soft_fail = True
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+            mock_process.returncode = 0
+
+            await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
+
+            # Verify --soft-fail was in the command
+            call_args = mock_exec.call_args[0]
+            assert "--soft-fail" in call_args
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_with_excluded_checks(self, scanner, temp_dir):
+        """Test _run_tfsec with excluded checks."""
+        scanner.config.excluded_checks = ["AWS001", "AWS002"]
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+            mock_process.returncode = 0
+
+            await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
+
+            # Verify --exclude was in the command
+            call_args = mock_exec.call_args[0]
+            assert "--exclude" in call_args
+            assert "AWS001" in call_args

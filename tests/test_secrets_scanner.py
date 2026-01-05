@@ -975,3 +975,378 @@ class TestPathContainmentErrorHandling:
             # Should fail because no scanner is available, not because of path issues
             assert result.status == SecretsScanStatus.FAILED
             assert "No secrets scanner available" in result.error_message
+
+
+class TestRunGitleaksSubprocess:
+    """Tests for _run_gitleaks subprocess execution paths."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under SCAN_BASE_PATH for testing."""
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def detector(self):
+        """Create a detector instance for testing."""
+        config = SecretsScannerConfig(timeout_seconds=30)
+        return SecretsDetector(config)
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_success(self, detector, temp_dir):
+        """Test _run_gitleaks successful execution with valid output."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        mock_output = json.dumps(
+            [
+                {
+                    "RuleID": "aws-access-key-id",
+                    "Description": "AWS Access Key ID",
+                    "Match": "AKIAIOSFODNN7EXAMPLE",
+                    "File": test_file,
+                    "StartLine": 1,
+                    "EndLine": 1,
+                    "Entropy": 3.5,
+                }
+            ]
+        )
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(mock_output.encode(), b"")
+            )
+            mock_process.returncode = 0
+
+            findings, output, error = await detector._run_gitleaks(
+                test_file, "test-repo", "main", False
+            )
+
+            assert error is None
+            assert len(findings) == 1
+            assert findings[0].secret_type == SecretType.AWS_KEY
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_nonzero_exit_code(self, detector, temp_dir):
+        """Test _run_gitleaks with non-zero/non-one exit code."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(b"output", b"error message")
+            )
+            mock_process.returncode = 2
+
+            findings, output, error = await detector._run_gitleaks(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "Gitleaks exited with code 2" in error
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_timeout(self, detector, temp_dir):
+        """Test _run_gitleaks timeout handling."""
+        import asyncio as aio
+
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(side_effect=aio.TimeoutError())
+
+            findings, output, error = await detector._run_gitleaks(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "timed out" in error
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_file_not_found(self, detector, temp_dir):
+        """Test _run_gitleaks when gitleaks is not installed."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = FileNotFoundError()
+
+            findings, output, error = await detector._run_gitleaks(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "not installed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_generic_exception(self, detector, temp_dir):
+        """Test _run_gitleaks generic exception handling."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = RuntimeError("Unexpected error")
+
+            findings, output, error = await detector._run_gitleaks(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "Gitleaks scan failed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_git_mode(self, detector, temp_dir):
+        """Test _run_gitleaks in git mode (without --no-git flag)."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"[]", b""))
+            mock_process.returncode = 0
+
+            await detector._run_gitleaks(test_file, "test-repo", "main", True)
+
+            # Verify git mode - --no-git flag should NOT be present
+            call_args = mock_exec.call_args[0]
+            assert "--no-git" not in call_args
+
+
+class TestRunTrufflehogSubprocess:
+    """Tests for _run_trufflehog subprocess execution paths."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under SCAN_BASE_PATH for testing."""
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def detector(self):
+        """Create a detector instance for testing."""
+        config = SecretsScannerConfig(timeout_seconds=30)
+        return SecretsDetector(config)
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_success(self, detector, temp_dir):
+        """Test _run_trufflehog successful execution with valid output."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        mock_output = json.dumps(
+            {
+                "DetectorName": "AWS",
+                "Raw": "AKIAIOSFODNN7EXAMPLE",
+                "SourceMetadata": {
+                    "Data": {"Filesystem": {"file": test_file, "line": 1}}
+                },
+            }
+        )
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(mock_output.encode(), b"")
+            )
+            mock_process.returncode = 0
+
+            findings, output, error = await detector._run_trufflehog(
+                test_file, "test-repo", "main", False
+            )
+
+            assert error is None
+            assert len(findings) == 1
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_nonzero_exit_code(self, detector, temp_dir):
+        """Test _run_trufflehog with non-zero/non-one/non-183 exit code."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(
+                return_value=(b"output", b"error message")
+            )
+            mock_process.returncode = 2
+
+            findings, output, error = await detector._run_trufflehog(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "Trufflehog exited with code 2" in error
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_timeout(self, detector, temp_dir):
+        """Test _run_trufflehog timeout handling."""
+        import asyncio as aio
+
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(side_effect=aio.TimeoutError())
+
+            findings, output, error = await detector._run_trufflehog(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "timed out" in error
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_file_not_found(self, detector, temp_dir):
+        """Test _run_trufflehog when trufflehog is not installed."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = FileNotFoundError()
+
+            findings, output, error = await detector._run_trufflehog(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "not installed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_generic_exception(self, detector, temp_dir):
+        """Test _run_trufflehog generic exception handling."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = RuntimeError("Unexpected error")
+
+            findings, output, error = await detector._run_trufflehog(
+                test_file, "test-repo", "main", False
+            )
+
+            assert findings == []
+            assert "Trufflehog scan failed" in error
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_git_mode(self, detector, temp_dir):
+        """Test _run_trufflehog in git mode with scan_history."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"", b""))
+            mock_process.returncode = 0
+
+            await detector._run_trufflehog(test_file, "test-repo", "main", True)
+
+            # Verify git mode command was used
+            call_args = mock_exec.call_args[0]
+            assert "git" in call_args
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_with_max_depth(self, detector, temp_dir):
+        """Test _run_trufflehog with max_depth option."""
+        detector.config.max_depth = 500
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write('AWS_SECRET = "AKIAIOSFODNN7EXAMPLE"')
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_process = mock_exec.return_value
+            mock_process.communicate = AsyncMock(return_value=(b"", b""))
+            mock_process.returncode = 0
+
+            await detector._run_trufflehog(test_file, "test-repo", "main", True)
+
+            # Verify --max-depth was in the command
+            call_args = mock_exec.call_args[0]
+            assert "--max-depth" in call_args
+            assert "500" in call_args
+
+
+class TestIsGitRepoAndGetRepoInfo:
+    """Tests for _is_git_repo and _get_repo_info methods."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under SCAN_BASE_PATH for testing."""
+        from core.secrets_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def detector(self):
+        """Create a detector instance for testing."""
+        config = SecretsScannerConfig(timeout_seconds=30)
+        return SecretsDetector(config)
+
+    def test_is_git_repo_false(self, detector, temp_dir):
+        """Test _is_git_repo returns False for non-git directory."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write("test content")
+
+        result = detector._is_git_repo(test_file)
+        assert result is False
+
+    def test_get_repo_info_non_git(self, detector, temp_dir):
+        """Test _get_repo_info returns defaults for non-git directory."""
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write("test content")
+
+        repo_name, branch = detector._get_repo_info(test_file)
+        assert repo_name == test_file
+        assert branch == "main"
+
+    def test_get_repo_info_with_git_repo(self, detector, temp_dir):
+        """Test _get_repo_info with a git repository."""
+        # Create a .git directory to simulate a git repo
+        git_dir = os.path.join(temp_dir, ".git")
+        os.makedirs(git_dir, exist_ok=True)
+
+        test_file = os.path.join(temp_dir, "config.py")
+        with open(test_file, "w") as f:
+            f.write("test content")
+
+        with patch("core.secrets_scanner.safe_subprocess_run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = temp_dir
+            mock_run.return_value = mock_result
+
+            repo_name, branch = detector._get_repo_info(test_file)
+            # Should call git commands
+            assert mock_run.called
