@@ -227,13 +227,16 @@ class IaCScanner:
 
     def _detect_provider(self, target_path: Path) -> IaCProvider:
         """Auto-detect IaC provider from file contents or extension."""
-        # Re-verify containment before file operations (CodeQL-recognized sanitizer)
-        verified_path = self._verify_containment(target_path)
-        safe_path = Path(verified_path)
+        # Inline sanitization check (CodeQL requires this pattern at each sink)
+        base = os.path.realpath(self.config.base_path)
+        candidate = os.path.realpath(str(target_path))
+        if os.path.commonpath([base, candidate]) != base:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
-        if safe_path.is_file():
-            suffix = safe_path.suffix.lower()
-            name = safe_path.name.lower()
+        # Use the sanitized candidate path directly (not reconstructed from user input)
+        if os.path.isfile(candidate):
+            suffix = os.path.splitext(candidate)[1].lower()
+            name = os.path.basename(candidate).lower()
 
             # Check for Helm Chart.yaml first (before other YAML checks)
             if name == "chart.yaml":
@@ -241,7 +244,9 @@ class IaCScanner:
             elif suffix in (".tf", ".tfvars"):
                 return IaCProvider.TERRAFORM
             elif suffix in (".yaml", ".yml"):
-                content = safe_path.read_text(errors="ignore")[:1000]
+                # Read file using sanitized path
+                with open(candidate, "r", errors="ignore") as f:
+                    content = f.read(1000)
                 if "AWSTemplateFormatVersion" in content or "Resources:" in content:
                     return IaCProvider.CLOUDFORMATION
                 elif "apiVersion:" in content and "kind:" in content:
@@ -249,21 +254,23 @@ class IaCScanner:
                 elif "hosts:" in content or "tasks:" in content:
                     return IaCProvider.ANSIBLE
             elif suffix == ".json":
-                content = safe_path.read_text(errors="ignore")[:1000]
+                # Read file using sanitized path
+                with open(candidate, "r", errors="ignore") as f:
+                    content = f.read(1000)
                 if "AWSTemplateFormatVersion" in content:
                     return IaCProvider.CLOUDFORMATION
 
-        elif safe_path.is_dir():
-            # Re-verify containment for directory iteration
-            base = os.path.realpath(self.config.base_path)
-            for child in safe_path.iterdir():
+        elif os.path.isdir(candidate):
+            # Iterate directory using sanitized path
+            for child_name in os.listdir(candidate):
+                child_path = os.path.realpath(os.path.join(candidate, child_name))
                 # Verify each child is also within base directory
-                child_path = os.path.realpath(str(child))
                 if os.path.commonpath([base, child_path]) != base:
                     continue  # Skip files outside base directory
-                if child.suffix == ".tf":
+                child_suffix = os.path.splitext(child_name)[1].lower()
+                if child_suffix == ".tf":
                     return IaCProvider.TERRAFORM
-                elif child.name == "Chart.yaml":
+                elif child_name.lower() == "chart.yaml":
                     return IaCProvider.HELM
 
         return IaCProvider.TERRAFORM
@@ -378,13 +385,15 @@ class IaCScanner:
         provider: IaCProvider,
     ) -> Tuple[List[IaCFinding], str, Optional[str]]:
         """Run checkov scanner asynchronously."""
-        # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        verified_path = self._verify_containment(target_path)
-        safe_path = Path(verified_path)
+        # Inline sanitization check (CodeQL requires this pattern at each sink)
+        base = os.path.realpath(self.config.base_path)
+        verified_path = os.path.realpath(str(target_path))
+        if os.path.commonpath([base, verified_path]) != base:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
         cmd = [
             self.config.checkov_path,
-            "-d" if safe_path.is_dir() else "-f",
+            "-d" if os.path.isdir(verified_path) else "-f",
             verified_path,
             "--output",
             "json",
@@ -457,8 +466,11 @@ class IaCScanner:
         if provider != IaCProvider.TERRAFORM:
             return [], "", "tfsec only supports Terraform files"
 
-        # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        verified_path = self._verify_containment(target_path)
+        # Inline sanitization check (CodeQL requires this pattern at each sink)
+        base = os.path.realpath(self.config.base_path)
+        verified_path = os.path.realpath(str(target_path))
+        if os.path.commonpath([base, verified_path]) != base:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
         cmd = [
             self.config.tfsec_path,

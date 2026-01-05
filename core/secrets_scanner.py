@@ -364,8 +364,11 @@ class SecretsDetector:
         is_git_repo: bool,
     ) -> Tuple[List[SecretFinding], str, Optional[str]]:
         """Run gitleaks scanner asynchronously."""
-        # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        verified_path = self._verify_containment(target_path)
+        # Inline sanitization check (CodeQL requires this pattern at each sink)
+        base = os.path.realpath(self.config.base_path)
+        verified_path = os.path.realpath(str(target_path))
+        if os.path.commonpath([base, verified_path]) != base:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
         cmd = [
             self.config.gitleaks_path,
@@ -431,8 +434,11 @@ class SecretsDetector:
         is_git_repo: bool,
     ) -> Tuple[List[SecretFinding], str, Optional[str]]:
         """Run trufflehog scanner asynchronously."""
-        # Re-verify containment before using path in subprocess (CodeQL-recognized sanitizer)
-        verified_path = self._verify_containment(target_path)
+        # Inline sanitization check (CodeQL requires this pattern at each sink)
+        base = os.path.realpath(self.config.base_path)
+        verified_path = os.path.realpath(str(target_path))
+        if os.path.commonpath([base, verified_path]) != base:
+            raise ValueError(f"Path escapes base directory: {target_path}")
 
         if is_git_repo and self.config.scan_history:
             cmd = [
@@ -492,20 +498,27 @@ class SecretsDetector:
 
     def _is_git_repo(self, path: Path) -> bool:
         """Check if the path is inside a git repository."""
-        # Re-verify containment before file operations (CodeQL-recognized sanitizer)
-        verified_path = self._verify_containment(path)
-        safe_path = Path(verified_path)
-
-        current = safe_path if safe_path.is_dir() else safe_path.parent
+        # Inline sanitization check (CodeQL requires this pattern at each sink)
         base = os.path.realpath(self.config.base_path)
-        while current != current.parent:
+        verified_path = os.path.realpath(str(path))
+        if os.path.commonpath([base, verified_path]) != base:
+            raise ValueError(f"Path escapes base directory: {path}")
+
+        # Use os.path functions with sanitized path
+        current = (
+            verified_path
+            if os.path.isdir(verified_path)
+            else os.path.dirname(verified_path)
+        )
+        while current != os.path.dirname(current):
             # Verify each parent is also within base directory
-            current_str = os.path.realpath(str(current))
-            if os.path.commonpath([base, current_str]) != base:
+            current_resolved = os.path.realpath(current)
+            if os.path.commonpath([base, current_resolved]) != base:
                 break  # Stop if we've gone outside base directory
-            if (current / ".git").exists():
+            git_dir = os.path.join(current, ".git")
+            if os.path.exists(git_dir):
                 return True
-            current = current.parent
+            current = os.path.dirname(current)
         return False
 
     def _get_repo_info(self, path: Path) -> Tuple[str, str]:
@@ -516,10 +529,18 @@ class SecretsDetector:
         try:
             import subprocess
 
-            # Re-verify containment before using path in subprocess cwd (CodeQL-recognized sanitizer)
-            verified_path = self._verify_containment(path)
-            safe_path = Path(verified_path)
-            cwd_path = str(safe_path if safe_path.is_dir() else safe_path.parent)
+            # Inline sanitization check (CodeQL requires this pattern at each sink)
+            base = os.path.realpath(self.config.base_path)
+            verified_path = os.path.realpath(str(path))
+            if os.path.commonpath([base, verified_path]) != base:
+                raise ValueError(f"Path escapes base directory: {path}")
+
+            # Use sanitized path for subprocess cwd
+            cwd_path = (
+                verified_path
+                if os.path.isdir(verified_path)
+                else os.path.dirname(verified_path)
+            )
 
             result = subprocess.run(
                 ["git", "rev-parse", "--show-toplevel"],
@@ -529,7 +550,7 @@ class SecretsDetector:
                 timeout=5,
             )
             repo_path = result.stdout.strip() if result.returncode == 0 else str(path)
-            repo_name = Path(repo_path).name
+            repo_name = os.path.basename(repo_path)
 
             result = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
