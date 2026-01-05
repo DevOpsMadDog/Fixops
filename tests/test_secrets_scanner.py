@@ -13,7 +13,8 @@ Tests cover:
 import asyncio
 import json
 import os
-import tempfile
+import shutil
+import uuid
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -28,6 +29,8 @@ from core.secrets_scanner import (
     SecretsScanStatus,
     get_secrets_detector,
 )
+
+TRUSTED_TEST_ROOT = "/var/fixops/test-scans"
 
 
 class TestSecretsScannerConfig:
@@ -76,9 +79,11 @@ class TestSecretsDetector:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
@@ -582,9 +587,11 @@ class TestGitleaksNoGit:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
@@ -622,9 +629,11 @@ class TestTrufflehogModes:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
@@ -738,9 +747,11 @@ class TestSecretsDetectorErrorHandling:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
@@ -871,9 +882,11 @@ class TestScanContentSecretsEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
@@ -991,9 +1004,11 @@ class TestSecretsParsingEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):
@@ -1046,9 +1061,11 @@ class TestGitleaksCustomConfig:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector_with_custom_config(self, temp_dir):
@@ -1094,9 +1111,11 @@ class TestGetRepoInfoException:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def detector(self, temp_dir):

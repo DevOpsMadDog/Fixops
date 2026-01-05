@@ -13,7 +13,8 @@ Tests cover:
 import asyncio
 import json
 import os
-import tempfile
+import shutil
+import uuid
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -28,6 +29,8 @@ from core.iac_scanner import (
     ScanStatus,
     get_iac_scanner,
 )
+
+TRUSTED_TEST_ROOT = "/var/fixops/test-scans"
 
 
 class TestScannerConfig:
@@ -84,9 +87,11 @@ class TestIaCScanner:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
@@ -526,9 +531,11 @@ class TestCheckovFrameworkMapping:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
@@ -568,9 +575,11 @@ class TestProviderDetectionEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
@@ -613,9 +622,11 @@ class TestScannerConfigOptions:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.mark.asyncio
     async def test_checkov_skip_download_option(self, temp_dir):
@@ -761,9 +772,11 @@ class TestScannerErrorHandling:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):
@@ -894,9 +907,11 @@ class TestScanContentEdgeCases:
 
     @pytest.fixture
     def temp_dir(self):
-        """Create a temporary directory for tests."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield tmpdir
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.fixture
     def scanner(self, temp_dir):

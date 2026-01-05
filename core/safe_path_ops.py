@@ -6,16 +6,21 @@ that include inline path sanitization. CodeQL requires the sanitization pattern
 (os.path.realpath + os.path.commonpath) to be in the same function as the sink
 to recognize it as a valid security check.
 
-Each function performs:
-1. Resolve the path using os.path.realpath (CodeQL-recognized sanitizer)
-2. Verify containment using os.path.commonpath (CodeQL-recognized pattern)
+Each function performs a two-stage containment check:
+1. Verify base_path is under the TRUSTED_ROOT constant (untaints base_path for CodeQL)
+2. Verify candidate path is under base_path
 3. Execute the sink operation with the sanitized path
+
+The TRUSTED_ROOT constant anchors all operations to a known-safe directory tree,
+which CodeQL recognizes as non-user-controlled.
 """
 
 import os
 import subprocess
 from pathlib import Path
 from typing import IO, Iterator, List, Optional, Union
+
+TRUSTED_ROOT = "/var/fixops"
 
 
 class PathContainmentError(ValueError):
@@ -26,7 +31,10 @@ class PathContainmentError(ValueError):
 
 def safe_exists(path: Union[str, Path], base_path: str) -> bool:
     """
-    Check if a path exists, with inline containment validation.
+    Check if a path exists, with two-stage containment validation.
+
+    Stage 1: Verify base_path is under TRUSTED_ROOT (untaints base_path for CodeQL)
+    Stage 2: Verify candidate is under base_path
 
     Args:
         path: The path to check
@@ -36,10 +44,13 @@ def safe_exists(path: Union[str, Path], base_path: str) -> bool:
         True if the path exists and is within base_path, False otherwise
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.path.exists(candidate)
@@ -47,7 +58,7 @@ def safe_exists(path: Union[str, Path], base_path: str) -> bool:
 
 def safe_isfile(path: Union[str, Path], base_path: str) -> bool:
     """
-    Check if a path is a file, with inline containment validation.
+    Check if a path is a file, with two-stage containment validation.
 
     Args:
         path: The path to check
@@ -57,10 +68,13 @@ def safe_isfile(path: Union[str, Path], base_path: str) -> bool:
         True if the path is a file within base_path
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.path.isfile(candidate)
@@ -68,7 +82,7 @@ def safe_isfile(path: Union[str, Path], base_path: str) -> bool:
 
 def safe_isdir(path: Union[str, Path], base_path: str) -> bool:
     """
-    Check if a path is a directory, with inline containment validation.
+    Check if a path is a directory, with two-stage containment validation.
 
     Args:
         path: The path to check
@@ -78,10 +92,13 @@ def safe_isdir(path: Union[str, Path], base_path: str) -> bool:
         True if the path is a directory within base_path
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.path.isdir(candidate)
@@ -89,7 +106,7 @@ def safe_isdir(path: Union[str, Path], base_path: str) -> bool:
 
 def safe_listdir(path: Union[str, Path], base_path: str) -> List[str]:
     """
-    List directory contents, with inline containment validation.
+    List directory contents, with two-stage containment validation.
 
     Args:
         path: The directory path to list
@@ -99,10 +116,13 @@ def safe_listdir(path: Union[str, Path], base_path: str) -> List[str]:
         List of filenames in the directory
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return os.listdir(candidate)
@@ -112,7 +132,7 @@ def safe_open_read(
     path: Union[str, Path], base_path: str, errors: str = "strict"
 ) -> IO[str]:
     """
-    Open a file for reading, with inline containment validation.
+    Open a file for reading, with two-stage containment validation.
 
     Args:
         path: The file path to open
@@ -123,10 +143,13 @@ def safe_open_read(
         File handle opened for reading
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     return open(candidate, "r", errors=errors)
@@ -134,7 +157,7 @@ def safe_open_read(
 
 def safe_read_text(path: Union[str, Path], base_path: str, max_bytes: int = -1) -> str:
     """
-    Read text content from a file, with inline containment validation.
+    Read text content from a file, with two-stage containment validation.
 
     Args:
         path: The file path to read
@@ -145,10 +168,13 @@ def safe_read_text(path: Union[str, Path], base_path: str, max_bytes: int = -1) 
         File content as string
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     with open(candidate, "r", errors="ignore") as f:
@@ -159,7 +185,7 @@ def safe_read_text(path: Union[str, Path], base_path: str, max_bytes: int = -1) 
 
 def safe_write_text(path: Union[str, Path], base_path: str, content: str) -> None:
     """
-    Write text content to a file, with inline containment validation.
+    Write text content to a file, with two-stage containment validation.
 
     Args:
         path: The file path to write
@@ -167,10 +193,13 @@ def safe_write_text(path: Union[str, Path], base_path: str, content: str) -> Non
         content: Content to write
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
     with open(candidate, "w") as f:
@@ -179,7 +208,7 @@ def safe_write_text(path: Union[str, Path], base_path: str, content: str) -> Non
 
 def safe_path_join(base_path: str, *parts: str, validate: bool = True) -> str:
     """
-    Join path components and validate containment.
+    Join path components and validate containment with two-stage check.
 
     Args:
         base_path: The base directory
@@ -190,20 +219,24 @@ def safe_path_join(base_path: str, *parts: str, validate: bool = True) -> str:
         The joined and resolved path
 
     Raises:
-        PathContainmentError: If the resulting path escapes base_path
+        PathContainmentError: If the resulting path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(os.path.join(base, *parts))
-    if validate and os.path.commonpath([base, candidate]) != base:
-        raise PathContainmentError(
-            f"Path escapes base directory: {os.path.join(*parts)}"
-        )
+    if validate:
+        if os.path.commonpath([trusted_root, base]) != trusted_root:
+            raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
+        if os.path.commonpath([base, candidate]) != base:
+            raise PathContainmentError(
+                f"Path escapes base directory: {os.path.join(*parts)}"
+            )
     return candidate
 
 
 def safe_resolve_path(path: Union[str, Path], base_path: str) -> str:
     """
-    Resolve a path and validate containment.
+    Resolve a path and validate containment with two-stage check.
 
     Args:
         path: The path to resolve (can be relative or absolute)
@@ -213,11 +246,14 @@ def safe_resolve_path(path: Union[str, Path], base_path: str) -> str:
         The resolved path as a string
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
 
-    # Handle both relative and absolute paths
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
+
     path_str = str(path)
     if os.path.isabs(path_str):
         candidate = os.path.realpath(path_str)
@@ -239,7 +275,7 @@ def safe_subprocess_run(
     check: bool = False,
 ) -> subprocess.CompletedProcess:
     """
-    Run a subprocess with validated cwd, with inline containment validation.
+    Run a subprocess with validated cwd, with two-stage containment validation.
 
     Args:
         cmd: Command and arguments to run
@@ -254,10 +290,13 @@ def safe_subprocess_run(
         CompletedProcess instance
 
     Raises:
-        PathContainmentError: If cwd escapes base_path
+        PathContainmentError: If cwd escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(cwd))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {cwd}")
     return subprocess.run(
@@ -277,7 +316,7 @@ async def safe_subprocess_exec(
     timeout: Optional[float] = None,
 ) -> tuple:
     """
-    Run an async subprocess with validated cwd, with inline containment validation.
+    Run an async subprocess with validated cwd, with two-stage containment validation.
 
     Args:
         cmd: Command and arguments to run
@@ -289,13 +328,16 @@ async def safe_subprocess_exec(
         Tuple of (stdout, stderr, return_code)
 
     Raises:
-        PathContainmentError: If cwd escapes base_path
+        PathContainmentError: If cwd escapes allowed directories
         asyncio.TimeoutError: If the command times out
     """
     import asyncio
 
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(cwd))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {cwd}")
 
@@ -331,16 +373,18 @@ def safe_iterdir(path: Union[str, Path], base_path: str) -> Iterator[str]:
         Validated child paths as strings
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
 
     for child_name in os.listdir(candidate):
         child_path = os.path.realpath(os.path.join(candidate, child_name))
-        # Verify each child is also within base directory
         if os.path.commonpath([base, child_path]) == base:
             yield child_path
 
@@ -357,16 +401,18 @@ def safe_get_parent_dirs(path: Union[str, Path], base_path: str) -> Iterator[str
         Parent directory paths as strings
 
     Raises:
-        PathContainmentError: If the path escapes base_path
+        PathContainmentError: If the path escapes allowed directories
     """
+    trusted_root = os.path.realpath(TRUSTED_ROOT)
     base = os.path.realpath(base_path)
     candidate = os.path.realpath(str(path))
+    if os.path.commonpath([trusted_root, base]) != trusted_root:
+        raise PathContainmentError(f"Base path escapes trusted root: {base_path}")
     if os.path.commonpath([base, candidate]) != base:
         raise PathContainmentError(f"Path escapes base directory: {path}")
 
     current = candidate if os.path.isdir(candidate) else os.path.dirname(candidate)
     while current != os.path.dirname(current):
-        # Verify we're still within base directory
         if os.path.commonpath([base, current]) != base:
             break
         yield current
