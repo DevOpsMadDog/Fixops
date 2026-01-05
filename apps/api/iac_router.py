@@ -7,7 +7,6 @@ Provides enterprise-grade IaC security scanning with checkov and tfsec integrati
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -189,39 +188,52 @@ def _validate_scan_path(file_path: str) -> str:
     Validate and resolve the scan path securely.
 
     Security measures:
-    1. Reject absolute paths from user input
-    2. Reject path traversal attempts
-    3. Resolve path under server-controlled base directory
-    4. Verify resolved path stays within base directory
+    1. Reject null bytes in path
+    2. Normalize path to prevent traversal via os.path.normpath
+    3. Reject absolute paths from user input
+    4. Reject path traversal attempts
+    5. Resolve path under server-controlled base directory using os.path.realpath
+    6. Verify resolved path stays within base directory using os.path.commonpath
     """
+    # Reject null bytes in path
+    if "\x00" in file_path:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid path: contains null bytes.",
+        )
+
+    # Normalize the path to collapse .. and . components
+    normalized = os.path.normpath(file_path)
+
     # Reject absolute paths - user must provide relative paths only
-    if Path(file_path).is_absolute():
+    if os.path.isabs(normalized):
         raise HTTPException(
             status_code=400,
             detail="Absolute paths are not allowed. Provide a relative path.",
         )
 
     # Reject obvious path traversal attempts
-    if ".." in file_path or file_path.startswith("/"):
+    if normalized.startswith("..") or "/../" in normalized or normalized == "..":
         raise HTTPException(
             status_code=400,
             detail="Path traversal is not allowed.",
         )
 
-    # Resolve under server-controlled base path
-    base = Path(SCAN_BASE_PATH).resolve()
-    resolved = (base / file_path).resolve()
+    # Get server-controlled base path using realpath (CodeQL-recognized sanitizer)
+    base = os.path.realpath(SCAN_BASE_PATH)
 
-    # Verify the resolved path stays within the base directory
-    try:
-        resolved.relative_to(base)
-    except ValueError:
+    # Join with base path and resolve using realpath
+    candidate = os.path.realpath(os.path.join(base, normalized))
+
+    # Verify the resolved path stays within the base directory using commonpath
+    # This is the containment check that CodeQL recognizes
+    if os.path.commonpath([base, candidate]) != base:
         raise HTTPException(
             status_code=400,
             detail="Path traversal detected: path escapes base directory.",
         )
 
-    return str(resolved)
+    return candidate
 
 
 @router.post("/scan", response_model=IaCScanResponse)
