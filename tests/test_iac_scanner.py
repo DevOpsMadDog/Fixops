@@ -1026,3 +1026,86 @@ class TestScanContentEdgeCases:
 
             assert result.status == ScanStatus.FAILED
             assert "Unexpected error" in result.error_message
+
+
+class TestPathContainmentErrorHandling:
+    """Test PathContainmentError handling in various methods."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def scanner(self, temp_dir):
+        """Create a scanner instance for testing with temp_dir as base_path."""
+        config = ScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return IaCScanner(config)
+
+    def test_verify_containment_valid_path(self, scanner, temp_dir):
+        """Test _verify_containment with a valid path."""
+        test_file = os.path.join(temp_dir, "test.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+        result = scanner._verify_containment(Path(test_file))
+        assert result == os.path.realpath(test_file)
+
+    def test_verify_containment_path_escape(self, scanner, temp_dir):
+        """Test _verify_containment raises ValueError when path escapes base."""
+        with pytest.raises(ValueError) as exc_info:
+            scanner._verify_containment(Path("/tmp/outside.tf"))
+        assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_validate_path_containment_error(self, scanner, temp_dir):
+        """Test _validate_path handles PathContainmentError from safe_exists."""
+        test_file = os.path.join(temp_dir, "test.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("core.iac_scanner.safe_exists") as mock_safe_exists:
+            from core.safe_path_ops import PathContainmentError
+
+            mock_safe_exists.side_effect = PathContainmentError("Path escapes")
+            with pytest.raises(ValueError) as exc_info:
+                scanner._validate_path(test_file)
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_detect_provider_containment_error(self, scanner, temp_dir):
+        """Test _detect_provider handles PathContainmentError."""
+        test_file = os.path.join(temp_dir, "test.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("core.iac_scanner.safe_isfile") as mock_safe_isfile:
+            from core.safe_path_ops import PathContainmentError
+
+            mock_safe_isfile.side_effect = PathContainmentError("Path escapes")
+            with pytest.raises(ValueError) as exc_info:
+                scanner._detect_provider(Path(test_file))
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_containment_error(self, scanner, temp_dir):
+        """Test _run_checkov handles PathContainmentError from safe_isdir."""
+        test_file = os.path.join(temp_dir, "test.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        with patch("core.iac_scanner.safe_isdir") as mock_safe_isdir:
+            from core.safe_path_ops import PathContainmentError
+
+            mock_safe_isdir.side_effect = PathContainmentError("Path escapes")
+            with pytest.raises(ValueError) as exc_info:
+                await scanner._run_checkov(Path(test_file), IaCProvider.TERRAFORM)
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_containment_check(self, scanner, temp_dir):
+        """Test _run_tfsec inline containment check."""
+        with patch.object(scanner, "_is_tfsec_available", return_value=True):
+            with pytest.raises(ValueError) as exc_info:
+                await scanner._run_tfsec(Path("/tmp/outside.tf"), IaCProvider.TERRAFORM)
+            assert "Path escapes base directory" in str(exc_info.value)

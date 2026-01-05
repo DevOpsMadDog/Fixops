@@ -1169,3 +1169,114 @@ class TestGetRepoInfoException:
                 assert branch == "main"
             finally:
                 subprocess_module.run = original_run
+
+
+class TestPathContainmentErrorHandling:
+    """Test PathContainmentError handling in various methods."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def detector(self, temp_dir):
+        """Create a detector instance for testing with temp_dir as base_path."""
+        config = SecretsScannerConfig(timeout_seconds=30, base_path=temp_dir)
+        return SecretsDetector(config)
+
+    def test_verify_containment_valid_path(self, detector, temp_dir):
+        """Test _verify_containment with a valid path."""
+        test_file = os.path.join(temp_dir, "test.py")
+        with open(test_file, "w") as f:
+            f.write("content")
+        result = detector._verify_containment(Path(test_file))
+        assert result == os.path.realpath(test_file)
+
+    def test_verify_containment_path_escape(self, detector, temp_dir):
+        """Test _verify_containment raises ValueError when path escapes base."""
+        with pytest.raises(ValueError) as exc_info:
+            detector._verify_containment(Path("/tmp/outside.py"))
+        assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_validate_path_containment_error(self, detector, temp_dir):
+        """Test _validate_path handles PathContainmentError from safe_exists."""
+        test_file = os.path.join(temp_dir, "test.py")
+        with open(test_file, "w") as f:
+            f.write("content")
+
+        with patch("core.secrets_scanner.safe_exists") as mock_safe_exists:
+            from core.safe_path_ops import PathContainmentError
+
+            mock_safe_exists.side_effect = PathContainmentError("Path escapes")
+            with pytest.raises(ValueError) as exc_info:
+                detector._validate_path(test_file)
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_containment_check(self, detector, temp_dir):
+        """Test _run_gitleaks inline containment check."""
+        with patch.object(detector, "_is_gitleaks_available", return_value=True):
+            with pytest.raises(ValueError) as exc_info:
+                await detector._run_gitleaks(
+                    Path("/tmp/outside.py"), "repo", "main", False
+                )
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_containment_check(self, detector, temp_dir):
+        """Test _run_trufflehog inline containment check."""
+        with patch.object(detector, "_is_trufflehog_available", return_value=True):
+            with pytest.raises(ValueError) as exc_info:
+                await detector._run_trufflehog(
+                    Path("/tmp/outside.py"), "repo", "main", False
+                )
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_is_git_repo_containment_error(self, detector, temp_dir):
+        """Test _is_git_repo handles PathContainmentError."""
+        test_file = os.path.join(temp_dir, "test.py")
+        with open(test_file, "w") as f:
+            f.write("content")
+
+        with patch("core.secrets_scanner.safe_get_parent_dirs") as mock_parent_dirs:
+            from core.safe_path_ops import PathContainmentError
+
+            mock_parent_dirs.side_effect = PathContainmentError("Path escapes")
+            with pytest.raises(ValueError) as exc_info:
+                detector._is_git_repo(Path(test_file))
+            assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_get_repo_info_safe_isdir_containment_error(self, detector, temp_dir):
+        """Test _get_repo_info handles PathContainmentError from safe_isdir by raising ValueError."""
+        test_file = os.path.join(temp_dir, "test.py")
+        with open(test_file, "w") as f:
+            f.write("content")
+
+        with patch.object(detector, "_is_git_repo", return_value=True):
+            with patch("core.secrets_scanner.safe_isdir") as mock_safe_isdir:
+                from core.safe_path_ops import PathContainmentError
+
+                mock_safe_isdir.side_effect = PathContainmentError("Path escapes")
+                repo_name, branch = detector._get_repo_info(Path(test_file))
+                assert repo_name == str(Path(test_file))
+                assert branch == "main"
+
+    def test_get_repo_info_subprocess_containment_error(self, detector, temp_dir):
+        """Test _get_repo_info handles PathContainmentError from safe_subprocess_run."""
+        test_file = os.path.join(temp_dir, "test.py")
+        with open(test_file, "w") as f:
+            f.write("content")
+
+        with patch.object(detector, "_is_git_repo", return_value=True):
+            with patch("core.secrets_scanner.safe_isdir", return_value=False):
+                with patch("core.secrets_scanner.safe_subprocess_run") as mock_run:
+                    from core.safe_path_ops import PathContainmentError
+
+                    mock_run.side_effect = PathContainmentError("Path escapes")
+                    repo_name, branch = detector._get_repo_info(Path(test_file))
+                    assert repo_name == str(Path(test_file))
+                    assert branch == "main"
