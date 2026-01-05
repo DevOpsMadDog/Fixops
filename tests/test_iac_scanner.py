@@ -1109,3 +1109,37 @@ class TestPathContainmentErrorHandling:
             with pytest.raises(ValueError) as exc_info:
                 await scanner._run_tfsec(Path("/tmp/outside.tf"), IaCProvider.TERRAFORM)
             assert "Path escapes base directory" in str(exc_info.value)
+
+    def test_verify_containment_base_path_escapes_trusted_root(self):
+        """Test _verify_containment raises ValueError when base_path escapes TRUSTED_ROOT."""
+        # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        scanner = IaCScanner(config)
+        os.makedirs("/tmp/untrusted", exist_ok=True)
+        test_file = "/tmp/untrusted/test.tf"
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                scanner._verify_containment(Path(test_file))
+            assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_base_path_escapes_trusted_root(self):
+        """Test _run_tfsec raises ValueError when base_path escapes TRUSTED_ROOT."""
+        # Create scanner with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = ScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        scanner = IaCScanner(config)
+        os.makedirs("/tmp/untrusted", exist_ok=True)
+        test_file = "/tmp/untrusted/test.tf"
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+        try:
+            with patch.object(scanner, "_is_tfsec_available", return_value=True):
+                with pytest.raises(ValueError) as exc_info:
+                    await scanner._run_tfsec(Path(test_file), IaCProvider.TERRAFORM)
+                assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree("/tmp/untrusted", ignore_errors=True)

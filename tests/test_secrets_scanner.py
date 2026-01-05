@@ -1280,3 +1280,57 @@ class TestPathContainmentErrorHandling:
                     repo_name, branch = detector._get_repo_info(Path(test_file))
                     assert repo_name == str(Path(test_file))
                     assert branch == "main"
+
+    def test_verify_containment_base_path_escapes_trusted_root(self):
+        """Test _verify_containment raises ValueError when base_path escapes TRUSTED_ROOT."""
+        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        detector = SecretsDetector(config)
+        os.makedirs("/tmp/untrusted", exist_ok=True)
+        test_file = "/tmp/untrusted/test.py"
+        with open(test_file, "w") as f:
+            f.write("content")
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                detector._verify_containment(Path(test_file))
+            assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_base_path_escapes_trusted_root(self):
+        """Test _run_gitleaks raises ValueError when base_path escapes TRUSTED_ROOT."""
+        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        detector = SecretsDetector(config)
+        os.makedirs("/tmp/untrusted", exist_ok=True)
+        test_file = "/tmp/untrusted/test.py"
+        with open(test_file, "w") as f:
+            f.write("content")
+        try:
+            with patch.object(detector, "_is_gitleaks_available", return_value=True):
+                with pytest.raises(ValueError) as exc_info:
+                    await detector._run_gitleaks(Path(test_file), "repo", "main", False)
+                assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_base_path_escapes_trusted_root(self):
+        """Test _run_trufflehog raises ValueError when base_path escapes TRUSTED_ROOT."""
+        # Create detector with base_path outside TRUSTED_ROOT (/var/fixops)
+        config = SecretsScannerConfig(timeout_seconds=30, base_path="/tmp/untrusted")
+        detector = SecretsDetector(config)
+        os.makedirs("/tmp/untrusted", exist_ok=True)
+        test_file = "/tmp/untrusted/test.py"
+        with open(test_file, "w") as f:
+            f.write("content")
+        try:
+            with patch.object(detector, "_is_trufflehog_available", return_value=True):
+                with pytest.raises(ValueError) as exc_info:
+                    await detector._run_trufflehog(
+                        Path(test_file), "repo", "main", False
+                    )
+                assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree("/tmp/untrusted", ignore_errors=True)
