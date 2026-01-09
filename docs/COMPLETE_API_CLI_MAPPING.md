@@ -3,7 +3,7 @@
 > **DEPRECATED**: This document has been consolidated into [FIXOPS_PRODUCT_STATUS.md](./FIXOPS_PRODUCT_STATUS.md).
 > The master document now includes:
 > - Workflow Stage Map with API/CLI mapping
-> - API/CLI Coverage Summary (303 endpoints, 84 commands)
+> - API/CLI Coverage Summary (303 endpoints, 111 commands)
 > - End-to-End Workflow Integration examples
 > - Complete CLI Command Reference
 >
@@ -16,11 +16,11 @@
 | Metric | Count |
 |--------|-------|
 | **Total API Endpoints** | 303 |
-| **CLI Commands/Subcommands** | 84 |
-| **API Endpoints with CLI Coverage** | 223 (74%) |
-| **API-Only Endpoints** | 80 (26%) |
+| **CLI Commands/Subcommands** | 111 (31 top-level, 98 subcommands) |
+| **API Endpoints with CLI Coverage** | 211 (70%) |
+| **API-Only Endpoints** | 92 (30%) |
 
-**Note:** Counts are code-derived from static enumeration of router decorators. See breakdown below.
+**Note:** Counts are code-derived from static enumeration of router decorators and CLI `--help` output.
 
 ### Code-Derived Endpoint Breakdown
 
@@ -36,16 +36,19 @@
 
 | Category | Count | Reason |
 |----------|-------|--------|
-| Chunked Uploads | 4 | Large file handling requires streaming, better suited for API |
-| Graph Visualization | 4 | Interactive visualization requires UI |
-| Bulk Operations | 12 | Complex batch operations with progress tracking |
+| Secrets | 6 | Sensitive credential management |
 | IDE Integration | 3 | Real-time code analysis for IDE plugins |
+| Bulk Operations | 12 | Complex batch operations with progress tracking |
 | Marketplace | 12 | E-commerce features (purchase, download, rate) |
 | SSO/Auth | 4 | OAuth flows require browser redirects |
-| Real-time Monitoring | 3 | WebSocket/streaming connections |
-| Collaboration | 21 | Comments, watchers, activity feeds (UI-driven) |
 | Webhooks | 17 | Event-driven, configured via UI |
-| **Total** | **80** | |
+| Collaboration | 21 | Comments, watchers, activity feeds (UI-driven) |
+| Validation | 3 | Internal validation endpoints |
+| Graph/Risk | 4 | Interactive visualization requires UI |
+| Risk | 3 | Backend risk analysis |
+| Provenance | 2 | Backend provenance tracking |
+| PentAGI (Backend) | 5 | Backend pentesting service |
+| **Total** | **92** | |
 
 ---
 

@@ -20,7 +20,7 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
 | **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (21 pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
 
-**Platform Interfaces:** REST API (~287 endpoints across 28 router modules), CLI (~90 commands/subcommands across 30 command groups), and modular UI (16 frontend pages) - deployable on-prem or air-gapped as needed.
+**Platform Interfaces:** REST API (303 endpoints across 32 router modules), CLI (111 commands/subcommands across 31 command groups), and modular UI (16 frontend pages) - deployable on-prem or air-gapped as needed.
 
 **Documentation:** See [Product Status & Technical Mapping](docs/FIXOPS_PRODUCT_STATUS.md) for detailed capability maps, workflow diagrams, and code references.
 
