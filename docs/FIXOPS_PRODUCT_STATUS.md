@@ -569,6 +569,304 @@ These are target metrics for enterprise deployments, not current measurements:
 
 ---
 
+## Capability Decomposition (Sub-features)
+
+This section breaks down each capability into its constituent sub-features with code references, addressing the full scope of FixOps functionality.
+
+### T1: Intake & Normalize - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **SARIF Ingestion** | Parse SARIF scan results from any scanner | `apps/api/normalizers.py:load_sarif()` | `POST /inputs/sarif` | `ingest --sarif`, `stage-run --stage sarif` | Wired |
+| **SBOM Analysis** | Parse CycloneDX/SPDX SBOMs | `apps/api/normalizers.py:load_sbom()` | `POST /inputs/sbom` | `ingest --sbom`, `stage-run --stage sbom` | Wired |
+| **CVE/VEX Processing** | Parse CVE feeds and VEX documents | `apps/api/normalizers.py:load_cve_feed()` | `POST /inputs/cve`, `POST /inputs/vex` | `ingest --cve`, `--vex` | Wired |
+| **Design Context** | Parse design CSV with business context | `apps/api/normalizers.py:load_design()` | `POST /inputs/design` | `ingest --design`, `stage-run --stage design` | Wired |
+| **CNAPP Findings** | Parse cloud-native security findings | `apps/api/normalizers.py:load_cnapp()` | `POST /inputs/cnapp` | `ingest --cnapp` | Wired |
+| **Inventory Management** | Track applications and services | `core/inventory_db.py` | `inventory_router.py` (15 endpoints) | `inventory apps/add/get/services/search` | Wired |
+
+### T2: Prioritize & Triage - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **RBVM Risk Scoring** | EPSS + KEV + CVSS + exposure + reachability | `risk/scoring.py:compute_risk_profile()` | `risk_router.py` (3 endpoints) | `analyze` | Wired |
+| **Severity Promotion** | Promote severity based on KEV/EPSS signals | `core/severity_promotion.py` | Internal | `analyze` | Wired |
+| **Probabilistic Forecasting** | Bayesian priors + Markov transitions | `core/probabilistic.py:ProbabilisticForecastEngine` | Internal | `train-forecast` | Wired |
+| **BN-LR Hybrid Model** | Bayesian Network + Logistic Regression | `core/bn_lr.py` | Internal | `train-bn-lr`, `predict-bn-lr`, `backtest-bn-lr` | Wired |
+| **Reachability Analysis** | Determine if vulnerabilities are reachable | `risk/reachability/` | `reachability_router` | `reachability analyze/bulk/status` | Wired |
+| **Knowledge Graph** | CTINexus-compatible graph of entities | `apps/api/knowledge_graph.py:KnowledgeGraphService` | `graph_router.py` (4 endpoints) | API-only | Wired |
+
+### T3: Automated Decisions - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **Multi-LLM Consensus** | GPT-5, Claude-3, Gemini-2, Sentinel voting | `core/enhanced_decision.py:MultiLLMConsensusEngine` | `enhanced_router.py` (4 endpoints) | `make-decision`, `run` | Wired |
+| **Advanced Pentesting** | AI-driven penetration testing with consensus | `core/pentagi_advanced.py:MultiAIOrchestrator` | `pentagi_router_enhanced.py` (19 endpoints) | `advanced-pentest run/threat-intel/simulate` | Wired |
+| **PentAGI Integration** | Pen test request/result management | `core/pentagi_db.py` | `pentagi_router.py` (14 endpoints) | `pentagi list/create/get/results` | Wired |
+| **Hallucination Guards** | Validate LLM outputs for accuracy | `core/hallucination_guards.py` | Internal | Internal | Wired |
+| **Decision Policy Engine** | Policy-based overrides and guardrails | `core/decision_policy.py:DecisionPolicyEngine` | Internal | `policies validate/test` | Wired |
+| **Decision Tree** | Rule-based decision logic | `core/decision_tree.py` | Internal | Internal | Wired |
+
+### T4: Remediation Workflow - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **Task State Machine** | OPEN→ASSIGNED→IN_PROGRESS→VERIFICATION→RESOLVED | `apps/api/remediation_router.py` | 13 endpoints | `remediation list/get/assign/transition` | Wired |
+| **SLA Tracking** | Deadline calculation and breach detection | `apps/api/remediation_router.py` | `GET /api/v1/remediation/sla` | `remediation sla` | Wired |
+| **MTTR Metrics** | Mean time to remediate calculation | `apps/api/remediation_router.py` | `GET /api/v1/remediation/metrics` | `remediation metrics` | Wired |
+| **Fix Verification** | Verify remediation completion | `apps/api/remediation_router.py` | `POST /api/v1/remediation/tasks/{id}/verify` | `remediation verify` | Wired |
+| **Automated Remediation** | Auto-remediation suggestions | `core/automated_remediation.py` | Internal | Internal | Wired |
+
+### T5: Compliance & Evidence - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **Evidence Bundles** | Persist pipeline results with metadata | `core/evidence.py:EvidenceHub.persist()` | `evidence_router.py` (4 endpoints) | `get-evidence` | Wired |
+| **Gzip Compression** | Compress large bundles | `core/evidence.py:EvidenceHub` (line 299-318) | Internal | Internal | Wired |
+| **Fernet Encryption** | Encrypt sensitive evidence | `core/evidence.py:EvidenceHub` (line 321-324) | Internal | Internal | Wired |
+| **RSA-SHA256 Signing** | Sign bundles with RSA keys | `core/evidence.py:EvidenceHub` (line 334-367), `core/crypto.py` | Internal | Internal | Wired |
+| **SLSA v1 Provenance** | In-toto attestation for supply chain | `services/provenance/attestation.py` | `provenance_router.py` (2 endpoints) | API-only | Wired |
+| **Compliance Frameworks** | SOC2, PCI-DSS, HIPAA, ISO27001 mapping | `core/compliance.py`, `compliance/mapping.py` | `audit_router.py` | `compliance status/frameworks/gaps/report` | Wired |
+| **SSDLC Evaluation** | Secure SDLC stage assessment | `core/ssdlc.py:SSDLCEvaluator` | Internal | Internal | Wired |
+| **Storage Backends** | Local, S3 Object Lock, Azure Immutable | `core/storage_backends.py` | Internal | Internal | Wired |
+
+### T6: Notifications - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **Slack Webhooks** | Send alerts via Slack | `core/connectors.py:SlackConnector` | `collaboration_router.py` | `notifications pending/worker` | Wired |
+| **Email (SMTP)** | Send alerts via email | `core/connectors.py` | `collaboration_router.py` | `notifications pending/worker` | Wired |
+| **Notification Queue** | Queue and process notifications | `apps/api/collaboration_router.py` | 21 endpoints | `notifications pending/worker` | Wired |
+
+### T7: Security Scanning - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **IaC Scanning** | Terraform, CloudFormation, Kubernetes | `core/iac_scanner.py` (checkov, tfsec) | `iac_router.py` (6 endpoints) | `stage-run --stage deploy` | Wired |
+| **Secrets Scanning** | Detect hardcoded secrets | `core/secrets_scanner.py` (gitleaks, trufflehog) | `secrets_router.py` (6 endpoints) | API-only | Wired |
+
+### T8: Jira Integration - Sub-features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **Jira Connector** | Create/update Jira issues | `core/connectors.py:JiraConnector` (lines 49-124) | `webhooks_router.py` | `integrations configure/test/sync` | Wired |
+| **Confluence Connector** | Create Confluence pages | `core/connectors.py:ConfluenceConnector` (lines 127-210) | `webhooks_router.py` | `integrations configure/test/sync` | Wired |
+| **Webhook Receivers** | Inbound webhooks from Jira/ServiceNow/GitLab/Azure DevOps | `apps/api/webhooks_router.py` (17 endpoints) | 17 endpoints | API-only (event-driven) | Wired |
+| **Outbox Pattern** | Queue outbound messages | `apps/api/webhooks_router.py` (lines 744-1012) | Internal | - | Partial (no worker) |
+
+### Cross-Cutting Features
+
+| Sub-feature | Description | Core Module | API Surface | CLI Surface | Status |
+|-------------|-------------|-------------|-------------|-------------|--------|
+| **YAML Overlay Config** | Centralized configuration via YAML | `core/configuration.py:OverlayConfig` (1530 lines) | Internal | `show-overlay`, `--overlay` flag | Wired |
+| **Feature Flags** | Runtime feature toggles | `core/flags/` (7 files: provider_factory, base, local_provider, registry, namespace_adapter, combined) | Internal | Internal | Wired |
+| **Exploit Signals** | EPSS/KEV feed integration and severity escalation | `core/exploit_signals.py:ExploitSignalEvaluator`, `ExploitFeedRefresher` | `feeds_router.py` (20 endpoints) | `reachability analyze` | Wired |
+| **Telemetry Bridge** | OpenTelemetry metrics/traces export | `telemetry_bridge/` (AWS Lambda, Azure Function, GCP Function, Edge Collector) | Internal | Internal | Wired |
+| **Vector Store** | Embedding storage for semantic search | `core/vector_store.py` | Internal | Internal | Wired |
+| **Continuous Validation** | Ongoing security validation | `core/continuous_validation.py` | Internal | Internal | Wired |
+| **Business Context** | Business context enrichment | `core/business_context.py` | Internal | `--context` flag | Wired |
+| **OSS Fallback** | Fallback to open-source tools | `core/oss_fallback.py` | Internal | Internal | Wired |
+| **Model Registry** | ML model versioning and management | `core/model_registry.py` | Internal | Internal | Wired |
+| **Model Factory** | ML model instantiation | `core/model_factory.py` | Internal | Internal | Wired |
+
+---
+
+## Feature Inventory (Code-Derived)
+
+This comprehensive inventory maps every feature to its implementation status, CLI/API surface, and core modules.
+
+| Feature | Status | CLI Commands | API Router(s) | Core Modules | Workflow Stage(s) |
+|---------|--------|--------------|---------------|--------------|-------------------|
+| **SARIF Ingestion** | Wired | `ingest --sarif`, `stage-run --stage sarif` | `ingestion_router` | `apps/api/normalizers.py` | Test |
+| **SBOM Analysis** | Wired | `ingest --sbom`, `stage-run --stage sbom` | `ingestion_router` | `apps/api/normalizers.py` | Build |
+| **CVE/VEX Processing** | Wired | `ingest --cve`, `--vex` | `ingestion_router` | `apps/api/normalizers.py` | Test |
+| **Design Context** | Wired | `ingest --design`, `stage-run --stage design` | `ingestion_router` | `apps/api/normalizers.py` | Design |
+| **CNAPP Findings** | Wired | `ingest --cnapp` | `ingestion_router` | `apps/api/normalizers.py` | Test |
+| **Inventory Management** | Wired | `inventory apps/add/get/services/search` | `inventory_router` (15) | `core/inventory_db.py` | Design |
+| **RBVM Risk Scoring** | Wired | `analyze` | `risk_router` (3) | `risk/scoring.py` | Decision |
+| **Severity Promotion** | Wired | `analyze` | Internal | `core/severity_promotion.py` | Decision |
+| **Probabilistic Forecasting** | Wired | `train-forecast` | Internal | `core/probabilistic.py` | Decision |
+| **BN-LR Hybrid Model** | Wired | `train-bn-lr`, `predict-bn-lr`, `backtest-bn-lr` | Internal | `core/bn_lr.py` | Decision |
+| **Reachability Analysis** | Wired | `reachability analyze/bulk/status` | `reachability_router` | `risk/reachability/` | Decision |
+| **Knowledge Graph** | Wired | API-only | `graph_router` (4) | `apps/api/knowledge_graph.py` | Decision |
+| **Multi-LLM Consensus** | Wired | `make-decision`, `run` | `enhanced_router` (4) | `core/enhanced_decision.py` | Decision |
+| **Advanced Pentesting** | Wired | `advanced-pentest run/threat-intel/simulate` | `pentagi_router_enhanced` (19) | `core/pentagi_advanced.py` | Test |
+| **PentAGI Integration** | Wired | `pentagi list/create/get/results` | `pentagi_router` (14) | `core/pentagi_db.py` | Test |
+| **Hallucination Guards** | Wired | Internal | Internal | `core/hallucination_guards.py` | Decision |
+| **Decision Policy Engine** | Wired | `policies validate/test` | `policies_router` (8) | `core/decision_policy.py` | Decision |
+| **Decision Tree** | Wired | Internal | Internal | `core/decision_tree.py` | Decision |
+| **Task State Machine** | Wired | `remediation list/get/assign/transition` | `remediation_router` (13) | `apps/api/remediation_router.py` | Remediation |
+| **SLA Tracking** | Wired | `remediation sla` | `remediation_router` | `apps/api/remediation_router.py` | Remediation |
+| **MTTR Metrics** | Wired | `remediation metrics` | `remediation_router` | `apps/api/remediation_router.py` | Monitor |
+| **Fix Verification** | Wired | `remediation verify` | `remediation_router` | `apps/api/remediation_router.py` | Remediation |
+| **Automated Remediation** | Wired | Internal | Internal | `core/automated_remediation.py` | Remediation |
+| **Evidence Bundles** | Wired | `get-evidence` | `evidence_router` (4) | `core/evidence.py` | Audit |
+| **Gzip Compression** | Wired | Internal | Internal | `core/evidence.py` | Audit |
+| **Fernet Encryption** | Wired | Internal | Internal | `core/evidence.py` | Audit |
+| **RSA-SHA256 Signing** | Wired | Internal | Internal | `core/evidence.py`, `core/crypto.py` | Audit |
+| **SLSA v1 Provenance** | Wired | API-only | `provenance_router` (2) | `services/provenance/attestation.py` | Audit |
+| **Compliance Frameworks** | Wired | `compliance status/frameworks/gaps/report` | `audit_router` (10) | `core/compliance.py`, `compliance/mapping.py` | Audit |
+| **SSDLC Evaluation** | Wired | Internal | Internal | `core/ssdlc.py` | All |
+| **Storage Backends** | Wired | Internal | Internal | `core/storage_backends.py` | Audit |
+| **Slack Webhooks** | Wired | `notifications pending/worker` | `collaboration_router` | `core/connectors.py` | All |
+| **Email (SMTP)** | Wired | `notifications pending/worker` | `collaboration_router` | `core/connectors.py` | All |
+| **Notification Queue** | Wired | `notifications pending/worker` | `collaboration_router` (21) | `apps/api/collaboration_router.py` | All |
+| **IaC Scanning** | Wired | `stage-run --stage deploy` | `iac_router` (6) | `core/iac_scanner.py` | Test |
+| **Secrets Scanning** | Wired | API-only | `secrets_router` (6) | `core/secrets_scanner.py` | Test |
+| **Jira Connector** | Wired | `integrations configure/test/sync` | `webhooks_router` | `core/connectors.py` | Remediation |
+| **Confluence Connector** | Wired | `integrations configure/test/sync` | `webhooks_router` | `core/connectors.py` | Audit |
+| **Webhook Receivers** | Wired | API-only | `webhooks_router` (17) | `apps/api/webhooks_router.py` | Remediation |
+| **Outbox Pattern** | Partial | - | Internal | `apps/api/webhooks_router.py` | Remediation |
+| **YAML Overlay Config** | Wired | `show-overlay`, `--overlay` | Internal | `core/configuration.py` | Cross-cutting |
+| **Feature Flags** | Wired | Internal | Internal | `core/flags/` | Cross-cutting |
+| **Exploit Signals** | Wired | `reachability analyze` | `feeds_router` (20) | `core/exploit_signals.py` | Decision |
+| **Telemetry Bridge** | Wired | Internal | Internal | `telemetry_bridge/` | Cross-cutting |
+| **Vector Store** | Wired | Internal | Internal | `core/vector_store.py` | Cross-cutting |
+| **Continuous Validation** | Wired | Internal | Internal | `core/continuous_validation.py` | Cross-cutting |
+| **Business Context** | Wired | `--context` flag | Internal | `core/business_context.py` | Design |
+| **OSS Fallback** | Wired | Internal | Internal | `core/oss_fallback.py` | Cross-cutting |
+| **Model Registry** | Wired | Internal | Internal | `core/model_registry.py` | Cross-cutting |
+| **Model Factory** | Wired | Internal | Internal | `core/model_factory.py` | Cross-cutting |
+| **Deduplication** | Wired | `correlation analyze/stats/graph/feedback` | `deduplication_router` (17) | `apps/api/deduplication_router.py` | Decision |
+| **Finding Groups** | Wired | `groups list/get/merge/unmerge` | `deduplication_router` | `apps/api/deduplication_router.py` | Decision |
+| **Bulk Operations** | Wired | API-only | `bulk_router` (12) | `apps/api/bulk_router.py` | Remediation |
+| **Marketplace** | Wired | API-only | `marketplace_router` (12) | `apps/api/marketplace_router.py` | Design |
+| **Teams Management** | Wired | `teams list/create/get/delete` | `teams_router` (8) | `core/user_db.py` | Admin |
+| **Users Management** | Wired | `users list/create/get/delete` | `users_router` (6) | `core/user_db.py` | Admin |
+| **Auth/SSO** | Wired | API-only | `auth_router` (4) | `core/auth_db.py` | Admin |
+| **Analytics Dashboard** | Wired | `analytics dashboard/mttr/coverage/roi/export` | `analytics_router` (16) | `core/analytics.py`, `core/analytics_db.py` | Monitor |
+| **Audit Logs** | Wired | `audit logs/decisions/export` | `audit_router` (10) | `core/audit_db.py` | Audit |
+| **Reports** | Wired | `reports list/generate/export/schedules` | `reports_router` (10) | `core/report_db.py` | Audit |
+| **Workflows** | Wired | `workflows list/get/create/execute/history` | `workflows_router` (7) | `core/workflow_db.py` | Remediation |
+| **IDE Integration** | Wired | API-only | `ide_router` (3) | `apps/api/ide_router.py` | Build |
+| **Validation** | Wired | API-only | `validation_router` (3) | `apps/api/validation_router.py` | Test |
+| **Health Checks** | Wired | `health` | `health_router` (4) | `apps/api/health.py` | Admin |
+| **Threat Intel Feeds** | Wired | `reachability analyze` | `feeds_router` (20) | `apps/api/feeds_router.py` | Decision |
+
+### Features NOT in Main API (Enterprise/Legacy)
+
+| Feature | Location | Status | Notes |
+|---------|----------|--------|-------|
+| **Micropentests** | `fixops-enterprise/src/api/v1/micro_pentest.py` | Not wired | Enterprise-only, not mounted in `apps/api/app.py` |
+
+---
+
+## Completeness Audit
+
+This appendix verifies that all routers, CLI commands, and core modules are accounted for in the capability decomposition and feature inventory.
+
+### Routers Mounted in Main App (apps/api/app.py)
+
+All 30+ routers are verified as mounted in `apps/api/app.py` (lines 388-455):
+
+| Router | Mounted | Capability ID | Verified |
+|--------|---------|---------------|----------|
+| `health_router` | Yes (line 388) | Admin | Yes |
+| `health_v1_router` | Yes (line 389) | Admin | Yes |
+| `enhanced_router` | Yes (line 401) | T3 | Yes |
+| `provenance_router` | Yes (line 402) | T5 | Yes |
+| `risk_router` | Yes (line 403) | T2 | Yes |
+| `graph_router` | Yes (line 404) | T2 | Yes |
+| `evidence_router` | Yes (line 405) | T5 | Yes |
+| `pentagi_router` | Yes (line 406) | T3 | Yes |
+| `reachability_router` | Yes (line 409) | P2 | Yes |
+| `inventory_router` | Yes (line 411) | T1 | Yes |
+| `users_router` | Yes (line 413) | P6 | Yes |
+| `teams_router` | Yes (line 414) | P6 | Yes |
+| `policies_router` | Yes (line 415) | T3 | Yes |
+| `analytics_router` | Yes (line 417) | Monitor | Yes |
+| `integrations_router` | Yes (line 418) | T8 | Yes |
+| `reports_router` | Yes (line 420) | T5 | Yes |
+| `audit_router` | Yes (line 421) | T5 | Yes |
+| `workflows_router` | Yes (line 422) | T4 | Yes |
+| `auth_router` | Yes (line 424) | P6 | Yes |
+| `secrets_router` | Yes (line 425) | T7 | Yes |
+| `iac_router` | Yes (line 426) | T7 | Yes |
+| `bulk_router` | Yes (line 427) | P4 | Yes |
+| `ide_router` | Yes (line 428) | T1 | Yes |
+| `deduplication_router` | Yes (line 431) | P1 | Yes |
+| `remediation_router` | Yes (line 432) | T4 | Yes |
+| `collaboration_router` | Yes (line 433) | P3 | Yes |
+| `webhooks_router` | Yes (line 434) | T8 | Yes |
+| `webhooks_receiver_router` | Yes (line 437) | T8 | Yes |
+| `feeds_router` | Yes (line 441) | P2 | Yes |
+| `validation_router` | Yes (line 445) | T1 | Yes |
+| `marketplace_router` | Yes (line 455) | P5 | Yes |
+
+### CLI Command Groups (30 top-level)
+
+All CLI command groups from `python -m core.cli --help` are verified:
+
+| Command Group | Subcommands | Capability ID | Verified |
+|---------------|-------------|---------------|----------|
+| `stage-run` | `--stage` | T1 | Yes |
+| `run` | - | T3 | Yes |
+| `ingest` | - | T1 | Yes |
+| `make-decision` | - | T3 | Yes |
+| `analyze` | - | T2 | Yes |
+| `health` | - | Admin | Yes |
+| `get-evidence` | - | T5 | Yes |
+| `show-overlay` | - | Config | Yes |
+| `train-forecast` | - | T2 | Yes |
+| `demo` | `--mode` | T3 | Yes |
+| `train-bn-lr` | - | T2 | Yes |
+| `predict-bn-lr` | - | T2 | Yes |
+| `backtest-bn-lr` | - | T2 | Yes |
+| `teams` | `list/create/get/delete` | P6 | Yes |
+| `users` | `list/create/get/delete` | P6 | Yes |
+| `pentagi` | `list-requests/create-request/get-request/list-results/list-configs/create-config` | T3 | Yes |
+| `compliance` | `frameworks/status/gaps/report` | T5 | Yes |
+| `reports` | `list/generate/export/schedules` | T5 | Yes |
+| `inventory` | `apps/add/get/services/search` | T1 | Yes |
+| `policies` | `list/get/create/validate/test` | T3 | Yes |
+| `integrations` | `list/configure/test/sync` | T8 | Yes |
+| `analytics` | `dashboard/mttr/coverage/roi/export` | Monitor | Yes |
+| `audit` | `logs/decisions/export` | T5 | Yes |
+| `workflows` | `list/get/create/execute/history` | T4 | Yes |
+| `advanced-pentest` | `run/threat-intel/business-impact/simulate/remediation/capabilities` | T3 | Yes |
+| `reachability` | `analyze/bulk/status` | P2 | Yes |
+| `correlation` | `analyze/stats/status/graph/feedback` | P1 | Yes |
+| `groups` | `list/get/merge/unmerge` | P1 | Yes |
+| `remediation` | `list/get/assign/transition/verify/metrics/sla` | T4 | Yes |
+| `notifications` | `worker/pending` | T6 | Yes |
+
+### Core Modules Verified
+
+All major core modules are accounted for in the capability decomposition:
+
+| Module | Lines | Purpose | Capability ID | Verified |
+|--------|-------|---------|---------------|----------|
+| `core/cli.py` | 4000+ | CLI entrypoint | All | Yes |
+| `core/configuration.py` | 1530 | YAML overlay config | Cross-cutting | Yes |
+| `core/evidence.py` | 437 | Evidence bundles | T5 | Yes |
+| `core/probabilistic.py` | 693 | Bayesian/Markov forecasting | T2 | Yes |
+| `core/ssdlc.py` | 428 | SSDLC evaluation | T5 | Yes |
+| `core/exploit_signals.py` | 581 | Exploit signal evaluation | T2 | Yes |
+| `core/pentagi_advanced.py` | 1054 | Advanced pentesting | T3 | Yes |
+| `core/enhanced_decision.py` | 1200+ | Multi-LLM consensus | T3 | Yes |
+| `core/connectors.py` | 650+ | Jira/Confluence/Slack | T8 | Yes |
+| `core/iac_scanner.py` | 700+ | IaC scanning | T7 | Yes |
+| `core/secrets_scanner.py` | 700+ | Secrets scanning | T7 | Yes |
+| `core/storage_backends.py` | 1200+ | Storage backends | T5 | Yes |
+| `core/bn_lr.py` | 300+ | BN-LR hybrid model | T2 | Yes |
+| `core/hallucination_guards.py` | 300+ | LLM output validation | T3 | Yes |
+| `core/decision_policy.py` | 300+ | Policy engine | T3 | Yes |
+| `core/decision_tree.py` | 300+ | Decision tree | T3 | Yes |
+| `core/automated_remediation.py` | 600+ | Auto-remediation | T4 | Yes |
+| `core/business_context.py` | 400+ | Business context | T1 | Yes |
+| `core/vector_store.py` | 500+ | Vector embeddings | Cross-cutting | Yes |
+| `core/continuous_validation.py` | 500+ | Continuous validation | Cross-cutting | Yes |
+| `core/oss_fallback.py` | 400+ | OSS fallback | Cross-cutting | Yes |
+| `core/model_registry.py` | 400+ | Model registry | Cross-cutting | Yes |
+| `core/model_factory.py` | 200+ | Model factory | Cross-cutting | Yes |
+| `core/flags/` | 7 files | Feature flags | Cross-cutting | Yes |
+| `risk/scoring.py` | 468 | RBVM risk scoring | T2 | Yes |
+| `risk/reachability/` | Multiple | Reachability analysis | T2 | Yes |
+| `apps/api/knowledge_graph.py` | 303 | Knowledge graph | T2 | Yes |
+| `telemetry_bridge/` | Multiple | Telemetry export | Cross-cutting | Yes |
+| `compliance/mapping.py` | 200+ | Compliance mapping | T5 | Yes |
+
+---
+
 ## Technical Deep Dive by Capability
 
 ### T1: Intake & Normalize
