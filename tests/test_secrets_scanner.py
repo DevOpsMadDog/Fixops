@@ -1373,28 +1373,44 @@ class TestStage2ContainmentChecks:
 
     @pytest.mark.asyncio
     async def test_run_gitleaks_base_escapes_trusted_root(self, detector):
-        """Test _run_gitleaks raises when base path escapes trusted root."""
-        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
-        # Note: Stage 1 check (path escapes trusted root) triggers first since
-        # the path is also outside trusted root. Both are valid security rejections.
-        with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
-            with pytest.raises(ValueError) as exc_info:
-                await detector._run_gitleaks(
-                    "/tmp/outside/test.py", "repo", "main", False
-                )
-            # Either error message is valid - both indicate security rejection
-            assert "escapes trusted root" in str(exc_info.value)
+        """Test _run_gitleaks raises when base path escapes trusted root (Stage 2)."""
+        from core.secrets_scanner import TRUSTED_ROOT
+
+        # Create a test file under TRUSTED_ROOT so Stage 1 passes
+        test_dir = os.path.join(TRUSTED_ROOT, "test_stage2_gitleaks")
+        os.makedirs(test_dir, exist_ok=True)
+        test_file = os.path.join(test_dir, "test.py")
+        try:
+            with open(test_file, "w") as f:
+                f.write("# test file")
+
+            # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+            # Path is under TRUSTED_ROOT (Stage 1 passes), but base is not (Stage 2 fails)
+            with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+                with pytest.raises(ValueError) as exc_info:
+                    await detector._run_gitleaks(test_file, "repo", "main", False)
+                assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
 
     @pytest.mark.asyncio
     async def test_run_trufflehog_base_escapes_trusted_root(self, detector):
-        """Test _run_trufflehog raises when base path escapes trusted root."""
-        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
-        # Note: Stage 1 check (path escapes trusted root) triggers first since
-        # the path is also outside trusted root. Both are valid security rejections.
-        with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
-            with pytest.raises(ValueError) as exc_info:
-                await detector._run_trufflehog(
-                    "/tmp/outside/test.py", "repo", "main", False
-                )
-            # Either error message is valid - both indicate security rejection
-            assert "escapes trusted root" in str(exc_info.value)
+        """Test _run_trufflehog raises when base path escapes trusted root (Stage 2)."""
+        from core.secrets_scanner import TRUSTED_ROOT
+
+        # Create a test file under TRUSTED_ROOT so Stage 1 passes
+        test_dir = os.path.join(TRUSTED_ROOT, "test_stage2_trufflehog")
+        os.makedirs(test_dir, exist_ok=True)
+        test_file = os.path.join(test_dir, "test.py")
+        try:
+            with open(test_file, "w") as f:
+                f.write("# test file")
+
+            # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+            # Path is under TRUSTED_ROOT (Stage 1 passes), but base is not (Stage 2 fails)
+            with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+                with pytest.raises(ValueError) as exc_info:
+                    await detector._run_trufflehog(test_file, "repo", "main", False)
+                assert "Base path escapes trusted root" in str(exc_info.value)
+        finally:
+            shutil.rmtree(test_dir, ignore_errors=True)
