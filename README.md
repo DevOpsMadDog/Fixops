@@ -18,7 +18,7 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Verify Exploitability** | **Micro-Pentest Engine** (automated exploit validation, attack vector simulation, confidence scoring) + reachability analysis with attack path mapping |
 | **Operationalize Remediation** | Remediation lifecycle with SLA tracking, bulk operations, team collaboration, decision regression validation |
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
-| **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (25+ pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
+| **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (21 pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
 
 **Platform Interfaces:** REST API (~287 endpoints across 28 router modules), CLI (~90 commands/subcommands across 30 command groups), and modular UI (16 frontend pages) - deployable on-prem or air-gapped as needed.
 
@@ -344,7 +344,7 @@ Configurable retention policies for compliance requirements:
 |  | Jira             |         | ROI Dashboard    |         | 16 Frontend Pages|   |
 |  | Confluence       |         | MTTR/MTTD        |         | React + Vite     |   |
 |  | Slack            |         | Trend Analysis   |         | Tailwind CSS     |   |
-|  | GitHub           |         | Forecasting      |         | Turborepo        |   |
+|  | GitHub           |         | Forecasting      |         |                  |   |
 |  +------------------+         +------------------+         +------------------+   |
 |                                                                                   |
 +-----------------------------------------------------------------------------------+
@@ -552,13 +552,13 @@ export FIXOPS_API_TOKEN="demo-token"  # Or your configured token
 
 # Upload security artifacts
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
-  -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
+  -F "file=@simulations/demo_pack/sbom.json" http://localhost:8000/inputs/sbom
 
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
-  -F "file=@samples/scan.sarif" http://localhost:8000/inputs/sarif
+  -F "file=@simulations/demo_pack/scanner.sarif" http://localhost:8000/inputs/sarif
 
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
-  -F "file=@samples/cve.json" http://localhost:8000/inputs/cve
+  -F "file=@simulations/demo_pack/cve-feed.json" http://localhost:8000/inputs/cve
 
 # Execute pipeline and get decision
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
@@ -621,8 +621,8 @@ Use this checklist to verify all FixOps features are working in your installatio
 | Feature | Test Command | Expected Result |
 |---------|--------------|-----------------|
 | API Health | `curl http://localhost:8000/health` | `{"status":"healthy"}` |
-| SBOM Ingestion | `curl -F "file=@samples/sbom.json" .../inputs/sbom` | 200 OK |
-| SARIF Ingestion | `curl -F "file=@samples/scan.sarif" .../inputs/sarif` | 200 OK |
+| SBOM Ingestion | `curl -F "file=@simulations/demo_pack/sbom.json" .../inputs/sbom` | 200 OK |
+| SARIF Ingestion | `curl -F "file=@simulations/demo_pack/scanner.sarif" .../inputs/sarif` | 200 OK |
 | Pipeline Execution | `curl .../pipeline/run` | JSON with decision |
 | CLI Demo | `python -m core.cli demo --mode demo` | Pipeline output |
 | Multi-LLM Consensus | `curl -X POST .../compare-llms` | Consensus result |
@@ -768,7 +768,7 @@ curl http://localhost:8000/health
 
 # Run the pipeline
 export FIXOPS_API_TOKEN="demo-token"
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@simulations/demo_pack/sbom.json" http://localhost:8000/inputs/sbom
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
 ```
 
