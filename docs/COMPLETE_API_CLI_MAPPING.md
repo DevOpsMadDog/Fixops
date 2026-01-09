@@ -1,5 +1,16 @@
 # Complete FixOps API to CLI Mapping
 
+> **DEPRECATED**: This document has been consolidated into [FIXOPS_PRODUCT_STATUS.md](./FIXOPS_PRODUCT_STATUS.md).
+> The master document now includes:
+> - Workflow Stage Map with API/CLI mapping
+> - API/CLI Coverage Summary (243 endpoints, 67 commands)
+> - End-to-End Workflow Integration examples
+> - Complete CLI Command Reference
+>
+> This file is retained as a detailed reference but the master document should be used for all stakeholder communications.
+
+---
+
 ## Coverage Summary
 
 | Metric | Count |

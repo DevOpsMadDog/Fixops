@@ -53,6 +53,126 @@ flowchart LR
 
 ---
 
+## Workflow Stage Map
+
+```mermaid
+flowchart LR
+  subgraph DESIGN[Design Phase]
+    D1[Design CSV]
+    D2[Business Context]
+    D3[Inventory]
+    D4[Policies]
+  end
+
+  subgraph BUILD[Build Phase]
+    B1[SBOM Analysis]
+    B2[Dependency Scan]
+  end
+
+  subgraph TEST[Test Phase]
+    T1[SARIF Ingestion]
+    T2[CVE/VEX Analysis]
+    T3[IaC Scanning]
+    T4[Secrets Scanning]
+    T5[PentAGI Testing]
+  end
+
+  subgraph DECISION[Release Gate]
+    R1[Risk Scoring]
+    R2[LLM Consensus]
+    R3[Policy Evaluation]
+    R4[Decision: ALLOW/BLOCK/REVIEW]
+  end
+
+  subgraph REMEDIATE[Remediation]
+    M1[Task Assignment]
+    M2[SLA Tracking]
+    M3[Fix Verification]
+  end
+
+  subgraph MONITOR[Monitor & Audit]
+    A1[Analytics Dashboard]
+    A2[Audit Logs]
+    A3[Compliance Reports]
+    A4[Evidence Bundles]
+  end
+
+  DESIGN --> BUILD --> TEST --> DECISION
+  DECISION -->|BLOCK/REVIEW| REMEDIATE --> TEST
+  DECISION -->|ALLOW| MONITOR
+  REMEDIATE --> MONITOR
+
+  classDef phase fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e;
+```
+
+**Workflow Stage to API/CLI Mapping:**
+
+| Stage | CLI Commands | API Routers | Key Endpoints |
+|-------|--------------|-------------|---------------|
+| **Design** | `stage-run --stage design`, `inventory add`, `policies create` | `ingestion_router`, `inventory_router`, `policies_router` | `POST /inputs/design`, `POST /api/v1/inventory/*`, `POST /api/v1/policies` |
+| **Build** | `stage-run --stage build`, `run --sbom` | `ingestion_router` | `POST /inputs/sbom` |
+| **Test** | `stage-run --stage test`, `run --sarif`, `pentagi create`, `advanced-pentest run` | `ingestion_router`, `iac_router`, `secrets_router`, `pentagi_router` | `POST /inputs/sarif`, `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*` |
+| **Release Gate** | `make-decision`, `run`, `analyze` | `pipeline`, `enhanced` | `GET /pipeline/run`, `POST /api/v1/enhanced/analysis` |
+| **Remediation** | `remediation create`, `remediation update` | `remediation_router` | `POST /api/v1/remediation/tasks`, `PUT /api/v1/remediation/tasks/{id}` |
+| **Monitor** | `analytics dashboard`, `audit logs`, `compliance status` | `analytics_router`, `audit_router` | `GET /api/v1/analytics/*`, `GET /api/v1/audit/*` |
+| **Audit** | `get-evidence`, `copy-evidence`, `compliance report`, `reports export` | `evidence`, `reports_router` | `GET /api/v1/evidence/*`, `GET /api/v1/reports/*` |
+
+---
+
+## API/CLI Coverage Summary
+
+| Metric | Count |
+|--------|-------|
+| **Total API Endpoints** | 243 |
+| **CLI Commands/Subcommands** | 67 |
+| **API Endpoints with CLI Coverage** | 156 (~64%) |
+| **API-Only Endpoints** | 87 (~36%) |
+
+### API Routers (25 total)
+
+| Router | File | Endpoints | CLI Coverage |
+|--------|------|-----------|--------------|
+| Core Ingestion | `apps/api/app.py` | 15 | `run`, `ingest`, `stage-run` |
+| Pipeline | `apps/api/pipeline.py` | 4 | `run`, `make-decision`, `analyze` |
+| Enhanced Decision | `apps/api/routes/enhanced.py` | 4 | `advanced-pentest capabilities` |
+| Analytics | `apps/api/analytics_router.py` | 16 | `analytics dashboard/mttr/coverage/roi/export` |
+| Audit | `apps/api/audit_router.py` | 10 | `audit logs/decisions`, `compliance *` |
+| Reports | `apps/api/reports_router.py` | 9 | `reports list/generate/export` |
+| Teams | `apps/api/teams_router.py` | 8 | `teams list/get/create` |
+| Users | `apps/api/users_router.py` | 6 | `users list/get/create` |
+| Policies | `apps/api/policies_router.py` | 8 | `policies list/get/create/validate/test` |
+| Integrations | `apps/api/integrations_router.py` | 8 | `integrations list/configure/test/sync` |
+| Workflows | `apps/api/workflows_router.py` | 7 | `workflows list/get/create/execute/history` |
+| Inventory | `apps/api/inventory_router.py` | 15 | `inventory apps/add/get/services/search` |
+| PentAGI | `apps/api/pentagi_router.py` | 14 | `pentagi list/create/status` |
+| Enhanced PentAGI | `apps/api/pentagi_router_enhanced.py` | 19 | `advanced-pentest run/threat-intel/simulate` |
+| IaC | `apps/api/iac_router.py` | 5 | `stage-run --stage deploy` |
+| Secrets | `apps/api/secrets_router.py` | 5 | API-only |
+| Health | `apps/api/health_router.py` | 5 | `health` |
+| IDE Integration | `apps/api/ide_router.py` | 3 | API-only (IDE plugins) |
+| Bulk Operations | `apps/api/bulk_router.py` | 5 | API-only |
+| Marketplace | `apps/api/marketplace_router.py` | 12 | API-only |
+| SSO/Auth | `apps/api/auth_router.py` | 4 | API-only (OAuth flows) |
+| Webhooks | `apps/api/webhooks_router.py` | 20 | API-only (event-driven) |
+| Deduplication | `apps/api/deduplication_router.py` | 17 | `correlation`, `groups` |
+| Remediation | `apps/api/remediation_router.py` | 13 | `remediation list/create/update` |
+| Feeds | `apps/api/feeds_router.py` | 20 | `reachability analyze` |
+
+### API-Only Endpoints (Why No CLI)
+
+| Category | Count | Reason |
+|----------|-------|--------|
+| Chunked Uploads | 4 | Large file handling requires streaming |
+| Graph Visualization | 4 | Interactive visualization requires UI |
+| Bulk Operations | 5 | Complex batch operations with progress tracking |
+| IDE Integration | 3 | Real-time code analysis for IDE plugins |
+| Marketplace | 12 | E-commerce features (purchase, download, rate) |
+| SSO/Auth | 4 | OAuth flows require browser redirects |
+| Real-time Monitoring | 3 | WebSocket/streaming connections |
+| Webhooks | 7 | Event-driven, configured via UI |
+
+---
+
 ## Implementation Index (Quick Reference)
 
 | ID | Capability | API Endpoints | CLI Commands | Core Modules | Status |
@@ -802,11 +922,182 @@ Bidirectional Sync with Drift Detection
 
 ---
 
-## CLI Command Reference
+## End-to-End Workflow Integration
 
+This section shows how CLI commands and API endpoints work together through each phase of the security workflow.
+
+### Design Phase
+```bash
+# CLI - Define application context and policies
+python -m core.cli stage-run --stage design --input design.csv
+python -m core.cli inventory add --name payments-api --tier critical --owner platform-team
+python -m core.cli policies create --name prod-policy --file policy.yaml
+
+# API
+POST /inputs/design
+POST /api/v1/inventory/applications
+POST /api/v1/policies
+```
+
+### Build Phase
+```bash
+# CLI - Analyze dependencies
+python -m core.cli stage-run --stage build --input sbom.json
+python -m core.cli run --sbom sbom.json
+
+# API
+POST /inputs/sbom
+```
+
+### Test Phase
+```bash
+# CLI - Ingest scan results and run penetration testing
+python -m core.cli stage-run --stage test --input scan.sarif
+python -m core.cli pentagi create --target payments-api --cve CVE-2024-1234
+python -m core.cli advanced-pentest run --target payments-api --cves CVE-2024-1234
+
+# API
+POST /inputs/sarif
+POST /inputs/cve
+POST /api/v1/pentagi/requests
+POST /api/v1/enhanced/pentest/run
+```
+
+### Release Gate (Decision)
+```bash
+# CLI - Get security decision with evidence bundle
+python -m core.cli make-decision \
+  --design design.csv \
+  --sbom sbom.json \
+  --sarif scan.sarif \
+  --cve cve.json \
+  --evidence-dir ./evidence
+
+# Exit codes: 0=ALLOW, 1=BLOCK, 2=NEEDS_REVIEW
+
+# API
+POST /inputs/* (all artifacts)
+GET /pipeline/run
+POST /api/v1/enhanced/analysis
+```
+
+### Remediation Phase
+```bash
+# CLI - Manage remediation tasks
+python -m core.cli remediation create --finding CVE-2024-1234 --assignee dev-team
+python -m core.cli remediation update --id task-123 --status in_progress
+python -m core.cli remediation list --status open
+
+# API
+POST /api/v1/remediation/tasks
+PUT /api/v1/remediation/tasks/{id}
+GET /api/v1/remediation/tasks
+```
+
+### Monitor Phase
+```bash
+# CLI - View dashboards and metrics
+python -m core.cli analytics dashboard --period 30d
+python -m core.cli audit logs --limit 100
+python -m core.cli compliance status SOC2
+
+# API
+GET /api/v1/analytics/dashboard/*
+GET /api/v1/audit/logs
+GET /api/v1/audit/compliance/frameworks/SOC2/status
+```
+
+### Audit/Export Phase
+```bash
+# CLI - Export evidence and reports
+python -m core.cli get-evidence --run decision.json
+python -m core.cli copy-evidence --run decision.json --target ./audit-handoff
+python -m core.cli compliance report SOC2 --output soc2-report.json
+python -m core.cli reports export {id} --output report.pdf
+
+# API
+GET /api/v1/evidence/bundles/{id}/download
+POST /api/v1/audit/compliance/frameworks/SOC2/report
+GET /api/v1/reports/{id}/download
+```
+
+---
+
+## CLI Command Reference (67 Commands)
+
+### Core Pipeline Commands
 | Command | Subcommands | Purpose |
 |---------|-------------|---------|
-| `run` | - | Execute full pipeline |
+| `run` | - | Execute full pipeline with all artifacts |
+| `ingest` | - | Normalize artifacts without decision |
+| `make-decision` | - | Get decision (exit code 0=allow, 1=block, 2=defer) |
+| `analyze` | - | Analyze findings without full pipeline |
+| `demo` | `--mode demo\|enterprise` | Run with bundled fixtures |
+| `stage-run` | `--stage design\|build\|test\|deploy` | Process single stage |
+
+### Evidence & Compliance Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `get-evidence` | `--run result.json` | Copy evidence bundle |
+| `copy-evidence` | `--run`, `--target` | Copy bundle to handoff directory |
+| `compliance` | `status`, `frameworks`, `report` | Compliance management |
+| `show-overlay` | - | Print overlay config |
+
+### Inventory & Policies Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `inventory` | `apps`, `add`, `get`, `services`, `search` | Application inventory |
+| `policies` | `list`, `get`, `create`, `validate`, `test` | Policy management |
+
+### Integration Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `integrations` | `list`, `configure`, `test`, `sync` | Integration management |
+| `health` | - | Check integration readiness |
+
+### Analytics & Audit Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `analytics` | `dashboard`, `mttr`, `coverage`, `roi`, `export`, `trends` | View analytics |
+| `audit` | `logs`, `decisions`, `export` | Audit logs |
+| `reports` | `list`, `generate`, `export` | Report management |
+
+### Team & User Management Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `teams` | `list`, `get`, `create`, `delete` | Manage teams |
+| `users` | `list`, `get`, `create`, `delete` | Manage users |
+
+### Workflow & Remediation Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `workflows` | `list`, `get`, `create`, `execute`, `history` | Workflow automation |
+| `remediation` | `list`, `create`, `update`, `close` | Remediation tasks |
+| `notifications` | `list`, `process`, `retry` | Notification queue |
+
+### Deduplication & Correlation Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `correlation` | `list`, `create`, `strategies` | Finding correlation |
+| `groups` | `list`, `create`, `merge`, `split` | Finding clusters |
+
+### Security Testing Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `pentagi` | `list`, `create`, `status`, `results` | PentAGI pen testing |
+| `advanced-pentest` | `run`, `capabilities`, `threat-intel`, `simulate` | AI-powered pentest |
+| `reachability` | `analyze`, `paths`, `graph` | Attack path analysis |
+
+### Machine Learning Commands
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `train-forecast` | - | Train probabilistic model |
+| `train-bn-lr` | - | Train Bayesian-LR model |
+| `predict-bn-lr` | - | Predict exploitation risk |
+
+---
+
+*This document is the single source of truth for FixOps product status. Previous documents (STAKEHOLDER_ANALYSIS.md, ENTERPRISE_READINESS_ANALYSIS.md, FIXOPS_IMPLEMENTATION_STATUS.md, next_features.md) have been consolidated here and can be deleted.*
 | `ingest` | - | Normalize artifacts |
 | `make-decision` | - | Get decision (exit code 0=allow, 1=block, 2=defer) |
 | `analyze` | - | Analyze findings |
