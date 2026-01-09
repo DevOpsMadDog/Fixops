@@ -1,63 +1,90 @@
 # FixOps Product Status & Roadmap
 
-**Document Version:** 1.0  
+**Document Version:** 2.0  
 **Date:** January 2026  
 **Purpose:** Consolidated product status for architect and product owner showcase
 
 ---
 
-## Visual Overview (Mindmap)
+## Capability Map
 
 ```mermaid
 flowchart LR
-  F[FixOps<br/>Enterprise DevSecOps<br/>Decision Engine]:::root
+  F[FixOps<br/>Security Decision Engine]:::root
 
-  subgraph IMPL[Implemented - Production Ready]
+  subgraph TODAY[Available Today]
     direction TB
-    I1[Core Decisioning<br/>Multi-LLM Consensus]:::done
-    I2[Evidence & Compliance<br/>RSA-SHA256 + SLSA v1]:::done
-    I3[Risk Scoring<br/>EPSS+KEV+CVSS+Bayesian]:::done
-    I4[Deduplication<br/>7 Strategies, 35% Noise Reduction]:::done
-    I5[Scanning<br/>IaC + Secrets]:::done
-    I6[Connectors - Outbound<br/>Jira/Confluence/Slack]:::done
-    I7[Connectors - Inbound<br/>Webhooks with HMAC]:::done
+    T1[Intake & Normalize<br/>Aggregate all scanner outputs]:::done
+    T2[Prioritize & Triage<br/>Risk-based prioritization]:::done
+    T3[Automated Decisions<br/>AI-powered allow/block/review]:::done
+    T4[Remediation Workflow<br/>Assign, track, verify fixes]:::done
+    T5[Compliance & Evidence<br/>Audit-ready evidence bundles]:::done
+    T6[Notifications<br/>Slack & email alerts]:::done
+    T7[Security Scanning<br/>IaC & secrets detection]:::done
   end
 
-  subgraph WIP[In Progress - Phase 4]
+  subgraph NEXT[Coming Next]
     direction TB
-    W1[Sandbox Architecture]:::wip
-    W2[Safe Payload Execution]:::wip
+    N1[Reliable Ticket Delivery<br/>Auto-create tickets in any system]:::planned
+    N2[Broader Integrations<br/>ServiceNow, GitLab, Azure DevOps, GitHub]:::planned
+    N3[Enterprise Login<br/>SSO with your identity provider]:::planned
+    N4[Scale & High Availability<br/>Production-grade data layer]:::planned
+    N5[Multi-Tenant Support<br/>Organization boundaries]:::planned
   end
 
-  subgraph PARTIAL[Enterprise Blockers]
+  subgraph LATER[Future Enhancements]
     direction TB
-    P1[Outbox: No Worker<br/>Items Queued Forever]:::partial
-    P2[Connectors: Inbound Only<br/>SN/GitLab/AzDO]:::partial
-    P3[Storage: 12+ SQLite DBs<br/>Blocks HA/Scaling]:::partial
-    P4[Integration Sync<br/>No-Op Endpoint]:::partial
+    L1[Executive Dashboards<br/>Board-ready reporting]:::later
+    L2[SOC Integration<br/>SIEM connectors]:::later
+    L3[Developer Experience<br/>PR annotations, self-service]:::later
+    L4[Advanced Analytics<br/>Risk quantification, benchmarks]:::later
   end
 
-  subgraph PLANNED[Planned - Enterprise Plug-and-Play]
-    direction TB
-    N1[Outbox Worker<br/>1 week]:::planned
-    N2[Outbound Connectors<br/>SN/GitLab/AzDO/GitHub]:::planned
-    N3[PostgreSQL Migration<br/>2 weeks]:::planned
-    N4[Multi-Tenancy<br/>2 weeks]:::planned
-    N5[OIDC/SAML Auth<br/>1 week]:::planned
-    N6[OSS Fallback Wiring<br/>3-5 days]:::planned
-  end
-
-  F --> IMPL
-  F --> WIP
-  F --> PARTIAL
-  F --> PLANNED
+  F --> TODAY
+  F --> NEXT
+  F --> LATER
 
   classDef root fill:#1e293b,stroke:#1e293b,color:#ffffff,font-weight:bold;
   classDef done fill:#d1fae5,stroke:#10b981,color:#065f46;
-  classDef wip fill:#fef3c7,stroke:#f59e0b,color:#7c2d12;
-  classDef partial fill:#ffedd5,stroke:#f97316,color:#7c2d12;
   classDef planned fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
+  classDef later fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 ```
+
+---
+
+## What FixOps Does (Business Capabilities)
+
+### Available Today
+
+| Capability | What It Does | Business Value |
+|------------|--------------|----------------|
+| **Intake & Normalize** | Aggregates outputs from any scanner (SAST, DAST, SCA, IaC, secrets) | Single pane of glass for all security findings |
+| **Prioritize & Triage** | Scores vulnerabilities using threat intelligence (EPSS, KEV, CVSS) | Focus on what matters most, reduce noise by 35% |
+| **Automated Decisions** | AI consensus from multiple models decides allow/block/review | Consistent, explainable security decisions at scale |
+| **Remediation Workflow** | Assigns tasks, tracks SLAs, verifies fixes | Clear accountability, measurable MTTR |
+| **Compliance & Evidence** | Generates signed, tamper-proof audit bundles | Audit-ready evidence for any framework |
+| **Notifications** | Sends alerts via Slack and email | Keep teams informed in real-time |
+| **Security Scanning** | Scans infrastructure-as-code and detects hardcoded secrets | Shift-left security before deployment |
+| **Jira Integration** | Creates and syncs tickets bidirectionally | Seamless developer workflow |
+
+### Coming Next (Enterprise Plug-and-Play)
+
+| Capability | What It Does | Business Value |
+|------------|--------------|----------------|
+| **Reliable Ticket Delivery** | Automatically creates/updates tickets with guaranteed delivery | No more manual ticket creation |
+| **Broader Integrations** | Connect to ServiceNow, GitLab, Azure DevOps, GitHub | Works with your existing tools |
+| **Enterprise Login (SSO)** | OIDC/SAML integration with your identity provider | Single sign-on, role-based access |
+| **Scale & High Availability** | Production-grade database with failover | Enterprise reliability |
+| **Multi-Tenant Support** | Isolated data per organization | Secure multi-team deployment |
+
+### Future Enhancements (Optional)
+
+| Capability | What It Does | Business Value |
+|------------|--------------|----------------|
+| **Executive Dashboards** | Board-ready visualizations and trends | Strategic visibility for leadership |
+| **SOC Integration** | SIEM connectors (Splunk, Sentinel) | Correlate vulnerabilities with incidents |
+| **Developer Experience** | PR annotations, self-service portal | Developer-friendly security |
+| **Advanced Analytics** | Risk quantification ($), industry benchmarks | Data-driven security investment |
 
 ---
 
