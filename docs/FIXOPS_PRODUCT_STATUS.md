@@ -123,21 +123,32 @@ flowchart LR
 
 | Metric | Count |
 |--------|-------|
-| **Total API Endpoints** | 243 |
-| **CLI Commands/Subcommands** | 67 |
-| **API Endpoints with CLI Coverage** | 156 (~64%) |
-| **API-Only Endpoints** | 87 (~36%) |
+| **Total API Endpoints** | ~300 |
+| **CLI Commands/Subcommands** | 84 |
+| **API Endpoints with CLI Coverage** | ~190 (~64%) |
+| **API-Only Endpoints** | ~110 (~36%) |
 
-### API Routers (25 total)
+**Note:** Counts are code-derived and depend on enabled modules/mode.
+
+### Code-Derived Endpoint Breakdown
+
+| Source | Endpoints |
+|--------|-----------|
+| apps/api/*_router.py | 260 |
+| apps/api/app.py | 18 |
+| apps/api/routes/enhanced.py | 4 |
+| backend/api/* routers | 18 |
+| **Total** | **~300** |
+
+### API Routers (30 total)
 
 | Router | File | Endpoints | CLI Coverage |
 |--------|------|-----------|--------------|
-| Core Ingestion | `apps/api/app.py` | 15 | `run`, `ingest`, `stage-run` |
-| Pipeline | `apps/api/pipeline.py` | 4 | `run`, `make-decision`, `analyze` |
+| Core Ingestion | `apps/api/app.py` | 18 | `run`, `ingest`, `stage-run` |
 | Enhanced Decision | `apps/api/routes/enhanced.py` | 4 | `advanced-pentest capabilities` |
 | Analytics | `apps/api/analytics_router.py` | 16 | `analytics dashboard/mttr/coverage/roi/export` |
 | Audit | `apps/api/audit_router.py` | 10 | `audit logs/decisions`, `compliance *` |
-| Reports | `apps/api/reports_router.py` | 9 | `reports list/generate/export` |
+| Reports | `apps/api/reports_router.py` | 10 | `reports list/generate/export` |
 | Teams | `apps/api/teams_router.py` | 8 | `teams list/get/create` |
 | Users | `apps/api/users_router.py` | 6 | `users list/get/create` |
 | Policies | `apps/api/policies_router.py` | 8 | `policies list/get/create/validate/test` |
@@ -146,30 +157,37 @@ flowchart LR
 | Inventory | `apps/api/inventory_router.py` | 15 | `inventory apps/add/get/services/search` |
 | PentAGI | `apps/api/pentagi_router.py` | 14 | `pentagi list/create/status` |
 | Enhanced PentAGI | `apps/api/pentagi_router_enhanced.py` | 19 | `advanced-pentest run/threat-intel/simulate` |
-| IaC | `apps/api/iac_router.py` | 5 | `stage-run --stage deploy` |
-| Secrets | `apps/api/secrets_router.py` | 5 | API-only |
-| Health | `apps/api/health_router.py` | 5 | `health` |
+| IaC | `apps/api/iac_router.py` | 6 | `stage-run --stage deploy` |
+| Secrets | `apps/api/secrets_router.py` | 6 | API-only |
+| Health | `apps/api/health.py` | 4 | `health` |
 | IDE Integration | `apps/api/ide_router.py` | 3 | API-only (IDE plugins) |
-| Bulk Operations | `apps/api/bulk_router.py` | 5 | API-only |
+| Bulk Operations | `apps/api/bulk_router.py` | 12 | API-only |
 | Marketplace | `apps/api/marketplace_router.py` | 12 | API-only |
 | SSO/Auth | `apps/api/auth_router.py` | 4 | API-only (OAuth flows) |
-| Webhooks | `apps/api/webhooks_router.py` | 20 | API-only (event-driven) |
+| Webhooks | `apps/api/webhooks_router.py` | 17 | API-only (event-driven) |
 | Deduplication | `apps/api/deduplication_router.py` | 17 | `correlation`, `groups` |
 | Remediation | `apps/api/remediation_router.py` | 13 | `remediation list/create/update` |
 | Feeds | `apps/api/feeds_router.py` | 20 | `reachability analyze` |
+| **Collaboration** | `apps/api/collaboration_router.py` | 21 | API-only (comments, watchers, activity) |
+| Validation | `apps/api/validation_router.py` | 3 | API-only |
+| **Evidence** | `backend/api/evidence/router.py` | 4 | `get-evidence`, `copy-evidence` |
+| **Graph/Risk** | `backend/api/graph/router.py` | 4 | API-only (visualization) |
+| **Risk** | `backend/api/risk/router.py` | 3 | API-only |
+| **Provenance** | `backend/api/provenance/router.py` | 2 | API-only |
 
 ### API-Only Endpoints (Why No CLI)
 
 | Category | Count | Reason |
 |----------|-------|--------|
 | Chunked Uploads | 4 | Large file handling requires streaming |
-| Graph Visualization | 4 | Interactive visualization requires UI |
-| Bulk Operations | 5 | Complex batch operations with progress tracking |
+| Graph Visualization | 7 | Interactive visualization requires UI |
+| Bulk Operations | 12 | Complex batch operations with progress tracking |
 | IDE Integration | 3 | Real-time code analysis for IDE plugins |
 | Marketplace | 12 | E-commerce features (purchase, download, rate) |
 | SSO/Auth | 4 | OAuth flows require browser redirects |
 | Real-time Monitoring | 3 | WebSocket/streaming connections |
-| Webhooks | 7 | Event-driven, configured via UI |
+| Collaboration | 21 | Comments, watchers, activity feeds (UI-driven) |
+| Webhooks | 17 | Event-driven, configured via UI |
 
 ---
 
