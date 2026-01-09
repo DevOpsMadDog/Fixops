@@ -137,7 +137,7 @@ flowchart LR
 | Metric | Count |
 |--------|-------|
 | **Total API Endpoints** | 303 |
-| **CLI Commands/Subcommands** | 111 total leaf commands (31 top-level: 13 standalone + 18 with subcommands) |
+| **CLI Commands/Subcommands** | 111 (13 standalone + 98 subcommands across 18 groups; 31 top-level total) |
 | **API Endpoints with CLI Coverage** | 211 (70%) |
 | **API-Only Endpoints** | 92 (30%) |
 
