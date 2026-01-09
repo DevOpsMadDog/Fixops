@@ -65,20 +65,27 @@ This document consolidates all planned features and "What's Needed" items into a
 | IDE Analysis | Returns empty findings | Analysis engine integration | 1-2 weeks | `apps/api/ide_router.py:58-81` |
 | IDE Suggestions | Returns empty suggestions | Suggestion engine | 1-2 weeks | `apps/api/ide_router.py` |
 
-### NOT REQUIRED for Enterprise Baseline
+### Medium Priority (Enterprise Enablement) - Elevated from Low Priority
 
-These can be safely deferred or skipped entirely for initial enterprise deployment:
+**Per user request:** These items have been elevated to Medium Priority for enterprise plug-and-play readiness.
 
-| Feature | Why NOT REQUIRED | Category |
-|---------|------------------|----------|
-| Application Components | SBOM data exists, UI enhancement only | UI Polish |
-| Application APIs | API catalog is nice-to-have | UI Polish |
-| Application Dependencies | Dependency graph is visualization only | UI Polish |
-| Service Registry | External service discovery, not core | Niche Integration |
-| Lifecycle Stage Tracking | Advanced analytics, not operational | Advanced Analytics |
-| Cross-Stage Correlation | Advanced analytics, not operational | Advanced Analytics |
-| Runtime Event Ingestion | SIEM integration, build when demanded | Niche Integration |
-| OSS Fallback Wiring | Proprietary tools work, OSS is backup | Optional |
+| Feature | Current State | What's Needed | Effort | Priority |
+|---------|---------------|---------------|--------|----------|
+| **OSS Fallback Wiring** | Code exists, not wired | Wire to pipeline with config | 3-5 days | **MEDIUM** |
+| **Application Components** | Returns `[]` | Populate from SBOM uploads | 3-5 days | **MEDIUM** |
+| **Application APIs** | Returns `[]` | API catalog integration | 1 week | **MEDIUM** |
+| **Application Dependencies** | Returns `[]` | Dependency graph from SBOM | 3-5 days | **MEDIUM** |
+| **Service Registry** | Returns `[]` or 404 | Service registry integration | 1-2 weeks | **MEDIUM** |
+| **Lifecycle Stage Tracking** | Not implemented | Add `lifecycle_stage` field | 1-2 weeks | **MEDIUM** |
+| **Cross-Stage Correlation** | Not implemented | Link findings across stages | 1-2 weeks | **MEDIUM** |
+| **Runtime Event Ingestion** | Not implemented | `POST /api/v1/events/ingest` | 1 week | **MEDIUM** |
+
+### Items That Can Be Deferred (Optional/Not Required)
+
+These can be safely deferred for initial enterprise deployment:
+
+| Feature | Why Deferrable | Category |
+|---------|----------------|----------|
 | Risk Quantification ($) | Budget justification, not operational | Advanced Analytics |
 | Industry Benchmarking | No customer data yet | Advanced Analytics |
 | ROI Calculator | Nice-to-have for execs | Advanced Analytics |
@@ -91,20 +98,7 @@ These can be safely deferred or skipped entirely for initial enterprise deployme
 | Manual Pentest Scheduling | Use external tools | Workflow Extra |
 | Scanner Health Dashboard | Operational monitoring, not core | Workflow Extra |
 
-**Key Principle:** If it doesn't block (1) deploying safely, (2) making decisions, (3) tracking remediation, or (4) generating audit evidence, it's NOT REQUIRED for initial enterprise rollout.
-
-### Low Priority (Future Enhancements) - OPTIONAL/NOT REQUIRED
-
-| Feature | Current State | What's Needed | Effort | Required? |
-|---------|---------------|---------------|--------|-----------|
-| Application Components | Returns `[]` | Populate from SBOM uploads | 3-5 days | NOT REQUIRED |
-| Application APIs | Returns `[]` | API catalog integration | 1 week | NOT REQUIRED |
-| Application Dependencies | Returns `[]` | Dependency graph from SBOM | 3-5 days | NOT REQUIRED |
-| Service Registry | Returns `[]` or 404 | Service registry integration | 1-2 weeks | NOT REQUIRED |
-| Lifecycle Stage Tracking | Not implemented | Add `lifecycle_stage` field | 1-2 weeks | NOT REQUIRED |
-| Cross-Stage Correlation | Not implemented | Link findings across stages | 1-2 weeks | NOT REQUIRED |
-| Runtime Event Ingestion | Not implemented | `POST /api/v1/events/ingest` | 1 week | NOT REQUIRED |
-| OSS Fallback Wiring | Code exists, not wired | Wire to pipeline with config | 3-5 days | OPTIONAL |
+**Key Principle:** If it doesn't block (1) deploying safely, (2) making decisions, (3) tracking remediation, or (4) generating audit evidence, it can be deferred.
 
 ---
 
@@ -136,22 +130,48 @@ These can be safely deferred or skipped entirely for initial enterprise deployme
 
 ---
 
-## Connectors & Integrations (Implemented)
+## Connectors & Integrations - Enterprise Reality Check
 
-These connectors are fully implemented and production-ready:
+**IMPORTANT:** Deep code analysis reveals not all connectors are "Complete" for enterprise plug-and-play.
+
+### Enterprise Connector Checklist
+
+| Connector | Inbound | Outbound | Worker | Bidir Sync | Status | What's Missing |
+|-----------|---------|----------|--------|------------|--------|----------------|
+| **Jira** | Webhook receiver | `create_issue()` | Outbox queues | Drift detection | **PARTIAL** | Worker to process outbox |
+| **Confluence** | - | `create_page()` | - | - | **OUTBOUND ONLY** | No inbound, no sync |
+| **Slack** | - | `post_message()` | - | - | **OUTBOUND ONLY** | No inbound, no sync |
+| **ServiceNow** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `ServiceNowConnector.create_incident()` |
+| **GitLab** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `GitLabConnector.create_issue()` |
+| **Azure DevOps** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `AzureDevOpsConnector.create_work_item()` |
+| **GitHub** | - | **MISSING** | - | - | **NOT IMPLEMENTED** | Need full connector |
+
+**Critical Gap:** Outbox pattern exists (`apps/api/webhooks_router.py:744-1012`) but NO background worker polls and processes it.
+
+### To Achieve Enterprise Plug-and-Play
+
+| Task | Effort | Priority |
+|------|--------|----------|
+| **Implement Outbox Worker** | 1 week | MUST |
+| **Add ServiceNow Outbound** | 3-5 days | SHOULD |
+| **Add GitLab Outbound** | 3-5 days | SHOULD |
+| **Add Azure DevOps Outbound** | 3-5 days | SHOULD |
+| **Add GitHub Connector** | 1 week | SHOULD |
+
+### What IS Working (Code References)
 
 | Connector | Status | Features | Code Reference |
 |-----------|--------|----------|----------------|
-| **Jira** | Complete | Bidirectional sync, HMAC signature verification, status mapping, drift detection | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` |
-| **ServiceNow** | Complete | Webhook receiver, state mapping, incident sync | `apps/api/webhooks_router.py:353-433` |
-| **GitLab** | Complete | Issue sync, label-to-status mapping, webhook receiver | `apps/api/webhooks_router.py:1110-1227` |
-| **Azure DevOps** | Complete | Work item sync, state mapping, webhook receiver | `apps/api/webhooks_router.py:1261-1357` |
-| **Slack** | Complete | Notifications via incoming webhook | `core/connectors.py:213-248` |
-| **Confluence** | Complete | Page publishing for audit evidence | `core/connectors.py:127-210` |
+| **Jira** | Outbound works | `create_issue()` makes real HTTP calls | `core/connectors.py:49-124` |
+| **Confluence** | Outbound works | `create_page()` makes real HTTP calls | `core/connectors.py:127-210` |
+| **Slack** | Outbound works | `post_message()` makes real HTTP calls | `core/connectors.py:213-248` |
+| **ServiceNow** | Inbound only | Webhook receiver | `apps/api/webhooks_router.py:353-433` |
+| **GitLab** | Inbound only | Webhook receiver | `apps/api/webhooks_router.py:1110-1227` |
+| **Azure DevOps** | Inbound only | Webhook receiver | `apps/api/webhooks_router.py:1261-1357` |
 
 **Webhook Management Features:**
 - Integration mappings with drift detection
-- Outbox pattern with retry logic (max 3 retries)
+- Outbox pattern with retry logic (max 3 retries) - **BUT NO WORKER PROCESSES IT**
 - Status sync between FixOps and external systems
 - HMAC signature verification for security
 

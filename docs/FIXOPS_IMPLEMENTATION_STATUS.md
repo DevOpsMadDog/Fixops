@@ -58,6 +58,29 @@ FixOps is designed for **single-tenant, on-premises deployment**. This means:
 | **Background Workers** | Implied | **MISSING** | Outbox exists but no processor |
 | **Database** | SQLite | **12+ SEPARATE DBs** | Hardcoded paths like `data/users.db` |
 
+### Enterprise Connector Checklist (Plug-and-Play Readiness)
+
+For true enterprise plug-and-play, each connector needs: Inbound (webhook receiver), Outbound (create/update), Background Worker, and Bidirectional Sync.
+
+| Connector | Inbound | Outbound | Worker | Bidir Sync | Status | What's Missing |
+|-----------|---------|----------|--------|------------|--------|----------------|
+| **Jira** | Webhook receiver | `create_issue()` | Outbox queues | Drift detection | **PARTIAL** | Worker to process outbox |
+| **Confluence** | - | `create_page()` | - | - | **OUTBOUND ONLY** | No inbound, no sync |
+| **Slack** | - | `post_message()` | - | - | **OUTBOUND ONLY** | No inbound, no sync |
+| **ServiceNow** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `ServiceNowConnector.create_incident()` |
+| **GitLab** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `GitLabConnector.create_issue()` |
+| **Azure DevOps** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `AzureDevOpsConnector.create_work_item()` |
+| **GitHub** | - | **MISSING** | - | - | **NOT IMPLEMENTED** | Need full connector |
+
+**Critical Gap:** Outbox pattern exists (`apps/api/webhooks_router.py:744-1012`) but NO background worker polls and processes it. Items are queued forever.
+
+**To achieve plug-and-play:**
+1. **Implement Outbox Worker** (1 week) - Poll pending items, route to connectors, handle retries
+2. **Add ServiceNow Outbound** (3-5 days) - `ServiceNowConnector.create_incident()` in `core/connectors.py`
+3. **Add GitLab Outbound** (3-5 days) - `GitLabConnector.create_issue()` in `core/connectors.py`
+4. **Add Azure DevOps Outbound** (3-5 days) - `AzureDevOpsConnector.create_work_item()` in `core/connectors.py`
+5. **Add GitHub Connector** (1 week) - Full inbound/outbound for GitHub Issues/PRs
+
 ### What's NOT REQUIRED for Enterprise Baseline
 
 These can be safely deferred or skipped for initial enterprise deployment:
@@ -363,9 +386,9 @@ Full adapter implementations exist in `core/adapters.py` (1,149 lines) but are *
 - `GET /api/v1/adapters` - List available adapters
 - `GET /api/v1/adapters/{adapter_name}/status` - Check adapter configuration
 
-### 3.7 Cross-Stage Correlation (Partial)
+### 3.7 Cross-Stage Correlation (Partial) - **MEDIUM PRIORITY**
 
-The deduplication engine correlates findings within stages but does not track the full lifecycle.
+The deduplication engine correlates findings within stages but does not track the full lifecycle. **Elevated to Medium Priority for enterprise plug-and-play.**
 
 | Feature | Current State | What's Needed |
 |---------|---------------|---------------|
@@ -378,10 +401,11 @@ The deduplication engine correlates findings within stages but does not track th
 **Code Reference:** `core/services/deduplication.py` - Add `lifecycle_stage` enum and cross-stage linking
 
 **Effort Estimate:** 1-2 weeks for full cross-stage correlation
+**Priority:** MEDIUM (Enterprise Enablement)
 
-### 3.8 Runtime Event Ingestion (Not Implemented)
+### 3.8 Runtime Event Ingestion (Not Implemented) - **MEDIUM PRIORITY**
 
-No endpoint exists for ingesting runtime security events (WAF logs, exploit attempts, anomalies).
+No endpoint exists for ingesting runtime security events (WAF logs, exploit attempts, anomalies). **Elevated to Medium Priority for enterprise plug-and-play.**
 
 | Feature | Current State | What's Needed |
 |---------|---------------|---------------|
@@ -391,10 +415,11 @@ No endpoint exists for ingesting runtime security events (WAF logs, exploit atte
 | Severity escalation | Not implemented | Escalate findings with active exploit attempts |
 
 **Effort Estimate:** 1 week for basic runtime event ingestion
+**Priority:** MEDIUM (Enterprise Enablement)
 
-### 3.9 OSS Fallback Engine (Code Exists, Not Wired)
+### 3.9 OSS Fallback Engine (Code Exists, Not Wired) - **MEDIUM PRIORITY**
 
-Full OSS fallback engine exists but is not integrated into the pipeline.
+Full OSS fallback engine exists but is not integrated into the pipeline. **Elevated to Medium Priority for enterprise plug-and-play.**
 
 | Component | Code Location | What It Does | What's Needed |
 |-----------|---------------|--------------|---------------|
@@ -403,6 +428,7 @@ Full OSS fallback engine exists but is not integrated into the pipeline.
 | Tool parsers | `core/oss_fallback.py:273-319` | Parses Semgrep, Bandit output | Add more tool parsers |
 
 **Effort Estimate:** 3-5 days to wire into pipeline with config
+**Priority:** MEDIUM (Enterprise Enablement)
 
 ---
 
