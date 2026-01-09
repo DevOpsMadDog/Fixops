@@ -1463,8 +1463,8 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
     )
 
     config = MicroPentestConfig(
-        base_url=os.environ.get("PENTAGI_BASE_URL", "http://pentagi:8443"),
-        timeout=float(os.environ.get("PENTAGI_TIMEOUT", "300")),
+        pentagi_url=os.environ.get("PENTAGI_BASE_URL", "http://pentagi:8443"),
+        timeout_seconds=float(os.environ.get("PENTAGI_TIMEOUT", "300")),
         provider=os.environ.get("PENTAGI_PROVIDER", "openai"),
     )
 
@@ -1504,7 +1504,7 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
                         "flow_id": result.flow_id,
                         "status": result.status,
                         "progress": result.progress,
-                        "findings": result.findings,
+                        "tasks": result.tasks,
                         "error": result.error,
                     },
                     indent=2,
@@ -1514,8 +1514,8 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
             print(f"Flow ID: {result.flow_id}")
             print(f"Status: {result.status}")
             print(f"Progress: {result.progress}%")
-            if result.findings:
-                print(f"Findings: {len(result.findings)}")
+            if result.tasks:
+                print(f"Tasks: {len(result.tasks)}")
             if result.error:
                 print(f"Error: {result.error}")
                 return 1
@@ -1533,29 +1533,28 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
             for tc in batch_data.get("tests", [])
         ]
 
-        results = asyncio.run(run_batch_micro_pentests(test_configs, config))
+        batch_result = asyncio.run(run_batch_micro_pentests(test_configs, config))
 
         if args.format == "json":
-            print(
-                json.dumps(
-                    [
-                        {
-                            "flow_id": r.flow_id,
-                            "status": r.status,
-                            "message": r.message,
-                        }
-                        for r in results
-                    ],
-                    indent=2,
-                )
-            )
+            print(json.dumps(batch_result, indent=2))
         else:
-            print(f"Started {len(results)} micro pentest flows:")
-            for r in results:
-                if r.flow_id:
-                    print(f"  - {r.flow_id}: {r.status}")
-                else:
-                    print(f"  - Failed: {r.message}")
+            print(f"Batch status: {batch_result['status']}")
+            print(f"Total: {batch_result['total']}")
+            print(f"Successful: {batch_result['successful']}")
+            print(f"Failed: {batch_result['failed']}")
+            if batch_result.get("error"):
+                print(f"Error: {batch_result['error']}")
+                return 1
+            if batch_result["results"]:
+                print("Results:")
+                for r in batch_result["results"]:
+                    flow_id = r.get("flow_id")
+                    status = r.get("status", "unknown")
+                    if flow_id:
+                        print(f"  - Flow {flow_id}: {status}")
+                    else:
+                        error = r.get("error", r.get("message", "Unknown error"))
+                        print(f"  - Failed: {error}")
 
     else:
         print("Unknown micro pentest command", file=sys.stderr)
