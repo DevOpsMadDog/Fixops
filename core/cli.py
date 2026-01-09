@@ -4322,7 +4322,7 @@ def build_parser() -> argparse.ArgumentParser:
     micro_status = micro_pentest_subparsers.add_parser(
         "status", help="Get status of a micro penetration test flow"
     )
-    micro_status.add_argument("flow_id", help="Flow ID to check status for")
+    micro_status.add_argument("flow_id", type=int, help="Flow ID to check status for")
     micro_status.add_argument(
         "--format", choices=["json", "text"], default="text", help="Output format"
     )
