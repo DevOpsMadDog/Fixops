@@ -1350,3 +1350,51 @@ class TestIsGitRepoAndGetRepoInfo:
             repo_name, branch = detector._get_repo_info(test_file)
             # Should call git commands
             assert mock_run.called
+
+
+class TestStage2ContainmentChecks:
+    """Tests for Stage 2 containment checks (base path escapes trusted root)."""
+
+    @pytest.fixture
+    def detector(self):
+        """Create a detector instance for testing."""
+        config = SecretsScannerConfig(timeout_seconds=30)
+        return SecretsDetector(config)
+
+    def test_verify_containment_base_escapes_trusted_root(self, detector):
+        """Test _verify_containment raises when base path escapes trusted root."""
+        from pathlib import Path
+
+        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+        with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+            with pytest.raises(ValueError) as exc_info:
+                detector._verify_containment(Path("/tmp/outside/test.py"))
+            assert "Base path escapes trusted root" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_gitleaks_base_escapes_trusted_root(self, detector):
+        """Test _run_gitleaks raises when base path escapes trusted root."""
+        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+        # Note: Stage 1 check (path escapes trusted root) triggers first since
+        # the path is also outside trusted root. Both are valid security rejections.
+        with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+            with pytest.raises(ValueError) as exc_info:
+                await detector._run_gitleaks(
+                    "/tmp/outside/test.py", "repo", "main", False
+                )
+            # Either error message is valid - both indicate security rejection
+            assert "escapes trusted root" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_trufflehog_base_escapes_trusted_root(self, detector):
+        """Test _run_trufflehog raises when base path escapes trusted root."""
+        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+        # Note: Stage 1 check (path escapes trusted root) triggers first since
+        # the path is also outside trusted root. Both are valid security rejections.
+        with patch("core.secrets_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+            with pytest.raises(ValueError) as exc_info:
+                await detector._run_trufflehog(
+                    "/tmp/outside/test.py", "repo", "main", False
+                )
+            # Either error message is valid - both indicate security rejection
+            assert "escapes trusted root" in str(exc_info.value)

@@ -687,3 +687,21 @@ class TestSafeTempdir:
             assert os.path.isdir(new_base)
         # Base directory should still exist after context exits
         assert os.path.isdir(new_base)
+
+    def test_safe_tempdir_temp_escapes_base(self, temp_dir):
+        """Test safe_tempdir raises when temp directory escapes base."""
+        import tempfile
+        from unittest.mock import MagicMock, patch
+
+        from core.safe_path_ops import safe_tempdir
+
+        # Mock TemporaryDirectory to return a path outside the base
+        mock_temp_dir = MagicMock()
+        mock_temp_dir.__enter__ = MagicMock(return_value="/tmp/outside_base")
+        mock_temp_dir.__exit__ = MagicMock(return_value=False)
+
+        with patch.object(tempfile, "TemporaryDirectory", return_value=mock_temp_dir):
+            with pytest.raises(PathContainmentError) as exc_info:
+                with safe_tempdir(temp_dir):
+                    pass
+            assert "Temp directory escapes base" in str(exc_info.value)

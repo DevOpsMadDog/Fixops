@@ -1083,3 +1083,131 @@ class TestRunTfsecSubprocess:
             call_args = mock_exec.call_args[0]
             assert "--exclude" in call_args
             assert "AWS001" in call_args
+
+
+class TestStage2ContainmentChecks:
+    """Tests for Stage 2 containment checks (base path escapes trusted root)."""
+
+    @pytest.fixture
+    def scanner(self):
+        """Create a scanner instance for testing."""
+        config = ScannerConfig(timeout_seconds=30)
+        return IaCScanner(config)
+
+    def test_verify_containment_base_escapes_trusted_root(self, scanner):
+        """Test _verify_containment raises when base path escapes trusted root."""
+        from pathlib import Path
+
+        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+        with patch("core.iac_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+            with pytest.raises(ValueError) as exc_info:
+                scanner._verify_containment(Path("/tmp/outside/test.tf"))
+            assert "Base path escapes trusted root" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_base_escapes_trusted_root(self, scanner):
+        """Test _run_checkov raises when base path escapes trusted root."""
+        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+        # Note: Stage 1 check (path escapes trusted root) triggers first since
+        # the path is also outside trusted root. Both are valid security rejections.
+        with patch("core.iac_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+            with pytest.raises(ValueError) as exc_info:
+                await scanner._run_checkov(
+                    "/tmp/outside/test.tf", IaCProvider.TERRAFORM
+                )
+            # Either error message is valid - both indicate security rejection
+            assert "escapes trusted root" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_tfsec_base_escapes_trusted_root(self, scanner):
+        """Test _run_tfsec raises when base path escapes trusted root."""
+        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
+        # Note: Stage 1 check (path escapes trusted root) triggers first since
+        # the path is also outside trusted root. Both are valid security rejections.
+        with patch("core.iac_scanner.SCAN_BASE_PATH", "/tmp/outside"):
+            with pytest.raises(ValueError) as exc_info:
+                await scanner._run_tfsec("/tmp/outside/test.tf", IaCProvider.TERRAFORM)
+            # Either error message is valid - both indicate security rejection
+            assert "escapes trusted root" in str(exc_info.value)
+
+
+class TestCustomPoliciesDir:
+    """Tests for custom policies directory handling."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under SCAN_BASE_PATH for testing."""
+        from core.iac_scanner import SCAN_BASE_PATH
+
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def scanner(self):
+        """Create a scanner instance for testing."""
+        config = ScannerConfig(timeout_seconds=30)
+        return IaCScanner(config)
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_with_custom_policies_dir(self, scanner, temp_dir):
+        """Test _run_checkov includes custom policies dir when it exists."""
+        from core.iac_scanner import CUSTOM_POLICIES_PATH
+
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        # Create the custom policies directory
+        os.makedirs(CUSTOM_POLICIES_PATH, exist_ok=True)
+
+        try:
+            with patch("asyncio.create_subprocess_exec") as mock_exec:
+                mock_process = mock_exec.return_value
+                mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
+                mock_process.returncode = 0
+
+                await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
+
+                # Verify --external-checks-dir was in the command
+                call_args = mock_exec.call_args[0]
+                assert "--external-checks-dir" in call_args
+                assert CUSTOM_POLICIES_PATH in call_args
+        finally:
+            # Clean up the custom policies directory
+            if os.path.isdir(CUSTOM_POLICIES_PATH):
+                shutil.rmtree(CUSTOM_POLICIES_PATH, ignore_errors=True)
+
+
+class TestRunCheckovStage3Containment:
+    """Tests for Stage 3 containment check in _run_checkov."""
+
+    @pytest.fixture
+    def temp_dir(self):
+        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
+        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
+        os.makedirs(test_dir, exist_ok=True)
+        yield test_dir
+        shutil.rmtree(test_dir, ignore_errors=True)
+
+    @pytest.fixture
+    def scanner(self):
+        """Create a scanner instance for testing."""
+        config = ScannerConfig(timeout_seconds=30)
+        return IaCScanner(config)
+
+    @pytest.mark.asyncio
+    async def test_run_checkov_stage3_path_escapes_base(self, scanner, temp_dir):
+        """Test _run_checkov raises when path escapes base directory (Stage 3)."""
+        # Create a file under TRUSTED_TEST_ROOT but outside SCAN_BASE_PATH
+        test_file = os.path.join(temp_dir, "main.tf")
+        with open(test_file, "w") as f:
+            f.write('resource "aws_instance" "example" {}')
+
+        # This should fail Stage 3 containment check because the file is
+        # under TRUSTED_ROOT but not under SCAN_BASE_PATH
+        with pytest.raises(ValueError) as exc_info:
+            await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
+        assert "Path escapes base directory" in str(exc_info.value)
