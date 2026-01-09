@@ -1,8 +1,8 @@
-# FixOps Product Status & Roadmap
+# FixOps Product Status & Technical Reference
 
-**Document Version:** 2.0  
+**Document Version:** 3.0  
 **Date:** January 2026  
-**Purpose:** Consolidated product status for architect and product owner showcase
+**Purpose:** Consolidated product status with technical deep-dive for architects, product owners, and engineers
 
 ---
 
@@ -14,30 +14,31 @@ flowchart LR
 
   subgraph TODAY[Available Today]
     direction TB
-    T1[Intake & Normalize<br/>Aggregate all scanner outputs]:::done
-    T2[Prioritize & Triage<br/>Risk-based prioritization]:::done
-    T3[Automated Decisions<br/>AI-powered allow/block/review]:::done
-    T4[Remediation Workflow<br/>Assign, track, verify fixes]:::done
-    T5[Compliance & Evidence<br/>Audit-ready evidence bundles]:::done
-    T6[Notifications<br/>Slack & email alerts]:::done
-    T7[Security Scanning<br/>IaC & secrets detection]:::done
+    T1[T1: Intake & Normalize]:::done
+    T2[T2: Prioritize & Triage]:::done
+    T3[T3: Automated Decisions]:::done
+    T4[T4: Remediation Workflow]:::done
+    T5[T5: Compliance & Evidence]:::done
+    T6[T6: Notifications]:::done
+    T7[T7: Security Scanning]:::done
+    T8[T8: Jira Integration]:::done
   end
 
   subgraph NEXT[Coming Next]
     direction TB
-    N1[Reliable Ticket Delivery<br/>Auto-create tickets in any system]:::planned
-    N2[Broader Integrations<br/>ServiceNow, GitLab, Azure DevOps, GitHub]:::planned
-    N3[Enterprise Login<br/>SSO with your identity provider]:::planned
-    N4[Scale & High Availability<br/>Production-grade data layer]:::planned
-    N5[Multi-Tenant Support<br/>Organization boundaries]:::planned
+    N1[N1: Reliable Ticket Delivery]:::planned
+    N2[N2: Broader Integrations]:::planned
+    N3[N3: Enterprise Login SSO]:::planned
+    N4[N4: Scale & HA]:::planned
+    N5[N5: Multi-Tenant Support]:::planned
   end
 
   subgraph LATER[Future Enhancements]
     direction TB
-    L1[Executive Dashboards<br/>Board-ready reporting]:::later
-    L2[SOC Integration<br/>SIEM connectors]:::later
-    L3[Developer Experience<br/>PR annotations, self-service]:::later
-    L4[Advanced Analytics<br/>Risk quantification, benchmarks]:::later
+    L1[L1: Executive Dashboards]:::later
+    L2[L2: SOC Integration]:::later
+    L3[L3: Developer Experience]:::later
+    L4[L4: Advanced Analytics]:::later
   end
 
   F --> TODAY
@@ -49,6 +50,26 @@ flowchart LR
   classDef planned fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
   classDef later fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 ```
+
+---
+
+## Implementation Index (Quick Reference)
+
+| ID | Capability | API Endpoints | CLI Commands | Core Modules | Status |
+|----|------------|---------------|--------------|--------------|--------|
+| T1 | Intake & Normalize | `POST /inputs/*` (7 endpoints) | `ingest`, `stage-run` | `apps/api/normalizers.py`, `apps/api/ingestion_router.py` | Production |
+| T2 | Prioritize & Triage | `GET /api/v1/triage`, `POST /api/v1/risk/*` | `analyze` | `core/services/risk.py`, `core/severity_promotion.py` | Production |
+| T3 | Automated Decisions | `POST /api/v1/enhanced/*` | `make-decision`, `run` | `core/enhanced_decision.py`, `core/pentagi_advanced.py` | Production |
+| T4 | Remediation Workflow | `/api/v1/remediation/*` (13 endpoints) | `remediation` | `core/services/remediation.py`, `apps/api/remediation_router.py` | Production |
+| T5 | Compliance & Evidence | `/api/v1/evidence/*`, `/api/v1/compliance/*` | `get-evidence`, `compliance` | `core/evidence.py`, `services/provenance/attestation.py` | Production |
+| T6 | Notifications | `/api/v1/collaboration/notifications/*` | `notifications` | `core/services/collaboration.py`, `core/connectors.py` | Production |
+| T7 | Security Scanning | `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*` | - | `core/iac_scanner.py`, `core/secrets_scanner.py` | Production |
+| T8 | Jira Integration | `POST /api/v1/webhooks/jira/*` | `integrations` | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` | Production |
+| N1 | Reliable Ticket Delivery | - | - | `apps/api/webhooks_router.py:744-1012` (outbox exists) | **Needs Worker** |
+| N2 | Broader Integrations | Webhook receivers only | - | `apps/api/webhooks_router.py` | **Inbound Only** |
+| N3 | Enterprise Login (SSO) | `/api/v1/auth/sso/*` | - | `core/auth_db.py` | **Config Only** |
+| N4 | Scale & HA | - | - | 12+ SQLite DBs in `core/*_db.py` | **Needs PostgreSQL** |
+| N5 | Multi-Tenant Support | - | - | Partial `org_id` in some services | **Needs Enforcement** |
 
 ---
 
@@ -350,4 +371,471 @@ The outbox table stores items with status, retry_count, max_retries, next_retry_
 
 ---
 
-*This document consolidates STAKEHOLDER_ANALYSIS.md, ENTERPRISE_READINESS_ANALYSIS.md, FIXOPS_IMPLEMENTATION_STATUS.md, and next_features.md into a single source of truth.*
+---
+
+## Technical Deep Dive by Capability
+
+### T1: Intake & Normalize
+
+**What it does:** Aggregates outputs from any scanner (SAST, DAST, SCA, IaC, secrets) into a unified schema.
+
+**API Endpoints:**
+- `POST /inputs/design` - Upload design CSV
+- `POST /inputs/sbom` - Upload SBOM (CycloneDX/SPDX)
+- `POST /inputs/sarif` - Upload SARIF scan results
+- `POST /inputs/cve` - Upload CVE feed
+- `POST /inputs/vex` - Upload VEX document
+- `POST /inputs/cnapp` - Upload CNAPP findings
+- `POST /inputs/context` - Upload business context
+
+**CLI Commands:**
+```bash
+python -m core.cli ingest --sarif file.sarif --sbom file.json --cve cve.json
+python -m core.cli stage-run --stage sarif --input file.sarif
+```
+
+**Program Flow:**
+```
+Scanner Output (SARIF/SBOM/CVE/VEX)
+    |
+    v
+[apps/api/ingestion_router.py] - HTTP endpoint receives file
+    |
+    v
+[apps/api/normalizers.py:InputNormalizer] - Parse and normalize
+    |-- load_sarif() -> NormalizedSARIF
+    |-- load_sbom() -> NormalizedSBOM
+    |-- load_cve_feed() -> NormalizedCVEFeed
+    |-- load_vex() -> NormalizedVEX
+    |
+    v
+[core/storage.py:ArtefactArchive] - Persist normalized data
+    |
+    v
+Unified Schema in data/archive/
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `apps/api/normalizers.py` | `InputNormalizer` | Parse SARIF/SBOM/CVE/VEX/CNAPP |
+| `apps/api/ingestion_router.py` | Router endpoints | HTTP handlers for `/inputs/*` |
+| `core/cli.py:403-417` | `_handle_ingest()` | CLI ingest command |
+| `core/cli.py:622-678` | `_handle_stage_run()` | CLI stage-run command |
+| `core/storage.py` | `ArtefactArchive` | Persist artifacts to disk |
+
+---
+
+### T2: Prioritize & Triage
+
+**What it does:** Scores vulnerabilities using threat intelligence (EPSS, KEV, CVSS) with Bayesian/Markov probabilistic forecasting.
+
+**API Endpoints:**
+- `GET /api/v1/triage` - Get prioritized findings
+- `POST /api/v1/risk/score` - Calculate risk score
+- `POST /api/v1/risk/profile` - Get risk profile
+
+**CLI Commands:**
+```bash
+python -m core.cli analyze --sarif file.sarif
+python -m core.cli train-forecast --history incidents.json
+python -m core.cli predict-bn-lr --finding finding.json
+```
+
+**Program Flow:**
+```
+Normalized Findings
+    |
+    v
+[core/services/risk.py:RiskScorer] - Calculate composite risk
+    |-- EPSS score lookup
+    |-- KEV status check
+    |-- CVSS base score
+    |-- Business context multiplier
+    |
+    v
+[core/severity_promotion.py] - Promote severity based on KEV/EPSS
+    |-- promote_if_kev()
+    |-- promote_if_high_epss()
+    |
+    v
+[core/probabilistic.py:ProbabilisticForecastEngine] - Bayesian/Markov
+    |-- bayesian_posterior()
+    |-- markov_transition()
+    |
+    v
+Prioritized Findings with Risk Scores
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/services/risk.py` | `RiskScorer` | Composite risk calculation |
+| `core/severity_promotion.py` | `SeverityPromoter` | KEV/EPSS-based promotion |
+| `core/probabilistic.py` | `ProbabilisticForecastEngine` | Bayesian/Markov forecasting |
+| `core/cli.py:477-549` | `_handle_analyze()` | CLI analyze command |
+| `core/cli.py:933-964` | `_handle_train_forecast()` | CLI train-forecast command |
+
+---
+
+### T3: Automated Decisions
+
+**What it does:** AI consensus from multiple LLM providers (GPT-5, Claude-3, Gemini-2, Sentinel) decides allow/block/review.
+
+**API Endpoints:**
+- `POST /api/v1/enhanced/analyze` - Multi-LLM consensus analysis
+- `GET /api/v1/enhanced/capabilities` - Check LLM provider status
+- `POST /api/v1/enhanced/compare-llms` - Side-by-side comparison
+
+**CLI Commands:**
+```bash
+python -m core.cli make-decision --sarif file.sarif --sbom sbom.json
+python -m core.cli run --overlay config/fixops.overlay.yml
+python -m core.cli demo --mode enterprise
+```
+
+**Program Flow:**
+```
+Security Findings + Business Context
+    |
+    v
+[core/enhanced_decision.py:MultiLLMConsensusEngine]
+    |-- query_providers() - Call all LLM providers
+    |   |-- OpenAI GPT-5
+    |   |-- Anthropic Claude-3
+    |   |-- Google Gemini-2
+    |   |-- SentinelCyber
+    |
+    v
+[core/pentagi_advanced.py:PentAGIAdvanced]
+    |-- _call_llm() - Real provider calls with fallback
+    |-- consensus_vote() - Weighted voting (85% threshold)
+    |
+    v
+[core/decision_policy.py:DecisionPolicyEngine]
+    |-- evaluate_guardrails() - Policy overrides
+    |-- apply_critical_override() - Force BLOCK for critical
+    |
+    v
+Tri-State Decision: ALLOW | BLOCK | NEEDS_REVIEW
+    + Confidence Score + Explanation
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/enhanced_decision.py` | `MultiLLMConsensusEngine` | Orchestrate multi-LLM consensus |
+| `core/pentagi_advanced.py:354-460` | `_call_llm()` | Real LLM provider calls |
+| `core/llm_providers.py` | `LLMProviderManager` | Provider abstraction |
+| `core/decision_policy.py` | `DecisionPolicyEngine` | Policy evaluation |
+| `core/cli.py:455-474` | `_handle_make_decision()` | CLI make-decision command |
+
+**Environment Variables:**
+- `OPENAI_API_KEY` - OpenAI GPT-5
+- `ANTHROPIC_API_KEY` - Claude-3
+- `GOOGLE_API_KEY` - Gemini-2
+- `SENTINEL_API_KEY` - SentinelCyber
+
+---
+
+### T4: Remediation Workflow
+
+**What it does:** Assigns tasks, tracks SLAs, verifies fixes with full state machine.
+
+**API Endpoints:**
+- `POST /api/v1/remediation/tasks` - Create remediation task
+- `GET /api/v1/remediation/tasks/{id}` - Get task details
+- `PUT /api/v1/remediation/tasks/{id}/status` - Update task status
+- `GET /api/v1/remediation/sla` - Check SLA compliance
+- `GET /api/v1/remediation/metrics` - Get MTTR metrics
+
+**CLI Commands:**
+```bash
+python -m core.cli remediation list
+python -m core.cli remediation create --finding-id X --assignee user@example.com
+python -m core.cli remediation update --task-id Y --status IN_PROGRESS
+```
+
+**Program Flow:**
+```
+Finding Identified
+    |
+    v
+[apps/api/remediation_router.py] - Create task endpoint
+    |
+    v
+[core/services/remediation.py:RemediationService]
+    |-- create_task()
+    |-- State Machine:
+    |   OPEN -> ASSIGNED -> IN_PROGRESS -> VERIFICATION -> RESOLVED
+    |
+    v
+[core/services/remediation.py:SLATracker]
+    |-- calculate_sla_deadline()
+    |-- check_breach()
+    |
+    v
+[core/services/remediation.py:MTTRCalculator]
+    |-- calculate_mttr()
+    |
+    v
+Task Persisted to data/remediation.db
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/services/remediation.py` | `RemediationService` | Full state machine |
+| `apps/api/remediation_router.py` | Router (13 endpoints) | HTTP handlers |
+| `core/cli.py:3443-3594` | `_handle_remediation_cli()` | CLI remediation commands |
+
+---
+
+### T5: Compliance & Evidence
+
+**What it does:** Generates signed, tamper-proof audit bundles with SLSA v1 provenance.
+
+**API Endpoints:**
+- `POST /api/v1/evidence/generate` - Generate evidence bundle
+- `POST /api/v1/evidence/verify` - Verify signature
+- `GET /api/v1/evidence/{id}` - Retrieve bundle
+- `GET /api/v1/compliance/frameworks` - List frameworks
+- `GET /api/v1/compliance/status` - Compliance status
+
+**CLI Commands:**
+```bash
+python -m core.cli get-evidence --run result.json --target ./out
+python -m core.cli compliance status
+python -m core.cli compliance frameworks
+```
+
+**Program Flow:**
+```
+Pipeline Result
+    |
+    v
+[core/evidence.py:EvidenceHub]
+    |-- persist()
+    |   |-- compress (gzip)
+    |   |-- encrypt (Fernet)
+    |   |-- checksum (SHA256)
+    |   |-- sign (RSA-SHA256)
+    |
+    v
+[services/provenance/attestation.py]
+    |-- generate_slsa_provenance()
+    |-- create_intoto_envelope()
+    |
+    v
+[core/storage_backends.py]
+    |-- LocalBackend (default)
+    |-- S3ObjectLockBackend (WORM compliance)
+    |-- AzureImmutableBlobBackend
+    |
+    v
+Evidence Bundle (signed .tar.gz + manifest.json + provenance.json)
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/evidence.py` | `EvidenceHub` | Bundle generation + signing |
+| `services/provenance/attestation.py` | SLSA v1 provenance | In-toto attestation |
+| `core/storage_backends.py` | Storage backends | Local/S3/Azure |
+| `backend/api/evidence/router.py:162-303` | Verify endpoint | Signature verification |
+| `core/cli.py:586-619` | `_handle_get_evidence()` | CLI get-evidence command |
+
+---
+
+### T6: Notifications
+
+**What it does:** Sends alerts via Slack webhooks and SMTP email with SSRF protection.
+
+**API Endpoints:**
+- `POST /api/v1/collaboration/notifications` - Create notification
+- `POST /api/v1/collaboration/notifications/{id}/deliver` - Deliver notification
+- `GET /api/v1/collaboration/notifications/pending` - List pending
+
+**CLI Commands:**
+```bash
+python -m core.cli notifications list
+python -m core.cli notifications process
+```
+
+**Program Flow:**
+```
+Event Trigger (finding, SLA breach, etc.)
+    |
+    v
+[core/services/collaboration.py:NotificationService]
+    |-- create_notification()
+    |-- queue_for_delivery()
+    |
+    v
+[core/services/collaboration.py:DeliveryEngine]
+    |-- _deliver_slack()
+    |   |-- SSRF protection: validate hooks.slack.com domain
+    |   |-- requests.post(webhook_url, json=payload)
+    |
+    |-- _deliver_email()
+    |   |-- smtplib.SMTP with TLS
+    |   |-- Configurable SMTP settings
+    |
+    v
+Notification Delivered + Status Updated
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/services/collaboration.py` | `NotificationService` | Queue + delivery |
+| `core/connectors.py:213-248` | `SlackConnector` | Slack webhook calls |
+| `core/cli.py:3597-3664` | `_handle_notifications()` | CLI notifications commands |
+
+**Environment Variables:**
+- `SLACK_WEBHOOK_URL` - Slack incoming webhook
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` - Email config
+
+---
+
+### T7: Security Scanning
+
+**What it does:** Scans infrastructure-as-code (checkov/tfsec) and detects hardcoded secrets (gitleaks/trufflehog).
+
+**API Endpoints:**
+- `GET /api/v1/iac/scanners/status` - Check available scanners
+- `POST /api/v1/iac/scan/content` - Scan IaC content
+- `GET /api/v1/secrets/scanners/status` - Check secrets scanners
+- `POST /api/v1/secrets/scan/content` - Scan for secrets
+
+**Program Flow:**
+```
+IaC Content (Terraform/CloudFormation/K8s)
+    |
+    v
+[core/iac_scanner.py:IaCScanner]
+    |-- scan_content()
+    |-- _run_checkov() - subprocess call
+    |-- _run_tfsec() - subprocess call
+    |-- _parse_checkov_output()
+    |
+    v
+[core/secrets_scanner.py:SecretsScanner]
+    |-- scan_content()
+    |-- _run_gitleaks()
+    |-- _run_trufflehog()
+    |
+    v
+Findings Persisted to data/iac.db, data/secrets.db
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/iac_scanner.py` | `IaCScanner` | checkov/tfsec integration |
+| `core/secrets_scanner.py` | `SecretsScanner` | gitleaks/trufflehog integration |
+| `apps/api/iac_router.py` | Scan endpoints | HTTP handlers |
+| `apps/api/secrets_router.py` | Scan endpoints | HTTP handlers |
+
+**External Tools Required:**
+- `checkov` - IaC scanning
+- `tfsec` - Terraform security
+- `gitleaks` - Secrets detection
+- `trufflehog` - Secrets detection
+
+---
+
+### T8: Jira Integration
+
+**What it does:** Creates and syncs tickets bidirectionally with HMAC signature verification.
+
+**API Endpoints:**
+- `POST /api/v1/webhooks/jira/receive` - Receive Jira webhook
+- `POST /api/v1/integrations/jira/create-issue` - Create Jira issue
+
+**CLI Commands:**
+```bash
+python -m core.cli integrations list
+python -m core.cli integrations test jira
+python -m core.cli integrations sync jira
+```
+
+**Program Flow:**
+```
+FixOps Finding -> Jira Issue (Outbound)
+    |
+    v
+[core/connectors.py:JiraConnector]
+    |-- create_issue()
+    |   |-- self._request("POST", "/rest/api/3/issue", json=payload)
+    |   |-- Real HTTP call with auth
+    |
+    v
+[apps/api/webhooks_router.py:744-1012] - Outbox Pattern
+    |-- Queue item in outbox table
+    |-- **NO WORKER PROCESSES IT** (Enterprise Blocker)
+
+Jira Webhook -> FixOps (Inbound)
+    |
+    v
+[apps/api/webhooks_router.py:233-350]
+    |-- verify_hmac_signature()
+    |-- map_jira_status_to_fixops()
+    |-- update_remediation_task()
+    |
+    v
+Bidirectional Sync with Drift Detection
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/connectors.py:49-124` | `JiraConnector` | Real HTTP calls |
+| `apps/api/webhooks_router.py:233-350` | Jira webhook handler | Inbound sync |
+| `apps/api/webhooks_router.py:744-1012` | Outbox pattern | Queue for delivery |
+| `core/cli.py:2284-2437` | `_handle_integrations()` | CLI integrations commands |
+
+**Environment Variables:**
+- `JIRA_URL` - Jira instance URL
+- `JIRA_TOKEN` - API token
+- `JIRA_WEBHOOK_SECRET` - HMAC secret
+
+---
+
+## CLI Command Reference
+
+| Command | Subcommands | Purpose |
+|---------|-------------|---------|
+| `run` | - | Execute full pipeline |
+| `ingest` | - | Normalize artifacts |
+| `make-decision` | - | Get decision (exit code 0=allow, 1=block, 2=defer) |
+| `analyze` | - | Analyze findings |
+| `demo` | `--mode demo\|enterprise` | Run with bundled fixtures |
+| `stage-run` | `--stage sarif\|sbom\|cve` | Process single stage |
+| `get-evidence` | `--run result.json` | Copy evidence bundle |
+| `show-overlay` | - | Print overlay config |
+| `health` | - | Check integration readiness |
+| `teams` | `list`, `create`, `delete` | Manage teams |
+| `users` | `list`, `create`, `delete` | Manage users |
+| `pentagi` | `analyze`, `status` | Pentagi pen testing |
+| `compliance` | `status`, `frameworks` | Compliance management |
+| `reports` | `list`, `generate` | Report management |
+| `inventory` | `list`, `create` | Application inventory |
+| `policies` | `list`, `create`, `test` | Policy management |
+| `integrations` | `list`, `test`, `sync` | Integration management |
+| `analytics` | `dashboard`, `trends` | View analytics |
+| `audit` | `list`, `export` | Audit logs |
+| `workflows` | `list`, `create`, `run` | Workflow automation |
+| `remediation` | `list`, `create`, `update` | Remediation tasks |
+| `notifications` | `list`, `process` | Notification queue |
+| `correlation` | `list`, `create` | Finding correlation |
+| `groups` | `list`, `create` | Finding clusters |
+| `reachability` | `analyze` | Attack path analysis |
+| `advanced-pentest` | `run` | AI-powered pentest |
+| `train-forecast` | - | Train probabilistic model |
+| `train-bn-lr` | - | Train Bayesian-LR model |
+| `predict-bn-lr` | - | Predict exploitation risk |
+
+---
+
+*This document is the single source of truth for FixOps product status. Previous documents (STAKEHOLDER_ANALYSIS.md, ENTERPRISE_READINESS_ANALYSIS.md, FIXOPS_IMPLEMENTATION_STATUS.md, next_features.md) have been consolidated here and can be deleted.*

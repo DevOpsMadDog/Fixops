@@ -167,6 +167,6 @@ Coverage metrics are tracked in CI and reported on each PR. Historical trends wi
 
 ## Related Documents
 
-- [Implementation Status](./FIXOPS_IMPLEMENTATION_STATUS.md) - Feature readiness
+- [Product Status & Technical Reference](./FIXOPS_PRODUCT_STATUS.md) - Feature readiness and technical deep-dive
 - [Architecture](./ARCHITECTURE.md) - System design
 - [Contributing](../CONTRIBUTING.md) - Development guidelines
