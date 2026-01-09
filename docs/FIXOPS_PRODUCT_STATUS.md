@@ -87,6 +87,7 @@ flowchart LR
     T3[IaC Scanning]
     T4[Secrets Scanning]
     T5[PentAGI Testing]
+    T6[Micro Pentests]
   end
 
   subgraph DECISION[Release Gate]
@@ -123,7 +124,7 @@ flowchart LR
 |-------|--------------|-------------|---------------|
 | **Design** | `stage-run --stage design`, `inventory add`, `policies create` | `ingestion_router`, `inventory_router`, `policies_router` | `POST /inputs/design`, `POST /api/v1/inventory/*`, `POST /api/v1/policies` |
 | **Build** | `stage-run --stage build`, `run --sbom` | `ingestion_router` | `POST /inputs/sbom` |
-| **Test** | `stage-run --stage test`, `run --sarif`, `pentagi create`, `advanced-pentest run` | `ingestion_router`, `iac_router`, `secrets_router`, `pentagi_router` | `POST /inputs/sarif`, `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*` |
+| **Test** | `stage-run --stage test`, `run --sarif`, `pentagi create`, `advanced-pentest run`, `micro-pentest run` | `ingestion_router`, `iac_router`, `secrets_router`, `pentagi_router`, `micro_pentest_router` | `POST /inputs/sarif`, `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*`, `POST /api/v1/micro-pentest/*` |
 | **Release Gate** | `make-decision`, `run`, `analyze` | `pipeline`, `enhanced` | `GET /pipeline/run`, `POST /api/v1/enhanced/analysis` |
 | **Remediation** | `remediation create`, `remediation update` | `remediation_router` | `POST /api/v1/remediation/tasks`, `PUT /api/v1/remediation/tasks/{id}` |
 | **Monitor** | `analytics dashboard`, `audit logs`, `compliance status` | `analytics_router`, `audit_router` | `GET /api/v1/analytics/*`, `GET /api/v1/audit/*` |
@@ -146,13 +147,13 @@ flowchart LR
 
 | Source | Endpoints |
 |--------|-----------|
-| apps/api/*_router.py | 260 |
+| apps/api/*_router.py | 263 |
 | apps/api/app.py | 18 |
 | apps/api/routes/enhanced.py | 4 |
 | backend/api/* routers | 18 |
 | **Total** | **~300** |
 
-### API Routers (30 total)
+### API Routers (31 total)
 
 | Router | File | Endpoints | CLI Coverage |
 |--------|------|-----------|--------------|
@@ -168,6 +169,7 @@ flowchart LR
 | Workflows | `apps/api/workflows_router.py` | 7 | `workflows list/get/create/execute/history` |
 | Inventory | `apps/api/inventory_router.py` | 15 | `inventory apps/add/get/services/search` |
 | PentAGI | `apps/api/pentagi_router.py` | 14 | `pentagi list/create/status` |
+| Micro Pentest | `apps/api/micro_pentest_router.py` | 3 | `micro-pentest run/status/batch` |
 | Enhanced PentAGI | `apps/api/pentagi_router_enhanced.py` | 19 | `advanced-pentest run/threat-intel/simulate` |
 | IaC | `apps/api/iac_router.py` | 6 | `stage-run --stage deploy` |
 | Secrets | `apps/api/secrets_router.py` | 6 | API-only |
@@ -209,7 +211,7 @@ flowchart LR
 |----|------------|---------------|--------------|--------------|--------|
 | T1 | Intake & Normalize | `POST /inputs/*` (7 endpoints) | `ingest`, `stage-run` | `apps/api/normalizers.py`, `apps/api/ingestion_router.py` | Production |
 | T2 | Prioritize & Triage | `GET /api/v1/triage`, `POST /api/v1/risk/*` | `analyze` | `core/services/risk.py`, `core/severity_promotion.py` | Production |
-| T3 | Automated Decisions | `POST /api/v1/enhanced/*` | `make-decision`, `run` | `core/enhanced_decision.py`, `core/pentagi_advanced.py` | Production |
+| T3 | Automated Decisions | `POST /api/v1/enhanced/*`, `/api/v1/micro-pentest/*` | `make-decision`, `run`, `micro-pentest` | `core/enhanced_decision.py`, `core/pentagi_advanced.py`, `core/micro_pentest.py` | Production |
 | T4 | Remediation Workflow | `/api/v1/remediation/*` (13 endpoints) | `remediation` | `core/services/remediation.py`, `apps/api/remediation_router.py` | Production |
 | T5 | Compliance & Evidence | `/api/v1/evidence/*`, `/api/v1/compliance/*` | `get-evidence`, `compliance` | `core/evidence.py`, `services/provenance/attestation.py` | Production |
 | T6 | Notifications | `/api/v1/collaboration/notifications/*` | `notifications` | `core/services/collaboration.py`, `core/connectors.py` | Production |
@@ -602,6 +604,7 @@ This section breaks down each capability into its constituent sub-features with 
 | **Multi-LLM Consensus** | GPT-5, Claude-3, Gemini-2, Sentinel voting | `core/enhanced_decision.py:MultiLLMConsensusEngine` | `enhanced_router.py` (4 endpoints) | `make-decision`, `run` | Wired |
 | **Advanced Pentesting** | AI-driven penetration testing with consensus | `core/pentagi_advanced.py:MultiAIOrchestrator` | `pentagi_router_enhanced.py` (19 endpoints) | `advanced-pentest run/threat-intel/simulate` | Wired |
 | **PentAGI Integration** | Pen test request/result management | `core/pentagi_db.py` | `pentagi_router.py` (14 endpoints) | `pentagi list/create/get/results` | Wired |
+| **Micro Pentests** | AI-driven CVE-specific penetration testing via PentAGI | `core/micro_pentest.py` | `micro_pentest_router.py` (3 endpoints) | `micro-pentest run/status/batch` | Wired |
 | **Hallucination Guards** | Validate LLM outputs for accuracy | `core/hallucination_guards.py` | Internal | Internal | Wired |
 | **Decision Policy Engine** | Policy-based overrides and guardrails | `core/decision_policy.py:DecisionPolicyEngine` | Internal | `policies validate/test` | Wired |
 | **Decision Tree** | Rule-based decision logic | `core/decision_tree.py` | Internal | Internal | Wired |
@@ -1029,6 +1032,59 @@ Tri-State Decision: ALLOW | BLOCK | NEEDS_REVIEW
 - `ANTHROPIC_API_KEY` - Claude-3
 - `GOOGLE_API_KEY` - Gemini-2
 - `SENTINEL_API_KEY` - SentinelCyber
+
+#### Micro Pentests (PentAGI Integration)
+
+**What it does:** AI-driven penetration testing for specific CVEs using PentAGI orchestration service.
+
+**API Endpoints:**
+- `POST /api/v1/micro-pentest/run` - Start micro penetration test for CVEs
+- `GET /api/v1/micro-pentest/status/{flow_id}` - Get test status and findings
+- `POST /api/v1/micro-pentest/batch` - Run batch micro penetration tests
+
+**CLI Commands:**
+```bash
+python -m core.cli micro-pentest run --cve-ids CVE-2024-1234,CVE-2024-5678 --target-urls http://example.com
+python -m core.cli micro-pentest status <flow_id>
+python -m core.cli micro-pentest batch batch_config.json
+```
+
+**Program Flow:**
+```
+CVE IDs + Target URLs + Context
+    |
+    v
+[core/micro_pentest.py:run_micro_pentest()]
+    |-- Build PentAGI request payload
+    |-- httpx.AsyncClient POST to PENTAGI_BASE_URL/api/v1/flows
+    |
+    v
+[PentAGI Service (external)]
+    |-- Orchestrates AI-driven penetration test
+    |-- Returns flow_id for status tracking
+    |
+    v
+[core/micro_pentest.py:get_micro_pentest_status()]
+    |-- Poll PENTAGI_BASE_URL/api/v1/flows/{flow_id}
+    |-- Return status, progress, findings
+    |
+    v
+MicroPentestResult: flow_id + status + findings
+```
+
+**Key Modules:**
+| File | Class/Function | Purpose |
+|------|----------------|---------|
+| `core/micro_pentest.py` | `run_micro_pentest()` | Initiate PentAGI flow |
+| `core/micro_pentest.py` | `get_micro_pentest_status()` | Poll flow status |
+| `core/micro_pentest.py` | `run_batch_micro_pentests()` | Batch test execution |
+| `apps/api/micro_pentest_router.py` | Router | API endpoints |
+| `core/cli.py:1451-1551` | `_handle_micro_pentest()` | CLI handler |
+
+**Environment Variables:**
+- `PENTAGI_BASE_URL` - PentAGI service URL (default: `http://pentagi:8443`)
+- `PENTAGI_TIMEOUT` - Request timeout in seconds (default: `300`)
+- `PENTAGI_PROVIDER` - AI provider for PentAGI (default: `openai`)
 
 ---
 
