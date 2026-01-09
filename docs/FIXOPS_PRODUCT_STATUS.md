@@ -24,6 +24,16 @@ flowchart LR
     T8[T8: Jira Integration]:::done
   end
 
+  subgraph PLATFORM[Platform Services]
+    direction TB
+    P1[P1: Deduplication & Correlation]:::platform
+    P2[P2: Threat Intelligence Feeds]:::platform
+    P3[P3: Collaboration]:::platform
+    P4[P4: Bulk Operations]:::platform
+    P5[P5: Marketplace]:::platform
+    P6[P6: Admin - Teams/Users/Auth]:::platform
+  end
+
   subgraph NEXT[Coming Next]
     direction TB
     N1[N1: Reliable Ticket Delivery]:::planned
@@ -42,11 +52,13 @@ flowchart LR
   end
 
   F --> TODAY
+  F --> PLATFORM
   F --> NEXT
   F --> LATER
 
   classDef root fill:#1e293b,stroke:#1e293b,color:#ffffff,font-weight:bold;
   classDef done fill:#d1fae5,stroke:#10b981,color:#065f46;
+  classDef platform fill:#fef3c7,stroke:#f59e0b,color:#78350f;
   classDef planned fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
   classDef later fill:#f3f4f6,stroke:#9ca3af,color:#374151;
 ```
@@ -203,6 +215,12 @@ flowchart LR
 | T6 | Notifications | `/api/v1/collaboration/notifications/*` | `notifications` | `core/services/collaboration.py`, `core/connectors.py` | Production |
 | T7 | Security Scanning | `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*` | - | `core/iac_scanner.py`, `core/secrets_scanner.py` | Production |
 | T8 | Jira Integration | `POST /api/v1/webhooks/jira/*` | `integrations` | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` | Production |
+| **P1** | **Deduplication & Correlation** | `/api/v1/deduplication/*` (17 endpoints) | `correlation`, `groups` | `core/services/deduplication.py`, `apps/api/deduplication_router.py` | Production |
+| **P2** | **Threat Intelligence Feeds** | `/api/v1/feeds/*` (20 endpoints) | `reachability` | `apps/api/feeds_router.py`, `core/reachability.py` | Production |
+| **P3** | **Collaboration** | `/api/v1/collaboration/*` (21 endpoints) | API-only | `core/services/collaboration.py`, `apps/api/collaboration_router.py` | Production |
+| **P4** | **Bulk Operations** | `/api/v1/bulk/*` (12 endpoints) | API-only | `apps/api/bulk_router.py` | Production |
+| **P5** | **Marketplace** | `/api/v1/marketplace/*` (12 endpoints) | API-only | `apps/api/marketplace_router.py` | Production |
+| **P6** | **Admin (Teams/Users/Auth)** | `/api/v1/teams/*`, `/api/v1/users/*`, `/api/v1/auth/*` (18 endpoints) | `teams`, `users` | `apps/api/teams_router.py`, `apps/api/users_router.py`, `core/auth_db.py` | Production |
 | N1 | Reliable Ticket Delivery | - | - | `apps/api/webhooks_router.py:744-1012` (outbox exists) | **Needs Worker** |
 | N2 | Broader Integrations | Webhook receivers only | - | `apps/api/webhooks_router.py` | **Inbound Only** |
 | N3 | Enterprise Login (SSO) | `/api/v1/auth/sso/*` | - | `core/auth_db.py` | **Config Only** |
@@ -1115,35 +1133,323 @@ GET /api/v1/reports/{id}/download
 
 ---
 
-*This document is the single source of truth for FixOps product status. Previous documents (STAKEHOLDER_ANALYSIS.md, ENTERPRISE_READINESS_ANALYSIS.md, FIXOPS_IMPLEMENTATION_STATUS.md, next_features.md) have been consolidated here and can be deleted.*
-| `ingest` | - | Normalize artifacts |
-| `make-decision` | - | Get decision (exit code 0=allow, 1=block, 2=defer) |
-| `analyze` | - | Analyze findings |
-| `demo` | `--mode demo\|enterprise` | Run with bundled fixtures |
-| `stage-run` | `--stage sarif\|sbom\|cve` | Process single stage |
-| `get-evidence` | `--run result.json` | Copy evidence bundle |
-| `show-overlay` | - | Print overlay config |
-| `health` | - | Check integration readiness |
-| `teams` | `list`, `create`, `delete` | Manage teams |
-| `users` | `list`, `create`, `delete` | Manage users |
-| `pentagi` | `analyze`, `status` | Pentagi pen testing |
-| `compliance` | `status`, `frameworks` | Compliance management |
-| `reports` | `list`, `generate` | Report management |
-| `inventory` | `list`, `create` | Application inventory |
-| `policies` | `list`, `create`, `test` | Policy management |
-| `integrations` | `list`, `test`, `sync` | Integration management |
-| `analytics` | `dashboard`, `trends` | View analytics |
-| `audit` | `list`, `export` | Audit logs |
-| `workflows` | `list`, `create`, `run` | Workflow automation |
-| `remediation` | `list`, `create`, `update` | Remediation tasks |
-| `notifications` | `list`, `process` | Notification queue |
-| `correlation` | `list`, `create` | Finding correlation |
-| `groups` | `list`, `create` | Finding clusters |
-| `reachability` | `analyze` | Attack path analysis |
-| `advanced-pentest` | `run` | AI-powered pentest |
-| `train-forecast` | - | Train probabilistic model |
-| `train-bn-lr` | - | Train Bayesian-LR model |
-| `predict-bn-lr` | - | Predict exploitation risk |
+## Platform Services / Cross-Cutting Capabilities
+
+These capabilities support the core SDLC workflow but operate across multiple stages or provide administrative functions.
+
+```mermaid
+flowchart LR
+  subgraph PLATFORM[Platform Services]
+    direction TB
+    P1[P1: Deduplication & Correlation]:::platform
+    P2[P2: Threat Intelligence Feeds]:::platform
+    P3[P3: Collaboration]:::platform
+    P4[P4: Bulk Operations]:::platform
+    P5[P5: Marketplace]:::platform
+    P6[P6: Admin - Teams/Users/Auth]:::platform
+  end
+
+  classDef platform fill:#fef3c7,stroke:#f59e0b,color:#78350f;
+```
+
+### P1: Deduplication & Correlation
+
+**What it does:** Groups duplicate/related findings using 7 correlation strategies to reduce noise by ~35%.
+
+**API Endpoints (17):**
+- `POST /api/v1/deduplication/correlate` - Correlate findings
+- `GET /api/v1/deduplication/groups` - List correlation groups
+- `POST /api/v1/deduplication/merge` - Merge groups
+- `GET /api/v1/deduplication/strategies` - List available strategies
+
+**CLI Commands:**
+```bash
+python -m core.cli correlation list
+python -m core.cli correlation create --strategy cve-match
+python -m core.cli groups list
+python -m core.cli groups merge --source G1 --target G2
+```
+
+**Program Flow:**
+```
+Normalized Findings
+    |
+    v
+[core/services/deduplication.py:DeduplicationService]
+    |-- correlate_findings()
+    |   |-- Strategy 1: CVE ID match
+    |   |-- Strategy 2: CWE + component match
+    |   |-- Strategy 3: File path + line proximity
+    |   |-- Strategy 4: Semantic similarity
+    |   |-- Strategy 5: SBOM component match
+    |   |-- Strategy 6: Attack vector similarity
+    |   |-- Strategy 7: Remediation overlap
+    |
+    v
+[apps/api/deduplication_router.py] - 17 endpoints
+    |
+    v
+Correlation Groups (stored in data/deduplication.db)
+```
+
+**Supports Stages:** Test, Decision, Remediation
+
+---
+
+### P2: Threat Intelligence Feeds
+
+**What it does:** Enriches findings with EPSS, KEV, NVD data and provides attack path reachability analysis.
+
+**API Endpoints (20):**
+- `GET /api/v1/feeds/epss` - EPSS scores
+- `GET /api/v1/feeds/kev` - KEV catalog
+- `GET /api/v1/feeds/nvd` - NVD data
+- `POST /api/v1/feeds/refresh` - Refresh feeds
+- `POST /api/v1/reachability/analyze` - Attack path analysis
+
+**CLI Commands:**
+```bash
+python -m core.cli reachability analyze --finding CVE-2024-1234
+python -m core.cli reachability paths --source app --target db
+python -m core.cli reachability graph --output graph.json
+```
+
+**Program Flow:**
+```
+Finding (CVE ID)
+    |
+    v
+[apps/api/feeds_router.py] - Feed lookup endpoints
+    |-- lookup_epss() - Exploitation probability
+    |-- lookup_kev() - Known exploited check
+    |-- lookup_nvd() - Full CVE details
+    |
+    v
+[core/reachability.py:ReachabilityAnalyzer]
+    |-- build_attack_graph()
+    |-- find_paths()
+    |-- calculate_exposure()
+    |
+    v
+Enriched Finding with Reachability Score
+```
+
+**Supports Stages:** Test, Decision
+
+---
+
+### P3: Collaboration
+
+**What it does:** Enables team collaboration through comments, watchers, activity feeds, and notifications.
+
+**API Endpoints (21):** API-only (UI-driven features)
+- `POST /api/v1/collaboration/comments` - Add comment
+- `GET /api/v1/collaboration/comments/{finding_id}` - Get comments
+- `POST /api/v1/collaboration/watchers` - Add watcher
+- `GET /api/v1/collaboration/activity` - Activity feed
+- `POST /api/v1/collaboration/notifications` - Create notification
+
+**Program Flow:**
+```
+User Action (comment, watch, etc.)
+    |
+    v
+[apps/api/collaboration_router.py] - 21 endpoints
+    |
+    v
+[core/services/collaboration.py:CollaborationService]
+    |-- add_comment()
+    |-- add_watcher()
+    |-- log_activity()
+    |-- queue_notification()
+    |
+    v
+Activity stored in data/collaboration.db
+Notifications queued for delivery
+```
+
+**Supports Stages:** All (cross-cutting)
+
+---
+
+### P4: Bulk Operations
+
+**What it does:** Enables batch processing of findings, tasks, and exports for large-scale operations.
+
+**API Endpoints (12):** API-only (complex batch operations)
+- `POST /api/v1/bulk/findings/update` - Bulk update findings
+- `POST /api/v1/bulk/tasks/assign` - Bulk assign tasks
+- `POST /api/v1/bulk/export` - Bulk export
+- `GET /api/v1/bulk/jobs/{id}` - Check job status
+
+**Program Flow:**
+```
+Bulk Request (list of IDs + action)
+    |
+    v
+[apps/api/bulk_router.py] - 12 endpoints
+    |-- validate_batch()
+    |-- create_job()
+    |
+    v
+[core/services/bulk.py:BulkOperationService]
+    |-- process_batch() - Iterate with progress
+    |-- update_job_status()
+    |
+    v
+Job Result (success/failure counts)
+```
+
+**Supports Stages:** Remediation, Monitor
+
+---
+
+### P5: Marketplace
+
+**What it does:** Provides a marketplace for security policies, integrations, and workflow templates.
+
+**API Endpoints (12):** API-only (e-commerce features)
+- `GET /api/v1/marketplace/items` - Browse items
+- `GET /api/v1/marketplace/items/{id}` - Item details
+- `POST /api/v1/marketplace/items/{id}/install` - Install item
+- `POST /api/v1/marketplace/items/{id}/rate` - Rate item
+
+**Program Flow:**
+```
+User Browse/Install Request
+    |
+    v
+[apps/api/marketplace_router.py] - 12 endpoints
+    |
+    v
+[core/services/marketplace.py:MarketplaceService]
+    |-- list_items()
+    |-- get_item_details()
+    |-- install_item() - Download + configure
+    |-- rate_item()
+    |
+    v
+Installed Item (policy/integration/template)
+```
+
+**Supports Stages:** Design (policies), All (integrations)
+
+---
+
+### P6: Admin - Teams/Users/Auth
+
+**What it does:** Manages teams, users, roles, and authentication (SSO/OIDC ready but not enforced).
+
+**API Endpoints (18):**
+- Teams: `GET/POST/PUT/DELETE /api/v1/teams/*` (8 endpoints)
+- Users: `GET/POST/PUT/DELETE /api/v1/users/*` (6 endpoints)
+- Auth: `GET/POST /api/v1/auth/*` (4 endpoints)
+
+**CLI Commands:**
+```bash
+python -m core.cli teams list
+python -m core.cli teams create --name security-team
+python -m core.cli users list
+python -m core.cli users create --email user@example.com --team security-team
+```
+
+**Program Flow:**
+```
+Admin Request
+    |
+    v
+[apps/api/teams_router.py] - 8 endpoints
+[apps/api/users_router.py] - 6 endpoints
+[apps/api/auth_router.py] - 4 endpoints
+    |
+    v
+[core/auth_db.py:AuthService]
+    |-- create_team()
+    |-- create_user()
+    |-- assign_role()
+    |-- validate_token()
+    |
+    v
+User/Team stored in data/users.db
+```
+
+**Supports Stages:** Operate/Admin (cross-cutting)
+
+---
+
+## Router → Capability + Stage Mapping
+
+This table maps every API router to its primary capability and workflow stage(s) for completeness audit.
+
+| Router | File | Endpoints | Primary Capability | Workflow Stage(s) | CLI Coverage |
+|--------|------|-----------|-------------------|-------------------|--------------|
+| Core Ingestion | `apps/api/app.py` | 18 | T1: Intake & Normalize | Design, Build, Test | `run`, `ingest`, `stage-run` |
+| Enhanced Decision | `apps/api/routes/enhanced.py` | 4 | T3: Automated Decisions | Decision | `advanced-pentest capabilities` |
+| Analytics | `apps/api/analytics_router.py` | 16 | Monitor | Monitor | `analytics *` |
+| Audit | `apps/api/audit_router.py` | 10 | T5: Compliance & Evidence | Monitor, Audit | `audit *`, `compliance *` |
+| Reports | `apps/api/reports_router.py` | 10 | T5: Compliance & Evidence | Audit | `reports *` |
+| Teams | `apps/api/teams_router.py` | 8 | P6: Admin | Operate/Admin | `teams *` |
+| Users | `apps/api/users_router.py` | 6 | P6: Admin | Operate/Admin | `users *` |
+| Policies | `apps/api/policies_router.py` | 8 | T3: Automated Decisions | Design | `policies *` |
+| Integrations | `apps/api/integrations_router.py` | 8 | T8: Jira Integration | All | `integrations *` |
+| Workflows | `apps/api/workflows_router.py` | 7 | T4: Remediation Workflow | Remediation | `workflows *` |
+| Inventory | `apps/api/inventory_router.py` | 15 | T1: Intake & Normalize | Design | `inventory *` |
+| PentAGI | `apps/api/pentagi_router.py` | 14 | T3: Automated Decisions | Test | `pentagi *` |
+| Enhanced PentAGI | `apps/api/pentagi_router_enhanced.py` | 19 | T3: Automated Decisions | Test | `advanced-pentest *` |
+| IaC | `apps/api/iac_router.py` | 6 | T7: Security Scanning | Test | `stage-run --stage deploy` |
+| Secrets | `apps/api/secrets_router.py` | 6 | T7: Security Scanning | Test | API-only |
+| Health | `apps/api/health.py` | 4 | Operate | Operate/Admin | `health` |
+| IDE Integration | `apps/api/ide_router.py` | 3 | T1: Intake & Normalize | Build, Test | API-only (IDE plugins) |
+| Bulk Operations | `apps/api/bulk_router.py` | 12 | P4: Bulk Operations | Remediation, Monitor | API-only |
+| Marketplace | `apps/api/marketplace_router.py` | 12 | P5: Marketplace | Design, All | API-only |
+| SSO/Auth | `apps/api/auth_router.py` | 4 | P6: Admin | Operate/Admin | API-only |
+| Webhooks | `apps/api/webhooks_router.py` | 17 | T8: Jira Integration | Remediation | API-only (event-driven) |
+| Deduplication | `apps/api/deduplication_router.py` | 17 | P1: Deduplication | Test, Decision | `correlation`, `groups` |
+| Remediation | `apps/api/remediation_router.py` | 13 | T4: Remediation Workflow | Remediation | `remediation *` |
+| Feeds | `apps/api/feeds_router.py` | 20 | P2: Threat Intel Feeds | Test, Decision | `reachability *` |
+| Collaboration | `apps/api/collaboration_router.py` | 21 | P3: Collaboration | All | API-only |
+| Validation | `apps/api/validation_router.py` | 3 | T1: Intake & Normalize | Build, Test | API-only |
+| Evidence | `backend/api/evidence/router.py` | 4 | T5: Compliance & Evidence | Audit | `get-evidence`, `copy-evidence` |
+| Graph/Risk | `backend/api/graph/router.py` | 4 | T2: Prioritize & Triage | Decision | API-only (visualization) |
+| Risk | `backend/api/risk/router.py` | 3 | T2: Prioritize & Triage | Decision | API-only |
+| Provenance | `backend/api/provenance/router.py` | 2 | T5: Compliance & Evidence | Audit | API-only |
+
+---
+
+## CLI Command → Capability + Stage Mapping
+
+| CLI Command Group | Subcommands | Primary Capability | Workflow Stage(s) |
+|-------------------|-------------|-------------------|-------------------|
+| `run` | - | T3: Automated Decisions | Decision |
+| `ingest` | - | T1: Intake & Normalize | Design, Build, Test |
+| `make-decision` | - | T3: Automated Decisions | Decision |
+| `analyze` | - | T2: Prioritize & Triage | Test, Decision |
+| `demo` | `--mode` | T3: Automated Decisions | All (demo) |
+| `stage-run` | `--stage` | T1: Intake & Normalize | Design, Build, Test |
+| `get-evidence` | - | T5: Compliance & Evidence | Audit |
+| `copy-evidence` | - | T5: Compliance & Evidence | Audit |
+| `compliance` | `status`, `frameworks`, `report` | T5: Compliance & Evidence | Monitor, Audit |
+| `show-overlay` | - | Config | Operate/Admin |
+| `inventory` | `apps`, `add`, `get`, `services`, `search` | T1: Intake & Normalize | Design |
+| `policies` | `list`, `get`, `create`, `validate`, `test` | T3: Automated Decisions | Design |
+| `integrations` | `list`, `configure`, `test`, `sync` | T8: Jira Integration | All |
+| `health` | - | Operate | Operate/Admin |
+| `analytics` | `dashboard`, `mttr`, `coverage`, `roi`, `export`, `trends` | Monitor | Monitor |
+| `audit` | `logs`, `decisions`, `export` | T5: Compliance & Evidence | Monitor, Audit |
+| `reports` | `list`, `generate`, `export` | T5: Compliance & Evidence | Audit |
+| `teams` | `list`, `get`, `create`, `delete` | P6: Admin | Operate/Admin |
+| `users` | `list`, `get`, `create`, `delete` | P6: Admin | Operate/Admin |
+| `workflows` | `list`, `get`, `create`, `execute`, `history` | T4: Remediation Workflow | Remediation |
+| `remediation` | `list`, `create`, `update`, `close` | T4: Remediation Workflow | Remediation |
+| `notifications` | `list`, `process`, `retry` | T6: Notifications | All |
+| `correlation` | `list`, `create`, `strategies` | P1: Deduplication | Test, Decision |
+| `groups` | `list`, `create`, `merge`, `split` | P1: Deduplication | Test, Decision |
+| `pentagi` | `list`, `create`, `status`, `results` | T3: Automated Decisions | Test |
+| `advanced-pentest` | `run`, `capabilities`, `threat-intel`, `simulate` | T3: Automated Decisions | Test |
+| `reachability` | `analyze`, `paths`, `graph` | P2: Threat Intel Feeds | Test, Decision |
+| `train-forecast` | - | T2: Prioritize & Triage | ML Training |
+| `train-bn-lr` | - | T2: Prioritize & Triage | ML Training |
+| `predict-bn-lr` | - | T2: Prioritize & Triage | Decision |
 
 ---
 
