@@ -136,12 +136,12 @@ flowchart LR
 
 | Metric | Count |
 |--------|-------|
-| **Total API Endpoints** | ~300 |
+| **Total API Endpoints** | 303 |
 | **CLI Commands/Subcommands** | 84 |
-| **API Endpoints with CLI Coverage** | ~190 (~64%) |
-| **API-Only Endpoints** | ~110 (~36%) |
+| **API Endpoints with CLI Coverage** | 223 (74%) |
+| **API-Only Endpoints** | 80 (26%) |
 
-**Note:** Counts are code-derived and depend on enabled modules/mode.
+**Note:** Counts are code-derived from static enumeration of router decorators.
 
 ### Code-Derived Endpoint Breakdown
 
@@ -151,9 +151,9 @@ flowchart LR
 | apps/api/app.py | 18 |
 | apps/api/routes/enhanced.py | 4 |
 | backend/api/* routers | 18 |
-| **Total** | **~300** |
+| **Total** | **303** |
 
-### API Routers (31 total)
+### API Routers (32 total)
 
 | Router | File | Endpoints | CLI Coverage |
 |--------|------|-----------|--------------|
@@ -188,13 +188,14 @@ flowchart LR
 | **Graph/Risk** | `backend/api/graph/router.py` | 4 | API-only (visualization) |
 | **Risk** | `backend/api/risk/router.py` | 3 | API-only |
 | **Provenance** | `backend/api/provenance/router.py` | 2 | API-only |
+| **PentAGI (Backend)** | `backend/api/pentagi/router.py` | 5 | API-only |
 
 ### API-Only Endpoints (Why No CLI)
 
 | Category | Count | Reason |
 |----------|-------|--------|
 | Chunked Uploads | 4 | Large file handling requires streaming |
-| Graph Visualization | 7 | Interactive visualization requires UI |
+| Graph Visualization | 4 | Interactive visualization requires UI |
 | Bulk Operations | 12 | Complex batch operations with progress tracking |
 | IDE Integration | 3 | Real-time code analysis for IDE plugins |
 | Marketplace | 12 | E-commerce features (purchase, download, rate) |
@@ -202,6 +203,7 @@ flowchart LR
 | Real-time Monitoring | 3 | WebSocket/streaming connections |
 | Collaboration | 21 | Comments, watchers, activity feeds (UI-driven) |
 | Webhooks | 17 | Event-driven, configured via UI |
+| **Total** | **80** | |
 
 ---
 

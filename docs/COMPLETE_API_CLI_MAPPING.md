@@ -3,7 +3,7 @@
 > **DEPRECATED**: This document has been consolidated into [FIXOPS_PRODUCT_STATUS.md](./FIXOPS_PRODUCT_STATUS.md).
 > The master document now includes:
 > - Workflow Stage Map with API/CLI mapping
-> - API/CLI Coverage Summary (~300 endpoints, 84 commands)
+> - API/CLI Coverage Summary (303 endpoints, 84 commands)
 > - End-to-End Workflow Integration examples
 > - Complete CLI Command Reference
 >
@@ -15,29 +15,29 @@
 
 | Metric | Count |
 |--------|-------|
-| **Total API Endpoints** | ~300 |
+| **Total API Endpoints** | 303 |
 | **CLI Commands/Subcommands** | 84 |
-| **API Endpoints with CLI Coverage** | ~190 (~64%) |
-| **API-Only Endpoints** | ~110 (~36%) |
+| **API Endpoints with CLI Coverage** | 223 (74%) |
+| **API-Only Endpoints** | 80 (26%) |
 
-**Note:** Counts are approximate and depend on enabled modules/mode. See code-derived breakdown below.
+**Note:** Counts are code-derived from static enumeration of router decorators. See breakdown below.
 
 ### Code-Derived Endpoint Breakdown
 
 | Source | Endpoints |
 |--------|-----------|
-| apps/api/*_router.py | 260 |
+| apps/api/*_router.py | 263 |
 | apps/api/app.py | 18 |
 | apps/api/routes/enhanced.py | 4 |
 | backend/api/* routers | 18 |
-| **Total** | **~300** |
+| **Total** | **303** |
 
 ### Why Some APIs Don't Have CLI Coverage
 
 | Category | Count | Reason |
 |----------|-------|--------|
 | Chunked Uploads | 4 | Large file handling requires streaming, better suited for API |
-| Graph Visualization | 7 | Interactive visualization requires UI |
+| Graph Visualization | 4 | Interactive visualization requires UI |
 | Bulk Operations | 12 | Complex batch operations with progress tracking |
 | IDE Integration | 3 | Real-time code analysis for IDE plugins |
 | Marketplace | 12 | E-commerce features (purchase, download, rate) |
@@ -45,6 +45,7 @@
 | Real-time Monitoring | 3 | WebSocket/streaming connections |
 | Collaboration | 21 | Comments, watchers, activity feeds (UI-driven) |
 | Webhooks | 17 | Event-driven, configured via UI |
+| **Total** | **80** | |
 
 ---
 
