@@ -1523,8 +1523,15 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
                 return 1
 
     elif args.micro_command == "batch":
-        with open(args.config_file, "r") as f:
-            batch_data = json.load(f)
+        try:
+            with open(args.config_file, "r") as f:
+                batch_data = json.load(f)
+        except FileNotFoundError:
+            print(f"Error: Config file not found: {args.config_file}", file=sys.stderr)
+            return 1
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in config file: {e}", file=sys.stderr)
+            return 1
 
         test_configs = [
             BatchTestConfig(

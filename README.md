@@ -363,7 +363,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### 322 API Endpoints (22 Router Modules)
+### ~303 API Endpoints (31 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -395,7 +395,7 @@ Configurable retention policies for compliance requirements:
 | Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
 | Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
-### 84 CLI Commands
+### 87 CLI Commands
 
 | Command Group | Commands | Description |
 |---------------|----------|-------------|
@@ -884,7 +884,7 @@ make up-pentagi
 | Document | Description |
 |----------|-------------|
 | [Docker Guide](docs/DOCKER.md) | Complete Docker and docker-compose documentation |
-| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (322 endpoints) |
+| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (~303 endpoints) |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
 | [PentAGI Integration](docs/PENTAGI_INTEGRATION.md) | Micro-pentest deployment and configuration guide |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
