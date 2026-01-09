@@ -218,7 +218,7 @@ flowchart LR
 | T7 | Security Scanning | `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*` | - | `core/iac_scanner.py`, `core/secrets_scanner.py` | Production |
 | T8 | Jira Integration | `POST /api/v1/webhooks/jira/*` | `integrations` | `core/connectors.py:49-124`, `apps/api/webhooks_router.py:233-350` | Production |
 | **P1** | **Deduplication & Correlation** | `/api/v1/deduplication/*` (17 endpoints) | `correlation`, `groups` | `core/services/deduplication.py`, `apps/api/deduplication_router.py` | Production |
-| **P2** | **Threat Intelligence Feeds** | `/api/v1/feeds/*` (20 endpoints) | `reachability` | `apps/api/feeds_router.py`, `core/reachability.py` | Production |
+| **P2** | **Threat Intelligence Feeds** | `/api/v1/feeds/*` (20 endpoints) | `reachability` | `apps/api/feeds_router.py`, `risk/reachability/analyzer.py` | Production |
 | **P3** | **Collaboration** | `/api/v1/collaboration/*` (21 endpoints) | API-only | `core/services/collaboration.py`, `apps/api/collaboration_router.py` | Production |
 | **P4** | **Bulk Operations** | `/api/v1/bulk/*` (12 endpoints) | API-only | `apps/api/bulk_router.py` | Production |
 | **P5** | **Marketplace** | `/api/v1/marketplace/*` (12 endpoints) | API-only | `apps/api/marketplace_router.py` | Production |
@@ -1619,7 +1619,7 @@ Finding (CVE ID)
     |-- lookup_nvd() - Full CVE details
     |
     v
-[core/reachability.py:ReachabilityAnalyzer]
+[risk/reachability/analyzer.py:ReachabilityAnalyzer]
     |-- build_attack_graph()
     |-- find_paths()
     |-- calculate_exposure()
@@ -1686,7 +1686,7 @@ Bulk Request (list of IDs + action)
     |-- create_job()
     |
     v
-[core/services/bulk.py:BulkOperationService]
+[apps/api/bulk_router.py:BulkJobService]
     |-- process_batch() - Iterate with progress
     |-- update_job_status()
     |
@@ -1716,7 +1716,7 @@ User Browse/Install Request
 [apps/api/marketplace_router.py] - 12 endpoints
     |
     v
-[core/services/marketplace.py:MarketplaceService]
+[fixops-enterprise/src/services/marketplace_service.py:MarketplaceService]
     |-- list_items()
     |-- get_item_details()
     |-- install_item() - Download + configure
