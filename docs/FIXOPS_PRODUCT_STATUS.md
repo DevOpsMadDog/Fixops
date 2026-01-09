@@ -468,6 +468,46 @@ The outbox table stores items with status, retry_count, max_retries, next_retry_
 
 ---
 
+## Enterprise Roadmap Reference
+
+For detailed enterprise feature specifications, see **[ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md)** which contains comprehensive design specs for the following areas:
+
+### Feature Area Status Summary
+
+| Feature Area | Capability ID | Implemented | Proposed (Design Spec) | ENTERPRISE_FEATURES.md Section |
+|--------------|---------------|-------------|------------------------|-------------------------------|
+| **Deduplication & Correlation** | P1 | Basic correlation (7 strategies), FindingGroup storage | Full correlation graph, human-in-loop merge workflows, explainability | Section 1 (lines 16-219) |
+| **Jira/ServiceNow Integration** | T8, N2 | Jira connector (create/update), webhook receivers | Bidirectional sync, drift detection, outbox worker, ServiceNow outbound | Section 2 (lines 222-415) |
+| **Remediation Lifecycle** | T4 | State machine, SLA tracking, task management | Verification evidence, risk acceptance workflows, drift detection | Section 3 (lines 418-652) |
+| **Bulk Operations** | P4 | Basic bulk endpoints (12) | Async job framework, query language, saved views | Section 4 (lines 655-841) |
+| **Collaboration** | P3 | Comments, watchers, activity feed (21 endpoints) | Threaded comments, evidence promotion, external sync | Section 5 (lines 845-1031) |
+
+### Target KPIs (Enterprise Success Metrics)
+
+These are target metrics for enterprise deployments, not current measurements:
+
+| Area | Metric | Target |
+|------|--------|--------|
+| **Correlation** | Noise reduction ratio | 35% |
+| **Correlation** | Merge acceptance rate | >90% |
+| **Integrations** | Ticket sync success rate | >99% |
+| **Integrations** | Sync latency p95 | <30s |
+| **Remediation** | MTTR (Critical) | <24h |
+| **Remediation** | SLA compliance rate | >95% |
+| **Bulk Operations** | Job completion rate | >99% |
+| **Collaboration** | Comment response time | <4h |
+
+### Migration Path (Proposed)
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| **Phase 1: Foundation** | Basic correlation, fire-and-forget connectors, stub bulk ops | **Current** |
+| **Phase 2: Enterprise Core** | FindingGroup models, bidirectional sync, RemediationTask state machine | Planned |
+| **Phase 3: Enterprise Advanced** | Full correlation graph, SLA policies, query language | Planned |
+| **Phase 4: Enterprise Complete** | Human-in-loop workflows, drift detection, real-time feeds | Planned |
+
+---
+
 ## Stakeholder Coverage Summary
 
 | Stakeholder | Coverage | Key Gaps |
