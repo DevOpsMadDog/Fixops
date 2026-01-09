@@ -1471,53 +1471,55 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
     if args.micro_command == "run":
         cve_ids = [c.strip() for c in args.cve_ids.split(",")]
         target_urls = [u.strip() for u in args.target_urls.split(",")]
-        context = args.context or ""
+        context_dict = {"context": args.context} if args.context else None
 
-        result = asyncio.run(run_micro_pentest(cve_ids, target_urls, context, config))
+        run_result = asyncio.run(
+            run_micro_pentest(cve_ids, target_urls, context_dict, config)
+        )
 
         if args.format == "json":
             print(
                 json.dumps(
                     {
-                        "flow_id": result.flow_id,
-                        "status": result.status,
-                        "message": result.message,
+                        "flow_id": run_result.flow_id,
+                        "status": run_result.status,
+                        "message": run_result.message,
                     },
                     indent=2,
                 )
             )
         else:
-            if result.flow_id:
-                print(f"Started micro pentest flow: {result.flow_id}")
-                print(f"Status: {result.status}")
+            if run_result.flow_id:
+                print(f"Started micro pentest flow: {run_result.flow_id}")
+                print(f"Status: {run_result.status}")
             else:
-                print(f"Failed to start micro pentest: {result.message}")
+                print(f"Failed to start micro pentest: {run_result.message}")
                 return 1
 
     elif args.micro_command == "status":
-        result = asyncio.run(get_micro_pentest_status(args.flow_id, config))
+        status_result = asyncio.run(get_micro_pentest_status(args.flow_id, config))
 
         if args.format == "json":
             print(
                 json.dumps(
                     {
-                        "flow_id": result.flow_id,
-                        "status": result.status,
-                        "progress": result.progress,
-                        "tasks": result.tasks,
-                        "error": result.error,
+                        "flow_id": status_result.flow_id,
+                        "status": status_result.status,
+                        "progress": status_result.progress,
+                        "tasks": status_result.tasks,
+                        "error": status_result.error,
                     },
                     indent=2,
                 )
             )
         else:
-            print(f"Flow ID: {result.flow_id}")
-            print(f"Status: {result.status}")
-            print(f"Progress: {result.progress}%")
-            if result.tasks:
-                print(f"Tasks: {len(result.tasks)}")
-            if result.error:
-                print(f"Error: {result.error}")
+            print(f"Flow ID: {status_result.flow_id}")
+            print(f"Status: {status_result.status}")
+            print(f"Progress: {status_result.progress}%")
+            if status_result.tasks:
+                print(f"Tasks: {len(status_result.tasks)}")
+            if status_result.error:
+                print(f"Error: {status_result.error}")
                 return 1
 
     elif args.micro_command == "batch":
@@ -1528,7 +1530,7 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
             BatchTestConfig(
                 cve_ids=tc["cve_ids"],
                 target_urls=tc["target_urls"],
-                context=tc.get("context", ""),
+                context=tc.get("context", {}),
             )
             for tc in batch_data.get("tests", [])
         ]
