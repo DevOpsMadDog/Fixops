@@ -473,19 +473,19 @@ For enterprise plug-and-play, each connector needs complete CRUD operations. Cur
 
 | Connector | Create | Update | Transition | Comment | Attach | Code Reference | Status |
 |-----------|--------|--------|------------|---------|--------|----------------|--------|
-| **Jira** | `create_issue()` | `update_issue()` | `transition_issue()` | `add_comment()` | **MISSING** | `core/connectors.py:49-344` | **Production** |
-| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:347-430` | Outbound only |
-| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:433-468` | Outbound only |
-| **ServiceNow** | `create_incident()` | `update_incident()` | - | `add_work_note()` | - | `core/connectors.py:471-669` | **Production** |
-| **GitLab** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:672-868` | **Production** |
-| **Azure DevOps** | `create_work_item()` | `update_work_item()` | - | `add_comment()` | - | `core/connectors.py:871-1136` | **Production** |
-| **GitHub** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:1139-1353` | **Production** |
+| **Jira** | `create_issue()` | `update_issue()` | `transition_issue()` | `add_comment()` | **MISSING** | `core/connectors.py:49-355` | **Production** |
+| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:356-441` | Outbound only |
+| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:442-479` | Outbound only |
+| **ServiceNow** | `create_incident()` | `update_incident()` | - | `add_work_note()` | - | `core/connectors.py:480-695` | **Production** |
+| **GitLab** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:696-913` | **Production** |
+| **Azure DevOps** | `create_work_item()` | `update_work_item()` | - | `add_comment()` | - | `core/connectors.py:914-1204` | **Production** |
+| **GitHub** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:1205-1423` | **Production** |
 
 ### Critical Issues for Plug-and-Play
 
 **Issue 1: Jira Connector - RESOLVED**
 
-The Jira connector (`core/connectors.py:49-344`) now implements full CRUD operations:
+The Jira connector (`core/connectors.py:49-355`) now implements full CRUD operations:
 - `create_issue()` - Create new tickets
 - `update_issue()` - Update existing tickets when findings change
 - `transition_issue()` - Change status (Open → In Progress → Done)

@@ -1251,28 +1251,28 @@ def process_pending_outbox_items(limit: int = 10) -> Dict[str, Any]:
             (now, limit),
         )
         rows = cursor.fetchall()
-
-        results = []
-        for row in rows:
-            outbox_id = row["outbox_id"]
-            try:
-                result = execute_outbox_item(outbox_id)
-                results.append(result)
-            except Exception as e:
-                results.append(
-                    {
-                        "outbox_id": outbox_id,
-                        "success": False,
-                        "error": str(e),
-                    }
-                )
-
-        return {
-            "processed_count": len(results),
-            "results": results,
-        }
+        outbox_ids = [row["outbox_id"] for row in rows]
     finally:
         conn.close()
+
+    results = []
+    for outbox_id in outbox_ids:
+        try:
+            result = execute_outbox_item(outbox_id)
+            results.append(result)
+        except Exception as e:
+            results.append(
+                {
+                    "outbox_id": outbox_id,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
+
+    return {
+        "processed_count": len(results),
+        "results": results,
+    }
 
 
 # ============================================================================
