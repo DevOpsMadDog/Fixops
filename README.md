@@ -907,6 +907,22 @@ make up-pentagi
 - **Enterprise Bulk Operations** - Async job framework with per-item outcomes, partial failure handling, and job status tracking
 - **Team Collaboration** - Append-only comment threads, watchers, activity feeds, mention tracking, and evidence promotion
 
+### Enterprise Plug-and-Play Readiness
+
+For enterprise deployments via Docker images, the following integration status applies:
+
+| Integration | Status | Notes |
+|-------------|--------|-------|
+| **Jira** | Partial | Create tickets works; update/transition/comment pending |
+| **Confluence** | Outbound Only | Create page works |
+| **Slack** | Ready | Webhook notifications working |
+| **ServiceNow** | Inbound Only | Webhook receiver only |
+| **GitLab** | Inbound Only | Webhook receiver only |
+| **Azure DevOps** | Inbound Only | Webhook receiver only |
+| **GitHub** | Not Ready | Connector not implemented |
+
+See [Enterprise Plug-and-Play Readiness](docs/FIXOPS_PRODUCT_STATUS.md#enterprise-plug-and-play-readiness) for detailed status, API/CLI mappings, and roadmap.
+
 ### Optional Integrations
 - Jira (requires `FIXOPS_JIRA_TOKEN`)
 - Confluence (requires `FIXOPS_CONFLUENCE_TOKEN`)

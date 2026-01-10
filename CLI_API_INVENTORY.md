@@ -186,6 +186,56 @@ python -m core.cli pentagi create-config \
 
 **Total API Surface: 137 endpoints** (125 from Phases 1-5 + 12 from Phase 6)
 
+---
+
+## Enterprise Plug-and-Play Integration Endpoints
+
+### Integration Management (apps/api/integrations_router.py)
+
+| Endpoint | Method | CLI Command | Status |
+|----------|--------|-------------|--------|
+| `/api/v1/integrations` | GET | `integrations list` | Working |
+| `/api/v1/integrations` | POST | `integrations configure` | Working |
+| `/api/v1/integrations/{id}` | GET | `integrations get` | Working |
+| `/api/v1/integrations/{id}` | PUT | `integrations update` | Working |
+| `/api/v1/integrations/{id}` | DELETE | `integrations delete` | Working |
+| `/api/v1/integrations/{id}/test` | POST | `integrations test` | Working |
+| `/api/v1/integrations/{id}/sync-status` | GET | `integrations sync-status` | Working |
+| `/api/v1/integrations/{id}/sync` | POST | `integrations sync` | **NO-OP** |
+
+### Webhook Receivers (apps/api/webhooks_router.py)
+
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/api/v1/webhooks/jira` | POST | Receive Jira webhook events | Working |
+| `/api/v1/webhooks/servicenow` | POST | Receive ServiceNow webhook events | Working |
+| `/api/v1/webhooks/gitlab` | POST | Receive GitLab webhook events | Working |
+| `/api/v1/webhooks/azure-devops` | POST | Receive Azure DevOps webhook events | Working |
+
+### Outbox Management (apps/api/webhooks_router.py)
+
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/api/v1/webhooks/outbox` | GET | List outbox items | Queues only |
+| `/api/v1/webhooks/outbox/{id}` | GET | Get outbox item details | Queues only |
+| `/api/v1/webhooks/outbox/{id}/process` | POST | Process outbox item | **No worker** |
+
+### Connector Status Summary
+
+| Connector | Outbound Operations | Inbound (Webhook) | Background Worker | Bidirectional Sync |
+|-----------|---------------------|-------------------|-------------------|-------------------|
+| **Jira** | `create_issue()` only | Yes | Outbox queues | Drift detection |
+| **Confluence** | `create_page()` only | No | No | No |
+| **Slack** | `post_message()` only | No | No | No |
+| **ServiceNow** | **MISSING** | Yes | No | No |
+| **GitLab** | **MISSING** | Yes | No | No |
+| **Azure DevOps** | **MISSING** | Yes | No | No |
+| **GitHub** | **MISSING** | No | No | No |
+
+See [Enterprise Plug-and-Play Readiness](docs/FIXOPS_PRODUCT_STATUS.md#enterprise-plug-and-play-readiness) for detailed analysis and roadmap.
+
+---
+
 ## Output Files
 
 ### Stage Outputs

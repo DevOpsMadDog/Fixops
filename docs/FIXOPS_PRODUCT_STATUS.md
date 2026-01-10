@@ -437,6 +437,36 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 
 This section provides a deep analysis of what's needed for true enterprise plug-and-play deployment via Docker images (aldeci/fixops) at client sites. Focus areas: connectors, working APIs, and business logic depth.
 
+### Enterprise Plug-and-Play Status Summary
+
+| Category | Status | Readiness | Notes |
+|----------|--------|-----------|-------|
+| **Core Decision Engine** | Production | Ready | Multi-LLM consensus, risk scoring, evidence bundles |
+| **Jira Integration** | Partial | Needs Work | Create only, missing update/transition/comment |
+| **Confluence Integration** | Partial | Outbound Only | Create page works, no sync |
+| **Slack Integration** | Production | Ready | Webhook notifications working |
+| **ServiceNow Integration** | Partial | Inbound Only | Webhook receiver, no outbound |
+| **GitLab Integration** | Partial | Inbound Only | Webhook receiver, no outbound |
+| **Azure DevOps Integration** | Partial | Inbound Only | Webhook receiver, no outbound |
+| **GitHub Integration** | Not Started | Not Ready | No connector implemented |
+| **Background Workers** | Not Started | Blocker | Outbox exists but no consumer |
+| **Database (HA)** | Not Started | Blocker | SQLite only, no PostgreSQL |
+| **Multi-Tenancy** | Partial | Needs Work | Partial org_id support |
+
+### Enterprise API/CLI Mapping for Plug-and-Play Features
+
+| Feature | API Endpoints | CLI Commands | Status |
+|---------|---------------|--------------|--------|
+| **Integration Management** | `GET/POST/PUT/DELETE /api/v1/integrations/*` | `integrations list/configure/test/sync` | Working |
+| **Integration Testing** | `POST /api/v1/integrations/{id}/test` | `integrations test` | Working |
+| **Integration Sync** | `POST /api/v1/integrations/{id}/sync` | `integrations sync` | **NO-OP** |
+| **Webhook Receivers** | `POST /api/v1/webhooks/jira`, `/servicenow`, `/gitlab`, `/azure-devops` | N/A (event-driven) | Working |
+| **Outbox Management** | `GET/POST /api/v1/webhooks/outbox/*` | N/A | Queues only |
+| **Remediation Tasks** | `GET/POST/PUT /api/v1/remediation/tasks/*` | `remediation list/create/update` | Working |
+| **Ticket Linking** | `POST /api/v1/remediation/tasks/{id}/link-ticket` | `remediation link-ticket` | Manual only |
+| **Bulk Operations** | `POST /api/v1/bulk/*` | N/A | In-memory jobs |
+| **SSO/Auth** | `GET /api/v1/auth/oauth/*` | N/A | Config only |
+
 ### Connector Operations Matrix
 
 For enterprise plug-and-play, each connector needs complete CRUD operations. Current state:
