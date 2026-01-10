@@ -412,7 +412,8 @@ def test_process_pending_outbox_items_with_exception(client, outbox_db, monkeypa
     data = response.json()
     assert data["processed_count"] == 1
     assert len(data["results"]) == 1
-    # Verify the exception was caught and returned as an error
+    # Verify the exception was caught and returned as a generic error
+    # (actual exception details are logged, not exposed to API consumers)
     assert data["results"][0]["outbox_id"] == "test-exception-1"
     assert data["results"][0]["success"] is False
-    assert "Simulated failure" in data["results"][0]["error"]
+    assert data["results"][0]["error"] == "Internal processing error"
