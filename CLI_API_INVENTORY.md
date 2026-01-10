@@ -196,11 +196,11 @@ python -m core.cli pentagi create-config \
 |----------|--------|-------------|--------|
 | `/api/v1/integrations` | GET | `integrations list` | Working |
 | `/api/v1/integrations` | POST | `integrations configure` | Working |
-| `/api/v1/integrations/{id}` | GET | `integrations get` | Working |
-| `/api/v1/integrations/{id}` | PUT | `integrations update` | Working |
-| `/api/v1/integrations/{id}` | DELETE | `integrations delete` | Working |
+| `/api/v1/integrations/{id}` | GET | N/A | Working |
+| `/api/v1/integrations/{id}` | PUT | N/A | Working |
+| `/api/v1/integrations/{id}` | DELETE | N/A | Working |
 | `/api/v1/integrations/{id}/test` | POST | `integrations test` | Working |
-| `/api/v1/integrations/{id}/sync-status` | GET | `integrations sync-status` | Working |
+| `/api/v1/integrations/{id}/sync-status` | GET | N/A | Working |
 | `/api/v1/integrations/{id}/sync` | POST | `integrations sync` | **NO-OP** |
 
 ### Webhook Receivers (apps/api/webhooks_router.py)
