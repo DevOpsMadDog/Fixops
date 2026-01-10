@@ -1529,6 +1529,24 @@ def _handle_micro_pentest(args: argparse.Namespace) -> int:
         except FileNotFoundError:
             print(f"Error: Config file not found: {args.config_file}", file=sys.stderr)
             return 1
+        except IsADirectoryError:
+            print(
+                f"Error: Path is a directory, not a file: {args.config_file}",
+                file=sys.stderr,
+            )
+            return 1
+        except PermissionError:
+            print(
+                f"Error: Permission denied reading config file: {args.config_file}",
+                file=sys.stderr,
+            )
+            return 1
+        except OSError as e:
+            print(
+                f"Error: Unable to read config file {args.config_file}: {e}",
+                file=sys.stderr,
+            )
+            return 1
         except json.JSONDecodeError as e:
             print(f"Error: Invalid JSON in config file: {e}", file=sys.stderr)
             return 1

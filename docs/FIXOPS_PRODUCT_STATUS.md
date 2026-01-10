@@ -444,8 +444,8 @@ For enterprise plug-and-play, each connector needs complete CRUD operations. Cur
 | Connector | Create | Update | Transition | Comment | Attach | Code Reference | Status |
 |-----------|--------|--------|------------|---------|--------|----------------|--------|
 | **Jira** | `create_issue()` | **MISSING** | **MISSING** | **MISSING** | **MISSING** | `core/connectors.py:49-124` | **Incomplete** |
-| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:126-180` | Outbound only |
-| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:182-230` | Outbound only |
+| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:127-210` | Outbound only |
+| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:213-248` | Outbound only |
 | **ServiceNow** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
 | **GitLab** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
 | **Azure DevOps** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
@@ -2008,9 +2008,9 @@ Bulk Request (list of IDs + action)
     |-- create_job()
     |
     v
-[apps/api/bulk_router.py:BulkJobService]
-    |-- process_batch() - Iterate with progress
-    |-- update_job_status()
+[apps/api/bulk_router.py helper functions]
+    |-- _create_job() - Create job entry
+    |-- _update_job_progress() - Update progress
     |
     v
 Job Result (success/failure counts)

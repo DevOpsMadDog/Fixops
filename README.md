@@ -354,7 +354,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### ~287 API Endpoints (28 Router Modules)
+### 303 API Endpoints (32 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -580,7 +580,7 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
 # Animated demo with all 7 capability areas
 ./scripts/aldeci-demo-runner.sh
 
-# Interactive API tester (~287 endpoints)
+# Interactive API tester (303 endpoints)
 ./scripts/fixops-interactive.sh
 
 # Or via Docker
