@@ -33,9 +33,9 @@ This document maps every FixOps feature to its exact code paths, API endpoints, 
 | POST | `/inputs/vex` | `upload_vex` | `apps/api/app.py:976-1016` |
 | POST | `/inputs/design` | `upload_design` | `apps/api/app.py:808-848` |
 | POST | `/inputs/cnapp` | `upload_cnapp` | `apps/api/app.py:1018-1033` |
-| POST | `/api/v1/validation/sbom` | `validate_sbom` | `apps/api/validation_router.py:45-120` |
-| POST | `/api/v1/validation/sarif` | `validate_sarif` | `apps/api/validation_router.py:122-200` |
-| GET | `/api/v1/validation/schemas` | `get_schemas` | `apps/api/validation_router.py:202-250` |
+| POST | `/api/v1/validate/input` | `validate_input` | `apps/api/validation_router.py:225-380` |
+| POST | `/api/v1/validate/batch` | `validate_batch` | `apps/api/validation_router.py:381-423` |
+| GET | `/api/v1/validate/supported-formats` | `get_supported_formats` | `apps/api/validation_router.py:424-491` |
 
 ### CLI Commands
 
