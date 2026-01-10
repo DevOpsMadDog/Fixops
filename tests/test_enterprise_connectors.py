@@ -1478,7 +1478,7 @@ class TestGitHubConnector:
         mock_request.return_value = MockResponse(200, json_data=None)
         mock_request.return_value._json_data = []
         result = configured_github.search_issues(
-            query="bug", state="open", labels=["critical"]
+            state="open", labels="critical", exclude_pull_requests=True
         )
         assert result.status == "fetched"
 
