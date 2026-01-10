@@ -8,6 +8,39 @@ Enterprise-grade connectors with:
 - Bidirectional operations (push AND pull) for agent-based data collection
 - Structured logging and metrics
 - Marketplace-ready configuration patterns
+
+Supported APIs and Versions (as of January 2026):
+
+Jira:
+    - API: REST API v3 (/rest/api/3/)
+    - Compatibility: Jira Cloud (all versions), Jira Data Center 9.x+, Jira Server 8.x+
+    - Auth: API Token (Cloud) or Personal Access Token (Data Center/Server)
+    - Docs: https://developer.atlassian.com/cloud/jira/platform/rest/v3/
+
+ServiceNow:
+    - API: Table API (/api/now/table/)
+    - Compatibility: All ServiceNow releases (Zurich, Yokohama, Xanadu, Washington DC+)
+    - Auth: Basic Auth (username/password) or OAuth 2.0
+    - Docs: https://www.servicenow.com/docs/bundle/zurich-api-reference/
+
+GitLab:
+    - API: REST API v4 (/api/v4/)
+    - Compatibility: GitLab.com, GitLab Self-Managed 14.0+, GitLab Dedicated
+    - Latest tested: GitLab 18.7.1 (January 2026)
+    - Auth: Personal Access Token or OAuth 2.0
+    - Docs: https://docs.gitlab.com/ee/api/rest/
+
+Azure DevOps:
+    - API: REST API v7.2 (api-version=7.2)
+    - Compatibility: Azure DevOps Services, Azure DevOps Server 2022+
+    - Auth: Personal Access Token (PAT) with Base64 encoding
+    - Docs: https://learn.microsoft.com/en-us/rest/api/azure/devops/
+
+GitHub:
+    - API: REST API (X-GitHub-Api-Version: 2022-11-28)
+    - Compatibility: GitHub.com, GitHub Enterprise Server 3.9+
+    - Auth: Personal Access Token or GitHub App
+    - Docs: https://docs.github.com/en/rest
 """
 
 from __future__ import annotations
@@ -20,7 +53,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from threading import Lock
-from typing import Any, Callable, Dict, List, Mapping, Optional, TypeVar
+from typing import Any, Dict, List, Mapping, Optional
 from urllib.parse import urljoin
 
 import requests  # type: ignore[import-untyped]
@@ -29,8 +62,6 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
-
-F = TypeVar("F", bound=Callable[..., Any])
 
 
 def _mask(value: Optional[str]) -> Optional[str]:
@@ -235,6 +266,7 @@ class _BaseConnector:
             failure_threshold=circuit_breaker_threshold
         )
         self._rate_limiter = RateLimiter(requests_per_second=rate_limit)
+        self._metrics_lock = Lock()
         self._request_count = 0
         self._error_count = 0
 
@@ -247,7 +279,8 @@ class _BaseConnector:
         if not self._rate_limiter.acquire(timeout=self.timeout):
             raise RequestException("Rate limit exceeded - too many requests")
 
-        self._request_count += 1
+        with self._metrics_lock:
+            self._request_count += 1
         start_time = time.time()
 
         try:
@@ -258,7 +291,8 @@ class _BaseConnector:
 
             if response.status_code >= 500:
                 self._circuit_breaker.record_failure()
-                self._error_count += 1
+                with self._metrics_lock:
+                    self._error_count += 1
                 logger.warning(
                     f"Request failed: {method} {url} -> {response.status_code} ({elapsed:.2f}s)"
                 )
@@ -272,7 +306,8 @@ class _BaseConnector:
 
         except RequestException as exc:
             self._circuit_breaker.record_failure()
-            self._error_count += 1
+            with self._metrics_lock:
+                self._error_count += 1
             logger.error(f"Request exception: {method} {url} -> {exc}")
             raise
 
@@ -2534,12 +2569,19 @@ class GitHubConnector(_BaseConnector):
 
     def search_issues(
         self,
-        query: Optional[str] = None,
         state: str = "open",
         labels: Optional[str] = None,
         max_results: int = 50,
+        exclude_pull_requests: bool = True,
     ) -> ConnectorOutcome:
-        """Search GitHub issues (Agent READ operation)."""
+        """Search GitHub issues (Agent READ operation).
+
+        Args:
+            state: Filter by issue state ('open', 'closed', 'all')
+            labels: Comma-separated list of label names to filter by
+            max_results: Maximum number of results to return
+            exclude_pull_requests: If True, filter out pull requests from results
+        """
         if not self.configured:
             return ConnectorOutcome(
                 "skipped", {"reason": "github connector not fully configured"}
@@ -2573,7 +2615,11 @@ class GitHubConnector(_BaseConnector):
         except ValueError:
             data = []
 
-        issues = [i for i in data if "pull_request" not in i] if query is None else data
+        issues = (
+            [i for i in data if "pull_request" not in i]
+            if exclude_pull_requests
+            else data
+        )
         return ConnectorOutcome(
             "fetched",
             {

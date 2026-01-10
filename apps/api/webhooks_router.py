@@ -11,12 +11,15 @@ so receiver endpoints use their own authentication mechanisms (webhook signature
 import hashlib
 import hmac
 import json
+import logging
 import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -1261,11 +1264,12 @@ def process_pending_outbox_items(limit: int = 10) -> Dict[str, Any]:
             result = execute_outbox_item(outbox_id)
             results.append(result)
         except Exception as e:
+            logger.error(f"Failed to execute outbox item {outbox_id}: {e}")
             results.append(
                 {
                     "outbox_id": outbox_id,
                     "success": False,
-                    "error": str(e),
+                    "error": "Internal processing error",
                 }
             )
 
