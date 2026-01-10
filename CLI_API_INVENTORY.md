@@ -186,6 +186,85 @@ python -m core.cli pentagi create-config \
 
 **Total API Surface: 137 endpoints** (125 from Phases 1-5 + 12 from Phase 6)
 
+---
+
+## Enterprise Plug-and-Play Integration Endpoints
+
+### Integration Management (apps/api/integrations_router.py)
+
+| Endpoint | Method | CLI Command | Status |
+|----------|--------|-------------|--------|
+| `/api/v1/integrations` | GET | `integrations list` | Working |
+| `/api/v1/integrations` | POST | `integrations configure` | Working |
+| `/api/v1/integrations/{id}` | GET | N/A | Working |
+| `/api/v1/integrations/{id}` | PUT | N/A | Working |
+| `/api/v1/integrations/{id}` | DELETE | N/A | Working |
+| `/api/v1/integrations/{id}/test` | POST | `integrations test` | Working |
+| `/api/v1/integrations/{id}/sync-status` | GET | N/A | Working |
+| `/api/v1/integrations/{id}/sync` | POST | `integrations sync` | **NO-OP** |
+
+### Webhook Receivers (apps/api/webhooks_router.py)
+
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/api/v1/webhooks/jira` | POST | Receive Jira webhook events | Working |
+| `/api/v1/webhooks/servicenow` | POST | Receive ServiceNow webhook events | Working |
+| `/api/v1/webhooks/gitlab` | POST | Receive GitLab webhook events | Working |
+| `/api/v1/webhooks/azure-devops` | POST | Receive Azure DevOps webhook events | Working |
+
+### Outbox Management (apps/api/webhooks_router.py)
+
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/api/v1/webhooks/outbox` | GET | List outbox items | Working |
+| `/api/v1/webhooks/outbox/{id}` | GET | Get outbox item details | Working |
+| `/api/v1/webhooks/outbox/{id}/execute` | POST | Execute outbox item via connector | Working |
+| `/api/v1/webhooks/outbox/process-pending` | POST | Process all pending outbox items | Working |
+
+### Connector Status Summary
+
+| Connector | Outbound Operations | Inbound (Webhook) | Background Worker | Bidirectional Sync |
+|-----------|---------------------|-------------------|-------------------|-------------------|
+| **Jira** | `create_issue()`, `update_issue()`, `transition_issue()`, `add_comment()` | Yes | Outbox execute | Drift detection |
+| **Confluence** | `create_page()` only | No | No | No |
+| **Slack** | `post_message()` only | No | No | No |
+| **ServiceNow** | `create_incident()`, `update_incident()`, `add_work_note()` | Yes | Outbox execute | No |
+| **GitLab** | `create_issue()`, `update_issue()`, `add_comment()` | Yes | Outbox execute | No |
+| **Azure DevOps** | `create_work_item()`, `update_work_item()`, `add_comment()` | Yes | Outbox execute | No |
+| **GitHub** | `create_issue()`, `update_issue()`, `add_comment()` | No | Outbox execute | No |
+
+See [Enterprise Plug-and-Play Readiness](docs/FIXOPS_PRODUCT_STATUS.md#enterprise-plug-and-play-readiness) for detailed analysis and roadmap.
+
+---
+
+## Supported Input Formats (apps/api/normalizers.py)
+
+### SBOM Formats
+| Format | Description | Parser | Status |
+|--------|-------------|--------|--------|
+| **CycloneDX** | OWASP CycloneDX JSON/XML | `lib4sbom`, `_parse_cyclonedx_json()` | Wired |
+| **SPDX** | Linux Foundation SPDX | `lib4sbom` | Wired |
+| **Syft JSON** | Anchore Syft native format | `_parse_syft_json()` | Wired |
+| **GitHub Dependency Snapshot** | GitHub dependency graph export | `_parse_github_dependency_snapshot()` | Wired |
+
+### AI/ML-BOM Formats (CycloneDX v1.5+)
+| Format | Description | Parser | Status |
+|--------|-------------|--------|--------|
+| **CycloneDX ML-BOM** | Machine Learning Bill of Materials for AI/ML model transparency | `load_sbom()` | Wired |
+
+The CycloneDX ML-BOM format (introduced in CycloneDX v1.5) enables transparency in AI and machine learning systems by representing critical information about models, datasets, and their dependencies. This includes the provenance of datasets, training methodologies, and the configuration of AI frameworks. FixOps normalizes ML-BOM documents through the same SBOM ingestion pipeline, extracting model components, training data references, and AI framework dependencies for security analysis.
+
+### Other Input Formats
+| Format | Description | Parser | API Endpoint | Status |
+|--------|-------------|--------|--------------|--------|
+| **SARIF** | Static Analysis Results Interchange Format | `load_sarif()` | `POST /inputs/sarif` | Wired |
+| **CVE Feed** | CVE/KEV vulnerability feeds | `load_cve_feed()` | `POST /inputs/cve` | Wired |
+| **VEX** | Vulnerability Exploitability eXchange | `load_vex()` | `POST /inputs/vex` | Wired |
+| **CNAPP** | Cloud-Native Application Protection Platform findings | `load_cnapp()` | `POST /inputs/cnapp` | Wired |
+| **Business Context** | FixOps/OTM/SSVC context documents | `load_business_context()` | `POST /inputs/context` | Wired |
+
+---
+
 ## Output Files
 
 ### Stage Outputs

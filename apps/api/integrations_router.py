@@ -7,7 +7,15 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from core.connectors import ConfluenceConnector, JiraConnector, SlackConnector
+from core.connectors import (
+    AzureDevOpsConnector,
+    ConfluenceConnector,
+    GitHubConnector,
+    GitLabConnector,
+    JiraConnector,
+    ServiceNowConnector,
+    SlackConnector,
+)
 from core.integration_db import IntegrationDB
 from core.integration_models import Integration, IntegrationStatus, IntegrationType
 
@@ -189,6 +197,77 @@ async def test_integration(id: str):
                 "integration_id": id,
                 "success": True,
                 "message": "Slack connection test successful",
+            }
+
+        elif integration.integration_type == IntegrationType.SERVICENOW:
+            servicenow_connector = ServiceNowConnector(integration.config)
+            if not servicenow_connector.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "ServiceNow connector not fully configured",
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "ServiceNow connection test successful",
+                "details": {
+                    "instance_url": servicenow_connector.instance_url,
+                },
+            }
+
+        elif integration.integration_type == IntegrationType.GITLAB:
+            gitlab_connector = GitLabConnector(integration.config)
+            if not gitlab_connector.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "GitLab connector not fully configured",
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "GitLab connection test successful",
+                "details": {
+                    "base_url": gitlab_connector.base_url,
+                    "project_id": gitlab_connector.project_id,
+                },
+            }
+
+        elif integration.integration_type == IntegrationType.GITHUB:
+            github_connector = GitHubConnector(integration.config)
+            if not github_connector.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "GitHub connector not fully configured",
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "GitHub connection test successful",
+                "details": {
+                    "owner": github_connector.owner,
+                    "repo": github_connector.repo,
+                },
+            }
+
+        elif integration.integration_type == IntegrationType.AZURE_DEVOPS:
+            azure_connector = AzureDevOpsConnector(integration.config)
+            if not azure_connector.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "Azure DevOps connector not fully configured",
+                }
+            return {
+                "integration_id": id,
+                "success": True,
+                "message": "Azure DevOps connection test successful",
+                "details": {
+                    "organization": azure_connector.organization,
+                    "project": azure_connector.project,
+                },
             }
 
         else:
