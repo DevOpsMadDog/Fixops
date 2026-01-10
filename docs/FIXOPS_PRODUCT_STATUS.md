@@ -429,7 +429,98 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 | **Azure DevOps** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `create_work_item()` |
 | **GitHub** | - | **MISSING** | - | - | **NOT IMPLEMENTED** | Need full connector |
 
-**Critical Gap:** Outbox pattern exists (`apps/api/webhooks_router.py:744-1012`) but NO background worker polls and processes it. Items are queued forever.
+**Critical Gap:** Outbox pattern exists (`apps/api/webhooks_router.py:744-1012`) but no built-in background process in this repo consumes the outbox. An operator must run a worker/scheduler or add one.
+
+---
+
+## API Enterprise Readiness
+
+This section classifies each API router by implementation depth and enterprise operational readiness. "Real" means meaningful business logic exists. "Enterprise-ready" means the operational infrastructure (persistence, auth, HA, tenancy) is production-grade.
+
+### Classification Rubric
+
+| Category | Description | Example |
+|----------|-------------|---------|
+| **Real (Production Logic)** | Computes, transforms, or enforces policy with actual algorithms | `risk/scoring.py` - EPSS+KEV+CVSS scoring |
+| **Real (Demo-grade Storage)** | Real logic but uses SQLite/in-memory (not HA/multi-tenant safe) | All `core/*_db.py` backed routers |
+| **Real (Integration-dependent)** | Real logic but requires external service to function | `micro_pentest_router.py` - needs PentAGI |
+| **Stub/Demo** | Returns static/empty data or demo fallback | `ide_router.py` - returns empty arrays |
+
+### Router-by-Router Classification
+
+| Router | File | Realness | Persistence | External Dependency | Operational Gaps |
+|--------|------|----------|-------------|---------------------|------------------|
+| **Core Ingestion** | `apps/api/app.py:850-1033` | Real | File-based | None | None |
+| **Risk Scoring** | `risk/scoring.py` | Real | None (stateless) | EPSS/KEV feeds | None |
+| **Enhanced Decision** | `core/enhanced_decision.py` | Real | None (stateless) | LLM providers | API keys required |
+| **Evidence Bundles** | `core/evidence.py` | Real | File/S3/Azure | None | None |
+| **Jira Connector** | `core/connectors.py:49-124` | Real | Outbox (SQLite) | Jira API | No outbox worker |
+| **Analytics** | `apps/api/analytics_router.py` | Real | SQLite | None | Not HA-ready |
+| **Audit** | `apps/api/audit_router.py` | Real | SQLite | None | Not HA-ready |
+| **Auth/SSO** | `apps/api/auth_router.py` | Real | SQLite | IdP (optional) | Not HA-ready |
+| **Collaboration** | `apps/api/collaboration_router.py` | Real | SQLite | None | Not HA-ready |
+| **Deduplication** | `apps/api/deduplication_router.py` | Real | SQLite | None | Not HA-ready |
+| **IaC Scanning** | `apps/api/iac_router.py` | Real | SQLite | checkov/tfsec | Tools must be installed |
+| **Integrations** | `apps/api/integrations_router.py` | Real | SQLite | External APIs | Not HA-ready |
+| **Inventory** | `apps/api/inventory_router.py` | Real | SQLite | None | Not HA-ready |
+| **Micro Pentest** | `apps/api/micro_pentest_router.py` | Real | None (stateless) | PentAGI service | Returns 503 if PentAGI down |
+| **PentAGI** | `apps/api/pentagi_router.py` | Real | SQLite | PentAGI service | Not HA-ready |
+| **Policies** | `apps/api/policies_router.py` | Real | SQLite | None | Not HA-ready |
+| **Remediation** | `apps/api/remediation_router.py` | Real | SQLite | None | Not HA-ready |
+| **Reports** | `apps/api/reports_router.py` | Real | SQLite | None | Not HA-ready |
+| **Secrets Scanning** | `apps/api/secrets_router.py` | Real | SQLite | gitleaks/trufflehog | Tools must be installed |
+| **Teams** | `apps/api/teams_router.py` | Real | SQLite | None | Not HA-ready |
+| **Users** | `apps/api/users_router.py` | Real | SQLite | None | Not HA-ready |
+| **Workflows** | `apps/api/workflows_router.py` | Real | SQLite | None | Not HA-ready |
+| **Webhooks** | `apps/api/webhooks_router.py` | Real | SQLite | External services | No outbox worker |
+| **Feeds** | `apps/api/feeds_router.py` | Real | SQLite | fixops-enterprise | Packaging awkward |
+| **Validation** | `apps/api/validation_router.py` | Real | None (stateless) | None | None |
+| **Bulk Operations** | `apps/api/bulk_router.py` | Real | **In-memory** | None | **Not production-safe** |
+| **Marketplace** | `apps/api/marketplace_router.py` | **Demo fallback** | File (enterprise) | fixops-enterprise | Falls back to demo data |
+| **IDE Integration** | `apps/api/ide_router.py` | **Stub** | None | None | Returns empty arrays |
+| **Health** | `apps/api/health_router.py` | Real | None | None | None (expected) |
+| **Legacy Bridge** | `apps/api/legacy_bridge_router.py` | Real | Varies | archive modules | Deprecated |
+
+### Authentication Enforcement
+
+All routers are mounted with `dependencies=[Depends(_verify_api_key)]` in `apps/api/app.py:404-463`, ensuring API key authentication is enforced globally. Exceptions:
+- `health_router` - Unauthenticated (expected for health checks)
+- `webhooks_receiver_router` - Uses webhook signature verification instead of API key (external services can't provide FixOps API keys)
+
+**Code reference:** `apps/api/app.py:272-294` defines `_verify_api_key()` dependency.
+
+### Enterprise Plug-and-Play Blockers
+
+To make FixOps truly enterprise plug-and-play, the following must be addressed:
+
+| Blocker | Current State | Required Change | Effort |
+|---------|---------------|-----------------|--------|
+| **SQLite Persistence** | 12 separate SQLite DBs in `core/*_db.py` | PostgreSQL with migrations | 2-3 weeks |
+| **In-memory Job Store** | `apps/api/bulk_router.py:47` uses `_jobs: Dict` | Redis or database-backed queue | 1 week |
+| **Outbox Worker** | Outbox table exists but no consumer | Background worker to poll `process_outbox_item` | 1 week |
+| **fixops-enterprise Packaging** | `sys.path` manipulation in `feeds_router.py:27-29` | Proper package installation | 1 week |
+| **Multi-tenancy** | Partial `org_id` in some services | Consistent tenant isolation | 2-3 weeks |
+
+### What's NOT Required for Enterprise
+
+These are often assumed to be blockers but are actually optional:
+
+| Item | Why Not Required |
+|------|------------------|
+| **PostgreSQL for all DBs** | SQLite works for single-node deployments; only needed for HA/scale |
+| **Redis** | Only needed if bulk operations are heavily used |
+| **All connectors bidirectional** | Start with Jira (most common), add others based on customer demand |
+| **IDE integration** | Nice-to-have, not blocking enterprise adoption |
+| **Marketplace** | Enterprise features work without marketplace |
+
+### Legacy Code in archive/enterprise_legacy
+
+The `archive/enterprise_legacy/` folder contains PostgreSQL and Redis implementations that were planned but not wired to the main app:
+- `src/models/*.py` - SQLAlchemy models with PostgreSQL dialect
+- `src/services/cache_service.py` - Redis caching layer
+- `run_enterprise.py` - Startup script for PostgreSQL/Redis
+
+These can be referenced when implementing enterprise persistence.
 
 ---
 
