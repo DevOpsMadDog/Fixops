@@ -18,9 +18,11 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Verify Exploitability** | **Micro-Pentest Engine** (automated exploit validation, attack vector simulation, confidence scoring) + reachability analysis with attack path mapping |
 | **Operationalize Remediation** | Remediation lifecycle with SLA tracking, bulk operations, team collaboration, decision regression validation |
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
-| **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (25+ pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
+| **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (21 pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
 
-**Platform Interfaces:** REST API (322 endpoints across 22 router modules), CLI (84 commands/subcommands), and modular UI (27 micro-frontends) - deployable on-prem or air-gapped as needed.
+**Platform Interfaces:** REST API (303 endpoints across 32 router modules), CLI (111 commands/subcommands across 31 command groups), and modular UI (16 frontend pages) - deployable on-prem or air-gapped as needed.
+
+**Documentation:** See [Product Status & Technical Mapping](docs/FIXOPS_PRODUCT_STATUS.md) for detailed capability maps, workflow diagrams, and code references.
 
 ---
 
@@ -297,37 +299,26 @@ Configurable retention policies for compliance requirements:
 
 ---
 
-## 27 Micro-Frontend Applications
+## 16 Frontend Pages
 
-| Application | Description |
-|-------------|-------------|
-| **dashboard** | Executive overview with key metrics and trends |
-| **triage** | Vulnerability triage workflow with bulk actions |
-| **risk-graph** | Interactive Cytoscape.js dependency visualization |
-| **compliance** | Framework status, gaps, and report generation |
-| **evidence** | Evidence bundle management and verification |
-| **findings** | Detailed finding exploration and remediation |
-| **micro-pentest** | Automated vulnerability verification tests |
-| **pentagi** | AI-powered penetration testing requests |
-| **reachability** | CVE attack path analysis |
-| **policies** | Policy CRUD, validation, and testing |
-| **reports** | Report generation and scheduling |
-| **analytics** | ROI, MTTR, coverage dashboards |
-| **inventory** | Application and service inventory |
-| **integrations** | Jira, Confluence, Slack configuration |
-| **workflows** | Automation workflow builder |
-| **teams** | Team management and permissions |
-| **users** | User management and authentication |
-| **settings** | System configuration |
-| **secrets** | Secrets scanning findings |
-| **iac** | Infrastructure-as-Code findings |
-| **marketplace** | Compliance pack marketplace |
-| **automations** | Automation rule configuration |
-| **bulk** | Bulk operations interface |
-| **saved-views** | Custom view management |
-| **sso** | SSO/OAuth configuration |
-| **audit** | Audit log viewer |
-| **shell** | Admin shell interface |
+| Page | Description |
+|------|-------------|
+| **ArchitectDashboard** | Architecture-focused security overview |
+| **ArchitectureCenter** | Architecture management and visualization |
+| **ArchitecturePage** | Architecture details and analysis |
+| **CISODashboard** | Executive security metrics for CISOs |
+| **CommandCenter** | Centralized security operations |
+| **ComplianceRollup** | Compliance status aggregation |
+| **DeveloperDashboard** | Developer-focused security view |
+| **DeveloperOps** | Developer operations and workflows |
+| **EnhancedDashboard** | Advanced dashboard with multi-LLM insights |
+| **EvidenceTimeline** | Evidence bundle timeline view |
+| **ExecutiveBriefing** | Executive summary and briefings |
+| **InstallPage** | Installation and setup wizard |
+| **RiskExplorer** | Risk exploration and analysis |
+| **RiskGraph** | Interactive Cytoscape.js dependency visualization |
+| **TriageInbox** | Vulnerability triage inbox |
+| **TriageQueue** | Triage queue management |
 
 ---
 
@@ -350,10 +341,10 @@ Configurable retention policies for compliance requirements:
 |                                                                                   |
 |  INTEGRATIONS                 ANALYTICS                    FRONTEND               |
 |  +------------------+         +------------------+         +------------------+   |
-|  | Jira             |         | ROI Dashboard    |         | 27 MFE Apps      |   |
+|  | Jira             |         | ROI Dashboard    |         | 16 Frontend Pages|   |
 |  | Confluence       |         | MTTR/MTTD        |         | React + Vite     |   |
 |  | Slack            |         | Trend Analysis   |         | Tailwind CSS     |   |
-|  | GitHub           |         | Forecasting      |         | Turborepo        |   |
+|  | GitHub           |         | Forecasting      |         |                  |   |
 |  +------------------+         +------------------+         +------------------+   |
 |                                                                                   |
 +-----------------------------------------------------------------------------------+
@@ -363,7 +354,7 @@ Configurable retention policies for compliance requirements:
 
 ## API & CLI Coverage
 
-### 322 API Endpoints (22 Router Modules)
+### 303 API Endpoints (32 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -381,21 +372,22 @@ Configurable retention policies for compliance requirements:
 | Inventory | 15 | Applications, services, components |
 | PentAGI | 14 | Pen test requests, results, configs |
 | Enhanced PentAGI | 19 | Verification, monitoring, comprehensive scans |
+| Micro-Pentest | 3 | Automated vulnerability verification |
 | IaC | 5 | Infrastructure-as-Code findings |
 | Secrets | 5 | Secrets scanning findings |
 | Health | 5 | Health checks, readiness, metrics |
 | IDE | 3 | IDE plugin integration |
-| Bulk | 8 | Bulk operations, async job framework |
+| Bulk | 12 | Bulk operations, async job framework |
 | Marketplace | 12 | Compliance packs, contributions |
-| Evidence | 17 | Bundles, manifests, verification |
-| Graph/Risk | 7 | Dependency visualization, reachability |
+| Evidence | 4 | Bundles, manifests, verification |
+| Graph/Risk | 4 | Dependency visualization, reachability |
 | Deduplication | 17 | Cluster management, correlation linking, baseline comparison |
 | Remediation | 13 | Task lifecycle, SLA tracking, verification evidence |
-| Collaboration | 12 | Comments, watchers, activity feeds, notifications |
+| Collaboration | 21 | Comments, watchers, activity feeds, notifications |
 | Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
 | Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
-### 84 CLI Commands
+### ~90 CLI Commands (30 Command Groups)
 
 | Command Group | Commands | Description |
 |---------------|----------|-------------|
@@ -560,13 +552,13 @@ export FIXOPS_API_TOKEN="demo-token"  # Or your configured token
 
 # Upload security artifacts
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
-  -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
+  -F "file=@simulations/demo_pack/sbom.json" http://localhost:8000/inputs/sbom
 
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
-  -F "file=@samples/scan.sarif" http://localhost:8000/inputs/sarif
+  -F "file=@simulations/demo_pack/scanner.sarif" http://localhost:8000/inputs/sarif
 
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" \
-  -F "file=@samples/cve.json" http://localhost:8000/inputs/cve
+  -F "file=@simulations/demo_pack/cve-feed.json" http://localhost:8000/inputs/cve
 
 # Execute pipeline and get decision
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
@@ -588,7 +580,7 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
 # Animated demo with all 7 capability areas
 ./scripts/aldeci-demo-runner.sh
 
-# Interactive API tester (300+ endpoints)
+# Interactive API tester (303 endpoints)
 ./scripts/fixops-interactive.sh
 
 # Or via Docker
@@ -629,8 +621,8 @@ Use this checklist to verify all FixOps features are working in your installatio
 | Feature | Test Command | Expected Result |
 |---------|--------------|-----------------|
 | API Health | `curl http://localhost:8000/health` | `{"status":"healthy"}` |
-| SBOM Ingestion | `curl -F "file=@samples/sbom.json" .../inputs/sbom` | 200 OK |
-| SARIF Ingestion | `curl -F "file=@samples/scan.sarif" .../inputs/sarif` | 200 OK |
+| SBOM Ingestion | `curl -F "file=@simulations/demo_pack/sbom.json" .../inputs/sbom` | 200 OK |
+| SARIF Ingestion | `curl -F "file=@simulations/demo_pack/scanner.sarif" .../inputs/sarif` | 200 OK |
 | Pipeline Execution | `curl .../pipeline/run` | JSON with decision |
 | CLI Demo | `python -m core.cli demo --mode demo` | Pipeline output |
 | Multi-LLM Consensus | `curl -X POST .../compare-llms` | Consensus result |
@@ -776,7 +768,7 @@ curl http://localhost:8000/health
 
 # Run the pipeline
 export FIXOPS_API_TOKEN="demo-token"
-curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@samples/sbom.json" http://localhost:8000/inputs/sbom
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@simulations/demo_pack/sbom.json" http://localhost:8000/inputs/sbom
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
 ```
 
@@ -883,8 +875,9 @@ make up-pentagi
 
 | Document | Description |
 |----------|-------------|
+| [Product Status & Technical Mapping](docs/FIXOPS_PRODUCT_STATUS.md) | Master document with capability maps, workflow diagrams, program flows, and code references |
 | [Docker Guide](docs/DOCKER.md) | Complete Docker and docker-compose documentation |
-| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping (322 endpoints) |
+| [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
 | [PentAGI Integration](docs/PENTAGI_INTEGRATION.md) | Micro-pentest deployment and configuration guide |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |

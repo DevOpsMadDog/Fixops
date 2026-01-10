@@ -31,6 +31,9 @@ from apps.api.iac_router import router as iac_router
 from apps.api.ide_router import router as ide_router
 from apps.api.integrations_router import router as integrations_router
 from apps.api.inventory_router import router as inventory_router
+
+# Micro penetration test router - PentAGI integration
+from apps.api.micro_pentest_router import router as micro_pentest_router
 from apps.api.pentagi_router_enhanced import router as pentagi_router
 from apps.api.policies_router import router as policies_router
 from apps.api.remediation_router import router as remediation_router
@@ -404,6 +407,8 @@ def create_app() -> FastAPI:
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
+    # Micro penetration test API - PentAGI integration
+    app.include_router(micro_pentest_router, dependencies=[Depends(_verify_api_key)])
     # Enterprise reachability analysis API
     if reachability_router:
         app.include_router(reachability_router, dependencies=[Depends(_verify_api_key)])

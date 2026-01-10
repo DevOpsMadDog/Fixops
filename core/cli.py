@@ -1444,6 +1444,153 @@ def _handle_pentagi(args):
 
 
 # ============================================================================
+# MICRO PENTEST COMMANDS (PentAGI Integration)
+# ============================================================================
+
+
+def _handle_micro_pentest(args: argparse.Namespace) -> int:
+    """Handle micro penetration test commands via PentAGI."""
+    import asyncio
+    import json
+    import os
+
+    from core.micro_pentest import (
+        BatchTestConfig,
+        MicroPentestConfig,
+        get_micro_pentest_status,
+        run_batch_micro_pentests,
+        run_micro_pentest,
+    )
+
+    config = MicroPentestConfig(
+        pentagi_url=os.environ.get("PENTAGI_BASE_URL", "http://pentagi:8443"),
+        timeout_seconds=float(os.environ.get("PENTAGI_TIMEOUT", "300")),
+        provider=os.environ.get("PENTAGI_PROVIDER", "openai"),
+    )
+
+    if args.micro_command == "run":
+        cve_ids = [c.strip() for c in args.cve_ids.split(",")]
+        target_urls = [u.strip() for u in args.target_urls.split(",")]
+        context_dict = {"context": args.context} if args.context else None
+
+        run_result = asyncio.run(
+            run_micro_pentest(cve_ids, target_urls, context_dict, config)
+        )
+
+        if args.format == "json":
+            print(
+                json.dumps(
+                    {
+                        "flow_id": run_result.flow_id,
+                        "status": run_result.status,
+                        "message": run_result.message,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            if run_result.flow_id:
+                print(f"Started micro pentest flow: {run_result.flow_id}")
+                print(f"Status: {run_result.status}")
+            else:
+                print(f"Failed to start micro pentest: {run_result.message}")
+                return 1
+
+    elif args.micro_command == "status":
+        status_result = asyncio.run(get_micro_pentest_status(args.flow_id, config))
+
+        if args.format == "json":
+            print(
+                json.dumps(
+                    {
+                        "flow_id": status_result.flow_id,
+                        "status": status_result.status,
+                        "progress": status_result.progress,
+                        "tasks": status_result.tasks,
+                        "error": status_result.error,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            print(f"Flow ID: {status_result.flow_id}")
+            print(f"Status: {status_result.status}")
+            print(f"Progress: {status_result.progress}%")
+            if status_result.tasks:
+                print(f"Tasks: {len(status_result.tasks)}")
+            if status_result.error:
+                print(f"Error: {status_result.error}")
+                return 1
+
+    elif args.micro_command == "batch":
+        try:
+            with open(args.config_file, "r") as f:
+                batch_data = json.load(f)
+        except FileNotFoundError:
+            print(f"Error: Config file not found: {args.config_file}", file=sys.stderr)
+            return 1
+        except IsADirectoryError:
+            print(
+                f"Error: Path is a directory, not a file: {args.config_file}",
+                file=sys.stderr,
+            )
+            return 1
+        except PermissionError:
+            print(
+                f"Error: Permission denied reading config file: {args.config_file}",
+                file=sys.stderr,
+            )
+            return 1
+        except OSError as e:
+            print(
+                f"Error: Unable to read config file {args.config_file}: {e}",
+                file=sys.stderr,
+            )
+            return 1
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in config file: {e}", file=sys.stderr)
+            return 1
+
+        test_configs = [
+            BatchTestConfig(
+                cve_ids=tc["cve_ids"],
+                target_urls=tc["target_urls"],
+                context=tc.get("context", {}),
+            )
+            for tc in batch_data.get("tests", [])
+        ]
+
+        batch_result = asyncio.run(run_batch_micro_pentests(test_configs, config))
+
+        if args.format == "json":
+            print(json.dumps(batch_result, indent=2))
+        else:
+            print(f"Batch status: {batch_result['status']}")
+            print(f"Total: {batch_result['total']}")
+            print(f"Successful: {batch_result['successful']}")
+            print(f"Failed: {batch_result['failed']}")
+            if batch_result.get("error"):
+                print(f"Error: {batch_result['error']}")
+                return 1
+            if batch_result["results"]:
+                print("Results:")
+                for r in batch_result["results"]:
+                    flow_id = r.get("flow_id")
+                    status = r.get("status", "unknown")
+                    if flow_id:
+                        print(f"  - Flow {flow_id}: {status}")
+                    else:
+                        error = r.get("error", r.get("message", "Unknown error"))
+                        print(f"  - Failed: {error}")
+
+    else:
+        print("Unknown micro pentest command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+# ============================================================================
 # COMPLIANCE COMMANDS
 # ============================================================================
 
@@ -4167,6 +4314,56 @@ def build_parser() -> argparse.ArgumentParser:
     create_config.add_argument("--disabled", action="store_true")
 
     pentagi_parser.set_defaults(func=_handle_pentagi)
+
+    # =========================================================================
+    # MICRO PENTEST COMMANDS (PentAGI Integration)
+    # =========================================================================
+    micro_pentest_parser = subparsers.add_parser(
+        "micro-pentest", help="Run micro penetration tests via PentAGI"
+    )
+    micro_pentest_subparsers = micro_pentest_parser.add_subparsers(dest="micro_command")
+
+    micro_run = micro_pentest_subparsers.add_parser(
+        "run", help="Run a micro penetration test for specific CVEs"
+    )
+    micro_run.add_argument(
+        "--cve-ids",
+        required=True,
+        help="Comma-separated list of CVE IDs to test (e.g., CVE-2024-1234,CVE-2024-5678)",
+    )
+    micro_run.add_argument(
+        "--target-urls",
+        required=True,
+        help="Comma-separated list of target URLs to test",
+    )
+    micro_run.add_argument(
+        "--context",
+        help="Additional context for the penetration test",
+    )
+    micro_run.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    micro_status = micro_pentest_subparsers.add_parser(
+        "status", help="Get status of a micro penetration test flow"
+    )
+    micro_status.add_argument("flow_id", type=int, help="Flow ID to check status for")
+    micro_status.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    micro_batch = micro_pentest_subparsers.add_parser(
+        "batch", help="Run batch micro penetration tests from a config file"
+    )
+    micro_batch.add_argument(
+        "config_file",
+        help="Path to JSON config file with test configurations",
+    )
+    micro_batch.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    micro_pentest_parser.set_defaults(func=_handle_micro_pentest)
 
     # =========================================================================
     # COMPLIANCE COMMANDS

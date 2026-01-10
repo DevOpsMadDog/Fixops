@@ -1,27 +1,54 @@
 # Complete FixOps API to CLI Mapping
 
+> **DEPRECATED**: This document has been consolidated into [FIXOPS_PRODUCT_STATUS.md](./FIXOPS_PRODUCT_STATUS.md).
+> The master document now includes:
+> - Workflow Stage Map with API/CLI mapping
+> - API/CLI Coverage Summary (303 endpoints, 111 commands)
+> - End-to-End Workflow Integration examples
+> - Complete CLI Command Reference
+>
+> This file is retained as a detailed reference but the master document should be used for all stakeholder communications.
+
+---
+
 ## Coverage Summary
 
 | Metric | Count |
 |--------|-------|
-| **Total API Endpoints** | 243 |
-| **CLI Commands/Subcommands** | 67 |
-| **API Endpoints with CLI Coverage** | 156 (~64%) |
-| **API-Only Endpoints** | 87 (~36%) |
+| **Total API Endpoints** | 303 |
+| **CLI Commands/Subcommands** | 111 (13 standalone + 98 subcommands across 18 groups; 31 top-level total) |
+| **API Endpoints with CLI Coverage** | 211 (70%) |
+| **API-Only Endpoints** | 92 (30%) |
+
+**Note:** Counts are code-derived from static enumeration of router decorators and CLI `--help` output.
+
+### Code-Derived Endpoint Breakdown
+
+| Source | Endpoints |
+|--------|-----------|
+| apps/api/*_router.py | 263 |
+| apps/api/app.py | 18 |
+| apps/api/routes/enhanced.py | 4 |
+| backend/api/* routers | 18 |
+| **Total** | **303** |
 
 ### Why Some APIs Don't Have CLI Coverage
 
 | Category | Count | Reason |
 |----------|-------|--------|
-| Chunked Uploads | 4 | Large file handling requires streaming, better suited for API |
-| Graph Visualization | 4 | Interactive visualization requires UI |
-| Bulk Operations | 5 | Complex batch operations with progress tracking |
+| Secrets | 6 | Sensitive credential management |
 | IDE Integration | 3 | Real-time code analysis for IDE plugins |
+| Bulk Operations | 12 | Complex batch operations with progress tracking |
 | Marketplace | 12 | E-commerce features (purchase, download, rate) |
 | SSO/Auth | 4 | OAuth flows require browser redirects |
-| Real-time Monitoring | 3 | WebSocket/streaming connections |
-| Enterprise-only | 45 | Advanced pen testing, requires enterprise license |
-| Webhooks | 7 | Event-driven, configured via UI |
+| Webhooks | 17 | Event-driven, configured via UI |
+| Collaboration | 21 | Comments, watchers, activity feeds (UI-driven) |
+| Validation | 3 | Internal validation endpoints |
+| Graph/Risk | 4 | Interactive visualization requires UI |
+| Risk | 3 | Backend risk analysis |
+| Provenance | 2 | Backend provenance tracking |
+| PentAGI (Backend) | 5 | Backend pentesting service |
+| **Total** | **92** | |
 
 ---
 
