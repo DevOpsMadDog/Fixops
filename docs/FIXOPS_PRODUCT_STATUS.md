@@ -433,6 +433,111 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 
 ---
 
+## Enterprise Plug-and-Play Readiness
+
+This section provides a deep analysis of what's needed for true enterprise plug-and-play deployment via Docker images (aldeci/fixops) at client sites. Focus areas: connectors, working APIs, and business logic depth.
+
+### Connector Operations Matrix
+
+For enterprise plug-and-play, each connector needs complete CRUD operations. Current state:
+
+| Connector | Create | Update | Transition | Comment | Attach | Code Reference | Status |
+|-----------|--------|--------|------------|---------|--------|----------------|--------|
+| **Jira** | `create_issue()` | **MISSING** | **MISSING** | **MISSING** | **MISSING** | `core/connectors.py:49-124` | **Incomplete** |
+| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:126-180` | Outbound only |
+| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:182-230` | Outbound only |
+| **ServiceNow** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
+| **GitLab** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
+| **Azure DevOps** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
+| **GitHub** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Not implemented | **Not implemented** |
+
+### Critical Issues for Plug-and-Play
+
+**Issue 1: Jira Connector Only Has `create_issue()`**
+
+The Jira connector (`core/connectors.py:49-124`) only implements ticket creation. Missing operations:
+- `update_issue()` - Cannot update existing tickets when findings change
+- `transition_issue()` - Cannot change status (Open → In Progress → Done)
+- `add_comment()` - Cannot add comments for status updates
+- `add_attachment()` - Cannot attach evidence files to tickets
+
+**Issue 2: Integration Sync Endpoint is a NO-OP**
+
+The sync endpoint (`apps/api/integrations_router.py:200-222`) does not actually sync:
+```python
+# Current implementation just stamps "success" without syncing
+integration.last_sync_status = "success"
+db.update_integration(integration)
+return {"message": "Manual sync completed successfully"}
+```
+This must be fixed to actually call connector APIs and reconcile state.
+
+**Issue 3: Outbox Processing Doesn't Call Connectors**
+
+The outbox processing endpoint (`apps/api/webhooks_router.py`) only marks items as processed - it doesn't actually call any connector APIs. The `process_outbox_item()` function just updates the database status.
+
+**Issue 4: Remediation Doesn't Auto-Create Tickets**
+
+The remediation service (`core/services/remediation.py`) has `link_to_ticket()` but doesn't automatically create tickets when remediation tasks are created. The connector integration is manual, not automatic.
+
+### Connector Usage in Codebase
+
+Connectors ARE wired into the system but with limited operations:
+
+| Usage Location | Connector | Operation | Code Reference |
+|----------------|-----------|-----------|----------------|
+| Policy Automation | Jira/Confluence/Slack | `deliver()` | `core/policy.py:deliver()` |
+| Feedback Service | Jira | `create_issue()` | `core/feedback.py:_deliver_to_connector()` |
+| Feedback Service | Confluence | `create_page()` | `core/feedback.py:_deliver_to_connector()` |
+| Integrations Router | All | Config only | `apps/api/integrations_router.py` |
+
+### Business Logic Depth (What's Real)
+
+| Component | LOC | Algorithms/Features | Code Reference |
+|-----------|-----|---------------------|----------------|
+| **Risk Scoring** | 2,637 | EPSS+KEV+CVSS+Bayesian+Markov | `risk/scoring.py` |
+| **Decision Engine** | 1,279 | Multi-LLM consensus (4 providers, 85% threshold) | `core/enhanced_decision.py` |
+| **Evidence Bundles** | 1,100+ | RSA-SHA256 signing, Fernet encryption, SLSA v1 | `core/evidence.py` |
+| **Deduplication** | 1,157 | 7 correlation strategies | `core/services/deduplication.py` |
+| **Remediation** | 1,111 | Full lifecycle with SLA tracking | `core/services/remediation.py` |
+| **Reachability** | 800+ | Network path analysis | `risk/reachability/analyzer.py` |
+
+### Priority Fixes for Enterprise Plug-and-Play
+
+| Priority | Fix | Current State | Required Change | Effort |
+|----------|-----|---------------|-----------------|--------|
+| **P0** | Fix Jira connector | Only `create_issue()` | Add `update_issue()`, `transition_issue()`, `add_comment()` | 1-2 weeks |
+| **P0** | Wire remediation → tickets | Manual linking only | Auto-create tickets on task creation | 1 week |
+| **P1** | Fix sync endpoint | NO-OP (stamps success) | Actually call connector APIs | 2-3 days |
+| **P1** | Add ServiceNow outbound | Inbound webhook only | Add `create_incident()`, `update_incident()` | 1-2 weeks |
+| **P2** | Add GitLab outbound | Inbound webhook only | Add `create_issue()`, `update_issue()` | 1-2 weeks |
+| **P2** | Add Azure DevOps outbound | Inbound webhook only | Add `create_work_item()`, `update_work_item()` | 1-2 weeks |
+| **P3** | Add GitHub connector | Not implemented | Full connector with issues/PRs | 1-2 weeks |
+
+### Reference Workflows to Validate
+
+These workflows should work end-to-end for enterprise plug-and-play:
+
+**Workflow 1: Create Jira ticket from remediation and keep in sync**
+1. Remediation task created → Auto-create Jira ticket
+2. Remediation status changes → Update Jira ticket status
+3. Jira ticket updated externally → Webhook updates FixOps
+4. Drift detected → Alert or auto-reconcile
+
+**Workflow 2: Ingest GitLab findings and triage**
+1. GitLab webhook → Ingest finding
+2. Deduplicate and enrich
+3. Risk score and decide
+4. Create remediation task
+5. (Missing) Auto-create GitLab issue
+
+**Workflow 3: Post evidence to Confluence and notify Slack**
+1. Evidence bundle created
+2. Post to Confluence page (working)
+3. Notify Slack channel (working)
+
+---
+
 ## API Enterprise Readiness
 
 This section classifies each API router by implementation depth and enterprise operational readiness. "Real" means meaningful business logic exists. "Enterprise-ready" means the operational infrastructure (persistence, auth, HA, tenancy) is production-grade.
