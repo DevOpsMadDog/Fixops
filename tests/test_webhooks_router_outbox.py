@@ -375,3 +375,44 @@ def test_process_pending_outbox_items(client, outbox_db, monkeypatch):
     data = response.json()
     assert data["processed_count"] == 2
     assert len(data["results"]) == 2
+
+
+def test_process_pending_outbox_items_with_exception(client, outbox_db, monkeypatch):
+    """Test processing pending outbox items when execute_outbox_item raises an exception."""
+    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+
+    conn = sqlite3.connect(outbox_db)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO outbox (outbox_id, integration_type, operation, payload, status, retry_count, max_retries)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """,
+        (
+            "test-exception-1",
+            "jira",
+            "create_issue",
+            json.dumps({"summary": "Test Issue"}),
+            "pending",
+            0,
+            3,
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    # Mock execute_outbox_item to raise an exception
+    with patch(
+        "apps.api.webhooks_router.execute_outbox_item",
+        side_effect=Exception("Simulated failure"),
+    ):
+        response = client.post("/api/v1/webhooks/outbox/process-pending?limit=10")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["processed_count"] == 1
+    assert len(data["results"]) == 1
+    # Verify the exception was caught and returned as an error
+    assert data["results"][0]["outbox_id"] == "test-exception-1"
+    assert data["results"][0]["success"] is False
+    assert "Simulated failure" in data["results"][0]["error"]
