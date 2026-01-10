@@ -933,6 +933,7 @@ This section breaks down each capability into its constituent sub-features with 
 |-------------|-------------|-------------|-------------|-------------|--------|
 | **SARIF Ingestion** | Parse SARIF scan results from any scanner | `apps/api/normalizers.py:load_sarif()` | `POST /inputs/sarif` | `ingest --sarif`, `stage-run --stage sarif` | Wired |
 | **SBOM Analysis** | Parse CycloneDX/SPDX SBOMs | `apps/api/normalizers.py:load_sbom()` | `POST /inputs/sbom` | `ingest --sbom`, `stage-run --stage sbom` | Wired |
+| **AI/ML-BOM Analysis** | Parse CycloneDX ML-BOM for AI/ML model transparency | `apps/api/normalizers.py:load_sbom()` | `POST /inputs/sbom` | `ingest --sbom` | Wired |
 | **CVE/VEX Processing** | Parse CVE feeds and VEX documents | `apps/api/normalizers.py:load_cve_feed()` | `POST /inputs/cve`, `POST /inputs/vex` | `ingest --cve`, `--vex` | Wired |
 | **Design Context** | Parse design CSV with business context | `apps/api/normalizers.py:load_design()` | `POST /inputs/design` | `ingest --design`, `stage-run --stage design` | Wired |
 | **CNAPP Findings** | Parse cloud-native security findings | `apps/api/normalizers.py:load_cnapp()` | `POST /inputs/cnapp` | `ingest --cnapp` | Wired |

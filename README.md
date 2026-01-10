@@ -202,6 +202,7 @@ Native support for regulatory requirements:
 ### Push-Model Integration
 Works with your existing tools - no proprietary connectors:
 - Any SBOM format (CycloneDX, SPDX)
+- AI/ML-BOM (CycloneDX ML-BOM for AI/ML model transparency)
 - Any SARIF output (Snyk, SonarQube, CodeQL, Semgrep)
 - CVE feeds (NVD, CISA KEV)
 - VEX documents
@@ -332,10 +333,10 @@ Configurable retention policies for compliance requirements:
 |  INGESTION LAYER              DECISION ENGINE              EVIDENCE SYSTEM        |
 |  +------------------+         +------------------+         +------------------+   |
 |  | SBOM (CycloneDX) |         | Multi-LLM        |         | RSA-SHA256       |   |
-|  | SARIF            |  --->   |   Consensus      |  --->   |   Signing        |   |
-|  | CVE/KEV/EPSS     |         | Policy Engine    |         | Fernet           |   |
-|  | VEX              |         | Guardrails       |         |   Encryption     |   |
-|  | CNAPP            |         | Risk Models      |         | Compliance       |   |
+|  | AI/ML-BOM        |  --->   |   Consensus      |  --->   |   Signing        |   |
+|  | SARIF            |         | Policy Engine    |         | Fernet           |   |
+|  | CVE/KEV/EPSS     |         | Guardrails       |         |   Encryption     |   |
+|  | VEX / CNAPP      |         | Risk Models      |         | Compliance       |   |
 |  | Business Context |         |   (BN-LR)        |         |   Mapping        |   |
 |  +------------------+         +------------------+         +------------------+   |
 |                                                                                   |
