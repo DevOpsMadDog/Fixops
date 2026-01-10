@@ -18,6 +18,7 @@ import pytest
 from requests import RequestException
 
 from core.connectors import (
+    AutomationConnectors,
     AzureDevOpsConnector,
     CircuitBreaker,
     CircuitState,
@@ -2715,3 +2716,553 @@ class TestSummariseConnector:
         connector = _BaseConnector()
         summary = summarise_connector(connector)
         assert summary["configured"] is False
+
+
+class TestTokenEnvLoading:
+    """Tests for token loading from environment variables."""
+
+    @patch.dict("os.environ", {"CONFLUENCE_TOKEN_ENV": "env-token-value"})
+    def test_confluence_token_env(self) -> None:
+        connector = ConfluenceConnector(
+            {
+                "base_url": "https://test.atlassian.net/wiki",
+                "user_email": "test@example.com",
+                "token_env": "CONFLUENCE_TOKEN_ENV",
+                "space_key": "TEST",
+            }
+        )
+        assert connector.token == "env-token-value"
+        assert connector.configured is True
+
+    @patch.dict("os.environ", {"CONFLUENCE_TOKEN_ENV": ""})
+    def test_confluence_token_env_empty(self) -> None:
+        connector = ConfluenceConnector(
+            {
+                "base_url": "https://test.atlassian.net/wiki",
+                "user_email": "test@example.com",
+                "token_env": "CONFLUENCE_TOKEN_ENV",
+                "space_key": "TEST",
+            }
+        )
+        # Empty env var should not override
+        assert connector.token is None
+
+    @patch.dict("os.environ", {"SLACK_WEBHOOK_ENV": "https://hooks.slack.com/env"})
+    def test_slack_webhook_env(self) -> None:
+        connector = SlackConnector({"webhook_env": "SLACK_WEBHOOK_ENV"})
+        assert connector.default_webhook == "https://hooks.slack.com/env"
+
+    @patch.dict("os.environ", {"SLACK_WEBHOOK_ENV": ""})
+    def test_slack_webhook_env_empty(self) -> None:
+        connector = SlackConnector({"webhook_env": "SLACK_WEBHOOK_ENV"})
+        # Empty env var should not override
+        assert connector.default_webhook is None
+
+    @patch.dict("os.environ", {"GITLAB_TOKEN_ENV": "glpat-env-token"})
+    def test_gitlab_token_env(self) -> None:
+        connector = GitLabConnector(
+            {
+                "project_id": "123",
+                "token_env": "GITLAB_TOKEN_ENV",
+            }
+        )
+        assert connector.token == "glpat-env-token"
+        assert connector.configured is True
+
+    @patch.dict("os.environ", {"GITLAB_TOKEN_ENV": ""})
+    def test_gitlab_token_env_empty(self) -> None:
+        connector = GitLabConnector(
+            {
+                "project_id": "123",
+                "token_env": "GITLAB_TOKEN_ENV",
+            }
+        )
+        # Empty env var should not override
+        assert connector.token is None
+
+    @patch.dict("os.environ", {"AZURE_TOKEN_ENV": "azure-pat-env"})
+    def test_azure_devops_token_env(self) -> None:
+        connector = AzureDevOpsConnector(
+            {
+                "organization": "org",
+                "project": "proj",
+                "token_env": "AZURE_TOKEN_ENV",
+            }
+        )
+        assert connector.token == "azure-pat-env"
+        assert connector.configured is True
+
+    @patch.dict("os.environ", {"AZURE_TOKEN_ENV": ""})
+    def test_azure_devops_token_env_empty(self) -> None:
+        connector = AzureDevOpsConnector(
+            {
+                "organization": "org",
+                "project": "proj",
+                "token_env": "AZURE_TOKEN_ENV",
+            }
+        )
+        # Empty env var should not override
+        assert connector.token is None
+
+    @patch.dict("os.environ", {"GITHUB_TOKEN_ENV": "ghp-env-token"})
+    def test_github_token_env(self) -> None:
+        connector = GitHubConnector(
+            {
+                "owner": "owner",
+                "repo": "repo",
+                "token_env": "GITHUB_TOKEN_ENV",
+            }
+        )
+        assert connector.token == "ghp-env-token"
+        assert connector.configured is True
+
+    @patch.dict("os.environ", {"GITHUB_TOKEN_ENV": ""})
+    def test_github_token_env_empty(self) -> None:
+        connector = GitHubConnector(
+            {
+                "owner": "owner",
+                "repo": "repo",
+                "token_env": "GITHUB_TOKEN_ENV",
+            }
+        )
+        # Empty env var should not override
+        assert connector.token is None
+
+
+class TestAutomationConnectorsFeatureFlags:
+    """Tests for feature flag disabled paths in AutomationConnectors.deliver()."""
+
+    def _make_connectors_with_flag_provider(
+        self, flag_values: Dict[str, bool]
+    ) -> "AutomationConnectors":
+        from core.connectors import AutomationConnectors
+
+        class MockFlagProvider:
+            def bool(self, flag_name: str, default: bool = True) -> bool:
+                return flag_values.get(flag_name, default)
+
+        settings = {
+            "jira": {
+                "token": "test",
+                "project_key": "TEST",
+                "base_url": "https://jira.test",
+            },
+            "confluence": {
+                "base_url": "https://conf.test",
+                "user_email": "u@t.com",
+                "token": "t",
+                "space_key": "S",
+            },
+            "slack": {"webhook_url": "https://hooks.slack.com/test"},
+            "servicenow": {
+                "instance": "test.service-now.com",
+                "user": "admin",
+                "password": "pass",
+            },
+            "gitlab": {"token": "glpat-test", "project_id": "123"},
+            "azure_devops": {"token": "pat", "organization": "org", "project": "proj"},
+            "github": {"token": "ghp_test", "owner": "owner", "repo": "repo"},
+        }
+        toggles = {"enforce_ticket_sync": True}
+        connectors = AutomationConnectors(settings, toggles)
+        connectors.flag_provider = MockFlagProvider()
+        return connectors
+
+    def test_jira_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.jira": False}
+        )
+        result = connectors.deliver({"type": "jira", "summary": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_confluence_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.confluence": False}
+        )
+        result = connectors.deliver({"type": "confluence", "title": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_slack_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.slack": False}
+        )
+        result = connectors.deliver({"type": "slack", "text": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_servicenow_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.servicenow": False}
+        )
+        result = connectors.deliver({"type": "servicenow", "summary": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_gitlab_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.gitlab": False}
+        )
+        result = connectors.deliver({"type": "gitlab", "title": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_azure_devops_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.azure_devops": False}
+        )
+        result = connectors.deliver({"type": "azure_devops", "title": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_github_feature_flag_disabled(self) -> None:
+        connectors = self._make_connectors_with_flag_provider(
+            {"fixops.feature.connector.github": False}
+        )
+        result = connectors.deliver({"type": "github", "title": "Test"})
+        assert result.status == "skipped"
+        assert "disabled" in result.details["reason"]
+
+    def test_servicenow_sync_disabled(self) -> None:
+        from core.connectors import AutomationConnectors
+
+        settings = {
+            "servicenow": {
+                "instance": "test.service-now.com",
+                "user": "admin",
+                "password": "pass",
+            },
+        }
+        toggles = {"enforce_ticket_sync": False}
+        connectors = AutomationConnectors(settings, toggles)
+        result = connectors.deliver({"type": "servicenow", "summary": "Test"})
+        assert result.status == "skipped"
+        assert "sync disabled" in result.details["reason"]
+
+    def test_gitlab_sync_disabled(self) -> None:
+        from core.connectors import AutomationConnectors
+
+        settings = {
+            "gitlab": {"token": "glpat-test", "project_id": "123"},
+        }
+        toggles = {"enforce_ticket_sync": False}
+        connectors = AutomationConnectors(settings, toggles)
+        result = connectors.deliver({"type": "gitlab", "title": "Test"})
+        assert result.status == "skipped"
+        assert "sync disabled" in result.details["reason"]
+
+    def test_azure_devops_sync_disabled(self) -> None:
+        from core.connectors import AutomationConnectors
+
+        settings = {
+            "azure_devops": {"token": "pat", "organization": "org", "project": "proj"},
+        }
+        toggles = {"enforce_ticket_sync": False}
+        connectors = AutomationConnectors(settings, toggles)
+        result = connectors.deliver({"type": "azure_devops", "title": "Test"})
+        assert result.status == "skipped"
+        assert "sync disabled" in result.details["reason"]
+
+    def test_github_sync_disabled(self) -> None:
+        from core.connectors import AutomationConnectors
+
+        settings = {
+            "github": {"token": "ghp_test", "owner": "owner", "repo": "repo"},
+        }
+        toggles = {"enforce_ticket_sync": False}
+        connectors = AutomationConnectors(settings, toggles)
+        result = connectors.deliver({"type": "github", "title": "Test"})
+        assert result.status == "skipped"
+        assert "sync disabled" in result.details["reason"]
+
+    def test_confluence_sync_disabled(self) -> None:
+        from core.connectors import AutomationConnectors
+
+        settings = {
+            "confluence": {
+                "base_url": "https://conf.test",
+                "user_email": "u@t.com",
+                "token": "t",
+                "space_key": "S",
+            },
+        }
+        toggles = {"enforce_ticket_sync": False}
+        connectors = AutomationConnectors(settings, toggles)
+        result = connectors.deliver({"type": "confluence", "title": "Test"})
+        assert result.status == "skipped"
+        assert "sync disabled" in result.details["reason"]
+
+
+class TestEdgeCasesForCoverage:
+    """Tests for edge cases to achieve 100% coverage."""
+
+    @patch("requests.Session.request")
+    def test_confluence_create_page_with_parent_id(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test Confluence create_page with parent_page_id (lines 854, 856)."""
+        mock_request.return_value = MockResponse(200, {"id": "123", "title": "Test"})
+        connector = ConfluenceConnector(
+            {
+                "base_url": "https://test.atlassian.net/wiki",
+                "user_email": "test@example.com",
+                "token": "test-token",
+                "space_key": "TEST",
+                "parent_page_id": "456",
+            }
+        )
+        result = connector.create_page({"title": "Test Page", "body": "Content"})
+        assert result.status == "sent"
+        # Verify parent_page_id was included in the request
+        call_args = mock_request.call_args
+        assert "ancestors" in call_args.kwargs.get("json", {})
+
+    @patch("requests.Session.request")
+    def test_slack_post_message_with_channel(self, mock_request: MagicMock) -> None:
+        """Test Slack post_message with channel parameter (line 1056)."""
+        mock_request.return_value = MockResponse(200)
+        connector = SlackConnector(
+            {"webhook_url": "https://hooks.slack.com/services/xxx"}
+        )
+        result = connector.post_message({"text": "Test", "channel": "#general"})
+        assert result.status == "sent"
+        # Verify channel was included in the request
+        call_args = mock_request.call_args
+        assert call_args.kwargs.get("json", {}).get("channel") == "#general"
+
+    @patch("requests.Session.request")
+    def test_servicenow_update_incident_all_fields(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test ServiceNow update_incident with all optional fields (lines 1219-1229)."""
+        mock_request.return_value = MockResponse(200, {"result": {"sys_id": "123"}})
+        connector = ServiceNowConnector(
+            {
+                "instance_url": "https://test.service-now.com",
+                "user": "admin",
+                "password": "pass",
+            }
+        )
+        result = connector.update_incident(
+            {
+                "sys_id": "123",
+                "short_description": "Updated",
+                "description": "Updated desc",
+                "state": "2",
+                "urgency": "1",
+                "impact": "1",
+                "assignment_group": "group1",
+                "assigned_to": "user1",
+                "close_code": "Solved",
+                "close_notes": "Fixed the issue",
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_gitlab_create_issue_with_due_date(self, mock_request: MagicMock) -> None:
+        """Test GitLab create_issue with due_date (line 1521)."""
+        mock_request.return_value = MockResponse(
+            201, {"id": 1, "iid": 1, "web_url": "https://gitlab.com/test"}
+        )
+        connector = GitLabConnector({"token": "glpat-test", "project_id": "123"})
+        result = connector.create_issue(
+            {
+                "title": "Test Issue",
+                "description": "Test desc",
+                "labels": ["bug", "urgent"],
+                "assignee_ids": [1, 2],
+                "milestone_id": 5,
+                "due_date": "2026-02-01",
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_gitlab_update_issue_with_assignee_ids(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test GitLab update_issue with assignee_ids (line 1592)."""
+        mock_request.return_value = MockResponse(200, {"id": 1, "iid": 1})
+        connector = GitLabConnector({"token": "glpat-test", "project_id": "123"})
+        result = connector.update_issue(
+            {
+                "issue_iid": 1,
+                "title": "Updated",
+                "description": "Updated desc",
+                "labels": "bug,urgent",
+                "state_event": "close",
+                "assignee_ids": [1, 2],
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_gitlab_add_comment_invalid_json(self, mock_request: MagicMock) -> None:
+        """Test GitLab add_comment with invalid JSON response (lines 1677-1678)."""
+        mock_request.return_value = MockResponse(201, raise_on_json=True)
+        connector = GitLabConnector({"token": "glpat-test", "project_id": "123"})
+        result = connector.add_comment({"issue_iid": 1, "comment": "Test comment"})
+        assert result.status == "sent"
+        assert result.details.get("note_id") is None
+
+    @patch("requests.Session.request")
+    def test_azure_devops_create_work_item_with_all_fields(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test Azure DevOps create_work_item with all optional fields (lines 1901, 2013)."""
+        mock_request.return_value = MockResponse(
+            200, {"id": 1, "url": "https://dev.azure.com/test"}
+        )
+        connector = AzureDevOpsConnector(
+            {"token": "pat", "organization": "org", "project": "proj"}
+        )
+        result = connector.create_work_item(
+            {
+                "title": "Test Work Item",
+                "description": "Test desc",
+                "work_item_type": "Task",
+                "assigned_to": "user@example.com",
+                "area_path": "Project\\Area",
+                "iteration_path": "Project\\Sprint1",
+                "tags": "tag1,tag2",
+                "priority": 1,
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_azure_devops_update_work_item_with_all_fields(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test Azure DevOps update_work_item with all optional fields (lines 2109-2110)."""
+        mock_request.return_value = MockResponse(200, {"id": 1})
+        connector = AzureDevOpsConnector(
+            {"token": "pat", "organization": "org", "project": "proj"}
+        )
+        result = connector.update_work_item(
+            {
+                "work_item_id": 1,
+                "title": "Updated",
+                "description": "Updated desc",
+                "state": "Active",
+                "assigned_to": "user@example.com",
+                "tags": "tag1,tag2",
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_github_create_issue_with_all_fields(self, mock_request: MagicMock) -> None:
+        """Test GitHub create_issue with all optional fields (lines 2308, 2379)."""
+        mock_request.return_value = MockResponse(
+            201, {"number": 1, "html_url": "https://github.com/test"}
+        )
+        connector = GitHubConnector(
+            {"token": "ghp_test", "owner": "owner", "repo": "repo"}
+        )
+        result = connector.create_issue(
+            {
+                "title": "Test Issue",
+                "body": "Test body",
+                "labels": ["bug", "urgent"],
+                "assignees": ["user1", "user2"],
+                "milestone": 1,
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_github_update_issue_with_all_fields(self, mock_request: MagicMock) -> None:
+        """Test GitHub update_issue with all optional fields (lines 2467-2468)."""
+        mock_request.return_value = MockResponse(200, {"number": 1})
+        connector = GitHubConnector(
+            {"token": "ghp_test", "owner": "owner", "repo": "repo"}
+        )
+        result = connector.update_issue(
+            {
+                "issue_number": 1,
+                "title": "Updated",
+                "body": "Updated body",
+                "state": "closed",
+                "labels": ["bug"],
+                "assignees": ["user1"],
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_github_add_comment_invalid_json(self, mock_request: MagicMock) -> None:
+        """Test GitHub add_comment with invalid JSON response."""
+        mock_request.return_value = MockResponse(201, raise_on_json=True)
+        connector = GitHubConnector(
+            {"token": "ghp_test", "owner": "owner", "repo": "repo"}
+        )
+        result = connector.add_comment({"issue_number": 1, "comment": "Test comment"})
+        assert result.status == "sent"
+        assert result.details.get("comment_id") is None
+
+    @patch("requests.Session.request")
+    def test_azure_devops_create_work_item_with_severity(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test Azure DevOps create_work_item with severity (line 1901)."""
+        mock_request.return_value = MockResponse(
+            200, {"id": 1, "url": "https://dev.azure.com/test"}
+        )
+        connector = AzureDevOpsConnector(
+            {"token": "pat", "organization": "org", "project": "proj"}
+        )
+        result = connector.create_work_item(
+            {
+                "title": "Test Work Item",
+                "severity": "1 - Critical",
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_azure_devops_update_work_item_with_priority(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test Azure DevOps update_work_item with priority (line 2013)."""
+        mock_request.return_value = MockResponse(200, {"id": 1})
+        connector = AzureDevOpsConnector(
+            {"token": "pat", "organization": "org", "project": "proj"}
+        )
+        result = connector.update_work_item(
+            {
+                "work_item_id": 1,
+                "priority": 1,
+            }
+        )
+        assert result.status == "sent"
+
+    @patch("requests.Session.request")
+    def test_azure_devops_add_comment_invalid_json(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test Azure DevOps add_comment with invalid JSON response (lines 2109-2110)."""
+        mock_request.return_value = MockResponse(201, raise_on_json=True)
+        connector = AzureDevOpsConnector(
+            {"token": "pat", "organization": "org", "project": "proj"}
+        )
+        result = connector.add_comment({"work_item_id": 1, "comment": "Test comment"})
+        assert result.status == "sent"
+        assert result.details.get("comment_id") is None
+
+    @patch("requests.Session.request")
+    def test_github_update_issue_with_milestone(self, mock_request: MagicMock) -> None:
+        """Test GitHub update_issue with milestone (line 2379)."""
+        mock_request.return_value = MockResponse(200, {"number": 1})
+        connector = GitHubConnector(
+            {"token": "ghp_test", "owner": "owner", "repo": "repo"}
+        )
+        result = connector.update_issue(
+            {
+                "issue_number": 1,
+                "milestone": 5,
+            }
+        )
+        assert result.status == "sent"
