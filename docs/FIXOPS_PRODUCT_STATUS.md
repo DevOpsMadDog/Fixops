@@ -442,14 +442,14 @@ This section provides a deep analysis of what's needed for true enterprise plug-
 | Category | Status | Readiness | Notes |
 |----------|--------|-----------|-------|
 | **Core Decision Engine** | Production | Ready | Multi-LLM consensus, risk scoring, evidence bundles |
-| **Jira Integration** | Partial | Needs Work | Create only, missing update/transition/comment |
+| **Jira Integration** | Production | Ready | Full CRUD: create, update, transition, comment |
 | **Confluence Integration** | Partial | Outbound Only | Create page works, no sync |
 | **Slack Integration** | Production | Ready | Webhook notifications working |
-| **ServiceNow Integration** | Partial | Inbound Only | Webhook receiver, no outbound |
-| **GitLab Integration** | Partial | Inbound Only | Webhook receiver, no outbound |
-| **Azure DevOps Integration** | Partial | Inbound Only | Webhook receiver, no outbound |
-| **GitHub Integration** | Not Started | Not Ready | No connector implemented |
-| **Background Workers** | Not Started | Blocker | Outbox exists but no consumer |
+| **ServiceNow Integration** | Production | Ready | Full CRUD: create_incident, update_incident, add_work_note |
+| **GitLab Integration** | Production | Ready | Full CRUD: create_issue, update_issue, add_comment |
+| **Azure DevOps Integration** | Production | Ready | Full CRUD: create_work_item, update_work_item, add_comment |
+| **GitHub Integration** | Production | Ready | Full CRUD: create_issue, update_issue, add_comment |
+| **Background Workers** | Production | Ready | Outbox execute/process-pending endpoints available |
 | **Database (HA)** | Not Started | Blocker | SQLite only, no PostgreSQL |
 | **Multi-Tenancy** | Partial | Needs Work | Partial org_id support |
 
@@ -473,27 +473,28 @@ For enterprise plug-and-play, each connector needs complete CRUD operations. Cur
 
 | Connector | Create | Update | Transition | Comment | Attach | Code Reference | Status |
 |-----------|--------|--------|------------|---------|--------|----------------|--------|
-| **Jira** | `create_issue()` | **MISSING** | **MISSING** | **MISSING** | **MISSING** | `core/connectors.py:49-124` | **Incomplete** |
-| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:127-210` | Outbound only |
-| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:213-248` | Outbound only |
-| **ServiceNow** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
-| **GitLab** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
-| **Azure DevOps** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Webhook only | **Inbound only** |
-| **GitHub** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | **MISSING** | Not implemented | **Not implemented** |
+| **Jira** | `create_issue()` | `update_issue()` | `transition_issue()` | `add_comment()` | **MISSING** | `core/connectors.py:49-344` | **Production** |
+| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:347-430` | Outbound only |
+| **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:433-468` | Outbound only |
+| **ServiceNow** | `create_incident()` | `update_incident()` | - | `add_work_note()` | - | `core/connectors.py:471-669` | **Production** |
+| **GitLab** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:672-868` | **Production** |
+| **Azure DevOps** | `create_work_item()` | `update_work_item()` | - | `add_comment()` | - | `core/connectors.py:871-1136` | **Production** |
+| **GitHub** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:1139-1353` | **Production** |
 
 ### Critical Issues for Plug-and-Play
 
-**Issue 1: Jira Connector Only Has `create_issue()`**
+**Issue 1: Jira Connector - RESOLVED**
 
-The Jira connector (`core/connectors.py:49-124`) only implements ticket creation. Missing operations:
-- `update_issue()` - Cannot update existing tickets when findings change
-- `transition_issue()` - Cannot change status (Open → In Progress → Done)
-- `add_comment()` - Cannot add comments for status updates
-- `add_attachment()` - Cannot attach evidence files to tickets
+The Jira connector (`core/connectors.py:49-344`) now implements full CRUD operations:
+- `create_issue()` - Create new tickets
+- `update_issue()` - Update existing tickets when findings change
+- `transition_issue()` - Change status (Open → In Progress → Done)
+- `add_comment()` - Add comments for status updates
+- `add_attachment()` - Still missing (future enhancement)
 
 **Issue 2: Integration Sync Endpoint is a NO-OP**
 
-The sync endpoint (`apps/api/integrations_router.py:200-222`) does not actually sync:
+The sync endpoint (`apps/api/integrations_router.py:310-332`) does not actually sync:
 ```python
 # Current implementation just stamps "success" without syncing
 integration.last_sync_status = "success"
@@ -502,9 +503,13 @@ return {"message": "Manual sync completed successfully"}
 ```
 This must be fixed to actually call connector APIs and reconcile state.
 
-**Issue 3: Outbox Processing Doesn't Call Connectors**
+**Issue 3: Outbox Processing - RESOLVED**
 
-The outbox processing endpoint (`apps/api/webhooks_router.py`) only marks items as processed - it doesn't actually call any connector APIs. The `process_outbox_item()` function just updates the database status.
+The outbox now has proper execution endpoints (`apps/api/webhooks_router.py:1062-1273`):
+- `POST /api/v1/webhooks/outbox/{outbox_id}/execute` - Execute a single outbox item
+- `POST /api/v1/webhooks/outbox/process-pending` - Process all pending items ready for delivery
+
+These endpoints call the `AutomationConnectors.deliver()` method to actually send data to external systems.
 
 **Issue 4: Remediation Doesn't Auto-Create Tickets**
 
@@ -536,13 +541,13 @@ Connectors ARE wired into the system but with limited operations:
 
 | Priority | Fix | Current State | Required Change | Effort |
 |----------|-----|---------------|-----------------|--------|
-| **P0** | Fix Jira connector | Only `create_issue()` | Add `update_issue()`, `transition_issue()`, `add_comment()` | 1-2 weeks |
+| **P0** | ~~Fix Jira connector~~ | **DONE** - Full CRUD implemented | N/A | Complete |
 | **P0** | Wire remediation → tickets | Manual linking only | Auto-create tickets on task creation | 1 week |
 | **P1** | Fix sync endpoint | NO-OP (stamps success) | Actually call connector APIs | 2-3 days |
-| **P1** | Add ServiceNow outbound | Inbound webhook only | Add `create_incident()`, `update_incident()` | 1-2 weeks |
-| **P2** | Add GitLab outbound | Inbound webhook only | Add `create_issue()`, `update_issue()` | 1-2 weeks |
-| **P2** | Add Azure DevOps outbound | Inbound webhook only | Add `create_work_item()`, `update_work_item()` | 1-2 weeks |
-| **P3** | Add GitHub connector | Not implemented | Full connector with issues/PRs | 1-2 weeks |
+| **P1** | ~~Add ServiceNow outbound~~ | **DONE** - Full CRUD implemented | N/A | Complete |
+| **P2** | ~~Add GitLab outbound~~ | **DONE** - Full CRUD implemented | N/A | Complete |
+| **P2** | ~~Add Azure DevOps outbound~~ | **DONE** - Full CRUD implemented | N/A | Complete |
+| **P3** | ~~Add GitHub connector~~ | **DONE** - Full CRUD implemented | N/A | Complete |
 
 ### Reference Workflows to Validate
 

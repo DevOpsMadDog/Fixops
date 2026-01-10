@@ -216,21 +216,22 @@ python -m core.cli pentagi create-config \
 
 | Endpoint | Method | Purpose | Status |
 |----------|--------|---------|--------|
-| `/api/v1/webhooks/outbox` | GET | List outbox items | Queues only |
-| `/api/v1/webhooks/outbox/{id}` | GET | Get outbox item details | Queues only |
-| `/api/v1/webhooks/outbox/{id}/process` | POST | Process outbox item | **No worker** |
+| `/api/v1/webhooks/outbox` | GET | List outbox items | Working |
+| `/api/v1/webhooks/outbox/{id}` | GET | Get outbox item details | Working |
+| `/api/v1/webhooks/outbox/{id}/execute` | POST | Execute outbox item via connector | Working |
+| `/api/v1/webhooks/outbox/process-pending` | POST | Process all pending outbox items | Working |
 
 ### Connector Status Summary
 
 | Connector | Outbound Operations | Inbound (Webhook) | Background Worker | Bidirectional Sync |
 |-----------|---------------------|-------------------|-------------------|-------------------|
-| **Jira** | `create_issue()` only | Yes | Outbox queues | Drift detection |
+| **Jira** | `create_issue()`, `update_issue()`, `transition_issue()`, `add_comment()` | Yes | Outbox execute | Drift detection |
 | **Confluence** | `create_page()` only | No | No | No |
 | **Slack** | `post_message()` only | No | No | No |
-| **ServiceNow** | **MISSING** | Yes | No | No |
-| **GitLab** | **MISSING** | Yes | No | No |
-| **Azure DevOps** | **MISSING** | Yes | No | No |
-| **GitHub** | **MISSING** | No | No | No |
+| **ServiceNow** | `create_incident()`, `update_incident()`, `add_work_note()` | Yes | Outbox execute | No |
+| **GitLab** | `create_issue()`, `update_issue()`, `add_comment()` | Yes | Outbox execute | No |
+| **Azure DevOps** | `create_work_item()`, `update_work_item()`, `add_comment()` | Yes | Outbox execute | No |
+| **GitHub** | `create_issue()`, `update_issue()`, `add_comment()` | No | Outbox execute | No |
 
 See [Enterprise Plug-and-Play Readiness](docs/FIXOPS_PRODUCT_STATUS.md#enterprise-plug-and-play-readiness) for detailed analysis and roadmap.
 
