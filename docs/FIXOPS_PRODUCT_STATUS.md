@@ -122,9 +122,9 @@ flowchart LR
 
 | Stage | CLI Commands | API Routers | Key Endpoints |
 |-------|--------------|-------------|---------------|
-| **Design** | `stage-run --stage design`, `inventory add`, `policies create` | `ingestion_router`, `inventory_router`, `policies_router` | `POST /inputs/design`, `POST /api/v1/inventory/*`, `POST /api/v1/policies` |
-| **Build** | `stage-run --stage build`, `run --sbom` | `ingestion_router` | `POST /inputs/sbom` |
-| **Test** | `stage-run --stage test`, `run --sarif`, `pentagi create`, `advanced-pentest run`, `micro-pentest run` | `ingestion_router`, `iac_router`, `secrets_router`, `pentagi_router`, `micro_pentest_router` | `POST /inputs/sarif`, `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*`, `POST /api/v1/micro-pentest/*` |
+| **Design** | `stage-run --stage design`, `inventory add`, `policies create` | `apps/api/app.py`, `inventory_router`, `policies_router` | `POST /inputs/design`, `POST /api/v1/inventory/*`, `POST /api/v1/policies` |
+| **Build** | `stage-run --stage build`, `run --sbom` | `apps/api/app.py` | `POST /inputs/sbom` |
+| **Test** | `stage-run --stage test`, `run --sarif`, `pentagi create`, `advanced-pentest run`, `micro-pentest run` | `apps/api/app.py`, `iac_router`, `secrets_router`, `pentagi_router`, `micro_pentest_router` | `POST /inputs/sarif`, `POST /api/v1/iac/scan/*`, `POST /api/v1/secrets/scan/*`, `POST /api/v1/micro-pentest/*` |
 | **Release Gate** | `make-decision`, `run`, `analyze` | `pipeline`, `enhanced` | `GET /pipeline/run`, `POST /api/v1/enhanced/analysis` |
 | **Remediation** | `remediation create`, `remediation update` | `remediation_router` | `POST /api/v1/remediation/tasks`, `PUT /api/v1/remediation/tasks/{id}` |
 | **Monitor** | `analytics dashboard`, `audit logs`, `compliance status` | `analytics_router`, `audit_router` | `GET /api/v1/analytics/*`, `GET /api/v1/audit/*` |
@@ -142,6 +142,127 @@ flowchart LR
 | **API-Only Endpoints** | 92 (30%) |
 
 **Note:** Counts are code-derived from static enumeration of router decorators and CLI `--help` output.
+
+---
+
+## Developer Starting Points
+
+This section provides the essential entry points for developers to start working on FixOps.
+
+### API Architecture
+
+**FastAPI Application Factory:**
+- **Entry Point:** `apps/api/app.py` - Creates the FastAPI application and mounts all routers
+- **Router Registration:** Lines 380-450 contain all `app.include_router()` calls
+- **Ingestion Endpoints:** Lines 850-1033 define `/inputs/*` endpoints directly in app.py (not a separate router)
+- **Authentication:** `_verify_api_key()` dependency at line 840
+
+**Router Directory Structure:**
+```
+apps/api/
+├── app.py                    # Main FastAPI app + ingestion endpoints
+├── normalizers.py            # SARIF/SBOM/CVE/VEX parsers
+├── *_router.py               # Feature routers (30 files)
+└── routes/
+    └── enhanced.py           # Enhanced decision endpoints
+
+backend/api/                  # Additional backend routers
+├── evidence/router.py        # Evidence management
+├── graph/router.py           # Knowledge graph
+├── pentagi/router.py         # PentAGI integration
+├── provenance/router.py      # SLSA provenance
+└── risk/router.py            # Risk scoring API
+```
+
+**Adding a New Router:**
+1. Create `apps/api/your_router.py` with `router = APIRouter(prefix="/api/v1/your-feature")`
+2. Import and mount in `apps/api/app.py`: `app.include_router(your_router)`
+3. Add tests in `tests/test_your_router.py`
+
+### CLI Architecture
+
+**CLI Entry Point:** `python -m core.cli`
+- **Main Module:** `core/cli.py` (~3200 lines)
+- **Argument Parser:** `_build_parser()` at line 100
+- **Command Handlers:** `_handle_*()` functions throughout the file
+
+**CLI Command Structure:**
+- 13 standalone commands (no subcommands): `run`, `ingest`, `make-decision`, `analyze`, `health`, `get-evidence`, `show-overlay`, `train-forecast`, `demo`, `train-bn-lr`, `predict-bn-lr`, `backtest-bn-lr`
+- 18 command groups with subcommands: `teams`, `users`, `pentagi`, `micro-pentest`, `compliance`, `reports`, `inventory`, `policies`, `integrations`, `analytics`, `audit`, `workflows`, `advanced-pentest`, `reachability`, `correlation`, `groups`, `remediation`, `notifications`
+
+**Adding a New CLI Command:**
+1. Add subparser in `_build_parser()` function
+2. Create handler function `_handle_your_command(args, overlay)`
+3. Wire handler in the main dispatch logic
+
+### Core Modules
+
+| Module | Purpose | Key Classes/Functions |
+|--------|---------|----------------------|
+| `risk/scoring.py` | Risk calculation | `RiskScorer`, `compute_risk_profile()` |
+| `core/evidence.py` | Evidence bundles | `EvidenceHub`, RSA-SHA256 signing |
+| `core/enhanced_decision.py` | LLM decisions | `EnhancedDecisionEngine` |
+| `core/connectors.py` | External integrations | `JiraConnector`, `ConfluenceConnector`, `SlackConnector` |
+| `core/configuration.py` | YAML overlay config | `OverlayConfig` (1530 lines) |
+| `core/pentagi_advanced.py` | Multi-LLM consensus | `MultiAIOrchestrator` |
+| `core/micro_pentest.py` | Micro penetration tests | `run_micro_pentest()`, `get_pentest_status()` |
+
+### Configuration
+
+**Overlay Configuration:** `config/fixops.overlay.yml`
+- Controls feature flags, pricing tiers, connector settings
+- Loaded by `core/configuration.py:OverlayConfig`
+
+**Environment Variables:**
+- `FIXOPS_API_TOKEN` - API authentication
+- `PENTAGI_BASE_URL` - PentAGI service URL (default: `http://pentagi:8443`)
+- `FIXOPS_DISABLE_TELEMETRY` - Disable OpenTelemetry (set to `1`)
+- Connector tokens: `FIXOPS_JIRA_TOKEN`, `FIXOPS_CONFLUENCE_TOKEN`, `FIXOPS_SLACK_WEBHOOK`
+
+### Testing
+
+**Test Directory:** `tests/`
+- Unit tests: `tests/test_*.py`
+- E2E tests: `tests/e2e/`
+- Test harness: `tests/harness/`
+
+**Running Tests:**
+```bash
+pytest                                    # All tests
+pytest tests/test_your_feature.py -v      # Specific test file
+pytest --cov=core --cov-report=html       # With coverage
+```
+
+**CI Requirements:**
+- All tests must pass
+- 100% diff coverage on new code (enforced by diff-cover)
+- Lint checks: black, isort, flake8
+
+### Common Developer Workflows
+
+**1. Run API Locally:**
+```bash
+source .venv/bin/activate
+export FIXOPS_API_TOKEN="demo-token"
+uvicorn apps.api.app:app --reload
+```
+
+**2. Run Pipeline Demo:**
+```bash
+python -m core.cli demo --mode demo --output out/pipeline-demo.json --pretty
+```
+
+**3. Test an Endpoint:**
+```bash
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://127.0.0.1:8000/api/v1/health
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@simulations/demo_pack/scanner.sarif" http://127.0.0.1:8000/inputs/sarif
+```
+
+**4. Run a CLI Command:**
+```bash
+python -m core.cli analyze --sarif simulations/demo_pack/scanner.sarif
+python -m core.cli micro-pentest run --cve-ids CVE-2024-1234 --target-urls http://example.com
+```
 
 ### Code-Derived Endpoint Breakdown
 
@@ -214,8 +335,8 @@ flowchart LR
 
 | ID | Capability | API Endpoints | CLI Commands | Core Modules | Status |
 |----|------------|---------------|--------------|--------------|--------|
-| T1 | Intake & Normalize | `POST /inputs/*` (7 endpoints) | `ingest`, `stage-run` | `apps/api/normalizers.py`, `apps/api/ingestion_router.py` | Production |
-| T2 | Prioritize & Triage | `GET /api/v1/triage`, `POST /api/v1/risk/*` | `analyze` | `core/services/risk.py`, `core/severity_promotion.py` | Production |
+| T1 | Intake & Normalize | `POST /inputs/*` (7 endpoints) | `ingest`, `stage-run` | `apps/api/normalizers.py`, `apps/api/app.py:850-1033` | Production |
+| T2 | Prioritize & Triage | `GET /api/v1/triage`, `POST /api/v1/risk/*` | `analyze` | `risk/scoring.py`, `core/severity_promotion.py` | Production |
 | T3 | Automated Decisions | `POST /api/v1/enhanced/*`, `/api/v1/micro-pentest/*` | `make-decision`, `run`, `micro-pentest` | `core/enhanced_decision.py`, `core/pentagi_advanced.py`, `core/micro_pentest.py` | Production |
 | T4 | Remediation Workflow | `/api/v1/remediation/*` (13 endpoints) | `remediation` | `core/services/remediation.py`, `apps/api/remediation_router.py` | Production |
 | T5 | Compliance & Evidence | `/api/v1/evidence/*`, `/api/v1/compliance/*` | `get-evidence`, `compliance` | `core/evidence.py`, `services/provenance/attestation.py` | Production |
@@ -320,8 +441,8 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 |-----------|--------|----------|
 | **Multi-LLM Consensus** | REAL | 4 providers, 85% threshold, `core/pentagi_advanced.py` |
 | **Deduplication** | REAL | 7 strategies, SQLite-backed, `core/services/deduplication.py` |
-| **Risk Scoring** | REAL | EPSS+KEV+CVSS+Bayesian+Markov, `core/services/risk.py` |
-| **Evidence Bundles** | REAL | RSA-SHA256, Fernet encryption, SLSA v1, `core/services/evidence.py` |
+| **Risk Scoring** | REAL | EPSS+KEV+CVSS+Bayesian+Markov, `risk/scoring.py` |
+| **Evidence Bundles** | REAL | RSA-SHA256, Fernet encryption, SLSA v1, `core/evidence.py` |
 | **Policy Evaluation** | REAL | OPA-based rules, configurable guardrails |
 | **Tri-State Decisions** | REAL | ALLOW/BLOCK/NEEDS REVIEW with confidence scores |
 | **Remediation Lifecycle** | REAL | Full state machine with SLA tracking |
@@ -333,8 +454,8 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 |---------|--------|-------|----------------|
 | **IaC Scanning** | REAL | checkov, tfsec | `core/iac_scanner.py` |
 | **Secrets Scanning** | REAL | gitleaks, trufflehog | `core/secrets_scanner.py` |
-| **SARIF Ingestion** | REAL | Any SARIF-compliant scanner | `apps/api/ingestion_router.py` |
-| **SBOM Analysis** | REAL | CycloneDX, SPDX | `apps/api/ingestion_router.py` |
+| **SARIF Ingestion** | REAL | Any SARIF-compliant scanner | `apps/api/app.py:931-948` |
+| **SBOM Analysis** | REAL | CycloneDX, SPDX | `apps/api/app.py:862-890` |
 
 ### Storage Backends (Production-Ready)
 
@@ -547,18 +668,18 @@ These are target metrics for enterprise deployments, not current measurements:
 | Azure DevOps Webhook | `apps/api/webhooks_router.py:1261-1357` | State mapping |
 | Deduplication | `core/services/deduplication.py` | 7 strategies |
 | Remediation | `core/services/remediation.py` | Full state machine |
-| Evidence | `core/services/evidence.py` | RSA-SHA256 + SLSA v1 |
+| Evidence | `core/evidence.py` | RSA-SHA256 + SLSA v1 |
 | IaC Scanner | `core/iac_scanner.py` | checkov/tfsec |
 | Secrets Scanner | `core/secrets_scanner.py` | gitleaks/trufflehog |
 
 ### What Needs Building (Priority Order)
 
-1. **Outbox Worker** - `core/worker.py` (1 week)
-2. **PostgreSQL Backend** - `core/db/postgres.py` (2 weeks)
-3. **ServiceNow Outbound** - `core/connectors/servicenow.py` (3-5 days)
-4. **GitLab Outbound** - `core/connectors/gitlab.py` (3-5 days)
-5. **Azure DevOps Outbound** - `core/connectors/azure_devops.py` (3-5 days)
-6. **GitHub Connector** - `core/connectors/github.py` (1 week)
+1. **Outbox Worker** - `scripts/graph_worker.py` (1 week)
+2. **PostgreSQL Backend** - New module needed (2 weeks)
+3. **ServiceNow Outbound** - Add to `core/connectors.py` (3-5 days)
+4. **GitLab Outbound** - Add to `core/connectors.py` (3-5 days)
+5. **Azure DevOps Outbound** - Add to `core/connectors.py` (3-5 days)
+6. **GitHub Connector** - Add to `core/connectors.py` (1 week)
 
 ---
 
@@ -684,11 +805,11 @@ This comprehensive inventory maps every feature to its implementation status, CL
 
 | Feature | Status | CLI Commands | API Router(s) | Core Modules | Workflow Stage(s) |
 |---------|--------|--------------|---------------|--------------|-------------------|
-| **SARIF Ingestion** | Wired | `ingest --sarif`, `stage-run --stage sarif` | `ingestion_router` | `apps/api/normalizers.py` | Test |
-| **SBOM Analysis** | Wired | `ingest --sbom`, `stage-run --stage sbom` | `ingestion_router` | `apps/api/normalizers.py` | Build |
-| **CVE/VEX Processing** | Wired | `ingest --cve`, `--vex` | `ingestion_router` | `apps/api/normalizers.py` | Test |
-| **Design Context** | Wired | `ingest --design`, `stage-run --stage design` | `ingestion_router` | `apps/api/normalizers.py` | Design |
-| **CNAPP Findings** | Wired | `ingest --cnapp` | `ingestion_router` | `apps/api/normalizers.py` | Test |
+| **SARIF Ingestion** | Wired | `ingest --sarif`, `stage-run --stage sarif` | `apps/api/app.py:931-948` | `apps/api/normalizers.py` | Test |
+| **SBOM Analysis** | Wired | `ingest --sbom`, `stage-run --stage sbom` | `apps/api/app.py:862-890` | `apps/api/normalizers.py` | Build |
+| **CVE/VEX Processing** | Wired | `ingest --cve`, `--vex` | `apps/api/app.py:892-920` | `apps/api/normalizers.py` | Test |
+| **Design Context** | Wired | `ingest --design`, `stage-run --stage design` | `apps/api/app.py:850-860` | `apps/api/normalizers.py` | Design |
+| **CNAPP Findings** | Wired | `ingest --cnapp` | `apps/api/app.py:921-929` | `apps/api/normalizers.py` | Test |
 | **Inventory Management** | Wired | `inventory apps/add/get/services/search` | `inventory_router` (15) | `core/inventory_db.py` | Design |
 | **RBVM Risk Scoring** | Wired | `analyze` | `risk_router` (3) | `risk/scoring.py` | Decision |
 | **Severity Promotion** | Wired | `analyze` | Internal | `core/severity_promotion.py` | Decision |
@@ -901,7 +1022,7 @@ python -m core.cli stage-run --stage sarif --input file.sarif
 Scanner Output (SARIF/SBOM/CVE/VEX)
     |
     v
-[apps/api/ingestion_router.py] - HTTP endpoint receives file
+[apps/api/app.py:850-1033] - HTTP endpoint receives file
     |
     v
 [apps/api/normalizers.py:InputNormalizer] - Parse and normalize
@@ -921,7 +1042,7 @@ Unified Schema in data/archive/
 | File | Class/Function | Purpose |
 |------|----------------|---------|
 | `apps/api/normalizers.py` | `InputNormalizer` | Parse SARIF/SBOM/CVE/VEX/CNAPP |
-| `apps/api/ingestion_router.py` | Router endpoints | HTTP handlers for `/inputs/*` |
+| `apps/api/app.py:850-1033` | Ingestion endpoints | HTTP handlers for `/inputs/*` |
 | `core/cli.py:403-417` | `_handle_ingest()` | CLI ingest command |
 | `core/cli.py:622-678` | `_handle_stage_run()` | CLI stage-run command |
 | `core/storage.py` | `ArtefactArchive` | Persist artifacts to disk |
@@ -949,7 +1070,7 @@ python -m core.cli predict-bn-lr --finding finding.json
 Normalized Findings
     |
     v
-[core/services/risk.py:RiskScorer] - Calculate composite risk
+[risk/scoring.py:RiskScorer] - Calculate composite risk
     |-- EPSS score lookup
     |-- KEV status check
     |-- CVSS base score
@@ -972,7 +1093,7 @@ Prioritized Findings with Risk Scores
 **Key Modules:**
 | File | Class/Function | Purpose |
 |------|----------------|---------|
-| `core/services/risk.py` | `RiskScorer` | Composite risk calculation |
+| `risk/scoring.py` | `RiskScorer` | Composite risk calculation |
 | `core/severity_promotion.py` | `SeverityPromoter` | KEV/EPSS-based promotion |
 | `core/probabilistic.py` | `ProbabilisticForecastEngine` | Bayesian/Markov forecasting |
 | `core/cli.py:477-549` | `_handle_analyze()` | CLI analyze command |
