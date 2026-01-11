@@ -44,7 +44,7 @@ docker exec -it fixops bash
 
 ---
 
-## CLI Command Reference (All 28 Groups)
+## CLI Command Reference
 
 All CLI commands use: `docker exec fixops python -m core.cli <command> [options]`
 
@@ -1571,11 +1571,13 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Multi-Tenancy (org_id) Support
 
-**What it operates on:** All API endpoints now support multi-tenancy via `org_id` parameter. Data is isolated per organization.
+**What it operates on:** Many API endpoints accept an `org_id` parameter for multi-tenancy. Note: Not all endpoints currently filter data by org_id - some accept the parameter for future use or logging purposes only.
 
 **Prerequisites:** None - defaults to "default" org if not specified.
 
-**Data flow:** Request with org_id → Data filtered by org → Response scoped to org.
+**Data flow:** Request with org_id → Endpoints that support filtering will scope data to org.
+
+**Current limitations:** Some endpoints (e.g., `/api/v1/users/*`, `/api/v1/webhooks/mappings`) accept org_id but do not yet filter data by organization. Full multi-tenancy data isolation is a work in progress.
 
 **How to use org_id:**
 ```bash

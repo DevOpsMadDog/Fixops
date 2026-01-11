@@ -54,7 +54,7 @@ def get_org_id_required(
         Organization ID string
 
     Raises:
-        ValueError: If no org_id is provided
+        HTTPException: 400 error if no org_id is provided
     """
     result = org_id or x_org_id
     if not result:

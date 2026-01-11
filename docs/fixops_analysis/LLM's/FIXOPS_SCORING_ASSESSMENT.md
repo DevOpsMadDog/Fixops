@@ -5,6 +5,31 @@
 
 ---
 
+## Verified Facts (as of commit 3f57e200)
+
+The following metrics were verified against actual code:
+
+| Metric | Verified Count | Method |
+|--------|----------------|--------|
+| API Endpoints | ~287 | `grep -r "@router\.\(get\|post\|put\|delete\|patch\)" apps/api/` + main app |
+| API Router Files | 27 | `find apps/api -name "*.py" -exec grep -l "@router\." {} \;` |
+| CLI Parser Entries | 134 | `grep -r "add_parser\|add_subparsers" core/cli.py` |
+| PlaybookRunner LOC | 1,270 | `wc -l core/playbook_runner.py` |
+| Total Python LOC | ~168K | Verified via cloc |
+
+### Not Validated (Requires External Testing)
+- Real Jira/Confluence instance connectivity (stubs exist, not tested against live systems)
+- Bulk operations behavior under load (returns mock data in current implementation)
+- Multi-tenancy data isolation (org_id parameters added but not all endpoints filter by org_id)
+- Performance under enterprise scale (no load testing performed)
+
+### Caveats
+- **Playbook DSL handlers are MVP stubs** - The PlaybookRunner (~1,270 LOC) provides the execution framework, but individual action handlers may need enhancement for production use
+- **Multi-tenancy is partial** - org_id parameters are accepted by many endpoints but not all endpoints filter data by organization
+- **Enterprise connectors need validation** - Jira/Confluence connectors exist but require testing against real instances
+
+---
+
 ## Executive Scoring Summary
 
 | Category | Score | Weight | Weighted Score | Status |
@@ -39,8 +64,8 @@
 - ✅ **Workflow Orchestration** for remediation lifecycle
 - ✅ **Micro-Pentest Engine** wired to main API and CLI
 - ✅ **Enterprise Connectors** with org_id multi-tenancy support
-- ✅ **303+ API Endpoints** (comprehensive REST API)
-- ✅ **111+ CLI Commands** (full command-line interface)
+- ✅ **~287 API Endpoints** (comprehensive REST API, verified via code analysis)
+- ✅ **134 CLI Parser Entries** (full command-line interface)
 
 #### Gaps (-):
 - ⚠️ **Correlation Engine** exists but disabled by default (`enabled: false`)
@@ -136,9 +161,9 @@
 
 #### Strengths ✅:
 - ✅ **Comprehensive README**: Crux statement, capability areas, competitor comparison, Playbook DSL section
-- ✅ **API/CLI Reference**: Complete mapping (303+ endpoints, 111+ commands)
+- ✅ **API/CLI Reference**: Complete mapping (~287 endpoints, 134 CLI parser entries)
 - ✅ **Playbook Language Reference**: Complete DSL syntax documentation (~1,000 lines)
-- ✅ **Docker Showcase Guide**: All 303 API and 111 CLI examples with context and prerequisites
+- ✅ **Docker Showcase Guide**: Comprehensive API and CLI examples with context and prerequisites
 - ✅ **Feature-to-Code Mapping**: Detailed file paths, code flows, and entry points
 - ✅ **DeepWiki Integration**: AI-indexed documentation with semantic search
 - ✅ **Configuration Guide**: YAML overlay documentation
@@ -333,7 +358,7 @@
 - ✅ **FixOps Playbook DSL** - Full YAML-based programming language for security workflows
 - ✅ Excellent documentation (98/100) with comprehensive guides
 - ✅ Strong security posture (92/100)
-- ✅ Comprehensive feature set (88/100) with 303+ APIs and 111+ CLI commands
+- ✅ Comprehensive feature set (88/100) with ~287 APIs and 134 CLI parser entries
 - ✅ Enterprise-ready core capabilities (90/100)
 - ✅ Active development with 100% diff coverage requirement
 - ✅ Enterprise connectors with org_id multi-tenancy
