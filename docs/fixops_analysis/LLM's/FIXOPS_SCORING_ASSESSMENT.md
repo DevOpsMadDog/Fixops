@@ -5,28 +5,48 @@
 
 ---
 
-## Verified Facts (as of commit 3f57e200)
+## Verified Facts (as of commit 7df62914)
 
-The following metrics were verified against actual code:
+The following metrics were verified against actual code via deep code dive:
 
-| Metric | Verified Count | Method |
-|--------|----------------|--------|
-| API Endpoints | ~287 | `grep -r "@router\.\(get\|post\|put\|delete\|patch\)" apps/api/` + main app |
-| API Router Files | 27 | `find apps/api -name "*.py" -exec grep -l "@router\." {} \;` |
-| CLI Parser Entries | 134 | `grep -r "add_parser\|add_subparsers" core/cli.py` |
-| PlaybookRunner LOC | 1,270 | `wc -l core/playbook_runner.py` |
-| Total Python LOC | ~168K | Verified via cloc |
+| Metric | Verified Count | Method | Code Location |
+|--------|----------------|--------|---------------|
+| API Routers | 33 | `grep "include_router" apps/api/app.py` | `apps/api/app.py` |
+| CLI Command Groups | 35 | `python -m core.cli --help` | `core/cli.py` |
+| PlaybookRunner LOC | 1,270 | `wc -l core/playbook_runner.py` | `core/playbook_runner.py` |
+| LLM Providers | 4 | Code inspection | `core/llm_providers.py` (660 LOC) |
+| Bayesian Network | Real | Uses pgmpy library | `core/models/bayesian_network.py` (272 LOC) |
+| Markov Forecasting | Real | Transition rates + Naive Bayes | `risk/forecasting.py` (286 LOC) |
+| RSA-SHA256 Signing | Real | cryptography.hazmat.primitives | `core/crypto.py` (571 LOC) |
+| Evidence Bundles | Real | Compression, encryption, signing | `core/evidence.py` (437 LOC) |
+| Jira Connector | Real HTTP | requests library, REST API v3 | `core/connectors.py:330-840` |
+| Confluence Connector | Real HTTP | requests library, REST API | `core/connectors.py:843-1159` |
+
+### Verified Implementations (with code references)
+- **Multi-LLM Providers** (`core/llm_providers.py`): OpenAIChatProvider (lines 73-285), AnthropicMessagesProvider (lines 288-404), GeminiProvider (lines 407-521), SentinelCyberProvider (lines 524-559)
+- **Bayesian Network** (`core/models/bayesian_network.py`): Uses pgmpy library with VariableElimination inference, proper CPDs for risk assessment
+- **Markov Forecasting** (`risk/forecasting.py`): `_markov_forecast_30d()` with transition rates, `_naive_bayes_update()` with likelihood ratios
+- **RSA Signing** (`core/crypto.py`): RSAKeyManager, RSASigner with PKCS1v15 padding, RSAVerifier for signature verification
+- **Jira Connector** (`core/connectors.py`): Full CRUD operations (create_issue, update_issue, transition_issue, add_comment, get_issue, search_issues) with circuit breaker, rate limiting, health checks
+- **Confluence Connector** (`core/connectors.py`): Full CRUD operations (create_page, update_page, get_page, search_pages) with real HTTP I/O
+
+### Wiring Verification (where implementations are called)
+- LLM Providers: `apps/pentagi_integration.py`, `core/enhanced_decision.py`, `core/pentagi_advanced.py`, `core/automated_remediation.py`
+- Jira/Confluence: `apps/api/integrations_router.py`, `apps/api/webhooks_router.py` (AutomationConnectors.deliver)
+- Forecasting: Tests exist in `tests/test_forecasting.py`, `tests/risk/test_forecasting.py`
 
 ### Not Validated (Requires External Testing)
-- Real Jira/Confluence instance connectivity (stubs exist, not tested against live systems)
+- Real Jira/Confluence instance connectivity (implementations exist with real HTTP calls, not tested against live systems)
 - Bulk operations behavior under load (returns mock data in current implementation)
 - Multi-tenancy data isolation (org_id parameters added but not all endpoints filter by org_id)
 - Performance under enterprise scale (no load testing performed)
+- SLSA v1 provenance generation (RSA signing exists, but SLSA schema not verified)
 
 ### Caveats
 - **Playbook DSL handlers are MVP stubs** - The PlaybookRunner (~1,270 LOC) provides the execution framework, but individual action handlers may need enhancement for production use
 - **Multi-tenancy is partial** - org_id parameters are accepted by many endpoints but not all endpoints filter data by organization
-- **Enterprise connectors need validation** - Jira/Confluence connectors exist but require testing against real instances
+- **Enterprise connectors have real HTTP implementations** - Jira/Confluence connectors have full CRUD with real HTTP I/O, but require testing against real instances
+- **Bayesian Network requires pgmpy** - BN model is gated behind `PGMPY_AVAILABLE`; available when pgmpy is installed
 
 ---
 
@@ -71,7 +91,7 @@ The following metrics were verified against actual code:
 - ⚠️ **Correlation Engine** exists but disabled by default (`enabled: false`)
 - ⚠️ **Cross-Tool Deduplication** not implemented (only within-file)
 - ⚠️ **Bulk Operations** return mock data (stub implementation)
-- ⚠️ **ALM Integrations** (Jira/Confluence) are stubs/incomplete
+- ⚠️ **ALM Integrations** (Jira/Confluence) have real HTTP implementations but need live instance validation
 - ⚠️ **SLA Management** mentioned but not fully implemented
 - ⚠️ **PostgreSQL Migration** planned but not complete (still SQLite)
 
@@ -106,7 +126,7 @@ The following metrics were verified against actual code:
 - ⚠️ **Correlation Engine Integration**: Not integrated into pipeline
 - ⚠️ **Bulk Operations**: Stub implementation (returns mock data)
 - ⚠️ **SLA Tracking**: Mentioned but not fully implemented
-- ⚠️ **ALM Integrations**: Jira/Confluence are stubs
+- ⚠️ **ALM Integrations**: Jira/Confluence have real HTTP implementations, need live validation
 - ⚠️ **PostgreSQL Storage**: Planned but not migrated
 
 **Scoring Rationale:**

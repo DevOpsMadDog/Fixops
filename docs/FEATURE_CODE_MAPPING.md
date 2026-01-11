@@ -569,10 +569,10 @@ Combined Risk Score = f(CVSS, EPSS, KEV, Reachability)
 
 | Method | Endpoint | Handler | File:Line |
 |--------|----------|---------|-----------|
-| POST | `/api/v1/enhanced/analysis` | `analyze` | `apps/api/routes/enhanced.py:39-66` |
-| POST | `/api/v1/enhanced/compare-llms` | `compare_llms` | `apps/api/routes/enhanced.py:68-89` |
-| GET | `/api/v1/enhanced/capabilities` | `get_capabilities` | `apps/api/routes/enhanced.py:91-100` |
-| GET | `/api/v1/enhanced/signals` | `get_signals` | `apps/api/routes/enhanced.py:102-110` |
+| POST | `/api/v1/enhanced/analysis` | `run_enhanced_analysis` | `apps/api/routes/enhanced.py:40-68` |
+| POST | `/api/v1/enhanced/compare-llms` | `compare_llms` | `apps/api/routes/enhanced.py:69-91` |
+| GET | `/api/v1/enhanced/capabilities` | `enhanced_capabilities` | `apps/api/routes/enhanced.py:92-102` |
+| GET | `/api/v1/enhanced/signals` | `enhanced_signals` | `apps/api/routes/enhanced.py:103-110` |
 | GET | `/api/v1/policies` | `list_policies` | `apps/api/policies_router.py:30-55` |
 | POST | `/api/v1/policies` | `create_policy` | `apps/api/policies_router.py:57-95` |
 | GET | `/api/v1/policies/{id}` | `get_policy` | `apps/api/policies_router.py:97-120` |
