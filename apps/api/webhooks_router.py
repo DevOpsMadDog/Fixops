@@ -21,9 +21,10 @@ from typing import Any, Dict, List, Literal, Optional
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
+from apps.api.dependencies import get_org_id
 from core.connectors import AutomationConnectors
 
 # Management endpoints - requires API key authentication
@@ -487,6 +488,7 @@ def create_integration_mapping(request: CreateMappingRequest) -> Dict[str, Any]:
 
 @router.get("/mappings")
 def list_integration_mappings(
+    org_id: str = Depends(get_org_id),
     cluster_id: Optional[str] = None,
     integration_type: Optional[str] = None,
     limit: int = 100,

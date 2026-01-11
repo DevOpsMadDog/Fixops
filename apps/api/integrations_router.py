@@ -4,9 +4,10 @@ Integration management API endpoints.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.connectors import (
     AzureDevOpsConnector,
     ConfluenceConnector,
@@ -65,6 +66,7 @@ class PaginatedIntegrationResponse(BaseModel):
 
 @router.get("", response_model=PaginatedIntegrationResponse)
 async def list_integrations(
+    org_id: str = Depends(get_org_id),
     integration_type: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),

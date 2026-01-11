@@ -5,10 +5,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.report_db import ReportDB
 from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
@@ -62,6 +63,7 @@ class PaginatedReportResponse(BaseModel):
 
 @router.get("", response_model=PaginatedReportResponse)
 async def list_reports(
+    org_id: str = Depends(get_org_id),
     report_type: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),

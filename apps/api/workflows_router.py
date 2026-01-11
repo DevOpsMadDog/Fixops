@@ -4,9 +4,10 @@ Workflow orchestration API endpoints.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
 
@@ -73,7 +74,9 @@ class PaginatedWorkflowResponse(BaseModel):
 
 @router.get("", response_model=PaginatedWorkflowResponse)
 async def list_workflows(
-    limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
     """List all workflows."""
     workflows = db.list_workflows(limit=limit, offset=offset)

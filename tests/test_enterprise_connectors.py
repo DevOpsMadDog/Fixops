@@ -1848,6 +1848,109 @@ class TestConfluenceConnectorCreate:
         result = configured_confluence.create_page({"title": "Test"})
         assert result.status == "sent"
 
+    def test_update_page_not_configured(
+        self, unconfigured_confluence: ConfluenceConnector
+    ) -> None:
+        result = unconfigured_confluence.update_page({"page_id": "12345"})
+        assert result.status == "skipped"
+
+    def test_update_page_no_page_id(
+        self, configured_confluence: ConfluenceConnector
+    ) -> None:
+        result = configured_confluence.update_page({"title": "New Title"})
+        assert result.status == "failed"
+        assert "page_id is required" in result.details["reason"]
+
+    @patch("requests.Session.request")
+    def test_update_page_success_with_version(
+        self, mock_request: MagicMock, configured_confluence: ConfluenceConnector
+    ) -> None:
+        mock_request.return_value = MockResponse(
+            200,
+            {
+                "id": "12345",
+                "title": "Updated Page",
+                "version": {"number": 3},
+            },
+        )
+        result = configured_confluence.update_page(
+            {
+                "page_id": "12345",
+                "title": "Updated Page",
+                "body": "New content",
+                "version": 2,
+            }
+        )
+        assert result.status == "sent"
+        assert result.details["page_id"] == "12345"
+        assert result.details["operation"] == "update_page"
+
+    @patch("requests.Session.request")
+    def test_update_page_auto_fetch_version(
+        self, mock_request: MagicMock, configured_confluence: ConfluenceConnector
+    ) -> None:
+        # First call returns current page with version, second call is the update
+        mock_request.side_effect = [
+            MockResponse(
+                200,
+                {
+                    "id": "12345",
+                    "title": "Original Title",
+                    "version": {"number": 5},
+                    "body": {"storage": {"value": "old content"}},
+                },
+            ),
+            MockResponse(
+                200,
+                {
+                    "id": "12345",
+                    "title": "Updated Title",
+                    "version": {"number": 6},
+                },
+            ),
+        ]
+        result = configured_confluence.update_page(
+            {"page_id": "12345", "title": "Updated Title", "body": "New content"}
+        )
+        assert result.status == "sent"
+        assert result.details["version"] == 6
+
+    @patch("requests.Session.request")
+    def test_update_page_fetch_version_failure(
+        self, mock_request: MagicMock, configured_confluence: ConfluenceConnector
+    ) -> None:
+        mock_request.side_effect = RequestException("Connection failed")
+        result = configured_confluence.update_page(
+            {"page_id": "12345", "body": "New content"}
+        )
+        assert result.status == "failed"
+        assert "failed to fetch current page version" in result.details["reason"]
+
+    @patch("requests.Session.request")
+    def test_update_page_update_failure(
+        self, mock_request: MagicMock, configured_confluence: ConfluenceConnector
+    ) -> None:
+        # First call succeeds (get version), second call fails (update)
+        mock_request.side_effect = [
+            MockResponse(200, {"id": "12345", "version": {"number": 1}}),
+            RequestException("Update failed"),
+        ]
+        result = configured_confluence.update_page(
+            {"page_id": "12345", "body": "New content"}
+        )
+        assert result.status == "failed"
+        assert "confluence update failed" in result.details["reason"]
+
+    @patch("requests.Session.request")
+    def test_update_page_invalid_json_response(
+        self, mock_request: MagicMock, configured_confluence: ConfluenceConnector
+    ) -> None:
+        mock_request.return_value = MockResponse(200, raise_on_json=True)
+        result = configured_confluence.update_page(
+            {"page_id": "12345", "body": "New content", "version": 1}
+        )
+        assert result.status == "sent"
+
 
 class TestSlackConnectorPost:
     """Tests for SlackConnector post_message operation."""

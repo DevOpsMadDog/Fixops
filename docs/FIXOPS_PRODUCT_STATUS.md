@@ -422,7 +422,7 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 | Connector | Inbound | Outbound | Worker | Bidir Sync | Status | What's Missing |
 |-----------|---------|----------|--------|------------|--------|----------------|
 | **Jira** | Webhook receiver | `create_issue()` | Outbox queues | Drift detection | **PARTIAL** | Worker to process outbox |
-| **Confluence** | - | `create_page()` | - | - | **OUTBOUND ONLY** | No inbound, no sync |
+| **Confluence** | - | `create_page()`, `update_page()` | - | `get_page()`, `search_pages()`, `list_pages()` | **BIDIRECTIONAL** | Full sync support |
 | **Slack** | - | `post_message()` | - | - | **OUTBOUND ONLY** | No inbound, no sync |
 | **ServiceNow** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `create_incident()` |
 | **GitLab** | Webhook receiver | **MISSING** | - | - | **INBOUND ONLY** | Need `create_issue()` |
@@ -443,7 +443,7 @@ This section provides a deep analysis of what's needed for true enterprise plug-
 |----------|--------|-----------|-------|
 | **Core Decision Engine** | Production | Ready | Multi-LLM consensus, risk scoring, evidence bundles |
 | **Jira Integration** | Production | Ready | Full CRUD: create, update, transition, comment |
-| **Confluence Integration** | Partial | Outbound Only | Create page works, no sync |
+| **Confluence Integration** | Production | Ready | Bidirectional: create_page, update_page, get_page, search_pages, list_pages |
 | **Slack Integration** | Production | Ready | Webhook notifications working |
 | **ServiceNow Integration** | Production | Ready | Full CRUD: create_incident, update_incident, add_work_note |
 | **GitLab Integration** | Production | Ready | Full CRUD: create_issue, update_issue, add_comment |
@@ -473,8 +473,8 @@ For enterprise plug-and-play, each connector needs complete CRUD operations. Cur
 
 | Connector | Create | Update | Transition | Comment | Attach | Code Reference | Status |
 |-----------|--------|--------|------------|---------|--------|----------------|--------|
-| **Jira** | `create_issue()` | `update_issue()` | `transition_issue()` | `add_comment()` | **MISSING** | `core/connectors.py:49-355` | **Production** |
-| **Confluence** | `create_page()` | **MISSING** | - | - | - | `core/connectors.py:356-441` | Outbound only |
+| **Jira** | `create_issue()` | `update_issue()` | `transition_issue()` | `add_comment()` | **MISSING** | `core/connectors.py:330-840` | **Production** |
+| **Confluence** | `create_page()` | `update_page()` | - | - | `get_page()`, `search_pages()`, `list_pages()` | `core/connectors.py:843-1159` | **Production** |
 | **Slack** | `post_message()` | - | - | - | - | `core/connectors.py:442-479` | Outbound only |
 | **ServiceNow** | `create_incident()` | `update_incident()` | - | `add_work_note()` | - | `core/connectors.py:480-695` | **Production** |
 | **GitLab** | `create_issue()` | `update_issue()` | - | `add_comment()` | - | `core/connectors.py:696-913` | **Production** |

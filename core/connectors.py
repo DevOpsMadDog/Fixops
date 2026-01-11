@@ -925,6 +925,102 @@ class ConfluenceConnector(_BaseConnector):
             },
         )
 
+    def update_page(self, action: Mapping[str, Any]) -> ConnectorOutcome:
+        """Update an existing Confluence page via PUT /rest/api/content/{id}.
+
+        Bidirectional sync: This method enables updating pages that were previously
+        created or fetched, completing the sync cycle.
+
+        Required action fields:
+        - page_id: The Confluence page ID to update
+
+        Optional action fields:
+        - title: New page title
+        - body/content: New page content (storage format)
+        - version: Current version number (auto-fetched if not provided)
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "confluence connector not fully configured"}
+            )
+
+        page_id = action.get("page_id")
+        if not page_id:
+            return ConnectorOutcome(
+                "failed", {"reason": "page_id is required for update"}
+            )
+
+        # Fetch current page to get version number if not provided
+        version = action.get("version")
+        current_title = None
+        if not version:
+            get_result = self.get_page(str(page_id))
+            if not get_result.success:
+                return ConnectorOutcome(
+                    "failed",
+                    {
+                        "reason": "failed to fetch current page version",
+                        "page_id": page_id,
+                    },
+                )
+            page_data = get_result.data or {}
+            version = page_data.get("version", {}).get("number", 1)
+            current_title = page_data.get("title")
+
+        title = action.get("title") or current_title or f"FixOps Page {page_id}"
+        body = (
+            action.get("body") or action.get("content") or json.dumps(action, indent=2)
+        )
+
+        payload = {
+            "type": "page",
+            "title": title,
+            "version": {"number": int(version) + 1},
+            "body": {
+                "storage": {
+                    "value": body,
+                    "representation": action.get("representation", "storage"),
+                }
+            },
+        }
+
+        endpoint = urljoin(self.base_url + "/", f"rest/api/content/{page_id}")
+        try:
+            response = self._request(
+                "PUT",
+                endpoint,
+                json=payload,
+                auth=(self.user, str(self.token)),
+                headers={"Content-Type": "application/json"},
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed",
+                {
+                    "reason": "confluence update failed",
+                    "error": str(exc),
+                    "endpoint": endpoint,
+                },
+            )
+
+        body_payload: Dict[str, Any]
+        try:
+            body_payload = response.json()
+        except ValueError:
+            body_payload = {}
+
+        return ConnectorOutcome(
+            "sent",
+            {
+                "endpoint": endpoint,
+                "page_id": body_payload.get("id"),
+                "title": body_payload.get("title"),
+                "version": body_payload.get("version", {}).get("number"),
+                "operation": "update_page",
+            },
+        )
+
     def get_page(self, page_id: str) -> ConnectorOutcome:
         """Fetch a single Confluence page by ID (Agent READ operation)."""
         if not self.configured:
