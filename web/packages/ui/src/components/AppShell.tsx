@@ -29,7 +29,12 @@ import {
   Database,
   Lock,
   Globe,
-  Cpu
+  Cpu,
+  Scan,
+  Target,
+  TrendingUp,
+  Route,
+  PieChart
 } from 'lucide-react'
 
 // ============================================================================
@@ -62,6 +67,11 @@ export interface AppUrls {
   marketplace: string
   shell?: string
   showcase?: string
+  scanners?: string
+  remediate?: string
+  prioritize?: string
+  validate?: string
+  insight?: string
   [key: string]: string | undefined
 }
 
@@ -102,6 +112,16 @@ export const NAV_SECTIONS: NavSection[] = [
       { name: 'Triage', key: 'triage', icon: AlertTriangle },
       { name: 'Findings', key: 'findings', icon: FileText },
       { name: 'Risk Graph', key: 'risk', icon: GitBranch },
+    ]
+  },
+  {
+    title: 'CTEM',
+    items: [
+      { name: 'Scanners', key: 'scanners', icon: Scan },
+      { name: 'Prioritize', key: 'prioritize', icon: Target },
+      { name: 'Remediate', key: 'remediate', icon: TrendingUp },
+      { name: 'Validate', key: 'validate', icon: Route },
+      { name: 'Insight', key: 'insight', icon: PieChart },
     ]
   },
   {
