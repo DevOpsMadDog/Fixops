@@ -3811,6 +3811,158 @@ def _handle_notifications(args: argparse.Namespace) -> int:
         return 1
 
 
+def _handle_playbook(args: argparse.Namespace) -> int:
+    """Handle playbook commands (run, validate, list)."""
+    from core.playbook_runner import PlaybookRunner
+
+    playbook_command = getattr(args, "playbook_command", None)
+
+    if playbook_command == "run":
+        playbook_path = getattr(args, "playbook", None)
+        if not playbook_path:
+            print("Error: --playbook is required", file=sys.stderr)
+            return 1
+
+        overlay_path = getattr(args, "overlay", None)
+        runner = PlaybookRunner(
+            overlay_path=str(overlay_path) if overlay_path else None
+        )
+
+        try:
+            playbook = runner.load_playbook(playbook_path)
+        except Exception as exc:
+            print(f"Error loading playbook: {exc}", file=sys.stderr)
+            return 1
+
+        # Parse inputs from command line
+        inputs: Dict[str, Any] = {}
+        input_args = getattr(args, "input", None) or []
+        for inp in input_args:
+            if "=" in inp:
+                key, value = inp.split("=", 1)
+                # Try to parse as JSON, otherwise use as string
+                try:
+                    inputs[key] = json.loads(value)
+                except json.JSONDecodeError:
+                    inputs[key] = value
+
+        # Load input files
+        findings_path = getattr(args, "findings", None)
+        if findings_path:
+            try:
+                inputs["findings"] = json.loads(Path(findings_path).read_text())
+            except Exception as exc:
+                print(f"Error loading findings: {exc}", file=sys.stderr)
+                return 1
+
+        dry_run = getattr(args, "dry_run", False)
+
+        try:
+            context = runner.execute_sync(playbook, inputs, dry_run=dry_run)
+        except Exception as exc:
+            print(f"Error executing playbook: {exc}", file=sys.stderr)
+            return 1
+
+        result = context.to_dict()
+
+        output_path = getattr(args, "output", None)
+        if output_path:
+            output_path = Path(output_path)
+            output_path.write_text(
+                json.dumps(result, indent=2 if getattr(args, "pretty", False) else None)
+            )
+            print(f"Execution result written to: {output_path}")
+        else:
+            print(
+                json.dumps(result, indent=2 if getattr(args, "pretty", False) else None)
+            )
+
+        # Return exit code based on execution status
+        status = result.get("status", "unknown")
+        if status == "completed":
+            return 0
+        elif status == "failed":
+            return 1
+        else:
+            return 2
+
+    elif playbook_command == "validate":
+        playbook_path = getattr(args, "playbook", None)
+        if not playbook_path:
+            print("Error: --playbook is required", file=sys.stderr)
+            return 1
+
+        runner = PlaybookRunner()
+        errors = runner.validate_playbook_file(playbook_path)
+
+        if errors:
+            print(f"Validation failed with {len(errors)} error(s):")
+            for error in errors:
+                print(f"  [{error.severity}] {error.path}: {error.message}")
+            return 1
+        else:
+            print(f"Playbook {playbook_path} is valid")
+            return 0
+
+    elif playbook_command == "list":
+        playbooks_dir = getattr(args, "dir", None) or Path("config/playbooks")
+        playbooks_dir = Path(playbooks_dir)
+
+        if not playbooks_dir.exists():
+            print(f"Playbooks directory not found: {playbooks_dir}", file=sys.stderr)
+            return 1
+
+        runner = PlaybookRunner()
+        playbooks = []
+
+        for path in playbooks_dir.glob("*.yaml"):
+            try:
+                playbook = runner.load_playbook(path)
+                playbooks.append(
+                    {
+                        "name": playbook.metadata.name,
+                        "version": playbook.metadata.version,
+                        "kind": playbook.kind.value,
+                        "description": playbook.metadata.description,
+                        "path": str(path),
+                    }
+                )
+            except Exception as exc:
+                playbooks.append(
+                    {
+                        "path": str(path),
+                        "error": str(exc),
+                    }
+                )
+
+        for path in playbooks_dir.glob("*.yml"):
+            try:
+                playbook = runner.load_playbook(path)
+                playbooks.append(
+                    {
+                        "name": playbook.metadata.name,
+                        "version": playbook.metadata.version,
+                        "kind": playbook.kind.value,
+                        "description": playbook.metadata.description,
+                        "path": str(path),
+                    }
+                )
+            except Exception as exc:
+                playbooks.append(
+                    {
+                        "path": str(path),
+                        "error": str(exc),
+                    }
+                )
+
+        print(json.dumps({"playbooks": playbooks, "count": len(playbooks)}, indent=2))
+        return 0
+
+    else:
+        print("Unknown playbook command. Use: run, validate, list", file=sys.stderr)
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="FixOps local orchestration helpers")
     subparsers = parser.add_subparsers(dest="command")
@@ -4953,6 +5105,77 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     notifications_parser.set_defaults(func=_handle_notifications)
+
+    # Playbook commands
+    playbook_parser = subparsers.add_parser(
+        "playbook", help="Execute and manage FixOps Playbooks (YAML-based DSL)"
+    )
+    playbook_subparsers = playbook_parser.add_subparsers(dest="playbook_command")
+
+    playbook_run = playbook_subparsers.add_parser("run", help="Execute a playbook")
+    playbook_run.add_argument(
+        "--playbook",
+        "-p",
+        type=Path,
+        required=True,
+        help="Path to the playbook YAML file",
+    )
+    playbook_run.add_argument(
+        "--overlay",
+        type=Path,
+        help="Path to overlay configuration for connector settings",
+    )
+    playbook_run.add_argument(
+        "--input",
+        "-i",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Input parameter (can be specified multiple times)",
+    )
+    playbook_run.add_argument(
+        "--findings",
+        type=Path,
+        help="Path to SARIF/JSON findings file",
+    )
+    playbook_run.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show what would be executed without running",
+    )
+    playbook_run.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Path to write execution result JSON",
+    )
+    playbook_run.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+
+    playbook_validate = playbook_subparsers.add_parser(
+        "validate", help="Validate a playbook without executing"
+    )
+    playbook_validate.add_argument(
+        "--playbook",
+        "-p",
+        type=Path,
+        required=True,
+        help="Path to the playbook YAML file",
+    )
+
+    playbook_list = playbook_subparsers.add_parser(
+        "list", help="List available playbooks"
+    )
+    playbook_list.add_argument(
+        "--dir",
+        type=Path,
+        default="config/playbooks",
+        help="Directory containing playbooks (default: config/playbooks)",
+    )
+
+    playbook_parser.set_defaults(func=_handle_playbook)
 
     return parser
 

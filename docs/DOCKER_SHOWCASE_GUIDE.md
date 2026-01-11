@@ -831,6 +831,101 @@ docker exec fixops python -m core.cli backtest-bn-lr --model /app/data/model.pkl
 
 ---
 
+### 29. playbook - Execute FixOps Playbooks (YAML DSL)
+
+**Purpose:** Execute declarative YAML-based workflows for security automation, compliance validation, and remediation.
+
+**What it operates on:** Playbook YAML files that define automated workflows with steps, conditions, and actions. Playbooks can:
+- Evaluate OPA policies
+- Create Jira tickets
+- Send Slack notifications
+- Generate compliance reports
+- Collect and sign evidence bundles
+
+**Prerequisites:**
+- Playbook YAML file (see `config/playbooks/` for examples)
+- Optional: Overlay configuration for connector credentials (Jira, Slack, etc.)
+- Optional: SARIF/JSON findings file for input
+
+**Data flow:** Playbook YAML → Parse & validate → Execute steps in order → Resolve templates → Call connectors → Return execution result.
+
+```bash
+# List available playbooks
+docker exec fixops python -m core.cli playbook list
+
+# List playbooks from custom directory
+docker exec fixops python -m core.cli playbook list --dir /app/config/playbooks
+
+# Validate a playbook (check syntax without executing)
+docker exec fixops python -m core.cli playbook validate \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml
+
+# Run a playbook (basic execution)
+docker exec fixops python -m core.cli playbook run \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml
+
+# Run with inputs
+docker exec fixops python -m core.cli playbook run \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
+  --input severity_threshold=critical \
+  --input auto_create_tickets=true
+
+# Run with findings file (SARIF format)
+docker exec fixops python -m core.cli playbook run \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
+  --findings /app/samples/scan.sarif
+
+# Run with overlay (for connector credentials)
+docker exec fixops python -m core.cli playbook run \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
+  --overlay /app/config/fixops.overlay.yml
+
+# Dry run (validate and show what would execute without running)
+docker exec fixops python -m core.cli playbook run \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
+  --dry-run \
+  --pretty
+
+# Save execution result to file
+docker exec fixops python -m core.cli playbook run \
+  --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
+  --output /app/data/playbook-result.json \
+  --pretty
+```
+
+**Example Playbook (SOC2 Access Control Validation):**
+
+The bundled playbook at `config/playbooks/soc2-access-control-validation.yaml` demonstrates:
+- OPA policy evaluation
+- Compliance control checks (CC6.1, CC6.2, CC6.3, CC6.7)
+- Evidence collection and signing
+- Conditional Jira ticket creation
+- Slack notifications
+- Compliance report generation
+
+**Playbook Actions Available:**
+| Action | Description |
+|--------|-------------|
+| `opa.evaluate` | Evaluate OPA policy |
+| `opa.assert` | Assert OPA policy passes |
+| `evidence.collect` | Collect compliance evidence |
+| `evidence.sign` | Sign evidence bundle |
+| `compliance.check_control` | Check compliance control |
+| `compliance.generate_report` | Generate compliance report |
+| `jira.create_issue` | Create Jira ticket |
+| `jira.update_issue` | Update Jira ticket |
+| `jira.add_comment` | Add comment to Jira |
+| `confluence.create_page` | Create Confluence page |
+| `notify.slack` | Send Slack notification |
+| `notify.email` | Send email notification |
+| `pentest.request` | Request penetration test |
+| `workflow.approve` | Approve workflow item |
+| `data.filter` | Filter data set |
+
+**See also:** [Playbook Language Reference](PLAYBOOK_LANGUAGE_REFERENCE.md) for complete syntax documentation.
+
+---
+
 ## API Endpoint Reference (All 303 Endpoints)
 
 All API calls use: `curl -H "X-API-Key: demo-token-12345" http://localhost:8000/<endpoint>`

@@ -1373,6 +1373,124 @@ Single remediation task for group
 
 ---
 
+## Feature 16: Playbook DSL (YAML-Based Automation)
+
+**Purpose:** Declarative YAML-based Domain-Specific Language for automating vulnerability management, compliance validation, and security remediation workflows without writing code.
+
+**Key Capabilities:**
+- 25+ pre-approved action types (Jira, Confluence, Slack, OPA, compliance, etc.)
+- Template variable resolution with `{{ }}` syntax
+- Conditional execution with `when`, `unless`, and `depends_on`
+- Error handling with retry and continue-on-failure
+- Sandboxed execution (only pre-approved adapters, no arbitrary code)
+- Integration with enterprise connectors
+
+### Core Files
+
+| File | LOC | Purpose |
+|------|-----|---------|
+| `core/playbook_runner.py` | 1,100 | Production playbook execution engine |
+| `config/playbook-schema.yaml` | 369 | JSON Schema for playbook validation |
+| `config/playbooks/soc2-access-control-validation.yaml` | 280 | Example SOC2 compliance playbook |
+
+### CLI Commands
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `playbook run` | Execute a playbook | `python -m core.cli playbook run --playbook config/playbooks/soc2-access-control-validation.yaml` |
+| `playbook validate` | Validate playbook syntax | `python -m core.cli playbook validate --playbook config/playbooks/my-playbook.yaml` |
+| `playbook list` | List available playbooks | `python -m core.cli playbook list --dir config/playbooks` |
+
+### Playbook Actions
+
+| Action | Category | Description | Connector |
+|--------|----------|-------------|-----------|
+| `opa.evaluate` | Policy | Evaluate OPA policy | OPA Client |
+| `opa.assert` | Policy | Assert policy passes | OPA Client |
+| `evidence.collect` | Evidence | Collect compliance evidence | EvidenceHub |
+| `evidence.sign` | Evidence | Sign evidence bundle | EvidenceHub |
+| `evidence.assert` | Evidence | Assert evidence requirements | EvidenceHub |
+| `compliance.check_control` | Compliance | Check compliance control | ComplianceEngine |
+| `compliance.map_finding` | Compliance | Map finding to controls | ComplianceEngine |
+| `compliance.generate_report` | Compliance | Generate compliance report | ComplianceEngine |
+| `pentest.request` | Security | Request penetration test | MicroPentestEngine |
+| `pentest.validate_exploitability` | Security | Validate exploitability | MicroPentestEngine |
+| `scanner.run` | Security | Run security scanner | Scanner |
+| `jira.create_issue` | Issue Tracking | Create Jira issue | JiraConnector |
+| `jira.update_issue` | Issue Tracking | Update Jira issue | JiraConnector |
+| `jira.add_comment` | Issue Tracking | Add Jira comment | JiraConnector |
+| `confluence.create_page` | Documentation | Create Confluence page | ConfluenceConnector |
+| `confluence.update_page` | Documentation | Update Confluence page | ConfluenceConnector |
+| `notify.slack` | Notifications | Send Slack notification | SlackConnector |
+| `notify.email` | Notifications | Send email notification | EmailConnector |
+| `notify.pagerduty` | Notifications | Create PagerDuty incident | PagerDutyConnector |
+| `workflow.approve` | Workflow | Approve workflow item | WorkflowEngine |
+| `workflow.reject` | Workflow | Reject workflow item | WorkflowEngine |
+| `workflow.escalate` | Workflow | Escalate workflow item | WorkflowEngine |
+| `data.filter` | Data | Filter dataset | Internal |
+| `data.aggregate` | Data | Aggregate data | Internal |
+| `data.transform` | Data | Transform data | Internal |
+
+### Code Flow
+
+```
+Playbook YAML → PlaybookRunner.load_playbook()
+    → _parse_playbook() → Playbook object
+    → validate_playbook() → ValidationError[]
+    → execute() → PlaybookExecutionContext
+        → For each step:
+            → _check_step_condition() (when/unless/depends_on)
+            → _resolve_params() (template variables)
+            → _action_handlers[action]() → Connector call
+            → StepResult (success/failed/skipped)
+        → Return execution context with all results
+```
+
+### Example Playbook Structure
+
+```yaml
+apiVersion: fixops.io/v1
+kind: CompliancePack
+metadata:
+  name: soc2-access-control-validation
+  version: "1.0.0"
+spec:
+  inputs:
+    findings:
+      type: sarif
+      required: true
+    severity_threshold:
+      type: string
+      default: "high"
+  steps:
+    - name: evaluate-policy
+      action: opa.evaluate
+      params:
+        policy: "soc2/access-control.rego"
+        input: "{{ inputs.findings }}"
+    - name: create-ticket
+      action: jira.create_issue
+      condition:
+        when: "steps.evaluate-policy.status == 'failed'"
+      params:
+        project: "SEC"
+        summary: "SOC2 compliance gap detected"
+  outputs:
+    compliance_status:
+      from: "steps.evaluate-policy.output"
+  triggers:
+    - event: schedule.cron
+      filter:
+        expression: "0 0 * * 1"
+```
+
+### Related Documentation
+
+- [Playbook Language Reference](PLAYBOOK_LANGUAGE_REFERENCE.md) - Complete syntax documentation
+- [Docker Showcase Guide](DOCKER_SHOWCASE_GUIDE.md#29-playbook---execute-fixops-playbooks-yaml-dsl) - Docker examples
+
+---
+
 ## Summary Table
 
 | Feature | Python LOC | JS LOC | APIs | CLIs | UI Pages | Tests LOC |
@@ -1391,8 +1509,9 @@ Single remediation task for group
 | Marketplace | 1,800 | 0 | 12 | 0 | 0 | 300 |
 | Bulk Operations | 700 | 0 | 12 | 0 | 0 | 200 |
 | Collaboration | 600 | 0 | 21 | 0 | 0 | 200 |
+| Playbook DSL | 1,100 | 0 | 0 | 3 | 0 | 0 |
 | Frontend UI | 0 | 13,600 | - | - | 16 | 0 |
-| **Subtotal (Features)** | **38,200** | **13,600** | **303** | **51** | **16** | **18,300** |
+| **Subtotal (Features)** | **39,300** | **13,600** | **303** | **54** | **16** | **18,300** |
 | Core Infrastructure | 40,000 | 0 | - | - | - | 20,000 |
 | Enterprise Features | 15,600 | 0 | - | - | - | 5,000 |
 | Other JS/Config | 0 | 44,000 | - | - | - | 0 |
