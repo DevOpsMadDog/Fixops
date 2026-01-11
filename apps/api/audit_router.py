@@ -4,9 +4,10 @@ Audit and compliance API endpoints.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.audit_db import AuditDB
 from core.audit_models import AuditEventType, AuditSeverity
 
@@ -55,6 +56,7 @@ class PaginatedAuditLogResponse(BaseModel):
 
 @router.get("/logs", response_model=PaginatedAuditLogResponse)
 async def list_audit_logs(
+    org_id: str = Depends(get_org_id),
     event_type: Optional[str] = None,
     user_id: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),

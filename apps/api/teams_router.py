@@ -3,9 +3,10 @@ Team management API endpoints.
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.user_db import UserDB
 from core.user_models import Team
 
@@ -55,7 +56,9 @@ class AddMemberRequest(BaseModel):
 
 @router.get("", response_model=PaginatedTeamResponse)
 async def list_teams(
-    limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
     """List all teams with pagination."""
     teams = db.list_teams(limit=limit, offset=offset)

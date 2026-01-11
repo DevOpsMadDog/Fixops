@@ -11,6 +11,7 @@ so receiver endpoints use their own authentication mechanisms (webhook signature
 import hashlib
 import hmac
 import json
+import logging
 import os
 import sqlite3
 import uuid
@@ -18,8 +19,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Header, HTTPException
+logger = logging.getLogger(__name__)
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
+
+from apps.api.dependencies import get_org_id
+from core.connectors import AutomationConnectors
 
 # Management endpoints - requires API key authentication
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
@@ -482,6 +488,7 @@ def create_integration_mapping(request: CreateMappingRequest) -> Dict[str, Any]:
 
 @router.get("/mappings")
 def list_integration_mappings(
+    org_id: str = Depends(get_org_id),
     cluster_id: Optional[str] = None,
     integration_type: Optional[str] = None,
     limit: int = 100,
@@ -1055,6 +1062,223 @@ def get_outbox_stats() -> Dict[str, Any]:
         }
     finally:
         conn.close()
+
+
+@router.post("/outbox/{outbox_id}/execute")
+def execute_outbox_item(outbox_id: str) -> Dict[str, Any]:
+    """Execute an outbox item by calling the appropriate connector.
+
+    This endpoint actually delivers the outbox item to the external system
+    using the configured connectors. It handles retry logic and updates
+    the outbox item status based on the result.
+    """
+    conn = sqlite3.connect(_get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM outbox WHERE outbox_id = ?",
+            (outbox_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Outbox item not found")
+
+        item = dict(row)
+
+        if item["status"] not in ("pending", "retrying"):
+            return {
+                "outbox_id": outbox_id,
+                "success": False,
+                "message": f"Cannot execute item with status '{item['status']}'",
+            }
+
+        integration_type = item["integration_type"]
+        operation = item["operation"]
+        payload = json.loads(item["payload"])
+
+        payload["type"] = integration_type
+        payload["operation"] = operation
+
+        connectors = AutomationConnectors(
+            overlay_settings=_get_connector_settings(),
+            toggles={"enforce_ticket_sync": True},
+        )
+
+        outcome = connectors.deliver(payload)
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        if outcome.status == "sent":
+            cursor.execute(
+                """
+                UPDATE outbox
+                SET status = 'completed', processed_at = ?
+                WHERE outbox_id = ?
+            """,
+                (now, outbox_id),
+            )
+            conn.commit()
+            return {
+                "outbox_id": outbox_id,
+                "success": True,
+                "status": "completed",
+                "outcome": outcome.to_dict(),
+                "processed_at": now,
+            }
+        else:
+            retry_count = item["retry_count"] + 1
+            max_retries = item["max_retries"]
+            error_str = outcome.details.get("reason", "Unknown error")
+
+            if retry_count >= max_retries:
+                cursor.execute(
+                    """
+                    UPDATE outbox
+                    SET status = 'failed', retry_count = ?, last_error = ?, processed_at = ?
+                    WHERE outbox_id = ?
+                """,
+                    (retry_count, error_str, now, outbox_id),
+                )
+                conn.commit()
+                return {
+                    "outbox_id": outbox_id,
+                    "success": False,
+                    "status": "failed",
+                    "retry_count": retry_count,
+                    "max_retries": max_retries,
+                    "error": error_str,
+                    "outcome": outcome.to_dict(),
+                }
+            else:
+                next_retry = _calculate_next_retry(retry_count)
+                cursor.execute(
+                    """
+                    UPDATE outbox
+                    SET status = 'retrying', retry_count = ?, next_retry_at = ?, last_error = ?
+                    WHERE outbox_id = ?
+                """,
+                    (retry_count, next_retry, error_str, outbox_id),
+                )
+                conn.commit()
+                return {
+                    "outbox_id": outbox_id,
+                    "success": False,
+                    "status": "retrying",
+                    "retry_count": retry_count,
+                    "max_retries": max_retries,
+                    "next_retry_at": next_retry,
+                    "error": error_str,
+                    "outcome": outcome.to_dict(),
+                }
+    finally:
+        conn.close()
+
+
+def _get_connector_settings() -> Dict[str, Any]:
+    """Load connector settings from environment or config file."""
+    settings: Dict[str, Any] = {}
+
+    if os.getenv("FIXOPS_JIRA_URL"):
+        settings["jira"] = {
+            "url": os.getenv("FIXOPS_JIRA_URL"),
+            "user": os.getenv("FIXOPS_JIRA_USER"),
+            "token_env": "FIXOPS_JIRA_TOKEN",
+            "project_key": os.getenv("FIXOPS_JIRA_PROJECT_KEY"),
+        }
+
+    if os.getenv("FIXOPS_SERVICENOW_URL"):
+        settings["servicenow"] = {
+            "instance_url": os.getenv("FIXOPS_SERVICENOW_URL"),
+            "user": os.getenv("FIXOPS_SERVICENOW_USER"),
+            "token_env": "FIXOPS_SERVICENOW_TOKEN",
+        }
+
+    if os.getenv("FIXOPS_GITLAB_URL"):
+        settings["gitlab"] = {
+            "base_url": os.getenv("FIXOPS_GITLAB_URL"),
+            "project_id": os.getenv("FIXOPS_GITLAB_PROJECT_ID"),
+            "token_env": "FIXOPS_GITLAB_TOKEN",
+        }
+
+    if os.getenv("FIXOPS_GITHUB_OWNER"):
+        settings["github"] = {
+            "owner": os.getenv("FIXOPS_GITHUB_OWNER"),
+            "repo": os.getenv("FIXOPS_GITHUB_REPO"),
+            "token_env": "FIXOPS_GITHUB_TOKEN",
+        }
+
+    if os.getenv("FIXOPS_AZURE_DEVOPS_ORG"):
+        settings["azure_devops"] = {
+            "organization": os.getenv("FIXOPS_AZURE_DEVOPS_ORG"),
+            "project": os.getenv("FIXOPS_AZURE_DEVOPS_PROJECT"),
+            "token_env": "FIXOPS_AZURE_DEVOPS_TOKEN",
+        }
+
+    if os.getenv("FIXOPS_SLACK_WEBHOOK_URL"):
+        settings["policy_automation"] = {
+            "webhook_url": os.getenv("FIXOPS_SLACK_WEBHOOK_URL"),
+        }
+
+    if os.getenv("FIXOPS_CONFLUENCE_URL"):
+        settings["confluence"] = {
+            "url": os.getenv("FIXOPS_CONFLUENCE_URL"),
+            "user": os.getenv("FIXOPS_CONFLUENCE_USER"),
+            "token_env": "FIXOPS_CONFLUENCE_TOKEN",
+            "space_key": os.getenv("FIXOPS_CONFLUENCE_SPACE_KEY"),
+        }
+
+    return settings
+
+
+@router.post("/outbox/process-pending")
+def process_pending_outbox_items(limit: int = 10) -> Dict[str, Any]:
+    """Process pending outbox items that are ready for delivery.
+
+    This endpoint processes up to `limit` pending outbox items that have
+    either never been attempted or whose next_retry_at time has passed.
+    """
+    conn = sqlite3.connect(_get_db_path())
+    conn.row_factory = sqlite3.Row
+    try:
+        cursor = conn.cursor()
+        now = datetime.now(timezone.utc).isoformat()
+
+        cursor.execute(
+            """
+            SELECT outbox_id FROM outbox
+            WHERE status IN ('pending', 'retrying')
+            AND (next_retry_at IS NULL OR next_retry_at <= ?)
+            ORDER BY created_at ASC
+            LIMIT ?
+        """,
+            (now, limit),
+        )
+        rows = cursor.fetchall()
+        outbox_ids = [row["outbox_id"] for row in rows]
+    finally:
+        conn.close()
+
+    results = []
+    for outbox_id in outbox_ids:
+        try:
+            result = execute_outbox_item(outbox_id)
+            results.append(result)
+        except Exception as e:
+            logger.error(f"Failed to execute outbox item {outbox_id}: {e}")
+            results.append(
+                {
+                    "outbox_id": outbox_id,
+                    "success": False,
+                    "error": "Internal processing error",
+                }
+            )
+
+    return {
+        "processed_count": len(results),
+        "results": results,
+    }
 
 
 # ============================================================================

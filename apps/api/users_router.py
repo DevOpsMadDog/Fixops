@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import jwt
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr, Field
 
+from apps.api.dependencies import get_org_id
 from core.user_db import UserDB
 from core.user_models import User, UserRole, UserStatus
 
@@ -111,7 +112,9 @@ async def login(credentials: LoginRequest):
 
 @router.get("", response_model=PaginatedUserResponse)
 async def list_users(
-    limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
     """List all users with pagination."""
     users = db.list_users(limit=limit, offset=offset)

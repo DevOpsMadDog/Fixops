@@ -20,8 +20,10 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from apps.api.dependencies import get_org_id
 
 # Add fixops-enterprise to path if not already present (done once at module load)
 # Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
@@ -489,7 +491,7 @@ def enrich_findings(request: EnrichFindingsRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def get_feed_stats() -> Dict[str, Any]:
+def get_feed_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get comprehensive statistics across all feed categories."""
     service = get_feeds_service()
     return service.get_comprehensive_stats()
