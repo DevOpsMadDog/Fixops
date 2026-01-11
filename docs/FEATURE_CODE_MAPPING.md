@@ -8,6 +8,8 @@ This document maps every FixOps feature to its exact code paths, API endpoints, 
 
 ## Deployment & Usage Guide
 
+> **For complete runnable examples of all 303 API endpoints and 111 CLI commands, see [Docker Showcase Guide](DOCKER_SHOWCASE_GUIDE.md)**
+
 ### Running Inside Docker (Recommended for Production)
 
 FixOps is distributed as Docker images for easy deployment at customer sites. The main image exposes port 8000 for the API.
