@@ -1760,3 +1760,89 @@ def test_confluence_update_exception():
     )
     # Should return fallback result
     assert result["updated"] is True
+
+
+def test_get_value_by_path_hasattr_getattr():
+    """Test _get_value_by_path with hasattr/getattr path - covers lines 932-933, 935."""
+    from core.playbook_runner import (
+        Playbook,
+        PlaybookExecutionContext,
+        PlaybookKind,
+        PlaybookMetadata,
+        PlaybookRunner,
+        StepResult,
+        StepStatus,
+    )
+
+    runner = PlaybookRunner()
+    metadata = PlaybookMetadata(name="test", version="1.0.0")
+    playbook = Playbook(
+        api_version="fixops.io/v1",
+        kind=PlaybookKind.PLAYBOOK,
+        metadata=metadata,
+        steps=[],
+    )
+    context = PlaybookExecutionContext(playbook=playbook, inputs={})
+
+    # Create a custom class with attributes
+    class CustomObject:
+        def __init__(self):
+            self.nested_attr = "nested_value"
+            self.another_attr = {"key": "value"}
+
+    # Add a step result with a custom object in the output
+    custom_obj = CustomObject()
+    context.step_results["step1"] = StepResult(
+        name="step1",
+        status=StepStatus.SUCCESS,
+        output={"custom": custom_obj},
+    )
+
+    # Test accessing an attribute via hasattr/getattr (lines 932-933)
+    result = runner._get_value_by_path("steps.step1.output.custom.nested_attr", context)
+    assert result == "nested_value"
+
+    # Test accessing a non-existent attribute (line 935)
+    result = runner._get_value_by_path(
+        "steps.step1.output.custom.nonexistent_attr", context
+    )
+    assert result is None
+
+    # Test with variables path that has an object with attributes
+    context.variables["obj"] = custom_obj
+    result = runner._get_value_by_path("variables.obj.nested_attr", context)
+    assert result == "nested_value"
+
+    # Test with variables path accessing non-existent attribute
+    result = runner._get_value_by_path("variables.obj.missing", context)
+    assert result is None
+
+
+def test_cli_playbook_list_yml_exception():
+    """Test CLI playbook list with malformed .yml file - covers lines 3950-3951."""
+    import argparse
+    import os
+    import tempfile
+    from io import StringIO
+    from unittest.mock import patch
+
+    from core.cli import _handle_playbook
+
+    # Create a temporary directory with a malformed .yml file
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create a malformed .yml file that will cause an exception when loading
+        malformed_yml = os.path.join(tmpdir, "malformed.yml")
+        with open(malformed_yml, "w") as f:
+            f.write("invalid: yaml: content: [unclosed")
+
+        # Use "dir" attribute as that's what the function looks for
+        args = argparse.Namespace(playbook_command="list", dir=tmpdir)
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            result = _handle_playbook(args)
+            output = mock_stdout.getvalue()
+
+        # Should return 0 (success) but include error in output
+        assert result == 0
+        assert "malformed.yml" in output
+        assert "error" in output.lower()
