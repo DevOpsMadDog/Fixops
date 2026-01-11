@@ -1403,6 +1403,118 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ---
 
+### Enterprise Connectors & Outbox Endpoints
+
+**What it operates on:** Outbox queue for sending data to external systems (Jira, ServiceNow, GitLab, Azure DevOps, GitHub). Full CRUD operations on external tickets/issues.
+
+**Prerequisites:** 
+- Integration must be configured first
+- Connector credentials (API tokens) in environment or config
+- For execute: Outbox item must exist
+
+**Data flow:** Finding → Outbox item created → Execute via connector → External system updated → Status tracked.
+
+**Supported Connectors:**
+| Connector | Operations | Status |
+|-----------|------------|--------|
+| **Jira** | `create_issue`, `update_issue`, `transition_issue`, `add_comment` | Full CRUD |
+| **ServiceNow** | `create_incident`, `update_incident`, `add_work_note` | Full CRUD |
+| **GitLab** | `create_issue`, `update_issue`, `add_comment` | Full CRUD |
+| **Azure DevOps** | `create_work_item`, `update_work_item`, `add_comment` | Full CRUD |
+| **GitHub** | `create_issue`, `update_issue`, `add_comment` | Full CRUD |
+| **Confluence** | `create_page`, `update_page` | Bidirectional |
+| **Slack** | `post_message` | Outbound only |
+
+```bash
+# List outbox items (pending external actions)
+curl -H "X-API-Key: demo-token-12345" \
+  http://localhost:8000/api/v1/webhooks/outbox | jq
+
+# Get outbox item details
+curl -H "X-API-Key: demo-token-12345" \
+  http://localhost:8000/api/v1/webhooks/outbox/outbox-123 | jq
+
+# Execute single outbox item (sends to Jira/ServiceNow/etc)
+curl -H "X-API-Key: demo-token-12345" \
+  -X POST \
+  http://localhost:8000/api/v1/webhooks/outbox/outbox-123/execute | jq
+
+# Process all pending outbox items (batch execution)
+curl -H "X-API-Key: demo-token-12345" \
+  -X POST \
+  http://localhost:8000/api/v1/webhooks/outbox/process-pending | jq
+```
+
+**Webhook Receivers (inbound from external systems):**
+```bash
+# Jira webhook (receives issue updates)
+curl -H "X-API-Key: demo-token-12345" \
+  -H "Content-Type: application/json" \
+  -d '{"webhookEvent": "jira:issue_updated", "issue": {...}}' \
+  http://localhost:8000/api/v1/webhooks/jira
+
+# ServiceNow webhook
+curl -H "X-API-Key: demo-token-12345" \
+  -H "Content-Type: application/json" \
+  -d '{"sys_id": "...", "state": "resolved"}' \
+  http://localhost:8000/api/v1/webhooks/servicenow
+
+# GitLab webhook
+curl -H "X-API-Key: demo-token-12345" \
+  -H "Content-Type: application/json" \
+  -d '{"object_kind": "issue", "object_attributes": {...}}' \
+  http://localhost:8000/api/v1/webhooks/gitlab
+
+# Azure DevOps webhook
+curl -H "X-API-Key: demo-token-12345" \
+  -H "Content-Type: application/json" \
+  -d '{"eventType": "workitem.updated", "resource": {...}}' \
+  http://localhost:8000/api/v1/webhooks/azure-devops
+```
+
+---
+
+### Multi-Tenancy (org_id) Support
+
+**What it operates on:** All API endpoints now support multi-tenancy via `org_id` parameter. Data is isolated per organization.
+
+**Prerequisites:** None - defaults to "default" org if not specified.
+
+**Data flow:** Request with org_id → Data filtered by org → Response scoped to org.
+
+**How to use org_id:**
+```bash
+# Via query parameter
+curl -H "X-API-Key: demo-token-12345" \
+  "http://localhost:8000/api/v1/analytics/dashboard/overview?org_id=acme-corp" | jq
+
+# Via X-Org-ID header
+curl -H "X-API-Key: demo-token-12345" \
+  -H "X-Org-ID: acme-corp" \
+  http://localhost:8000/api/v1/analytics/dashboard/overview | jq
+
+# Without org_id (uses "default")
+curl -H "X-API-Key: demo-token-12345" \
+  http://localhost:8000/api/v1/analytics/dashboard/overview | jq
+```
+
+**Routers with org_id support:**
+- `/api/v1/analytics/*` - Analytics and dashboard
+- `/api/v1/audit/*` - Audit logs
+- `/api/v1/feeds/*` - Threat intelligence feeds
+- `/api/v1/integrations/*` - Integration configs
+- `/api/v1/inventory/*` - Asset inventory
+- `/api/v1/marketplace/*` - Marketplace items
+- `/api/v1/pentagi/*` - Pen testing
+- `/api/v1/policies/*` - Security policies
+- `/api/v1/reports/*` - Reports
+- `/api/v1/teams/*` - Team management
+- `/api/v1/users/*` - User management
+- `/api/v1/webhooks/*` - Webhooks and outbox
+- `/api/v1/workflows/*` - Workflow automation
+
+---
+
 ### Analytics Endpoints
 
 **What it operates on:** Aggregated data from all findings, decisions, and compliance data in FixOps database.

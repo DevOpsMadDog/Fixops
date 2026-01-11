@@ -915,21 +915,34 @@ PDF/HTML/JSON report
 
 ## Feature 7: Integrations & Connectors
 
-**Purpose:** Jira, Confluence, Slack, GitHub, GitLab, Jenkins bidirectional integrations.
+**Purpose:** Jira, Confluence, Slack, GitHub, GitLab, ServiceNow, Azure DevOps bidirectional integrations with full CRUD operations.
 
 ### Code Paths
 
 | Component | File Path | LOC | Key Functions/Classes |
 |-----------|-----------|-----|----------------------|
-| Connectors | `core/connectors.py` | 358 | `JiraConnector`, `ConfluenceConnector`, `SlackConnector` |
+| Connectors | `core/connectors.py` | 2,885 | `JiraConnector`, `ConfluenceConnector`, `SlackConnector`, `ServiceNowConnector`, `GitLabConnector`, `AzureDevOpsConnector`, `GitHubConnector` |
 | Integration DB | `core/integration_db.py` | 167 | `IntegrationDB` |
-| Integration Models | `core/integration_models.py` | 63 | `Integration`, `WebhookConfig` |
-| Webhooks Router | `apps/api/webhooks_router.py` | 1,579 | 17 webhook endpoints |
-| Integrations Router | `apps/api/integrations_router.py` | 253 | 8 integration endpoints |
+| Integration Models | `core/integration_models.py` | 65 | `Integration`, `WebhookConfig` |
+| Webhooks Router | `apps/api/webhooks_router.py` | 1,805 | 21 webhook + outbox endpoints |
+| Integrations Router | `apps/api/integrations_router.py` | 338 | 8 integration endpoints |
+| API Dependencies | `apps/api/dependencies.py` | 83 | `get_org_id`, `get_org_id_required`, `get_correlation_id` |
 | Integrations Module | `apps/api/integrations.py` | 417 | Integration helpers |
 | GitHub Adapter | `integrations/github/adapter.py` | 105 | `GitHubAdapter` |
 | Jenkins Adapter | `integrations/jenkins/adapter.py` | 82 | `JenkinsAdapter` |
 | SonarQube Adapter | `integrations/sonarqube/adapter.py` | 49 | `SonarQubeAdapter` |
+
+### Enterprise Connector Operations
+
+| Connector | Operations | Status |
+|-----------|------------|--------|
+| **Jira** | `create_issue()`, `update_issue()`, `transition_issue()`, `add_comment()` | Full CRUD |
+| **ServiceNow** | `create_incident()`, `update_incident()`, `add_work_note()` | Full CRUD |
+| **GitLab** | `create_issue()`, `update_issue()`, `add_comment()` | Full CRUD |
+| **Azure DevOps** | `create_work_item()`, `update_work_item()`, `add_comment()` | Full CRUD |
+| **GitHub** | `create_issue()`, `update_issue()`, `add_comment()` | Full CRUD |
+| **Confluence** | `create_page()`, `update_page()` | Bidirectional |
+| **Slack** | `post_message()` | Outbound only |
 
 ### API Endpoints
 
@@ -938,7 +951,12 @@ PDF/HTML/JSON report
 | POST | `/api/v1/webhooks/jira` | `handle_jira_webhook` | `apps/api/webhooks_router.py:100-250` |
 | POST | `/api/v1/webhooks/github` | `handle_github_webhook` | `apps/api/webhooks_router.py:252-400` |
 | POST | `/api/v1/webhooks/gitlab` | `handle_gitlab_webhook` | `apps/api/webhooks_router.py:402-550` |
-| POST | `/api/v1/webhooks/jenkins` | `handle_jenkins_webhook` | `apps/api/webhooks_router.py:552-650` |
+| POST | `/api/v1/webhooks/servicenow` | `handle_servicenow_webhook` | `apps/api/webhooks_router.py:552-650` |
+| POST | `/api/v1/webhooks/azure-devops` | `handle_azure_devops_webhook` | `apps/api/webhooks_router.py:652-750` |
+| GET | `/api/v1/webhooks/outbox` | `list_outbox` | `apps/api/webhooks_router.py:752-800` |
+| GET | `/api/v1/webhooks/outbox/{id}` | `get_outbox_item` | `apps/api/webhooks_router.py:802-850` |
+| POST | `/api/v1/webhooks/outbox/{id}/execute` | `execute_outbox_item` | `apps/api/webhooks_router.py:852-950` |
+| POST | `/api/v1/webhooks/outbox/process-pending` | `process_pending_outbox` | `apps/api/webhooks_router.py:952-1050` |
 | GET | `/api/v1/integrations` | `list_integrations` | `apps/api/integrations_router.py:35-65` |
 | POST | `/api/v1/integrations/configure` | `configure_integration` | `apps/api/integrations_router.py:67-130` |
 | POST | `/api/v1/integrations/{id}/test` | `test_integration` | `apps/api/integrations_router.py:132-180` |
