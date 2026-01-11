@@ -263,8 +263,8 @@ class PlaybookRunner:
     def __init__(self, overlay_path: Optional[str] = None) -> None:
         """Initialize the playbook runner with optional overlay configuration."""
         self._action_handlers: Dict[ActionType, Callable[..., Any]] = {}
-        self._overlay = None
-        self._connectors = None
+        self._overlay: Any = None
+        self._connectors: Any = None
 
         # Load overlay configuration if provided
         if overlay_path:
@@ -866,7 +866,7 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Resolve template variables in parameters."""
-        resolved = {}
+        resolved: Dict[str, Any] = {}
         for key, value in params.items():
             if isinstance(value, str):
                 resolved[key] = self._resolve_template(value, context)
