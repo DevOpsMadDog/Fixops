@@ -5,7 +5,7 @@
 
 ---
 
-## Verified Facts (as of commit 093b6e91)
+## Verified Facts (as of commit 3a835801)
 
 The following metrics were verified against actual code via deep code dive:
 
