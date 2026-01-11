@@ -6,6 +6,229 @@ This document maps every FixOps feature to its exact code paths, API endpoints, 
 
 ---
 
+## Deployment & Usage Guide
+
+### Running Inside Docker (Recommended for Production)
+
+FixOps is distributed as Docker images for easy deployment at customer sites. The main image exposes port 8000 for the API.
+
+**Option 1: Quick Start with Docker Compose**
+
+```bash
+# Clone the repo (or use pre-built image)
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+
+# Start the API server
+docker compose up -d
+
+# Verify it's running
+curl http://localhost:8000/health
+```
+
+**Option 2: Run Pre-built Image Directly**
+
+```bash
+# Pull and run the image
+docker run -d \
+  --name fixops-api \
+  -p 8000:8000 \
+  -e FIXOPS_API_TOKEN=your-secure-token \
+  -e FIXOPS_DISABLE_TELEMETRY=1 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/config:/app/config \
+  devopsaico/fixops:latest
+
+# Check health
+curl http://localhost:8000/health
+```
+
+**Docker Container Modes**
+
+The container supports multiple modes via the entrypoint:
+
+| Mode | Command | Description |
+|------|---------|-------------|
+| `api-only` | `docker run fixops api-only` | Start only the API server (default) |
+| `interactive` | `docker run -it fixops interactive` | Interactive API tester shell |
+| `demo` | `docker run -it fixops demo` | Run animated ALDECI demo |
+| `cli <args>` | `docker run fixops cli teams list` | Run any CLI command |
+| `shell` | `docker run -it fixops shell` | Start bash shell |
+| `test-all` | `docker run fixops test-all` | Run all API tests |
+
+**Example: Run CLI Commands Inside Docker**
+
+```bash
+# List teams
+docker run devopsaico/fixops:latest cli teams list
+
+# Run demo pipeline
+docker run devopsaico/fixops:latest cli demo --mode demo --pretty
+
+# Run compliance check
+docker run devopsaico/fixops:latest cli compliance status --framework PCI-DSS
+
+# Interactive shell for exploration
+docker run -it devopsaico/fixops:latest shell
+```
+
+**Example: Upload Files to Running Container**
+
+```bash
+# Start container
+docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+
+# Upload SBOM
+curl -H "X-API-Key: demo-token-12345" \
+  -F "file=@my-sbom.json;type=application/json" \
+  http://localhost:8000/inputs/sbom
+
+# Run pipeline
+curl -H "X-API-Key: demo-token-12345" http://localhost:8000/pipeline/run | jq
+```
+
+**Available Docker Compose Configurations**
+
+| File | Purpose | Default Token |
+|------|---------|---------------|
+| `docker-compose.yml` | Main dev stack with sidecars | `demo-token` |
+| `docker-compose.demo.yml` | Demo with OpenTelemetry | (env var) |
+| `docker-compose.enterprise.yml` | Enterprise with ChromaDB | `enterprise-token` |
+| `docker-compose.pentagi.yml` | With PentAGI pentest service | (env var) |
+| `deployment-packs/docker/docker-compose.yml` | Production template | (env var) |
+
+---
+
+### Running Outside Docker (Local Development)
+
+For development or when you need direct access to the codebase.
+
+**Prerequisites**
+
+- Python 3.10+ (tested with 3.11)
+- pip and virtualenv
+- Optional: `jq` for JSON formatting
+
+**Setup**
+
+```bash
+# Clone and setup
+git clone https://github.com/DevOpsMadDog/Fixops.git
+cd Fixops
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
+export FIXOPS_API_TOKEN="demo-token"
+export FIXOPS_DISABLE_TELEMETRY=1
+```
+
+**Start the API Server**
+
+```bash
+# Development mode with auto-reload
+uvicorn apps.api.app:app --reload --port 8000
+
+# Production mode
+uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**Run CLI Commands Directly**
+
+```bash
+# All CLI commands use: python -m core.cli <command> [options]
+python -m core.cli --help                    # Show all commands
+python -m core.cli demo --mode demo --pretty # Run demo pipeline
+python -m core.cli teams list                # List teams
+python -m core.cli compliance status         # Check compliance
+```
+
+---
+
+## CLI Command Reference
+
+All 28 CLI command groups with their purpose and usage. Run `python -m core.cli <command> --help` for full options.
+
+| Command Group | Purpose | Why You Need It | Example |
+|---------------|---------|-----------------|---------|
+| `demo` | Run pipeline with bundled fixtures | Quick validation without external data | `python -m core.cli demo --mode demo --pretty` |
+| `run` | Execute full FixOps pipeline | Production pipeline execution with overlays | `python -m core.cli run --overlay config/fixops.overlay.yml` |
+| `ingest` | Normalize security artifacts | Import SBOM/SARIF/CVE files into FixOps | `python -m core.cli ingest --sbom sbom.json --sarif scan.sarif` |
+| `stage-run` | Run single pipeline stage | Debug specific stages (build, test, deploy) | `python -m core.cli stage-run --stage build --input design.csv` |
+| `make-decision` | Get remediation decision | Automated accept/reject based on policy | `python -m core.cli make-decision --input findings.json` |
+| `analyze` | Analyze findings and output verdict | Quick security assessment | `python -m core.cli analyze --input findings.json` |
+| `health` | Check integration readiness | Verify connectors before pipeline run | `python -m core.cli health` |
+| `get-evidence` | Copy evidence bundle | Extract signed evidence for audits | `python -m core.cli get-evidence --run pipeline.json --target ./audit` |
+| `show-overlay` | Print overlay configuration | Debug configuration without secrets | `python -m core.cli show-overlay --overlay config/fixops.overlay.yml` |
+| `train-forecast` | Train severity forecast model | Calibrate risk predictions with history | `python -m core.cli train-forecast --data incidents.csv` |
+| `train-bn-lr` | Train Bayesian Network model | Advanced risk modeling | `python -m core.cli train-bn-lr --data training.csv` |
+| `predict-bn-lr` | Predict exploitation risk | Score CVEs using trained model | `python -m core.cli predict-bn-lr --input cves.json` |
+| `backtest-bn-lr` | Backtest trained model | Validate model accuracy | `python -m core.cli backtest-bn-lr --model model.pkl --test test.csv` |
+| `teams` | Manage teams | Create/list/delete security teams | `python -m core.cli teams list` |
+| `users` | Manage users | User administration | `python -m core.cli users list` |
+| `groups` | Manage finding groups | Cluster related findings | `python -m core.cli groups list` |
+| `pentagi` | Manage PentAGI testing | Basic pentest job management | `python -m core.cli pentagi list` |
+| `micro-pentest` | Run micro penetration tests | Quick CVE-specific pentest | `python -m core.cli micro-pentest run --cve-ids CVE-2024-1234` |
+| `advanced-pentest` | AI-powered pentest | Multi-LLM consensus pentest | `python -m core.cli advanced-pentest run --target https://app.com` |
+| `compliance` | Manage compliance | Framework status and reports | `python -m core.cli compliance status --framework PCI-DSS` |
+| `reports` | Generate reports | Security reports in various formats | `python -m core.cli reports generate --format pdf` |
+| `inventory` | Manage app inventory | Track applications and services | `python -m core.cli inventory list` |
+| `policies` | Manage security policies | CRUD for decision policies | `python -m core.cli policies list` |
+| `integrations` | Manage connectors | Configure Jira, Slack, etc. | `python -m core.cli integrations list` |
+| `analytics` | View security metrics | Dashboard and MTTR stats | `python -m core.cli analytics dashboard` |
+| `audit` | View audit logs | Compliance audit trail | `python -m core.cli audit list --days 30` |
+| `workflows` | Manage automation | Workflow definitions | `python -m core.cli workflows list` |
+| `remediation` | Manage remediation tasks | Track fix progress | `python -m core.cli remediation list --status open` |
+| `reachability` | Analyze vulnerability reach | Check if CVE is reachable in code | `python -m core.cli reachability analyze --cve CVE-2024-1234` |
+| `correlation` | Manage deduplication | Find duplicate findings | `python -m core.cli correlation analyze` |
+| `notifications` | Notification queue | Manage alert delivery | `python -m core.cli notifications list` |
+
+---
+
+## API Router Reference
+
+All 30 API routers with their purpose. Access OpenAPI docs at `http://localhost:8000/docs` when running.
+
+| Router | Endpoints | Purpose | Why You Need It | Base Path |
+|--------|-----------|---------|-----------------|-----------|
+| Main App | 45 | Core pipeline operations | Upload artifacts, run pipeline, health checks | `/inputs/*`, `/pipeline/*`, `/health` |
+| Enhanced | 4 | Multi-LLM decisions | Compare GPT/Claude/Gemini recommendations | `/api/v1/enhanced/*` |
+| Feeds | 15 | Threat intelligence | EPSS, KEV, NVD, OSV feed access | `/api/v1/feeds/*` |
+| Policies | 6 | Decision policies | CRUD for security policies | `/api/v1/policies/*` |
+| Validation | 3 | Input validation | Validate SBOM/SARIF before processing | `/api/v1/validate/*` |
+| PentAGI | 14 | Basic pentest | Job management for PentAGI | `/api/v1/pentagi/*` |
+| PentAGI Enhanced | 19 | Advanced pentest | Playbooks, campaigns, reporting | `/api/v1/pentagi/enhanced/*` |
+| Micro Pentest | 3 | Quick pentest | CVE-specific micro tests | `/api/v1/micro-pentest/*` |
+| Compliance | 12 | Compliance management | Frameworks, assessments, evidence | `/api/v1/compliance/*` |
+| Reports | 8 | Report generation | PDF/HTML/JSON security reports | `/api/v1/reports/*` |
+| Inventory | 10 | Asset inventory | Applications, services, dependencies | `/api/v1/inventory/*` |
+| Analytics | 12 | Security metrics | Dashboard, trends, MTTR | `/api/v1/analytics/*` |
+| Audit | 6 | Audit logging | Compliance audit trail | `/api/v1/audit/*` |
+| Workflows | 10 | Automation | Workflow definitions and execution | `/api/v1/workflows/*` |
+| Remediation | 14 | Fix tracking | Task management, SLA tracking | `/api/v1/remediation/*` |
+| Teams | 8 | Team management | CRUD for security teams | `/api/v1/teams/*` |
+| Users | 10 | User management | User administration | `/api/v1/users/*` |
+| Groups | 6 | Finding groups | Cluster management | `/api/v1/groups/*` |
+| Correlation | 8 | Deduplication | Finding correlation | `/api/v1/correlation/*` |
+| Notifications | 6 | Alerts | Notification delivery | `/api/v1/notifications/*` |
+| Webhooks | 18 | Inbound webhooks | Receive from Jira, GitHub, etc. | `/api/v1/webhooks/*` |
+| Integrations | 12 | Connector config | Configure external systems | `/api/v1/integrations/*` |
+| Marketplace | 8 | Extensions | Plugin marketplace | `/api/v1/marketplace/*` |
+| Evidence | 6 | Evidence bundles | Cryptographic evidence | `/api/v1/evidence/*` |
+| SSDLC | 8 | Secure SDLC | Pipeline security gates | `/api/v1/ssdlc/*` |
+| Bulk | 6 | Bulk operations | Mass updates, imports | `/api/v1/bulk/*` |
+| Comments | 4 | Collaboration | Finding comments | `/api/v1/comments/*` |
+| Attachments | 4 | File attachments | Evidence files | `/api/v1/attachments/*` |
+| Provenance | 4 | Supply chain | SLSA provenance | `/api/v1/provenance/*` |
+| Backend Routes | 18 | Legacy backend | Additional backend endpoints | `/api/v1/*` |
+
+---
+
 ## Quick Start Examples
 
 Real commands you can run immediately. See [detailed feature sections](#feature-1-vulnerability-intake--normalization) below for full API/CLI reference.
