@@ -91,11 +91,11 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **134 CLI Parser Entries** (full command-line interface)
 
 #### Gaps (-):
-- ⚠️ **Correlation Engine** exists but disabled by default (`enabled: false`)
-- ⚠️ **Cross-Tool Deduplication** not implemented (only within-file)
-- ⚠️ **Bulk Operations** return mock data (stub implementation)
+- ✅ **Correlation Engine** implemented and integrated into pipeline (`process_findings_batch()` called for all finding types)
+- ✅ **Cross-Tool Deduplication** implemented via `DeduplicationService` with `correlate_cross_stage()` (CVE+purl, rule_id+file_path anchors)
+- ⚠️ **Bulk Operations** return mock data (stub implementation - async job scaffold exists but doesn't persist)
 - ⚠️ **ALM Integrations** (Jira/Confluence) have real HTTP implementations but need live instance validation
-- ⚠️ **SLA Management** mentioned but not fully implemented
+- ✅ **SLA Management** fully implemented in `RemediationService` (1,112 LOC) with breach detection, escalation, scheduler
 - ⚠️ **PostgreSQL Migration** planned but not complete (still SQLite)
 
 **Scoring Rationale:**
@@ -105,10 +105,9 @@ The following metrics were verified against actual code via deep code dive:
 - **Final Score: 90/100** (editor judgement based on above signals)
 
 **Improvement Priority:**
-1. Enable and integrate correlation engine
-2. Complete bulk operations implementation
-3. Finish ALM integrations (Jira/Confluence)
-4. Implement cross-tool deduplication
+1. Complete bulk operations implementation (replace mock data with real DB persistence)
+2. Validate ALM integrations against live Jira/Confluence instances
+3. Migrate from SQLite to PostgreSQL for production scale
 
 ---
 
@@ -125,11 +124,11 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **Playbook DSL**: Full programming language with conditionals (`when`/`unless`), loops (`for_each`), template interpolation (`{{ inputs.x }}`), and 25+ pre-approved action handlers
 
 #### Missing/Incomplete Features ⚠️:
-- ⚠️ **Cross-Tool Deduplication**: Not implemented (SBOM vs SARIF vs CVE correlation)
-- ⚠️ **Correlation Engine Integration**: Not integrated into pipeline
-- ⚠️ **Bulk Operations**: Stub implementation (returns mock data)
-- ⚠️ **SLA Tracking**: Mentioned but not fully implemented
-- ⚠️ **ALM Integrations**: Jira/Confluence have real HTTP implementations, need live validation
+- ✅ **Cross-Tool Deduplication**: Implemented via `DeduplicationService.correlate_cross_stage()` with CVE+purl, rule_id+file_path anchors
+- ✅ **Correlation Engine Integration**: Integrated into pipeline - `process_findings_batch()` called for SARIF, CVE, CNAPP, Design, Deploy findings
+- ⚠️ **Bulk Operations**: Stub implementation (async job scaffold exists but returns mock data, doesn't persist to DB)
+- ✅ **SLA Tracking**: Fully implemented in `RemediationService` (1,112 LOC) with breach detection, escalation, scheduler
+- ⚠️ **ALM Integrations**: Jira/Confluence have real HTTP implementations, need live instance validation
 - ⚠️ **PostgreSQL Storage**: Planned but not migrated
 
 **Scoring Rationale:**
