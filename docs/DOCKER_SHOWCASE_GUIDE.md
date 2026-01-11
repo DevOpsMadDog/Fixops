@@ -56,11 +56,17 @@ Or for one-off commands: `docker run --rm devopsaico/fixops:latest cli <command>
 
 **Purpose:** Quick validation with bundled fixtures. No external data needed.
 
+**What it operates on:** Bundled sample files in `/app/samples/` and `/app/simulations/demo_pack/` (design.csv, sbom.json, scan.sarif, cve.json). These are included in the Docker image.
+
+**Prerequisites:** None - works out of the box with bundled fixtures.
+
+**Data flow:** Reads bundled fixtures → Normalizes → Runs risk scoring → Generates evidence bundle → Outputs pipeline result JSON.
+
 ```bash
 # Run demo mode
 docker exec fixops python -m core.cli demo --mode demo --pretty
 
-# Run enterprise mode
+# Run enterprise mode (enables encryption)
 docker exec fixops python -m core.cli demo --mode enterprise --pretty
 
 # Save output to file
@@ -76,11 +82,20 @@ docker exec fixops python -m core.cli demo --mode demo --quiet
 
 **Purpose:** Production pipeline execution with overlay configuration.
 
+**What it operates on:** Your security artifacts (SBOM, SARIF, CVE, design files) specified via command-line flags. Processes them through the full FixOps pipeline.
+
+**Prerequisites:** 
+- Security artifact files (SBOM, SARIF, CVE, design CSV)
+- Overlay configuration file (`/app/config/fixops.overlay.yml`)
+- Optional: External service credentials in overlay for connectors
+
+**Data flow:** Input files → Normalization → Risk scoring (EPSS/KEV/CVSS) → Decision engine → Evidence bundle → Output JSON.
+
 ```bash
 # Run with default overlay
 docker exec fixops python -m core.cli run --overlay /app/config/fixops.overlay.yml
 
-# Run with specific inputs
+# Run with specific inputs (YOUR files)
 docker exec fixops python -m core.cli run \
   --overlay /app/config/fixops.overlay.yml \
   --design /app/samples/design.csv \
@@ -95,7 +110,7 @@ docker exec fixops python -m core.cli run \
   --enable compliance \
   --enable ssdlc
 
-# Offline mode (no feed refresh)
+# Offline mode (no feed refresh - for air-gapped environments)
 docker exec fixops python -m core.cli run --offline --overlay /app/config/fixops.overlay.yml
 ```
 
@@ -103,22 +118,31 @@ docker exec fixops python -m core.cli run --offline --overlay /app/config/fixops
 
 ### 3. ingest - Normalize Security Artifacts
 
-**Purpose:** Import SBOM, SARIF, CVE files into FixOps.
+**Purpose:** Import SBOM, SARIF, CVE files into FixOps and normalize to common format.
+
+**What it operates on:** Your security scan output files:
+- SBOM (CycloneDX, SPDX format) - Software Bill of Materials
+- SARIF - Static analysis results (from tools like Semgrep, CodeQL, etc.)
+- CVE - Vulnerability data in JSON format
+
+**Prerequisites:** Security artifact files from your scanners/tools.
+
+**Data flow:** Raw file → Format detection → Parsing → Normalization to FixOps schema → Stored in database.
 
 ```bash
-# Ingest SBOM
+# Ingest SBOM (e.g., from Syft, Trivy, etc.)
 docker exec fixops python -m core.cli ingest --sbom /app/samples/sbom.json
 
-# Ingest SARIF scan results
+# Ingest SARIF scan results (e.g., from Semgrep, CodeQL)
 docker exec fixops python -m core.cli ingest --sarif /app/samples/scan.sarif
 
-# Ingest multiple artifacts
+# Ingest multiple artifacts at once
 docker exec fixops python -m core.cli ingest \
   --sbom /app/samples/sbom.json \
   --sarif /app/samples/scan.sarif \
   --cve /app/samples/cve.json
 
-# With custom output
+# With custom output location
 docker exec fixops python -m core.cli ingest --sbom /app/samples/sbom.json --output /app/data/normalized.json
 ```
 
@@ -126,16 +150,25 @@ docker exec fixops python -m core.cli ingest --sbom /app/samples/sbom.json --out
 
 ### 4. stage-run - Run Single Pipeline Stage
 
-**Purpose:** Debug specific stages (build, test, deploy, design).
+**Purpose:** Debug specific stages (build, test, deploy, design) independently.
+
+**What it operates on:** Single input file for a specific SDLC stage:
+- `build` stage: design.csv (architecture/design decisions)
+- `test` stage: scan.sarif (test/scan results)
+- `deploy` stage: sbom.json (deployment artifacts)
+
+**Prerequisites:** Input file matching the stage type.
+
+**Data flow:** Single stage input → Stage-specific processing → Stage output.
 
 ```bash
-# Run build stage
+# Run build stage (processes design decisions)
 docker exec fixops python -m core.cli stage-run --stage build --input /app/samples/design.csv
 
-# Run test stage
+# Run test stage (processes scan results)
 docker exec fixops python -m core.cli stage-run --stage test --input /app/samples/scan.sarif
 
-# Run deploy stage
+# Run deploy stage (processes SBOM)
 docker exec fixops python -m core.cli stage-run --stage deploy --input /app/samples/sbom.json
 ```
 
@@ -143,10 +176,18 @@ docker exec fixops python -m core.cli stage-run --stage deploy --input /app/samp
 
 ### 5. make-decision - Get Remediation Decision
 
-**Purpose:** Automated accept/reject based on policy.
+**Purpose:** Get automated accept/reject decision based on security policy.
+
+**What it operates on:** Findings JSON file containing security findings to evaluate against policies.
+
+**Prerequisites:** 
+- Findings file (from pipeline run or manual creation)
+- Optional: Policy name if not using default
+
+**Data flow:** Findings → Policy evaluation → Decision (accept/reject/defer/escalate) → Exit code reflects decision.
 
 ```bash
-# Make decision on findings
+# Make decision on findings (uses default policy)
 docker exec fixops python -m core.cli make-decision --input /app/data/findings.json
 
 # With specific policy
@@ -157,7 +198,13 @@ docker exec fixops python -m core.cli make-decision --input /app/data/findings.j
 
 ### 6. analyze - Analyze Findings
 
-**Purpose:** Quick security assessment and verdict.
+**Purpose:** Quick security assessment and verdict without full pipeline.
+
+**What it operates on:** Findings JSON file for quick analysis.
+
+**Prerequisites:** Findings file.
+
+**Data flow:** Findings → Analysis → Verdict output.
 
 ```bash
 # Analyze findings
@@ -171,7 +218,13 @@ docker exec fixops python -m core.cli analyze --input /app/data/findings.json --
 
 ### 7. health - Check Integration Readiness
 
-**Purpose:** Verify connectors before pipeline run.
+**Purpose:** Verify external connectors are configured and reachable before pipeline run.
+
+**What it operates on:** Integration configurations in the database and overlay file.
+
+**Prerequisites:** None for check; integrations must be configured to pass.
+
+**Data flow:** Reads integration configs → Tests connectivity → Reports status.
 
 ```bash
 # Check all integrations
@@ -185,13 +238,19 @@ docker exec fixops python -m core.cli health --integration jira
 
 ### 8. get-evidence - Copy Evidence Bundle
 
-**Purpose:** Extract signed evidence for audits.
+**Purpose:** Extract cryptographically signed evidence bundle for compliance audits.
+
+**What it operates on:** Pipeline run result JSON that references an evidence bundle.
+
+**Prerequisites:** Must have run a pipeline first (`demo` or `run` command) that generated an evidence bundle.
+
+**Data flow:** Pipeline result → Locate evidence bundle → Copy to target directory.
 
 ```bash
 # Get evidence from pipeline run
 docker exec fixops python -m core.cli get-evidence --run /app/data/pipeline.json --target /app/data/evidence
 
-# Copy to specific directory
+# Copy to specific directory for audit handoff
 docker exec fixops python -m core.cli copy-evidence --run /app/data/pipeline.json --target /app/data/audit-handoff
 ```
 
@@ -201,11 +260,17 @@ docker exec fixops python -m core.cli copy-evidence --run /app/data/pipeline.jso
 
 **Purpose:** Debug configuration without exposing secrets.
 
+**What it operates on:** Overlay YAML configuration file.
+
+**Prerequisites:** Overlay file exists.
+
+**Data flow:** Reads overlay → Sanitizes secrets → Prints to stdout.
+
 ```bash
 # Show default overlay
 docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.overlay.yml
 
-# Show sanitized (no secrets)
+# Show sanitized (secrets masked)
 docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.overlay.yml --sanitize
 ```
 
@@ -213,16 +278,22 @@ docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.
 
 ### 10. teams - Manage Teams
 
-**Purpose:** Create, list, delete security teams.
+**Purpose:** Create, list, delete security teams for organizing users and assigning findings.
+
+**What it operates on:** Teams table in FixOps database (`fixops.db`).
+
+**Prerequisites:** None for list; team must exist for get/delete.
+
+**Data flow:** CRUD operations on teams table.
 
 ```bash
-# List all teams
+# List all teams (shows teams in database)
 docker exec fixops python -m core.cli teams list
 
 # Create a team
 docker exec fixops python -m core.cli teams create --name "Security Team" --description "Main security team"
 
-# Get team details
+# Get team details (requires team ID from list)
 docker exec fixops python -m core.cli teams get --id team-123
 
 # Delete a team
@@ -233,7 +304,13 @@ docker exec fixops python -m core.cli teams delete --id team-123
 
 ### 11. users - Manage Users
 
-**Purpose:** User administration.
+**Purpose:** User administration for the FixOps instance.
+
+**What it operates on:** Users table in FixOps database.
+
+**Prerequisites:** None for list; user must exist for get/delete.
+
+**Data flow:** CRUD operations on users table.
 
 ```bash
 # List all users
@@ -253,19 +330,25 @@ docker exec fixops python -m core.cli users delete --id user-123
 
 ### 12. groups - Manage Finding Groups
 
-**Purpose:** Cluster related findings.
+**Purpose:** Cluster related findings together for bulk management.
+
+**What it operates on:** Finding groups (clusters) in FixOps database. Groups are created when findings are correlated.
+
+**Prerequisites:** Findings must exist (from pipeline runs) to have groups.
+
+**Data flow:** CRUD operations on finding_groups table.
 
 ```bash
-# List all groups
+# List all groups (clusters of related findings)
 docker exec fixops python -m core.cli groups list
 
 # Get group details
 docker exec fixops python -m core.cli groups get --id group-123
 
-# Merge groups
+# Merge two groups together
 docker exec fixops python -m core.cli groups merge --source group-123 --target group-456
 
-# Unmerge/split group
+# Unmerge/split events from a group
 docker exec fixops python -m core.cli groups unmerge --id group-123 --event-ids event-1,event-2
 ```
 
@@ -273,13 +356,21 @@ docker exec fixops python -m core.cli groups unmerge --id group-123 --event-ids 
 
 ### 13. pentagi - Manage PentAGI Testing
 
-**Purpose:** Basic pentest job management.
+**Purpose:** Basic pentest job management via PentAGI service.
+
+**What it operates on:** PentAGI requests and results in database. Actual pentests run on PentAGI service.
+
+**Prerequisites:** 
+- PentAGI service must be running (use `docker-compose.pentagi.yml`)
+- Target URL must be accessible from PentAGI container
+
+**Data flow:** Create request → PentAGI executes → Results stored → Query results.
 
 ```bash
 # List pentest requests
 docker exec fixops python -m core.cli pentagi list-requests
 
-# Create pentest request
+# Create pentest request (target must be accessible)
 docker exec fixops python -m core.cli pentagi create-request \
   --target "https://example.com" \
   --scope "web application"
@@ -287,7 +378,7 @@ docker exec fixops python -m core.cli pentagi create-request \
 # Get request details
 docker exec fixops python -m core.cli pentagi get-request --id req-123
 
-# List results
+# List results (after pentest completes)
 docker exec fixops python -m core.cli pentagi list-results
 
 # List configurations
@@ -301,21 +392,30 @@ docker exec fixops python -m core.cli pentagi create-config --name "default" --s
 
 ### 14. micro-pentest - Run Micro Penetration Tests
 
-**Purpose:** Quick CVE-specific penetration tests.
+**Purpose:** Quick CVE-specific penetration tests to verify exploitability.
+
+**What it operates on:** Specific CVEs against target URLs. Tests if the CVE is exploitable on the target.
+
+**Prerequisites:**
+- PentAGI service must be running
+- Target URLs must be accessible
+- CVE IDs must be valid
+
+**Data flow:** CVE + Target → PentAGI micro-test → Exploitability result.
 
 ```bash
-# Run micro pentest for specific CVE
+# Run micro pentest for specific CVE against target
 docker exec fixops python -m core.cli micro-pentest run \
   --cve-ids CVE-2024-1234 \
   --target-urls https://example.com \
   --context "Production web application"
 
-# Run batch micro pentests
+# Run batch micro pentests (multiple CVEs, multiple targets)
 docker exec fixops python -m core.cli micro-pentest run \
   --cve-ids CVE-2024-1234,CVE-2024-5678 \
   --target-urls https://app1.com,https://app2.com
 
-# Check status
+# Check status of running pentest
 docker exec fixops python -m core.cli micro-pentest status --flow-id 12345
 ```
 
@@ -323,7 +423,16 @@ docker exec fixops python -m core.cli micro-pentest status --flow-id 12345
 
 ### 15. advanced-pentest - AI-Powered Pentest
 
-**Purpose:** Multi-LLM consensus penetration testing.
+**Purpose:** Multi-LLM consensus penetration testing using GPT, Claude, Gemini.
+
+**What it operates on:** Target application URL. Uses multiple LLMs to plan and execute pentest.
+
+**Prerequisites:**
+- PentAGI service running
+- LLM API keys configured (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+- Target accessible
+
+**Data flow:** Target → LLM planning → Pentest execution → Consensus results.
 
 ```bash
 # Run advanced pentest
@@ -341,33 +450,64 @@ docker exec fixops python -m core.cli advanced-pentest run \
 
 ### 16. compliance - Manage Compliance
 
-**Purpose:** Framework status and reports.
+**Purpose:** Framework status and compliance reports.
+
+**What it operates on:** Compliance data in FixOps database:
+- `compliance_frameworks` - Framework definitions (PCI-DSS, SOC2, HIPAA, etc.)
+- `compliance_controls` - Individual controls per framework
+- `compliance_gaps` - Gaps found during security assessments
+
+**Prerequisites:** 
+- For meaningful reports: Run pipeline first to populate compliance data
+- Frameworks are pre-seeded; gaps are populated from security findings
+
+**Data flow:** Security findings → Mapped to compliance controls → Gaps identified → Report generated.
 
 ```bash
 # List supported frameworks
 docker exec fixops python -m core.cli compliance frameworks
 
-# Get compliance status
+# Get compliance status (shows coverage % for framework)
 docker exec fixops python -m core.cli compliance status --framework PCI-DSS
 
-# Get compliance gaps
+# Get compliance gaps (shows what's missing)
 docker exec fixops python -m core.cli compliance gaps --framework SOC2
 
-# Generate compliance report
+# Generate compliance report (PDF/JSON)
+# NOTE: Report reflects ALL findings ingested into FixOps, not a specific app
 docker exec fixops python -m core.cli compliance report --framework PCI-DSS --format pdf --output /app/data/compliance.pdf
+```
+
+**To get meaningful compliance data, first ingest security artifacts:**
+```bash
+# 1. Upload your security artifacts
+curl -H "X-API-Key: demo-token-12345" -F "file=@sbom.json" http://localhost:8000/inputs/sbom
+curl -H "X-API-Key: demo-token-12345" -F "file=@scan.sarif" http://localhost:8000/inputs/sarif
+
+# 2. Run pipeline to analyze and map to compliance
+curl -H "X-API-Key: demo-token-12345" http://localhost:8000/pipeline/run
+
+# 3. Now compliance reports will have data
+docker exec fixops python -m core.cli compliance status --framework PCI-DSS
 ```
 
 ---
 
 ### 17. reports - Generate Reports
 
-**Purpose:** Security reports in various formats.
+**Purpose:** Security reports in various formats (PDF, HTML, JSON).
+
+**What it operates on:** All security data in FixOps database (findings, decisions, compliance, etc.).
+
+**Prerequisites:** Data must exist from pipeline runs for meaningful reports.
+
+**Data flow:** Query database → Aggregate data → Generate report in requested format.
 
 ```bash
 # List generated reports
 docker exec fixops python -m core.cli reports list
 
-# Generate new report
+# Generate new report (executive summary of all findings)
 docker exec fixops python -m core.cli reports generate --type executive --format pdf
 
 # Export report data
@@ -381,13 +521,19 @@ docker exec fixops python -m core.cli reports schedules
 
 ### 18. inventory - Manage App Inventory
 
-**Purpose:** Track applications and services.
+**Purpose:** Track applications and services in your organization.
+
+**What it operates on:** Application inventory in FixOps database. Used to associate findings with specific apps.
+
+**Prerequisites:** None for list; apps must be added to query them.
+
+**Data flow:** CRUD operations on applications/services tables.
 
 ```bash
-# List all applications
+# List all applications in inventory
 docker exec fixops python -m core.cli inventory apps
 
-# Add an application
+# Add an application to inventory
 docker exec fixops python -m core.cli inventory add \
   --name "MyApp" \
   --type web \
@@ -399,7 +545,7 @@ docker exec fixops python -m core.cli inventory get --id app-123
 # List all services
 docker exec fixops python -m core.cli inventory services
 
-# Search applications
+# Search applications by name
 docker exec fixops python -m core.cli inventory search --query "payment"
 ```
 
@@ -407,7 +553,13 @@ docker exec fixops python -m core.cli inventory search --query "payment"
 
 ### 19. policies - Manage Security Policies
 
-**Purpose:** CRUD for decision policies.
+**Purpose:** CRUD for decision policies that control accept/reject behavior.
+
+**What it operates on:** Policies table in FixOps database. Policies define rules for automated decisions.
+
+**Prerequisites:** None for list; policy must exist for get/validate/test.
+
+**Data flow:** CRUD operations; test applies policy to sample findings.
 
 ```bash
 # List all policies
@@ -416,15 +568,15 @@ docker exec fixops python -m core.cli policies list
 # Get policy details
 docker exec fixops python -m core.cli policies get --id policy-123
 
-# Create a policy
+# Create a policy (rules define when to block/allow)
 docker exec fixops python -m core.cli policies create \
   --name "Critical Only" \
   --rules '{"severity": "critical", "action": "block"}'
 
-# Validate a policy
+# Validate a policy (check syntax)
 docker exec fixops python -m core.cli policies validate --id policy-123
 
-# Test a policy
+# Test a policy against sample findings
 docker exec fixops python -m core.cli policies test --id policy-123 --input /app/data/test-findings.json
 ```
 
@@ -432,22 +584,30 @@ docker exec fixops python -m core.cli policies test --id policy-123 --input /app
 
 ### 20. integrations - Manage Connectors
 
-**Purpose:** Configure Jira, Slack, GitHub, etc.
+**Purpose:** Configure external integrations (Jira, Slack, GitHub, etc.).
+
+**What it operates on:** Integrations table in FixOps database. Stores connection configs for external systems.
+
+**Prerequisites:** 
+- For configure: External system credentials (tokens, URLs)
+- For test/sync: Integration must be configured first
+
+**Data flow:** Configure → Test connectivity → Sync data bidirectionally.
 
 ```bash
-# List all integrations
+# List all configured integrations
 docker exec fixops python -m core.cli integrations list
 
-# Configure an integration
+# Configure a Jira integration
 docker exec fixops python -m core.cli integrations configure \
   --type jira \
   --url https://company.atlassian.net \
   --token $JIRA_TOKEN
 
-# Test an integration
+# Test an integration connection
 docker exec fixops python -m core.cli integrations test --id integration-123
 
-# Sync data with integration
+# Sync data with integration (push findings to Jira, etc.)
 docker exec fixops python -m core.cli integrations sync --id integration-123
 ```
 
@@ -455,19 +615,25 @@ docker exec fixops python -m core.cli integrations sync --id integration-123
 
 ### 21. analytics - View Security Metrics
 
-**Purpose:** Dashboard and MTTR stats.
+**Purpose:** Dashboard and MTTR (Mean Time To Remediate) statistics.
+
+**What it operates on:** Aggregated data from all findings, remediations, and decisions in FixOps database.
+
+**Prerequisites:** Data must exist from pipeline runs for meaningful metrics.
+
+**Data flow:** Query database → Aggregate metrics → Display/export.
 
 ```bash
-# Get dashboard metrics
+# Get dashboard metrics (summary of security posture)
 docker exec fixops python -m core.cli analytics dashboard
 
-# Get MTTR metrics
+# Get MTTR metrics (how fast are vulns being fixed)
 docker exec fixops python -m core.cli analytics mttr --days 90
 
-# Get security coverage
+# Get security scan coverage
 docker exec fixops python -m core.cli analytics coverage
 
-# Get ROI analysis
+# Get ROI analysis (cost savings from automation)
 docker exec fixops python -m core.cli analytics roi
 
 # Export analytics data
@@ -478,16 +644,22 @@ docker exec fixops python -m core.cli analytics export --format csv --output /ap
 
 ### 22. audit - View Audit Logs
 
-**Purpose:** Compliance audit trail.
+**Purpose:** Compliance audit trail of all actions in FixOps.
+
+**What it operates on:** Audit logs table in FixOps database. Records all user actions, decisions, changes.
+
+**Prerequisites:** Actions must have occurred to have audit logs.
+
+**Data flow:** Query audit_logs table → Filter by date/type → Display/export.
 
 ```bash
-# View audit logs
+# View audit logs (last 30 days)
 docker exec fixops python -m core.cli audit logs --days 30
 
-# View decision audit trail
+# View decision audit trail (who approved/rejected what)
 docker exec fixops python -m core.cli audit decisions --days 7
 
-# Export audit logs
+# Export audit logs for compliance
 docker exec fixops python -m core.cli audit export --format json --output /app/data/audit.json
 ```
 
@@ -495,7 +667,13 @@ docker exec fixops python -m core.cli audit export --format json --output /app/d
 
 ### 23. workflows - Manage Automation
 
-**Purpose:** Workflow definitions and execution.
+**Purpose:** Workflow definitions and execution for automated responses.
+
+**What it operates on:** Workflows table in FixOps database. Defines triggers and actions.
+
+**Prerequisites:** None for list; workflow must exist for get/execute.
+
+**Data flow:** Define workflow → Trigger fires → Actions execute.
 
 ```bash
 # List all workflows
@@ -504,7 +682,7 @@ docker exec fixops python -m core.cli workflows list
 # Get workflow details
 docker exec fixops python -m core.cli workflows get --id workflow-123
 
-# Create a workflow
+# Create a workflow (auto-assign critical findings)
 docker exec fixops python -m core.cli workflows create \
   --name "Auto-Triage" \
   --trigger "new_finding" \
@@ -521,25 +699,31 @@ docker exec fixops python -m core.cli workflows history --id workflow-123
 
 ### 24. remediation - Manage Remediation Tasks
 
-**Purpose:** Track fix progress and SLAs.
+**Purpose:** Track fix progress and SLA compliance.
+
+**What it operates on:** Remediation tasks in FixOps database. Tasks are created from findings.
+
+**Prerequisites:** Findings must exist (from pipeline runs) to have remediation tasks.
+
+**Data flow:** Finding → Remediation task created → Assigned → Tracked → Verified.
 
 ```bash
-# List remediation tasks
+# List remediation tasks (filter by status)
 docker exec fixops python -m core.cli remediation list --status open
 
-# Get specific task
+# Get specific task details
 docker exec fixops python -m core.cli remediation get --id task-123
 
-# Assign a task
+# Assign a task to a user
 docker exec fixops python -m core.cli remediation assign --id task-123 --user user-456
 
 # Transition task status
 docker exec fixops python -m core.cli remediation transition --id task-123 --status in_progress
 
-# Verify a remediation
+# Verify a remediation (mark as fixed)
 docker exec fixops python -m core.cli remediation verify --id task-123
 
-# Get remediation metrics
+# Get remediation metrics (MTTR, etc.)
 docker exec fixops python -m core.cli remediation metrics
 
 # Get SLA compliance report
@@ -550,16 +734,24 @@ docker exec fixops python -m core.cli remediation sla
 
 ### 25. reachability - Analyze Vulnerability Reach
 
-**Purpose:** Check if CVE is reachable in code.
+**Purpose:** Check if a CVE is actually reachable in your code (not just present in dependencies).
+
+**What it operates on:** CVE IDs and your codebase. Analyzes call graphs to determine if vulnerable code is reachable.
+
+**Prerequisites:** 
+- CVE ID(s) to analyze
+- Code/SBOM data must be ingested for accurate analysis
+
+**Data flow:** CVE → Code analysis → Call graph → Reachability determination.
 
 ```bash
-# Analyze reachability for a CVE
+# Analyze reachability for a single CVE
 docker exec fixops python -m core.cli reachability analyze --cve CVE-2024-1234
 
-# Bulk reachability analysis
+# Bulk reachability analysis (file with CVE IDs, one per line)
 docker exec fixops python -m core.cli reachability bulk --file /app/data/cves.txt
 
-# Check job status
+# Check job status (for async analysis)
 docker exec fixops python -m core.cli reachability status --job-id job-123
 ```
 
@@ -567,19 +759,25 @@ docker exec fixops python -m core.cli reachability status --job-id job-123
 
 ### 26. correlation - Manage Deduplication
 
-**Purpose:** Find and manage duplicate findings.
+**Purpose:** Find and manage duplicate/related findings across scans.
+
+**What it operates on:** Findings in FixOps database. Identifies duplicates across different scanners/runs.
+
+**Prerequisites:** Multiple findings must exist (from multiple scans) to find correlations.
+
+**Data flow:** Findings → Similarity analysis → Correlation groups → Feedback loop.
 
 ```bash
-# Analyze correlations
+# Analyze correlations (find duplicates)
 docker exec fixops python -m core.cli correlation analyze
 
 # Get correlation statistics
 docker exec fixops python -m core.cli correlation stats
 
-# View correlation graph
+# View correlation graph (relationships between findings)
 docker exec fixops python -m core.cli correlation graph
 
-# Provide feedback on correlations
+# Provide feedback on correlations (improve accuracy)
 docker exec fixops python -m core.cli correlation feedback --id corr-123 --correct true
 ```
 
@@ -587,13 +785,19 @@ docker exec fixops python -m core.cli correlation feedback --id corr-123 --corre
 
 ### 27. notifications - Notification Queue
 
-**Purpose:** Manage alert delivery.
+**Purpose:** Manage alert delivery to users via configured channels.
+
+**What it operates on:** Notification queue in FixOps database. Notifications are queued by workflows/events.
+
+**Prerequisites:** Notifications must be queued (from workflows, events, etc.).
+
+**Data flow:** Event → Notification queued → Worker processes → Delivered via channel.
 
 ```bash
 # List pending notifications
 docker exec fixops python -m core.cli notifications pending
 
-# Run notification worker
+# Run notification worker (processes and delivers pending notifications)
 docker exec fixops python -m core.cli notifications worker
 ```
 
@@ -601,19 +805,27 @@ docker exec fixops python -m core.cli notifications worker
 
 ### 28. Probabilistic Models
 
-**Purpose:** Train and use risk prediction models.
+**Purpose:** Train and use machine learning models for risk prediction.
+
+**What it operates on:** Historical incident data for training; CVE data for prediction.
+
+**Prerequisites:**
+- Training: Historical incident CSV with labeled data
+- Prediction: Trained model file + CVE data to score
+
+**Data flow:** Training data → Model training → Model file → Prediction on new CVEs.
 
 ```bash
-# Train forecast model
+# Train forecast model (requires historical incident data)
 docker exec fixops python -m core.cli train-forecast --data /app/data/incidents.csv
 
 # Train Bayesian Network model
 docker exec fixops python -m core.cli train-bn-lr --data /app/data/training.csv
 
-# Predict exploitation risk
+# Predict exploitation risk for CVEs
 docker exec fixops python -m core.cli predict-bn-lr --input /app/data/cves.json
 
-# Backtest model
+# Backtest model accuracy
 docker exec fixops python -m core.cli backtest-bn-lr --model /app/data/model.pkl --test /app/data/test.csv
 ```
 
@@ -632,6 +844,12 @@ docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
 
 ### Health & Status Endpoints
 
+**What it operates on:** FixOps API server health and readiness state.
+
+**Prerequisites:** Container must be running. No authentication required for health/ready.
+
+**Data flow:** Server state → Health response.
+
 ```bash
 # Health check (no auth required)
 curl http://localhost:8000/health
@@ -642,10 +860,10 @@ curl http://localhost:8000/ready
 # Version info
 curl http://localhost:8000/version
 
-# Metrics
+# Metrics (Prometheus format)
 curl http://localhost:8000/metrics
 
-# API status
+# API status (requires auth)
 curl -H "X-API-Key: demo-token-12345" http://localhost:8000/api/v1/status
 ```
 
@@ -653,13 +871,26 @@ curl -H "X-API-Key: demo-token-12345" http://localhost:8000/api/v1/status
 
 ### Input Endpoints (Upload Security Artifacts)
 
+**What it operates on:** Uploads YOUR security scan artifacts to FixOps for processing:
+- **design.csv** - Architecture/design decisions from threat modeling
+- **sbom.json** - Software Bill of Materials (CycloneDX/SPDX format from Syft, Trivy, etc.)
+- **cve.json** - CVE vulnerability data
+- **vex.json** - Vulnerability Exploitability eXchange data
+- **cnapp.json** - Cloud-Native Application Protection Platform findings
+- **sarif** - Static Analysis Results Interchange Format (from Semgrep, CodeQL, etc.)
+- **context** - Business context (environment, criticality)
+
+**Prerequisites:** Security artifact files from your scanners/tools.
+
+**Data flow:** File upload → Format validation → Normalization → Stored in database → Ready for pipeline.
+
 ```bash
-# Upload design CSV
+# Upload design CSV (threat model decisions)
 curl -H "X-API-Key: demo-token-12345" \
   -F "file=@design.csv;type=text/csv" \
   http://localhost:8000/inputs/design
 
-# Upload SBOM
+# Upload SBOM (from Syft, Trivy, etc.)
 curl -H "X-API-Key: demo-token-12345" \
   -F "file=@sbom.json;type=application/json" \
   http://localhost:8000/inputs/sbom
@@ -669,22 +900,22 @@ curl -H "X-API-Key: demo-token-12345" \
   -F "file=@cve.json;type=application/json" \
   http://localhost:8000/inputs/cve
 
-# Upload VEX
+# Upload VEX (Vulnerability Exploitability eXchange)
 curl -H "X-API-Key: demo-token-12345" \
   -F "file=@vex.json;type=application/json" \
   http://localhost:8000/inputs/vex
 
-# Upload CNAPP findings
+# Upload CNAPP findings (cloud security)
 curl -H "X-API-Key: demo-token-12345" \
   -F "file=@cnapp.json;type=application/json" \
   http://localhost:8000/inputs/cnapp
 
-# Upload SARIF scan results
+# Upload SARIF scan results (from Semgrep, CodeQL, etc.)
 curl -H "X-API-Key: demo-token-12345" \
   -F "file=@scan.sarif;type=application/json" \
   http://localhost:8000/inputs/sarif
 
-# Upload context
+# Upload business context (affects risk scoring)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"environment": "production", "criticality": "high"}' \
@@ -695,16 +926,27 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Pipeline Endpoints
 
+**What it operates on:** Processes ALL uploaded artifacts through the FixOps pipeline:
+- Normalizes inputs
+- Enriches with threat intelligence (EPSS, KEV, exploits)
+- Scores risk
+- Makes decisions
+- Generates evidence bundle
+
+**Prerequisites:** Upload at least one artifact first (SBOM, SARIF, etc.) via `/inputs/*` endpoints.
+
+**Data flow:** Uploaded artifacts → Normalization → Enrichment → Risk scoring → Decision → Evidence bundle → Results.
+
 ```bash
-# Run pipeline
+# Run pipeline (processes all uploaded artifacts)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/pipeline/run | jq
 
-# Get pipeline status
+# Get pipeline status (check if running)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/pipeline/status
 
-# Get pipeline results
+# Get pipeline results (after run completes)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/pipeline/results | jq
 ```
@@ -713,14 +955,20 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Validation Endpoints
 
+**What it operates on:** Validates input format before upload. Checks if your files are valid SBOM, SARIF, etc.
+
+**Prerequisites:** None - validation is stateless.
+
+**Data flow:** Input content → Format detection → Schema validation → Validation result.
+
 ```bash
-# Validate input
+# Validate input format
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"format": "sbom", "content": {...}}' \
   http://localhost:8000/api/v1/validate/input
 
-# Batch validation
+# Batch validation (multiple items)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"items": [...]}' \
@@ -735,12 +983,20 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Enhanced Decision Endpoints (Multi-LLM)
 
+**What it operates on:** Security findings you provide. Uses multiple LLMs (GPT, Claude, Gemini) to analyze and recommend remediation actions.
+
+**Prerequisites:** 
+- For full functionality: LLM API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+- Without keys: Returns mock/demo responses
+
+**Data flow:** Findings + Context → Multiple LLMs → Consensus → Recommendation.
+
 ```bash
-# Get LLM capabilities
+# Get LLM capabilities (shows which LLMs are configured)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/enhanced/capabilities | jq
 
-# Compare LLM recommendations
+# Compare LLM recommendations (each LLM gives its opinion)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -752,7 +1008,7 @@ curl -H "X-API-Key: demo-token-12345" \
   }' \
   http://localhost:8000/api/v1/enhanced/compare-llms | jq
 
-# Get consensus decision
+# Get consensus decision (LLMs vote on best action)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"findings": [...], "context": {...}}' \
@@ -763,60 +1019,71 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Threat Intelligence Feeds Endpoints
 
+**What it operates on:** External threat intelligence data:
+- **EPSS** - Exploit Prediction Scoring System (probability of exploitation)
+- **KEV** - CISA Known Exploited Vulnerabilities catalog
+- **Exploits** - Known exploit code/PoCs
+- **Threat Actors** - APT groups associated with CVEs
+- **Supply Chain** - Package/dependency risk data
+
+**Prerequisites:** None for queries. Internet access required for feed refresh.
+
+**Data flow:** Query → Local cache → (Optional: Refresh from external sources) → Results.
+
 ```bash
-# Get EPSS data
+# Get EPSS data (exploitation probability scores)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/epss | jq
 
-# Refresh EPSS feed
+# Refresh EPSS feed (fetches latest from FIRST.org)
 curl -H "X-API-Key: demo-token-12345" \
   -X POST http://localhost:8000/api/v1/feeds/epss/refresh
 
-# Get KEV data
+# Get KEV data (CISA Known Exploited Vulnerabilities)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/kev | jq
 
-# Refresh KEV feed
+# Refresh KEV feed (fetches latest from CISA)
 curl -H "X-API-Key: demo-token-12345" \
   -X POST http://localhost:8000/api/v1/feeds/kev/refresh
 
-# Get exploits for CVE
+# Get exploits for specific CVE
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/exploits/CVE-2024-1234 | jq
 
-# Search exploits
+# Search exploits for multiple CVEs
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cve_ids": ["CVE-2024-1234", "CVE-2024-5678"]}' \
   http://localhost:8000/api/v1/feeds/exploits
 
-# Get threat actors for CVE
+# Get threat actors associated with CVE
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/threat-actors/CVE-2024-1234 | jq
 
-# Get threat actor details
+# Get threat actor details by name
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/threat-actors/by-actor/APT29 | jq
 
-# Get supply chain risk
+# Get supply chain risk for package
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/supply-chain/lodash | jq
 
-# Get exploit confidence
+# Get exploit confidence score for CVE
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/exploit-confidence/CVE-2024-1234 | jq
 
-# Get geo risk
+# Get geo risk (geographic targeting) for CVE
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/geo-risk/CVE-2024-1234 | jq
 
-# Enrich CVE data
+# Enrich CVE with all available intelligence
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cve_id": "CVE-2024-1234"}' \
   http://localhost:8000/api/v1/feeds/enrich | jq
 
-# Get feed stats
+# Get feed statistics
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/stats | jq
 
@@ -828,15 +1095,15 @@ curl -H "X-API-Key: demo-token-12345" \
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/sources | jq
 
-# Get feed health
+# Get feed health status
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/health | jq
 
-# Get scheduler status
+# Get scheduler status (feed refresh schedule)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/feeds/scheduler/status | jq
 
-# Refresh all feeds
+# Refresh all feeds at once
 curl -H "X-API-Key: demo-token-12345" \
   -X POST http://localhost:8000/api/v1/feeds/refresh/all
 ```
@@ -845,8 +1112,14 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Teams Endpoints
 
+**What it operates on:** Teams table in FixOps database. Teams organize users for finding assignment and notifications.
+
+**Prerequisites:** None for list/create. Team must exist for get/update/delete.
+
+**Data flow:** CRUD operations on teams table.
+
 ```bash
-# List teams
+# List all teams
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/teams | jq
 
@@ -856,7 +1129,7 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"name": "Security Team", "description": "Main security team"}' \
   http://localhost:8000/api/v1/teams
 
-# Get team
+# Get team by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/teams/team-123 | jq
 
@@ -892,13 +1165,19 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Users Endpoints
 
+**What it operates on:** Users table in FixOps database. Manages user accounts, authentication, and roles.
+
+**Prerequisites:** None for list/create. User must exist for get/update/delete.
+
+**Data flow:** CRUD operations on users table.
+
 ```bash
-# Login
+# Login (returns auth token)
 curl -H "Content-Type: application/json" \
   -d '{"email": "admin@example.com", "password": "password"}' \
   http://localhost:8000/api/v1/users/login | jq
 
-# List users
+# List all users
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/users | jq
 
@@ -908,7 +1187,7 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"email": "user@example.com", "name": "John Doe", "role": "analyst"}' \
   http://localhost:8000/api/v1/users
 
-# Get user
+# Get user by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/users/user-123 | jq
 
@@ -929,12 +1208,18 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Policies Endpoints
 
+**What it operates on:** Policies table in FixOps database. Policies define rules for automated security decisions (block, allow, defer, escalate).
+
+**Prerequisites:** None for list/create. Policy must exist for get/update/delete/validate/test.
+
+**Data flow:** CRUD operations; validate checks syntax; test applies policy to sample findings.
+
 ```bash
-# List policies
+# List all policies
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/policies | jq
 
-# Create policy
+# Create policy (defines when to block/allow)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -944,7 +1229,7 @@ curl -H "X-API-Key: demo-token-12345" \
   }' \
   http://localhost:8000/api/v1/policies
 
-# Get policy
+# Get policy by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/policies/policy-123 | jq
 
@@ -960,18 +1245,18 @@ curl -H "X-API-Key: demo-token-12345" \
   -X DELETE \
   http://localhost:8000/api/v1/policies/policy-123
 
-# Validate policy
+# Validate policy (check syntax/rules)
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/policies/policy-123/validate | jq
 
-# Test policy
+# Test policy against sample findings
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"findings": [...]}' \
   http://localhost:8000/api/v1/policies/policy-123/test | jq
 
-# Get policy violations
+# Get policy violations (findings that violated this policy)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/policies/policy-123/violations | jq
 ```
@@ -980,18 +1265,24 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Inventory Endpoints
 
+**What it operates on:** Application inventory in FixOps database. Tracks your organization's applications, services, APIs, and their dependencies.
+
+**Prerequisites:** None for list/create. Entity must exist for get/update/delete.
+
+**Data flow:** CRUD operations on applications/services/APIs tables. Dependencies are linked from SBOM data.
+
 ```bash
-# List applications
+# List all applications in inventory
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/applications | jq
 
-# Create application
+# Create application (register an app in inventory)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"name": "MyApp", "type": "web", "criticality": "high"}' \
   http://localhost:8000/api/v1/inventory/applications
 
-# Get application
+# Get application by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/applications/app-123 | jq
 
@@ -1007,7 +1298,7 @@ curl -H "X-API-Key: demo-token-12345" \
   -X DELETE \
   http://localhost:8000/api/v1/inventory/applications/app-123
 
-# Get application components
+# Get application components (from SBOM)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/applications/app-123/components | jq
 
@@ -1015,11 +1306,11 @@ curl -H "X-API-Key: demo-token-12345" \
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/applications/app-123/apis | jq
 
-# Get application dependencies
+# Get application dependencies (from SBOM)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/applications/app-123/dependencies | jq
 
-# List services
+# List all services
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/services | jq
 
@@ -1029,11 +1320,11 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"name": "Payment Service", "type": "microservice"}' \
   http://localhost:8000/api/v1/inventory/services
 
-# Get service
+# Get service by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/services/svc-123 | jq
 
-# List APIs
+# List all APIs
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/apis | jq
 
@@ -1043,11 +1334,11 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"name": "User API", "version": "v1"}' \
   http://localhost:8000/api/v1/inventory/apis
 
-# Get API security
+# Get API security posture
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/inventory/apis/api-123/security | jq
 
-# Search inventory
+# Search inventory by name
 curl -H "X-API-Key: demo-token-12345" \
   "http://localhost:8000/api/v1/inventory/search?q=payment" | jq
 ```
@@ -1056,12 +1347,20 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Integrations Endpoints
 
+**What it operates on:** Integrations table in FixOps database. Configures connections to external systems (Jira, Slack, GitHub, etc.).
+
+**Prerequisites:** 
+- For create: External system credentials (URL, API token)
+- For test/sync: Integration must be configured first
+
+**Data flow:** Configure → Test connectivity → Sync data bidirectionally.
+
 ```bash
-# List integrations
+# List all configured integrations
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/integrations | jq
 
-# Create integration
+# Create integration (e.g., Jira)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1071,11 +1370,11 @@ curl -H "X-API-Key: demo-token-12345" \
   }' \
   http://localhost:8000/api/v1/integrations
 
-# Get integration
+# Get integration by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/integrations/int-123 | jq
 
-# Update integration
+# Update integration config
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   -H "Content-Type: application/json" \
@@ -1087,7 +1386,7 @@ curl -H "X-API-Key: demo-token-12345" \
   -X DELETE \
   http://localhost:8000/api/v1/integrations/int-123
 
-# Test integration
+# Test integration connectivity
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/integrations/int-123/test | jq
@@ -1096,7 +1395,7 @@ curl -H "X-API-Key: demo-token-12345" \
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/integrations/int-123/sync-status | jq
 
-# Trigger sync
+# Trigger sync (push findings to Jira, etc.)
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/integrations/int-123/sync
@@ -1106,38 +1405,44 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Analytics Endpoints
 
+**What it operates on:** Aggregated data from all findings, decisions, and compliance data in FixOps database.
+
+**Prerequisites:** Data must exist from pipeline runs for meaningful metrics.
+
+**Data flow:** Query database → Aggregate metrics → Return dashboard/trends/findings.
+
 ```bash
-# Get dashboard overview
+# Get dashboard overview (summary of security posture)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/analytics/dashboard/overview | jq
 
-# Get trends
+# Get trends (how metrics change over time)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/analytics/dashboard/trends | jq
 
-# Get top risks
+# Get top risks (highest priority vulnerabilities)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/analytics/dashboard/top-risks | jq
 
-# Get compliance status
+# Get compliance status (framework coverage)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/analytics/dashboard/compliance-status | jq
 
-# List findings
+# List all findings
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/analytics/findings | jq
 
-# Create finding
+# Create finding manually
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"title": "SQL Injection", "severity": "critical", "cve_id": "CVE-2024-1234"}' \
   http://localhost:8000/api/v1/analytics/findings
 
-# Legacy dashboard
+# Legacy dashboard endpoint
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/analytics/dashboard | jq
 
-# Get run details
+# Get pipeline run details
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/analytics/runs/run-123 | jq
 ```
@@ -1146,8 +1451,17 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Micro Pentest Endpoints
 
+**What it operates on:** Runs targeted penetration tests for specific CVEs against target URLs to verify exploitability.
+
+**Prerequisites:**
+- PentAGI service must be running (use `docker-compose.pentagi.yml`)
+- Target URLs must be accessible from the container
+- Valid CVE IDs
+
+**Data flow:** CVE + Target → PentAGI micro-test → Exploitability result.
+
 ```bash
-# Run micro pentest
+# Run micro pentest for specific CVE against target
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1157,11 +1471,11 @@ curl -H "X-API-Key: demo-token-12345" \
   }' \
   http://localhost:8000/api/v1/micro-pentest/run | jq
 
-# Get pentest status
+# Get pentest status (check if complete)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/micro-pentest/status/12345 | jq
 
-# Run batch pentests
+# Run batch pentests (multiple CVEs/targets)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1177,39 +1491,47 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### PentAGI Endpoints
 
+**What it operates on:** PentAGI pentest requests and results. Full penetration testing via PentAGI service.
+
+**Prerequisites:**
+- PentAGI service must be running (use `docker-compose.pentagi.yml`)
+- Target must be accessible from PentAGI container
+
+**Data flow:** Create request → Approve → Start → PentAGI executes → Results stored.
+
 ```bash
-# List requests
+# List all pentest requests
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/pentagi/requests | jq
 
-# Create request
+# Create pentest request
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"target": "https://example.com", "scope": "web application"}' \
   http://localhost:8000/api/v1/pentagi/requests
 
-# Get request
+# Get request by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/pentagi/requests/req-123 | jq
 
-# Update request
+# Update request (e.g., approve)
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   -H "Content-Type: application/json" \
   -d '{"status": "approved"}' \
   http://localhost:8000/api/v1/pentagi/requests/req-123
 
-# Start request
+# Start pentest execution
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/pentagi/requests/req-123/start
 
-# Cancel request
+# Cancel pentest
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/pentagi/requests/req-123/cancel
 
-# List results
+# List all pentest results
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/pentagi/results | jq
 
@@ -1280,51 +1602,59 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Bulk Operations Endpoints
 
+**What it operates on:** Multiple findings, clusters, or policies at once. Useful for batch processing large numbers of items.
+
+**Prerequisites:** 
+- Findings/clusters must exist (from pipeline runs)
+- For create-tickets: Integration must be configured
+
+**Data flow:** Batch request → Async job created → Job processes items → Results available.
+
 ```bash
-# Bulk update cluster status
+# Bulk update cluster status (resolve multiple at once)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cluster_ids": ["c1", "c2"], "status": "resolved"}' \
   http://localhost:8000/api/v1/bulk/clusters/status | jq
 
-# Bulk assign clusters
+# Bulk assign clusters to user
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cluster_ids": ["c1", "c2"], "assignee": "user-123"}' \
   http://localhost:8000/api/v1/bulk/clusters/assign | jq
 
-# Bulk accept risk
+# Bulk accept risk (mark as accepted)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cluster_ids": ["c1", "c2"], "reason": "False positive"}' \
   http://localhost:8000/api/v1/bulk/clusters/accept-risk | jq
 
-# Bulk create tickets
+# Bulk create tickets in Jira/etc
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cluster_ids": ["c1", "c2"], "integration_id": "jira-123"}' \
   http://localhost:8000/api/v1/bulk/clusters/create-tickets | jq
 
-# Bulk export
+# Bulk export findings to CSV/JSON
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"format": "csv", "filters": {"severity": "critical"}}' \
   http://localhost:8000/api/v1/bulk/export | jq
 
-# Get job status
+# Get bulk job status (check if complete)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/bulk/jobs/job-123 | jq
 
-# List jobs
+# List all bulk jobs
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/bulk/jobs | jq
 
-# Delete job
+# Delete bulk job
 curl -H "X-API-Key: demo-token-12345" \
   -X DELETE \
   http://localhost:8000/api/v1/bulk/jobs/job-123
 
-# Bulk update findings
+# Bulk update findings status
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"finding_ids": ["f1", "f2"], "status": "resolved"}' \
@@ -1336,13 +1666,13 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"finding_ids": ["f1", "f2"]}' \
   http://localhost:8000/api/v1/bulk/findings/delete | jq
 
-# Bulk assign findings
+# Bulk assign findings to user
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"finding_ids": ["f1", "f2"], "assignee": "user-123"}' \
   http://localhost:8000/api/v1/bulk/findings/assign | jq
 
-# Bulk apply policies
+# Bulk apply policy to all findings
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"policy_id": "policy-123", "scope": "all"}' \
@@ -1353,23 +1683,31 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Collaboration Endpoints
 
+**What it operates on:** Comments, watchers, activities, and notifications on findings and other entities. Enables team collaboration on security issues.
+
+**Prerequisites:** 
+- Entity (finding, cluster, etc.) must exist to comment/watch
+- Users must exist to assign watchers
+
+**Data flow:** User action → Activity recorded → Watchers notified → Notifications delivered.
+
 ```bash
-# Create comment
+# Create comment on a finding
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"entity_type": "finding", "entity_id": "f-123", "content": "This needs review"}' \
   http://localhost:8000/api/v1/collaboration/comments
 
-# List comments
+# List comments on entity
 curl -H "X-API-Key: demo-token-12345" \
   "http://localhost:8000/api/v1/collaboration/comments?entity_type=finding&entity_id=f-123" | jq
 
-# Promote comment
+# Promote comment (highlight as important)
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   http://localhost:8000/api/v1/collaboration/comments/comment-123/promote
 
-# Add watcher
+# Add watcher to entity (get notified of changes)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"entity_type": "finding", "entity_id": "f-123", "user_id": "user-456"}' \
@@ -1382,7 +1720,7 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"entity_type": "finding", "entity_id": "f-123", "user_id": "user-456"}' \
   http://localhost:8000/api/v1/collaboration/watchers
 
-# List watchers
+# List watchers on entity
 curl -H "X-API-Key: demo-token-12345" \
   "http://localhost:8000/api/v1/collaboration/watchers?entity_type=finding&entity_id=f-123" | jq
 
@@ -1390,17 +1728,17 @@ curl -H "X-API-Key: demo-token-12345" \
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/collaboration/watchers/user/user-123 | jq
 
-# Create activity
+# Create activity (log an action)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"entity_type": "finding", "entity_id": "f-123", "action": "status_change", "details": {...}}' \
   http://localhost:8000/api/v1/collaboration/activities
 
-# List activities
+# List activities on entity (audit trail)
 curl -H "X-API-Key: demo-token-12345" \
   "http://localhost:8000/api/v1/collaboration/activities?entity_type=finding&entity_id=f-123" | jq
 
-# Get mentions
+# Get mentions for user (@mentions)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/collaboration/mentions/user-123 | jq
 
@@ -1409,21 +1747,21 @@ curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   http://localhost:8000/api/v1/collaboration/mentions/mention-123/acknowledge
 
-# Get entity types
+# Get supported entity types
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/collaboration/entity-types | jq
 
-# Get activity types
+# Get supported activity types
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/collaboration/activity-types | jq
 
-# Queue notification
+# Queue notification for user
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"user_id": "user-123", "type": "mention", "content": "You were mentioned"}' \
   http://localhost:8000/api/v1/collaboration/notifications/queue
 
-# Notify watchers
+# Notify all watchers of event
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"entity_type": "finding", "entity_id": "f-123", "event": "status_change"}' \
@@ -1433,12 +1771,12 @@ curl -H "X-API-Key: demo-token-12345" \
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/collaboration/notifications/pending | jq
 
-# Mark notification sent
+# Mark notification as sent
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   http://localhost:8000/api/v1/collaboration/notifications/notif-123/sent
 
-# Get notification preferences
+# Get user's notification preferences
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/collaboration/notifications/preferences/user-123 | jq
 
@@ -1449,12 +1787,12 @@ curl -H "X-API-Key: demo-token-12345" \
   -d '{"email": true, "slack": false}' \
   http://localhost:8000/api/v1/collaboration/notifications/preferences/user-123
 
-# Deliver notification
+# Deliver notification immediately
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/collaboration/notifications/notif-123/deliver
 
-# Process notifications
+# Process all pending notifications
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/collaboration/notifications/process
@@ -1464,16 +1802,22 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Marketplace Endpoints
 
+**What it operates on:** FixOps marketplace for sharing/downloading policy packs, compliance templates, and integrations.
+
+**Prerequisites:** None for browse/download. Must be authenticated for contribute/purchase.
+
+**Data flow:** Browse → Select item → Purchase/Download → Apply to your instance.
+
 ```bash
-# Get compliance packs
+# Get compliance pack for specific control
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/marketplace/packs/PCI-DSS/control-1 | jq
 
-# Browse marketplace
+# Browse marketplace items
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/marketplace/browse | jq
 
-# Get recommendations
+# Get personalized recommendations
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/marketplace/recommendations | jq
 
@@ -1481,31 +1825,31 @@ curl -H "X-API-Key: demo-token-12345" \
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/marketplace/items/item-123 | jq
 
-# Contribute item
+# Contribute item to marketplace
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"name": "My Policy Pack", "type": "policy", "content": {...}}' \
   http://localhost:8000/api/v1/marketplace/contribute
 
-# Update item
+# Update contributed item
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   -H "Content-Type: application/json" \
   -d '{"description": "Updated description"}' \
   http://localhost:8000/api/v1/marketplace/items/item-123
 
-# Rate item
+# Rate and review item
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"rating": 5, "review": "Great policy pack!"}' \
   http://localhost:8000/api/v1/marketplace/items/item-123/rate
 
-# Purchase item
+# Purchase item (get download token)
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
   http://localhost:8000/api/v1/marketplace/purchase/item-123 | jq
 
-# Download item
+# Download purchased item
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/marketplace/download/token-abc123
 
@@ -1526,12 +1870,18 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Triage Endpoints
 
+**What it operates on:** Triage queue of findings awaiting review. Provides prioritized list for security analysts.
+
+**Prerequisites:** Findings must exist from pipeline runs.
+
+**Data flow:** Findings → Prioritization → Triage queue → Export.
+
 ```bash
-# Get triage data
+# Get triage data (prioritized findings queue)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/triage | jq
 
-# Export triage data
+# Export triage data for external processing
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/triage/export | jq
 ```
@@ -1540,8 +1890,14 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Graph Endpoints
 
+**What it operates on:** Risk relationship graph showing connections between findings, assets, and vulnerabilities.
+
+**Prerequisites:** Findings and inventory data must exist.
+
+**Data flow:** Query relationships → Build graph → Return visualization data.
+
 ```bash
-# Get risk graph
+# Get risk graph (relationships between findings/assets)
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/graph | jq
 ```
@@ -1550,8 +1906,14 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Feedback Endpoints
 
+**What it operates on:** User feedback on decisions, findings, and recommendations. Used to improve ML models.
+
+**Prerequisites:** Entity (decision, finding) must exist.
+
+**Data flow:** User feedback → Stored → Used for model training.
+
 ```bash
-# Submit feedback
+# Submit feedback on a decision
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"type": "decision", "entity_id": "dec-123", "rating": 5, "comment": "Good decision"}' \
@@ -1562,18 +1924,24 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### IDE Integration Endpoints
 
+**What it operates on:** Code snippets from IDE plugins. Provides real-time security analysis in developer IDEs.
+
+**Prerequisites:** None - stateless analysis.
+
+**Data flow:** Code snippet → Security analysis → Suggestions returned to IDE.
+
 ```bash
-# Get IDE config
+# Get IDE plugin configuration
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/ide/config | jq
 
-# Analyze code
+# Analyze code snippet for security issues
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"code": "SELECT * FROM users WHERE id = $1", "language": "sql"}' \
   http://localhost:8000/api/v1/ide/analyze | jq
 
-# Get suggestions
+# Get suggestions for specific file/line
 curl -H "X-API-Key: demo-token-12345" \
   "http://localhost:8000/api/v1/ide/suggestions?file=app.py&line=42" | jq
 ```
@@ -1582,22 +1950,30 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### SSO/Auth Endpoints
 
+**What it operates on:** SSO (Single Sign-On) configurations for enterprise authentication (Okta, Azure AD, etc.).
+
+**Prerequisites:** 
+- For create: SSO provider credentials (client_id, client_secret)
+- Admin privileges required
+
+**Data flow:** Configure SSO → Users authenticate via provider → Token issued.
+
 ```bash
-# List SSO configs
+# List all SSO configurations
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/auth/sso | jq
 
-# Create SSO config
+# Create SSO configuration (e.g., Okta)
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"provider": "okta", "client_id": "xxx", "client_secret": "yyy"}' \
   http://localhost:8000/api/v1/auth/sso
 
-# Get SSO config
+# Get SSO config by ID
 curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/auth/sso/sso-123 | jq
 
-# Update SSO config
+# Update SSO config (enable/disable)
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   -H "Content-Type: application/json" \
