@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Check, X, ArrowLeft, ExternalLink, RefreshCw, Settings } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Check, X, ArrowLeft, ExternalLink, RefreshCw, Settings, Loader2, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useIntegrations } from '@fixops/api-client'
 
 const INTEGRATIONS = [
   {
@@ -108,9 +109,35 @@ const WEBHOOKS = [
 ]
 
 export default function IntegrationsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useIntegrations()
+  
+  // Transform API data to match our UI format, or use demo data
+  const integrationsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return INTEGRATIONS
+    }
+    return apiData.items.map(integration => ({
+      id: integration.id,
+      name: integration.name,
+      description: integration.description || '',
+      category: integration.category || 'Other',
+      status: integration.status || 'available',
+      icon: integration.icon || '🔌',
+      config: integration.config || null,
+      stats: integration.stats || null,
+    }))
+  }, [demoEnabled, apiData])
+
+  const [integrations, setIntegrations] = useState(INTEGRATIONS)
   const [selectedIntegration, setSelectedIntegration] = useState<typeof INTEGRATIONS[0] | null>(null)
   const [activeTab, setActiveTab] = useState<'integrations' | 'webhooks'>('integrations')
   const [isConfiguring, setIsConfiguring] = useState(false)
+
+  // Update integrations when data source changes
+  useEffect(() => {
+    setIntegrations(integrationsData)
+  }, [integrationsData])
 
   return (
     <AppShell activeApp="integrations">

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { ArrowLeft, AlertCircle, Shield, Target, Network, Server, Globe, Lock, Unlock, ChevronRight, Download, Eye, Zap, CheckCircle, XCircle } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 interface AttackPathNode {
   id: string
@@ -153,11 +154,38 @@ function getNodeColor(type: string) {
 
 export default function ValidatePage() {
   const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
   const [selectedPath, setSelectedPath] = useState<AttackPath | null>(null)
   const [activeTab, setActiveTab] = useState<'paths' | 'controls'>('paths')
   const [showBlocked, setShowBlocked] = useState(true)
 
-  const attackPaths = useMemo(() => demoEnabled ? DEMO_ATTACK_PATHS : [], [demoEnabled])
+  // Transform API data to match our UI format, or use demo data
+  const pathsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_ATTACK_PATHS
+    }
+    // Generate attack paths from findings with reachability data
+    const reachableFindings = apiData.items.filter(f => f.reachable !== false)
+    return reachableFindings.slice(0, 5).map((finding, idx) => ({
+      id: `path-${idx}`,
+      name: `Path to ${finding.service || 'Target'}`,
+      description: `Attack path via ${finding.title}`,
+      risk_score: finding.risk_score || (finding.severity === 'critical' ? 95 : 75),
+      path_length: 3,
+      nodes: [
+        { id: 'n1', name: 'Internet', type: 'internet' as const, vulnerabilities: [], risk_score: 0, controls: [] },
+        { id: 'n2', name: finding.component || 'Service', type: 'server' as const, vulnerabilities: [finding.cve_id || finding.title], risk_score: finding.risk_score || 80, controls: [] },
+        { id: 'n3', name: finding.service || 'Target', type: 'crown_jewel' as const, vulnerabilities: [], risk_score: 100, controls: [] },
+      ],
+      exploitability: finding.severity === 'critical' ? 'high' as const : 'medium' as const,
+      impact: 'critical' as const,
+      target: finding.service || 'Critical Asset',
+      blocked_by: [],
+    }))
+  }, [demoEnabled, apiData])
+
+  // Use pathsData directly instead of storing in state to avoid lint errors
+  const attackPaths = pathsData.length > 0 ? pathsData : DEMO_ATTACK_PATHS
   const controls = useMemo(() => demoEnabled ? DEMO_CONTROLS : [], [demoEnabled])
 
   const filteredPaths = useMemo(() => {

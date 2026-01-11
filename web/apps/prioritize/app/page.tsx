@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Search, ArrowLeft, AlertCircle, TrendingUp, TrendingDown, Shield, Zap, Globe, Filter, Download, ChevronDown, ChevronUp, X, Plus, Brain, Target } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 interface RiskFactor {
   name: string
@@ -249,6 +250,7 @@ const QUERY_OPERATORS = {
 
 export default function PrioritizePage() {
   const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedVuln, setSelectedVuln] = useState<Vulnerability | null>(null)
   const [showQueryBuilder, setShowQueryBuilder] = useState(false)
@@ -256,7 +258,32 @@ export default function PrioritizePage() {
   const [sortBy, setSortBy] = useState<'risk_score' | 'epss_score' | 'affected_assets'>('risk_score')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
-  const vulnerabilities = useMemo(() => demoEnabled ? DEMO_VULNERABILITIES : [], [demoEnabled])
+  // Transform API data to match our UI format, or use demo data
+  const vulnsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_VULNERABILITIES
+    }
+    return apiData.items.map(finding => ({
+      id: finding.id,
+      cve_id: finding.cve_id || finding.title,
+      title: finding.title,
+      severity: (finding.severity || 'medium') as Vulnerability['severity'],
+      risk_score: finding.risk_score || (finding.severity === 'critical' ? 95 : finding.severity === 'high' ? 75 : 50),
+      epss_score: finding.epss_score || 0.5,
+      kev_listed: finding.kev_listed || false,
+      exploit_available: finding.exploit_available || false,
+      internet_facing: finding.internet_facing || false,
+      asset_criticality: 'standard' as const,
+      affected_assets: finding.affected_assets || 1,
+      age_days: finding.created_at ? Math.floor((new Date().getTime() - new Date(finding.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+      risk_factors: [],
+      threat_intel: { campaigns: [], threat_actors: [], malware: [] },
+      mitigating_controls: [],
+    }))
+  }, [demoEnabled, apiData])
+
+  // Use vulnsData directly instead of storing in state to avoid lint errors
+  const vulnerabilities = vulnsData.length > 0 ? vulnsData : DEMO_VULNERABILITIES
 
   const filteredVulns = useMemo(() => {
     const filtered = vulnerabilities.filter(vuln => {

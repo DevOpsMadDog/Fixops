@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Search, Clock, AlertTriangle, AlertCircle, ArrowLeft, Calendar, User, Ticket, Download, Plus, ChevronRight, Shield, Zap } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 interface RemediationPlan {
   id: string
@@ -226,12 +227,48 @@ function getDaysRemaining(dueDate: string): number {
 
 export default function RemediatePage() {
   const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
   const [activeTab, setActiveTab] = useState<'plans' | 'exceptions' | 'sla' | 'spotlight'>('plans')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedPlan, setSelectedPlan] = useState<RemediationPlan | null>(null)
 
-  const plans = useMemo(() => demoEnabled ? DEMO_PLANS : [], [demoEnabled])
+  // Transform API data to match our UI format, or use demo data
+  const plansData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_PLANS
+    }
+    // Group findings by remediation plan (using service as grouping key)
+    const grouped = apiData.items.reduce((acc, finding) => {
+      const key = finding.service || 'default'
+      if (!acc[key]) acc[key] = []
+      acc[key].push(finding)
+      return acc
+    }, {} as Record<string, typeof apiData.items>)
+    
+    return Object.entries(grouped).slice(0, 6).map(([service, findings], idx) => ({
+      id: `plan-${idx}`,
+      name: `${service} Remediation`,
+      description: `Remediation plan for ${service} vulnerabilities`,
+      owner: 'security-team',
+      assignee: findings[0]?.assignee || 'unassigned',
+      status: 'active' as const,
+      priority: findings.some(f => f.severity === 'critical') ? 'critical' as const : 'high' as const,
+      due_date: new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      created_date: new Date().toISOString().split('T')[0],
+      vulnerabilities: {
+        total: findings.length,
+        fixed: findings.filter(f => f.status === 'resolved').length,
+        in_progress: findings.filter(f => f.status === 'in_progress').length,
+        pending: findings.filter(f => f.status === 'open').length,
+      },
+      tickets: {},
+      sla_status: 'on_track' as const,
+    }))
+  }, [demoEnabled, apiData])
+
+  // Use plansData directly instead of storing in state to avoid lint errors
+  const plans = plansData.length > 0 ? plansData : DEMO_PLANS
   const exceptions = useMemo(() => demoEnabled ? DEMO_EXCEPTIONS : [], [demoEnabled])
   const spotlight = useMemo(() => demoEnabled ? DEMO_SPOTLIGHT : [], [demoEnabled])
 

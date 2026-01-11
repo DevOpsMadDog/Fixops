@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Search, Check, Plus, RefreshCw, Settings, ArrowLeft, Shield, Code, Cloud, Database, AlertCircle, Download, Upload } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useIntegrations } from '@fixops/api-client'
 
 interface Scanner {
   id: string
@@ -359,18 +360,35 @@ function formatNumber(num: number): string {
 
 export default function ScannersPage() {
   const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useIntegrations()
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedScanner, setSelectedScanner] = useState<Scanner | null>(null)
   const [isConfiguring, setIsConfiguring] = useState(false)
   const [configForm, setConfigForm] = useState({ url: '', apiKey: '' })
 
-  const scanners = useMemo(() => {
-    if (demoEnabled) {
+  // Transform API data to match our UI format, or use demo data
+  const scannersData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
       return DEMO_SCANNERS
     }
-    return []
-  }, [demoEnabled])
+    // Transform integrations to scanner format
+    return apiData.items
+      .filter(i => i.type === 'scanner' || i.category === 'scanner')
+      .map(integration => ({
+        id: integration.id,
+        name: integration.name,
+        description: integration.description || '',
+        category: (integration.category as Scanner['category']) || 'infrastructure',
+        status: integration.status === 'active' ? 'connected' as const : 'available' as const,
+        icon: integration.icon || '🔍',
+        config: integration.config,
+        stats: integration.stats,
+      }))
+  }, [demoEnabled, apiData])
+
+  // Use scannersData directly instead of storing in state to avoid lint errors
+  const scanners = scannersData.length > 0 ? scannersData : DEMO_SCANNERS
 
   const filteredScanners = useMemo(() => {
     return scanners.filter(scanner => {

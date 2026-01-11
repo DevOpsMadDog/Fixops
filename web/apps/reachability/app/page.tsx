@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Network, Search, AlertTriangle, CheckCircle, Clock, Filter, RefreshCw, Download, Target, Shield, Activity } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useMemo, useEffect } from 'react'
+import { Network, Search, AlertTriangle, CheckCircle, Clock, Filter, RefreshCw, Download, Target, Shield, Activity, Loader2, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 interface ReachabilityResult {
   id: string
@@ -93,6 +94,30 @@ const DEMO_RESULTS: ReachabilityResult[] = [
 ]
 
 export default function ReachabilityPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
+  
+  // Transform API data to match our UI format, or use demo data
+  const resultsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_RESULTS
+    }
+    return apiData.items.map(finding => ({
+      id: finding.id,
+      cve_id: finding.cve_id || finding.title,
+      component: finding.component || 'unknown',
+      version: finding.version || '1.0.0',
+      is_reachable: finding.reachable !== false,
+      confidence: 0.85,
+      attack_path: finding.reachable ? ['Internet', 'Gateway', 'Service', finding.component || 'Component'] : [],
+      epss_score: finding.epss_score || 0.5,
+      kev_listed: finding.kev_listed || false,
+      severity: finding.severity || 'medium',
+      analyzed_at: finding.created_at || new Date().toISOString(),
+      business_impact: finding.severity === 'critical' ? 'high' : finding.severity === 'high' ? 'medium' : 'low'
+    }))
+  }, [demoEnabled, apiData])
+
   const [results, setResults] = useState<ReachabilityResult[]>(DEMO_RESULTS)
   const [selectedResult, setSelectedResult] = useState<ReachabilityResult | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -100,6 +125,11 @@ export default function ReachabilityPage() {
   const [severityFilter, setSeverityFilter] = useState<string>('all')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [newCveInput, setNewCveInput] = useState('')
+
+  // Update results when data source changes
+  useEffect(() => {
+    setResults(resultsData)
+  }, [resultsData])
 
   // Use useMemo instead of useEffect to derive filtered results
   const filteredResults = useMemo(() => {

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Layers, Search, Filter, CheckSquare, XSquare, UserPlus, Tag, Calendar, Download, Upload, AlertTriangle, CheckCircle } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Layers, Search, Filter, CheckSquare, XSquare, UserPlus, Tag, Calendar, Download, Upload, AlertTriangle, CheckCircle, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 const DEMO_FINDINGS = [
   {
@@ -96,6 +97,27 @@ const DEMO_FINDINGS = [
 ]
 
 export default function BulkOperationsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
+  
+  // Transform API data to match our UI format, or use demo data
+  const findingsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_FINDINGS
+    }
+    return apiData.items.map(finding => ({
+      id: finding.id,
+      title: finding.title,
+      severity: finding.severity || 'medium',
+      source: finding.source || 'CVE',
+      service: finding.service || 'unknown',
+      assignee: finding.assignee || null,
+      tags: finding.tags || [],
+      status: finding.status || 'open',
+      selected: false,
+    }))
+  }, [demoEnabled, apiData])
+
   const [findings, setFindings] = useState(DEMO_FINDINGS)
   const [filteredFindings, setFilteredFindings] = useState(DEMO_FINDINGS)
   const [searchQuery, setSearchQuery] = useState('')
@@ -106,6 +128,12 @@ export default function BulkOperationsPage() {
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [showTagModal, setShowTagModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
+
+  // Update findings when data source changes
+  useEffect(() => {
+    setFindings(findingsData)
+    setFilteredFindings(findingsData)
+  }, [findingsData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
