@@ -814,9 +814,9 @@ class PlaybookRunner:
             parts = resolved.split(">")
             if len(parts) == 2:
                 try:
-                    left = float(parts[0].strip())
-                    right = float(parts[1].strip())
-                    return left > right
+                    left_num = float(parts[0].strip())
+                    right_num = float(parts[1].strip())
+                    return left_num > right_num
                 except ValueError:
                     return False
 
@@ -825,9 +825,9 @@ class PlaybookRunner:
             parts = resolved.split(">=")
             if len(parts) == 2:
                 try:
-                    left = float(parts[0].strip())
-                    right = float(parts[1].strip())
-                    return left >= right
+                    left_num = float(parts[0].strip())
+                    right_num = float(parts[1].strip())
+                    return left_num >= right_num
                 except ValueError:
                     return False
 
@@ -836,9 +836,9 @@ class PlaybookRunner:
             parts = resolved.split("<")
             if len(parts) == 2:
                 try:
-                    left = float(parts[0].strip())
-                    right = float(parts[1].strip())
-                    return left < right
+                    left_num = float(parts[0].strip())
+                    right_num = float(parts[1].strip())
+                    return left_num < right_num
                 except ValueError:
                     return False
 
@@ -847,9 +847,9 @@ class PlaybookRunner:
             parts = resolved.split("<=")
             if len(parts) == 2:
                 try:
-                    left = float(parts[0].strip())
-                    right = float(parts[1].strip())
-                    return left <= right
+                    left_num = float(parts[0].strip())
+                    right_num = float(parts[1].strip())
+                    return left_num <= right_num
                 except ValueError:
                     return False
 
@@ -1017,10 +1017,10 @@ class PlaybookRunner:
             f"Compliance check: {params.get('framework')} {params.get('control')}"
         )
         try:
-            from core.compliance import ComplianceEngine
+            from core.compliance import ComplianceEvaluator
 
             if self._overlay:
-                _engine = ComplianceEngine(self._overlay)  # noqa: F841
+                _evaluator = ComplianceEvaluator(self._overlay)  # noqa: F841
                 # Check specific control
                 return {
                     "status": "pass",
@@ -1061,9 +1061,9 @@ class PlaybookRunner:
         """Handle pentest request using MicroPentest."""
         logger.info(f"Pentest request: {params}")
         try:
-            from core.micro_pentest import MicroPentestEngine
+            from core.micro_pentest import MicroPentestConfig
 
-            _engine = MicroPentestEngine()  # noqa: F841
+            _config = MicroPentestConfig()  # noqa: F841
             # Queue pentest request
             return {"request_id": "pt-001", "status": "queued"}
         except Exception as exc:
