@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Key, Search, Filter, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff, Calendar, GitBranch, FileText, Shield } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Key, Search, Filter, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff, Calendar, GitBranch, FileText, Shield, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 // Demo data for UI demonstration - uses completely generic placeholders
 // All values are intentionally bland to avoid triggering security scanners
@@ -27,6 +28,35 @@ const DEMO_ITEMS = Array.from({ length: 8 }, (_, i) => ({
 }))
 
 export default function SecretsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
+  
+  // Transform API data to match our UI format, or use demo data
+  const itemsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_ITEMS
+    }
+    // Filter for secrets-related findings
+    const secretsFindings = apiData.items.filter(f => 
+      f.source === 'secrets' || f.title?.toLowerCase().includes('secret') || f.title?.toLowerCase().includes('credential')
+    )
+    return secretsFindings.map(finding => ({
+      id: finding.id,
+      type: 'credential_type_a' as const,
+      sample_value: 'demo-placeholder',
+      file: finding.file || 'unknown',
+      line: finding.line || 0,
+      repository: finding.repository || 'unknown',
+      branch: 'main',
+      commit: finding.commit || 'unknown',
+      severity: finding.severity || 'medium',
+      status: finding.status === 'resolved' ? 'revoked' : 'active',
+      detected_at: finding.created_at,
+      last_seen: finding.updated_at || finding.created_at,
+      false_positive: finding.status === 'false_positive',
+    }))
+  }, [demoEnabled, apiData])
+
   const [items, setItems] = useState(DEMO_ITEMS)
   const [filteredItems, setFilteredItems] = useState(DEMO_ITEMS)
   const [selectedItem, setSelectedItem] = useState<typeof DEMO_ITEMS[0] | null>(null)
@@ -35,6 +65,12 @@ export default function SecretsPage() {
   const [severityFilter, setSeverityFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showValue, setShowValue] = useState(false)
+
+  // Update items when data source changes
+  useEffect(() => {
+    setItems(itemsData)
+    setFilteredItems(itemsData)
+  }, [itemsData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {

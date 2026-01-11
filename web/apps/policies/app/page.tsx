@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertTriangle, Play, FileText, Filter } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertTriangle, Play, FileText, Filter, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { usePolicies } from '@fixops/api-client'
 
 const DEMO_POLICIES = [
   {
@@ -124,6 +125,28 @@ const DEMO_POLICIES = [
 ]
 
 export default function PoliciesPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = usePolicies()
+  
+  // Transform API data to match our UI format, or use demo data
+  const policiesData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_POLICIES
+    }
+    return apiData.items.map(policy => ({
+      id: policy.id,
+      name: policy.name,
+      description: policy.description || '',
+      type: policy.type || 'security',
+      action: 'block' as const,
+      enabled: policy.status === 'active',
+      conditions: [] as Array<{ field: string; operator: string; value: string | string[] }>,
+      violations: 0,
+      last_triggered: policy.last_evaluated,
+      created_at: policy.created_at,
+    }))
+  }, [demoEnabled, apiData])
+
   const [policies, setPolicies] = useState(DEMO_POLICIES)
   const [filteredPolicies, setFilteredPolicies] = useState(DEMO_POLICIES)
   const [selectedPolicy, setSelectedPolicy] = useState<typeof DEMO_POLICIES[0] | null>(null)
@@ -133,6 +156,12 @@ export default function PoliciesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
+
+  // Update policies when data source changes
+  useEffect(() => {
+    setPolicies(policiesData)
+    setFilteredPolicies(policiesData)
+  }, [policiesData])
 
   const getActionColor = (action: string) => {
     const colors = {
@@ -357,21 +386,42 @@ export default function PoliciesPage() {
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
           <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Policies</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredPolicies.length} polic{filteredPolicies.length !== 1 ? 'ies' : 'y'}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create Policy
-              </button>
-            </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h1 className="text-2xl font-semibold mb-1">Policies</h1>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                              {apiLoading && !demoEnabled ? (
+                                <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                              ) : (
+                                <>Showing {filteredPolicies.length} polic{filteredPolicies.length !== 1 ? 'ies' : 'y'}</>
+                              )}
+                              {!demoEnabled && apiError && (
+                                <span className="text-amber-400 flex items-center gap-1">
+                                  <WifiOff size={12} /> Using cached data
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!demoEnabled && (
+                              <button
+                                onClick={() => refetch()}
+                                disabled={apiLoading}
+                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh data"
+                              >
+                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowCreateModal(true)}
+                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
+                              <Plus size={16} />
+                              Create Policy
+                            </button>
+                          </div>
+                        </div>
 
             {/* Search Bar */}
             <div className="relative">

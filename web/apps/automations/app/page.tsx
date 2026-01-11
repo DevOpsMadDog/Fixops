@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Play, Pause, Plus, Trash2, Edit2, ArrowLeft, Zap, Shield, AlertTriangle } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Play, Pause, Plus, Trash2, Edit2, ArrowLeft, Zap, Shield, AlertTriangle, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useWorkflows } from '@fixops/api-client'
 
 const AUTOMATION_RULES = [
   {
@@ -113,9 +114,37 @@ const POLICY_GATES = [
 ]
 
 export default function AutomationsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useWorkflows()
+  
+  // Transform API data to match our UI format, or use demo data
+  const rulesData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return AUTOMATION_RULES
+    }
+    return apiData.items.map(workflow => ({
+      id: workflow.id,
+      name: workflow.name,
+      description: workflow.description || '',
+      enabled: workflow.status === 'active',
+      trigger: workflow.trigger || 'New finding detected',
+      conditions: [] as Array<{ field: string; operator: string; value: string }>,
+      actions: [] as Array<{ type: string; value: string }>,
+      executions: workflow.execution_count || 0,
+      last_executed: workflow.last_executed,
+      created: workflow.created_at?.split('T')[0] || '',
+    }))
+  }, [demoEnabled, apiData])
+
+  const [rules, setRules] = useState(AUTOMATION_RULES)
   const [selectedRule, setSelectedRule] = useState<typeof AUTOMATION_RULES[0] | null>(null)
   const [activeTab, setActiveTab] = useState<'rules' | 'gates'>('rules')
   const [isCreating, setIsCreating] = useState(false)
+
+  // Update rules when data source changes
+  useEffect(() => {
+    setRules(rulesData)
+  }, [rulesData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Package, Search, Plus, Edit2, Trash2, GitBranch, Code, Server, Box, Filter, ExternalLink, Calendar, Users } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Package, Search, Plus, Edit2, Trash2, GitBranch, Code, Server, Box, Filter, ExternalLink, Calendar, Users, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useInventory } from '@fixops/api-client'
 
 const DEMO_APPLICATIONS = [
   {
@@ -136,6 +137,32 @@ const DEMO_APPLICATIONS = [
 ]
 
 export default function InventoryPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useInventory()
+  
+  // Transform API data to match our UI format, or use demo data
+  const applicationsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_APPLICATIONS
+    }
+    return apiData.items.map(app => ({
+      id: app.id,
+      name: app.name,
+      description: app.description || '',
+      type: app.type || 'service',
+      owner: app.owner || 'Unknown',
+      repository: app.repository || '',
+      language: app.language || 'Unknown',
+      framework: app.framework || '',
+      criticality: app.criticality || 'medium',
+      services: app.service_count || 0,
+      components: app.component_count || 0,
+      dependencies: app.dependency_count || 0,
+      last_scan: app.last_scan,
+      status: app.status || 'active',
+    }))
+  }, [demoEnabled, apiData])
+
   const [applications, setApplications] = useState(DEMO_APPLICATIONS)
   const [filteredApplications, setFilteredApplications] = useState(DEMO_APPLICATIONS)
   const [selectedApp, setSelectedApp] = useState<typeof DEMO_APPLICATIONS[0] | null>(null)
@@ -144,6 +171,12 @@ export default function InventoryPage() {
   const [criticalityFilter, setCriticalityFilter] = useState<string>('all')
   const [languageFilter, setLanguageFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  // Update applications when data source changes
+  useEffect(() => {
+    setApplications(applicationsData)
+    setFilteredApplications(applicationsData)
+  }, [applicationsData])
 
   const getCriticalityColor = (criticality: string) => {
     const colors = {
@@ -355,21 +388,42 @@ export default function InventoryPage() {
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
           <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Application Inventory</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Add Application
-              </button>
-            </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h1 className="text-2xl font-semibold mb-1">Application Inventory</h1>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                              {apiLoading && !demoEnabled ? (
+                                <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                              ) : (
+                                <>Showing {filteredApplications.length} application{filteredApplications.length !== 1 ? 's' : ''}</>
+                              )}
+                              {!demoEnabled && apiError && (
+                                <span className="text-amber-400 flex items-center gap-1">
+                                  <WifiOff size={12} /> Using cached data
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!demoEnabled && (
+                              <button
+                                onClick={() => refetch()}
+                                disabled={apiLoading}
+                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh data"
+                              >
+                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowCreateModal(true)}
+                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
+                              <Plus size={16} />
+                              Add Application
+                            </button>
+                          </div>
+                        </div>
 
             {/* Search Bar */}
             <div className="relative">

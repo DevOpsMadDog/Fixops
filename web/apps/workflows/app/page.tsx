@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Workflow, Search, Plus, Edit2, Trash2, Play, Pause, Clock, CheckCircle, XCircle, AlertCircle, Filter, Calendar, Activity } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Workflow, Search, Plus, Edit2, Trash2, Play, Pause, Clock, CheckCircle, XCircle, AlertCircle, Filter, Calendar, Activity, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useWorkflows } from '@fixops/api-client'
 
 const DEMO_WORKFLOWS = [
   {
@@ -158,6 +159,29 @@ const DEMO_WORKFLOWS = [
 ]
 
 export default function WorkflowsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useWorkflows()
+  
+  // Transform API data to match our UI format, or use demo data
+  const workflowsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_WORKFLOWS
+    }
+    return apiData.items.map(workflow => ({
+      id: workflow.id,
+      name: workflow.name,
+      description: workflow.description || '',
+      trigger: workflow.trigger || 'finding.created',
+      conditions: [] as Array<{ field: string; operator: string; value: string }>,
+      actions: [] as Array<{ type: string; target?: string; integration?: string; project?: string; channel?: string }>,
+      status: workflow.status || 'active',
+      executions: workflow.execution_count || 0,
+      last_executed: workflow.last_executed,
+      success_rate: workflow.success_rate || 100,
+      created_at: workflow.created_at,
+    }))
+  }, [demoEnabled, apiData])
+
   const [workflows, setWorkflows] = useState(DEMO_WORKFLOWS)
   const [filteredWorkflows, setFilteredWorkflows] = useState(DEMO_WORKFLOWS)
   const [selectedWorkflow, setSelectedWorkflow] = useState<typeof DEMO_WORKFLOWS[0] | null>(null)
@@ -166,6 +190,12 @@ export default function WorkflowsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showExecutionHistory, setShowExecutionHistory] = useState(false)
+
+  // Update workflows when data source changes
+  useEffect(() => {
+    setWorkflows(workflowsData)
+    setFilteredWorkflows(workflowsData)
+  }, [workflowsData])
 
   const getTriggerColor = (trigger: string) => {
     const colors = {
@@ -339,21 +369,42 @@ export default function WorkflowsPage() {
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
           <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Workflows</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredWorkflows.length} workflow{filteredWorkflows.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create Workflow
-              </button>
-            </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h1 className="text-2xl font-semibold mb-1">Workflows</h1>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                              {apiLoading && !demoEnabled ? (
+                                <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                              ) : (
+                                <>Showing {filteredWorkflows.length} workflow{filteredWorkflows.length !== 1 ? 's' : ''}</>
+                              )}
+                              {!demoEnabled && apiError && (
+                                <span className="text-amber-400 flex items-center gap-1">
+                                  <WifiOff size={12} /> Using cached data
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!demoEnabled && (
+                              <button
+                                onClick={() => refetch()}
+                                disabled={apiLoading}
+                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh data"
+                              >
+                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowCreateModal(true)}
+                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
+                              <Plus size={16} />
+                              Create Workflow
+                            </button>
+                          </div>
+                        </div>
 
             {/* Search Bar */}
             <div className="relative">

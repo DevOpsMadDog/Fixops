@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { FileText, Search, Filter, Calendar, User, Activity, Shield, AlertTriangle, CheckCircle, XCircle, Download } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { FileText, Search, Filter, Calendar, User, Activity, Shield, AlertTriangle, CheckCircle, XCircle, Download, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useAuditLogs } from '@fixops/api-client'
 
 const DEMO_AUDIT_LOGS = [
   {
@@ -152,6 +153,28 @@ const DEMO_AUDIT_LOGS = [
 ]
 
 export default function AuditLogsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useAuditLogs()
+  
+  // Transform API data to match our UI format, or use demo data
+  const logsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_AUDIT_LOGS
+    }
+    return apiData.items.map(log => ({
+      id: log.id,
+      timestamp: log.timestamp,
+      event_type: log.event_type || 'system.event',
+      severity: log.severity || 'info',
+      user: log.user || 'system',
+      action: log.action || 'Unknown action',
+      resource: log.resource || '',
+      details: log.details || '',
+      ip_address: log.ip_address || '',
+      user_agent: log.user_agent || '',
+    }))
+  }, [demoEnabled, apiData])
+
   const [logs, setLogs] = useState(DEMO_AUDIT_LOGS)
   const [filteredLogs, setFilteredLogs] = useState(DEMO_AUDIT_LOGS)
   const [selectedLog, setSelectedLog] = useState<typeof DEMO_AUDIT_LOGS[0] | null>(null)
@@ -159,6 +182,12 @@ export default function AuditLogsPage() {
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
   const [severityFilter, setSeverityFilter] = useState<string>('all')
   const [userFilter, setUserFilter] = useState<string>('all')
+
+  // Update logs when data source changes
+  useEffect(() => {
+    setLogs(logsData)
+    setFilteredLogs(logsData)
+  }, [logsData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -404,21 +433,42 @@ export default function AuditLogsPage() {
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
           <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Audit Logs</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredLogs.length} event{filteredLogs.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <button
-                onClick={() => alert('Exporting audit logs...')}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Download size={16} />
-                Export Logs
-              </button>
-            </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h1 className="text-2xl font-semibold mb-1">Audit Logs</h1>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                              {apiLoading && !demoEnabled ? (
+                                <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                              ) : (
+                                <>Showing {filteredLogs.length} event{filteredLogs.length !== 1 ? 's' : ''}</>
+                              )}
+                              {!demoEnabled && apiError && (
+                                <span className="text-amber-400 flex items-center gap-1">
+                                  <WifiOff size={12} /> Using cached data
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!demoEnabled && (
+                              <button
+                                onClick={() => refetch()}
+                                disabled={apiLoading}
+                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh data"
+                              >
+                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => alert('Exporting audit logs...')}
+                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
+                              <Download size={16} />
+                              Export Logs
+                            </button>
+                          </div>
+                        </div>
 
             {/* Search Bar */}
             <div className="relative">

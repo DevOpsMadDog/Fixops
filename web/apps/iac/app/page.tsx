@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Cloud, Search, Filter, AlertTriangle, CheckCircle, XCircle, FileText, GitBranch, Calendar, Shield, Settings } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Cloud, Search, Filter, AlertTriangle, CheckCircle, XCircle, FileText, GitBranch, Calendar, Shield, Settings, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 const DEMO_IAC_FINDINGS = [
   {
@@ -152,6 +153,38 @@ const DEMO_IAC_FINDINGS = [
 ]
 
 export default function IaCPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
+  
+  // Transform API data to match our UI format, or use demo data
+  const findingsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_IAC_FINDINGS
+    }
+    // Filter for IaC-related findings
+    const iacFindings = apiData.items.filter(f => 
+      f.source === 'IaC' || f.source === 'terraform' || f.source === 'cloudformation'
+    )
+    return iacFindings.map(finding => ({
+      id: finding.id,
+      title: finding.title,
+      description: finding.description || '',
+      severity: finding.severity || 'medium',
+      category: 'storage',
+      provider: 'aws',
+      resource_type: finding.resource_type || 'unknown',
+      resource_name: finding.resource_name || 'unknown',
+      file: finding.file || 'unknown',
+      line: finding.line || 0,
+      repository: finding.repository || 'unknown',
+      branch: 'main',
+      commit: finding.commit || 'unknown',
+      status: finding.status || 'open',
+      detected_at: finding.created_at,
+      remediation: finding.remediation || '',
+    }))
+  }, [demoEnabled, apiData])
+
   const [findings, setFindings] = useState(DEMO_IAC_FINDINGS)
   const [filteredFindings, setFilteredFindings] = useState(DEMO_IAC_FINDINGS)
   const [selectedFinding, setSelectedFinding] = useState<typeof DEMO_IAC_FINDINGS[0] | null>(null)
@@ -160,6 +193,12 @@ export default function IaCPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [providerFilter, setProviderFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  // Update findings when data source changes
+  useEffect(() => {
+    setFindings(findingsData)
+    setFilteredFindings(findingsData)
+  }, [findingsData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
