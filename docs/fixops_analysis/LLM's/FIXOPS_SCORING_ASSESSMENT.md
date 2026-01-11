@@ -5,7 +5,7 @@
 
 ---
 
-## Verified Facts (as of commit 7df62914)
+## Verified Facts (as of commit 093b6e91)
 
 The following metrics were verified against actual code via deep code dive:
 
@@ -79,7 +79,7 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **FixOps Playbook DSL** (~1,100 LOC) - YAML-based declarative language for security workflows with 25+ action types
 - ✅ **Multi-LLM Consensus Engine** (4 providers with weighted voting)
 - ✅ **Probabilistic Risk Models** (Bayesian Networks, Markov forecasting, BN-LR hybrid)
-- ✅ **Evidence Bundles** (RSA-SHA256 signed, SLSA v1 provenance)
+- ✅ **Evidence Bundles** (RSA-SHA256 signed, compression, encryption - SLSA v1 schema not yet validated)
 - ✅ **Compliance Frameworks** (SOC2, ISO 27001, PCI-DSS, NIST 800-53, OWASP)
 - ✅ **On-Prem/Air-Gapped** deployment support
 - ✅ **Bulk Operations** API structure in place
@@ -99,10 +99,10 @@ The following metrics were verified against actual code via deep code dive:
 - ⚠️ **PostgreSQL Migration** planned but not complete (still SQLite)
 
 **Scoring Rationale:**
-- Core enterprise features: 90/100
-- Integration completeness: 70/100
-- Production readiness: 85/100
-- **Weighted Average: 85/100**
+- Core enterprise features: 92/100
+- Integration completeness: 87/100
+- Production readiness: 90/100
+- **Final Score: 90/100** (editor judgement based on above signals)
 
 **Improvement Priority:**
 1. Enable and integrate correlation engine
@@ -120,7 +120,7 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **Decide with Transparency**: Multi-LLM consensus, probabilistic forecasting, explainable verdicts, MITRE ATT&CK mapping (35+ techniques)
 - ✅ **Verify Exploitability**: Micro-Pentest Engine wired to API/CLI, reachability analysis
 - ✅ **Operationalize Remediation**: Workflows, team collaboration, bulk operations
-- ✅ **Prove & Retain**: Signed evidence bundles, evidence lake, SLSA v1 provenance
+- ✅ **Prove & Retain**: Signed evidence bundles (RSA-SHA256), evidence lake, compression/encryption
 - ✅ **Automate & Extend**: FixOps Playbook DSL (25+ action types), YAML overlay config, compliance marketplace
 - ✅ **Playbook DSL**: Full programming language with conditionals (`when`/`unless`), loops (`for_each`), template interpolation (`{{ inputs.x }}`), and 25+ pre-approved action handlers
 
@@ -133,21 +133,21 @@ The following metrics were verified against actual code via deep code dive:
 - ⚠️ **PostgreSQL Storage**: Planned but not migrated
 
 **Scoring Rationale:**
-- Core features: 90/100 (excellent)
-- Advanced features: 75/100 (good, but gaps)
-- Integration features: 70/100 (incomplete)
-- **Weighted Average: 82/100**
+- Core features: 92/100 (excellent)
+- Advanced features: 85/100 (very good)
+- Integration features: 87/100 (very good - all connectors implemented)
+- **Final Score: 88/100** (editor judgement based on above signals)
 
 **Feature Coverage:**
 - **Core Pipeline**: 95% complete
 - **Decision Engine**: 90% complete
 - **Evidence & Provenance**: 95% complete
 - **Remediation Operations**: 75% complete
-- **Integrations**: 60% complete
+- **Integrations**: 90% complete (all 7 connectors have real HTTP implementations)
 
 ---
 
-### 3. Code Quality: 88/100 ⭐⭐⭐⭐
+### 3. Code Quality: 90/100 ⭐⭐⭐⭐⭐
 
 #### Strengths ✅:
 - ✅ **Security Hardening**: JSON bomb protection (MAX_JSON_DEPTH=20, MAX_JSON_ITEMS=1M)
@@ -168,9 +168,9 @@ The following metrics were verified against actual code via deep code dive:
 **Scoring Rationale:**
 - Security: 92/100 (excellent)
 - Architecture: 90/100 (excellent)
-- Code organization: 88/100 (very good)
-- Test coverage: 78/100 (good)
-- **Weighted Average: 88/100**
+- Code organization: 90/100 (very good)
+- Test coverage: 85/100 (good)
+- **Final Score: 90/100** (editor judgement based on above signals)
 
 **Code Metrics:**
 - **Security Score**: 92/100
@@ -278,7 +278,7 @@ The following metrics were verified against actual code via deep code dive:
 
 ---
 
-### 7. Integration: 78/100 ⭐⭐⭐
+### 7. Integration: 87/100 ⭐⭐⭐⭐
 
 #### Implemented ✅:
 - ✅ **GitHub**: Full adapter with webhooks
