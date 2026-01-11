@@ -508,9 +508,7 @@ def test_execute_step_dependency_not_found():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._execute_step(step, context)
-    )
+    result = asyncio.run(runner._execute_step(step, context))
     assert result.status.value == "skipped"
     assert "Dependency not found" in result.error
 
@@ -549,9 +547,7 @@ def test_execute_step_dependency_failed():
         name="step1", status=StepStatus.FAILED, output={}
     )
 
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._execute_step(step, context)
-    )
+    result = asyncio.run(runner._execute_step(step, context))
     assert result.status.value == "skipped"
     assert "Dependency failed" in result.error
 
@@ -584,9 +580,7 @@ def test_execute_step_no_handler():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._execute_step(step, context)
-    )
+    result = asyncio.run(runner._execute_step(step, context))
     assert result.status.value == "failed"
     assert "No handler for action" in result.error
 
@@ -624,9 +618,7 @@ def test_execute_step_exception_handling():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._execute_step(step, context)
-    )
+    result = asyncio.run(runner._execute_step(step, context))
     assert result.status.value == "failed"
     assert "Test exception" in result.error
 
@@ -669,9 +661,7 @@ def test_execute_step_with_retry():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._execute_step(step, context)
-    )
+    result = asyncio.run(runner._execute_step(step, context))
     assert result.status.value == "success"
     assert call_count[0] == 2
 
@@ -706,9 +696,7 @@ def test_opa_evaluate_with_overlay():
 
     # Call the handler - it will use the overlay and return a result
     # The handler has fallback behavior if OPA is not configured
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._handle_opa_evaluate({"policy": "test"}, context)
-    )
+    result = asyncio.run(runner._handle_opa_evaluate({"policy": "test"}, context))
     # Result should have either "result" key, "note" key for fallback, or "status" key for error
     assert "result" in result or "note" in result or "status" in result
 
@@ -741,7 +729,7 @@ def test_evidence_collect_with_overlay():
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
     # Call the handler - it will use the overlay and return a result
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_evidence_collect({"evidence_types": ["test"]}, context)
     )
     assert result["collected"] is True
@@ -778,7 +766,7 @@ def test_compliance_check_with_overlay():
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
     # Call the handler - it will use the overlay and return a result
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_compliance_check(
             {"framework": "SOC2", "control": "CC1.1"}, context
         )
@@ -812,9 +800,7 @@ def test_pentest_request_with_overlay():
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
     # Call the handler - it will return a result
-    result = asyncio.get_event_loop().run_until_complete(
-        runner._handle_pentest_request({}, context)
-    )
+    result = asyncio.run(runner._handle_pentest_request({}, context))
     assert result["status"] == "queued"
 
 
@@ -849,7 +835,7 @@ def test_notify_slack_with_connectors():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_notify_slack({"channel": "#test", "message": "Hello"}, context)
     )
     assert result["sent"] is True
@@ -886,7 +872,7 @@ def test_jira_create_with_connectors():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_jira_create(
             {"project": "TEST", "summary": "Test issue"}, context
         )
@@ -925,7 +911,7 @@ def test_jira_update_with_connectors():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_jira_update({"issue_key": "TEST-123", "status": "Done"}, context)
     )
     assert "updated" in result
@@ -962,7 +948,7 @@ def test_jira_comment_with_connectors():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_jira_comment(
             {"issue_key": "TEST-123", "comment": "Test comment"}, context
         )
@@ -1003,7 +989,7 @@ def test_confluence_create_with_connectors():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_confluence_create(
             {"space": "TEST", "title": "Test Page"}, context
         )
@@ -1044,7 +1030,7 @@ def test_confluence_update_with_connectors():
     )
     context = PlaybookExecutionContext(playbook=playbook, inputs={})
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_confluence_update(
             {"page_id": "12345", "content": "Updated content"}, context
         )
@@ -1077,7 +1063,7 @@ def test_data_filter_handler():
         playbook=playbook, inputs={"data": [1, 2, 3, 4, 5]}
     )
 
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         runner._handle_data_filter(
             {"data": "{{ inputs.data }}", "condition": "value > 2"}, context
         )
