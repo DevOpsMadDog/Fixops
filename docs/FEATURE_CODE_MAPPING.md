@@ -6,6 +6,158 @@ This document maps every FixOps feature to its exact code paths, API endpoints, 
 
 ---
 
+## Quick Start Examples
+
+Real commands you can run immediately. See [detailed feature sections](#feature-1-vulnerability-intake--normalization) below for full API/CLI reference.
+
+### 1. Run Demo Pipeline (No External Services Required)
+
+```bash
+# Demo mode - generates pipeline output and evidence bundles
+python -m core.cli demo --mode demo --output out/pipeline-demo.json --pretty
+
+# Enterprise mode - with encryption enabled
+python -m core.cli demo --mode enterprise --output out/pipeline-enterprise.json --pretty
+```
+
+### 2. Start API Server & Upload Scan Results
+
+```bash
+# Terminal 1: Start the API server
+export FIXOPS_API_TOKEN="demo-token"
+export FIXOPS_DISABLE_TELEMETRY=1
+uvicorn apps.api.app:app --reload --port 8000
+
+# Terminal 2: Upload security artifacts
+curl -H "X-API-Key: demo-token" \
+  -F "file=@simulations/demo_pack/sbom.json;type=application/json" \
+  http://127.0.0.1:8000/inputs/sbom
+
+curl -H "X-API-Key: demo-token" \
+  -F "file=@simulations/demo_pack/scan.sarif;type=application/json" \
+  http://127.0.0.1:8000/inputs/sarif
+
+# Run the pipeline
+curl -H "X-API-Key: demo-token" http://127.0.0.1:8000/pipeline/run | jq
+```
+
+### 3. CLI Commands by Feature
+
+```bash
+# Intake & Normalization
+python -m core.cli ingest --sbom artifacts/sbom.json --sarif artifacts/scan.sarif
+
+# Risk Scoring
+python -m core.cli reachability analyze --cve CVE-2024-1234
+
+# Decision Engine
+python -m core.cli run --overlay config/fixops.overlay.yml --output out/decision.json
+
+# Compliance & Evidence
+python -m core.cli compliance status --framework PCI-DSS
+python -m core.cli compliance report --format pdf --output out/compliance.pdf
+
+# Team Management
+python -m core.cli teams list
+python -m core.cli users list
+
+# Analytics
+python -m core.cli analytics dashboard
+python -m core.cli analytics mttr --days 90
+
+# Remediation Workflow
+python -m core.cli remediation list --status open
+python -m core.cli workflows list
+```
+
+### 4. API Endpoints by Feature
+
+```bash
+# Health Check
+curl http://127.0.0.1:8000/health
+
+# Get LLM Capabilities
+curl -H "X-API-Key: demo-token" \
+  http://127.0.0.1:8000/api/v1/enhanced/capabilities | jq
+
+# Compare LLM Recommendations
+curl -H "X-API-Key: demo-token" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"service_name":"demo-app","security_findings":[{"rule_id":"SAST001","severity":"high","description":"SQL injection"}],"business_context":{"environment":"demo","criticality":"high"}}' \
+  http://127.0.0.1:8000/api/v1/enhanced/compare-llms | jq
+
+# List Threat Feeds
+curl -H "X-API-Key: demo-token" \
+  http://127.0.0.1:8000/api/v1/feeds/status | jq
+
+# Get EPSS Score for a CVE
+curl -H "X-API-Key: demo-token" \
+  http://127.0.0.1:8000/api/v1/feeds/epss/CVE-2024-1234 | jq
+
+# Check if CVE is in KEV
+curl -H "X-API-Key: demo-token" \
+  http://127.0.0.1:8000/api/v1/feeds/kev/check/CVE-2024-1234 | jq
+
+# Analytics Dashboard
+curl -H "X-API-Key: demo-token" \
+  http://127.0.0.1:8000/api/v1/analytics/dashboard | jq
+
+# List Remediation Tasks
+curl -H "X-API-Key: demo-token" \
+  http://127.0.0.1:8000/api/v1/remediation/tasks | jq
+```
+
+### 5. Micro Penetration Testing (Requires PentAGI Service)
+
+```bash
+# CLI: Run micro pentest
+python -m core.cli micro-pentest run \
+  --cve-ids CVE-2024-1234 \
+  --target-urls https://example.com \
+  --context "Production web application"
+
+# API: Run micro pentest
+curl -H "X-API-Key: demo-token" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"cve_ids":["CVE-2024-1234"],"target_urls":["https://example.com"],"context":"Production web app"}' \
+  http://127.0.0.1:8000/api/v1/micro-pentest/run | jq
+```
+
+### 6. Run Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test categories
+pytest tests/test_api_smoke.py           # API endpoints
+pytest tests/test_micro_pentest_core.py  # Micro pentest
+pytest tests/risk/test_scoring.py        # Risk scoring
+pytest tests/test_crypto.py              # Evidence signing
+```
+
+---
+
+## Table of Contents
+
+- [Feature 1: Vulnerability Intake & Normalization](#feature-1-vulnerability-intake--normalization)
+- [Feature 2: Risk Scoring & Prioritization](#feature-2-risk-scoring--prioritization)
+- [Feature 3: Automated Decision Engine](#feature-3-automated-decision-engine)
+- [Feature 4: Penetration Testing](#feature-4-penetration-testing)
+- [Feature 5: Remediation Workflow](#feature-5-remediation-workflow)
+- [Feature 6: Compliance & Evidence](#feature-6-compliance--evidence)
+- [Feature 7: Integrations & Connectors](#feature-7-integrations--connectors)
+- [Feature 8: Security Scanning](#feature-8-security-scanning)
+- [Feature 9: Deduplication & Correlation](#feature-9-deduplication--correlation)
+- [Feature 10: Analytics & Dashboards](#feature-10-analytics--dashboards)
+- [Feature 11: Team & User Management](#feature-11-team--user-management)
+- [Feature 12: Marketplace](#feature-12-marketplace)
+- [Feature 13: Bulk Operations](#feature-13-bulk-operations)
+- [Feature 14: Collaboration](#feature-14-collaboration)
+- [Feature 15: Frontend UI](#feature-15-frontend-ui)
+
+---
+
 ## Feature 1: Vulnerability Intake & Normalization
 
 **Purpose:** Ingest security scan results from any tool (SARIF, SBOM, CVE, VEX) and normalize to common format.
