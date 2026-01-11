@@ -3369,3 +3369,88 @@ class TestEdgeCasesForCoverage:
             }
         )
         assert result.status == "sent"
+
+
+class TestOrgIdDependencies:
+    """Tests for apps/api/dependencies.py org_id and correlation_id functions."""
+
+    def test_get_org_id_from_query_param(self) -> None:
+        """Test get_org_id returns query param when provided."""
+        from apps.api.dependencies import get_org_id
+
+        result = get_org_id(org_id="test-org", x_org_id=None)
+        assert result == "test-org"
+
+    def test_get_org_id_from_header(self) -> None:
+        """Test get_org_id returns header when query param not provided."""
+        from apps.api.dependencies import get_org_id
+
+        result = get_org_id(org_id=None, x_org_id="header-org")
+        assert result == "header-org"
+
+    def test_get_org_id_query_param_priority(self) -> None:
+        """Test get_org_id prioritizes query param over header."""
+        from apps.api.dependencies import get_org_id
+
+        result = get_org_id(org_id="query-org", x_org_id="header-org")
+        assert result == "query-org"
+
+    def test_get_org_id_default(self) -> None:
+        """Test get_org_id returns 'default' when neither provided."""
+        from apps.api.dependencies import get_org_id
+
+        result = get_org_id(org_id=None, x_org_id=None)
+        assert result == "default"
+
+    def test_get_org_id_required_from_query_param(self) -> None:
+        """Test get_org_id_required returns query param when provided."""
+        from apps.api.dependencies import get_org_id_required
+
+        result = get_org_id_required(org_id="test-org", x_org_id=None)
+        assert result == "test-org"
+
+    def test_get_org_id_required_from_header(self) -> None:
+        """Test get_org_id_required returns header when query param not provided."""
+        from apps.api.dependencies import get_org_id_required
+
+        result = get_org_id_required(org_id=None, x_org_id="header-org")
+        assert result == "header-org"
+
+    def test_get_org_id_required_raises_when_missing(self) -> None:
+        """Test get_org_id_required raises HTTPException when neither provided."""
+        from fastapi import HTTPException
+
+        from apps.api.dependencies import get_org_id_required
+
+        with pytest.raises(HTTPException) as exc_info:
+            get_org_id_required(org_id=None, x_org_id=None)
+        assert exc_info.value.status_code == 400
+        assert "org_id is required" in exc_info.value.detail
+
+    def test_get_correlation_id_from_request_state(self) -> None:
+        """Test get_correlation_id extracts correlation_id from request state."""
+        from types import SimpleNamespace
+
+        from apps.api.dependencies import get_correlation_id
+
+        class MockRequest:
+            def __init__(self) -> None:
+                self.state = SimpleNamespace(correlation_id="test-correlation-123")
+
+        request = MockRequest()
+        result = get_correlation_id(request)  # type: ignore[arg-type]
+        assert result == "test-correlation-123"
+
+    def test_get_correlation_id_returns_none_when_not_set(self) -> None:
+        """Test get_correlation_id returns None when correlation_id not in state."""
+        from types import SimpleNamespace
+
+        from apps.api.dependencies import get_correlation_id
+
+        class MockRequest:
+            def __init__(self) -> None:
+                self.state = SimpleNamespace()
+
+        request = MockRequest()
+        result = get_correlation_id(request)  # type: ignore[arg-type]
+        assert result is None
