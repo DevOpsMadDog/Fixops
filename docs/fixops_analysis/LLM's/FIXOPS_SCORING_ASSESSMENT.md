@@ -21,6 +21,9 @@ The following metrics were verified against actual code via deep code dive:
 | Evidence Bundles | Real | Compression, encryption, signing | `core/evidence.py` (437 LOC) |
 | Jira Connector | Real HTTP | requests library, REST API v3 | `core/connectors.py:330-840` |
 | Confluence Connector | Real HTTP | requests library, REST API | `core/connectors.py:843-1159` |
+| ServiceNow Connector | Real HTTP | requests library, REST API | `core/connectors.py:1239-1600` |
+| GitLab Connector | Real HTTP | requests library, REST API v4 | `core/connectors.py:1604-1960` |
+| Azure DevOps Connector | Real HTTP | requests library, JSON Patch | `core/connectors.py:1963-2320` |
 
 ### Verified Implementations (with code references)
 - **Multi-LLM Providers** (`core/llm_providers.py`): OpenAIChatProvider (lines 73-285), AnthropicMessagesProvider (lines 288-404), GeminiProvider (lines 407-521), SentinelCyberProvider (lines 524-559)
@@ -60,9 +63,9 @@ The following metrics were verified against actual code via deep code dive:
 | **Documentation** | 98/100 | 10% | 9.80 | ⭐⭐⭐⭐⭐ |
 | **Security** | 92/100 | 15% | 13.80 | ⭐⭐⭐⭐⭐ |
 | **Testing** | 82/100 | 10% | 8.20 | ⭐⭐⭐⭐ |
-| **Integration** | 78/100 | 5% | 3.90 | ⭐⭐⭐ |
+| **Integration** | 87/100 | 5% | 4.35 | ⭐⭐⭐⭐ |
 
-### **Overall Score: 89.30/100 (A)** ⭐⭐⭐⭐⭐
+### **Overall Score: 89.75/100 (A)** ⭐⭐⭐⭐⭐
 
 **Grade:** **A** (Excellent, enterprise-ready with comprehensive Playbook DSL)
 
@@ -287,21 +290,21 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **OPA (Open Policy Agent)**: Policy evaluation via Playbook DSL
 - ✅ **API Client Package**: Shared `@fixops/api-client` for frontend
 
-#### Incomplete/Stubs ⚠️:
-- ⚠️ **ServiceNow**: Not implemented
-- ⚠️ **GitLab**: Not implemented
-- ⚠️ **Azure DevOps**: Not implemented
+#### Need Live Validation ⚠️:
+- ⚠️ **ServiceNow**: Real HTTP implementation exists (`core/connectors.py:1239-1600`), needs live instance testing
+- ⚠️ **GitLab**: Real HTTP implementation exists (`core/connectors.py:1604-1960`), needs live instance testing
+- ⚠️ **Azure DevOps**: Real HTTP implementation exists (`core/connectors.py:1963-2320`), needs live instance testing
 - ⚠️ **Terraform Cloud**: Not implemented
 
 **Scoring Rationale:**
-- Core integrations: 85/100 (very good)
-- ALM integrations: 75/100 (good, Jira/Confluence improved)
+- Core integrations: 90/100 (excellent - all 7 connectors have real HTTP implementations)
+- ALM integrations: 85/100 (very good - Jira/Confluence/ServiceNow/GitLab/Azure DevOps all implemented)
 - CI/CD integrations: 85/100 (very good)
-- **Weighted Average: 78/100**
+- **Weighted Average: 87/100**
 
 **Integration Status:**
 - **CI/CD Tools**: 85% (GitHub, Jenkins, SonarQube)
-- **ALM Tools**: 75% (Jira/Confluence with org_id)
+- **ALM Tools**: 90% (Jira, Confluence, ServiceNow, GitLab, Azure DevOps - all with real HTTP implementations)
 - **Communication**: 90% (Slack)
 - **Cloud Platforms**: 70% (AWS/GCP/Azure scripts exist)
 - **Policy Engines**: 80% (OPA via Playbook DSL)
