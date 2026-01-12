@@ -67,11 +67,11 @@ const DEMO_MTTR: MTTRMetrics = {
 };
 
 const DEMO_TOP_SERVICES: TopRisk[] = [
-  { service: 'payment-api', critical: 5, high: 12, total: 45, risk_score: 92 },
-  { service: 'auth-service', critical: 3, high: 8, total: 28, risk_score: 85 },
-  { service: 'user-portal', critical: 2, high: 15, total: 67, risk_score: 78 },
-  { service: 'data-pipeline', critical: 4, high: 6, total: 23, risk_score: 88 },
-  { service: 'notification-svc', critical: 1, high: 4, total: 18, risk_score: 62 },
+  { name: 'payment-api', issues: 45, critical: 5, high: 12 },
+  { name: 'auth-service', issues: 28, critical: 3, high: 8 },
+  { name: 'user-portal', issues: 67, critical: 2, high: 15 },
+  { name: 'data-pipeline', issues: 23, critical: 4, high: 6 },
+  { name: 'notification-svc', issues: 18, critical: 1, high: 4 },
 ];
 
 const DEMO_TEAMS: TeamData[] = [
@@ -82,41 +82,41 @@ const DEMO_TEAMS: TeamData[] = [
 ];
 
 const DEMO_ISSUE_TRENDS: IssueTrendPoint[] = [
-  { day: 'Mon', total: 1280, critical: 25, high: 160 },
-  { day: 'Tue', total: 1265, critical: 24, high: 158 },
-  { day: 'Wed', total: 1258, critical: 24, high: 157 },
-  { day: 'Thu', total: 1252, critical: 23, high: 156 },
-  { day: 'Fri', total: 1248, critical: 23, high: 156 },
-  { day: 'Sat', total: 1247, critical: 23, high: 156 },
-  { day: 'Sun', total: 1247, critical: 23, high: 156 },
+  { day: 'Mon', total: 1280, critical: 25, high: 160, medium: 500, low: 595 },
+  { day: 'Tue', total: 1265, critical: 24, high: 158, medium: 498, low: 585 },
+  { day: 'Wed', total: 1258, critical: 24, high: 157, medium: 495, low: 582 },
+  { day: 'Thu', total: 1252, critical: 23, high: 156, medium: 492, low: 581 },
+  { day: 'Fri', total: 1248, critical: 23, high: 156, medium: 490, low: 579 },
+  { day: 'Sat', total: 1247, critical: 23, high: 156, medium: 489, low: 579 },
+  { day: 'Sun', total: 1247, critical: 23, high: 156, medium: 489, low: 579 },
 ];
 
 const DEMO_RESOLUTION_TRENDS: ResolutionTrendPoint[] = [
-  { day: 'Mon', resolved: 12, new: 8 },
-  { day: 'Tue', resolved: 15, new: 10 },
-  { day: 'Wed', resolved: 18, new: 7 },
-  { day: 'Thu', resolved: 14, new: 9 },
-  { day: 'Fri', resolved: 20, new: 6 },
-  { day: 'Sat', resolved: 5, new: 2 },
-  { day: 'Sun', resolved: 5, new: 5 },
+  { week: 'W1', avgDays: 5.2, target: 4.0 },
+  { week: 'W2', avgDays: 4.8, target: 4.0 },
+  { week: 'W3', avgDays: 4.6, target: 4.0 },
+  { week: 'W4', avgDays: 4.4, target: 4.0 },
+  { week: 'W5', avgDays: 4.3, target: 4.0 },
+  { week: 'W6', avgDays: 4.2, target: 4.0 },
+  { week: 'W7', avgDays: 4.2, target: 4.0 },
 ];
 
 const DEMO_COMPLIANCE_TRENDS: ComplianceTrendPoint[] = [
-  { week: 'W1', soc2: 88, iso27001: 85, pci: 90, gdpr: 82 },
-  { week: 'W2', soc2: 89, iso27001: 86, pci: 91, gdpr: 84 },
-  { week: 'W3', soc2: 90, iso27001: 87, pci: 91, gdpr: 85 },
-  { week: 'W4', soc2: 91, iso27001: 88, pci: 92, gdpr: 87 },
-  { week: 'W5', soc2: 92, iso27001: 89, pci: 93, gdpr: 88 },
-  { week: 'W6', soc2: 93, iso27001: 90, pci: 93, gdpr: 90 },
-  { week: 'W7', soc2: 94, iso27001: 91, pci: 94, gdpr: 91 },
+  { month: 'Jan', score: 88 },
+  { month: 'Feb', score: 89 },
+  { month: 'Mar', score: 90 },
+  { month: 'Apr', score: 91 },
+  { month: 'May', score: 92 },
+  { month: 'Jun', score: 93 },
+  { month: 'Jul', score: 94 },
 ];
 
 const DEMO_RECENT_FINDINGS: RecentFinding[] = [
-  { id: '1', title: 'SQL Injection in login endpoint', severity: 'critical', service: 'auth-service', age_days: 2 },
-  { id: '2', title: 'Outdated OpenSSL version', severity: 'high', service: 'payment-api', age_days: 5 },
-  { id: '3', title: 'Missing rate limiting', severity: 'medium', service: 'user-portal', age_days: 8 },
-  { id: '4', title: 'Insecure cookie settings', severity: 'high', service: 'auth-service', age_days: 3 },
-  { id: '5', title: 'Log4j vulnerability CVE-2021-44228', severity: 'critical', service: 'data-pipeline', age_days: 1 },
+  { id: '1', title: 'SQL Injection in login endpoint', severity: 'critical', service: 'auth-service', age: '2 days', kev: true },
+  { id: '2', title: 'Outdated OpenSSL version', severity: 'high', service: 'payment-api', age: '5 days', kev: false },
+  { id: '3', title: 'Missing rate limiting', severity: 'medium', service: 'user-portal', age: '8 days', kev: false },
+  { id: '4', title: 'Insecure cookie settings', severity: 'high', service: 'auth-service', age: '3 days', kev: false },
+  { id: '5', title: 'Log4j vulnerability CVE-2021-44228', severity: 'critical', service: 'data-pipeline', age: '1 day', kev: true },
 ];
 
 // Empty initial state (used during loading)
