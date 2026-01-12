@@ -514,7 +514,7 @@ export function AppShell({
           <aside
             className={`fixed top-14 bottom-0 bg-slate-950 border-r border-slate-800/50 z-40 transition-all duration-200 ${
               sidebarCollapsed ? 'w-16' : 'w-56'
-            } ${mobileMenuOpen ? 'left-0' : '-left-56 md:left-0'}`}
+            } ${mobileMenuOpen ? 'left-0' : 'hidden md:block md:left-0'}`}
           >
             <nav className="h-full flex flex-col py-3 overflow-y-auto">
               {NAV_SECTIONS.map((section) => (
