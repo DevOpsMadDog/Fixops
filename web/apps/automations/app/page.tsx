@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Play, Pause, Plus, Trash2, Edit2, ArrowLeft, Zap, Shield, AlertTriangle, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { Play, Pause, Plus, Trash2, Edit2, ArrowLeft, Zap, Shield, AlertTriangle, Loader2, RefreshCw, WifiOff, Filter, X } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
 import { useWorkflows } from '@fixops/api-client'
 
@@ -136,10 +136,11 @@ export default function AutomationsPage() {
     }))
   }, [demoEnabled, apiData])
 
-  const [rules, setRules] = useState(AUTOMATION_RULES)
-  const [selectedRule, setSelectedRule] = useState<typeof AUTOMATION_RULES[0] | null>(null)
-  const [activeTab, setActiveTab] = useState<'rules' | 'gates'>('rules')
-  const [isCreating, setIsCreating] = useState(false)
+    const [rules, setRules] = useState(AUTOMATION_RULES)
+    const [selectedRule, setSelectedRule] = useState<typeof AUTOMATION_RULES[0] | null>(null)
+    const [activeTab, setActiveTab] = useState<'rules' | 'gates'>('rules')
+    const [isCreating, setIsCreating] = useState(false)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   // Update rules when data source changes
   useEffect(() => {
@@ -158,11 +159,75 @@ export default function AutomationsPage() {
 
   return (
     <AppShell activeApp="automations">
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Rules/Gates List */}
-      <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+          {/* Mobile Filter Overlay */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+              <div className="absolute left-0 top-0 h-full w-80 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <span className="font-semibold">Automations</span>
+                  <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                    <X size={18} />
+                  </button>
+                </div>
+                {/* Mobile tabs */}
+                <div className="p-4 border-b border-white/10">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setActiveTab('rules')}
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'rules' ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                    >
+                      Rules ({AUTOMATION_RULES.length})
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('gates')}
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'gates' ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                    >
+                      Gates ({POLICY_GATES.length})
+                    </button>
+                  </div>
+                </div>
+                {/* Mobile list */}
+                <div className="p-4 flex-1 overflow-auto">
+                  {activeTab === 'rules' ? (
+                    <div className="space-y-2">
+                      {AUTOMATION_RULES.map((rule) => (
+                        <button
+                          key={rule.id}
+                          onClick={() => { setSelectedRule(rule); setShowMobileFilters(false); }}
+                          className={`w-full p-3 rounded-md text-left transition-all ${selectedRule?.id === rule.id ? 'bg-[#6B5AED]/10 border border-[#6B5AED]/30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            {rule.enabled ? <Zap size={14} className="text-green-500" /> : <Pause size={14} className="text-slate-500" />}
+                            <span className="text-sm font-semibold text-white">{rule.name}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">{rule.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {POLICY_GATES.map((gate) => (
+                        <button key={gate.id} className="w-full p-3 rounded-md text-left bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                          <div className="flex items-center gap-2 mb-2">
+                            {gate.enabled ? <Shield size={14} className="text-green-500" /> : <Pause size={14} className="text-slate-500" />}
+                            <span className="text-sm font-semibold text-white">{gate.name}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">{gate.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Sidebar - Rules/Gates List */}
+          <div className="hidden lg:flex w-80 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
+            {/* Header */}
+            <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#6B5AED]">Automations</h2>
             <button
@@ -272,19 +337,28 @@ export default function AutomationsPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold mb-1">
-                {selectedRule ? selectedRule.name : activeTab === 'rules' ? 'Automation Rules' : 'Policy Gates'}
-              </h1>
-              <p className="text-sm text-slate-500">
-                {selectedRule ? selectedRule.description : activeTab === 'rules' ? 'Auto-triage and workflow automation' : 'Deployment and PR merge controls'}
-              </p>
-            </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Top Bar */}
+              <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Mobile Filter Toggle */}
+                    <button
+                      onClick={() => setShowMobileFilters(true)}
+                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                    >
+                      <Filter size={18} />
+                    </button>
+                    <div>
+                      <h1 className="text-xl lg:text-2xl font-semibold mb-1">
+                        {selectedRule ? selectedRule.name : activeTab === 'rules' ? 'Automation Rules' : 'Policy Gates'}
+                      </h1>
+                      <p className="text-sm text-slate-500">
+                        {selectedRule ? selectedRule.description : activeTab === 'rules' ? 'Auto-triage and workflow automation' : 'Deployment and PR merge controls'}
+                      </p>
+                    </div>
+                  </div>
             {selectedRule && (
               <div className="flex gap-2">
                 <button

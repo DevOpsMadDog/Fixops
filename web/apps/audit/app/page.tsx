@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { FileText, Search, Filter, Calendar, User, Activity, Shield, AlertTriangle, CheckCircle, XCircle, Download, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { FileText, Search, Filter, Calendar, User, Activity, Shield, AlertTriangle, CheckCircle, XCircle, Download, Loader2, RefreshCw, WifiOff, X } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
 import { useAuditLogs } from '@fixops/api-client'
 
@@ -178,10 +178,11 @@ export default function AuditLogsPage() {
   const [logs, setLogs] = useState(DEMO_AUDIT_LOGS)
   const [filteredLogs, setFilteredLogs] = useState(DEMO_AUDIT_LOGS)
   const [selectedLog, setSelectedLog] = useState<typeof DEMO_AUDIT_LOGS[0] | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
-  const [severityFilter, setSeverityFilter] = useState<string>('all')
-  const [userFilter, setUserFilter] = useState<string>('all')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
+    const [severityFilter, setSeverityFilter] = useState<string>('all')
+    const [userFilter, setUserFilter] = useState<string>('all')
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   // Update logs when data source changes
   useEffect(() => {
@@ -289,11 +290,55 @@ export default function AuditLogsPage() {
 
   return (
     <AppShell activeApp="audit">
-      <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-        {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
-          {/* Header */}
-          <div className="p-6 border-b border-white/10">
+            <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+              {/* Mobile Filter Overlay */}
+              {showMobileFilters && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+                  <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <span className="font-semibold">Filters</span>
+                      <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                        <X size={18} />
+                      </button>
+                    </div>
+                    {/* Mobile sidebar content */}
+                    <div className="p-4 border-b border-white/10">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Total Events</div>
+                          <div className="text-xl font-semibold text-[#6B5AED]">{summary.total}</div>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Critical</div>
+                          <div className="text-xl font-semibold text-red-500">{summary.critical}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 flex-1 overflow-auto">
+                      <div className="mb-6">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Severity</div>
+                        <div className="space-y-2">
+                          {['all', 'critical', 'high', 'medium', 'low', 'info'].map((severity) => (
+                            <button
+                              key={severity}
+                              onClick={() => { setSeverityFilter(severity); applyFilters(); setShowMobileFilters(false); }}
+                              className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${severityFilter === severity ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                            >
+                              <span className="capitalize">{severity}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop Sidebar - Filters */}
+              <div className="hidden lg:flex w-72 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
+                {/* Header */}
+                <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-4">
               <FileText size={24} className="text-[#6B5AED]" />
               <h2 className="text-lg font-semibold">Audit Logs</h2>
@@ -429,13 +474,21 @@ export default function AuditLogsPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Top Bar */}
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h1 className="text-2xl font-semibold mb-1">Audit Logs</h1>
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Top Bar */}
+                  <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center gap-3">
+                                    {/* Mobile Filter Toggle */}
+                                    <button
+                                      onClick={() => setShowMobileFilters(true)}
+                                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                                    >
+                                      <Filter size={18} />
+                                    </button>
+                                    <div>
+                                      <h1 className="text-xl lg:text-2xl font-semibold mb-1">Audit Logs</h1>
                             <p className="text-sm text-slate-500 flex items-center gap-2">
                               {apiLoading && !demoEnabled ? (
                                 <><Loader2 size={14} className="animate-spin" /> Loading...</>
@@ -447,28 +500,29 @@ export default function AuditLogsPage() {
                                   <WifiOff size={12} /> Using cached data
                                 </span>
                               )}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {!demoEnabled && (
-                              <button
-                                onClick={() => refetch()}
-                                disabled={apiLoading}
-                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
-                                title="Refresh data"
-                              >
-                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => alert('Exporting audit logs...')}
-                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-                            >
-                              <Download size={16} />
-                              Export Logs
-                            </button>
-                          </div>
-                        </div>
+                                                    </p>
+                                                    </div>
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    {!demoEnabled && (
+                                                      <button
+                                                        onClick={() => refetch()}
+                                                        disabled={apiLoading}
+                                                        className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                                        title="Refresh data"
+                                                      >
+                                                        <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                                                      </button>
+                                                    )}
+                                                    <button
+                                                      onClick={() => alert('Exporting audit logs...')}
+                                                      className="hidden sm:flex px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all items-center gap-2"
+                                                    >
+                                                      <Download size={16} />
+                                                      <span className="hidden md:inline">Export Logs</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
 
             {/* Search Bar */}
             <div className="relative">

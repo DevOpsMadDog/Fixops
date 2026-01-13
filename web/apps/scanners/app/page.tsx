@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, Check, Plus, RefreshCw, Settings, ArrowLeft, Shield, Code, Cloud, Database, AlertCircle, Download, Upload } from 'lucide-react'
+import { Search, Check, Plus, RefreshCw, Settings, ArrowLeft, Shield, Code, Cloud, Database, AlertCircle, Download, Upload, Filter, X } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
-import { useIntegrations } from '@fixops/api-client'
+import { useInventory } from '@fixops/api-client'
 
 interface Scanner {
   id: string
@@ -360,32 +360,20 @@ function formatNumber(num: number): string {
 
 export default function ScannersPage() {
   const { demoEnabled } = useDemoModeContext()
-  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useIntegrations()
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedScanner, setSelectedScanner] = useState<Scanner | null>(null)
-  const [isConfiguring, setIsConfiguring] = useState(false)
-  const [configForm, setConfigForm] = useState({ url: '', apiKey: '' })
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useInventory()
+    const [selectedCategory, setSelectedCategory] = useState<string>('all')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [selectedScanner, setSelectedScanner] = useState<Scanner | null>(null)
+    const [isConfiguring, setIsConfiguring] = useState(false)
+    const [configForm, setConfigForm] = useState({ url: '', apiKey: '' })
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
-  // Transform API data to match our UI format, or use demo data
-  const scannersData = useMemo(() => {
-    if (demoEnabled || !apiData?.items) {
+    // Transform API data to match our UI format, or use demo data
+    // Note: Inventory API doesn't have scanner-specific fields, so we use demo data
+    const scannersData = useMemo(() => {
+      // Always use demo data since inventory API doesn't have scanner-specific fields
       return DEMO_SCANNERS
-    }
-    // Transform integrations to scanner format
-    return apiData.items
-      .filter(i => i.type === 'scanner' || i.category === 'scanner')
-      .map(integration => ({
-        id: integration.id,
-        name: integration.name,
-        description: integration.description || '',
-        category: (integration.category as Scanner['category']) || 'infrastructure',
-        status: integration.status === 'active' ? 'connected' as const : 'available' as const,
-        icon: integration.icon || '🔍',
-        config: integration.config,
-        stats: integration.stats,
-      }))
-  }, [demoEnabled, apiData])
+    }, [])
 
   // Use scannersData directly instead of storing in state to avoid lint errors
   const scanners = scannersData.length > 0 ? scannersData : DEMO_SCANNERS
@@ -440,9 +428,58 @@ export default function ScannersPage() {
 
   return (
     <AppShell activeApp="scanners">
-      <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
-          <div className="p-6 border-b border-white/10">
+            <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+              {/* Mobile Filter Overlay */}
+              {showMobileFilters && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+                  <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <span className="font-semibold">Filters</span>
+                      <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                        <X size={18} />
+                      </button>
+                    </div>
+                    {/* Mobile sidebar content */}
+                    <div className="p-4 border-b border-white/10">
+                      <div className="relative">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                          type="text"
+                          placeholder="Search scanners..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#6B5AED]/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="p-4 flex-1 overflow-auto">
+                      <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Categories</div>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => { setSelectedCategory('all'); setShowMobileFilters(false); }}
+                          className={`w-full px-3 py-2 rounded-md text-left text-sm transition-all ${selectedCategory === 'all' ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                        >
+                          All Scanners
+                        </button>
+                        {Object.entries(CATEGORY_INFO).map(([key, info]) => (
+                          <button
+                            key={key}
+                            onClick={() => { setSelectedCategory(key); setShowMobileFilters(false); }}
+                            className={`w-full px-3 py-2 rounded-md text-left text-sm transition-all ${selectedCategory === key ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                          >
+                            {info.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop Sidebar */}
+              <div className="hidden lg:flex w-72 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
+                <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-[#6B5AED]">Security Scanners</h2>
               <button
@@ -530,32 +567,41 @@ export default function ScannersPage() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col">
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">
-                  {selectedCategory === 'all' ? 'All Scanners' : CATEGORY_INFO[selectedCategory as keyof typeof CATEGORY_INFO]?.label}
-                </h1>
-                <p className="text-sm text-slate-500">
-                  {filteredScanners.length} scanners {selectedCategory !== 'all' && `in ${CATEGORY_INFO[selectedCategory as keyof typeof CATEGORY_INFO]?.label}`}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleExportCSV}
-                  className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all flex items-center gap-2"
-                >
-                  <Download size={14} />
-                  Export CSV
-                </button>
-                <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all flex items-center gap-2">
-                  <Upload size={14} />
-                  Import SARIF
-                </button>
-              </div>
-            </div>
-          </div>
+                <div className="flex-1 flex flex-col min-w-0">
+                  <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {/* Mobile Filter Toggle */}
+                        <button
+                          onClick={() => setShowMobileFilters(true)}
+                          className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                        >
+                          <Filter size={18} />
+                        </button>
+                        <div>
+                          <h1 className="text-xl lg:text-2xl font-semibold mb-1">
+                            {selectedCategory === 'all' ? 'All Scanners' : CATEGORY_INFO[selectedCategory as keyof typeof CATEGORY_INFO]?.label}
+                          </h1>
+                          <p className="text-sm text-slate-500">
+                            {filteredScanners.length} scanners {selectedCategory !== 'all' && `in ${CATEGORY_INFO[selectedCategory as keyof typeof CATEGORY_INFO]?.label}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleExportCSV}
+                          className="hidden sm:flex px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all items-center gap-2"
+                        >
+                          <Download size={14} />
+                          <span className="hidden md:inline">Export CSV</span>
+                        </button>
+                        <button className="hidden sm:flex px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all items-center gap-2">
+                          <Upload size={14} />
+                          <span className="hidden md:inline">Import SARIF</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
           <div className="flex-1 overflow-auto p-6">
             {!demoEnabled ? (

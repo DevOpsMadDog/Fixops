@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Key, Search, Filter, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff, Calendar, GitBranch, FileText, Shield, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { Key, Search, Filter, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff, Calendar, GitBranch, FileText, Shield, Loader2, RefreshCw, WifiOff, X } from 'lucide-react'
 import { AppShell, useDemoModeContext } from '@fixops/ui'
 import { useFindings } from '@fixops/api-client'
 
@@ -63,8 +63,9 @@ export default function SecretsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [severityFilter, setSeverityFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [showValue, setShowValue] = useState(false)
+    const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [showValue, setShowValue] = useState(false)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   // Update items when data source changes
   useEffect(() => {
@@ -157,9 +158,66 @@ export default function SecretsPage() {
 
   return (
     <AppShell activeApp="secrets">
-      <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-        {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+            <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+              {/* Mobile Filter Overlay */}
+              {showMobileFilters && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+                  <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <span className="font-semibold">Filters</span>
+                      <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                        <X size={18} />
+                      </button>
+                    </div>
+                    <div className="p-4 border-b border-white/10">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Total</div>
+                          <div className="text-xl font-semibold text-[#6B5AED]">{summary.total}</div>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Active</div>
+                          <div className="text-xl font-semibold text-red-500">{summary.active}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 flex-1 overflow-auto">
+                      <div className="mb-6">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Severity</div>
+                        <div className="space-y-2">
+                          {['all', 'critical', 'high', 'medium', 'low'].map((severity) => (
+                            <button
+                              key={severity}
+                              onClick={() => { setSeverityFilter(severity); applyFilters(); setShowMobileFilters(false); }}
+                              className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${severityFilter === severity ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                            >
+                              <span className="capitalize">{severity}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-6">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Status</div>
+                        <div className="space-y-2">
+                          {['all', 'active', 'revoked', 'false_positive'].map((status) => (
+                            <button
+                              key={status}
+                              onClick={() => { setStatusFilter(status); applyFilters(); setShowMobileFilters(false); }}
+                              className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${statusFilter === status ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                            >
+                              <span className="capitalize">{status.replace('_', ' ')}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Left Sidebar - Filters */}
+              <div className="hidden lg:flex w-72 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-4">
@@ -291,16 +349,25 @@ export default function SecretsPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+{/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+          <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Secrets Detection</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
-                </p>
+              <div className="flex items-center gap-3">
+                {/* Mobile Filter Toggle */}
+                <button
+                  onClick={() => setShowMobileFilters(true)}
+                  className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                >
+                  <Filter size={18} />
+                </button>
+                <div>
+                  <h1 className="text-xl lg:text-2xl font-semibold mb-1">Secrets Detection</h1>
+                  <p className="text-sm text-slate-500">
+                    Showing {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => alert('Running items scan...')}
