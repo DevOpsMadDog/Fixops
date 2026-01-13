@@ -164,14 +164,14 @@ export default function AuditLogsPage() {
     return apiData.items.map(log => ({
       id: log.id,
       timestamp: log.timestamp,
-      event_type: log.event_type || 'system.event',
-      severity: log.severity || 'info',
-      user: log.user || 'system',
+      event_type: log.resource_type ? `${log.resource_type}.${log.action}` : 'system.event',
+      severity: 'info' as const,
+      user: log.user_email || 'system',
       action: log.action || 'Unknown action',
-      resource: log.resource || '',
-      details: log.details || '',
+      resource: log.resource_id || '',
+      details: typeof log.details === 'object' ? JSON.stringify(log.details) : '',
       ip_address: log.ip_address || '',
-      user_agent: log.user_agent || '',
+      user_agent: '',
     }))
   }, [demoEnabled, apiData])
 

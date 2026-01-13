@@ -161,9 +161,12 @@ export default function IaCPage() {
     if (demoEnabled || !apiData?.items) {
       return DEMO_IAC_FINDINGS
     }
-    // Filter for IaC-related findings
+    // Filter for IaC-related findings based on title/description
     const iacFindings = apiData.items.filter(f => 
-      f.source === 'IaC' || f.source === 'terraform' || f.source === 'cloudformation'
+      f.title?.toLowerCase().includes('terraform') || 
+      f.title?.toLowerCase().includes('cloudformation') || 
+      f.title?.toLowerCase().includes('iac') ||
+      f.description?.toLowerCase().includes('infrastructure')
     )
     return iacFindings.map(finding => ({
       id: finding.id,
@@ -172,16 +175,16 @@ export default function IaCPage() {
       severity: finding.severity || 'medium',
       category: 'storage',
       provider: 'aws',
-      resource_type: finding.resource_type || 'unknown',
-      resource_name: finding.resource_name || 'unknown',
-      file: finding.file || 'unknown',
-      line: finding.line || 0,
-      repository: finding.repository || 'unknown',
+      resource_type: 'unknown',
+      resource_name: 'unknown',
+      file: finding.file_path || 'unknown',
+      line: finding.line_number || 0,
+      repository: 'unknown',
       branch: 'main',
-      commit: finding.commit || 'unknown',
+      commit: 'unknown',
       status: finding.status || 'open',
       detected_at: finding.created_at,
-      remediation: finding.remediation || '',
+      remediation: '',
     }))
   }, [demoEnabled, apiData])
 

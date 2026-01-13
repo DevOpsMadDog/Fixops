@@ -31,31 +31,31 @@ export default function SecretsPage() {
   const { demoEnabled } = useDemoModeContext()
   const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
   
-  // Transform API data to match our UI format, or use demo data
-  const itemsData = useMemo(() => {
-    if (demoEnabled || !apiData?.items) {
-      return DEMO_ITEMS
-    }
-    // Filter for secrets-related findings
-    const secretsFindings = apiData.items.filter(f => 
-      f.source === 'secrets' || f.title?.toLowerCase().includes('secret') || f.title?.toLowerCase().includes('credential')
-    )
-    return secretsFindings.map(finding => ({
-      id: finding.id,
-      type: 'credential_type_a' as const,
-      sample_value: 'demo-placeholder',
-      file: finding.file || 'unknown',
-      line: finding.line || 0,
-      repository: finding.repository || 'unknown',
-      branch: 'main',
-      commit: finding.commit || 'unknown',
-      severity: finding.severity || 'medium',
-      status: finding.status === 'resolved' ? 'revoked' : 'active',
-      detected_at: finding.created_at,
-      last_seen: finding.updated_at || finding.created_at,
-      false_positive: finding.status === 'false_positive',
-    }))
-  }, [demoEnabled, apiData])
+    // Transform API data to match our UI format, or use demo data
+    const itemsData = useMemo(() => {
+      if (demoEnabled || !apiData?.items) {
+        return DEMO_ITEMS
+      }
+      // Filter for secrets-related findings based on title
+      const secretsFindings = apiData.items.filter(f => 
+        f.title?.toLowerCase().includes('secret') || f.title?.toLowerCase().includes('credential') || f.title?.toLowerCase().includes('key')
+      )
+      return secretsFindings.map(finding => ({
+        id: finding.id,
+        type: 'credential_type_a' as const,
+        sample_value: 'demo-placeholder',
+        file: finding.file_path || 'unknown',
+        line: finding.line_number || 0,
+        repository: 'unknown',
+        branch: 'main',
+        commit: 'unknown',
+        severity: (finding.severity || 'medium') as 'critical' | 'high' | 'medium',
+        status: (finding.status === 'resolved' ? 'revoked' : 'active') as 'active' | 'revoked' | 'false_positive',
+        detected_at: finding.created_at,
+        last_seen: finding.updated_at || finding.created_at,
+        false_positive: finding.status === 'false_positive',
+      }))
+    }, [demoEnabled, apiData])
 
   const [items, setItems] = useState(DEMO_ITEMS)
   const [filteredItems, setFilteredItems] = useState(DEMO_ITEMS)

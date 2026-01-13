@@ -130,8 +130,8 @@ export default function AutomationsPage() {
       trigger: workflow.trigger || 'New finding detected',
       conditions: [] as Array<{ field: string; operator: string; value: string }>,
       actions: [] as Array<{ type: string; value: string }>,
-      executions: workflow.execution_count || 0,
-      last_executed: workflow.last_executed,
+      executions: 0,
+      last_executed: workflow.last_run,
       created: workflow.created_at?.split('T')[0] || '',
     }))
   }, [demoEnabled, apiData])

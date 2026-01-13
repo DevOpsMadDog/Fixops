@@ -89,22 +89,22 @@ export default function SavedViewsPage() {
   const { demoEnabled } = useDemoModeContext()
   const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
   
-  // Transform API data to match our UI format, or use demo data
-  const viewsData = useMemo(() => {
-    if (demoEnabled || !apiData?.items) {
-      return SAVED_VIEWS
-    }
-    // In real mode, we would fetch saved views from an API
-    // For now, return demo data with updated counts from real findings
-    return SAVED_VIEWS.map(view => ({
-      ...view,
-      count: apiData.items.filter(f => {
-        if (view.filters.severity && !view.filters.severity.includes(f.severity)) return false
-        if (view.filters.kev && !f.kev_listed) return false
-        return true
-      }).length
-    }))
-  }, [demoEnabled, apiData])
+    // Transform API data to match our UI format, or use demo data
+    const viewsData = useMemo(() => {
+      if (demoEnabled || !apiData?.items) {
+        return SAVED_VIEWS
+      }
+      // In real mode, we would fetch saved views from an API
+      // For now, return demo data with updated counts from real findings
+      return SAVED_VIEWS.map(view => ({
+        ...view,
+        count: apiData.items.filter(f => {
+          if (view.filters.severity && !view.filters.severity.includes(f.severity)) return false
+          // KEV filter not available in basic findings API - would need triage API
+          return true
+        }).length
+      }))
+    }, [demoEnabled, apiData])
 
     const [views, setViews] = useState(SAVED_VIEWS)
     const [selectedView, setSelectedView] = useState<typeof SAVED_VIEWS[0] | null>(null)

@@ -5,7 +5,20 @@ import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertTriangl
 import { AppShell, useDemoModeContext } from '@fixops/ui'
 import { usePolicies } from '@fixops/api-client'
 
-const DEMO_POLICIES = [
+interface PolicyItem {
+  id: string
+  name: string
+  description: string
+  type: string
+  action: string
+  enabled: boolean
+  conditions: Array<{ field: string; operator: string; value: string | string[] }>
+  violations: number
+  last_triggered: string | null
+  created_at: string
+}
+
+const DEMO_POLICIES: PolicyItem[] = [
   {
     id: '1',
     name: 'Block Critical KEV Vulnerabilities',
@@ -129,7 +142,7 @@ export default function PoliciesPage() {
   const { data: apiData, loading: apiLoading, error: apiError, refetch } = usePolicies()
   
   // Transform API data to match our UI format, or use demo data
-  const policiesData = useMemo(() => {
+  const policiesData: PolicyItem[] = useMemo(() => {
     if (demoEnabled || !apiData?.items) {
       return DEMO_POLICIES
     }
@@ -138,18 +151,18 @@ export default function PoliciesPage() {
       name: policy.name,
       description: policy.description || '',
       type: policy.type || 'security',
-      action: 'block' as const,
+      action: 'block',
       enabled: policy.status === 'active',
-      conditions: [] as Array<{ field: string; operator: string; value: string | string[] }>,
+      conditions: [] as PolicyItem['conditions'],
       violations: 0,
       last_triggered: policy.last_evaluated,
       created_at: policy.created_at,
     }))
   }, [demoEnabled, apiData])
 
-  const [policies, setPolicies] = useState(DEMO_POLICIES)
-  const [filteredPolicies, setFilteredPolicies] = useState(DEMO_POLICIES)
-  const [selectedPolicy, setSelectedPolicy] = useState<typeof DEMO_POLICIES[0] | null>(null)
+  const [policies, setPolicies] = useState<PolicyItem[]>(DEMO_POLICIES)
+  const [filteredPolicies, setFilteredPolicies] = useState<PolicyItem[]>(DEMO_POLICIES)
+  const [selectedPolicy, setSelectedPolicy] = useState<PolicyItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')

@@ -5,7 +5,21 @@ import { Workflow, Search, Plus, Edit2, Trash2, Play, Pause, Clock, CheckCircle,
 import { AppShell, useDemoModeContext } from '@fixops/ui'
 import { useWorkflows } from '@fixops/api-client'
 
-const DEMO_WORKFLOWS = [
+interface WorkflowItem {
+  id: string
+  name: string
+  description: string
+  trigger: string
+  conditions: Array<{ field: string; operator: string; value: string | string[] }>
+  actions: Array<{ type: string; target?: string; integration?: string; project?: string; channel?: string; priority?: string; reason?: string; template?: string; severity?: string; labels?: string[]; status?: string }>
+  status: string
+  executions: number
+  last_executed: string | null
+  success_rate: number
+  created_at: string
+}
+
+const DEMO_WORKFLOWS: WorkflowItem[] = [
   {
     id: '1',
     name: 'Auto-Triage Critical Findings',
@@ -162,8 +176,8 @@ export default function WorkflowsPage() {
   const { demoEnabled } = useDemoModeContext()
   const { data: apiData, loading: apiLoading, error: apiError, refetch } = useWorkflows()
   
-  // Transform API data to match our UI format, or use demo data
-  const workflowsData = useMemo(() => {
+// Transform API data to match our UI format, or use demo data
+  const workflowsData: WorkflowItem[] = useMemo(() => {
     if (demoEnabled || !apiData?.items) {
       return DEMO_WORKFLOWS
     }
@@ -172,19 +186,19 @@ export default function WorkflowsPage() {
       name: workflow.name,
       description: workflow.description || '',
       trigger: workflow.trigger || 'finding.created',
-      conditions: [] as Array<{ field: string; operator: string; value: string }>,
-      actions: [] as Array<{ type: string; target?: string; integration?: string; project?: string; channel?: string }>,
+      conditions: [] as WorkflowItem['conditions'],
+      actions: [] as WorkflowItem['actions'],
       status: workflow.status || 'active',
-      executions: workflow.execution_count || 0,
-      last_executed: workflow.last_executed,
-      success_rate: workflow.success_rate || 100,
+      executions: 0,
+      last_executed: workflow.last_run,
+      success_rate: 100,
       created_at: workflow.created_at,
     }))
   }, [demoEnabled, apiData])
 
-  const [workflows, setWorkflows] = useState(DEMO_WORKFLOWS)
-  const [filteredWorkflows, setFilteredWorkflows] = useState(DEMO_WORKFLOWS)
-  const [selectedWorkflow, setSelectedWorkflow] = useState<typeof DEMO_WORKFLOWS[0] | null>(null)
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>(DEMO_WORKFLOWS)
+  const [filteredWorkflows, setFilteredWorkflows] = useState<WorkflowItem[]>(DEMO_WORKFLOWS)
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [triggerFilter, setTriggerFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
