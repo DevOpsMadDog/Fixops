@@ -548,20 +548,303 @@ API client and React hooks for data fetching.
 
 ---
 
-### 23-32. Additional Apps
+### 23. Automations (`/web/apps/automations`)
 
-| App | Purpose | API Hook |
-|-----|---------|----------|
-| `automations` | Automation rule management | `useWorkflows` |
-| `bulk` | Bulk operations on findings | `useFindings` |
-| `iac` | Infrastructure as Code scanning | `useFindings` |
-| `micro-pentest` | Micro penetration testing | `usePentagiRequests` |
-| `reachability` | Network reachability analysis | `useGraph` |
-| `saved-views` | Saved filter configurations | `useFindings` |
-| `secrets` | Secrets scanning results | `useFindings` |
-| `shell` | Interactive shell interface | Custom |
-| `showcase` | Feature showcase/demo | Demo data |
-| `sso` | SSO configuration | `useUsers` |
+**Purpose**: Automation rule management for auto-triage workflows and policy gates that control deployments and PR merges.
+
+**Layout**:
+- Left sidebar (320px): Header with "Automations" title, tabs for Rules/Gates, "Create New" button, rules/gates list with execution counts
+- Main content: Selected rule/gate details or empty state
+- Mobile: Filter overlay with backdrop, responsive content
+
+**Key Components**:
+- `RuleCard`: Rule name, description, enabled status (Zap/Pause icon), execution count, conditions preview
+- `GateCard`: Gate name, type (deployment/pr_merge), action (block/require_review), blocks count
+- `RuleDetailView`: Full rule configuration with trigger, conditions, actions
+- `CreateRuleForm`: Form for creating new automation rules
+
+**Features**:
+- Two tabs: Rules (auto-triage) and Gates (policy enforcement)
+- Enable/disable rules with toggle
+- Edit and delete actions
+- Execution history tracking
+
+**Demo Data**: `AUTOMATION_RULES` (4 rules), `POLICY_GATES` (2 gates)
+
+**API Integration**: `useWorkflows`
+
+**Code Location**: `/web/apps/automations/app/page.tsx` (599 lines)
+
+---
+
+### 24. Bulk Operations (`/web/apps/bulk`)
+
+**Purpose**: Manage multiple security findings at once with bulk assign, tag, accept risk, delete, and export operations.
+
+**Layout**:
+- Left sidebar (288px): Summary stats (total, selected, critical, high), severity filter, source filter (CVE, SAST, IaC)
+- Main content: Search bar, bulk action bar (when items selected), findings table with checkboxes
+- Mobile: Filter overlay with backdrop
+
+**Key Components**:
+- `FindingsTable`: Selectable table with severity badges, source tags, service names
+- `BulkActionBar`: Actions for selected items (Assign, Tag, Accept Risk, Delete, Export)
+- `AssignModal`: Assign findings to team members
+- `TagModal`: Add tags to findings
+- `ExportModal`: Export as CSV, JSON, or PDF
+
+**Features**:
+- Select all / individual selection
+- Filter by severity and source
+- Search by title or service
+- Bulk operations with confirmation dialogs
+
+**Demo Data**: `DEMO_FINDINGS` (8 findings with various severities and sources)
+
+**API Integration**: `useFindings`
+
+**Code Location**: `/web/apps/bulk/app/page.tsx` (657 lines)
+
+---
+
+### 25. IaC Scanning (`/web/apps/iac`)
+
+**Purpose**: Infrastructure as Code security scanning results for Terraform, CloudFormation, and Kubernetes manifests.
+
+**Layout**:
+- Left sidebar (288px): Summary stats (total, open, critical, resolved), severity filter, provider filter (AWS, Azure, GCP, Kubernetes), status filter
+- Main content: Search bar, findings grid with provider badges
+- Detail panel: Full finding details with file path, line number, remediation guidance
+- Mobile: Filter overlay with backdrop
+
+**Key Components**:
+- `IaCFindingCard`: Title, description, severity badge, provider icon, resource type, file location
+- `ProviderBadge`: Color-coded provider indicator (AWS orange, Azure blue, GCP blue, K8s blue)
+- `RemediationPanel`: Suggested fix with code snippet
+- `StatusIndicator`: Open (red), Resolved (green), False Positive (gray)
+
+**Features**:
+- Filter by severity, provider, category, status
+- Search by title, description, or resource name
+- View file path and line number
+- Remediation guidance for each finding
+
+**Demo Data**: `DEMO_IAC_FINDINGS` (8 findings across AWS, Azure, GCP, Kubernetes)
+
+**API Integration**: `useFindings` (filters for IaC-related findings by title/description)
+
+**Code Location**: `/web/apps/iac/app/page.tsx` (824 lines)
+
+---
+
+### 26. Micro Pen Tests (`/web/apps/micro-pentest`)
+
+**Purpose**: Automated vulnerability verification through micro penetration tests that validate if CVEs are actually exploitable.
+
+**Layout**:
+- Left sidebar (288px): Summary stats (total, running, exploitable, safe), status filter (pending, running, completed, failed), result filter (exploitable, not_exploitable, inconclusive)
+- Main content: Search bar, "New Test" button, tests grid
+- Detail panel: Test execution details, attack vector, payload, evidence
+- Mobile: Filter overlay with backdrop
+
+**Key Components**:
+- `PentestCard`: Test name, target, CVE ID, status badge, result indicator, confidence score, duration
+- `StatusBadge`: Pending (yellow), Running (blue with spinner), Completed (green), Failed (red)
+- `ResultIndicator`: Exploitable (red), Not Exploitable (green), Inconclusive (yellow)
+- `CreateTestModal`: Form for target and CVE ID input
+- `TestDetailPanel`: Full execution details with attack vector, payload used, evidence collected
+
+**Features**:
+- Run tests on demand
+- Real-time status updates with spinner animation
+- Confidence scores (0-100%)
+- Risk score calculation
+- Evidence collection tracking
+
+**Demo Data**: `DEMO_PENTESTS` (5 tests with various statuses and results)
+
+**API Integration**: `useFindings` (filters for pentest-related findings)
+
+**Code Location**: `/web/apps/micro-pentest/app/page.tsx` (815 lines)
+
+---
+
+### 27. Reachability Analysis (`/web/apps/reachability`)
+
+**Purpose**: CVE attack path analysis to determine if vulnerabilities are actually reachable from the internet.
+
+**Layout**:
+- Left sidebar (288px): Summary stats (total, reachable, not reachable, KEV count), reachability filter, severity filter
+- Main content: Search bar, "Analyze" button with CVE input, results list
+- Detail panel: Attack path visualization, threat intelligence badges
+- Mobile: Filter overlay with backdrop
+
+**Key Components**:
+- `ReachabilityCard`: CVE ID, component, version, reachability status, confidence score, EPSS score, KEV badge
+- `AttackPathDisplay`: Visual path from Internet → Gateway → Service → Component
+- `ThreatIntelBadges`: KEV listed indicator, EPSS score, business impact
+- `AnalyzeButton`: Input for CVE ID with analyze action
+
+**Features**:
+- Analyze new CVEs on demand
+- Visual attack path representation
+- Confidence scoring
+- EPSS and KEV correlation
+- Business impact assessment
+
+**Demo Data**: `DEMO_RESULTS` (5 reachability results with attack paths)
+
+**API Integration**: `useFindings`
+
+**Code Location**: `/web/apps/reachability/app/page.tsx` (651 lines)
+
+---
+
+### 28. Saved Views (`/web/apps/saved-views`)
+
+**Purpose**: Save and manage custom filter configurations for the triage inbox.
+
+**Layout**:
+- Left sidebar (320px): Header with "Saved Views" title, "Create New View" button, views list with star for default, finding counts
+- Main content: Selected view details or create view form
+- Mobile: Filter overlay with backdrop
+
+**Key Components**:
+- `ViewCard`: View name, description, star icon for default, finding count, last used date
+- `ViewDetailPanel`: Filter configuration display, "Apply View" button
+- `CreateViewForm`: Name, description, filter checkboxes (severity, KEV, internet-facing, new 7d), service input, EPSS threshold
+
+**Features**:
+- Create custom filter combinations
+- Set default view
+- Apply view to triage inbox
+- Edit and delete views
+- Track last used date
+
+**Demo Data**: `SAVED_VIEWS` (5 views: Critical & KEV, Internet-Facing High/Critical, New This Week, Payment API Issues, Compliance Gaps)
+
+**API Integration**: `useFindings` (for count updates)
+
+**Code Location**: `/web/apps/saved-views/app/page.tsx` (513 lines)
+
+---
+
+### 29. Secrets Detection (`/web/apps/secrets`)
+
+**Purpose**: Detect and manage exposed secrets, credentials, and API keys in code repositories.
+
+**Layout**:
+- Left sidebar (288px): Summary stats (total, active, critical, revoked), severity filter, status filter (active, revoked, false_positive), type filter
+- Main content: Search bar, "Scan Now" button, secrets list
+- Detail panel: Secret details with masked value, file location, remediation
+- Mobile: Filter overlay with backdrop
+
+**Key Components**:
+- `SecretCard`: Type, masked value, file path, line number, repository, branch, severity badge, status indicator
+- `StatusIndicator`: Active (red AlertTriangle), Revoked (green CheckCircle), False Positive (gray XCircle)
+- `ValueToggle`: Show/hide secret value with Eye/EyeOff icons
+- `ScanButton`: Trigger new secrets scan
+
+**Features**:
+- Filter by severity, status, and secret type
+- Search by type, file, or repository
+- Show/hide secret values
+- Mark as false positive
+- Revoke secrets
+
+**Demo Data**: `DEMO_ITEMS` (8 secrets with generic placeholder values)
+
+**API Integration**: `useFindings` (filters for secrets-related findings by title)
+
+**Code Location**: `/web/apps/secrets/app/page.tsx` (639 lines)
+
+---
+
+### 30. Shell (`/web/apps/shell`)
+
+**Purpose**: Redirect/loading page that navigates to the dashboard.
+
+**Layout**:
+- Full-screen centered loading spinner with "Loading FixOps..." message
+
+**Key Components**:
+- `LoadingSpinner`: Animated spinning border
+- `LoadingMessage`: "Loading FixOps..." text
+
+**Features**:
+- Auto-redirect to `/dashboard` on mount
+- Loading animation during redirect
+
+**API Integration**: None (redirect only)
+
+**Code Location**: `/web/apps/shell/app/page.tsx` (24 lines)
+
+---
+
+### 31. Showcase (`/web/apps/showcase`)
+
+**Purpose**: Interactive demo and feature showcase for FixOps capabilities, including pipeline workflow, API explorer, CLI explorer, and health dashboard.
+
+**Layout**:
+- Full-width page without AppShell wrapper
+- Data provenance banner (Live/Demo mode indicator)
+- Tab navigation: Workflow, API Explorer, CLI Explorer, Health Dashboard
+- Content area varies by tab
+
+**Key Components**:
+- `PipelineStages`: Visual pipeline with 6 stages (Ingest, Normalize, Correlate, Assess, Decide, Evidence)
+- `ValueMetrics`: Time Saved, Risk Reduction, Cost Savings, Compliance stats
+- `CapabilitiesGrid`: Feature cards (Cryptographic Evidence, SSVC Gates, Exploit Intelligence, etc.)
+- `FileUploadZone`: Drag-and-drop for SBOM, SARIF, CVE, Design files
+- `APIExplorer`: OpenAPI endpoint browser with request/response viewer
+- `CLIExplorer`: CLI command reference
+- `HealthDashboard`: API endpoint health checks with status indicators
+- `ActivityLog`: Real-time API request/response log
+
+**Features**:
+- Run full pipeline with uploaded artifacts
+- Load sample demo data
+- Configure API base URL and token
+- View OpenAPI endpoints
+- Run health checks on all endpoints
+- Live/Demo mode toggle
+
+**Demo Data**: `valueMetrics`, `capabilities`, `stages` (pipeline stages)
+
+**API Integration**: Direct fetch to FixOps API endpoints (not using hooks)
+
+**Code Location**: `/web/apps/showcase/app/page.tsx` (1037 lines)
+
+---
+
+### 32. SSO Configuration (`/web/apps/sso`)
+
+**Purpose**: Manage SAML identity providers for single sign-on authentication.
+
+**Layout**:
+- Left sidebar (288px): Summary stats (total providers, active, total users, inactive), provider filter (Okta, Azure, Google, OneLogin), status filter
+- Main content: Search bar, "Add Provider" button, providers grid (2 columns)
+- Detail drawer (600px): Full provider configuration, SAML settings, certificate
+
+**Key Components**:
+- `ProviderCard`: Provider name, type, domain, status indicator, user count, last login
+- `ProviderIcon`: Color-coded by provider (Okta blue, Azure blue, Google blue, OneLogin dark)
+- `DomainDisplay`: Domain with Globe icon
+- `ProviderDetailDrawer`: Full SAML configuration (Entity ID, SSO URL, Certificate), edit/delete actions
+- `CreateProviderModal`: Form for adding new SSO provider
+
+**Features**:
+- Filter by provider type and status
+- Search by name or domain
+- Test SSO connection
+- View/edit SAML configuration
+- User count and last login tracking
+
+**Demo Data**: `DEMO_SSO_PROVIDERS` (4 providers: Okta, Azure AD, Google Workspace, OneLogin)
+
+**API Integration**: `useIntegrations` (filters for SSO-related integrations)
+
+**Code Location**: `/web/apps/sso/app/page.tsx` (541 lines)
 
 ---
 
