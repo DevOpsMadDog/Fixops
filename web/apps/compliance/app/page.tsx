@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react'
+import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2, Filter, X } from 'lucide-react'
 import { AppShell } from '@fixops/ui'
 import { useCompliance, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge, StatCard } from '@fixops/ui'
@@ -181,8 +181,9 @@ export default function CompliancePage() {
     return { frameworks: [], controlGaps: [] } // Empty state when no API data and demo mode is OFF
   }, [complianceData, transformApiData, demoEnabled, hasApiData])
 
-  const [selectedFramework, setSelectedFramework] = useState<Framework | null>(null)
-  const [selectedGap, setSelectedGap] = useState<ControlGap | null>(null)
+    const [selectedFramework, setSelectedFramework] = useState<Framework | null>(null)
+    const [selectedGap, setSelectedGap] = useState<ControlGap | null>(null)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -202,9 +203,82 @@ export default function CompliancePage() {
 
   return (
     <AppShell activeApp="compliance">
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Framework List */}
-      <div className="w-80 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
+        <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+          {/* Mobile Filter Overlay */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+              <div className="absolute left-0 top-0 h-full w-80 bg-[#0f172a] border-r border-white/[0.06] flex flex-col overflow-auto">
+                <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="font-semibold">Frameworks</span>
+                  <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                    <X size={18} />
+                  </button>
+                </div>
+                {/* Mobile sidebar content - same as desktop */}
+                <div className="p-4 border-b border-white/[0.06]">
+                  <div className="grid grid-cols-2 gap-2">
+                    <StatCard label="Frameworks" value={frameworks.length} color="purple" />
+                    <StatCard 
+                      label="Avg Coverage" 
+                      value={`${frameworks.length > 0 ? Math.round(frameworks.reduce((sum, f) => sum + f.coverage, 0) / frameworks.length) : 0}%`} 
+                      color="green" 
+                    />
+                    <StatCard 
+                      label="Total Controls" 
+                      value={frameworks.reduce((sum, f) => sum + f.controls_total, 0)} 
+                      color="default" 
+                    />
+                    <StatCard label="Control Gaps" value={controlGaps.length} color="red" />
+                  </div>
+                </div>
+                <div className="p-4 flex-1 overflow-auto">
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    Active Frameworks
+                  </div>
+                  <div className="space-y-2">
+                    {frameworks.map((framework) => (
+                      <button
+                        key={framework.id}
+                        onClick={() => { setSelectedFramework(framework); setShowMobileFilters(false); }}
+                        className={`w-full p-3 rounded-md text-left transition-all ${
+                          selectedFramework?.id === framework.id
+                            ? 'bg-[#6B5AED]/10 border border-[#6B5AED]/30'
+                            : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-white">{framework.name}</span>
+                          <ChevronRight size={16} className="text-slate-400" />
+                        </div>
+                        <div className="text-xs text-slate-400 mb-2">{framework.description}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${framework.coverage}%`,
+                                backgroundColor: getCoverageColor(framework.coverage),
+                              }}
+                            ></div>
+                          </div>
+                          <span
+                            className="text-xs font-semibold"
+                            style={{ color: getCoverageColor(framework.coverage) }}
+                          >
+                            {framework.coverage}%
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Left Sidebar - Framework List (Desktop) */}
+          <div className="hidden lg:flex w-80 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex-col sticky top-0 h-screen">
         {/* Header */}
         <div className="p-5 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
@@ -317,39 +391,48 @@ export default function CompliancePage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold mb-1">Compliance Dashboard</h1>
-              <p className="text-sm text-slate-500">
-                Framework coverage and control gap analysis
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => window.location.href = '/triage'}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-              >
-                Triage View
-              </button>
-              <button
-                onClick={() => window.location.href = '/risk'}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-              >
-                Risk Graph
-              </button>
-            </div>
-          </div>
-        </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Top Bar */}
+              <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Mobile Filter Toggle */}
+                    <button
+                      onClick={() => setShowMobileFilters(true)}
+                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                    >
+                      <Filter size={18} />
+                    </button>
+                    <div>
+                      <h1 className="text-xl lg:text-2xl font-semibold mb-1">Compliance Dashboard</h1>
+                      <p className="text-sm text-slate-500">
+                        Framework coverage and control gap analysis
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.location.href = '/triage'}
+                      className="hidden sm:block px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
+                    >
+                      Triage View
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/risk'}
+                      className="hidden sm:block px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
+                    >
+                      Risk Graph
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto p-6">
-          {!selectedFramework ? (
-            /* Overview Grid */
-            <div className="grid grid-cols-2 gap-6">
+                {/* Content Area */}
+                <div className="flex-1 overflow-auto p-4 lg:p-6">
+                  {!selectedFramework ? (
+                    /* Overview Grid */
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
               {frameworks.map((framework) => (
                 <div
                   key={framework.id}
