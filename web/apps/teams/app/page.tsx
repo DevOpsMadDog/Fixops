@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Users, Search, Plus, Edit2, Trash2, UserPlus, UserMinus, Shield, Mail, Calendar } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useMemo } from 'react'
+import { Users, Search, Plus, Edit2, Trash2, UserPlus, UserMinus, Shield, Mail, Calendar, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useTeams } from '@fixops/api-client'
 
 const DEMO_TEAMS = [
   {
@@ -82,12 +83,37 @@ const DEMO_TEAMS = [
 ]
 
 export default function TeamsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useTeams()
+  
+  // Transform API data to match our UI format, or use demo data
+  const teamsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_TEAMS
+    }
+    return apiData.items.map(team => ({
+      id: team.id,
+      name: team.name,
+      description: team.description || '',
+      member_count: team.member_count || 0,
+      lead: 'Team Lead',
+      created_at: team.created_at,
+      members: [] as Array<{ id: string; name: string; email: string; role: string }>,
+    }))
+  }, [demoEnabled, apiData])
+
   const [teams, setTeams] = useState(DEMO_TEAMS)
   const [filteredTeams, setFilteredTeams] = useState(DEMO_TEAMS)
   const [selectedTeam, setSelectedTeam] = useState<typeof DEMO_TEAMS[0] | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+
+  // Update teams when data source changes
+  useEffect(() => {
+    setTeams(teamsData)
+    setFilteredTeams(teamsData)
+  }, [teamsData])
 
   const formatDate = (isoString: string) => {
     const date = new Date(isoString)
@@ -121,7 +147,7 @@ export default function TeamsPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="teams">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Stats */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -187,21 +213,42 @@ export default function TeamsPage() {
         <div className="flex-1 flex flex-col">
           {/* Top Bar */}
           <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Teams</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredTeams.length} team{filteredTeams.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create Team
-              </button>
-            </div>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h1 className="text-2xl font-semibold mb-1">Teams</h1>
+                            <p className="text-sm text-slate-500 flex items-center gap-2">
+                              {apiLoading && !demoEnabled ? (
+                                <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                              ) : (
+                                <>Showing {filteredTeams.length} team{filteredTeams.length !== 1 ? 's' : ''}</>
+                              )}
+                              {!demoEnabled && apiError && (
+                                <span className="text-amber-400 flex items-center gap-1">
+                                  <WifiOff size={12} /> Using cached data
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!demoEnabled && (
+                              <button
+                                onClick={() => refetch()}
+                                disabled={apiLoading}
+                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh data"
+                              >
+                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowCreateModal(true)}
+                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
+                              <Plus size={16} />
+                              Create Team
+                            </button>
+                          </div>
+                        </div>
 
             {/* Search Bar */}
             <div className="relative">
@@ -411,6 +458,6 @@ export default function TeamsPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

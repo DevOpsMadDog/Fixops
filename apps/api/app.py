@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import jwt
 from fastapi import APIRouter, Body, Depends, FastAPI, File, HTTPException, UploadFile
@@ -25,17 +25,39 @@ from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
 from apps.api.auth_router import router as auth_router
 from apps.api.bulk_router import router as bulk_router
+from apps.api.collaboration_router import router as collaboration_router
+from apps.api.deduplication_router import router as deduplication_router
 from apps.api.iac_router import router as iac_router
 from apps.api.ide_router import router as ide_router
 from apps.api.integrations_router import router as integrations_router
 from apps.api.inventory_router import router as inventory_router
+
+# Micro penetration test router - PentAGI integration
+from apps.api.micro_pentest_router import router as micro_pentest_router
 from apps.api.pentagi_router_enhanced import router as pentagi_router
 from apps.api.policies_router import router as policies_router
+from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
 from apps.api.secrets_router import router as secrets_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
+from apps.api.webhooks_router import receiver_router as webhooks_receiver_router
+from apps.api.webhooks_router import router as webhooks_router
 from apps.api.workflows_router import router as workflows_router
+
+# Enterprise feeds router - vulnerability intelligence
+feeds_router: Optional[APIRouter] = None
+try:
+    from apps.api.feeds_router import router as feeds_router
+except ImportError:
+    logging.getLogger(__name__).warning("Feeds router not available")
+
+# Validation router - compatibility checking for security tool outputs
+validation_router: Optional[APIRouter] = None
+try:
+    from apps.api.validation_router import router as validation_router
+except ImportError:
+    logging.getLogger(__name__).warning("Validation router not available")
 
 # Legacy API bridge router - imports legacy APIs from archive/enterprise_legacy
 legacy_bridge_router: Optional[APIRouter] = None
@@ -55,6 +77,17 @@ try:
     from risk.reachability.api import router as reachability_router
 except ImportError:
     logging.getLogger(__name__).warning("Reachability analysis API not available")
+
+# Enterprise marketplace router
+marketplace_router: Optional[APIRouter] = None
+try:
+    from apps.api.marketplace_router import router as marketplace_router
+
+    logging.getLogger(__name__).info("Loaded enterprise marketplace router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Enterprise marketplace router not available: {e}"
+    )
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -374,6 +407,8 @@ def create_app() -> FastAPI:
     app.include_router(graph_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(evidence_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
+    # Micro penetration test API - PentAGI integration
+    app.include_router(micro_pentest_router, dependencies=[Depends(_verify_api_key)])
     # Enterprise reachability analysis API
     if reachability_router:
         app.include_router(reachability_router, dependencies=[Depends(_verify_api_key)])
@@ -397,12 +432,35 @@ def create_app() -> FastAPI:
     app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(ide_router, dependencies=[Depends(_verify_api_key)])
 
-    app.include_router(pentagi_router, dependencies=[Depends(_verify_api_key)])
+    # Enterprise features - Deduplication, Remediation, Collaboration, Webhooks, Feeds
+    app.include_router(deduplication_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(webhooks_router, dependencies=[Depends(_verify_api_key)])
+    # Webhook receiver endpoints - NO API key required, uses signature verification
+    # External services (Jira, ServiceNow, GitLab, Azure DevOps) cannot provide FixOps API keys
+    app.include_router(webhooks_receiver_router)
+
+    # Enterprise vulnerability intelligence feeds
+    if feeds_router:
+        app.include_router(feeds_router, dependencies=[Depends(_verify_api_key)])
+
+    # Validation router - compatibility checking for security tool outputs
+    if validation_router:
+        app.include_router(validation_router, dependencies=[Depends(_verify_api_key)])
 
     # Legacy API bridge - exposes legacy APIs from archive/enterprise_legacy
     if legacy_bridge_router:
         app.include_router(
             legacy_bridge_router, dependencies=[Depends(_verify_api_key)]
+        )
+
+    # Enterprise marketplace API
+    if marketplace_router:
+        app.include_router(
+            marketplace_router,
+            prefix="/api/v1/marketplace",
+            dependencies=[Depends(_verify_api_key)],
         )
 
     _CHUNK_SIZE = 1024 * 1024
@@ -1085,8 +1143,20 @@ def create_app() -> FastAPI:
         return result
 
     @app.get("/api/v1/triage", dependencies=[Depends(_verify_api_key)])
-    async def get_triage() -> Dict[str, Any]:
-        """Transform last pipeline result into triage inbox format."""
+    async def get_triage(
+        view: str = "events",
+        cluster_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Transform last pipeline result into triage inbox format.
+
+        Args:
+            view: View mode - 'events' (individual findings) or 'clusters' (deduplicated groups)
+            cluster_status: Filter clusters by status (only applies when view=clusters)
+
+        Returns:
+            Triage data with rows and summary. When view=clusters, rows represent
+            deduplicated finding groups with event counts.
+        """
         last_result = app.state.last_pipeline_result
 
         if last_result is None:
@@ -1094,6 +1164,10 @@ def create_app() -> FastAPI:
                 status_code=404,
                 detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
             )
+
+        # If view=clusters, return deduplicated cluster view
+        if view == "clusters":
+            return await _get_triage_clusters(cluster_status)
 
         rows = []
         crosswalk = last_result.get("crosswalk", [])
@@ -1321,6 +1395,110 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=400, detail="Invalid format. Use 'csv' or 'json'."
             )
+
+    async def _get_triage_clusters(
+        cluster_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get triage data in cluster (deduplicated) view.
+
+        Returns finding clusters instead of individual events, showing
+        deduplicated groups with event counts and representative info.
+        """
+        from pathlib import Path
+
+        from core.services.deduplication import DeduplicationService
+
+        db_path = (
+            Path(os.environ.get("FIXOPS_DATA_DIR", "data"))
+            / "deduplication"
+            / "dedup.db"
+        )
+        dedup_service = DeduplicationService(db_path=db_path)
+        clusters = dedup_service.get_clusters(
+            org_id="default",
+            status=cluster_status,
+            limit=1000,
+            offset=0,
+        )
+
+        # Batch fetch events for all clusters to avoid N+1 query pattern
+        cluster_ids = [c["cluster_id"] for c in clusters]
+        events_by_cluster = dedup_service.get_events_for_clusters(
+            cluster_ids, limit_per_cluster=100
+        )
+
+        rows = []
+        for cluster in clusters:
+            # Get events for this cluster from the batch result
+            events: List[Dict[str, Any]] = events_by_cluster.get(
+                cluster["cluster_id"], []
+            )
+
+            # Compute severity (highest among events, fallback to cluster metadata)
+            severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+            max_severity = cluster.get("severity", "low")
+            for event in events:
+                event_severity = event.get("severity", "low")
+                if severity_order.get(event_severity, 0) > severity_order.get(
+                    max_severity, 0
+                ):
+                    max_severity = event_severity
+
+            # Compute exploitability (any KEV or max EPSS)
+            has_kev = any(event.get("kev", False) for event in events)
+            max_epss = max((event.get("epss", 0.0) for event in events), default=0.0)
+
+            # Get representative event for title/description
+            representative = events[0] if events else {}
+
+            rows.append(
+                {
+                    "id": cluster["cluster_id"],
+                    "cluster_id": cluster["cluster_id"],
+                    "severity": max_severity,
+                    "title": cluster.get(
+                        "title", representative.get("title", "Unknown")
+                    ),
+                    "source": cluster.get(
+                        "source", representative.get("source", "Unknown")
+                    ),
+                    "event_count": cluster.get("event_count", len(events)),
+                    "first_seen": cluster.get("first_seen"),
+                    "last_seen": cluster.get("last_seen"),
+                    "status": cluster.get("status", "open"),
+                    "exploitability": {"kev": has_kev, "epss": max_epss},
+                    "correlation_key": cluster.get("correlation_key"),
+                    "fingerprint": cluster.get("fingerprint"),
+                    "stages": list(set(e.get("stage", "unknown") for e in events)),
+                    "locations": list(
+                        set(e.get("location", "") for e in events if e.get("location"))
+                    ),
+                }
+            )
+
+        # Compute summary
+        high_critical = sum(1 for r in rows if r["severity"] in ["high", "critical"])
+        exploitable = sum(
+            1
+            for r in rows
+            if r["exploitability"]["kev"] or r["exploitability"]["epss"] > 0.7
+        )
+        open_count = sum(1 for r in rows if r["status"] == "open")
+
+        return {
+            "view": "clusters",
+            "rows": rows,
+            "summary": {
+                "total_clusters": len(rows),
+                "total_events": sum(r["event_count"] for r in rows),
+                "high_critical": high_critical,
+                "exploitable": exploitable,
+                "open": open_count,
+                "noise_reduction": f"{(1 - len(rows) / max(sum(r['event_count'] for r in rows), 1)) * 100:.1f}%"
+                if rows
+                else "0%",
+            },
+        }
 
     def _get_compliance_mappings(
         compliance_status: Dict[str, Any], source_type: str

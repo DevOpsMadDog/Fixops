@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Settings as SettingsIcon, Key, Users, Bell, Shield, ArrowLeft, Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useMemo } from 'react'
+import { Settings as SettingsIcon, Key, Users, Bell, Shield, ArrowLeft, Copy, Eye, EyeOff, Plus, Trash2, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useUsers, useTeams } from '@fixops/api-client'
 
 const API_KEYS = [
   {
@@ -48,11 +49,35 @@ const TEAM_MEMBERS = [
 ]
 
 export default function SettingsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: usersApiData, loading: usersLoading, error: usersError, refetch: refetchUsers } = useUsers()
+  const { data: teamsApiData, loading: teamsLoading, error: teamsError, refetch: refetchTeams } = useTeams()
+  
+  // Transform API data to match our UI format, or use demo data
+  const teamMembersData = useMemo(() => {
+    if (demoEnabled || !usersApiData?.items) {
+      return TEAM_MEMBERS
+    }
+    return usersApiData.items.map(user => ({
+      id: user.id,
+      name: user.name || 'Unknown',
+      email: user.email,
+      role: user.role || 'Developer',
+      joined: user.created_at?.split('T')[0] || '',
+    }))
+  }, [demoEnabled, usersApiData])
+
+  const [teamMembers, setTeamMembers] = useState(TEAM_MEMBERS)
   const [activeTab, setActiveTab] = useState('general')
   const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({})
   const [orgName, setOrgName] = useState('Aldeci Inc.')
   const [retentionMode, setRetentionMode] = useState('demo')
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+
+  // Update team members when data source changes
+  useEffect(() => {
+    setTeamMembers(teamMembersData)
+  }, [teamMembersData])
 
   const tabs = [
     { id: 'general', label: 'General', icon: SettingsIcon },
@@ -71,7 +96,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="settings">
     <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
       {/* Left Sidebar - Tabs */}
       <div className="w-64 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -469,6 +494,6 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

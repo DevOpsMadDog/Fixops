@@ -1,10 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertTriangle, Play, FileText, Filter } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useMemo } from 'react'
+import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertTriangle, Play, FileText, Filter, Loader2, RefreshCw, WifiOff, X } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { usePolicies } from '@fixops/api-client'
 
-const DEMO_POLICIES = [
+interface PolicyItem {
+  id: string
+  name: string
+  description: string
+  type: string
+  action: string
+  enabled: boolean
+  conditions: Array<{ field: string; operator: string; value: string | string[] }>
+  violations: number
+  last_triggered: string | null
+  created_at: string
+}
+
+const DEMO_POLICIES: PolicyItem[] = [
   {
     id: '1',
     name: 'Block Critical KEV Vulnerabilities',
@@ -124,15 +138,44 @@ const DEMO_POLICIES = [
 ]
 
 export default function PoliciesPage() {
-  const [policies, setPolicies] = useState(DEMO_POLICIES)
-  const [filteredPolicies, setFilteredPolicies] = useState(DEMO_POLICIES)
-  const [selectedPolicy, setSelectedPolicy] = useState<typeof DEMO_POLICIES[0] | null>(null)
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = usePolicies()
+  
+  // Transform API data to match our UI format, or use demo data
+  const policiesData: PolicyItem[] = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_POLICIES
+    }
+    return apiData.items.map(policy => ({
+      id: policy.id,
+      name: policy.name,
+      description: policy.description || '',
+      type: policy.type || 'security',
+      action: 'block',
+      enabled: policy.status === 'active',
+      conditions: [] as PolicyItem['conditions'],
+      violations: 0,
+      last_triggered: policy.last_evaluated,
+      created_at: policy.created_at,
+    }))
+  }, [demoEnabled, apiData])
+
+  const [policies, setPolicies] = useState<PolicyItem[]>(DEMO_POLICIES)
+  const [filteredPolicies, setFilteredPolicies] = useState<PolicyItem[]>(DEMO_POLICIES)
+  const [selectedPolicy, setSelectedPolicy] = useState<PolicyItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showTestModal, setShowTestModal] = useState(false)
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [showTestModal, setShowTestModal] = useState(false)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  // Update policies when data source changes
+  useEffect(() => {
+    setPolicies(policiesData)
+    setFilteredPolicies(policiesData)
+  }, [policiesData])
 
   const getActionColor = (action: string) => {
     const colors = {
@@ -219,10 +262,67 @@ export default function PoliciesPage() {
   }
 
   return (
-    <EnterpriseShell>
-      <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-        {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+    <AppShell activeApp="policies">
+            <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+              {/* Mobile Filter Overlay */}
+              {showMobileFilters && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+                  <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <span className="font-semibold">Filters</span>
+                      <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                        <X size={18} />
+                      </button>
+                    </div>
+                    <div className="p-4 border-b border-white/10">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Total</div>
+                          <div className="text-xl font-semibold text-[#6B5AED]">{summary.total}</div>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Enabled</div>
+                          <div className="text-xl font-semibold text-green-500">{summary.enabled}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 flex-1 overflow-auto">
+                      <div className="mb-6">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Type</div>
+                        <div className="space-y-2">
+                          {['all', 'security', 'secrets', 'compliance', 'automation'].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => { setTypeFilter(type); applyFilters(); setShowMobileFilters(false); }}
+                              className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${typeFilter === type ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                            >
+                              <span className="capitalize">{type}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-6">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Action</div>
+                        <div className="space-y-2">
+                          {['all', 'block', 'review', 'warn', 'allow'].map((action) => (
+                            <button
+                              key={action}
+                              onClick={() => { setActionFilter(action); applyFilters(); setShowMobileFilters(false); }}
+                              className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${actionFilter === action ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                            >
+                              <span className="capitalize">{action}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Left Sidebar - Filters */}
+              <div className="hidden lg:flex w-72 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-4">
@@ -353,25 +453,55 @@ export default function PoliciesPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Top Bar */}
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Policies</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredPolicies.length} polic{filteredPolicies.length !== 1 ? 'ies' : 'y'}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create Policy
-              </button>
-            </div>
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Top Bar */}
+                  <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center gap-3">
+                                    {/* Mobile Filter Toggle */}
+                                    <button
+                                      onClick={() => setShowMobileFilters(true)}
+                                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                                    >
+                                      <Filter size={18} />
+                                    </button>
+                                    <div>
+                                                              <h1 className="text-xl lg:text-2xl font-semibold mb-1">Policies</h1>
+                                                      <p className="text-sm text-slate-500 flex items-center gap-2">
+                                                        {apiLoading && !demoEnabled ? (
+                                                          <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                                                        ) : (
+                                                          <>Showing {filteredPolicies.length} polic{filteredPolicies.length !== 1 ? 'ies' : 'y'}</>
+                                                        )}
+                                                        {!demoEnabled && apiError && (
+                                                          <span className="text-amber-400 flex items-center gap-1">
+                                                            <WifiOff size={12} /> Using cached data
+                                                          </span>
+                                                        )}
+                                                      </p>
+                                                    </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                            {!demoEnabled && (
+                              <button
+                                onClick={() => refetch()}
+                                disabled={apiLoading}
+                                className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                                title="Refresh data"
+                              >
+                                <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setShowCreateModal(true)}
+                              className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
+                              <Plus size={16} />
+                              Create Policy
+                            </button>
+                          </div>
+                        </div>
 
             {/* Search Bar */}
             <div className="relative">
@@ -655,6 +785,6 @@ export default function PoliciesPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

@@ -1,0 +1,11 @@
+service_name,tier,exposure,data_classification,business_criticality,environment,owner,dependencies
+enterprise-security-platform,tier1,internet,confidential,critical,production,security-team,"log4j-core,spring-beans,node"
+api-gateway,tier1,internet,internal,high,production,platform-team,"node,express"
+confluence-server,tier2,internal,confidential,high,production,it-team,"confluence-server"
+exchange-server,tier1,internet,confidential,critical,production,it-team,"exchange-server"
+vpn-gateway,tier1,internet,confidential,critical,production,network-team,"pulse-connect-secure"
+file-transfer-service,tier2,internet,confidential,high,production,data-team,"moveit-transfer"
+build-server,tier3,internal,internal,medium,production,devops-team,"xz-utils"
+logging-service,tier2,internal,internal,medium,production,platform-team,"log4j-core,log4j-api"
+wiki-service,tier2,internal,internal,medium,production,it-team,"confluence-server"
+customer-portal,tier1,internet,pii,critical,production,product-team,"spring-beans,node,express"

@@ -3,9 +3,10 @@ Policy management API endpoints.
 """
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.policy_db import PolicyDB
 from core.policy_models import Policy, PolicyStatus
 
@@ -63,6 +64,7 @@ class PaginatedPolicyResponse(BaseModel):
 
 @router.get("", response_model=PaginatedPolicyResponse)
 async def list_policies(
+    org_id: str = Depends(get_org_id),
     policy_type: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),

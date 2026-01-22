@@ -1,0 +1,409 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "FixOps Security Scanner",
+          "version": "1.0.0",
+          "informationUri": "https://fixops.io",
+          "rules": [
+            {
+              "id": "CVE-2021-44228",
+              "name": "Log4Shell RCE",
+              "shortDescription": {
+                "text": "Apache Log4j2 JNDI Injection RCE (Log4Shell)"
+              },
+              "fullDescription": {
+                "text": "Apache Log4j2 2.0-beta9 through 2.14.1 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+              "properties": {
+                "security-severity": "10.0",
+                "tags": ["security", "cve", "rce", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2022-22965",
+              "name": "Spring4Shell RCE",
+              "shortDescription": {
+                "text": "Spring Framework RCE via Data Binding on JDK 9+"
+              },
+              "fullDescription": {
+                "text": "A Spring MVC or Spring WebFlux application running on JDK 9+ may be vulnerable to remote code execution (RCE) via data binding."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2022-22965",
+              "properties": {
+                "security-severity": "9.8",
+                "tags": ["security", "cve", "rce", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2023-44487",
+              "name": "HTTP/2 Rapid Reset",
+              "shortDescription": {
+                "text": "HTTP/2 Rapid Reset Attack causing DoS"
+              },
+              "fullDescription": {
+                "text": "The HTTP/2 protocol allows a denial of service (server resource consumption) because request cancellation can reset many streams quickly."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2023-44487",
+              "properties": {
+                "security-severity": "7.5",
+                "tags": ["security", "cve", "dos", "high", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2023-34362",
+              "name": "MOVEit SQL Injection",
+              "shortDescription": {
+                "text": "Progress MOVEit Transfer SQL Injection"
+              },
+              "fullDescription": {
+                "text": "In Progress MOVEit Transfer before 2021.0.6, 2021.1.4, 2022.0.4, 2022.1.5, and 2023.0.1, a SQL injection vulnerability has been found in the MOVEit Transfer web application."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2023-34362",
+              "properties": {
+                "security-severity": "9.8",
+                "tags": ["security", "cve", "sqli", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2024-3094",
+              "name": "XZ Utils Backdoor",
+              "shortDescription": {
+                "text": "Malicious code in XZ Utils liblzma"
+              },
+              "fullDescription": {
+                "text": "Malicious code was discovered in the upstream tarballs of xz, starting with version 5.6.0. Through a series of complex obfuscations, the liblzma build process extracts a prebuilt object file from a disguised test file."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2024-3094",
+              "properties": {
+                "security-severity": "10.0",
+                "tags": ["security", "cve", "backdoor", "critical", "supply-chain"]
+              }
+            },
+            {
+              "id": "CVE-2021-45046",
+              "name": "Log4j2 Thread Context RCE",
+              "shortDescription": {
+                "text": "Apache Log4j2 Thread Context Lookup Pattern RCE"
+              },
+              "fullDescription": {
+                "text": "It was found that the fix to address CVE-2021-44228 in Apache Log4j 2.15.0 was incomplete in certain non-default configurations."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2021-45046",
+              "properties": {
+                "security-severity": "9.0",
+                "tags": ["security", "cve", "rce", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2022-26134",
+              "name": "Confluence OGNL Injection",
+              "shortDescription": {
+                "text": "Atlassian Confluence Server OGNL Injection RCE"
+              },
+              "fullDescription": {
+                "text": "In affected versions of Confluence Server and Data Center, an OGNL injection vulnerability exists that would allow an unauthenticated attacker to execute arbitrary code."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2022-26134",
+              "properties": {
+                "security-severity": "9.8",
+                "tags": ["security", "cve", "rce", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2023-22515",
+              "name": "Confluence Broken Access Control",
+              "shortDescription": {
+                "text": "Atlassian Confluence Privilege Escalation"
+              },
+              "fullDescription": {
+                "text": "Atlassian has been made aware of an issue reported by a handful of customers where external attackers may have exploited a previously unknown vulnerability in publicly accessible Confluence Data Center and Server instances."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2023-22515",
+              "properties": {
+                "security-severity": "10.0",
+                "tags": ["security", "cve", "privilege-escalation", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2021-26855",
+              "name": "Exchange ProxyLogon SSRF",
+              "shortDescription": {
+                "text": "Microsoft Exchange Server SSRF (ProxyLogon)"
+              },
+              "fullDescription": {
+                "text": "Microsoft Exchange Server Remote Code Execution Vulnerability. This CVE ID is unique from CVE-2021-26412, CVE-2021-26854, CVE-2021-26857, CVE-2021-26858, CVE-2021-27065, CVE-2021-27078."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2021-26855",
+              "properties": {
+                "security-severity": "9.8",
+                "tags": ["security", "cve", "ssrf", "rce", "critical", "kev"]
+              }
+            },
+            {
+              "id": "CVE-2019-11510",
+              "name": "Pulse Secure Arbitrary File Read",
+              "shortDescription": {
+                "text": "Pulse Secure VPN Arbitrary File Read"
+              },
+              "fullDescription": {
+                "text": "In Pulse Secure Pulse Connect Secure (PCS) 8.2 before 8.2R12.1, 8.3 before 8.3R7.1, and 9.0 before 9.0R3.4, an unauthenticated remote attacker can send a specially crafted URI to perform an arbitrary file reading vulnerability."
+              },
+              "helpUri": "https://nvd.nist.gov/vuln/detail/CVE-2019-11510",
+              "properties": {
+                "security-severity": "10.0",
+                "tags": ["security", "cve", "file-read", "critical", "kev"]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2021-44228",
+          "level": "error",
+          "message": {
+            "text": "Vulnerable Log4j 2.14.1 detected. This version is affected by Log4Shell (CVE-2021-44228), a critical RCE vulnerability with CVSS 10.0. Actively exploited in the wild. Upgrade to 2.17.0+."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pom.xml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "log4j-core-2.14.1"
+          }
+        },
+        {
+          "ruleId": "CVE-2022-22965",
+          "level": "error",
+          "message": {
+            "text": "Vulnerable Spring Framework 5.3.17 detected. This version is affected by Spring4Shell (CVE-2022-22965), a critical RCE vulnerability. Upgrade to 5.3.18+."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pom.xml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 52,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "spring-beans-5.3.17"
+          }
+        },
+        {
+          "ruleId": "CVE-2023-44487",
+          "level": "warning",
+          "message": {
+            "text": "Node.js 18.18.0 is vulnerable to HTTP/2 Rapid Reset Attack (CVE-2023-44487). Upgrade to 18.18.2+ or 20.8.1+."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package.json",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 10,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "node-18.18.0"
+          }
+        },
+        {
+          "ruleId": "CVE-2024-3094",
+          "level": "error",
+          "message": {
+            "text": "CRITICAL: XZ Utils 5.6.1 contains a backdoor (CVE-2024-3094). This is a supply chain attack affecting SSH authentication. Downgrade to 5.4.x immediately."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Dockerfile",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 15,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "xz-utils-5.6.1"
+          }
+        },
+        {
+          "ruleId": "CVE-2023-34362",
+          "level": "error",
+          "message": {
+            "text": "MOVEit Transfer 2023.0.0 is vulnerable to SQL injection (CVE-2023-34362). This vulnerability was actively exploited by Cl0p ransomware group. Upgrade immediately."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "infrastructure/moveit-config.xml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "moveit-2023.0.0"
+          }
+        },
+        {
+          "ruleId": "CVE-2021-45046",
+          "level": "error",
+          "message": {
+            "text": "Log4j 2.15.0 is still vulnerable to CVE-2021-45046 in non-default configurations. Upgrade to 2.17.0+."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "services/api/pom.xml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 78,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "log4j-api-2.15.0"
+          }
+        },
+        {
+          "ruleId": "CVE-2022-26134",
+          "level": "error",
+          "message": {
+            "text": "Confluence Server 8.5.0 is vulnerable to OGNL injection RCE (CVE-2022-26134). Patch immediately."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 25,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "confluence-8.5.0"
+          }
+        },
+        {
+          "ruleId": "CVE-2023-22515",
+          "level": "error",
+          "message": {
+            "text": "Confluence Data Center 8.5.0 is vulnerable to privilege escalation (CVE-2023-22515). CVSS 10.0, actively exploited. Upgrade to 8.5.2+."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docker-compose.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 25,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "confluence-8.5.0-priv-esc"
+          }
+        },
+        {
+          "ruleId": "CVE-2021-26855",
+          "level": "error",
+          "message": {
+            "text": "Exchange Server 2019 is vulnerable to ProxyLogon SSRF (CVE-2021-26855). This was exploited by HAFNIUM threat actor. Apply KB5000871 patch."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "infrastructure/exchange-config.ps1",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "exchange-2019"
+          }
+        },
+        {
+          "ruleId": "CVE-2019-11510",
+          "level": "error",
+          "message": {
+            "text": "Pulse Connect Secure 9.0.3 is vulnerable to arbitrary file read (CVE-2019-11510). Upgrade to 9.0R3.4+."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "vpn/pulse-config.xml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "primaryLocationLineHash": "pulse-9.0.3"
+          }
+        }
+      ]
+    }
+  ]
+}

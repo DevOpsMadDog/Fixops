@@ -41,7 +41,7 @@ def test_dashboard_overview_empty(client, db, monkeypatch):
     """Test dashboard overview with empty database."""
     monkeypatch.setattr("apps.api.analytics_router.db", db)
 
-    response = client.get("/api/v1/analytics/dashboard/overview")
+    response = client.get("/api/v1/analytics/dashboard/overview?org_id=test-org")
     assert response.status_code == 200
     data = response.json()
     assert data["total_findings"] == 0
@@ -53,6 +53,7 @@ def test_create_finding(client, db, monkeypatch):
     monkeypatch.setattr("apps.api.analytics_router.db", db)
 
     finding_data = {
+        "org_id": "test-org",
         "rule_id": "SAST-001",
         "severity": "high",
         "status": "open",
@@ -238,7 +239,9 @@ def test_get_top_risks(client, db, monkeypatch):
         )
         db.create_finding(finding)
 
-    response = client.get("/api/v1/analytics/dashboard/top-risks?limit=3")
+    response = client.get(
+        "/api/v1/analytics/dashboard/top-risks?org_id=test-org&limit=3"
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data["risks"]) == 3

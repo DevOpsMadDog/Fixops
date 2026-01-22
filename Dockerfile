@@ -34,10 +34,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install only runtime dependencies
+# Install only runtime dependencies (including tools for demo scripts)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    jq \
+    ncurses-bin \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -63,14 +65,24 @@ COPY fixops/ ./fixops/
 COPY domain/ ./domain/
 COPY new_apps/ ./new_apps/
 COPY new_backend/ ./new_backend/
+COPY fixops-enterprise/ ./fixops-enterprise/
 COPY *.py ./
 COPY *.txt ./
 COPY *.yml ./
 COPY *.yaml ./
 COPY *.md ./
+COPY docs/ ./docs/
+COPY cli/ ./cli/
+COPY evidence/ ./evidence/
+COPY lib4sbom/ ./lib4sbom/
 
 # Create data directory
 RUN mkdir -p /app/.fixops_data
+
+# Make demo scripts executable
+RUN chmod +x /app/scripts/fixops-interactive.sh \
+    /app/scripts/aldeci-demo-runner.sh \
+    /app/scripts/docker-entrypoint.sh 2>/dev/null || true
 
 # Expose port
 EXPOSE 8000
@@ -79,12 +91,19 @@ EXPOSE 8000
 ENV FIXOPS_MODE=demo
 ENV FIXOPS_DATA_DIR=/app/.fixops_data
 ENV FIXOPS_API_TOKEN=demo-token-12345
+ENV FIXOPS_API_URL=http://localhost:8000
 ENV PYTHONUNBUFFERED=1
 ENV FIXOPS_DISABLE_TELEMETRY=1
+ENV TERM=xterm-256color
+# Ensure /app is on Python's module search path for local packages
+ENV PYTHONPATH=/app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the API
-CMD ["uvicorn", "apps.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default: Run the API server
+# For demo mode, use: docker run -it fixops demo
+# For interactive tester: docker run -it fixops interactive
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+CMD ["api-only"]

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Package, Search, Plus, Edit2, Trash2, GitBranch, Code, Server, Box, Filter, ExternalLink, Calendar, Users } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { AppShell } from '@fixops/ui'
 
 const DEMO_APPLICATIONS = [
   {
@@ -216,7 +216,7 @@ export default function InventoryPage() {
   const languages = Array.from(new Set(applications.map(a => a.language)))
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="inventory">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -615,6 +615,6 @@ export default function InventoryPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Layers, Search, Filter, CheckSquare, XSquare, UserPlus, Tag, Calendar, Download, Upload, AlertTriangle, CheckCircle } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useMemo } from 'react'
+import { Layers, Search, Filter, CheckSquare, XSquare, UserPlus, Tag, Calendar, Download, Upload, AlertTriangle, CheckCircle, Loader2, RefreshCw, WifiOff, X } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useFindings } from '@fixops/api-client'
 
 const DEMO_FINDINGS = [
   {
@@ -96,6 +97,27 @@ const DEMO_FINDINGS = [
 ]
 
 export default function BulkOperationsPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useFindings()
+  
+  // Transform API data to match our UI format, or use demo data
+  const findingsData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_FINDINGS
+    }
+    return apiData.items.map(finding => ({
+      id: finding.id,
+      title: finding.title,
+      severity: finding.severity || 'medium',
+      source: 'CVE',
+      service: 'unknown',
+      assignee: null,
+      tags: [] as string[],
+      status: finding.status || 'open',
+      selected: false,
+    }))
+  }, [demoEnabled, apiData])
+
   const [findings, setFindings] = useState(DEMO_FINDINGS)
   const [filteredFindings, setFilteredFindings] = useState(DEMO_FINDINGS)
   const [searchQuery, setSearchQuery] = useState('')
@@ -103,9 +125,16 @@ export default function BulkOperationsPage() {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [selectAll, setSelectAll] = useState(false)
   const [bulkAction, setBulkAction] = useState<string>('')
-  const [showAssignModal, setShowAssignModal] = useState(false)
-  const [showTagModal, setShowTagModal] = useState(false)
-  const [showExportModal, setShowExportModal] = useState(false)
+    const [showAssignModal, setShowAssignModal] = useState(false)
+    const [showTagModal, setShowTagModal] = useState(false)
+    const [showExportModal, setShowExportModal] = useState(false)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  // Update findings when data source changes
+  useEffect(() => {
+    setFindings(findingsData)
+    setFilteredFindings(findingsData)
+  }, [findingsData])
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -226,12 +255,55 @@ export default function BulkOperationsPage() {
   }
 
   return (
-    <EnterpriseShell>
-      <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-        {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
-          {/* Header */}
-          <div className="p-6 border-b border-white/10">
+    <AppShell activeApp="bulk">
+            <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+              {/* Mobile Filter Overlay */}
+              {showMobileFilters && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+                  <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                    <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <span className="font-semibold">Filters</span>
+                      <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                        <X size={18} />
+                      </button>
+                    </div>
+                    <div className="p-4 border-b border-white/10">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Total</div>
+                          <div className="text-xl font-semibold text-[#6B5AED]">{summary.total}</div>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-md">
+                          <div className="text-slate-500 mb-1">Selected</div>
+                          <div className="text-xl font-semibold text-green-500">{summary.selected}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 flex-1 overflow-auto">
+                      <div className="mb-6">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Severity</div>
+                        <div className="space-y-2">
+                          {['all', 'critical', 'high', 'medium', 'low'].map((severity) => (
+                            <button
+                              key={severity}
+                              onClick={() => { setSeverityFilter(severity); applyFilters(); setShowMobileFilters(false); }}
+                              className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${severityFilter === severity ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                            >
+                              <span className="capitalize">{severity}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop Sidebar - Filters */}
+              <div className="hidden lg:flex w-72 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
+                {/* Header */}
+                <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-4">
               <Layers size={24} className="text-[#6B5AED]" />
               <h2 className="text-lg font-semibold">Bulk Operations</h2>
@@ -325,18 +397,27 @@ export default function BulkOperationsPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Top Bar */}
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Bulk Operations</h1>
-                <p className="text-sm text-slate-500">
-                  {selectedCount > 0 ? `${selectedCount} finding${selectedCount !== 1 ? 's' : ''} selected` : `Showing ${filteredFindings.length} finding${filteredFindings.length !== 1 ? 's' : ''}`}
-                </p>
-              </div>
-            </div>
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Top Bar */}
+                  <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {/* Mobile Filter Toggle */}
+                        <button
+                          onClick={() => setShowMobileFilters(true)}
+                          className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                        >
+                          <Filter size={18} />
+                        </button>
+                        <div>
+                                      <h1 className="text-xl lg:text-2xl font-semibold mb-1">Bulk Operations</h1>
+                                      <p className="text-sm text-slate-500">
+                                        {selectedCount > 0 ? `${selectedCount} finding${selectedCount !== 1 ? 's' : ''} selected` : `Showing ${filteredFindings.length} finding${filteredFindings.length !== 1 ? 's' : ''}`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
 
             {/* Search Bar */}
             <div className="relative mb-4">
@@ -570,6 +651,6 @@ export default function BulkOperationsPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

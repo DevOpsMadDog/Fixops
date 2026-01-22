@@ -4,9 +4,10 @@ Analytics and dashboard API endpoints.
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.analytics_db import AnalyticsDB
 from core.analytics_models import (
     Decision,
@@ -23,6 +24,9 @@ db = AnalyticsDB()
 class FindingCreate(BaseModel):
     """Request model for creating a finding."""
 
+    org_id: str = Field(
+        ..., min_length=1, description="Organization ID for multi-tenancy"
+    )
     application_id: Optional[str] = None
     service_id: Optional[str] = None
     rule_id: str = Field(..., min_length=1)
@@ -49,6 +53,7 @@ class FindingResponse(BaseModel):
     """Response model for a finding."""
 
     id: str
+    org_id: Optional[str] = None
     application_id: Optional[str]
     service_id: Optional[str]
     rule_id: str
@@ -114,14 +119,20 @@ class MetricResponse(BaseModel):
 
 
 @router.get("/dashboard/overview")
-async def get_dashboard_overview():
+async def get_dashboard_overview(
+    org_id: str = Query(..., description="Organization ID for multi-tenancy"),
+):
     """Get security posture overview for dashboard."""
     overview = db.get_dashboard_overview()
+    overview["org_id"] = org_id
     return overview
 
 
 @router.get("/dashboard/trends")
-async def get_dashboard_trends(days: int = Query(30, ge=1, le=365)):
+async def get_dashboard_trends(
+    org_id: str = Query(..., description="Organization ID for multi-tenancy"),
+    days: int = Query(30, ge=1, le=365),
+):
     """Get trend data for the specified number of days."""
     end_time = datetime.utcnow()
     start_time = end_time - timedelta(days=days)
@@ -134,6 +145,7 @@ async def get_dashboard_trends(days: int = Query(30, ge=1, le=365)):
     )
 
     return {
+        "org_id": org_id,
         "period_days": days,
         "start_time": start_time.isoformat(),
         "end_time": end_time.isoformat(),
@@ -142,14 +154,19 @@ async def get_dashboard_trends(days: int = Query(30, ge=1, le=365)):
 
 
 @router.get("/dashboard/top-risks")
-async def get_top_risks(limit: int = Query(10, ge=1, le=100)):
+async def get_top_risks(
+    org_id: str = Query(..., description="Organization ID for multi-tenancy"),
+    limit: int = Query(10, ge=1, le=100),
+):
     """Get top security risks by severity and exploitability."""
     risks = db.get_top_risks(limit=limit)
-    return {"risks": risks, "total": len(risks)}
+    return {"org_id": org_id, "risks": risks, "total": len(risks)}
 
 
 @router.get("/dashboard/compliance-status")
-async def get_compliance_status():
+async def get_compliance_status(
+    org_id: str = Depends(get_org_id),
+):
     """Get compliance framework status."""
     findings = db.list_findings(limit=1000)
 
@@ -176,6 +193,7 @@ async def get_compliance_status():
 
 @router.get("/findings", response_model=List[FindingResponse])
 async def query_findings(
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = None,
     status: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
@@ -247,6 +265,7 @@ async def update_finding(id: str, finding_data: FindingUpdate):
 
 @router.get("/decisions", response_model=List[DecisionResponse])
 async def query_decisions(
+    org_id: str = Depends(get_org_id),
     finding_id: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
@@ -406,8 +425,8 @@ async def run_custom_query(query: Dict[str, Any]):
 
 @router.get("/export")
 async def export_analytics(
-    format: str = Query("json", regex="^(json|csv)$"),
-    data_type: str = Query("findings", regex="^(findings|decisions|metrics)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
+    data_type: str = Query("findings", pattern="^(findings|decisions|metrics)$"),
 ):
     """Export analytics data in specified format."""
     if data_type == "findings":

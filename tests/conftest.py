@@ -79,7 +79,7 @@ collect_ignore = [
     "test_demo_run.py",  # missing test data files (findings.ndjson)
     "test_end_to_end.py",  # E2E tests with mode/encoding issues
     "test_enterprise_compliance.py",  # compliance engine attribute errors
-    "test_evidence.py",  # evidence hub file persistence issues
+    # test_evidence.py - REMOVED: tests now work with proper mocking of _rsa_sign
     "test_evidence_retrieval_fastpath.py",  # evidence retrieval validation issues
     "test_exploit_refresh.py",  # overlay auth token issues
     "test_feature_matrix.py",  # missing ai_agent_analysis feature

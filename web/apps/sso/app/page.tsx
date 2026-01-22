@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, Key, Globe, Users, Settings, Filter, Calendar } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useMemo } from 'react'
+import { Shield, Search, Plus, Edit2, Trash2, CheckCircle, XCircle, Key, Globe, Users, Settings, Filter, Calendar, Loader2, RefreshCw, WifiOff } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useIntegrations } from '@fixops/api-client'
 
 const DEMO_SSO_PROVIDERS = [
   {
@@ -60,6 +61,33 @@ const DEMO_SSO_PROVIDERS = [
 ]
 
 export default function SSOPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useIntegrations()
+  
+  // Transform API data to match our UI format, or use demo data
+  const providersData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_SSO_PROVIDERS
+    }
+    // Filter for SSO-related integrations
+    const ssoIntegrations = apiData.items.filter(i => 
+      i.type === 'sso' || i.category === 'authentication'
+    )
+    return ssoIntegrations.map(integration => ({
+      id: integration.id,
+      name: integration.name,
+      provider: integration.provider || 'okta',
+      domain: integration.domain || 'unknown',
+      entity_id: integration.entity_id || '',
+      sso_url: integration.sso_url || '',
+      certificate: integration.certificate || '',
+      status: integration.status || 'inactive',
+      users_count: integration.users_count || 0,
+      last_login: integration.last_login,
+      created_at: integration.created_at,
+    }))
+  }, [demoEnabled, apiData])
+
   const [providers, setProviders] = useState(DEMO_SSO_PROVIDERS)
   const [filteredProviders, setFilteredProviders] = useState(DEMO_SSO_PROVIDERS)
   const [selectedProvider, setSelectedProvider] = useState<typeof DEMO_SSO_PROVIDERS[0] | null>(null)
@@ -67,6 +95,12 @@ export default function SSOPage() {
   const [providerFilter, setProviderFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  // Update providers when data source changes
+  useEffect(() => {
+    setProviders(providersData)
+    setFilteredProviders(providersData)
+  }, [providersData])
 
   const getProviderColor = (provider: string) => {
     const colors = {
@@ -132,7 +166,7 @@ export default function SSOPage() {
   const providerTypes = Array.from(new Set(providers.map(p => p.provider)))
 
   return (
-    <EnterpriseShell>
+    <AppShell activeApp="sso">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Left Sidebar - Filters */}
         <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
@@ -501,6 +535,6 @@ export default function SSOPage() {
           </div>
         )}
       </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }

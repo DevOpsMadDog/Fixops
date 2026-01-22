@@ -1,9 +1,10 @@
 """API router for Pentagi pen testing integration."""
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
 from core.pentagi_db import PentagiDB
 from core.pentagi_models import (
     ExploitabilityLevel,
@@ -76,6 +77,7 @@ class UpdatePenTestConfigModel(BaseModel):
 
 @router.get("/requests")
 def list_pen_test_requests(
+    org_id: str = Depends(get_org_id),
     finding_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),

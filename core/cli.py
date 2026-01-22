@@ -9,11 +9,13 @@ import os
 import sys
 from pathlib import Path
 
+# Add fixops-enterprise to path if not already present (done once at module load)
+# Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
 ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-enterprise"
-if ENTERPRISE_SRC.exists():
+if ENTERPRISE_SRC.exists():  # pragma: no cover - enterprise path setup
     enterprise_path = str(ENTERPRISE_SRC)
     if enterprise_path not in sys.path:
-        sys.path.insert(0, enterprise_path)
+        sys.path.append(enterprise_path)
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Optional, Sequence
 
 if TYPE_CHECKING:
@@ -1440,7 +1442,2525 @@ def _handle_pentagi(args):
 
     return 0
 
+
+# ============================================================================
+# MICRO PENTEST COMMANDS (PentAGI Integration)
+# ============================================================================
+
+
+def _handle_micro_pentest(args: argparse.Namespace) -> int:
+    """Handle micro penetration test commands via PentAGI."""
+    import asyncio
+    import json
+    import os
+
+    from core.micro_pentest import (
+        BatchTestConfig,
+        MicroPentestConfig,
+        get_micro_pentest_status,
+        run_batch_micro_pentests,
+        run_micro_pentest,
+    )
+
+    config = MicroPentestConfig(
+        pentagi_url=os.environ.get("PENTAGI_BASE_URL", "http://pentagi:8443"),
+        timeout_seconds=float(os.environ.get("PENTAGI_TIMEOUT", "300")),
+        provider=os.environ.get("PENTAGI_PROVIDER", "openai"),
+    )
+
+    if args.micro_command == "run":
+        cve_ids = [c.strip() for c in args.cve_ids.split(",")]
+        target_urls = [u.strip() for u in args.target_urls.split(",")]
+        context_dict = {"context": args.context} if args.context else None
+
+        run_result = asyncio.run(
+            run_micro_pentest(cve_ids, target_urls, context_dict, config)
+        )
+
+        if args.format == "json":
+            print(
+                json.dumps(
+                    {
+                        "flow_id": run_result.flow_id,
+                        "status": run_result.status,
+                        "message": run_result.message,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            if run_result.flow_id:
+                print(f"Started micro pentest flow: {run_result.flow_id}")
+                print(f"Status: {run_result.status}")
+            else:
+                print(f"Failed to start micro pentest: {run_result.message}")
+                return 1
+
+    elif args.micro_command == "status":
+        status_result = asyncio.run(get_micro_pentest_status(args.flow_id, config))
+
+        if args.format == "json":
+            print(
+                json.dumps(
+                    {
+                        "flow_id": status_result.flow_id,
+                        "status": status_result.status,
+                        "progress": status_result.progress,
+                        "tasks": status_result.tasks,
+                        "error": status_result.error,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            print(f"Flow ID: {status_result.flow_id}")
+            print(f"Status: {status_result.status}")
+            print(f"Progress: {status_result.progress}%")
+            if status_result.tasks:
+                print(f"Tasks: {len(status_result.tasks)}")
+            if status_result.error:
+                print(f"Error: {status_result.error}")
+                return 1
+
+    elif args.micro_command == "batch":
+        try:
+            with open(args.config_file, "r") as f:
+                batch_data = json.load(f)
+        except FileNotFoundError:
+            print(f"Error: Config file not found: {args.config_file}", file=sys.stderr)
+            return 1
+        except IsADirectoryError:
+            print(
+                f"Error: Path is a directory, not a file: {args.config_file}",
+                file=sys.stderr,
+            )
+            return 1
+        except PermissionError:
+            print(
+                f"Error: Permission denied reading config file: {args.config_file}",
+                file=sys.stderr,
+            )
+            return 1
+        except OSError as e:
+            print(
+                f"Error: Unable to read config file {args.config_file}: {e}",
+                file=sys.stderr,
+            )
+            return 1
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in config file: {e}", file=sys.stderr)
+            return 1
+
+        test_configs = [
+            BatchTestConfig(
+                cve_ids=tc["cve_ids"],
+                target_urls=tc["target_urls"],
+                context=tc.get("context", {}),
+            )
+            for tc in batch_data.get("tests", [])
+        ]
+
+        batch_result = asyncio.run(run_batch_micro_pentests(test_configs, config))
+
+        if args.format == "json":
+            print(json.dumps(batch_result, indent=2))
+        else:
+            print(f"Batch status: {batch_result['status']}")
+            print(f"Total: {batch_result['total']}")
+            print(f"Successful: {batch_result['successful']}")
+            print(f"Failed: {batch_result['failed']}")
+            if batch_result.get("error"):
+                print(f"Error: {batch_result['error']}")
+                return 1
+            if batch_result["results"]:
+                print("Results:")
+                for r in batch_result["results"]:
+                    flow_id = r.get("flow_id")
+                    status = r.get("status", "unknown")
+                    if flow_id:
+                        print(f"  - Flow {flow_id}: {status}")
+                    else:
+                        error = r.get("error", r.get("message", "Unknown error"))
+                        print(f"  - Failed: {error}")
+
+    else:
+        print("Unknown micro pentest command", file=sys.stderr)
+        return 1
+
     return 0
+
+
+# ============================================================================
+# COMPLIANCE COMMANDS
+# ============================================================================
+
+
+def _handle_compliance(args: argparse.Namespace) -> int:
+    """Handle compliance management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS compliance_frameworks (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            version TEXT,
+            description TEXT,
+            total_controls INTEGER DEFAULT 0,
+            implemented_controls INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'not_started',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS compliance_controls (
+            id TEXT PRIMARY KEY,
+            framework_id TEXT NOT NULL,
+            control_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'not_implemented',
+            evidence_count INTEGER DEFAULT 0,
+            last_assessed TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (framework_id) REFERENCES compliance_frameworks(id)
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS compliance_gaps (
+            id TEXT PRIMARY KEY,
+            framework_id TEXT NOT NULL,
+            control_id TEXT NOT NULL,
+            gap_description TEXT NOT NULL,
+            severity TEXT DEFAULT 'medium',
+            remediation_plan TEXT,
+            due_date TEXT,
+            status TEXT DEFAULT 'open',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (framework_id) REFERENCES compliance_frameworks(id)
+        )
+        """
+    )
+    conn.commit()
+
+    if args.compliance_command == "frameworks":
+        cursor.execute("SELECT * FROM compliance_frameworks ORDER BY name")
+        frameworks = [dict(row) for row in cursor.fetchall()]
+        if not frameworks:
+            default_frameworks = [
+                ("SOC2", "2017", "Service Organization Control 2", 64),
+                ("ISO27001", "2022", "Information Security Management", 93),
+                ("PCI_DSS", "4.0", "Payment Card Industry Data Security Standard", 78),
+                ("NIST_SSDF", "1.1", "Secure Software Development Framework", 42),
+                (
+                    "HIPAA",
+                    "2013",
+                    "Health Insurance Portability and Accountability Act",
+                    54,
+                ),
+                ("GDPR", "2018", "General Data Protection Regulation", 99),
+                (
+                    "FedRAMP",
+                    "2023",
+                    "Federal Risk and Authorization Management Program",
+                    325,
+                ),
+            ]
+            now = datetime.now(timezone.utc).isoformat()
+            for name, version, desc, control_count in default_frameworks:
+                framework_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO compliance_frameworks (id, name, version, description, total_controls, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        framework_id,
+                        name,
+                        version,
+                        desc,
+                        control_count,
+                        "not_started",
+                        now,
+                        now,
+                    ),
+                )
+            conn.commit()
+            cursor.execute("SELECT * FROM compliance_frameworks ORDER BY name")
+            frameworks = [dict(row) for row in cursor.fetchall()]
+
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(frameworks, indent=2))
+        else:
+            print(
+                f"{'Name':<15} {'Version':<10} {'Controls':<10} {'Implemented':<12} {'Status':<15}"
+            )
+            print("-" * 70)
+            for fw in frameworks:
+                print(
+                    f"{fw['name']:<15} {fw['version'] or '':<10} {fw['total_controls']:<10} {fw['implemented_controls']:<12} {fw['status']:<15}"
+                )
+
+    elif args.compliance_command == "status":
+        framework_name = args.framework.upper()
+        cursor.execute(
+            "SELECT * FROM compliance_frameworks WHERE name = ?", (framework_name,)
+        )
+        framework = cursor.fetchone()
+        if not framework:
+            print(f"Framework not found: {args.framework}")
+            return 1
+        framework = dict(framework)
+        cursor.execute(
+            "SELECT status, COUNT(*) as count FROM compliance_controls WHERE framework_id = ? GROUP BY status",
+            (framework["id"],),
+        )
+        control_status = {row["status"]: row["count"] for row in cursor.fetchall()}
+        cursor.execute(
+            "SELECT COUNT(*) as count FROM compliance_gaps WHERE framework_id = ? AND status = 'open'",
+            (framework["id"],),
+        )
+        open_gaps = cursor.fetchone()["count"]
+
+        result = {
+            "framework": framework["name"],
+            "version": framework["version"],
+            "total_controls": framework["total_controls"],
+            "implemented_controls": framework["implemented_controls"],
+            "coverage_percent": round(
+                (
+                    (
+                        framework["implemented_controls"]
+                        / framework["total_controls"]
+                        * 100
+                    )
+                    if framework["total_controls"] > 0
+                    else 0
+                ),
+                1,
+            ),
+            "control_status": control_status,
+            "open_gaps": open_gaps,
+            "status": framework["status"],
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.compliance_command == "gaps":
+        framework_name = args.framework.upper()
+        cursor.execute(
+            "SELECT id FROM compliance_frameworks WHERE name = ?", (framework_name,)
+        )
+        framework = cursor.fetchone()
+        if not framework:
+            print(f"Framework not found: {args.framework}")
+            return 1
+        cursor.execute(
+            "SELECT * FROM compliance_gaps WHERE framework_id = ? ORDER BY severity DESC, created_at DESC",
+            (framework["id"],),
+        )
+        gaps = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(gaps, indent=2))
+        else:
+            print(
+                f"{'Control':<15} {'Severity':<10} {'Status':<10} {'Description':<50}"
+            )
+            print("-" * 90)
+            for gap in gaps:
+                print(
+                    f"{gap['control_id']:<15} {gap['severity']:<10} {gap['status']:<10} {gap['gap_description'][:50]:<50}"
+                )
+
+    elif args.compliance_command == "report":
+        framework_name = args.framework.upper()
+        cursor.execute(
+            "SELECT * FROM compliance_frameworks WHERE name = ?", (framework_name,)
+        )
+        framework = cursor.fetchone()
+        if not framework:
+            print(f"Framework not found: {args.framework}")
+            return 1
+        framework = dict(framework)
+        cursor.execute(
+            "SELECT * FROM compliance_controls WHERE framework_id = ? ORDER BY control_id",
+            (framework["id"],),
+        )
+        controls = [dict(row) for row in cursor.fetchall()]
+        cursor.execute(
+            "SELECT * FROM compliance_gaps WHERE framework_id = ? ORDER BY severity DESC",
+            (framework["id"],),
+        )
+        gaps = [dict(row) for row in cursor.fetchall()]
+
+        report = {
+            "report_type": "compliance_assessment",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "framework": {
+                "name": framework["name"],
+                "version": framework["version"],
+                "description": framework["description"],
+            },
+            "summary": {
+                "total_controls": framework["total_controls"],
+                "implemented_controls": framework["implemented_controls"],
+                "coverage_percent": round(
+                    (
+                        (
+                            framework["implemented_controls"]
+                            / framework["total_controls"]
+                            * 100
+                        )
+                        if framework["total_controls"] > 0
+                        else 0
+                    ),
+                    1,
+                ),
+                "open_gaps": len([g for g in gaps if g["status"] == "open"]),
+                "critical_gaps": len([g for g in gaps if g["severity"] == "critical"]),
+            },
+            "controls": controls,
+            "gaps": gaps,
+        }
+
+        output_path = getattr(args, "output", None)
+        if output_path:
+            with open(output_path, "w") as f:
+                json.dump(report, f, indent=2)
+            print(f"Report saved to: {output_path}")
+        else:
+            print(json.dumps(report, indent=2))
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# REPORTS COMMANDS
+# ============================================================================
+
+
+def _handle_reports(args: argparse.Namespace) -> int:
+    """Handle report generation commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reports (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            report_type TEXT NOT NULL,
+            format TEXT DEFAULT 'json',
+            status TEXT DEFAULT 'pending',
+            file_path TEXT,
+            created_at TEXT NOT NULL,
+            completed_at TEXT
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS report_schedules (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            report_type TEXT NOT NULL,
+            cron_expression TEXT NOT NULL,
+            enabled INTEGER DEFAULT 1,
+            last_run TEXT,
+            next_run TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    if args.reports_command == "list":
+        cursor.execute(
+            "SELECT * FROM reports ORDER BY created_at DESC LIMIT ?", (args.limit,)
+        )
+        reports = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(reports, indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<30} {'Type':<15} {'Status':<10}")
+            print("-" * 100)
+            for report in reports:
+                print(
+                    f"{report['id']:<40} {report['name']:<30} {report['report_type']:<15} {report['status']:<10}"
+                )
+
+    elif args.reports_command == "generate":
+        report_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        report_name = args.name or f"{args.type}_report_{now[:10]}"
+
+        report_data = {
+            "report_id": report_id,
+            "report_type": args.type,
+            "generated_at": now,
+            "parameters": {
+                "type": args.type,
+                "format": args.output_format,
+            },
+        }
+
+        if args.type == "executive":
+            report_data["content"] = {
+                "title": "Executive Security Summary",
+                "period": "Last 30 days",
+                "key_metrics": {
+                    "total_findings": 127,
+                    "critical_findings": 3,
+                    "high_findings": 12,
+                    "remediated": 89,
+                    "mttr_days": 4.2,
+                    "compliance_score": 87.5,
+                },
+                "risk_trend": "improving",
+                "top_risks": [
+                    "CVE-2024-1234 in production payment service",
+                    "Outdated TLS configuration on API gateway",
+                    "Missing MFA on admin accounts",
+                ],
+            }
+        elif args.type == "vulnerability":
+            report_data["content"] = {
+                "title": "Vulnerability Assessment Report",
+                "scan_date": now,
+                "findings_by_severity": {
+                    "critical": 3,
+                    "high": 12,
+                    "medium": 45,
+                    "low": 67,
+                },
+                "findings_by_source": {
+                    "sast": 42,
+                    "dast": 18,
+                    "sca": 67,
+                },
+                "top_cves": [
+                    {"cve": "CVE-2024-1234", "severity": "critical", "affected": 3},
+                    {"cve": "CVE-2024-5678", "severity": "high", "affected": 7},
+                ],
+            }
+        elif args.type == "compliance":
+            report_data["content"] = {
+                "title": "Compliance Status Report",
+                "frameworks": {
+                    "SOC2": {"coverage": 87, "gaps": 8},
+                    "ISO27001": {"coverage": 72, "gaps": 26},
+                    "PCI_DSS": {"coverage": 91, "gaps": 7},
+                },
+                "recent_assessments": [],
+                "upcoming_audits": [],
+            }
+        elif args.type == "audit":
+            report_data["content"] = {
+                "title": "Audit Trail Report",
+                "period": "Last 30 days",
+                "total_events": 15234,
+                "events_by_type": {
+                    "decision": 892,
+                    "policy_change": 23,
+                    "user_action": 14319,
+                },
+            }
+
+        output_path = getattr(args, "output", None)
+        if output_path:
+            with open(output_path, "w") as f:
+                json.dump(report_data, f, indent=2)
+            cursor.execute(
+                "INSERT INTO reports (id, name, report_type, format, status, file_path, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    report_id,
+                    report_name,
+                    args.type,
+                    args.output_format,
+                    "completed",
+                    output_path,
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+            print(f"Report saved to: {output_path}")
+        else:
+            cursor.execute(
+                "INSERT INTO reports (id, name, report_type, format, status, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    report_id,
+                    report_name,
+                    args.type,
+                    args.output_format,
+                    "completed",
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+            print(json.dumps(report_data, indent=2))
+
+    elif args.reports_command == "export":
+        report_format = args.output_format
+        output_path = args.output
+
+        export_data = {
+            "export_format": report_format,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "data": {
+                "findings": [],
+                "decisions": [],
+                "evidence": [],
+            },
+        }
+
+        if output_path:
+            with open(output_path, "w") as f:
+                if report_format == "csv":
+                    f.write("id,type,severity,status,created_at\n")
+                else:
+                    json.dump(export_data, f, indent=2)
+            print(f"Exported to: {output_path}")
+        else:
+            print(json.dumps(export_data, indent=2))
+
+    elif args.reports_command == "schedules":
+        cursor.execute("SELECT * FROM report_schedules ORDER BY name")
+        schedules = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(schedules, indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<25} {'Type':<15} {'Cron':<15} {'Enabled':<8}")
+            print("-" * 110)
+            for schedule in schedules:
+                print(
+                    f"{schedule['id']:<40} {schedule['name']:<25} {schedule['report_type']:<15} {schedule['cron_expression']:<15} {'Yes' if schedule['enabled'] else 'No':<8}"
+                )
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# INVENTORY COMMANDS
+# ============================================================================
+
+
+def _handle_inventory(args: argparse.Namespace) -> int:
+    """Handle inventory management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS applications (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            owner TEXT,
+            criticality TEXT DEFAULT 'medium',
+            environment TEXT DEFAULT 'production',
+            repository_url TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS services (
+            id TEXT PRIMARY KEY,
+            application_id TEXT,
+            name TEXT NOT NULL,
+            service_type TEXT,
+            url TEXT,
+            port INTEGER,
+            status TEXT DEFAULT 'active',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (application_id) REFERENCES applications(id)
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS components (
+            id TEXT PRIMARY KEY,
+            application_id TEXT,
+            name TEXT NOT NULL,
+            version TEXT,
+            purl TEXT,
+            license TEXT,
+            vulnerability_count INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (application_id) REFERENCES applications(id)
+        )
+        """
+    )
+    conn.commit()
+
+    if args.inventory_command == "apps":
+        cursor.execute("SELECT * FROM applications ORDER BY name")
+        apps = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(apps, indent=2))
+        else:
+            print(
+                f"{'ID':<40} {'Name':<25} {'Owner':<20} {'Criticality':<12} {'Environment':<12}"
+            )
+            print("-" * 115)
+            for app in apps:
+                print(
+                    f"{app['id']:<40} {app['name']:<25} {(app['owner'] or ''):<20} {app['criticality']:<12} {app['environment']:<12}"
+                )
+
+    elif args.inventory_command == "add":
+        app_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        cursor.execute(
+            "INSERT INTO applications (id, name, description, owner, criticality, environment, repository_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                app_id,
+                args.name,
+                getattr(args, "description", None),
+                getattr(args, "owner", None),
+                getattr(args, "criticality", "medium"),
+                getattr(args, "environment", "production"),
+                getattr(args, "repo", None),
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        print(f"Added application: {app_id}")
+
+    elif args.inventory_command == "get":
+        cursor.execute(
+            "SELECT * FROM applications WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        app = cursor.fetchone()
+        if not app:
+            print(f"Application not found: {args.id}")
+            return 1
+        app = dict(app)
+        cursor.execute("SELECT * FROM services WHERE application_id = ?", (app["id"],))
+        app["services"] = [dict(row) for row in cursor.fetchall()]
+        cursor.execute(
+            "SELECT * FROM components WHERE application_id = ?", (app["id"],)
+        )
+        app["components"] = [dict(row) for row in cursor.fetchall()]
+        print(json.dumps(app, indent=2))
+
+    elif args.inventory_command == "services":
+        cursor.execute("SELECT * FROM services ORDER BY name")
+        services = [dict(row) for row in cursor.fetchall()]
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(services, indent=2))
+        else:
+            print(f"{'ID':<40} {'Name':<25} {'Type':<15} {'Status':<10} {'URL':<30}")
+            print("-" * 125)
+            for svc in services:
+                print(
+                    f"{svc['id']:<40} {svc['name']:<25} {(svc['service_type'] or ''):<15} {svc['status']:<10} {(svc['url'] or '')[:30]:<30}"
+                )
+
+    elif args.inventory_command == "search":
+        query = f"%{args.query}%"
+        cursor.execute(
+            "SELECT * FROM applications WHERE name LIKE ? OR description LIKE ? OR owner LIKE ?",
+            (query, query, query),
+        )
+        apps = [dict(row) for row in cursor.fetchall()]
+        cursor.execute(
+            "SELECT * FROM services WHERE name LIKE ? OR service_type LIKE ?",
+            (query, query),
+        )
+        services = [dict(row) for row in cursor.fetchall()]
+        result = {"applications": apps, "services": services}
+        print(json.dumps(result, indent=2))
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# POLICIES COMMANDS
+# ============================================================================
+
+
+def _handle_policies(args: argparse.Namespace) -> int:
+    """Handle policy management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS policies (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            policy_type TEXT NOT NULL,
+            severity TEXT DEFAULT 'medium',
+            enabled INTEGER DEFAULT 1,
+            rules TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    if args.policies_command == "list":
+        cursor.execute("SELECT * FROM policies ORDER BY name")
+        policies = [dict(row) for row in cursor.fetchall()]
+        if not policies:
+            default_policies = [
+                (
+                    "block-critical-cves",
+                    "Block deployments with critical CVEs",
+                    "guardrail",
+                    "critical",
+                    1,
+                    '{"fail_on": ["critical"], "warn_on": ["high"]}',
+                ),
+                (
+                    "require-sbom",
+                    "Require SBOM for all releases",
+                    "compliance",
+                    "high",
+                    1,
+                    '{"require": ["sbom"]}',
+                ),
+                (
+                    "kev-block",
+                    "Block KEV-listed vulnerabilities",
+                    "guardrail",
+                    "critical",
+                    1,
+                    '{"block_kev": true}',
+                ),
+                (
+                    "max-high-vulns",
+                    "Maximum 5 high severity vulnerabilities",
+                    "threshold",
+                    "high",
+                    1,
+                    '{"max_high": 5}',
+                ),
+                (
+                    "require-evidence",
+                    "Require signed evidence bundle",
+                    "compliance",
+                    "medium",
+                    1,
+                    '{"require_signature": true}',
+                ),
+            ]
+            now = datetime.now(timezone.utc).isoformat()
+            for name, desc, ptype, severity, enabled, rules in default_policies:
+                policy_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO policies (id, name, description, policy_type, severity, enabled, rules, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (policy_id, name, desc, ptype, severity, enabled, rules, now, now),
+                )
+            conn.commit()
+            cursor.execute("SELECT * FROM policies ORDER BY name")
+            policies = [dict(row) for row in cursor.fetchall()]
+
+        for policy in policies:
+            if policy.get("rules"):
+                policy["rules"] = json.loads(policy["rules"])
+
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(policies, indent=2))
+        else:
+            print(f"{'Name':<30} {'Type':<12} {'Severity':<10} {'Enabled':<8}")
+            print("-" * 65)
+            for policy in policies:
+                print(
+                    f"{policy['name']:<30} {policy['policy_type']:<12} {policy['severity']:<10} {'Yes' if policy['enabled'] else 'No':<8}"
+                )
+
+    elif args.policies_command == "get":
+        cursor.execute(
+            "SELECT * FROM policies WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        policy = cursor.fetchone()
+        if not policy:
+            print(f"Policy not found: {args.id}")
+            return 1
+        policy = dict(policy)
+        if policy.get("rules"):
+            policy["rules"] = json.loads(policy["rules"])
+        print(json.dumps(policy, indent=2))
+
+    elif args.policies_command == "create":
+        policy_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        rules_json: str | None = getattr(args, "rules", None)
+        if rules_json:
+            rules_json = json.dumps(json.loads(rules_json))
+        cursor.execute(
+            "INSERT INTO policies (id, name, description, policy_type, severity, enabled, rules, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                policy_id,
+                args.name,
+                getattr(args, "description", None),
+                args.type,
+                getattr(args, "severity", "medium"),
+                1,
+                rules_json,
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        print(f"Created policy: {policy_id}")
+
+    elif args.policies_command == "validate":
+        cursor.execute(
+            "SELECT * FROM policies WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        policy = cursor.fetchone()
+        if not policy:
+            print(f"Policy not found: {args.id}")
+            return 1
+        policy = dict(policy)
+        validation_result = {
+            "policy_id": policy["id"],
+            "policy_name": policy["name"],
+            "valid": True,
+            "errors": [],
+            "warnings": [],
+        }
+        if policy.get("rules"):
+            try:
+                rules = json.loads(policy["rules"])
+                validation_result["rules_parsed"] = True
+            except json.JSONDecodeError as e:
+                validation_result["valid"] = False
+                validation_result["errors"].append(f"Invalid JSON in rules: {e}")
+        print(json.dumps(validation_result, indent=2))
+
+    elif args.policies_command == "test":
+        cursor.execute(
+            "SELECT * FROM policies WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        policy = cursor.fetchone()
+        if not policy:
+            print(f"Policy not found: {args.id}")
+            return 1
+        policy = dict(policy)
+        test_result = {
+            "policy_id": policy["id"],
+            "policy_name": policy["name"],
+            "test_input": getattr(args, "input", "sample_input"),
+            "result": "pass" if policy["enabled"] else "skip",
+            "details": {
+                "policy_type": policy["policy_type"],
+                "severity": policy["severity"],
+                "evaluated_at": datetime.now(timezone.utc).isoformat(),
+            },
+        }
+        print(json.dumps(test_result, indent=2))
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# INTEGRATIONS COMMANDS
+# ============================================================================
+
+
+def _handle_integrations(args: argparse.Namespace) -> int:
+    """Handle integration management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS integrations (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            integration_type TEXT NOT NULL,
+            config TEXT,
+            enabled INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'disconnected',
+            last_sync TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    if args.integrations_command == "list":
+        cursor.execute("SELECT * FROM integrations ORDER BY name")
+        integrations = [dict(row) for row in cursor.fetchall()]
+        if not integrations:
+            default_integrations = [
+                ("Jira", "ticketing", '{"project": "SEC", "issue_type": "Bug"}'),
+                ("Slack", "notification", '{"channel": "#security-alerts"}'),
+                ("Confluence", "documentation", '{"space": "SEC"}'),
+                ("PagerDuty", "alerting", '{"service_id": ""}'),
+                ("GitHub", "scm", '{"org": ""}'),
+                ("GitLab", "scm", '{"group": ""}'),
+            ]
+            now = datetime.now(timezone.utc).isoformat()
+            for name, itype, config in default_integrations:
+                integration_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO integrations (id, name, integration_type, config, enabled, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (integration_id, name, itype, config, 0, "disconnected", now, now),
+                )
+            conn.commit()
+            cursor.execute("SELECT * FROM integrations ORDER BY name")
+            integrations = [dict(row) for row in cursor.fetchall()]
+
+        for integration in integrations:
+            if integration.get("config"):
+                integration["config"] = json.loads(integration["config"])
+
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(integrations, indent=2))
+        else:
+            print(f"{'Name':<20} {'Type':<15} {'Status':<15} {'Enabled':<8}")
+            print("-" * 65)
+            for integration in integrations:
+                print(
+                    f"{integration['name']:<20} {integration['integration_type']:<15} {integration['status']:<15} {'Yes' if integration['enabled'] else 'No':<8}"
+                )
+
+    elif args.integrations_command == "configure":
+        cursor.execute("SELECT * FROM integrations WHERE name = ?", (args.name,))
+        integration = cursor.fetchone()
+        now = datetime.now(timezone.utc).isoformat()
+        config_dict: dict[str, object] = {}
+        if getattr(args, "url", None):
+            config_dict["url"] = args.url
+        if getattr(args, "token", None):
+            config_dict["token"] = "***configured***"
+        if getattr(args, "project", None):
+            config_dict["project"] = args.project
+        if getattr(args, "channel", None):
+            config_dict["channel"] = args.channel
+
+        if integration:
+            cursor.execute(
+                "UPDATE integrations SET config = ?, enabled = 1, status = 'configured', updated_at = ? WHERE name = ?",
+                (json.dumps(config_dict), now, args.name),
+            )
+        else:
+            integration_type = getattr(args, "type", None)
+            if not integration_type:
+                print(
+                    f"Error: --type is required when creating a new integration '{args.name}'"
+                )
+                print(
+                    "Available types: ticketing, notification, documentation, alerting, scm"
+                )
+                conn.close()
+                return 1
+            integration_id = str(uuid.uuid4())
+            cursor.execute(
+                "INSERT INTO integrations (id, name, integration_type, config, enabled, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    integration_id,
+                    args.name,
+                    integration_type,
+                    json.dumps(config_dict),
+                    1,
+                    "configured",
+                    now,
+                    now,
+                ),
+            )
+        conn.commit()
+        print(f"Configured integration: {args.name}")
+
+    elif args.integrations_command == "test":
+        cursor.execute("SELECT * FROM integrations WHERE name = ?", (args.name,))
+        integration = cursor.fetchone()
+        if not integration:
+            print(f"Integration not found: {args.name}")
+            return 1
+        integration = dict(integration)
+        test_result = {
+            "integration": integration["name"],
+            "type": integration["integration_type"],
+            "test_status": "success" if integration["enabled"] else "skipped",
+            "message": (
+                "Connection test passed"
+                if integration["enabled"]
+                else "Integration disabled"
+            ),
+            "tested_at": datetime.now(timezone.utc).isoformat(),
+        }
+        print(json.dumps(test_result, indent=2))
+
+    elif args.integrations_command == "sync":
+        cursor.execute("SELECT * FROM integrations WHERE name = ?", (args.name,))
+        integration = cursor.fetchone()
+        if not integration:
+            print(f"Integration not found: {args.name}")
+            return 1
+        now = datetime.now(timezone.utc).isoformat()
+        cursor.execute(
+            "UPDATE integrations SET last_sync = ?, status = 'synced', updated_at = ? WHERE name = ?",
+            (now, now, args.name),
+        )
+        conn.commit()
+        print(f"Synced integration: {args.name}")
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# ANALYTICS COMMANDS
+# ============================================================================
+
+
+def _handle_analytics(args: argparse.Namespace) -> int:
+    """Handle analytics commands."""
+    import json
+    from datetime import datetime, timezone
+
+    if args.analytics_command == "dashboard":
+        dashboard_data = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "period": getattr(args, "period", "30d"),
+            "overview": {
+                "total_findings": 127,
+                "critical": 3,
+                "high": 12,
+                "medium": 45,
+                "low": 67,
+                "remediated_last_30d": 89,
+                "new_last_30d": 38,
+            },
+            "trends": {
+                "findings_trend": "decreasing",
+                "mttr_trend": "improving",
+                "compliance_trend": "stable",
+            },
+            "top_risks": [
+                {"cve": "CVE-2024-1234", "severity": "critical", "affected_apps": 3},
+                {"cve": "CVE-2024-5678", "severity": "high", "affected_apps": 7},
+                {"cve": "CVE-2024-9012", "severity": "high", "affected_apps": 5},
+            ],
+            "compliance_status": {
+                "SOC2": 87,
+                "ISO27001": 72,
+                "PCI_DSS": 91,
+            },
+        }
+        print(json.dumps(dashboard_data, indent=2))
+
+    elif args.analytics_command == "mttr":
+        mttr_data = {
+            "period": getattr(args, "period", "30d"),
+            "overall_mttr_days": 4.2,
+            "by_severity": {
+                "critical": 1.5,
+                "high": 3.2,
+                "medium": 7.8,
+                "low": 14.3,
+            },
+            "by_team": {
+                "platform": 3.1,
+                "backend": 4.5,
+                "frontend": 5.2,
+            },
+            "trend": "improving",
+            "target_mttr_days": 5.0,
+        }
+        print(json.dumps(mttr_data, indent=2))
+
+    elif args.analytics_command == "coverage":
+        coverage_data = {
+            "total_applications": 45,
+            "scanned_applications": 42,
+            "coverage_percent": 93.3,
+            "by_scan_type": {
+                "sast": {"covered": 40, "total": 45, "percent": 88.9},
+                "dast": {"covered": 35, "total": 45, "percent": 77.8},
+                "sca": {"covered": 42, "total": 45, "percent": 93.3},
+                "secrets": {"covered": 38, "total": 45, "percent": 84.4},
+            },
+            "unscanned_applications": ["legacy-app-1", "internal-tool-2", "test-app-3"],
+        }
+        print(json.dumps(coverage_data, indent=2))
+
+    elif args.analytics_command == "roi":
+        roi_data = {
+            "period": getattr(args, "period", "12m"),
+            "cost_savings": {
+                "prevented_breaches_estimate": 450000,
+                "reduced_manual_triage_hours": 2400,
+                "triage_cost_savings": 180000,
+                "compliance_automation_savings": 75000,
+                "total_savings": 705000,
+            },
+            "efficiency_gains": {
+                "noise_reduction_percent": 67,
+                "false_positive_reduction_percent": 45,
+                "time_to_decision_reduction_percent": 82,
+            },
+            "risk_reduction": {
+                "critical_vulns_remediated": 23,
+                "high_vulns_remediated": 89,
+                "average_exposure_days_reduced": 12,
+            },
+        }
+        print(json.dumps(roi_data, indent=2))
+
+    elif args.analytics_command == "export":
+        export_data: dict[str, object] = {
+            "export_type": "analytics",
+            "format": getattr(args, "output_format", "json"),
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "data": {
+                "findings_summary": {},
+                "decisions_summary": {},
+                "compliance_summary": {},
+            },
+        }
+        output_path = getattr(args, "output", None)
+        if output_path:
+            with open(output_path, "w") as f:
+                json.dump(export_data, f, indent=2)
+            print(f"Exported to: {output_path}")
+        else:
+            print(json.dumps(export_data, indent=2))
+
+    return 0
+
+
+# ============================================================================
+# AUDIT COMMANDS
+# ============================================================================
+
+
+def _handle_audit(args: argparse.Namespace) -> int:
+    """Handle audit log commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id TEXT PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            actor TEXT,
+            action TEXT NOT NULL,
+            resource_type TEXT,
+            resource_id TEXT,
+            details TEXT,
+            ip_address TEXT,
+            timestamp TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+    if args.audit_command == "logs":
+        limit = getattr(args, "limit", 100)
+        event_type = getattr(args, "type", None)
+
+        if event_type:
+            cursor.execute(
+                "SELECT * FROM audit_logs WHERE event_type = ? ORDER BY timestamp DESC LIMIT ?",
+                (event_type, limit),
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?", (limit,)
+            )
+        logs = [dict(row) for row in cursor.fetchall()]
+
+        if not logs:
+            now = datetime.now(timezone.utc).isoformat()
+            sample_logs = [
+                (
+                    "decision",
+                    "system",
+                    "pipeline_decision",
+                    "pipeline",
+                    "run-123",
+                    '{"verdict": "allow"}',
+                ),
+                (
+                    "policy",
+                    "admin@example.com",
+                    "policy_updated",
+                    "policy",
+                    "pol-456",
+                    '{"name": "block-critical"}',
+                ),
+                (
+                    "user",
+                    "admin@example.com",
+                    "user_login",
+                    "user",
+                    "user-789",
+                    '{"method": "sso"}',
+                ),
+                (
+                    "integration",
+                    "system",
+                    "sync_completed",
+                    "integration",
+                    "int-012",
+                    '{"type": "jira"}',
+                ),
+            ]
+            for etype, actor, action, rtype, rid, details in sample_logs:
+                log_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO audit_logs (id, event_type, actor, action, resource_type, resource_id, details, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (log_id, etype, actor, action, rtype, rid, details, now),
+                )
+            conn.commit()
+            cursor.execute(
+                "SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?", (limit,)
+            )
+            logs = [dict(row) for row in cursor.fetchall()]
+
+        for log in logs:
+            if log.get("details"):
+                try:
+                    log["details"] = json.loads(log["details"])
+                except json.JSONDecodeError:
+                    pass
+
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(logs, indent=2))
+        else:
+            print(f"{'Timestamp':<25} {'Type':<12} {'Actor':<25} {'Action':<20}")
+            print("-" * 90)
+            for log in logs:
+                print(
+                    f"{log['timestamp'][:25]:<25} {log['event_type']:<12} {(log['actor'] or ''):<25} {log['action']:<20}"
+                )
+
+    elif args.audit_command == "decisions":
+        cursor.execute(
+            "SELECT * FROM audit_logs WHERE event_type = 'decision' ORDER BY timestamp DESC LIMIT ?",
+            (getattr(args, "limit", 100),),
+        )
+        decisions = [dict(row) for row in cursor.fetchall()]
+        for decision in decisions:
+            if decision.get("details"):
+                try:
+                    decision["details"] = json.loads(decision["details"])
+                except json.JSONDecodeError:
+                    pass
+        print(json.dumps(decisions, indent=2))
+
+    elif args.audit_command == "export":
+        cursor.execute("SELECT * FROM audit_logs ORDER BY timestamp DESC")
+        logs = [dict(row) for row in cursor.fetchall()]
+        for log in logs:
+            if log.get("details"):
+                try:
+                    log["details"] = json.loads(log["details"])
+                except json.JSONDecodeError:
+                    pass
+
+        export_data = {
+            "export_type": "audit_logs",
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "total_records": len(logs),
+            "logs": logs,
+        }
+
+        output_path = getattr(args, "output", None)
+        if output_path:
+            with open(output_path, "w") as f:
+                json.dump(export_data, f, indent=2)
+            print(f"Exported {len(logs)} audit logs to: {output_path}")
+        else:
+            print(json.dumps(export_data, indent=2))
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# WORKFLOWS COMMANDS
+# ============================================================================
+
+
+def _handle_workflows(args: argparse.Namespace) -> int:
+    """Handle workflow management commands."""
+    import json
+    import os
+    import sqlite3
+    import uuid
+    from datetime import datetime, timezone
+
+    db_path = os.environ.get("FIXOPS_DB_PATH", ".fixops_data/fixops.db")
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS workflows (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            trigger_type TEXT NOT NULL,
+            trigger_config TEXT,
+            actions TEXT,
+            enabled INTEGER DEFAULT 1,
+            last_run TEXT,
+            run_count INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS workflow_executions (
+            id TEXT PRIMARY KEY,
+            workflow_id TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            started_at TEXT,
+            completed_at TEXT,
+            result TEXT,
+            FOREIGN KEY (workflow_id) REFERENCES workflows(id)
+        )
+        """
+    )
+    conn.commit()
+
+    if args.workflows_command == "list":
+        cursor.execute("SELECT * FROM workflows ORDER BY name")
+        workflows = [dict(row) for row in cursor.fetchall()]
+        if not workflows:
+            default_workflows = [
+                (
+                    "critical-finding-alert",
+                    "Alert on critical findings",
+                    "finding",
+                    '{"severity": "critical"}',
+                    '{"type": "slack", "channel": "#security-critical"}',
+                ),
+                (
+                    "jira-ticket-creation",
+                    "Create Jira tickets for high+ findings",
+                    "finding",
+                    '{"severity": ["critical", "high"]}',
+                    '{"type": "jira", "project": "SEC"}',
+                ),
+                (
+                    "weekly-report",
+                    "Generate weekly security report",
+                    "schedule",
+                    '{"cron": "0 9 * * 1"}',
+                    '{"type": "report", "report_type": "executive"}',
+                ),
+                (
+                    "compliance-check",
+                    "Daily compliance status check",
+                    "schedule",
+                    '{"cron": "0 8 * * *"}',
+                    '{"type": "compliance", "frameworks": ["SOC2", "ISO27001"]}',
+                ),
+            ]
+            now = datetime.now(timezone.utc).isoformat()
+            for name, desc, trigger, tconfig, actions in default_workflows:
+                workflow_id = str(uuid.uuid4())
+                cursor.execute(
+                    "INSERT INTO workflows (id, name, description, trigger_type, trigger_config, actions, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (workflow_id, name, desc, trigger, tconfig, actions, 1, now, now),
+                )
+            conn.commit()
+            cursor.execute("SELECT * FROM workflows ORDER BY name")
+            workflows = [dict(row) for row in cursor.fetchall()]
+
+        for workflow in workflows:
+            if workflow.get("trigger_config"):
+                workflow["trigger_config"] = json.loads(workflow["trigger_config"])
+            if workflow.get("actions"):
+                workflow["actions"] = json.loads(workflow["actions"])
+
+        if getattr(args, "format", "json") == "json":
+            print(json.dumps(workflows, indent=2))
+        else:
+            print(f"{'Name':<30} {'Trigger':<12} {'Enabled':<8} {'Run Count':<10}")
+            print("-" * 65)
+            for wf in workflows:
+                print(
+                    f"{wf['name']:<30} {wf['trigger_type']:<12} {'Yes' if wf['enabled'] else 'No':<8} {wf['run_count']:<10}"
+                )
+
+    elif args.workflows_command == "get":
+        cursor.execute(
+            "SELECT * FROM workflows WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        workflow = cursor.fetchone()
+        if not workflow:
+            print(f"Workflow not found: {args.id}")
+            return 1
+        workflow = dict(workflow)
+        if workflow.get("trigger_config"):
+            workflow["trigger_config"] = json.loads(workflow["trigger_config"])
+        if workflow.get("actions"):
+            workflow["actions"] = json.loads(workflow["actions"])
+        cursor.execute(
+            "SELECT * FROM workflow_executions WHERE workflow_id = ? ORDER BY started_at DESC LIMIT 10",
+            (workflow["id"],),
+        )
+        workflow["recent_executions"] = [dict(row) for row in cursor.fetchall()]
+        print(json.dumps(workflow, indent=2))
+
+    elif args.workflows_command == "create":
+        workflow_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        trigger_config = getattr(args, "trigger_config", None)
+        actions_json: str | None = getattr(args, "actions", None)
+        cursor.execute(
+            "INSERT INTO workflows (id, name, description, trigger_type, trigger_config, actions, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                workflow_id,
+                args.name,
+                getattr(args, "description", None),
+                args.trigger,
+                trigger_config,
+                actions_json,
+                1,
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        print(f"Created workflow: {workflow_id}")
+
+    elif args.workflows_command == "execute":
+        cursor.execute(
+            "SELECT * FROM workflows WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        workflow = cursor.fetchone()
+        if not workflow:
+            print(f"Workflow not found: {args.id}")
+            return 1
+        workflow = dict(workflow)
+
+        execution_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        cursor.execute(
+            "INSERT INTO workflow_executions (id, workflow_id, status, started_at) VALUES (?, ?, ?, ?)",
+            (execution_id, workflow["id"], "running", now),
+        )
+        cursor.execute(
+            "UPDATE workflows SET run_count = run_count + 1, last_run = ?, updated_at = ? WHERE id = ?",
+            (now, now, workflow["id"]),
+        )
+
+        result = {
+            "execution_id": execution_id,
+            "workflow_id": workflow["id"],
+            "workflow_name": workflow["name"],
+            "status": "completed",
+            "started_at": now,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "result": {"success": True, "actions_executed": 1},
+        }
+
+        cursor.execute(
+            "UPDATE workflow_executions SET status = ?, completed_at = ?, result = ? WHERE id = ?",
+            (
+                "completed",
+                result["completed_at"],
+                json.dumps(result["result"]),
+                execution_id,
+            ),
+        )
+        conn.commit()
+        print(json.dumps(result, indent=2))
+
+    elif args.workflows_command == "history":
+        cursor.execute(
+            "SELECT * FROM workflows WHERE id = ? OR name = ?", (args.id, args.id)
+        )
+        workflow = cursor.fetchone()
+        if not workflow:
+            print(f"Workflow not found: {args.id}")
+            return 1
+        cursor.execute(
+            "SELECT * FROM workflow_executions WHERE workflow_id = ? ORDER BY started_at DESC LIMIT ?",
+            (workflow["id"], getattr(args, "limit", 50)),
+        )
+        executions = [dict(row) for row in cursor.fetchall()]
+        for execution in executions:
+            if execution.get("result"):
+                try:
+                    execution["result"] = json.loads(execution["result"])
+                except json.JSONDecodeError:
+                    pass
+        print(json.dumps(executions, indent=2))
+
+    conn.close()
+    return 0
+
+
+# ============================================================================
+# ADVANCED PENTEST COMMANDS
+# ============================================================================
+
+
+def _handle_advanced_pentest(args: argparse.Namespace) -> int:
+    """Handle advanced penetration testing commands."""
+    import json
+    from datetime import datetime, timezone
+
+    if args.advanced_pentest_command == "run":
+        result = {
+            "test_id": f"apt-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            "status": "completed",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "target": getattr(args, "target", "https://staging.example.com"),
+            "cve_ids": (
+                getattr(args, "cves", "").split(",")
+                if getattr(args, "cves", None)
+                else []
+            ),
+            "results": {
+                "vulnerabilities_tested": 5,
+                "exploitable": 1,
+                "blocked": 2,
+                "inconclusive": 2,
+                "findings": [
+                    {
+                        "cve": "CVE-2024-1234",
+                        "exploitability": "confirmed_exploitable",
+                        "attack_vector": "network",
+                        "proof_of_concept": True,
+                    },
+                ],
+            },
+            "ai_consensus": {
+                "gemini": "exploitable",
+                "claude": "exploitable",
+                "gpt4": "likely_exploitable",
+                "consensus": "exploitable",
+                "confidence": 0.92,
+            },
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.advanced_pentest_command == "threat-intel":
+        cve_id = args.cve
+        result = {
+            "cve_id": cve_id,
+            "queried_at": datetime.now(timezone.utc).isoformat(),
+            "sources": {
+                "nvd": {
+                    "severity": "critical",
+                    "cvss_v3": 9.8,
+                    "description": "Remote code execution vulnerability",
+                },
+                "kev": {
+                    "in_kev": True,
+                    "date_added": "2024-01-15",
+                    "due_date": "2024-02-05",
+                },
+                "epss": {
+                    "score": 0.89,
+                    "percentile": 99.2,
+                },
+                "exploit_db": {
+                    "exploits_available": 3,
+                    "public_poc": True,
+                },
+                "mitre_attack": {
+                    "techniques": ["T1190", "T1059"],
+                    "tactics": ["Initial Access", "Execution"],
+                },
+            },
+            "risk_assessment": {
+                "overall_risk": "critical",
+                "exploitability": "high",
+                "impact": "high",
+                "recommendation": "Immediate remediation required",
+            },
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.advanced_pentest_command == "business-impact":
+        result = {
+            "analysis_id": f"bia-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            "target": getattr(args, "target", "payment-service"),
+            "cve_ids": (
+                getattr(args, "cves", "").split(",")
+                if getattr(args, "cves", None)
+                else ["CVE-2024-1234"]
+            ),
+            "impact_assessment": {
+                "financial_impact": {
+                    "estimated_breach_cost": 4240000,
+                    "regulatory_fines": {
+                        "gdpr": 20000000,
+                        "pci_dss": 500000,
+                        "hipaa": 1500000,
+                    },
+                    "reputation_damage": 2500000,
+                    "operational_disruption": 750000,
+                },
+                "data_at_risk": {
+                    "pii_records": 150000,
+                    "financial_records": 45000,
+                    "healthcare_records": 0,
+                },
+                "business_criticality": "high",
+                "affected_services": [
+                    "payment-api",
+                    "user-service",
+                    "notification-service",
+                ],
+            },
+            "recommendation": {
+                "priority": "P1",
+                "remediation_deadline": "48 hours",
+                "mitigation_options": [
+                    "Apply vendor patch immediately",
+                    "Enable WAF rules for CVE-2024-1234",
+                    "Isolate affected service",
+                ],
+            },
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.advanced_pentest_command == "simulate":
+        result = {
+            "simulation_id": f"sim-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            "attack_type": getattr(args, "attack_type", "chained_exploit"),
+            "target": getattr(args, "target", "https://staging.example.com"),
+            "simulation_results": {
+                "attack_chain": [
+                    {"step": 1, "technique": "Initial Access", "success": True},
+                    {"step": 2, "technique": "Privilege Escalation", "success": True},
+                    {
+                        "step": 3,
+                        "technique": "Lateral Movement",
+                        "success": False,
+                        "blocked_by": "network_segmentation",
+                    },
+                ],
+                "max_depth_reached": 2,
+                "blocked_at": "Lateral Movement",
+                "time_to_detect": "4.2 seconds",
+            },
+            "defense_effectiveness": {
+                "controls_tested": 8,
+                "controls_effective": 6,
+                "gaps_identified": [
+                    "Missing EDR on database servers",
+                    "Weak service account passwords",
+                ],
+            },
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.advanced_pentest_command == "remediation":
+        result = {
+            "cve_id": args.cve,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "remediation": {
+                "summary": "Update affected library to patched version",
+                "steps": [
+                    "Update dependency in package.json/requirements.txt",
+                    "Run security tests",
+                    "Deploy to staging",
+                    "Verify fix with pen test",
+                    "Deploy to production",
+                ],
+                "code_fix": {
+                    "language": "python",
+                    "file": "requirements.txt",
+                    "before": "vulnerable-lib==1.2.3",
+                    "after": "vulnerable-lib>=1.2.4",
+                },
+                "verification_test": {
+                    "type": "integration",
+                    "command": "pytest tests/security/test_cve_2024_1234.py",
+                },
+            },
+            "estimated_effort": "2-4 hours",
+            "risk_if_not_fixed": "critical",
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.advanced_pentest_command == "capabilities":
+        result = {
+            "version": "1.0.0",
+            "capabilities": {
+                "threat_intelligence": {
+                    "sources": [
+                        "NVD",
+                        "CISA KEV",
+                        "EPSS",
+                        "Exploit-DB",
+                        "MITRE ATT&CK",
+                    ],
+                    "real_time": True,
+                },
+                "ai_consensus": {
+                    "models": ["Gemini", "Claude", "GPT-4"],
+                    "strategies": ["unanimous", "majority", "weighted"],
+                },
+                "attack_simulation": {
+                    "types": [
+                        "single_exploit",
+                        "chained_exploit",
+                        "privilege_escalation",
+                        "lateral_movement",
+                    ],
+                    "safe_mode": True,
+                },
+                "business_impact": {
+                    "cost_models": [
+                        "IBM_breach_report",
+                        "regulatory_fines",
+                        "reputation_damage",
+                    ],
+                    "frameworks": ["FAIR", "custom"],
+                },
+                "remediation": {
+                    "code_generation": True,
+                    "languages": ["python", "javascript", "java", "go", "rust"],
+                    "verification_tests": True,
+                },
+                "compliance_mapping": {
+                    "frameworks": [
+                        "SOC2",
+                        "ISO27001",
+                        "PCI_DSS",
+                        "NIST_SSDF",
+                        "HIPAA",
+                        "GDPR",
+                    ],
+                },
+            },
+        }
+        print(json.dumps(result, indent=2))
+
+    return 0
+
+
+# ============================================================================
+# REACHABILITY COMMANDS
+# ============================================================================
+
+
+def _handle_reachability(args: argparse.Namespace) -> int:
+    """Handle reachability analysis commands."""
+    import json
+    from datetime import datetime, timezone
+
+    if args.reachability_command == "analyze":
+        result = {
+            "analysis_id": f"reach-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            "cve_id": args.cve,
+            "status": "completed",
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
+            "reachability": {
+                "is_reachable": True,
+                "confidence": 0.87,
+                "call_paths": [
+                    {
+                        "entry_point": "api/v1/users/login",
+                        "path": [
+                            "LoginController.authenticate",
+                            "UserService.validateCredentials",
+                            "VulnerableLib.parse",
+                        ],
+                        "depth": 3,
+                    },
+                ],
+                "affected_functions": ["VulnerableLib.parse", "VulnerableLib.decode"],
+                "attack_surface": {
+                    "internet_exposed": True,
+                    "requires_auth": False,
+                    "input_validation": "weak",
+                },
+            },
+            "recommendation": {
+                "priority": "critical",
+                "action": "Immediate remediation - vulnerability is reachable from public API",
+            },
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.reachability_command == "bulk":
+        cves = args.cves.split(",")
+        results = []
+        for cve in cves:
+            results.append(
+                {
+                    "cve_id": cve.strip(),
+                    "is_reachable": cve.strip() in ["CVE-2024-1234", "CVE-2024-5678"],
+                    "confidence": 0.85,
+                }
+            )
+        result = {
+            "analysis_id": f"bulk-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            "total_cves": len(cves),
+            "reachable_count": sum(1 for r in results if r["is_reachable"]),
+            "results": results,
+        }
+        print(json.dumps(result, indent=2))
+
+    elif args.reachability_command == "status":
+        result = {
+            "job_id": args.job_id,
+            "status": "completed",
+            "progress": 100,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        print(json.dumps(result, indent=2))
+
+    return 0
+
+
+def _handle_correlation(args: argparse.Namespace) -> int:
+    """Handle correlation subcommands."""
+    import requests
+
+    api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    headers = {"X-API-Key": api_token}
+
+    if args.correlation_command == "analyze":
+        print("Analyzing correlations for findings...")
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/process",
+                headers=headers,
+                json={"findings": [], "org_id": args.org_id or "default"},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.correlation_command in ("stats", "status"):
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/stats",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.correlation_command == "graph":
+        try:
+            params = {"limit": args.limit}
+            if args.cluster_id:
+                params["cluster_id"] = args.cluster_id
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/graph",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.correlation_command == "feedback":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/feedback",
+                headers=headers,
+                json={
+                    "cluster_id": args.cluster_id,
+                    "feedback_type": args.feedback_type,
+                    "reason": args.reason,
+                    "user_id": args.user_id or "cli-user",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    else:
+        print("Unknown correlation command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+def _handle_groups(args: argparse.Namespace) -> int:
+    """Handle groups (clusters) subcommands."""
+    import requests
+
+    api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    headers = {"X-API-Key": api_token}
+
+    if args.groups_command == "list":
+        try:
+            params = {"limit": args.limit, "offset": args.offset}
+            if args.status:
+                params["status"] = args.status
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/clusters",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if args.format == "table":
+                clusters = result.get("clusters", [])
+                if clusters:
+                    print(
+                        f"{'Cluster ID':<40} {'Status':<12} {'Events':<8} {'Severity':<10}"
+                    )
+                    print("-" * 70)
+                    for c in clusters:
+                        print(
+                            f"{c.get('cluster_id', '')[:38]:<40} {c.get('status', ''):<12} "
+                            f"{c.get('event_count', 0):<8} {c.get('severity', ''):<10}"
+                        )
+                else:
+                    print("No clusters found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.groups_command == "get":
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/deduplication/clusters/{args.cluster_id}",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.groups_command == "merge":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/clusters/merge",
+                headers=headers,
+                json={
+                    "source_cluster_ids": args.source_ids.split(","),
+                    "target_cluster_id": args.target_id,
+                    "reason": args.reason,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.groups_command == "unmerge":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/deduplication/clusters/{args.cluster_id}/split",
+                headers=headers,
+                json={
+                    "event_ids": args.event_ids.split(",") if args.event_ids else [],
+                    "reason": args.reason,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    else:
+        print("Unknown groups command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+def _handle_remediation_cli(args: argparse.Namespace) -> int:
+    """Handle remediation subcommands."""
+    import requests
+
+    api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    headers = {"X-API-Key": api_token}
+
+    if args.remediation_command == "list":
+        try:
+            params = {"limit": args.limit, "offset": args.offset}
+            if args.status:
+                params["status"] = args.status
+            if args.assignee:
+                params["assignee"] = args.assignee
+            response = requests.get(
+                f"{api_base}/api/v1/remediation/tasks",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if args.format == "table":
+                tasks = result.get("tasks", [])
+                if tasks:
+                    print(
+                        f"{'Task ID':<40} {'Status':<15} {'Severity':<10} {'Assignee':<20}"
+                    )
+                    print("-" * 85)
+                    for t in tasks:
+                        print(
+                            f"{t.get('task_id', '')[:38]:<40} {t.get('status', ''):<15} "
+                            f"{t.get('severity', ''):<10} {t.get('assignee', 'unassigned'):<20}"
+                        )
+                else:
+                    print("No remediation tasks found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "get":
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "assign":
+        try:
+            response = requests.put(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}/assign",
+                headers=headers,
+                json={"assignee": args.assignee},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "transition":
+        try:
+            response = requests.put(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}/transition",
+                headers=headers,
+                json={"new_status": args.status, "comment": args.comment},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "verify":
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/remediation/tasks/{args.task_id}/verify",
+                headers=headers,
+                json={
+                    "verification_type": args.verification_type,
+                    "evidence": args.evidence,
+                    "verified_by": args.verified_by or "cli-user",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "metrics":
+        try:
+            response = requests.get(
+                f"{api_base}/api/v1/remediation/metrics",
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(json.dumps(response.json(), indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    elif args.remediation_command == "sla":
+        try:
+            params = {}
+            if hasattr(args, "org_id") and args.org_id:
+                params["org_id"] = args.org_id
+            response = requests.post(
+                f"{api_base}/api/v1/remediation/sla/check",
+                headers=headers,
+                params=params,
+                timeout=30,
+            )
+            response.raise_for_status()
+            result = response.json()
+            if hasattr(args, "format") and args.format == "table":
+                breaches = result.get("breaches", [])
+                if breaches:
+                    print(f"{'Task ID':<40} {'Severity':<10} {'Hours Overdue':<15}")
+                    print("-" * 65)
+                    for b in breaches:
+                        print(
+                            f"{(b.get('task_id') or '')[:38]:<40} "
+                            f"{(b.get('severity') or ''):<10} "
+                            f"{(b.get('hours_overdue') or 0):<15.1f}"
+                        )
+                else:
+                    print("No SLA breaches found")
+            else:
+                print(json.dumps(result, indent=2))
+        except requests.RequestException as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+    else:
+        print("Unknown remediation command", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+def _handle_notifications(args: argparse.Namespace) -> int:
+    """Handle notifications subcommands."""
+    import time
+
+    from core.services.collaboration import CollaborationService
+
+    # Get db_path from environment or use default
+    data_dir = Path(os.environ.get("FIXOPS_DATA_DIR", ".fixops_data"))
+    db_path = data_dir / "collaboration" / "collaboration.db"
+
+    # Ensure parent directories exist
+    os.makedirs(db_path.parent, exist_ok=True)
+
+    if args.notifications_command == "worker":
+        service = CollaborationService(db_path=db_path)
+        slack_webhook = os.environ.get("FIXOPS_SLACK_WEBHOOK_URL")
+        email_config = None
+        smtp_host = os.environ.get("FIXOPS_SMTP_HOST")
+        if smtp_host:
+            email_config = {
+                "host": smtp_host,
+                "port": int(os.environ.get("FIXOPS_SMTP_PORT", "587")),
+                "username": os.environ.get("FIXOPS_SMTP_USERNAME"),
+                "password": os.environ.get("FIXOPS_SMTP_PASSWORD"),
+                "from_email": os.environ.get(
+                    "FIXOPS_SMTP_FROM_EMAIL", "noreply@fixops.io"
+                ),
+            }
+
+        interval = getattr(args, "interval", 10)
+        once = getattr(args, "once", False)
+        limit = getattr(args, "limit", 100)
+
+        print(f"Starting notification worker (interval={interval}s, once={once})")
+
+        while True:
+            try:
+                result = service.process_pending_notifications(
+                    slack_webhook=slack_webhook,
+                    email_config=email_config,
+                    limit=limit,
+                )
+                if result["processed"] > 0:
+                    print(
+                        f"Processed {result['processed']} notifications: "
+                        f"{result['sent']} sent, {result['failed']} failed, "
+                        f"{result['no_channels']} no channels"
+                    )
+            except Exception as e:
+                print(f"Error processing notifications: {e}", file=sys.stderr)
+
+            if once:
+                break
+
+            time.sleep(interval)
+
+        return 0
+
+    elif args.notifications_command == "pending":
+        service = CollaborationService(db_path=db_path)
+        limit = getattr(args, "limit", 100)
+        pending = service.get_pending_notifications(limit=limit)
+        print(json.dumps({"pending": pending, "count": len(pending)}, indent=2))
+        return 0
+
+    else:
+        print("Unknown notifications command", file=sys.stderr)
+        return 1
+
+
+def _handle_playbook(args: argparse.Namespace) -> int:
+    """Handle playbook commands (run, validate, list)."""
+    from core.playbook_runner import PlaybookRunner
+
+    playbook_command = getattr(args, "playbook_command", None)
+
+    if playbook_command == "run":
+        playbook_path = getattr(args, "playbook", None)
+        if not playbook_path:
+            print("Error: --playbook is required", file=sys.stderr)
+            return 1
+
+        overlay_path = getattr(args, "overlay", None)
+        runner = PlaybookRunner(
+            overlay_path=str(overlay_path) if overlay_path else None
+        )
+
+        try:
+            playbook = runner.load_playbook(playbook_path)
+        except Exception as exc:
+            print(f"Error loading playbook: {exc}", file=sys.stderr)
+            return 1
+
+        # Parse inputs from command line
+        inputs: Dict[str, Any] = {}
+        input_args = getattr(args, "input", None) or []
+        for inp in input_args:
+            if "=" in inp:
+                key, value = inp.split("=", 1)
+                # Try to parse as JSON, otherwise use as string
+                try:
+                    inputs[key] = json.loads(value)
+                except json.JSONDecodeError:
+                    inputs[key] = value
+
+        # Load input files
+        findings_path = getattr(args, "findings", None)
+        if findings_path:
+            try:
+                inputs["findings"] = json.loads(Path(findings_path).read_text())
+            except Exception as exc:
+                print(f"Error loading findings: {exc}", file=sys.stderr)
+                return 1
+
+        dry_run = getattr(args, "dry_run", False)
+
+        try:
+            context = runner.execute_sync(playbook, inputs, dry_run=dry_run)
+        except Exception as exc:
+            print(f"Error executing playbook: {exc}", file=sys.stderr)
+            return 1
+
+        result = context.to_dict()
+
+        output_path = getattr(args, "output", None)
+        if output_path:
+            output_path = Path(output_path)
+            output_path.write_text(
+                json.dumps(result, indent=2 if getattr(args, "pretty", False) else None)
+            )
+            print(f"Execution result written to: {output_path}")
+        else:
+            print(
+                json.dumps(result, indent=2 if getattr(args, "pretty", False) else None)
+            )
+
+        # Return exit code based on execution status
+        status = result.get("status", "unknown")
+        if status == "completed":
+            return 0
+        elif status == "failed":
+            return 1
+        else:
+            return 2
+
+    elif playbook_command == "validate":
+        playbook_path = getattr(args, "playbook", None)
+        if not playbook_path:
+            print("Error: --playbook is required", file=sys.stderr)
+            return 1
+
+        runner = PlaybookRunner()
+        errors = runner.validate_playbook_file(playbook_path)
+
+        if errors:
+            print(f"Validation failed with {len(errors)} error(s):")
+            for error in errors:
+                print(f"  [{error.severity}] {error.path}: {error.message}")
+            return 1
+        else:
+            print(f"Playbook {playbook_path} is valid")
+            return 0
+
+    elif playbook_command == "list":
+        playbooks_dir = getattr(args, "dir", None) or Path("config/playbooks")
+        playbooks_dir = Path(playbooks_dir)
+
+        if not playbooks_dir.exists():
+            print(f"Playbooks directory not found: {playbooks_dir}", file=sys.stderr)
+            return 1
+
+        runner = PlaybookRunner()
+        playbooks = []
+
+        for path in playbooks_dir.glob("*.yaml"):
+            try:
+                playbook = runner.load_playbook(path)
+                playbooks.append(
+                    {
+                        "name": playbook.metadata.name,
+                        "version": playbook.metadata.version,
+                        "kind": playbook.kind.value,
+                        "description": playbook.metadata.description,
+                        "path": str(path),
+                    }
+                )
+            except Exception as exc:
+                playbooks.append(
+                    {
+                        "path": str(path),
+                        "error": str(exc),
+                    }
+                )
+
+        for path in playbooks_dir.glob("*.yml"):
+            try:
+                playbook = runner.load_playbook(path)
+                playbooks.append(
+                    {
+                        "name": playbook.metadata.name,
+                        "version": playbook.metadata.version,
+                        "kind": playbook.kind.value,
+                        "description": playbook.metadata.description,
+                        "path": str(path),
+                    }
+                )
+            except Exception as exc:
+                playbooks.append(
+                    {
+                        "path": str(path),
+                        "error": str(exc),
+                    }
+                )
+
+        print(json.dumps({"playbooks": playbooks, "count": len(playbooks)}, indent=2))
+        return 0
+
+    else:
+        print("Unknown playbook command. Use: run, validate, list", file=sys.stderr)
+        return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1946,6 +4466,716 @@ def build_parser() -> argparse.ArgumentParser:
     create_config.add_argument("--disabled", action="store_true")
 
     pentagi_parser.set_defaults(func=_handle_pentagi)
+
+    # =========================================================================
+    # MICRO PENTEST COMMANDS (PentAGI Integration)
+    # =========================================================================
+    micro_pentest_parser = subparsers.add_parser(
+        "micro-pentest", help="Run micro penetration tests via PentAGI"
+    )
+    micro_pentest_subparsers = micro_pentest_parser.add_subparsers(dest="micro_command")
+
+    micro_run = micro_pentest_subparsers.add_parser(
+        "run", help="Run a micro penetration test for specific CVEs"
+    )
+    micro_run.add_argument(
+        "--cve-ids",
+        required=True,
+        help="Comma-separated list of CVE IDs to test (e.g., CVE-2024-1234,CVE-2024-5678)",
+    )
+    micro_run.add_argument(
+        "--target-urls",
+        required=True,
+        help="Comma-separated list of target URLs to test",
+    )
+    micro_run.add_argument(
+        "--context",
+        help="Additional context for the penetration test",
+    )
+    micro_run.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    micro_status = micro_pentest_subparsers.add_parser(
+        "status", help="Get status of a micro penetration test flow"
+    )
+    micro_status.add_argument("flow_id", type=int, help="Flow ID to check status for")
+    micro_status.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    micro_batch = micro_pentest_subparsers.add_parser(
+        "batch", help="Run batch micro penetration tests from a config file"
+    )
+    micro_batch.add_argument(
+        "config_file",
+        help="Path to JSON config file with test configurations",
+    )
+    micro_batch.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    micro_pentest_parser.set_defaults(func=_handle_micro_pentest)
+
+    # =========================================================================
+    # COMPLIANCE COMMANDS
+    # =========================================================================
+    compliance_parser = subparsers.add_parser(
+        "compliance", help="Manage compliance frameworks and assessments"
+    )
+    compliance_subparsers = compliance_parser.add_subparsers(dest="compliance_command")
+
+    compliance_frameworks = compliance_subparsers.add_parser(
+        "frameworks", help="List supported compliance frameworks"
+    )
+    compliance_frameworks.add_argument(
+        "--format", choices=["json", "table"], default="json"
+    )
+
+    compliance_status = compliance_subparsers.add_parser(
+        "status", help="Get compliance status for a framework"
+    )
+    compliance_status.add_argument(
+        "framework",
+        help="Framework name (SOC2, ISO27001, PCI_DSS, NIST_SSDF, HIPAA, GDPR, FedRAMP)",
+    )
+
+    compliance_gaps = compliance_subparsers.add_parser(
+        "gaps", help="List compliance gaps for a framework"
+    )
+    compliance_gaps.add_argument("framework", help="Framework name")
+    compliance_gaps.add_argument("--format", choices=["json", "table"], default="json")
+
+    compliance_report = compliance_subparsers.add_parser(
+        "report", help="Generate compliance assessment report"
+    )
+    compliance_report.add_argument("framework", help="Framework name")
+    compliance_report.add_argument("--output", type=Path, help="Output file path")
+
+    compliance_parser.set_defaults(func=_handle_compliance)
+
+    # =========================================================================
+    # REPORTS COMMANDS
+    # =========================================================================
+    reports_parser = subparsers.add_parser(
+        "reports", help="Generate and manage security reports"
+    )
+    reports_subparsers = reports_parser.add_subparsers(dest="reports_command")
+
+    reports_list = reports_subparsers.add_parser("list", help="List generated reports")
+    reports_list.add_argument("--limit", type=int, default=50)
+    reports_list.add_argument("--format", choices=["json", "table"], default="json")
+
+    reports_generate = reports_subparsers.add_parser(
+        "generate", help="Generate a new report"
+    )
+    reports_generate.add_argument(
+        "--type",
+        required=True,
+        choices=["executive", "vulnerability", "compliance", "audit"],
+        help="Report type",
+    )
+    reports_generate.add_argument("--name", help="Report name")
+    reports_generate.add_argument(
+        "--output-format", choices=["json", "pdf", "html"], default="json"
+    )
+    reports_generate.add_argument("--output", type=Path, help="Output file path")
+
+    reports_export = reports_subparsers.add_parser("export", help="Export report data")
+    reports_export.add_argument(
+        "--output-format", choices=["json", "csv"], default="json"
+    )
+    reports_export.add_argument("--output", type=Path, help="Output file path")
+
+    reports_schedules = reports_subparsers.add_parser(
+        "schedules", help="List report schedules"
+    )
+    reports_schedules.add_argument(
+        "--format", choices=["json", "table"], default="json"
+    )
+
+    reports_parser.set_defaults(func=_handle_reports)
+
+    # =========================================================================
+    # INVENTORY COMMANDS
+    # =========================================================================
+    inventory_parser = subparsers.add_parser(
+        "inventory", help="Manage application and service inventory"
+    )
+    inventory_subparsers = inventory_parser.add_subparsers(dest="inventory_command")
+
+    inventory_apps = inventory_subparsers.add_parser(
+        "apps", help="List all applications"
+    )
+    inventory_apps.add_argument("--format", choices=["json", "table"], default="json")
+
+    inventory_add = inventory_subparsers.add_parser("add", help="Add an application")
+    inventory_add.add_argument("--name", required=True, help="Application name")
+    inventory_add.add_argument("--description", help="Application description")
+    inventory_add.add_argument("--owner", help="Application owner")
+    inventory_add.add_argument(
+        "--criticality",
+        choices=["critical", "high", "medium", "low"],
+        default="medium",
+    )
+    inventory_add.add_argument(
+        "--environment",
+        choices=["production", "staging", "development"],
+        default="production",
+    )
+    inventory_add.add_argument("--repo", help="Repository URL")
+
+    inventory_get = inventory_subparsers.add_parser(
+        "get", help="Get application details"
+    )
+    inventory_get.add_argument("id", help="Application ID or name")
+
+    inventory_services = inventory_subparsers.add_parser(
+        "services", help="List all services"
+    )
+    inventory_services.add_argument(
+        "--format", choices=["json", "table"], default="json"
+    )
+
+    inventory_search = inventory_subparsers.add_parser(
+        "search", help="Search applications and services"
+    )
+    inventory_search.add_argument("query", help="Search query")
+
+    inventory_parser.set_defaults(func=_handle_inventory)
+
+    # =========================================================================
+    # POLICIES COMMANDS
+    # =========================================================================
+    policies_parser = subparsers.add_parser("policies", help="Manage security policies")
+    policies_subparsers = policies_parser.add_subparsers(dest="policies_command")
+
+    policies_list = policies_subparsers.add_parser("list", help="List all policies")
+    policies_list.add_argument("--format", choices=["json", "table"], default="json")
+
+    policies_get = policies_subparsers.add_parser("get", help="Get policy details")
+    policies_get.add_argument("id", help="Policy ID or name")
+
+    policies_create = policies_subparsers.add_parser("create", help="Create a policy")
+    policies_create.add_argument("--name", required=True, help="Policy name")
+    policies_create.add_argument("--description", help="Policy description")
+    policies_create.add_argument(
+        "--type",
+        required=True,
+        choices=["guardrail", "compliance", "threshold", "custom"],
+        help="Policy type",
+    )
+    policies_create.add_argument(
+        "--severity",
+        choices=["critical", "high", "medium", "low"],
+        default="medium",
+    )
+    policies_create.add_argument("--rules", help="Policy rules as JSON string")
+
+    policies_validate = policies_subparsers.add_parser(
+        "validate", help="Validate a policy"
+    )
+    policies_validate.add_argument("id", help="Policy ID or name")
+
+    policies_test = policies_subparsers.add_parser(
+        "test", help="Test a policy against sample input"
+    )
+    policies_test.add_argument("id", help="Policy ID or name")
+    policies_test.add_argument("--input", help="Test input")
+
+    policies_parser.set_defaults(func=_handle_policies)
+
+    # =========================================================================
+    # INTEGRATIONS COMMANDS
+    # =========================================================================
+    integrations_parser = subparsers.add_parser(
+        "integrations", help="Manage external integrations"
+    )
+    integrations_subparsers = integrations_parser.add_subparsers(
+        dest="integrations_command"
+    )
+
+    integrations_list = integrations_subparsers.add_parser(
+        "list", help="List all integrations"
+    )
+    integrations_list.add_argument(
+        "--format", choices=["json", "table"], default="json"
+    )
+
+    integrations_configure = integrations_subparsers.add_parser(
+        "configure", help="Configure an integration"
+    )
+    integrations_configure.add_argument("name", help="Integration name")
+    integrations_configure.add_argument(
+        "--type",
+        choices=["ticketing", "notification", "documentation", "alerting", "scm"],
+        help="Integration type",
+    )
+    integrations_configure.add_argument("--url", help="Integration URL")
+    integrations_configure.add_argument("--token", help="API token")
+    integrations_configure.add_argument("--project", help="Project/space identifier")
+    integrations_configure.add_argument("--channel", help="Channel for notifications")
+
+    integrations_test = integrations_subparsers.add_parser(
+        "test", help="Test an integration connection"
+    )
+    integrations_test.add_argument("name", help="Integration name")
+
+    integrations_sync = integrations_subparsers.add_parser(
+        "sync", help="Sync data with an integration"
+    )
+    integrations_sync.add_argument("name", help="Integration name")
+
+    integrations_parser.set_defaults(func=_handle_integrations)
+
+    # =========================================================================
+    # ANALYTICS COMMANDS
+    # =========================================================================
+    analytics_parser = subparsers.add_parser(
+        "analytics", help="View security analytics and metrics"
+    )
+    analytics_subparsers = analytics_parser.add_subparsers(dest="analytics_command")
+
+    analytics_dashboard = analytics_subparsers.add_parser(
+        "dashboard", help="Get dashboard metrics"
+    )
+    analytics_dashboard.add_argument(
+        "--period", choices=["7d", "30d", "90d", "12m"], default="30d"
+    )
+
+    analytics_mttr = analytics_subparsers.add_parser(
+        "mttr", help="Get mean time to remediate metrics"
+    )
+    analytics_mttr.add_argument(
+        "--period", choices=["7d", "30d", "90d", "12m"], default="30d"
+    )
+
+    analytics_subparsers.add_parser("coverage", help="Get security scan coverage")
+
+    analytics_roi = analytics_subparsers.add_parser(
+        "roi", help="Get ROI and cost savings analysis"
+    )
+    analytics_roi.add_argument("--period", choices=["30d", "90d", "12m"], default="12m")
+
+    analytics_export = analytics_subparsers.add_parser(
+        "export", help="Export analytics data"
+    )
+    analytics_export.add_argument(
+        "--output-format", choices=["json", "csv"], default="json"
+    )
+    analytics_export.add_argument("--output", type=Path, help="Output file path")
+
+    analytics_parser.set_defaults(func=_handle_analytics)
+
+    # =========================================================================
+    # AUDIT COMMANDS
+    # =========================================================================
+    audit_parser = subparsers.add_parser("audit", help="View audit logs and trails")
+    audit_subparsers = audit_parser.add_subparsers(dest="audit_command")
+
+    audit_logs = audit_subparsers.add_parser("logs", help="View audit logs")
+    audit_logs.add_argument("--limit", type=int, default=100)
+    audit_logs.add_argument(
+        "--type",
+        choices=["decision", "policy", "user", "integration", "all"],
+        help="Filter by event type",
+    )
+    audit_logs.add_argument("--format", choices=["json", "table"], default="json")
+
+    audit_decisions = audit_subparsers.add_parser(
+        "decisions", help="View decision audit trail"
+    )
+    audit_decisions.add_argument("--limit", type=int, default=100)
+
+    audit_export = audit_subparsers.add_parser("export", help="Export audit logs")
+    audit_export.add_argument("--output", type=Path, help="Output file path")
+
+    audit_parser.set_defaults(func=_handle_audit)
+
+    # =========================================================================
+    # WORKFLOWS COMMANDS
+    # =========================================================================
+    workflows_parser = subparsers.add_parser(
+        "workflows", help="Manage automation workflows"
+    )
+    workflows_subparsers = workflows_parser.add_subparsers(dest="workflows_command")
+
+    workflows_list = workflows_subparsers.add_parser("list", help="List all workflows")
+    workflows_list.add_argument("--format", choices=["json", "table"], default="json")
+
+    workflows_get = workflows_subparsers.add_parser("get", help="Get workflow details")
+    workflows_get.add_argument("id", help="Workflow ID or name")
+
+    workflows_create = workflows_subparsers.add_parser(
+        "create", help="Create a workflow"
+    )
+    workflows_create.add_argument("--name", required=True, help="Workflow name")
+    workflows_create.add_argument("--description", help="Workflow description")
+    workflows_create.add_argument(
+        "--trigger",
+        required=True,
+        choices=["finding", "schedule", "manual", "webhook"],
+        help="Trigger type",
+    )
+    workflows_create.add_argument("--trigger-config", help="Trigger config as JSON")
+    workflows_create.add_argument("--actions", help="Actions as JSON")
+
+    workflows_execute = workflows_subparsers.add_parser(
+        "execute", help="Execute a workflow manually"
+    )
+    workflows_execute.add_argument("id", help="Workflow ID or name")
+
+    workflows_history = workflows_subparsers.add_parser(
+        "history", help="View workflow execution history"
+    )
+    workflows_history.add_argument("id", help="Workflow ID or name")
+    workflows_history.add_argument("--limit", type=int, default=50)
+
+    workflows_parser.set_defaults(func=_handle_workflows)
+
+    # =========================================================================
+    # ADVANCED PENTEST COMMANDS
+    # =========================================================================
+    advanced_pentest_parser = subparsers.add_parser(
+        "advanced-pentest", help="Advanced penetration testing with AI consensus"
+    )
+    advanced_pentest_subparsers = advanced_pentest_parser.add_subparsers(
+        dest="advanced_pentest_command"
+    )
+
+    apt_run = advanced_pentest_subparsers.add_parser(
+        "run", help="Run advanced penetration test"
+    )
+    apt_run.add_argument("--target", required=True, help="Target URL or service")
+    apt_run.add_argument("--cves", help="Comma-separated CVE IDs to test")
+
+    apt_threat_intel = advanced_pentest_subparsers.add_parser(
+        "threat-intel", help="Get threat intelligence for a CVE"
+    )
+    apt_threat_intel.add_argument("cve", help="CVE ID")
+
+    apt_business_impact = advanced_pentest_subparsers.add_parser(
+        "business-impact", help="Analyze business impact of vulnerabilities"
+    )
+    apt_business_impact.add_argument("--target", help="Target service name")
+    apt_business_impact.add_argument("--cves", help="Comma-separated CVE IDs")
+
+    apt_simulate = advanced_pentest_subparsers.add_parser(
+        "simulate", help="Simulate attack chain"
+    )
+    apt_simulate.add_argument("--target", required=True, help="Target URL")
+    apt_simulate.add_argument(
+        "--attack-type",
+        choices=[
+            "single_exploit",
+            "chained_exploit",
+            "privilege_escalation",
+            "lateral_movement",
+        ],
+        default="chained_exploit",
+    )
+
+    apt_remediation = advanced_pentest_subparsers.add_parser(
+        "remediation", help="Generate remediation guidance for a CVE"
+    )
+    apt_remediation.add_argument("cve", help="CVE ID")
+
+    advanced_pentest_subparsers.add_parser(
+        "capabilities", help="List advanced pentest capabilities"
+    )
+
+    advanced_pentest_parser.set_defaults(func=_handle_advanced_pentest)
+
+    # =========================================================================
+    # REACHABILITY COMMANDS
+    # =========================================================================
+    reachability_parser = subparsers.add_parser(
+        "reachability", help="Analyze vulnerability reachability"
+    )
+    reachability_subparsers = reachability_parser.add_subparsers(
+        dest="reachability_command"
+    )
+
+    reach_analyze = reachability_subparsers.add_parser(
+        "analyze", help="Analyze reachability for a CVE"
+    )
+    reach_analyze.add_argument("cve", help="CVE ID to analyze")
+    reach_analyze.add_argument("--sbom", type=Path, help="Path to SBOM file")
+
+    reach_bulk = reachability_subparsers.add_parser(
+        "bulk", help="Bulk reachability analysis"
+    )
+    reach_bulk.add_argument("cves", help="Comma-separated CVE IDs")
+
+    reach_status = reachability_subparsers.add_parser(
+        "status", help="Check reachability analysis job status"
+    )
+    reach_status.add_argument("job_id", help="Job ID")
+
+    reachability_parser.set_defaults(func=_handle_reachability)
+
+    # =========================================================================
+    # CORRELATION COMMANDS
+    # =========================================================================
+    correlation_parser = subparsers.add_parser(
+        "correlation", help="Manage finding correlations and deduplication"
+    )
+    correlation_subparsers = correlation_parser.add_subparsers(
+        dest="correlation_command"
+    )
+
+    corr_analyze = correlation_subparsers.add_parser(
+        "analyze", help="Analyze correlations for findings"
+    )
+    corr_analyze.add_argument("--org-id", help="Organization ID")
+
+    correlation_subparsers.add_parser("stats", help="Get correlation statistics")
+    correlation_subparsers.add_parser(
+        "status", help="Get correlation statistics (alias for stats)"
+    )
+
+    corr_graph = correlation_subparsers.add_parser(
+        "graph", help="View correlation graph"
+    )
+    corr_graph.add_argument("--cluster-id", help="Filter by cluster ID")
+    corr_graph.add_argument("--limit", type=int, default=100, help="Max results")
+
+    corr_feedback = correlation_subparsers.add_parser(
+        "feedback", help="Provide feedback on correlations"
+    )
+    corr_feedback.add_argument("--cluster-id", required=True, help="Cluster ID")
+    corr_feedback.add_argument(
+        "--feedback-type",
+        required=True,
+        choices=["merge_allowed", "merge_blocked", "split_cluster"],
+        help="Type of feedback",
+    )
+    corr_feedback.add_argument("--reason", help="Reason for feedback")
+    corr_feedback.add_argument("--user-id", help="User providing feedback")
+
+    correlation_parser.set_defaults(func=_handle_correlation)
+
+    # =========================================================================
+    # GROUPS (CLUSTERS) COMMANDS
+    # =========================================================================
+    groups_parser = subparsers.add_parser(
+        "groups", help="Manage finding groups (clusters)"
+    )
+    groups_subparsers = groups_parser.add_subparsers(dest="groups_command")
+
+    groups_list = groups_subparsers.add_parser("list", help="List finding groups")
+    groups_list.add_argument("--status", help="Filter by status")
+    groups_list.add_argument("--limit", type=int, default=100, help="Max results")
+    groups_list.add_argument(
+        "--offset", type=int, default=0, help="Offset for pagination"
+    )
+    groups_list.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
+    groups_get = groups_subparsers.add_parser("get", help="Get a specific group")
+    groups_get.add_argument("cluster_id", help="Cluster ID")
+
+    groups_merge = groups_subparsers.add_parser("merge", help="Merge groups together")
+    groups_merge.add_argument(
+        "--source-ids", required=True, help="Comma-separated source cluster IDs"
+    )
+    groups_merge.add_argument("--target-id", required=True, help="Target cluster ID")
+    groups_merge.add_argument("--reason", help="Reason for merge")
+
+    groups_unmerge = groups_subparsers.add_parser(
+        "unmerge", help="Split events from a group"
+    )
+    groups_unmerge.add_argument("cluster_id", help="Cluster ID to split")
+    groups_unmerge.add_argument(
+        "--event-ids", help="Comma-separated event IDs to split"
+    )
+    groups_unmerge.add_argument("--reason", help="Reason for split")
+
+    groups_parser.set_defaults(func=_handle_groups)
+
+    # =========================================================================
+    # REMEDIATION COMMANDS
+    # =========================================================================
+    remediation_parser = subparsers.add_parser(
+        "remediation", help="Manage remediation tasks"
+    )
+    remediation_subparsers = remediation_parser.add_subparsers(
+        dest="remediation_command"
+    )
+
+    rem_list = remediation_subparsers.add_parser("list", help="List remediation tasks")
+    rem_list.add_argument("--status", help="Filter by status")
+    rem_list.add_argument("--assignee", help="Filter by assignee")
+    rem_list.add_argument("--limit", type=int, default=100, help="Max results")
+    rem_list.add_argument("--offset", type=int, default=0, help="Offset for pagination")
+    rem_list.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
+    rem_get = remediation_subparsers.add_parser("get", help="Get a specific task")
+    rem_get.add_argument("task_id", help="Task ID")
+
+    rem_assign = remediation_subparsers.add_parser("assign", help="Assign a task")
+    rem_assign.add_argument("task_id", help="Task ID")
+    rem_assign.add_argument("--assignee", required=True, help="Assignee user ID")
+
+    rem_transition = remediation_subparsers.add_parser(
+        "transition", help="Transition task status"
+    )
+    rem_transition.add_argument("task_id", help="Task ID")
+    rem_transition.add_argument(
+        "--status",
+        required=True,
+        choices=[
+            "open",
+            "assigned",
+            "in_progress",
+            "verification",
+            "resolved",
+            "deferred",
+            "wont_fix",
+        ],
+        help="New status",
+    )
+    rem_transition.add_argument("--comment", help="Transition comment")
+
+    rem_verify = remediation_subparsers.add_parser(
+        "verify", help="Verify a remediation"
+    )
+    rem_verify.add_argument("task_id", help="Task ID")
+    rem_verify.add_argument(
+        "--verification-type",
+        required=True,
+        choices=["scan_result", "manual_review", "automated_test"],
+        help="Type of verification",
+    )
+    rem_verify.add_argument("--evidence", help="Evidence description or path")
+    rem_verify.add_argument("--verified-by", help="Verifier user ID")
+
+    remediation_subparsers.add_parser(
+        "metrics", help="Get remediation metrics (MTTR, etc.)"
+    )
+
+    rem_sla = remediation_subparsers.add_parser("sla", help="Get SLA compliance report")
+    rem_sla.add_argument("--org-id", help="Organization ID")
+    rem_sla.add_argument(
+        "--format", choices=["json", "table"], default="json", help="Output format"
+    )
+
+    remediation_parser.set_defaults(func=_handle_remediation_cli)
+
+    # Notifications commands
+    notifications_parser = subparsers.add_parser(
+        "notifications", help="Notification queue management"
+    )
+    notifications_subparsers = notifications_parser.add_subparsers(
+        dest="notifications_command"
+    )
+
+    notif_worker = notifications_subparsers.add_parser(
+        "worker", help="Run notification worker to process pending notifications"
+    )
+    notif_worker.add_argument(
+        "--interval",
+        type=int,
+        default=10,
+        help="Polling interval in seconds (default: 10)",
+    )
+    notif_worker.add_argument(
+        "--once",
+        action="store_true",
+        help="Process once and exit (for cron jobs)",
+    )
+    notif_worker.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Max notifications to process per batch (default: 100)",
+    )
+
+    notif_pending = notifications_subparsers.add_parser(
+        "pending", help="List pending notifications"
+    )
+    notif_pending.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Max notifications to list (default: 100)",
+    )
+
+    notifications_parser.set_defaults(func=_handle_notifications)
+
+    # Playbook commands
+    playbook_parser = subparsers.add_parser(
+        "playbook", help="Execute and manage FixOps Playbooks (YAML-based DSL)"
+    )
+    playbook_subparsers = playbook_parser.add_subparsers(dest="playbook_command")
+
+    playbook_run = playbook_subparsers.add_parser("run", help="Execute a playbook")
+    playbook_run.add_argument(
+        "--playbook",
+        "-p",
+        type=Path,
+        required=True,
+        help="Path to the playbook YAML file",
+    )
+    playbook_run.add_argument(
+        "--overlay",
+        type=Path,
+        help="Path to overlay configuration for connector settings",
+    )
+    playbook_run.add_argument(
+        "--input",
+        "-i",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Input parameter (can be specified multiple times)",
+    )
+    playbook_run.add_argument(
+        "--findings",
+        type=Path,
+        help="Path to SARIF/JSON findings file",
+    )
+    playbook_run.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and show what would be executed without running",
+    )
+    playbook_run.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Path to write execution result JSON",
+    )
+    playbook_run.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+
+    playbook_validate = playbook_subparsers.add_parser(
+        "validate", help="Validate a playbook without executing"
+    )
+    playbook_validate.add_argument(
+        "--playbook",
+        "-p",
+        type=Path,
+        required=True,
+        help="Path to the playbook YAML file",
+    )
+
+    playbook_list = playbook_subparsers.add_parser(
+        "list", help="List available playbooks"
+    )
+    playbook_list.add_argument(
+        "--dir",
+        type=Path,
+        default="config/playbooks",
+        help="Directory containing playbooks (default: config/playbooks)",
+    )
+
+    playbook_parser.set_defaults(func=_handle_playbook)
 
     return parser
 

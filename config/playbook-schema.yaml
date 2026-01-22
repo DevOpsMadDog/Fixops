@@ -1,0 +1,368 @@
+# FixOps Playbook/Pack Specification Schema
+# Version: 1.0.0
+#
+# This schema defines the structure for FixOps Playbooks - declarative specifications
+# for extensible vulnerability management scripting. Playbooks allow users to automate
+# compliance tests, security validations, and remediation workflows without arbitrary
+# code execution.
+#
+# Playbooks can:
+# - Trigger OPA/Rego policy evaluations
+# - Assert evidence requirements
+# - Request micro-pentest validations
+# - Execute pre-approved adapters (Jira, Slack, Confluence, etc.)
+# - Define conditional workflows based on findings
+#
+# Security: Playbooks are sandboxed and can only call pre-approved adapters.
+# No arbitrary code execution is permitted.
+
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://fixops.io/schemas/playbook/v1"
+title: "FixOps Playbook Specification"
+description: "Declarative specification for vulnerability management automation"
+type: object
+
+required:
+  - apiVersion
+  - kind
+  - metadata
+  - spec
+
+properties:
+  apiVersion:
+    type: string
+    enum: ["fixops.io/v1"]
+    description: "API version for the playbook specification"
+
+  kind:
+    type: string
+    enum: ["Playbook", "CompliancePack", "TestPack", "MitigationPack"]
+    description: "Type of pack/playbook"
+
+  metadata:
+    type: object
+    required:
+      - name
+      - version
+    properties:
+      name:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+        minLength: 3
+        maxLength: 63
+        description: "Unique identifier for the playbook"
+      version:
+        type: string
+        pattern: "^\\d+\\.\\d+\\.\\d+$"
+        description: "Semantic version of the playbook"
+      description:
+        type: string
+        maxLength: 500
+        description: "Human-readable description"
+      author:
+        type: string
+        description: "Author or organization name"
+      license:
+        type: string
+        enum: ["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "proprietary"]
+        description: "License for the playbook"
+      tags:
+        type: array
+        items:
+          type: string
+        maxItems: 10
+        description: "Tags for categorization and search"
+      compliance_frameworks:
+        type: array
+        items:
+          type: string
+          enum: ["SOC2", "ISO27001", "PCI_DSS", "GDPR", "NIST_SSDF", "HIPAA", "FedRAMP"]
+        description: "Compliance frameworks this playbook addresses"
+      ssdlc_stages:
+        type: array
+        items:
+          type: string
+          enum: ["requirements", "design", "build", "test", "deploy", "operate", "decision"]
+        description: "SSDLC stages where this playbook applies"
+
+  spec:
+    type: object
+    required:
+      - steps
+    properties:
+      inputs:
+        type: object
+        description: "Input parameters for the playbook"
+        additionalProperties:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["string", "number", "boolean", "array", "object", "cve_list", "sbom", "sarif", "finding"]
+            required:
+              type: boolean
+              default: false
+            default:
+              description: "Default value if not provided"
+            description:
+              type: string
+
+      conditions:
+        type: object
+        description: "Global conditions that must be met for playbook execution"
+        properties:
+          min_severity:
+            type: string
+            enum: ["critical", "high", "medium", "low", "info"]
+          max_severity:
+            type: string
+            enum: ["critical", "high", "medium", "low", "info"]
+          frameworks:
+            type: array
+            items:
+              type: string
+          has_kev:
+            type: boolean
+            description: "Only run if KEV (Known Exploited Vulnerabilities) are present"
+          epss_threshold:
+            type: number
+            minimum: 0
+            maximum: 1
+            description: "Minimum EPSS score to trigger"
+
+      steps:
+        type: array
+        minItems: 1
+        maxItems: 50
+        description: "Ordered list of steps to execute"
+        items:
+          type: object
+          required:
+            - name
+            - action
+          properties:
+            name:
+              type: string
+              maxLength: 100
+              description: "Human-readable step name"
+            
+            condition:
+              type: object
+              description: "Condition for step execution"
+              properties:
+                when:
+                  type: string
+                  description: "Expression to evaluate (e.g., 'severity == critical')"
+                unless:
+                  type: string
+                  description: "Skip step if this expression is true"
+                depends_on:
+                  type: array
+                  items:
+                    type: string
+                  description: "Step names that must complete successfully first"
+
+            action:
+              type: string
+              enum:
+                # Policy Evaluation
+                - "opa.evaluate"
+                - "opa.assert"
+                # Evidence Management
+                - "evidence.assert"
+                - "evidence.collect"
+                - "evidence.sign"
+                # Compliance Checks
+                - "compliance.check_control"
+                - "compliance.map_finding"
+                - "compliance.generate_report"
+                # Security Testing
+                - "pentest.request"
+                - "pentest.validate_exploitability"
+                - "scanner.run"
+                # Notifications
+                - "notify.slack"
+                - "notify.email"
+                - "notify.pagerduty"
+                # Issue Tracking
+                - "jira.create_issue"
+                - "jira.update_issue"
+                - "jira.add_comment"
+                # Documentation
+                - "confluence.create_page"
+                - "confluence.update_page"
+                # Workflow Control
+                - "workflow.approve"
+                - "workflow.reject"
+                - "workflow.escalate"
+                # Data Operations
+                - "data.filter"
+                - "data.aggregate"
+                - "data.transform"
+              description: "Action to perform (pre-approved adapters only)"
+
+            params:
+              type: object
+              description: "Parameters for the action"
+              additionalProperties: true
+
+            on_success:
+              type: object
+              description: "Actions to take on success"
+              properties:
+                next:
+                  type: string
+                  description: "Next step to execute"
+                set:
+                  type: object
+                  description: "Variables to set"
+
+            on_failure:
+              type: object
+              description: "Actions to take on failure"
+              properties:
+                retry:
+                  type: integer
+                  minimum: 0
+                  maximum: 3
+                  description: "Number of retries"
+                fallback:
+                  type: string
+                  description: "Fallback step to execute"
+                continue:
+                  type: boolean
+                  default: false
+                  description: "Continue execution despite failure"
+
+            timeout:
+              type: string
+              pattern: "^\\d+[smh]$"
+              description: "Timeout for the step (e.g., '30s', '5m', '1h')"
+
+      outputs:
+        type: object
+        description: "Output variables from the playbook"
+        additionalProperties:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["string", "number", "boolean", "array", "object", "report", "evidence_bundle"]
+            description:
+              type: string
+            from:
+              type: string
+              description: "Step output to use as source"
+
+      triggers:
+        type: array
+        description: "Events that trigger this playbook"
+        items:
+          type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - "finding.created"
+                - "finding.updated"
+                - "finding.severity_changed"
+                - "guardrail.fail"
+                - "guardrail.warn"
+                - "compliance.gap"
+                - "compliance.control_failed"
+                - "pipeline.started"
+                - "pipeline.completed"
+                - "schedule.cron"
+                - "manual"
+            filter:
+              type: object
+              description: "Filter conditions for the trigger"
+
+# Example Playbook:
+#
+# apiVersion: fixops.io/v1
+# kind: CompliancePack
+# metadata:
+#   name: soc2-access-control-validation
+#   version: "1.0.0"
+#   description: "Validates SOC2 access control requirements"
+#   author: "FixOps Security Team"
+#   license: MIT
+#   tags:
+#     - soc2
+#     - access-control
+#     - compliance
+#   compliance_frameworks:
+#     - SOC2
+#   ssdlc_stages:
+#     - test
+#     - deploy
+#
+# spec:
+#   inputs:
+#     findings:
+#       type: sarif
+#       required: true
+#       description: "SARIF findings to evaluate"
+#     severity_threshold:
+#       type: string
+#       default: "high"
+#       description: "Minimum severity to flag"
+#
+#   conditions:
+#     frameworks:
+#       - SOC2
+#
+#   steps:
+#     - name: evaluate-access-controls
+#       action: opa.evaluate
+#       params:
+#         policy: "soc2/access-control.rego"
+#         input: "{{ inputs.findings }}"
+#       on_failure:
+#         retry: 1
+#
+#     - name: check-mfa-requirement
+#       action: compliance.check_control
+#       condition:
+#         depends_on:
+#           - evaluate-access-controls
+#       params:
+#         framework: SOC2
+#         control: "CC6.1"
+#         evidence_type: "mfa_configuration"
+#
+#     - name: create-remediation-ticket
+#       action: jira.create_issue
+#       condition:
+#         when: "steps.check-mfa-requirement.status == 'failed'"
+#       params:
+#         project: "SEC"
+#         issue_type: "Bug"
+#         priority: "High"
+#         summary: "SOC2 CC6.1 - MFA requirement not met"
+#         description: "{{ steps.check-mfa-requirement.details }}"
+#
+#     - name: notify-security-team
+#       action: notify.slack
+#       condition:
+#         when: "steps.check-mfa-requirement.status == 'failed'"
+#       params:
+#         channel: "#security-alerts"
+#         message: "SOC2 access control validation failed. Ticket: {{ steps.create-remediation-ticket.issue_key }}"
+#
+#   outputs:
+#     compliance_status:
+#       type: object
+#       from: "steps.check-mfa-requirement"
+#     remediation_ticket:
+#       type: string
+#       from: "steps.create-remediation-ticket.issue_key"
+#
+#   triggers:
+#     - event: pipeline.completed
+#       filter:
+#         stage: deploy
+#     - event: schedule.cron
+#       filter:
+#         expression: "0 0 * * 1"  # Weekly on Monday

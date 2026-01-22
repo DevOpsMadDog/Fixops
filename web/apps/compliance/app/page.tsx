@@ -1,10 +1,36 @@
 'use client'
 
-import { useState } from 'react'
-import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react'
-import EnterpriseShell from './components/EnterpriseShell'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Shield, CheckCircle, XCircle, AlertTriangle, ChevronRight, ArrowLeft, Loader2, Filter, X } from 'lucide-react'
+import { AppShell } from '@fixops/ui'
+import { useCompliance, useSystemMode, useDemoMode } from '@fixops/api-client'
+import { Switch, StatusBadge, StatCard } from '@fixops/ui'
 
-const FRAMEWORKS = [
+interface Framework {
+  id: string
+  name: string
+  description: string
+  coverage: number
+  controls_total: number
+  controls_passing: number
+  controls_failing: number
+  last_audit: string
+  next_audit: string
+  status: string
+}
+
+interface ControlGap {
+  id: string
+  framework: string
+  control_id: string
+  control_name: string
+  description: string
+  severity: string
+  affected_services: string[]
+  remediation: string
+}
+
+const DEMO_FRAMEWORKS: Framework[] = [
   {
     id: 'soc2',
     name: 'SOC 2 Type II',
@@ -55,7 +81,7 @@ const FRAMEWORKS = [
   },
 ]
 
-const CONTROL_GAPS = [
+const DEMO_CONTROL_GAPS: ControlGap[] = [
   {
     id: 'gap1',
     framework: 'SOC 2',
@@ -109,8 +135,55 @@ const CONTROL_GAPS = [
 ]
 
 export default function CompliancePage() {
-  const [selectedFramework, setSelectedFramework] = useState<typeof FRAMEWORKS[0] | null>(null)
-  const [selectedGap, setSelectedGap] = useState<typeof CONTROL_GAPS[0] | null>(null)
+  const { data: complianceData, loading: apiLoading, error: apiError } = useCompliance()
+  const { mode } = useSystemMode()
+  const { demoEnabled, toggleDemoMode } = useDemoMode()
+
+  const transformApiData = useCallback((apiData: NonNullable<typeof complianceData>): { frameworks: Framework[]; gaps: ControlGap[] } => {
+    const frameworksList = apiData.frameworks.map((f, index) => ({
+      id: f.id || `framework-${index}`,
+      name: f.name,
+      description: f.description,
+      coverage: Math.round((f.controls_passed / f.controls_total) * 100) || 0,
+      controls_total: f.controls_total,
+      controls_passing: f.controls_passed,
+      controls_failing: f.controls_failed,
+      last_audit: f.last_assessed || new Date().toISOString().split('T')[0],
+      next_audit: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+      status: 'active',
+    }))
+
+    const gapsList = apiData.gaps.map((g, index) => ({
+      id: `gap-${index}`,
+      framework: g.framework,
+      control_id: g.control_id,
+      control_name: g.description.split(':')[0] || g.description,
+      description: g.description,
+      severity: g.severity,
+      affected_services: ['Affected services'],
+      remediation: g.remediation,
+    }))
+
+    return { frameworks: frameworksList, gaps: gapsList }
+  }, [])
+
+  // Demo mode: explicitly show demo data when toggle is ON
+  // Live mode: show real API data (or empty state if no data)
+  const hasApiData = complianceData?.frameworks && complianceData.frameworks.length > 0
+  const { frameworks, controlGaps } = useMemo(() => {
+    if (demoEnabled) {
+      return { frameworks: DEMO_FRAMEWORKS, controlGaps: DEMO_CONTROL_GAPS }
+    }
+    if (hasApiData) {
+      const data = transformApiData(complianceData)
+      return { frameworks: data.frameworks, controlGaps: data.gaps }
+    }
+    return { frameworks: [], controlGaps: [] } // Empty state when no API data and demo mode is OFF
+  }, [complianceData, transformApiData, demoEnabled, hasApiData])
+
+    const [selectedFramework, setSelectedFramework] = useState<Framework | null>(null)
+    const [selectedGap, setSelectedGap] = useState<ControlGap | null>(null)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const getSeverityColor = (severity: string) => {
     const colors = {
@@ -129,48 +202,148 @@ export default function CompliancePage() {
   }
 
   return (
-    <EnterpriseShell>
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Framework List */}
-      <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+    <AppShell activeApp="compliance">
+        <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+          {/* Mobile Filter Overlay */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+              <div className="absolute left-0 top-0 h-full w-80 bg-[#0f172a] border-r border-white/[0.06] flex flex-col overflow-auto">
+                <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <span className="font-semibold">Frameworks</span>
+                  <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                    <X size={18} />
+                  </button>
+                </div>
+                {/* Mobile sidebar content - same as desktop */}
+                <div className="p-4 border-b border-white/[0.06]">
+                  <div className="grid grid-cols-2 gap-2">
+                    <StatCard label="Frameworks" value={frameworks.length} color="purple" />
+                    <StatCard 
+                      label="Avg Coverage" 
+                      value={`${frameworks.length > 0 ? Math.round(frameworks.reduce((sum, f) => sum + f.coverage, 0) / frameworks.length) : 0}%`} 
+                      color="green" 
+                    />
+                    <StatCard 
+                      label="Total Controls" 
+                      value={frameworks.reduce((sum, f) => sum + f.controls_total, 0)} 
+                      color="default" 
+                    />
+                    <StatCard label="Control Gaps" value={controlGaps.length} color="red" />
+                  </div>
+                </div>
+                <div className="p-4 flex-1 overflow-auto">
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    Active Frameworks
+                  </div>
+                  <div className="space-y-2">
+                    {frameworks.map((framework) => (
+                      <button
+                        key={framework.id}
+                        onClick={() => { setSelectedFramework(framework); setShowMobileFilters(false); }}
+                        className={`w-full p-3 rounded-md text-left transition-all ${
+                          selectedFramework?.id === framework.id
+                            ? 'bg-[#6B5AED]/10 border border-[#6B5AED]/30'
+                            : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-white">{framework.name}</span>
+                          <ChevronRight size={16} className="text-slate-400" />
+                        </div>
+                        <div className="text-xs text-slate-400 mb-2">{framework.description}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${framework.coverage}%`,
+                                backgroundColor: getCoverageColor(framework.coverage),
+                              }}
+                            ></div>
+                          </div>
+                          <span
+                            className="text-xs font-semibold"
+                            style={{ color: getCoverageColor(framework.coverage) }}
+                          >
+                            {framework.coverage}%
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Left Sidebar - Framework List (Desktop) */}
+          <div className="hidden lg:flex w-80 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex-col sticky top-0 h-screen">
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-5 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[#6B5AED]">Compliance</h2>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B5AED] to-[#8B7CF7] flex items-center justify-center shadow-[0_0_20px_rgba(107,90,237,0.3)]">
+                <Shield size={16} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-semibold text-white tracking-tight">Compliance</h2>
+                <p className="text-[11px] text-slate-500">Framework coverage & gaps</p>
+              </div>
+            </div>
             <button
               onClick={() => window.location.href = '/triage'}
-              className="p-2 rounded-md border border-white/10 text-slate-400 hover:bg-white/5 transition-all"
+              className="p-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-slate-400 hover:bg-white/[0.08] hover:text-white transition-all"
               title="Back to Triage"
             >
               <ArrowLeft size={16} />
             </button>
           </div>
-          <p className="text-xs text-slate-500">Framework coverage & gaps</p>
+          
+          {/* Demo Mode Toggle - Apple-like */}
+          <div className="mt-4 p-3 rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06]">
+            <Switch
+              checked={demoEnabled}
+              onChange={toggleDemoMode}
+              label={demoEnabled ? 'Demo Mode' : 'Live Mode'}
+              size="sm"
+            />
+            {/* Status Badge */}
+            <div className="mt-2">
+              {apiLoading && !demoEnabled && (
+                <StatusBadge status="loading" label="Loading..." />
+              )}
+              {apiError && !apiLoading && !demoEnabled && (
+                <StatusBadge status="error" label="API Error" />
+              )}
+              {!apiLoading && !apiError && !hasApiData && !demoEnabled && (
+                <StatusBadge status="warning" label="No Data" />
+              )}
+              {demoEnabled && (
+                <StatusBadge status="demo" label="Demo Data" />
+              )}
+              {!demoEnabled && hasApiData && !apiLoading && !apiError && (
+                <StatusBadge status="live" label={`Live (${mode})`} />
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Summary Stats */}
-        <div className="p-4 border-b border-white/10">
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Frameworks</div>
-              <div className="text-xl font-semibold text-[#6B5AED]">{FRAMEWORKS.length}</div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Avg Coverage</div>
-              <div className="text-xl font-semibold text-green-500">
-                {Math.round(FRAMEWORKS.reduce((sum, f) => sum + f.coverage, 0) / FRAMEWORKS.length)}%
-              </div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Total Controls</div>
-              <div className="text-xl font-semibold text-slate-300">
-                {FRAMEWORKS.reduce((sum, f) => sum + f.controls_total, 0)}
-              </div>
-            </div>
-            <div className="p-3 bg-white/5 rounded-md">
-              <div className="text-slate-500 mb-1">Control Gaps</div>
-              <div className="text-xl font-semibold text-red-500">{CONTROL_GAPS.length}</div>
-            </div>
+        <div className="p-4 border-b border-white/[0.06]">
+          <div className="grid grid-cols-2 gap-2">
+            <StatCard label="Frameworks" value={frameworks.length} color="purple" />
+            <StatCard 
+              label="Avg Coverage" 
+              value={`${frameworks.length > 0 ? Math.round(frameworks.reduce((sum, f) => sum + f.coverage, 0) / frameworks.length) : 0}%`} 
+              color="green" 
+            />
+            <StatCard 
+              label="Total Controls" 
+              value={frameworks.reduce((sum, f) => sum + f.controls_total, 0)} 
+              color="default" 
+            />
+            <StatCard label="Control Gaps" value={controlGaps.length} color="red" />
           </div>
         </div>
 
@@ -180,7 +353,7 @@ export default function CompliancePage() {
             Active Frameworks
           </div>
           <div className="space-y-2">
-            {FRAMEWORKS.map((framework) => (
+            {frameworks.map((framework) => (
               <button
                 key={framework.id}
                 onClick={() => setSelectedFramework(framework)}
@@ -218,40 +391,49 @@ export default function CompliancePage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold mb-1">Compliance Dashboard</h1>
-              <p className="text-sm text-slate-500">
-                Framework coverage and control gap analysis
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => window.location.href = '/triage'}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-              >
-                Triage View
-              </button>
-              <button
-                onClick={() => window.location.href = '/risk'}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-              >
-                Risk Graph
-              </button>
-            </div>
-          </div>
-        </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Top Bar */}
+              <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Mobile Filter Toggle */}
+                    <button
+                      onClick={() => setShowMobileFilters(true)}
+                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                    >
+                      <Filter size={18} />
+                    </button>
+                    <div>
+                      <h1 className="text-xl lg:text-2xl font-semibold mb-1">Compliance Dashboard</h1>
+                      <p className="text-sm text-slate-500">
+                        Framework coverage and control gap analysis
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.location.href = '/triage'}
+                      className="hidden sm:block px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
+                    >
+                      Triage View
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/risk'}
+                      className="hidden sm:block px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
+                    >
+                      Risk Graph
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto p-6">
-          {!selectedFramework ? (
-            /* Overview Grid */
-            <div className="grid grid-cols-2 gap-6">
-              {FRAMEWORKS.map((framework) => (
+                {/* Content Area */}
+                <div className="flex-1 overflow-auto p-4 lg:p-6">
+                  {!selectedFramework ? (
+                    /* Overview Grid */
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+              {frameworks.map((framework) => (
                 <div
                   key={framework.id}
                   onClick={() => setSelectedFramework(framework)}
@@ -378,7 +560,7 @@ export default function CompliancePage() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Control Gaps</h3>
                 <div className="space-y-3">
-                  {CONTROL_GAPS.filter(gap => gap.framework === selectedFramework.name).map((gap) => (
+                  {controlGaps.filter(gap => gap.framework === selectedFramework.name).map((gap) => (
                     <div
                       key={gap.id}
                       onClick={() => setSelectedGap(gap)}
@@ -524,6 +706,6 @@ export default function CompliancePage() {
         }
       `}</style>
     </div>
-    </EnterpriseShell>
+    </AppShell>
   )
 }
