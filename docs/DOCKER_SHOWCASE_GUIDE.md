@@ -421,6 +421,226 @@ docker exec fixops python -m core.cli micro-pentest status --flow-id 12345
 
 ---
 
+### 14b. Enterprise Micro Penetration Testing (NEW)
+
+**Purpose:** Comprehensive 8-phase enterprise security scanning with MITRE ATT&CK alignment, compliance framework validation, multi-tenant support, and audit logging.
+
+**What it operates on:** Attack surfaces (APIs, web apps, gRPC services) with threat models aligned to MITRE ATT&CK tactics and compliance frameworks.
+
+**Prerequisites:**
+- API server running on port 8000
+- Valid API token (`X-API-Key` header)
+
+**Key Features:**
+- **8-Phase Scanning**: Initialization → Reconnaissance → Threat Modeling → Vulnerability Scanning → Exploitation → Compliance Validation → Risk Scoring → Attack Path Generation
+- **MITRE ATT&CK Integration**: 12 threat categories (Initial Access, Execution, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Lateral Movement, Collection, Exfiltration, Command & Control, Impact)
+- **16 Attack Vectors**: SQL Injection, XSS, CSRF, SSRF, Command Injection, Path Traversal, Authentication Bypass, Authorization Bypass, Session Hijacking, API Abuse, Cryptographic Weakness, Configuration Error, Dependency Vulnerability, Secrets Exposure, Container Escape, Cloud Misconfiguration
+- **8 Compliance Frameworks**: SOC2, ISO 27001, PCI-DSS, HIPAA, GDPR, NIST 800-53, CIS Controls, OWASP Top 10
+- **4 Scan Modes**: Passive (non-intrusive), Active (standard probing), Aggressive (exploitation attempts), Stealth (low-profile)
+- **Multi-Tenant Support**: Tenant and organization isolation with audit logging
+- **Attack Path Generation**: Chains findings into attack paths with total CVSS scoring
+- **Proof of Concept Generation**: Generates PoC for high-risk findings
+
+#### API Endpoints
+
+**Check Engine Health:**
+```bash
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/health
+```
+
+Response:
+```json
+{
+    "status": "healthy",
+    "active_scans": 0,
+    "total_scans": 1,
+    "audit_logs_count": 2,
+    "supported_attack_vectors": 16,
+    "supported_compliance_frameworks": 8
+}
+```
+
+**List Attack Vectors:**
+```bash
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/attack-vectors
+```
+
+Response includes 16 attack vectors: sql_injection, xss, csrf, ssrf, command_injection, path_traversal, authentication_bypass, authorization_bypass, session_hijacking, api_abuse, cryptographic_weakness, configuration_error, dependency_vulnerability, secrets_exposure, container_escape, cloud_misconfiguration.
+
+**List MITRE ATT&CK Threat Categories:**
+```bash
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories
+```
+
+Response includes 12 MITRE ATT&CK tactics: initial_access, execution, persistence, privilege_escalation, defense_evasion, credential_access, discovery, lateral_movement, collection, exfiltration, command_and_control, impact.
+
+**List Compliance Frameworks:**
+```bash
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/compliance-frameworks
+```
+
+Response:
+```json
+{
+    "compliance_frameworks": [
+        {"id": "soc2", "name": "SOC 2", "description": "Service Organization Control 2"},
+        {"id": "iso27001", "name": "ISO 27001", "description": "Information Security Management"},
+        {"id": "pci_dss", "name": "PCI DSS", "description": "Payment Card Industry Data Security"},
+        {"id": "hipaa", "name": "HIPAA", "description": "Health Insurance Portability and Accountability"},
+        {"id": "gdpr", "name": "GDPR", "description": "General Data Protection Regulation"},
+        {"id": "nist_800_53", "name": "NIST 800-53", "description": "Security and Privacy Controls"},
+        {"id": "cis", "name": "CIS Controls", "description": "Center for Internet Security Controls"},
+        {"id": "owasp_top_10", "name": "OWASP Top 10", "description": "Open Web Application Security Project"}
+    ],
+    "total": 8
+}
+```
+
+**List Scan Modes:**
+```bash
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes
+```
+
+Response:
+```json
+{
+    "scan_modes": [
+        {"id": "passive", "name": "Passive", "description": "Non-intrusive scanning, no active probing"},
+        {"id": "active", "name": "Active", "description": "Standard scanning with active probing"},
+        {"id": "aggressive", "name": "Aggressive", "description": "Thorough scanning with exploitation attempts"},
+        {"id": "stealth", "name": "Stealth", "description": "Low-profile scanning to avoid detection"}
+    ],
+    "total": 4
+}
+```
+
+**Run Enterprise Scan:**
+```bash
+curl -X POST -H "X-API-Key: demo-token" -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production API Security Scan",
+    "attack_surface": {
+      "name": "Payment API",
+      "target_url": "https://api.example.com",
+      "target_type": "api",
+      "endpoints": ["/api/v1/users", "/api/v1/orders", "/api/v1/payments"],
+      "authentication_required": true,
+      "authentication_type": "jwt",
+      "technologies": ["python", "fastapi", "postgresql"],
+      "environment": "production"
+    },
+    "threat_model": {
+      "name": "OWASP API Security",
+      "description": "Testing for OWASP API Security Top 10",
+      "categories": ["initial_access", "credential_access", "exfiltration"],
+      "attack_vectors": ["sql_injection", "authentication_bypass", "api_abuse"],
+      "compliance_frameworks": ["soc2", "pci_dss", "owasp_top_10"],
+      "priority": 8
+    },
+    "scan_mode": "active",
+    "timeout_seconds": 300,
+    "stop_on_critical": true,
+    "include_proof_of_concept": true,
+    "tenant_id": "acme-corp",
+    "organization_id": "security-team",
+    "tags": ["production", "api-security", "quarterly-scan"]
+  }' \
+  http://localhost:8000/api/v1/micro-pentest/enterprise/scan
+```
+
+Response includes:
+- `scan_id`: Unique identifier for the scan
+- `status`: Scan status (pending, running, completed, failed, cancelled)
+- `findings`: Array of security findings with CVSS scores, CWE IDs, OWASP categories, and compliance violations
+- `attack_paths`: Chained attack paths showing how findings can be exploited together
+- `compliance_status`: Pass/fail status for each compliance framework
+- `summary`: Aggregated statistics (total findings, findings by risk level, attack paths count)
+
+**Get Scan Result:**
+```bash
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/scan/{scan_id}
+```
+
+**List All Scans (with filtering):**
+```bash
+# List all scans
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/scans
+
+# Filter by tenant
+curl -H "X-API-Key: demo-token" "http://localhost:8000/api/v1/micro-pentest/enterprise/scans?tenant_id=acme-corp"
+
+# Filter by status
+curl -H "X-API-Key: demo-token" "http://localhost:8000/api/v1/micro-pentest/enterprise/scans?scan_status=completed"
+```
+
+**Cancel Running Scan:**
+```bash
+curl -X POST -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/scan/{scan_id}/cancel
+```
+
+**Get Audit Logs (for compliance):**
+```bash
+# Get all audit logs
+curl -H "X-API-Key: demo-token" http://localhost:8000/api/v1/micro-pentest/enterprise/audit-logs
+
+# Filter by tenant and action
+curl -H "X-API-Key: demo-token" "http://localhost:8000/api/v1/micro-pentest/enterprise/audit-logs?tenant_id=acme-corp&action=scan_started"
+```
+
+#### Example Scan Result
+
+A typical enterprise scan result includes:
+
+```json
+{
+    "scan_id": "4c2912d9-9531-4e9c-85d9-3057768293d5",
+    "status": "completed",
+    "findings": [
+        {
+            "finding_id": "4c2912d9-1",
+            "title": "SQL Injection Vulnerability",
+            "description": "Potential SQL injection in user input parameter",
+            "risk_level": "critical",
+            "attack_vector": "sql_injection",
+            "threat_category": "initial_access",
+            "affected_endpoint": "https://api.example.com/api/users",
+            "proof_of_concept": "curl -X POST 'https://api.example.com/api/users' -d \"id=1' OR '1'='1\"",
+            "remediation": "Use parameterized queries",
+            "cvss_score": 9.8,
+            "cwe_id": "CWE-89",
+            "owasp_category": "A03:2021-Injection",
+            "compliance_violations": ["SOC2-CC6.1", "PCI-DSS-6.5.1"]
+        }
+    ],
+    "attack_paths": [
+        {
+            "name": "Critical Attack Chain",
+            "description": "Chain of critical vulnerabilities leading to full compromise",
+            "steps": [
+                {"step": 1, "action": "Initial access via SQL Injection"},
+                {"step": 2, "action": "Escalation via Authentication Bypass"}
+            ],
+            "risk_level": "critical",
+            "total_cvss": 18.9
+        }
+    ],
+    "compliance_status": {
+        "soc2": false,
+        "pci_dss": false,
+        "owasp_top_10": true
+    },
+    "summary": {
+        "total_findings": 5,
+        "findings_by_risk": {"critical": 2, "high": 0, "medium": 3, "low": 0},
+        "attack_paths_count": 1,
+        "compliance_frameworks_checked": 3,
+        "compliant_frameworks": 1
+    }
+}
+```
+
+---
+
 ### 15. advanced-pentest - AI-Powered Pentest
 
 **Purpose:** Multi-LLM consensus penetration testing using GPT, Claude, Gemini.

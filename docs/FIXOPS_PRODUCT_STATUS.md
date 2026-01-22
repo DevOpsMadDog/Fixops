@@ -136,12 +136,15 @@ flowchart LR
 
 | Metric | Count |
 |--------|-------|
-| **Total API Endpoints** | 303 |
+| **Total API Endpoints** | 313 |
 | **CLI Commands/Subcommands** | 111 (13 standalone + 98 subcommands across 18 groups; 31 top-level total) |
-| **API Endpoints with CLI Coverage** | 211 (70%) |
-| **API-Only Endpoints** | 92 (30%) |
+| **API Endpoints with CLI Coverage** | 211 (67%) |
+| **API-Only Endpoints** | 102 (33%) |
 
 **Note:** Counts are code-derived from static enumeration of router decorators and CLI `--help` output.
+
+**Recent Additions (January 2026):**
+- 10 new Enterprise Micro Pentest API endpoints with MITRE ATT&CK alignment, compliance framework validation, and multi-tenant support
 
 ---
 
@@ -290,7 +293,7 @@ python -m core.cli micro-pentest run --cve-ids CVE-2024-1234 --target-urls http:
 | Workflows | `apps/api/workflows_router.py` | 7 | `workflows list/get/create/execute/history` |
 | Inventory | `apps/api/inventory_router.py` | 15 | `inventory apps/add/get/services/search` |
 | PentAGI | `apps/api/pentagi_router.py` | 14 | `pentagi list/create/status` |
-| Micro Pentest | `apps/api/micro_pentest_router.py` | 3 | `micro-pentest run/status/batch` |
+| Micro Pentest | `apps/api/micro_pentest_router.py` | 13 | `micro-pentest run/status/batch` + 10 enterprise endpoints |
 | Enhanced PentAGI | `apps/api/pentagi_router_enhanced.py` | 19 | `advanced-pentest run/threat-intel/simulate` |
 | IaC | `apps/api/iac_router.py` | 6 | `stage-run --stage deploy` |
 | Secrets | `apps/api/secrets_router.py` | 6 | API-only |

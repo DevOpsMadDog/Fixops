@@ -1120,3 +1120,142 @@ feature_flags:
 - Comment response time (target: <4h)
 - Evidence promotion rate (target: >20% of decision rationales)
 - Watcher engagement (target: >50% of assigned users)
+
+---
+
+## 6. Enterprise Micro Penetration Testing (NEW - January 2026)
+
+### Overview
+
+The Enterprise Micro Penetration Testing feature provides comprehensive 8-phase security scanning with MITRE ATT&CK alignment, compliance framework validation, multi-tenant support, and audit logging. This feature enables security teams to perform rapid, focused security testing of microservices with enterprise-grade compliance tracking.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                Enterprise Micro Pentest Architecture                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐       │
+│  │  Attack Surface  │───▶│  Threat Model    │───▶│  8-Phase Scan    │       │
+│  │  Definition      │    │  (MITRE ATT&CK)  │    │  Engine          │       │
+│  └──────────────────┘    └──────────────────┘    └────────┬─────────┘       │
+│                                                           │                  │
+│                          ┌────────────────────────────────┼──────────────┐  │
+│                          │         Scan Phases            │              │  │
+│                          │  1. Initialization             │              │  │
+│                          │  2. Reconnaissance             │              │  │
+│                          │  3. Threat Modeling            │              │  │
+│                          │  4. Vulnerability Scanning     │              │  │
+│                          │  5. Exploitation               │              │  │
+│                          │  6. Compliance Validation      │              │  │
+│                          │  7. Risk Scoring               │              │  │
+│                          │  8. Attack Path Generation     │              │  │
+│                          └────────────────────────────────┼──────────────┘  │
+│                                                           │                  │
+│                          ┌────────────────────────────────▼──────────────┐  │
+│                          │         Output                                │  │
+│                          │  • Findings with CVSS/CWE/OWASP              │  │
+│                          │  • Attack Paths with chained findings        │  │
+│                          │  • Compliance Status per framework           │  │
+│                          │  • Proof of Concept generation               │  │
+│                          │  • Audit Logs for compliance                 │  │
+│                          └───────────────────────────────────────────────┘  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Features
+
+#### MITRE ATT&CK Integration (12 Threat Categories)
+- Initial Access, Execution, Persistence, Privilege Escalation
+- Defense Evasion, Credential Access, Discovery, Lateral Movement
+- Collection, Exfiltration, Command & Control, Impact
+
+#### 16 Attack Vectors
+- SQL Injection, XSS, CSRF, SSRF, Command Injection, Path Traversal
+- Authentication Bypass, Authorization Bypass, Session Hijacking
+- API Abuse, Cryptographic Weakness, Configuration Error
+- Dependency Vulnerability, Secrets Exposure, Container Escape, Cloud Misconfiguration
+
+#### 8 Compliance Frameworks
+- SOC2, ISO 27001, PCI-DSS, HIPAA, GDPR, NIST 800-53, CIS Controls, OWASP Top 10
+
+#### 4 Scan Modes
+- **Passive**: Non-intrusive scanning, no active probing
+- **Active**: Standard scanning with active probing
+- **Aggressive**: Thorough scanning with exploitation attempts
+- **Stealth**: Low-profile scanning to avoid detection
+
+#### Multi-Tenant Support
+- Tenant and organization isolation
+- Comprehensive audit logging for compliance
+- Role-based access control
+
+### API Endpoints (10 new endpoints)
+
+```
+# Health & Configuration
+GET    /api/v1/micro-pentest/enterprise/health              # Engine health status
+GET    /api/v1/micro-pentest/enterprise/attack-vectors      # List attack vectors
+GET    /api/v1/micro-pentest/enterprise/threat-categories   # List MITRE ATT&CK categories
+GET    /api/v1/micro-pentest/enterprise/compliance-frameworks # List compliance frameworks
+GET    /api/v1/micro-pentest/enterprise/scan-modes          # List scan modes
+
+# Scan Operations
+POST   /api/v1/micro-pentest/enterprise/scan                # Run enterprise scan
+GET    /api/v1/micro-pentest/enterprise/scan/{scan_id}      # Get scan result
+GET    /api/v1/micro-pentest/enterprise/scans               # List scans (with filtering)
+POST   /api/v1/micro-pentest/enterprise/scan/{scan_id}/cancel # Cancel running scan
+
+# Audit & Compliance
+GET    /api/v1/micro-pentest/enterprise/audit-logs          # Get audit logs
+```
+
+### Example Usage
+
+```bash
+# Run enterprise scan
+curl -X POST -H "X-API-Key: demo-token" -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production API Security Scan",
+    "attack_surface": {
+      "name": "Payment API",
+      "target_url": "https://api.example.com",
+      "target_type": "api",
+      "endpoints": ["/api/v1/users", "/api/v1/payments"],
+      "authentication_required": true,
+      "authentication_type": "jwt",
+      "technologies": ["python", "fastapi", "postgresql"],
+      "environment": "production"
+    },
+    "threat_model": {
+      "name": "OWASP API Security",
+      "categories": ["initial_access", "credential_access"],
+      "attack_vectors": ["sql_injection", "authentication_bypass"],
+      "compliance_frameworks": ["soc2", "pci_dss", "owasp_top_10"],
+      "priority": 8
+    },
+    "scan_mode": "active",
+    "include_proof_of_concept": true,
+    "tenant_id": "acme-corp",
+    "organization_id": "security-team"
+  }' \
+  http://localhost:8000/api/v1/micro-pentest/enterprise/scan
+```
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `apps/api/micro_pentest_router.py` | API endpoints (lines 927-1222) |
+| `fixops-enterprise/src/services/micro_pentest_engine.py` | Core engine implementation |
+| `tests/test_micro_pentest_engine.py` | Test suite (18 tests) |
+
+### Success Metrics
+
+- Scan completion rate (target: >99%)
+- Finding accuracy (target: >95%)
+- Compliance validation accuracy (target: >98%)
+- Attack path generation accuracy (target: >90%)
+- Audit log completeness (target: 100%)
