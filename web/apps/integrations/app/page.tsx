@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Check, X, ArrowLeft, ExternalLink, RefreshCw, Settings } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Check, X, ArrowLeft, ExternalLink, RefreshCw, Settings, Loader2, WifiOff, Filter } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
 
 const INTEGRATIONS = [
   {
@@ -108,17 +108,82 @@ const WEBHOOKS = [
 ]
 
 export default function IntegrationsPage() {
-  const [selectedIntegration, setSelectedIntegration] = useState<typeof INTEGRATIONS[0] | null>(null)
-  const [activeTab, setActiveTab] = useState<'integrations' | 'webhooks'>('integrations')
-  const [isConfiguring, setIsConfiguring] = useState(false)
+  const { demoEnabled } = useDemoModeContext()
+  
+  // Use demo data (no API hook available for integrations yet)
+  const integrationsData = useMemo(() => {
+    return INTEGRATIONS
+  }, [])
+
+    const [integrations, setIntegrations] = useState(INTEGRATIONS)
+    const [selectedIntegration, setSelectedIntegration] = useState<typeof INTEGRATIONS[0] | null>(null)
+    const [activeTab, setActiveTab] = useState<'integrations' | 'webhooks'>('integrations')
+    const [isConfiguring, setIsConfiguring] = useState(false)
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  // Update integrations when data source changes
+  useEffect(() => {
+    setIntegrations(integrationsData)
+  }, [integrationsData])
 
   return (
     <AppShell activeApp="integrations">
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Integrations List */}
-      <div className="w-80 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+          {/* Mobile Filter Overlay */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+              <div className="absolute left-0 top-0 h-full w-80 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <span className="font-semibold">Integrations</span>
+                  <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="p-4 border-b border-white/10">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setActiveTab('integrations')}
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'integrations' ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                    >
+                      Apps
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('webhooks')}
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'webhooks' ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                    >
+                      Webhooks
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 flex-1 overflow-auto">
+                  <div className="space-y-2">
+                    {integrations.map((integration) => (
+                      <button
+                        key={integration.id}
+                        onClick={() => { setSelectedIntegration(integration); setShowMobileFilters(false); }}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${selectedIntegration?.id === integration.id ? 'bg-[#6B5AED]/10 border border-[#6B5AED]/30' : 'bg-white/5 hover:bg-white/10'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{integration.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{integration.name}</div>
+                            <div className="text-xs text-slate-500">{integration.category}</div>
+                          </div>
+                          {integration.status === 'connected' && <Check size={14} className="text-green-500" />}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Sidebar - Integrations List */}
+          <div className="hidden lg:flex w-80 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
+            {/* Header */}
+            <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-[#6B5AED]">Integrations</h2>
             <button
@@ -248,19 +313,28 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold mb-1">
-                {selectedIntegration ? selectedIntegration.name : activeTab === 'integrations' ? 'Integrations' : 'Webhooks'}
-              </h1>
-              <p className="text-sm text-slate-500">
-                {selectedIntegration ? selectedIntegration.description : activeTab === 'integrations' ? 'Connect external tools and services' : 'Custom HTTP webhooks for events'}
-              </p>
-            </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Top Bar */}
+              <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Mobile Filter Toggle */}
+                    <button
+                      onClick={() => setShowMobileFilters(true)}
+                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                    >
+                      <Filter size={18} />
+                    </button>
+                    <div>
+                      <h1 className="text-xl lg:text-2xl font-semibold mb-1">
+                        {selectedIntegration ? selectedIntegration.name : activeTab === 'integrations' ? 'Integrations' : 'Webhooks'}
+                      </h1>
+                      <p className="text-sm text-slate-500">
+                        {selectedIntegration ? selectedIntegration.description : activeTab === 'integrations' ? 'Connect external tools and services' : 'Custom HTTP webhooks for events'}
+                      </p>
+                    </div>
+                  </div>
             {selectedIntegration && (
               <div className="flex gap-2">
                 {selectedIntegration.status === 'connected' ? (

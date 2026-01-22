@@ -202,6 +202,7 @@ Native support for regulatory requirements:
 ### Push-Model Integration
 Works with your existing tools - no proprietary connectors:
 - Any SBOM format (CycloneDX, SPDX)
+- AI/ML-BOM (CycloneDX ML-BOM for AI/ML model transparency)
 - Any SARIF output (Snyk, SonarQube, CodeQL, Semgrep)
 - CVE feeds (NVD, CISA KEV)
 - VEX documents
@@ -297,6 +298,58 @@ Configurable retention policies for compliance requirements:
 - **Export formats** - JSON, SARIF for portability
 - **Audit-ready** - Evidence accessible offline for auditors
 
+### Playbook DSL (YAML-Based Automation)
+FixOps includes a declarative YAML-based Domain-Specific Language for automating vulnerability management, compliance validation, and security remediation workflows without writing code.
+
+**Key Features:**
+- **25+ Pre-Approved Actions** - Jira, Confluence, Slack, OPA, compliance, evidence, pentest, and more
+- **Template Variables** - `{{ inputs.x }}` and `{{ steps.y.output }}` interpolation
+- **Conditional Execution** - `when`, `unless`, and `depends_on` for step control
+- **Error Handling** - Retry logic and continue-on-failure options
+- **Sandboxed Execution** - Only pre-approved adapters, no arbitrary code execution
+- **Enterprise Connectors** - Wired to real Jira, Confluence, Slack, ServiceNow connectors
+
+**Example Playbook:**
+```yaml
+apiVersion: fixops.io/v1
+kind: CompliancePack
+metadata:
+  name: soc2-access-control-validation
+  version: "1.0.0"
+spec:
+  inputs:
+    findings:
+      type: sarif
+      required: true
+  steps:
+    - name: evaluate-policy
+      action: opa.evaluate
+      params:
+        policy: "soc2/access-control.rego"
+        input: "{{ inputs.findings }}"
+    - name: create-ticket
+      action: jira.create_issue
+      condition:
+        when: "steps.evaluate-policy.status == 'failed'"
+      params:
+        project: "SEC"
+        summary: "SOC2 compliance gap detected"
+```
+
+**CLI Commands:**
+```bash
+# Run a playbook
+python -m core.cli playbook run --playbook config/playbooks/soc2-access-control-validation.yaml
+
+# Validate playbook syntax
+python -m core.cli playbook validate --playbook config/playbooks/my-playbook.yaml
+
+# List available playbooks
+python -m core.cli playbook list --dir config/playbooks
+```
+
+**Documentation:** See [Playbook Language Reference](docs/PLAYBOOK_LANGUAGE_REFERENCE.md) for complete syntax documentation.
+
 ---
 
 ## 16 Frontend Pages
@@ -332,10 +385,10 @@ Configurable retention policies for compliance requirements:
 |  INGESTION LAYER              DECISION ENGINE              EVIDENCE SYSTEM        |
 |  +------------------+         +------------------+         +------------------+   |
 |  | SBOM (CycloneDX) |         | Multi-LLM        |         | RSA-SHA256       |   |
-|  | SARIF            |  --->   |   Consensus      |  --->   |   Signing        |   |
-|  | CVE/KEV/EPSS     |         | Policy Engine    |         | Fernet           |   |
-|  | VEX              |         | Guardrails       |         |   Encryption     |   |
-|  | CNAPP            |         | Risk Models      |         | Compliance       |   |
+|  | AI/ML-BOM        |  --->   |   Consensus      |  --->   |   Signing        |   |
+|  | SARIF            |         | Policy Engine    |         | Fernet           |   |
+|  | CVE/KEV/EPSS     |         | Guardrails       |         |   Encryption     |   |
+|  | VEX / CNAPP      |         | Risk Models      |         | Compliance       |   |
 |  | Business Context |         |   (BN-LR)        |         |   Mapping        |   |
 |  +------------------+         +------------------+         +------------------+   |
 |                                                                                   |
@@ -906,6 +959,22 @@ make up-pentagi
 - **Remediation Lifecycle Management** - State machine with SLA tracking (Critical=24h, High=72h, Medium=168h, Low=720h), verification evidence, and MTTR metrics
 - **Enterprise Bulk Operations** - Async job framework with per-item outcomes, partial failure handling, and job status tracking
 - **Team Collaboration** - Append-only comment threads, watchers, activity feeds, mention tracking, and evidence promotion
+
+### Enterprise Plug-and-Play Readiness
+
+For enterprise deployments via Docker images, the following integration status applies:
+
+| Integration | Status | Notes |
+|-------------|--------|-------|
+| **Jira** | Production | Full CRUD: create, update, transition, comment |
+| **Confluence** | Outbound Only | Create page works |
+| **Slack** | Ready | Webhook notifications working |
+| **ServiceNow** | Production | Full CRUD: create_incident, update_incident, add_work_note |
+| **GitLab** | Production | Full CRUD: create_issue, update_issue, add_comment |
+| **Azure DevOps** | Production | Full CRUD: create_work_item, update_work_item, add_comment |
+| **GitHub** | Production | Full CRUD: create_issue, update_issue, add_comment |
+
+See [Enterprise Plug-and-Play Readiness](docs/FIXOPS_PRODUCT_STATUS.md#enterprise-plug-and-play-readiness) for detailed status, API/CLI mappings, and roadmap.
 
 ### Optional Integrations
 - Jira (requires `FIXOPS_JIRA_TOKEN`)

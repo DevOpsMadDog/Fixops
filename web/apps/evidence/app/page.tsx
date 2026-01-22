@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock, Loader2 } from 'lucide-react'
+import { FileText, Shield, CheckCircle, Download, Copy, ArrowLeft, Calendar, Clock, Loader2, Filter, X } from 'lucide-react'
 import { AppShell } from '@fixops/ui'
 import { useEvidence, useSystemMode, useDemoMode } from '@fixops/api-client'
 import { Switch, StatusBadge, StatCard } from '@fixops/ui'
@@ -173,8 +173,9 @@ const DEMO_EVIDENCE_BUNDLES: EvidenceBundle[] = [
 ]
 
 export default function EvidencePage() {
-  const [selectedBundle, setSelectedBundle] = useState<EvidenceBundle | null>(null)
-  const [filterSeverity, setFilterSeverity] = useState<string>('all')
+    const [selectedBundle, setSelectedBundle] = useState<EvidenceBundle | null>(null)
+    const [filterSeverity, setFilterSeverity] = useState<string>('all')
+    const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const { data: evidenceData, loading: apiLoading, error: apiError } = useEvidence()
   const { mode } = useSystemMode()
@@ -264,11 +265,52 @@ export default function EvidencePage() {
 
   return (
     <AppShell activeApp="evidence">
-    <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-      {/* Left Sidebar - Filters */}
-      <div className="w-72 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col sticky top-0 h-screen">
-        {/* Header */}
-        <div className="p-5 border-b border-white/[0.06]">
+        <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+          {/* Mobile Filter Overlay */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+              <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <span className="font-semibold">Filters</span>
+                  <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="p-4 border-b border-white/10">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 bg-white/5 rounded-md">
+                      <div className="text-slate-500 text-xs mb-1">Total</div>
+                      <div className="text-xl font-semibold text-[#6B5AED]">{evidenceBundles.length}</div>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded-md">
+                      <div className="text-slate-500 text-xs mb-1">Retention</div>
+                      <div className="text-xl font-semibold text-amber-400">90d</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 flex-1 overflow-auto">
+                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3">Severity</div>
+                  <div className="space-y-2">
+                    {['all', 'critical', 'high', 'medium', 'low'].map((severity) => (
+                      <button
+                        key={severity}
+                        onClick={() => { setFilterSeverity(severity); setShowMobileFilters(false); }}
+                        className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${filterSeverity === severity ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30' : 'text-slate-400 hover:bg-white/5'}`}
+                      >
+                        <span className="capitalize">{severity}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Sidebar - Filters */}
+          <div className="hidden lg:flex w-72 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex-col sticky top-0 h-screen">
+            {/* Header */}
+            <div className="p-5 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6B5AED] to-[#8B7CF7] flex items-center justify-center shadow-[0_0_20px_rgba(107,90,237,0.3)]">
@@ -374,33 +416,42 @@ export default function EvidencePage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold mb-1">Evidence Timeline</h1>
-              <p className="text-sm text-slate-500">
-                Showing {filteredBundles.length} evidence bundle{filteredBundles.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => window.location.href = '/triage'}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-              >
-                Triage View
-              </button>
-              <button
-                onClick={() => window.location.href = '/compliance'}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
-              >
-                Compliance
-              </button>
-            </div>
-          </div>
-        </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Top Bar */}
+              <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Mobile Filter Toggle */}
+                    <button
+                      onClick={() => setShowMobileFilters(true)}
+                      className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                    >
+                      <Filter size={18} />
+                    </button>
+                    <div>
+                              <h1 className="text-xl lg:text-2xl font-semibold mb-1">Evidence Timeline</h1>
+                              <p className="text-sm text-slate-500">
+                                Showing {filteredBundles.length} evidence bundle{filteredBundles.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="hidden sm:flex gap-2">
+                            <button
+                              onClick={() => window.location.href = '/triage'}
+                              className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
+                            >
+                              Triage View
+                            </button>
+                            <button
+                              onClick={() => window.location.href = '/compliance'}
+                              className="px-4 py-2 bg-white/5 border border-white/10 rounded-md text-slate-300 text-sm font-medium hover:bg-white/10 transition-all"
+                            >
+                              Compliance
+                            </button>
+                          </div>
+                        </div>
+                      </div>
 
         {/* Timeline */}
         <div className="flex-1 overflow-auto p-6">

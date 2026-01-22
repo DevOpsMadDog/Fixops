@@ -16,6 +16,8 @@ class IntegrationType(str, Enum):
     GITHUB = "github"
     GITLAB = "gitlab"
     PAGERDUTY = "pagerduty"
+    SERVICENOW = "servicenow"
+    AZURE_DEVOPS = "azure_devops"
 
 
 class IntegrationStatus(str, Enum):

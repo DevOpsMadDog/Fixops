@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Users, Search, Plus, Edit2, Trash2, Shield, Mail, Calendar, CheckCircle, XCircle, Clock, Key, UserPlus, Filter, User } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Users, Search, Plus, Edit2, Trash2, Shield, Mail, CheckCircle, XCircle, Clock, Key, UserPlus, Filter, User, Loader2, RefreshCw, WifiOff, Menu, X } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useUsers } from '@fixops/api-client'
 
 const DEMO_USERS = [
   {
@@ -96,6 +97,27 @@ const DEMO_USERS = [
 ]
 
 export default function UsersPage() {
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useUsers()
+  
+  // Transform API data to match our UI format, or use demo data
+  const usersData = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_USERS
+    }
+    return apiData.items.map(user => ({
+      id: user.id,
+      email: user.email,
+      first_name: user.name?.split(' ')[0] || 'Unknown',
+      last_name: user.name?.split(' ').slice(1).join(' ') || '',
+      role: user.role || 'viewer',
+      status: user.status || 'active',
+      created_at: user.created_at,
+      last_login: user.last_login,
+      teams: [] as string[],
+    }))
+  }, [demoEnabled, apiData])
+
   const [users, setUsers] = useState(DEMO_USERS)
   const [filteredUsers, setFilteredUsers] = useState(DEMO_USERS)
   const [selectedUser, setSelectedUser] = useState<typeof DEMO_USERS[0] | null>(null)
@@ -104,6 +126,13 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  // Update users when data source changes
+  useEffect(() => {
+    setUsers(usersData)
+    setFilteredUsers(usersData)
+  }, [usersData])
 
   const getRoleColor = (role: string) => {
     const colors = {
@@ -181,13 +210,29 @@ export default function UsersPage() {
   return (
     <AppShell activeApp="users">
       <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+        {/* Mobile Filter Toggle Overlay */}
+        {showMobileFilters && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setShowMobileFilters(false)}
+          />
+        )}
+        
         {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 h-screen">
+        <div className={`${showMobileFilters ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto w-72 bg-[#0f172a] lg:bg-[#0f172a]/80 border-r border-white/10 flex flex-col h-screen transition-transform duration-200`}>
           {/* Header */}
           <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3 mb-4">
-              <Users size={24} className="text-[#6B5AED]" />
-              <h2 className="text-lg font-semibold">User Management</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Users size={24} className="text-[#6B5AED]" />
+                <h2 className="text-lg font-semibold">User Management</h2>
+              </div>
+              <button 
+                onClick={() => setShowMobileFilters(false)}
+                className="lg:hidden p-1 hover:bg-white/10 rounded"
+              >
+                <X size={20} />
+              </button>
             </div>
             <p className="text-xs text-slate-500">Manage users, roles, and access</p>
           </div>
@@ -279,23 +324,53 @@ export default function UsersPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+          <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Users</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
-                </p>
+              <div className="flex items-center gap-3">
+                {/* Mobile Filter Toggle */}
+                <button
+                  onClick={() => setShowMobileFilters(true)}
+                  className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                >
+                  <Filter size={18} />
+                </button>
+                <div>
+                  <h1 className="text-xl lg:text-2xl font-semibold mb-1">Users</h1>
+                  <p className="text-sm text-slate-500 flex items-center gap-2">
+                    {apiLoading && !demoEnabled ? (
+                      <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                    ) : (
+                      <>Showing {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}</>
+                    )}
+                    {!demoEnabled && apiError && (
+                      <span className="text-amber-400 flex items-center gap-1">
+                        <WifiOff size={12} /> Using cached data
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create User
-              </button>
+              <div className="flex items-center gap-2">
+                {!demoEnabled && (
+                  <button
+                    onClick={() => refetch()}
+                    disabled={apiLoading}
+                    className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                    title="Refresh data"
+                  >
+                    <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-3 lg:px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Create User</span>
+                </button>
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -312,9 +387,9 @@ export default function UsersPage() {
           </div>
 
           {/* Users Table */}
-          <div className="flex-1 overflow-auto p-6">
-            <div className="bg-white/2 rounded-lg border border-white/5 overflow-hidden">
-              <table className="w-full">
+          <div className="flex-1 overflow-auto p-4 lg:p-6">
+            <div className="bg-white/2 rounded-lg border border-white/5 overflow-hidden overflow-x-auto">
+              <table className="w-full min-w-[800px]">
                 <thead className="bg-white/5 border-b border-white/10">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">User</th>

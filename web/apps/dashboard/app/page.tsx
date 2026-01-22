@@ -40,14 +40,14 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-[#0f172a] font-sans text-white">
         {/* Top Bar */}
         <div className="p-6 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold mb-2">FixOps Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold mb-2">FixOps Dashboard</h1>
             <p className="text-sm text-slate-400">
               Security posture overview and key metrics
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             <button
               onClick={() => setShowDeltaMode(!showDeltaMode)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
@@ -117,7 +117,7 @@ export default function DashboardPage() {
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Issues */}
             <div className="p-5 bg-white/2 rounded-lg border border-white/5">
               <div className="flex items-center justify-between mb-3">
@@ -193,7 +193,7 @@ export default function DashboardPage() {
           </div>
 
           {/* MTTR/MTTD Metrics */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 bg-white/2 rounded-lg border border-white/5">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts Grid - 3 columns */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Issue Trend Chart */}
             <div className="p-6 bg-white/2 rounded-lg border border-white/5">
               <div className="flex items-center justify-between mb-4">
@@ -425,7 +425,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Critical Findings */}
             <div className="p-6 bg-white/2 rounded-lg border border-white/5">
               <div className="flex items-center justify-between mb-4">
@@ -516,7 +516,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => window.location.href = '/triage'}
               className="p-4 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-all text-left"

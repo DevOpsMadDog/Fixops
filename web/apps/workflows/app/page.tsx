@@ -1,10 +1,25 @@
 'use client'
 
-import { useState } from 'react'
-import { Workflow, Search, Plus, Edit2, Trash2, Play, Pause, Clock, CheckCircle, XCircle, AlertCircle, Filter, Calendar, Activity } from 'lucide-react'
-import { AppShell } from '@fixops/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { Workflow, Search, Plus, Edit2, Trash2, Play, Pause, Clock, CheckCircle, XCircle, AlertCircle, Filter, Calendar, Activity, Loader2, RefreshCw, WifiOff, X } from 'lucide-react'
+import { AppShell, useDemoModeContext } from '@fixops/ui'
+import { useWorkflows } from '@fixops/api-client'
 
-const DEMO_WORKFLOWS = [
+interface WorkflowItem {
+  id: string
+  name: string
+  description: string
+  trigger: string
+  conditions: Array<{ field: string; operator: string; value: string | string[] }>
+  actions: Array<{ type: string; target?: string; integration?: string; project?: string; channel?: string; priority?: string; reason?: string; template?: string; severity?: string; labels?: string[]; status?: string }>
+  status: string
+  executions: number
+  last_executed: string | null
+  success_rate: number
+  created_at: string
+}
+
+const DEMO_WORKFLOWS: WorkflowItem[] = [
   {
     id: '1',
     name: 'Auto-Triage Critical Findings',
@@ -158,14 +173,44 @@ const DEMO_WORKFLOWS = [
 ]
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState(DEMO_WORKFLOWS)
-  const [filteredWorkflows, setFilteredWorkflows] = useState(DEMO_WORKFLOWS)
-  const [selectedWorkflow, setSelectedWorkflow] = useState<typeof DEMO_WORKFLOWS[0] | null>(null)
+  const { demoEnabled } = useDemoModeContext()
+  const { data: apiData, loading: apiLoading, error: apiError, refetch } = useWorkflows()
+  
+// Transform API data to match our UI format, or use demo data
+  const workflowsData: WorkflowItem[] = useMemo(() => {
+    if (demoEnabled || !apiData?.items) {
+      return DEMO_WORKFLOWS
+    }
+    return apiData.items.map(workflow => ({
+      id: workflow.id,
+      name: workflow.name,
+      description: workflow.description || '',
+      trigger: workflow.trigger || 'finding.created',
+      conditions: [] as WorkflowItem['conditions'],
+      actions: [] as WorkflowItem['actions'],
+      status: workflow.status || 'active',
+      executions: 0,
+      last_executed: workflow.last_run,
+      success_rate: 100,
+      created_at: workflow.created_at,
+    }))
+  }, [demoEnabled, apiData])
+
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>(DEMO_WORKFLOWS)
+  const [filteredWorkflows, setFilteredWorkflows] = useState<WorkflowItem[]>(DEMO_WORKFLOWS)
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [triggerFilter, setTriggerFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showExecutionHistory, setShowExecutionHistory] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  // Update workflows when data source changes
+  useEffect(() => {
+    setWorkflows(workflowsData)
+    setFilteredWorkflows(workflowsData)
+  }, [workflowsData])
 
   const getTriggerColor = (trigger: string) => {
     const colors = {
@@ -229,11 +274,114 @@ export default function WorkflowsPage() {
 
   const triggers = Array.from(new Set(workflows.map(w => w.trigger)))
 
-  return (
-    <AppShell activeApp="workflows">
-      <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
-        {/* Left Sidebar - Filters */}
-        <div className="w-72 bg-[#0f172a]/80 border-r border-white/10 flex flex-col sticky top-0 min-h-screen">
+    return (
+      <AppShell activeApp="workflows">
+        <div className="flex min-h-screen bg-[#0f172a] font-sans text-white">
+          {/* Mobile Filter Overlay */}
+          {showMobileFilters && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileFilters(false)} />
+              <div className="absolute left-0 top-0 h-full w-72 bg-[#0f172a] border-r border-white/10 flex flex-col overflow-auto">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <span className="font-semibold">Filters</span>
+                  <button onClick={() => setShowMobileFilters(false)} className="p-2 hover:bg-white/10 rounded-md">
+                    <X size={18} />
+                  </button>
+                </div>
+                {/* Summary Stats */}
+                <div className="p-4 border-b border-white/10">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 bg-white/5 rounded-md">
+                      <div className="text-slate-500 mb-1">Total Workflows</div>
+                      <div className="text-xl font-semibold text-[#6B5AED]">{summary.total}</div>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded-md">
+                      <div className="text-slate-500 mb-1">Active</div>
+                      <div className="text-xl font-semibold text-green-500">{summary.active}</div>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded-md">
+                      <div className="text-slate-500 mb-1">Executions</div>
+                      <div className="text-xl font-semibold text-blue-500">{summary.total_executions}</div>
+                    </div>
+                    <div className="p-3 bg-white/5 rounded-md">
+                      <div className="text-slate-500 mb-1">Success Rate</div>
+                      <div className="text-xl font-semibold text-orange-500">{summary.avg_success_rate}%</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Filters */}
+                <div className="p-4 flex-1 overflow-auto">
+                  <div className="mb-6">
+                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Filter size={12} />
+                      Filter by Status
+                    </div>
+                    <div className="space-y-2">
+                      {['all', 'active', 'paused'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => { setStatusFilter(status); applyFilters(); setShowMobileFilters(false); }}
+                          className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
+                            statusFilter === status
+                              ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
+                              : 'text-slate-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="capitalize">{status}</span>
+                          {status !== 'all' && (
+                            <span className="ml-2 text-xs">
+                              ({workflows.filter(w => w.status === status).length})
+                            </span>
+                          )}
+                          {status === 'all' && (
+                            <span className="ml-2 text-xs">({workflows.length})</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Filter size={12} />
+                      Filter by Trigger
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => { setTriggerFilter('all'); applyFilters(); setShowMobileFilters(false); }}
+                        className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
+                          triggerFilter === 'all'
+                            ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
+                            : 'text-slate-400 hover:bg-white/5'
+                        }`}
+                      >
+                        All Triggers
+                        <span className="ml-2 text-xs">({workflows.length})</span>
+                      </button>
+                      {triggers.map((trigger) => (
+                        <button
+                          key={trigger}
+                          onClick={() => { setTriggerFilter(trigger); applyFilters(); setShowMobileFilters(false); }}
+                          className={`w-full p-2.5 rounded-md text-sm font-medium text-left transition-all ${
+                            triggerFilter === trigger
+                              ? 'bg-[#6B5AED]/10 text-[#6B5AED] border border-[#6B5AED]/30'
+                              : 'text-slate-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="truncate">{trigger.replace('.', ' ')}</span>
+                          <span className="ml-2 text-xs">
+                            ({workflows.filter(w => w.trigger === trigger).length})
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Left Sidebar - Filters */}
+          <div className="hidden lg:flex w-72 bg-[#0f172a]/80 border-r border-white/10 flex-col sticky top-0 h-screen">
           {/* Header */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-4">
@@ -335,24 +483,55 @@ export default function WorkflowsPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+{/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <div className="p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
+          <div className="p-4 lg:p-5 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-1">Workflows</h1>
-                <p className="text-sm text-slate-500">
-                  Showing {filteredWorkflows.length} workflow{filteredWorkflows.length !== 1 ? 's' : ''}
-                </p>
+              <div className="flex items-center gap-3">
+                {/* Mobile Filter Toggle */}
+                <button
+                  onClick={() => setShowMobileFilters(true)}
+                  className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-md hover:bg-white/10 transition-colors"
+                >
+                  <Filter size={18} />
+                </button>
+                <div>
+                  <h1 className="text-xl lg:text-2xl font-semibold mb-1">Workflows</h1>
+                  <p className="text-sm text-slate-500 flex items-center gap-2">
+                    {apiLoading && !demoEnabled ? (
+                      <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                    ) : (
+                      <>Showing {filteredWorkflows.length} workflow{filteredWorkflows.length !== 1 ? 's' : ''}</>
+                    )}
+                    {!demoEnabled && apiError && (
+                      <span className="text-amber-400 flex items-center gap-1">
+                        <WifiOff size={12} /> Using cached data
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Create Workflow
-              </button>
+              <div className="flex items-center gap-2">
+                {!demoEnabled && (
+                  <button
+                    onClick={() => refetch()}
+                    disabled={apiLoading}
+                    className="p-2 hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                    title="Refresh data"
+                  >
+                    <RefreshCw size={16} className={apiLoading ? 'animate-spin' : ''} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-4 py-2 bg-[#6B5AED] hover:bg-[#5B4ADD] rounded-md text-white text-sm font-medium transition-all flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Create Workflow</span>
+                  <span className="sm:hidden">New</span>
+                </button>
+              </div>
             </div>
 
             {/* Search Bar */}

@@ -20,6 +20,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
+from apps.api.dependencies import get_org_id
+
 # Load the marketplace service module directly using importlib to avoid path conflicts
 # This is optional - if enterprise modules aren't present, we use stub implementations
 _service_path = (
@@ -328,6 +330,7 @@ async def fetch_pack(framework: str, control: str) -> dict:
 # New marketplace endpoints (cherry-picked from legacy)
 @router.get("/browse")
 async def browse_marketplace(
+    org_id: str = Depends(get_org_id),
     content_type: Optional[str] = Query(None, description="Filter by content type"),
     compliance_framework: Optional[str] = Query(
         None, description="Filter by compliance framework"
