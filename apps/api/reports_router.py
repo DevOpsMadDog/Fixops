@@ -1,20 +1,39 @@
 """
-Report management API endpoints.
+Report management API endpoints with real report generation.
+
+This module provides production-ready report generation with:
+- Real data aggregation from database
+- Multiple export formats (PDF, JSON, CSV, SARIF, HTML)
+- Scheduled report generation
+- Template-based customization
+- Async report processing
 """
-from datetime import datetime
+import csv
+import hashlib
+import io
+import logging
+import os
+import uuid
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
 from core.report_db import ReportDB
 from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 db = ReportDB()
+
+# Report generation directory
+REPORTS_DIR = Path(os.environ.get("FIXOPS_REPORTS_DIR", "/tmp/fixops_reports"))
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class ReportCreate(BaseModel):
@@ -244,22 +263,312 @@ async def list_templates(
 
 @router.post("/export/sarif")
 async def export_sarif(
-    start_date: Optional[str] = None, end_date: Optional[str] = None
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    include_suppressed: bool = False,
 ):
-    """Export findings as SARIF format."""
-    return {
-        "format": "sarif",
+    """Export findings as SARIF format with real data.
+
+    Generates a SARIF 2.1.0 compliant report from actual findings data.
+    """
+    # Parse date filters
+    start_dt = (
+        datetime.fromisoformat(start_date)
+        if start_date
+        else datetime.utcnow() - timedelta(days=30)
+    )
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+
+    # Get reports within date range
+    reports = db.list_reports(limit=1000, offset=0)
+    filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
+
+    # Build SARIF structure with real data
+    sarif_results: List[Dict[str, Any]] = []
+    sarif_rules: List[Dict[str, Any]] = []
+    rule_ids_seen: set[str] = set()
+
+    for report in filtered_reports:
+        # Extract findings from report parameters if available
+        findings = report.parameters.get("findings", [])
+        for finding in findings:
+            rule_id = finding.get("rule_id", f"RULE-{len(sarif_rules) + 1}")
+
+            # Add rule if not seen
+            if rule_id not in rule_ids_seen:
+                rule_ids_seen.add(rule_id)
+                sarif_rules.append(
+                    {
+                        "id": rule_id,
+                        "name": finding.get("name", rule_id),
+                        "shortDescription": {
+                            "text": finding.get("message", "Security finding")
+                        },
+                        "fullDescription": {"text": finding.get("description", "")},
+                        "defaultConfiguration": {
+                            "level": _severity_to_sarif_level(
+                                finding.get("severity", "medium")
+                            )
+                        },
+                        "properties": {
+                            "tags": finding.get("tags", []),
+                            "cwe": finding.get("cwe_id"),
+                        },
+                    }
+                )
+
+            # Add result
+            sarif_results.append(
+                {
+                    "ruleId": rule_id,
+                    "level": _severity_to_sarif_level(
+                        finding.get("severity", "medium")
+                    ),
+                    "message": {"text": finding.get("message", "Finding detected")},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {
+                                    "uri": finding.get("file_path", "unknown"),
+                                    "uriBaseId": "%SRCROOT%",
+                                },
+                                "region": {
+                                    "startLine": finding.get("line", 1),
+                                    "startColumn": finding.get("column", 1),
+                                },
+                            }
+                        }
+                    ]
+                    if finding.get("file_path")
+                    else [],
+                    "fingerprints": {
+                        "primaryLocationLineHash": hashlib.sha256(
+                            f"{finding.get('file_path', '')}:{finding.get('line', 0)}".encode()
+                        ).hexdigest()[:16],
+                    },
+                    "properties": {
+                        "report_id": report.id,
+                        "created_at": report.created_at.isoformat(),
+                    },
+                }
+            )
+
+    sarif_output = {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [],
-        "message": "SARIF export completed",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "FixOps Security Scanner",
+                        "version": "2.0.0",
+                        "informationUri": "https://fixops.io",
+                        "rules": sarif_rules,
+                    }
+                },
+                "results": sarif_results,
+                "invocations": [
+                    {
+                        "executionSuccessful": True,
+                        "startTimeUtc": start_dt.isoformat() + "Z",
+                        "endTimeUtc": end_dt.isoformat() + "Z",
+                    }
+                ],
+            }
+        ],
     }
+
+    return sarif_output
+
+
+def _severity_to_sarif_level(severity: str) -> str:
+    """Convert severity to SARIF level."""
+    mapping = {
+        "critical": "error",
+        "high": "error",
+        "medium": "warning",
+        "low": "note",
+        "info": "note",
+    }
+    return mapping.get(severity.lower(), "warning")
 
 
 @router.post("/export/csv")
-async def export_csv(start_date: Optional[str] = None, end_date: Optional[str] = None):
-    """Export findings as CSV format."""
+async def export_csv(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    include_headers: bool = True,
+):
+    """Export findings as CSV format with real data.
+
+    Generates a CSV report from actual findings data.
+    """
+    # Parse date filters
+    start_dt = (
+        datetime.fromisoformat(start_date)
+        if start_date
+        else datetime.utcnow() - timedelta(days=30)
+    )
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+
+    # Get reports within date range
+    reports = db.list_reports(limit=1000, offset=0)
+    filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
+
+    # Generate CSV content
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    if include_headers:
+        writer.writerow(
+            [
+                "Report ID",
+                "Report Name",
+                "Report Type",
+                "Status",
+                "Created At",
+                "Completed At",
+                "Finding ID",
+                "Severity",
+                "Message",
+                "File Path",
+                "Line",
+                "CWE ID",
+            ]
+        )
+
+    for report in filtered_reports:
+        findings = report.parameters.get("findings", [])
+        if findings:
+            for finding in findings:
+                writer.writerow(
+                    [
+                        report.id,
+                        report.name,
+                        report.report_type.value,
+                        report.status.value,
+                        report.created_at.isoformat(),
+                        report.completed_at.isoformat() if report.completed_at else "",
+                        finding.get("id", ""),
+                        finding.get("severity", ""),
+                        finding.get("message", ""),
+                        finding.get("file_path", ""),
+                        finding.get("line", ""),
+                        finding.get("cwe_id", ""),
+                    ]
+                )
+        else:
+            # Report without findings
+            writer.writerow(
+                [
+                    report.id,
+                    report.name,
+                    report.report_type.value,
+                    report.status.value,
+                    report.created_at.isoformat(),
+                    report.completed_at.isoformat() if report.completed_at else "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                ]
+            )
+
+    csv_content = output.getvalue()
+
+    # Save to file
+    export_id = str(uuid.uuid4())[:8]
+    export_path = REPORTS_DIR / f"export_{export_id}.csv"
+    export_path.write_text(csv_content)
+
+    return StreamingResponse(
+        io.BytesIO(csv_content.encode()),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=fixops_export_{export_id}.csv"
+        },
+    )
+
+
+@router.get("/export/json")
+async def export_json(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Export findings as JSON format with real data."""
+    # Parse date filters
+    start_dt = (
+        datetime.fromisoformat(start_date)
+        if start_date
+        else datetime.utcnow() - timedelta(days=30)
+    )
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+
+    # Get reports within date range
+    reports = db.list_reports(limit=1000, offset=0)
+    filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
+
+    # Build JSON export
+    export_data = {
+        "export_metadata": {
+            "generated_at": datetime.utcnow().isoformat(),
+            "start_date": start_dt.isoformat(),
+            "end_date": end_dt.isoformat(),
+            "total_reports": len(filtered_reports),
+        },
+        "reports": [r.to_dict() for r in filtered_reports],
+    }
+
+    return export_data
+
+
+@router.get("/stats")
+async def get_report_stats(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Get report statistics and metrics."""
+    # Parse date filters
+    start_dt = (
+        datetime.fromisoformat(start_date)
+        if start_date
+        else datetime.utcnow() - timedelta(days=30)
+    )
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+
+    # Get reports within date range
+    reports = db.list_reports(limit=10000, offset=0)
+    filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
+
+    # Calculate statistics
+    by_type: Dict[str, int] = {}
+    by_status: Dict[str, int] = {}
+    by_format: Dict[str, int] = {}
+    total_findings = 0
+    severity_counts: Dict[str, int] = {}
+
+    for report in filtered_reports:
+        by_type[report.report_type.value] = by_type.get(report.report_type.value, 0) + 1
+        by_status[report.status.value] = by_status.get(report.status.value, 0) + 1
+        by_format[report.format.value] = by_format.get(report.format.value, 0) + 1
+
+        findings = report.parameters.get("findings", [])
+        total_findings += len(findings)
+        for finding in findings:
+            sev = finding.get("severity", "unknown")
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+
     return {
-        "format": "csv",
-        "download_url": "/api/v1/reports/exports/latest.csv",
-        "message": "CSV export completed",
+        "period": {
+            "start": start_dt.isoformat(),
+            "end": end_dt.isoformat(),
+        },
+        "total_reports": len(filtered_reports),
+        "total_findings": total_findings,
+        "by_type": by_type,
+        "by_status": by_status,
+        "by_format": by_format,
+        "findings_by_severity": severity_counts,
     }
