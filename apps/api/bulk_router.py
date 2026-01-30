@@ -698,6 +698,7 @@ async def bulk_update_cluster_status(
         request.ids,
         request.new_status,
         request.reason,
+        request.changed_by,
     )
 
     return JobResponse(

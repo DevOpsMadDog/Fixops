@@ -338,8 +338,8 @@ async def trigger_sync(id: str):
             connector = JiraConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_result["success"] = outcome.healthy
+                sync_result["details"] = outcome.to_dict()
             else:
                 sync_result["details"]["error"] = "Jira connector not configured"
 
@@ -347,8 +347,8 @@ async def trigger_sync(id: str):
             connector = ServiceNowConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_result["success"] = outcome.healthy
+                sync_result["details"] = outcome.to_dict()
             else:
                 sync_result["details"]["error"] = "ServiceNow connector not configured"
 
@@ -356,8 +356,8 @@ async def trigger_sync(id: str):
             connector = GitLabConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_result["success"] = outcome.healthy
+                sync_result["details"] = outcome.to_dict()
             else:
                 sync_result["details"]["error"] = "GitLab connector not configured"
 
@@ -365,8 +365,8 @@ async def trigger_sync(id: str):
             connector = GitHubConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_result["success"] = outcome.healthy
+                sync_result["details"] = outcome.to_dict()
             else:
                 sync_result["details"]["error"] = "GitHub connector not configured"
 
@@ -374,8 +374,8 @@ async def trigger_sync(id: str):
             connector = AzureDevOpsConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_result["success"] = outcome.healthy
+                sync_result["details"] = outcome.to_dict()
             else:
                 sync_result["details"][
                     "error"
@@ -396,8 +396,8 @@ async def trigger_sync(id: str):
             connector = ConfluenceConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_result["success"] = outcome.healthy
+                sync_result["details"] = outcome.to_dict()
             else:
                 sync_result["details"]["error"] = "Confluence connector not configured"
 
