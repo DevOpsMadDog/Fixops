@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
@@ -378,7 +378,14 @@ async def export_sarif(
         ],
     }
 
-    return sarif_output
+    # Return response with format metadata for API compatibility
+    return {
+        "format": "sarif",
+        "version": "2.1.0",
+        "sarif": sarif_output,
+        "total_results": len(sarif_results),
+        "total_rules": len(sarif_rules),
+    }
 
 
 def _severity_to_sarif_level(severity: str) -> str:
@@ -483,13 +490,20 @@ async def export_csv(
     export_path = REPORTS_DIR / f"export_{export_id}.csv"
     export_path.write_text(csv_content)
 
-    return StreamingResponse(
-        io.BytesIO(csv_content.encode()),
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=fixops_export_{export_id}.csv"
-        },
-    )
+    # Count rows (excluding header if present)
+    row_count = csv_content.count("\n")
+    if include_headers and row_count > 0:
+        row_count -= 1
+
+    # Return JSON response with format metadata for API compatibility
+    return {
+        "format": "csv",
+        "export_id": export_id,
+        "file_path": str(export_path),
+        "total_rows": row_count,
+        "total_reports": len(filtered_reports),
+        "download_url": f"/api/v1/reports/export/csv/{export_id}/download",
+    }
 
 
 @router.get("/export/json")
