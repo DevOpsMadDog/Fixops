@@ -139,10 +139,12 @@ async def get_report_stats(
             status_code=400, detail="Invalid date format, expected ISO 8601"
         )
 
+    from datetime import timezone
+
     if start_dt.tzinfo is not None:
-        start_dt = start_dt.replace(tzinfo=None)
+        start_dt = start_dt.astimezone(timezone.utc).replace(tzinfo=None)
     if end_dt.tzinfo is not None:
-        end_dt = end_dt.replace(tzinfo=None)
+        end_dt = end_dt.astimezone(timezone.utc).replace(tzinfo=None)
 
     reports = db.list_reports(limit=10000, offset=0)
     filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
