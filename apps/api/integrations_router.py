@@ -383,8 +383,8 @@ async def trigger_sync(id: str):
         elif integration.integration_type == IntegrationType.SLACK:
             slack_connector = SlackConnector(integration.config)
             if slack_connector.default_webhook:
-                slack_outcome = slack_connector.send_notification(
-                    {"message": "FixOps sync test", "channel": "default"}
+                slack_outcome = slack_connector.post_message(
+                    {"text": "FixOps sync test", "channel": "default"}
                 )
                 sync_success = slack_outcome.success
                 sync_details = slack_outcome.details
