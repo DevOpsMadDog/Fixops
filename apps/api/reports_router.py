@@ -127,12 +127,22 @@ async def get_report_stats(
     end_date: Optional[str] = None,
 ):
     """Get report statistics and metrics."""
-    start_dt = (
-        datetime.fromisoformat(start_date)
-        if start_date
-        else datetime.utcnow() - timedelta(days=30)
-    )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    try:
+        start_dt = (
+            datetime.fromisoformat(start_date)
+            if start_date
+            else datetime.utcnow() - timedelta(days=30)
+        )
+        end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid date format, expected ISO 8601"
+        )
+
+    if start_dt.tzinfo is not None:
+        start_dt = start_dt.replace(tzinfo=None)
+    if end_dt.tzinfo is not None:
+        end_dt = end_dt.replace(tzinfo=None)
 
     reports = db.list_reports(limit=10000, offset=0)
     filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
