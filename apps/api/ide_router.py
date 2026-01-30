@@ -354,15 +354,32 @@ def calculate_cognitive_complexity(content: str, language: str) -> int:
         # Additional complexity for logical operators
         complexity += len(re.findall(r"\b(and|or|&&|\|\|)\b", stripped))
 
-    # Recursion detection - use a safer two-step approach to avoid ReDoS
-    # First extract function names, then check if they're called within the content
-    func_defs = re.findall(r"def\s+(\w+)\s*\(", content)
-    for func_name in func_defs:
-        # Check if the function name appears as a call after its definition
-        # Use word boundaries and a simple pattern to avoid catastrophic backtracking
+    # Recursion detection - check if any function calls itself within its body
+    # Use a safer approach that finds function definitions and checks for self-calls
+    # within the function body (between this def and the next def at same indentation)
+    lines = content.split("\n")
+    func_starts: list[tuple[str, int, int]] = []  # (name, line_index, indent_level)
+
+    for i, line in enumerate(lines):
+        match = re.match(r"^(\s*)def\s+(\w+)\s*\(", line)
+        if match:
+            indent = len(match.group(1))
+            func_name = match.group(2)
+            func_starts.append((func_name, i, indent))
+
+    for idx, (func_name, start_line, indent) in enumerate(func_starts):
+        # Find the end of this function (next def at same or lower indent, or EOF)
+        end_line = len(lines)
+        for next_idx in range(idx + 1, len(func_starts)):
+            _, next_start, next_indent = func_starts[next_idx]
+            if next_indent <= indent:
+                end_line = next_start
+                break
+
+        # Check if function name appears as a call within its body
+        func_body = "\n".join(lines[start_line + 1 : end_line])
         call_pattern = rf"\b{re.escape(func_name)}\s*\("
-        # Count occurrences - if more than 1, it's likely recursive
-        if len(re.findall(call_pattern, content)) > 1:
+        if re.search(call_pattern, func_body):
             complexity += 2
             break  # Only add recursion penalty once
 
