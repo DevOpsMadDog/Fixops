@@ -354,9 +354,17 @@ def calculate_cognitive_complexity(content: str, language: str) -> int:
         # Additional complexity for logical operators
         complexity += len(re.findall(r"\b(and|or|&&|\|\|)\b", stripped))
 
-        # Recursion adds complexity
-        if re.search(r"def\s+(\w+).*\1\s*\(", content):
+    # Recursion detection - use a safer two-step approach to avoid ReDoS
+    # First extract function names, then check if they're called within the content
+    func_defs = re.findall(r"def\s+(\w+)\s*\(", content)
+    for func_name in func_defs:
+        # Check if the function name appears as a call after its definition
+        # Use word boundaries and a simple pattern to avoid catastrophic backtracking
+        call_pattern = rf"\b{re.escape(func_name)}\s*\("
+        # Count occurrences - if more than 1, it's likely recursive
+        if len(re.findall(call_pattern, content)) > 1:
             complexity += 2
+            break  # Only add recursion penalty once
 
     return complexity
 
