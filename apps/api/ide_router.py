@@ -355,33 +355,36 @@ def calculate_cognitive_complexity(content: str, language: str) -> int:
         complexity += len(re.findall(r"\b(and|or|&&|\|\|)\b", stripped))
 
     # Recursion detection - check if any function calls itself within its body
-    # Use a safer approach that finds function definitions and checks for self-calls
-    # within the function body (between this def and the next def at same indentation)
+    # Use dedent detection to find the true function body end
     lines = content.split("\n")
-    func_starts: list[tuple[str, int, int]] = []  # (name, line_index, indent_level)
 
     for i, line in enumerate(lines):
         match = re.match(r"^(\s*)def\s+(\w+)\s*\(", line)
         if match:
-            indent = len(match.group(1))
+            func_indent = len(match.group(1))
             func_name = match.group(2)
-            func_starts.append((func_name, i, indent))
 
-    for idx, (func_name, start_line, indent) in enumerate(func_starts):
-        # Find the end of this function (next def at same or lower indent, or EOF)
-        end_line = len(lines)
-        for next_idx in range(idx + 1, len(func_starts)):
-            _, next_start, next_indent = func_starts[next_idx]
-            if next_indent <= indent:
-                end_line = next_start
-                break
+            # Find the end of this function by looking for first dedent
+            # (line with indentation <= function def, excluding blank/comment lines)
+            end_line = len(lines)
+            for j in range(i + 1, len(lines)):
+                body_line = lines[j]
+                # Skip blank lines and comment-only lines
+                stripped = body_line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                # Check indentation - if dedented to function level or less, function ends
+                line_indent = len(body_line) - len(body_line.lstrip())
+                if line_indent <= func_indent:
+                    end_line = j
+                    break
 
-        # Check if function name appears as a call within its body
-        func_body = "\n".join(lines[start_line + 1 : end_line])
-        call_pattern = rf"\b{re.escape(func_name)}\s*\("
-        if re.search(call_pattern, func_body):
-            complexity += 2
-            break  # Only add recursion penalty once
+            # Check if function name appears as a call within its body
+            func_body = "\n".join(lines[i + 1 : end_line])
+            call_pattern = rf"\b{re.escape(func_name)}\s*\("
+            if re.search(call_pattern, func_body):
+                complexity += 2
+                break  # Only add recursion penalty once
 
     return complexity
 
