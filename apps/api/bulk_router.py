@@ -563,15 +563,15 @@ async def _process_bulk_tickets(
                 action["project_key"] = project_key
 
             outcome = None
-            if connector_type == IntegrationType.JIRA:
+            if isinstance(connector, JiraConnector):
                 outcome = connector.create_issue(action)
-            elif connector_type == IntegrationType.SERVICENOW:
+            elif isinstance(connector, ServiceNowConnector):
                 outcome = connector.create_incident(action)
-            elif connector_type == IntegrationType.GITLAB:
+            elif isinstance(connector, GitLabConnector):
                 outcome = connector.create_issue(action)
-            elif connector_type == IntegrationType.GITHUB:
+            elif isinstance(connector, GitHubConnector):
                 outcome = connector.create_issue(action)
-            elif connector_type == IntegrationType.AZURE_DEVOPS:
+            elif isinstance(connector, AzureDevOpsConnector):
                 outcome = connector.create_work_item(action)
 
             if outcome and outcome.success:
