@@ -121,6 +121,53 @@ async def generate_report(report_data: ReportCreate):
     return ReportResponse(**created_report.to_dict())
 
 
+@router.get("/stats")
+async def get_report_stats(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Get report statistics and metrics."""
+    start_dt = (
+        datetime.fromisoformat(start_date)
+        if start_date
+        else datetime.utcnow() - timedelta(days=30)
+    )
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+
+    reports = db.list_reports(limit=10000, offset=0)
+    filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
+
+    by_type: Dict[str, int] = {}
+    by_status: Dict[str, int] = {}
+    by_format: Dict[str, int] = {}
+    total_findings = 0
+    severity_counts: Dict[str, int] = {}
+
+    for report in filtered_reports:
+        by_type[report.report_type.value] = by_type.get(report.report_type.value, 0) + 1
+        by_status[report.status.value] = by_status.get(report.status.value, 0) + 1
+        by_format[report.format.value] = by_format.get(report.format.value, 0) + 1
+
+        findings = report.parameters.get("findings", [])
+        total_findings += len(findings)
+        for finding in findings:
+            sev = finding.get("severity", "unknown")
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+
+    return {
+        "period": {
+            "start": start_dt.isoformat(),
+            "end": end_dt.isoformat(),
+        },
+        "total_reports": len(filtered_reports),
+        "total_findings": total_findings,
+        "by_type": by_type,
+        "by_status": by_status,
+        "by_format": by_format,
+        "findings_by_severity": severity_counts,
+    }
+
+
 @router.get("/{id}", response_model=ReportResponse)
 async def get_report(id: str):
     """Get report details by ID."""
@@ -586,53 +633,3 @@ async def export_json(
     }
 
     return export_data
-
-
-@router.get("/stats")
-async def get_report_stats(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-):
-    """Get report statistics and metrics."""
-    # Parse date filters
-    start_dt = (
-        datetime.fromisoformat(start_date)
-        if start_date
-        else datetime.utcnow() - timedelta(days=30)
-    )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
-
-    # Get reports within date range
-    reports = db.list_reports(limit=10000, offset=0)
-    filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
-
-    # Calculate statistics
-    by_type: Dict[str, int] = {}
-    by_status: Dict[str, int] = {}
-    by_format: Dict[str, int] = {}
-    total_findings = 0
-    severity_counts: Dict[str, int] = {}
-
-    for report in filtered_reports:
-        by_type[report.report_type.value] = by_type.get(report.report_type.value, 0) + 1
-        by_status[report.status.value] = by_status.get(report.status.value, 0) + 1
-        by_format[report.format.value] = by_format.get(report.format.value, 0) + 1
-
-        findings = report.parameters.get("findings", [])
-        total_findings += len(findings)
-        for finding in findings:
-            sev = finding.get("severity", "unknown")
-            severity_counts[sev] = severity_counts.get(sev, 0) + 1
-
-    return {
-        "period": {
-            "start": start_dt.isoformat(),
-            "end": end_dt.isoformat(),
-        },
-        "total_reports": len(filtered_reports),
-        "total_findings": total_findings,
-        "by_type": by_type,
-        "by_status": by_status,
-        "by_format": by_format,
-        "findings_by_severity": severity_counts,
-    }
