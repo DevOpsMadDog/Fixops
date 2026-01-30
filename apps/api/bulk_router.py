@@ -563,16 +563,19 @@ async def _process_bulk_tickets(
                 action["project_key"] = project_key
 
             outcome = None
-            if isinstance(connector, JiraConnector):
-                outcome = connector.create_issue(action)
-            elif isinstance(connector, ServiceNowConnector):
-                outcome = connector.create_incident(action)
-            elif isinstance(connector, GitLabConnector):
-                outcome = connector.create_issue(action)
-            elif isinstance(connector, GitHubConnector):
-                outcome = connector.create_issue(action)
-            elif isinstance(connector, AzureDevOpsConnector):
-                outcome = connector.create_work_item(action)
+            # Use connector_type for dispatch since connector is already assigned
+            # based on connector_type above. Type narrowing is guaranteed by the
+            # if/elif chain that assigns connector.
+            if connector_type == IntegrationType.JIRA:
+                outcome = connector.create_issue(action)  # type: ignore[union-attr]
+            elif connector_type == IntegrationType.SERVICENOW:
+                outcome = connector.create_incident(action)  # type: ignore[union-attr]
+            elif connector_type == IntegrationType.GITLAB:
+                outcome = connector.create_issue(action)  # type: ignore[union-attr]
+            elif connector_type == IntegrationType.GITHUB:
+                outcome = connector.create_issue(action)  # type: ignore[union-attr]
+            elif connector_type == IntegrationType.AZURE_DEVOPS:
+                outcome = connector.create_work_item(action)  # type: ignore[union-attr]
 
             if outcome and outcome.success:
                 ticket_id = (
