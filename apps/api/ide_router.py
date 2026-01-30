@@ -354,37 +354,37 @@ def calculate_cognitive_complexity(content: str, language: str) -> int:
         # Additional complexity for logical operators
         complexity += len(re.findall(r"\b(and|or|&&|\|\|)\b", stripped))
 
-    # Recursion detection - check if any function calls itself within its body
-    # Use dedent detection to find the true function body end
-    lines = content.split("\n")
-
-    for i, line in enumerate(lines):
-        match = re.match(r"^(\s*)def\s+(\w+)\s*\(", line)
-        if match:
-            func_indent = len(match.group(1))
-            func_name = match.group(2)
-
-            # Find the end of this function by looking for first dedent
-            # (line with indentation <= function def, excluding blank/comment lines)
-            end_line = len(lines)
-            for j in range(i + 1, len(lines)):
-                body_line = lines[j]
-                # Skip blank lines and comment-only lines
-                stripped = body_line.strip()
-                if not stripped or stripped.startswith("#"):
-                    continue
-                # Check indentation - if dedented to function level or less, function ends
-                line_indent = len(body_line) - len(body_line.lstrip())
-                if line_indent <= func_indent:
-                    end_line = j
-                    break
-
-            # Check if function name appears as a call within its body
-            func_body = "\n".join(lines[i + 1 : end_line])
+    # Recursion detection - use AST for Python to handle multiline strings correctly
+    if language.lower() == "python":
+        try:
+            tree = ast.parse(content)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    func_name = node.name
+                    # Check if this function calls itself within its body
+                    for child in ast.walk(node):
+                        if isinstance(child, ast.Call):
+                            # Check if the call is to a Name (simple function call)
+                            if isinstance(child.func, ast.Name):
+                                if child.func.id == func_name:
+                                    complexity += 2
+                                    break
+                    else:
+                        continue
+                    break  # Only add recursion penalty once
+        except SyntaxError:
+            pass  # If AST parsing fails, skip recursion detection
+    else:
+        # For non-Python languages, use simple pattern matching
+        # This is a best-effort approach for other languages
+        func_pattern = r"(?:function|def|fn|func)\s+(\w+)"
+        for match in re.finditer(func_pattern, content):
+            func_name = match.group(1)
             call_pattern = rf"\b{re.escape(func_name)}\s*\("
-            if re.search(call_pattern, func_body):
+            # Count occurrences - if more than 1, likely recursive
+            if len(re.findall(call_pattern, content)) > 1:
                 complexity += 2
-                break  # Only add recursion penalty once
+                break
 
     return complexity
 
