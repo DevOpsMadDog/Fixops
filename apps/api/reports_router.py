@@ -536,6 +536,9 @@ async def download_csv_export(export_id: str):
 
     if reports_dir_resolved.exists() and reports_dir_resolved.is_dir():
         for file_path in reports_dir_resolved.iterdir():
+            # Reject symlinks to prevent leaking arbitrary files
+            if file_path.is_symlink():
+                continue
             if file_path.name == expected_filename and file_path.is_file():
                 matching_file = file_path
                 break
