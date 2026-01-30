@@ -519,34 +519,35 @@ async def download_csv_export(export_id: str):
     import re
 
     # Validate export_id format to prevent path traversal attacks
-    # Export IDs are 8-character UUID fragments (alphanumeric and hyphens only)
+    # Export IDs are 8-character UUID fragments (hex characters only)
     if not re.match(r"^[a-f0-9]{8}$", export_id):
         raise HTTPException(
             status_code=400,
             detail="Invalid export ID format",
         )
 
-    # Construct the path safely
-    export_path = REPORTS_DIR / f"export_{export_id}.csv"
+    # Build expected filename from validated export_id
+    expected_filename = f"export_{export_id}.csv"
 
-    # Resolve to absolute path and verify it's within REPORTS_DIR
-    resolved_path = export_path.resolve()
+    # List files in REPORTS_DIR and find matching file
+    # This approach avoids constructing paths from user input
     reports_dir_resolved = REPORTS_DIR.resolve()
+    matching_file = None
 
-    if not str(resolved_path).startswith(str(reports_dir_resolved)):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid export path",
-        )
+    if reports_dir_resolved.exists() and reports_dir_resolved.is_dir():
+        for file_path in reports_dir_resolved.iterdir():
+            if file_path.name == expected_filename and file_path.is_file():
+                matching_file = file_path
+                break
 
-    if not resolved_path.exists():
+    if matching_file is None:
         raise HTTPException(
             status_code=404,
             detail=f"CSV export with ID '{export_id}' not found or has expired",
         )
 
     return FileResponse(
-        path=str(resolved_path),
+        path=str(matching_file),
         media_type="text/csv",
         filename=f"fixops_export_{export_id}.csv",
     )
