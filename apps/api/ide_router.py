@@ -809,7 +809,12 @@ async def get_suggestions(
 
             # Python-specific suggestions
             if language.lower() == "python":
-                if before_cursor.strip().endswith("def "):
+                # Check if user is typing a function definition
+                # Use rstrip to preserve leading whitespace but check for "def " pattern
+                if (
+                    before_cursor.rstrip() != before_cursor
+                    and before_cursor.rstrip().endswith("def")
+                ):
                     suggestions.append(
                         {
                             "type": "snippet",
