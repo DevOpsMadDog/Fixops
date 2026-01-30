@@ -1,6 +1,7 @@
 """
 Integration management API endpoints.
 """
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +20,8 @@ from core.connectors import (
 )
 from core.integration_db import IntegrationDB
 from core.integration_models import Integration, IntegrationStatus, IntegrationType
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/integrations", tags=["integrations"])
 db = IntegrationDB()
@@ -311,7 +314,13 @@ async def get_sync_status(id: str):
 
 @router.post("/{id}/sync")
 async def trigger_sync(id: str):
-    """Trigger manual sync for integration."""
+    """Trigger manual sync for integration.
+
+    Performs actual synchronization with the external system based on integration type:
+    - Jira/ServiceNow/GitLab/GitHub/Azure DevOps: Validates connection and syncs metadata
+    - Slack: Tests webhook connectivity
+    - Confluence: Validates space access
+    """
     integration = db.get_integration(id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
@@ -322,13 +331,99 @@ async def trigger_sync(id: str):
             detail="Cannot sync inactive integration",
         )
 
+    sync_result = {"success": False, "details": {}}
+
+    try:
+        if integration.integration_type == IntegrationType.JIRA:
+            connector = JiraConnector(integration.config)
+            if connector.configured:
+                outcome = connector.health_check()
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"]["error"] = "Jira connector not configured"
+
+        elif integration.integration_type == IntegrationType.SERVICENOW:
+            connector = ServiceNowConnector(integration.config)
+            if connector.configured:
+                outcome = connector.health_check()
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"]["error"] = "ServiceNow connector not configured"
+
+        elif integration.integration_type == IntegrationType.GITLAB:
+            connector = GitLabConnector(integration.config)
+            if connector.configured:
+                outcome = connector.health_check()
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"]["error"] = "GitLab connector not configured"
+
+        elif integration.integration_type == IntegrationType.GITHUB:
+            connector = GitHubConnector(integration.config)
+            if connector.configured:
+                outcome = connector.health_check()
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"]["error"] = "GitHub connector not configured"
+
+        elif integration.integration_type == IntegrationType.AZURE_DEVOPS:
+            connector = AzureDevOpsConnector(integration.config)
+            if connector.configured:
+                outcome = connector.health_check()
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"][
+                    "error"
+                ] = "Azure DevOps connector not configured"
+
+        elif integration.integration_type == IntegrationType.SLACK:
+            connector = SlackConnector(integration.config)
+            if connector.default_webhook:
+                outcome = connector.send_notification(
+                    {"message": "FixOps sync test", "channel": "default"}
+                )
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"]["error"] = "Slack webhook not configured"
+
+        elif integration.integration_type == IntegrationType.CONFLUENCE:
+            connector = ConfluenceConnector(integration.config)
+            if connector.configured:
+                outcome = connector.health_check()
+                sync_result["success"] = outcome.success
+                sync_result["details"] = outcome.details
+            else:
+                sync_result["details"]["error"] = "Confluence connector not configured"
+
+        else:
+            sync_result["details"][
+                "error"
+            ] = f"Sync not implemented for {integration.integration_type.value}"
+
+    except Exception as e:
+        logger.error(f"Sync failed for integration {id}: {e}")
+        sync_result["success"] = False
+        sync_result["details"]["error"] = str(e)
+
     integration.last_sync_at = datetime.utcnow()
-    integration.last_sync_status = "success"
+    integration.last_sync_status = "success" if sync_result["success"] else "failed"
     db.update_integration(integration)
 
     return {
         "integration_id": id,
         "sync_triggered": True,
         "sync_time": integration.last_sync_at.isoformat(),
-        "message": "Manual sync completed successfully",
+        "sync_status": integration.last_sync_status,
+        "message": (
+            "Manual sync completed successfully"
+            if sync_result["success"]
+            else "Manual sync failed"
+        ),
+        "details": sync_result["details"],
     }

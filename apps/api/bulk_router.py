@@ -1,17 +1,56 @@
 """
 Enterprise Bulk Operations API endpoints with async job support.
+
+This module provides real bulk operations that interact with the DeduplicationService
+for cluster management and external connectors for ticket creation.
 """
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from core.connectors import (
+    AzureDevOpsConnector,
+    GitHubConnector,
+    GitLabConnector,
+    JiraConnector,
+    ServiceNowConnector,
+)
+from core.integration_db import IntegrationDB
+from core.integration_models import IntegrationType
+from core.services.deduplication import ClusterStatus, DeduplicationService
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/bulk", tags=["bulk"])
+
+# Initialize services
+_DATA_DIR = Path("data/deduplication")
+_dedup_service: Optional[DeduplicationService] = None
+_integration_db: Optional[IntegrationDB] = None
+
+
+def get_dedup_service() -> DeduplicationService:
+    """Get or create deduplication service instance."""
+    global _dedup_service
+    if _dedup_service is None:
+        _dedup_service = DeduplicationService(_DATA_DIR / "clusters.db")
+    return _dedup_service
+
+
+def get_integration_db() -> IntegrationDB:
+    """Get or create integration database instance."""
+    global _integration_db
+    if _integration_db is None:
+        _integration_db = IntegrationDB()
+    return _integration_db
 
 
 class JobStatus(str, Enum):
@@ -207,33 +246,72 @@ def _complete_job(job_id: str, status: str):
 
 
 async def _process_bulk_status(
-    job_id: str, ids: List[str], new_status: str, reason: Optional[str]
+    job_id: str,
+    ids: List[str],
+    new_status: str,
+    reason: Optional[str],
+    changed_by: Optional[str] = None,
 ):
-    """Process bulk status update in background."""
+    """Process bulk status update in background using real DeduplicationService."""
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
-    for i, item_id in enumerate(ids):
+    dedup_service = get_dedup_service()
+
+    for i, cluster_id in enumerate(ids):
         if _is_job_cancelled(job_id):
             _complete_job(job_id, JobStatus.CANCELLED.value)
             return
         try:
-            await asyncio.sleep(0.01)
-            success += 1
+            updated = dedup_service.update_cluster_status(
+                cluster_id=cluster_id,
+                new_status=new_status,
+                changed_by=changed_by,
+                reason=reason,
+            )
+            if updated:
+                success += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    result={
+                        "id": cluster_id,
+                        "status": "updated",
+                        "new_status": new_status,
+                    },
+                )
+            else:
+                failure += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    error={"id": cluster_id, "error": "Cluster not found"},
+                )
+        except ValueError as e:
+            failure += 1
             _update_job_progress(
                 job_id,
                 i + 1,
                 success,
                 failure,
-                result={"id": item_id, "status": "updated", "new_status": new_status},
+                error={"id": cluster_id, "error": str(e)},
             )
         except Exception as e:
             failure += 1
+            logger.error(f"Failed to update cluster {cluster_id}: {e}")
             _update_job_progress(
-                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+                job_id,
+                i + 1,
+                success,
+                failure,
+                error={"id": cluster_id, "error": str(e)},
             )
 
     final_status = (
@@ -247,31 +325,52 @@ async def _process_bulk_status(
 async def _process_bulk_assign(
     job_id: str, ids: List[str], assignee: str, assignee_email: Optional[str]
 ):
-    """Process bulk assign in background."""
+    """Process bulk assign in background using real DeduplicationService."""
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
-    for i, item_id in enumerate(ids):
+    dedup_service = get_dedup_service()
+
+    for i, cluster_id in enumerate(ids):
         if _is_job_cancelled(job_id):
             _complete_job(job_id, JobStatus.CANCELLED.value)
             return
         try:
-            await asyncio.sleep(0.01)
-            success += 1
+            updated = dedup_service.assign_cluster(cluster_id, assignee)
+            if updated:
+                success += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    result={
+                        "id": cluster_id,
+                        "status": "assigned",
+                        "assignee": assignee,
+                    },
+                )
+            else:
+                failure += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    error={"id": cluster_id, "error": "Cluster not found"},
+                )
+        except Exception as e:
+            failure += 1
+            logger.error(f"Failed to assign cluster {cluster_id}: {e}")
             _update_job_progress(
                 job_id,
                 i + 1,
                 success,
                 failure,
-                result={"id": item_id, "status": "assigned", "assignee": assignee},
-            )
-        except Exception as e:
-            failure += 1
-            _update_job_progress(
-                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+                error={"id": cluster_id, "error": str(e)},
             )
 
     final_status = (
@@ -289,36 +388,72 @@ async def _process_bulk_accept_risk(
     approved_by: str,
     expiry_days: int,
 ):
-    """Process bulk accept risk in background."""
+    """Process bulk accept risk in background using real DeduplicationService.
+
+    Sets cluster status to 'accepted_risk' with audit trail including
+    justification and approval information.
+    """
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
-    for i, item_id in enumerate(ids):
+    dedup_service = get_dedup_service()
+
+    for i, cluster_id in enumerate(ids):
         if _is_job_cancelled(job_id):
             _complete_job(job_id, JobStatus.CANCELLED.value)
             return
         try:
-            await asyncio.sleep(0.01)
-            success += 1
+            reason = f"Risk accepted by {approved_by}. Justification: {justification}. Expires in {expiry_days} days."
+            updated = dedup_service.update_cluster_status(
+                cluster_id=cluster_id,
+                new_status=ClusterStatus.ACCEPTED_RISK.value,
+                changed_by=approved_by,
+                reason=reason,
+            )
+            if updated:
+                success += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    result={
+                        "id": cluster_id,
+                        "status": "risk_accepted",
+                        "approved_by": approved_by,
+                        "expiry_days": expiry_days,
+                    },
+                )
+            else:
+                failure += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    error={"id": cluster_id, "error": "Cluster not found"},
+                )
+        except ValueError as e:
+            failure += 1
             _update_job_progress(
                 job_id,
                 i + 1,
                 success,
                 failure,
-                result={
-                    "id": item_id,
-                    "status": "risk_accepted",
-                    "approved_by": approved_by,
-                    "expiry_days": expiry_days,
-                },
+                error={"id": cluster_id, "error": str(e)},
             )
         except Exception as e:
             failure += 1
+            logger.error(f"Failed to accept risk for cluster {cluster_id}: {e}")
             _update_job_progress(
-                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+                job_id,
+                i + 1,
+                success,
+                failure,
+                error={"id": cluster_id, "error": str(e)},
             )
 
     final_status = (
@@ -336,37 +471,154 @@ async def _process_bulk_tickets(
     project_key: Optional[str],
     issue_type: str,
 ):
-    """Process bulk ticket creation in background."""
+    """Process bulk ticket creation in background using real connectors.
+
+    Creates tickets in external systems (Jira, ServiceNow, GitLab, GitHub, Azure DevOps)
+    based on the integration configuration and links them to clusters.
+    """
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
     success = 0
     failure = 0
 
-    for i, item_id in enumerate(ids):
+    integration_db = get_integration_db()
+    dedup_service = get_dedup_service()
+
+    integration = integration_db.get_integration(integration_id)
+    if not integration:
+        _jobs[job_id]["errors"].append(
+            {"error": f"Integration {integration_id} not found"}
+        )
+        _complete_job(job_id, JobStatus.FAILED.value)
+        return
+
+    connector = None
+    connector_type = integration.integration_type
+
+    if connector_type == IntegrationType.JIRA:
+        connector = JiraConnector(integration.config)
+    elif connector_type == IntegrationType.SERVICENOW:
+        connector = ServiceNowConnector(integration.config)
+    elif connector_type == IntegrationType.GITLAB:
+        connector = GitLabConnector(integration.config)
+    elif connector_type == IntegrationType.GITHUB:
+        connector = GitHubConnector(integration.config)
+    elif connector_type == IntegrationType.AZURE_DEVOPS:
+        connector = AzureDevOpsConnector(integration.config)
+    else:
+        _jobs[job_id]["errors"].append(
+            {"error": f"Unsupported integration type: {connector_type.value}"}
+        )
+        _complete_job(job_id, JobStatus.FAILED.value)
+        return
+
+    if not connector.configured:
+        _jobs[job_id]["errors"].append(
+            {"error": f"Integration {integration_id} is not fully configured"}
+        )
+        _complete_job(job_id, JobStatus.FAILED.value)
+        return
+
+    for i, cluster_id in enumerate(ids):
         if _is_job_cancelled(job_id):
             _complete_job(job_id, JobStatus.CANCELLED.value)
             return
         try:
-            await asyncio.sleep(0.05)
-            ticket_id = f"TICKET-{i + 1000}"
-            success += 1
+            cluster = dedup_service.get_cluster(cluster_id)
+            if not cluster:
+                failure += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    error={"id": cluster_id, "error": "Cluster not found"},
+                )
+                continue
+
+            summary = cluster.get("title") or f"Security Finding: {cluster_id}"
+            description = (
+                f"Cluster ID: {cluster_id}\n"
+                f"Severity: {cluster.get('severity', 'unknown')}\n"
+                f"Category: {cluster.get('category', 'unknown')}\n"
+                f"CVE: {cluster.get('cve_id', 'N/A')}\n"
+                f"First Seen: {cluster.get('first_seen', 'unknown')}\n"
+                f"Occurrences: {cluster.get('occurrence_count', 1)}"
+            )
+
+            action = {
+                "summary": summary,
+                "description": description,
+                "issue_type": issue_type,
+                "priority": _severity_to_priority(cluster.get("severity", "medium")),
+            }
+            if project_key:
+                action["project_key"] = project_key
+
+            if connector_type == IntegrationType.JIRA:
+                outcome = connector.create_issue(action)
+            elif connector_type == IntegrationType.SERVICENOW:
+                outcome = connector.create_incident(action)
+            elif connector_type == IntegrationType.GITLAB:
+                outcome = connector.create_issue(action)
+            elif connector_type == IntegrationType.GITHUB:
+                outcome = connector.create_issue(action)
+            elif connector_type == IntegrationType.AZURE_DEVOPS:
+                outcome = connector.create_work_item(action)
+            else:
+                outcome = None
+
+            if outcome and outcome.success:
+                ticket_id = (
+                    outcome.details.get("issue_key")
+                    or outcome.details.get("issue_id")
+                    or outcome.details.get("number")
+                    or outcome.details.get("id")
+                )
+                ticket_url = outcome.details.get("url") or outcome.details.get(
+                    "endpoint"
+                )
+
+                dedup_service.link_to_ticket(cluster_id, str(ticket_id), ticket_url)
+
+                success += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    result={
+                        "id": cluster_id,
+                        "status": "ticket_created",
+                        "ticket_id": ticket_id,
+                        "ticket_url": ticket_url,
+                        "integration_id": integration_id,
+                    },
+                )
+            else:
+                error_msg = (
+                    outcome.details.get("reason", "Unknown error")
+                    if outcome
+                    else "Connector returned no outcome"
+                )
+                failure += 1
+                _update_job_progress(
+                    job_id,
+                    i + 1,
+                    success,
+                    failure,
+                    error={"id": cluster_id, "error": error_msg},
+                )
+        except Exception as e:
+            failure += 1
+            logger.error(f"Failed to create ticket for cluster {cluster_id}: {e}")
             _update_job_progress(
                 job_id,
                 i + 1,
                 success,
                 failure,
-                result={
-                    "id": item_id,
-                    "status": "ticket_created",
-                    "ticket_id": ticket_id,
-                    "integration_id": integration_id,
-                },
-            )
-        except Exception as e:
-            failure += 1
-            _update_job_progress(
-                job_id, i + 1, success, failure, error={"id": item_id, "error": str(e)}
+                error={"id": cluster_id, "error": str(e)},
             )
 
     final_status = (
@@ -375,6 +627,18 @@ async def _process_bulk_tickets(
         else (JobStatus.PARTIAL.value if success > 0 else JobStatus.FAILED.value)
     )
     _complete_job(job_id, final_status)
+
+
+def _severity_to_priority(severity: str) -> str:
+    """Map severity to ticket priority."""
+    mapping = {
+        "critical": "Highest",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "info": "Lowest",
+    }
+    return mapping.get(severity.lower(), "Medium")
 
 
 async def _process_bulk_export(
