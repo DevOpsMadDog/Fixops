@@ -506,6 +506,31 @@ async def export_csv(
     }
 
 
+@router.get("/export/csv/{export_id}/download")
+async def download_csv_export(export_id: str):
+    """Download a previously generated CSV export file.
+
+    Args:
+        export_id: The export ID returned from the export_csv endpoint.
+
+    Returns:
+        The CSV file as a download.
+    """
+    export_path = REPORTS_DIR / f"export_{export_id}.csv"
+
+    if not export_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"CSV export with ID '{export_id}' not found or has expired",
+        )
+
+    return FileResponse(
+        path=str(export_path),
+        media_type="text/csv",
+        filename=f"fixops_export_{export_id}.csv",
+    )
+
+
 @router.get("/export/json")
 async def export_json(
     start_date: Optional[str] = None,
