@@ -336,54 +336,54 @@ async def trigger_sync(id: str):
 
     try:
         if integration.integration_type == IntegrationType.JIRA:
-            connector = JiraConnector(integration.config)
-            if connector.configured:
-                outcome = connector.health_check()
+            jira_conn = JiraConnector(integration.config)
+            if jira_conn.configured:
+                outcome = jira_conn.health_check()
                 sync_success = outcome.healthy
                 sync_details = outcome.to_dict()
             else:
                 sync_details["error"] = "Jira connector not configured"
 
         elif integration.integration_type == IntegrationType.SERVICENOW:
-            connector = ServiceNowConnector(integration.config)
-            if connector.configured:
-                outcome = connector.health_check()
+            snow_conn = ServiceNowConnector(integration.config)
+            if snow_conn.configured:
+                outcome = snow_conn.health_check()
                 sync_success = outcome.healthy
                 sync_details = outcome.to_dict()
             else:
                 sync_details["error"] = "ServiceNow connector not configured"
 
         elif integration.integration_type == IntegrationType.GITLAB:
-            connector = GitLabConnector(integration.config)
-            if connector.configured:
-                outcome = connector.health_check()
+            gitlab_conn = GitLabConnector(integration.config)
+            if gitlab_conn.configured:
+                outcome = gitlab_conn.health_check()
                 sync_success = outcome.healthy
                 sync_details = outcome.to_dict()
             else:
                 sync_details["error"] = "GitLab connector not configured"
 
         elif integration.integration_type == IntegrationType.GITHUB:
-            connector = GitHubConnector(integration.config)
-            if connector.configured:
-                outcome = connector.health_check()
+            github_conn = GitHubConnector(integration.config)
+            if github_conn.configured:
+                outcome = github_conn.health_check()
                 sync_success = outcome.healthy
                 sync_details = outcome.to_dict()
             else:
                 sync_details["error"] = "GitHub connector not configured"
 
         elif integration.integration_type == IntegrationType.AZURE_DEVOPS:
-            connector = AzureDevOpsConnector(integration.config)
-            if connector.configured:
-                outcome = connector.health_check()
+            azure_conn = AzureDevOpsConnector(integration.config)
+            if azure_conn.configured:
+                outcome = azure_conn.health_check()
                 sync_success = outcome.healthy
                 sync_details = outcome.to_dict()
             else:
                 sync_details["error"] = "Azure DevOps connector not configured"
 
         elif integration.integration_type == IntegrationType.SLACK:
-            slack_connector = SlackConnector(integration.config)
-            if slack_connector.default_webhook:
-                slack_outcome = slack_connector.post_message(
+            slack_conn = SlackConnector(integration.config)
+            if slack_conn.default_webhook:
+                slack_outcome = slack_conn.post_message(
                     {"text": "FixOps sync test", "channel": "default"}
                 )
                 sync_success = slack_outcome.success
@@ -392,9 +392,9 @@ async def trigger_sync(id: str):
                 sync_details["error"] = "Slack webhook not configured"
 
         elif integration.integration_type == IntegrationType.CONFLUENCE:
-            connector = ConfluenceConnector(integration.config)
-            if connector.configured:
-                outcome = connector.health_check()
+            confluence_conn = ConfluenceConnector(integration.config)
+            if confluence_conn.configured:
+                outcome = confluence_conn.health_check()
                 sync_success = outcome.healthy
                 sync_details = outcome.to_dict()
             else:
