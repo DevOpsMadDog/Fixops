@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -493,8 +493,14 @@ async def _process_bulk_tickets(
         _complete_job(job_id, JobStatus.FAILED.value)
         return
 
-    connector = None
     connector_type = integration.integration_type
+    connector: Union[
+        JiraConnector,
+        ServiceNowConnector,
+        GitLabConnector,
+        GitHubConnector,
+        AzureDevOpsConnector,
+    ]
 
     if connector_type == IntegrationType.JIRA:
         connector = JiraConnector(integration.config)

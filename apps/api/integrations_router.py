@@ -331,88 +331,87 @@ async def trigger_sync(id: str):
             detail="Cannot sync inactive integration",
         )
 
-    sync_result = {"success": False, "details": {}}
+    sync_success = False
+    sync_details: Dict[str, Any] = {}
 
     try:
         if integration.integration_type == IntegrationType.JIRA:
             connector = JiraConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.healthy
-                sync_result["details"] = outcome.to_dict()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
             else:
-                sync_result["details"]["error"] = "Jira connector not configured"
+                sync_details["error"] = "Jira connector not configured"
 
         elif integration.integration_type == IntegrationType.SERVICENOW:
             connector = ServiceNowConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.healthy
-                sync_result["details"] = outcome.to_dict()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
             else:
-                sync_result["details"]["error"] = "ServiceNow connector not configured"
+                sync_details["error"] = "ServiceNow connector not configured"
 
         elif integration.integration_type == IntegrationType.GITLAB:
             connector = GitLabConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.healthy
-                sync_result["details"] = outcome.to_dict()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
             else:
-                sync_result["details"]["error"] = "GitLab connector not configured"
+                sync_details["error"] = "GitLab connector not configured"
 
         elif integration.integration_type == IntegrationType.GITHUB:
             connector = GitHubConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.healthy
-                sync_result["details"] = outcome.to_dict()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
             else:
-                sync_result["details"]["error"] = "GitHub connector not configured"
+                sync_details["error"] = "GitHub connector not configured"
 
         elif integration.integration_type == IntegrationType.AZURE_DEVOPS:
             connector = AzureDevOpsConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.healthy
-                sync_result["details"] = outcome.to_dict()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
             else:
-                sync_result["details"][
-                    "error"
-                ] = "Azure DevOps connector not configured"
+                sync_details["error"] = "Azure DevOps connector not configured"
 
         elif integration.integration_type == IntegrationType.SLACK:
-            connector = SlackConnector(integration.config)
-            if connector.default_webhook:
-                outcome = connector.send_notification(
+            slack_connector = SlackConnector(integration.config)
+            if slack_connector.default_webhook:
+                slack_outcome = slack_connector.send_notification(
                     {"message": "FixOps sync test", "channel": "default"}
                 )
-                sync_result["success"] = outcome.success
-                sync_result["details"] = outcome.details
+                sync_success = slack_outcome.success
+                sync_details = slack_outcome.details
             else:
-                sync_result["details"]["error"] = "Slack webhook not configured"
+                sync_details["error"] = "Slack webhook not configured"
 
         elif integration.integration_type == IntegrationType.CONFLUENCE:
             connector = ConfluenceConnector(integration.config)
             if connector.configured:
                 outcome = connector.health_check()
-                sync_result["success"] = outcome.healthy
-                sync_result["details"] = outcome.to_dict()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
             else:
-                sync_result["details"]["error"] = "Confluence connector not configured"
+                sync_details["error"] = "Confluence connector not configured"
 
         else:
-            sync_result["details"][
+            sync_details[
                 "error"
             ] = f"Sync not implemented for {integration.integration_type.value}"
 
     except Exception as e:
         logger.error(f"Sync failed for integration {id}: {e}")
-        sync_result["success"] = False
-        sync_result["details"]["error"] = str(e)
+        sync_success = False
+        sync_details["error"] = str(e)
 
     integration.last_sync_at = datetime.utcnow()
-    integration.last_sync_status = "success" if sync_result["success"] else "failed"
+    integration.last_sync_status = "success" if sync_success else "failed"
     db.update_integration(integration)
 
     return {
@@ -422,8 +421,8 @@ async def trigger_sync(id: str):
         "sync_status": integration.last_sync_status,
         "message": (
             "Manual sync completed successfully"
-            if sync_result["success"]
+            if sync_success
             else "Manual sync failed"
         ),
-        "details": sync_result["details"],
+        "details": sync_details,
     }
