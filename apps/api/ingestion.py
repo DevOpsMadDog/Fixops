@@ -1118,7 +1118,15 @@ class IngestionService:
             result.assets_count = len(assets)
 
             for asset in assets:
-                self._asset_inventory[asset.id] = asset
+                stable_key = self._get_stable_asset_key(asset)
+                if stable_key in self._asset_inventory:
+                    existing = self._asset_inventory[stable_key]
+                    existing.finding_count += asset.finding_count
+                    existing.critical_count += asset.critical_count
+                    existing.high_count += asset.high_count
+                    existing.last_seen = datetime.now(timezone.utc)
+                else:
+                    self._asset_inventory[stable_key] = asset
 
         except Exception as e:
             logger.error(f"Ingestion failed: {e}")
@@ -1187,6 +1195,23 @@ class IngestionService:
         if finding.file_path:
             return f"file:{finding.file_path}"
         return None
+
+    def _get_stable_asset_key(self, asset: Asset) -> str:
+        """Get a stable key for asset inventory deduplication.
+
+        Uses deterministic identifiers instead of random UUIDs to ensure
+        re-ingesting the same asset updates existing records rather than
+        creating duplicates.
+        """
+        if asset.resource_id:
+            return f"cloud:{asset.cloud_provider or 'unknown'}:{asset.resource_id}"
+        if asset.asset_type == AssetType.IMAGE:
+            return f"container:{asset.name}"
+        if asset.asset_type == AssetType.PACKAGE:
+            return f"package:{asset.name}"
+        if asset.asset_type == AssetType.APPLICATION:
+            return f"file:{asset.name}"
+        return f"asset:{asset.asset_type.value}:{asset.name}"
 
     def _create_asset_from_finding(self, finding: UnifiedFinding) -> Asset:
         """Create an asset from a finding."""
