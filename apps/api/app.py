@@ -1029,14 +1029,16 @@ def create_app() -> FastAPI:
                     errors.extend(result.errors)
             except Exception as e:
                 logger.error(f"Failed to ingest {file.filename}: {e}")
+                error_type = type(e).__name__
+                safe_error = f"Ingestion failed: {error_type}"
                 results.append(
                     {
                         "filename": file.filename,
                         "status": "error",
-                        "error": str(e),
+                        "error": safe_error,
                     }
                 )
-                errors.append(f"{file.filename}: {str(e)}")
+                errors.append(f"{file.filename}: {safe_error}")
 
         return {
             "status": "success" if not errors else "partial",
