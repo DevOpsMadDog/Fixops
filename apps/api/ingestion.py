@@ -638,9 +638,13 @@ class DarkWebIntelNormalizer(BaseNormalizer):
         findings: List[UnifiedFinding] = []
         data = self._parse_json(content)
 
-        intel_items = data.get("items", data.get("threats", data.get("indicators", [])))
+        # Handle both list and dict formats for dark web intel
         if isinstance(data, list):
             intel_items = data
+        else:
+            intel_items = data.get(
+                "items", data.get("threats", data.get("indicators", []))
+            )
 
         for item in intel_items:
             finding_type = self._determine_finding_type(item)

@@ -1707,3 +1707,223 @@ class TestAPIMultipartEdgeCases:
         assert "results" in data
 
         Path(temp_path).unlink()
+
+
+class TestRemainingCoverage:
+    """Tests to cover remaining edge cases for 100% diff coverage."""
+
+    def test_dark_web_intel_direct_list_input(self):
+        """Test dark web intel normalizer with direct list input (line 643)."""
+        config = NormalizerConfig(name="dark_web_intel", enabled=True)
+        normalizer = DarkWebIntelNormalizer(config)
+
+        data = [
+            {
+                "title": "Threat 1",
+                "description": "Description 1",
+                "confidence": 0.9,
+            },
+            {
+                "title": "Threat 2",
+                "description": "Description 2",
+                "confidence": 0.5,
+            },
+        ]
+        content = json.dumps(data).encode()
+        findings = normalizer.normalize(content)
+        assert len(findings) == 2
+
+    def test_registry_with_disabled_normalizer_in_detect(self):
+        """Test registry detect_format skips disabled normalizers (line 911)."""
+        registry = NormalizerRegistry()
+        sarif_normalizer = registry.get_normalizer("sarif")
+        sarif_normalizer.enabled = False
+
+        content = b'{"$schema": "sarif", "version": "2.1.0", "runs": []}'
+        detected_format, confidence = registry.detect_format(content)
+        assert detected_format != "sarif" or confidence == 0.0
+        registry.close()
+
+    def test_registry_with_disabled_normalizer_in_try_all(self):
+        """Test registry _try_all_normalizers skips disabled normalizers (line 980)."""
+        registry = NormalizerRegistry()
+        for name in registry.list_normalizers():
+            normalizer = registry.get_normalizer(name)
+            normalizer.enabled = False
+
+        content = b'{"some": "data"}'
+        findings = registry._try_all_normalizers(content, None)
+        assert findings == []
+        registry.close()
+
+    def test_registry_batch_with_future_exception(self):
+        """Test batch normalization with future that raises exception (lines 1039-1041)."""
+        from unittest.mock import MagicMock, patch
+
+        registry = NormalizerRegistry()
+        items = [(b'{"test": "data"}', "sarif", None)]
+
+        with patch.object(registry._executor, "submit") as mock_submit:
+            mock_future = MagicMock()
+            mock_future.result.side_effect = Exception("Future failed")
+            mock_submit.return_value = mock_future
+
+            results = registry.normalize_batch(items)
+            assert len(results) == 1
+            assert results[0] == []
+
+        registry.close()
+
+    def test_extract_assets_with_critical_duplicate(self):
+        """Test asset extraction with duplicate critical findings (line 1191)."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Critical Finding 1",
+                file_path="/src/app.py",
+                severity=FindingSeverity.CRITICAL,
+            ),
+            UnifiedFinding(
+                title="Critical Finding 2",
+                file_path="/src/app.py",
+                severity=FindingSeverity.CRITICAL,
+            ),
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].critical_count == 2
+        assert assets[0].finding_count == 2
+
+    def test_extract_assets_with_high_duplicate(self):
+        """Test asset extraction with duplicate high findings (line 1193)."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="High Finding 1",
+                file_path="/src/app.py",
+                severity=FindingSeverity.HIGH,
+            ),
+            UnifiedFinding(
+                title="High Finding 2",
+                file_path="/src/app.py",
+                severity=FindingSeverity.HIGH,
+            ),
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].high_count == 2
+        assert assets[0].finding_count == 2
+
+    def test_registry_normalize_with_detected_format(self):
+        """Test registry normalize uses detected format (line 954)."""
+        registry = NormalizerRegistry()
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "test"}},
+                    "results": [
+                        {
+                            "ruleId": "rule1",
+                            "message": {"text": "Test finding"},
+                            "level": "error",
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+        findings = registry.normalize(content)
+        assert len(findings) == 1
+        registry.close()
+
+    def test_cli_with_result_errors_quiet_mode(self):
+        """Test CLI with result errors in quiet mode (line 518)."""
+        import argparse
+        from pathlib import Path
+        from unittest.mock import MagicMock, patch
+
+        from core.cli import _handle_ingest_file
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(json.dumps(sarif_data).encode())
+            f.flush()
+            temp_path = f.name
+
+        args = argparse.Namespace(
+            files=[Path(temp_path)],
+            format=None,
+            output=None,
+            pretty=False,
+            quiet=False,
+        )
+
+        mock_result = MagicMock()
+        mock_result.status = "partial"
+        mock_result.errors = ["Test error"]
+        mock_result.findings_count = 0
+        mock_result.assets_count = 0
+        mock_result.processing_time_ms = 100
+        mock_result.warnings = []
+        mock_result.findings = []
+
+        with patch(
+            "apps.api.ingestion.IngestionService.ingest",
+            return_value=mock_result,
+        ):
+            result = _handle_ingest_file(args)
+            assert result == 1
+
+        Path(temp_path).unlink()
+
+    def test_cli_with_errors_extend(self):
+        """Test CLI extends errors from result (line 482)."""
+        import argparse
+        from pathlib import Path
+        from unittest.mock import MagicMock, patch
+
+        from core.cli import _handle_ingest_file
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(json.dumps(sarif_data).encode())
+            f.flush()
+            temp_path = f.name
+
+        args = argparse.Namespace(
+            files=[Path(temp_path)],
+            format=None,
+            output=None,
+            pretty=False,
+            quiet=True,
+        )
+
+        mock_result = MagicMock()
+        mock_result.status = "partial"
+        mock_result.errors = ["Error from result"]
+        mock_result.findings_count = 0
+        mock_result.assets_count = 0
+        mock_result.processing_time_ms = 100
+        mock_result.warnings = []
+        mock_result.findings = []
+
+        with patch(
+            "apps.api.ingestion.IngestionService.ingest",
+            return_value=mock_result,
+        ):
+            result = _handle_ingest_file(args)
+            assert result == 1
+
+        Path(temp_path).unlink()
