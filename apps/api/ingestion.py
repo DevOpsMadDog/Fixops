@@ -1223,7 +1223,11 @@ class IngestionService:
         if asset.asset_type == AssetType.IMAGE:
             return f"container:{asset.name}"
         if asset.asset_type == AssetType.PACKAGE:
-            package_name = asset.name.split("@")[0] if "@" in asset.name else asset.name
+            # Use rsplit to split on the last "@" only, preserving scoped package names
+            # e.g., "@scope/pkg@1.2.3" -> "@scope/pkg" (not empty string)
+            package_name = (
+                asset.name.rsplit("@", 1)[0] if "@" in asset.name else asset.name
+            )
             return f"package:{package_name}"
         if asset.asset_type == AssetType.APPLICATION:
             return f"file:{asset.name}"
