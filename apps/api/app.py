@@ -1003,7 +1003,10 @@ def create_app() -> FastAPI:
 
         for file in files:
             try:
-                content = await file.read()
+                buffer, total = await _read_limited(file, "sarif")
+                buffer.seek(0)
+                content = buffer.read()
+                buffer.close()
                 result = await service.ingest(
                     content=content,
                     filename=file.filename,

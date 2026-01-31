@@ -536,6 +536,17 @@ class TestNormalizerRegistry:
 
         assert isinstance(findings, list)
 
+    def test_close_method(self):
+        """Test that close() properly shuts down the executor."""
+        registry = NormalizerRegistry()
+        registry.close()
+        assert registry._executor._shutdown is True
+
+    def test_del_method(self):
+        """Test that __del__ properly cleans up resources."""
+        registry = NormalizerRegistry()
+        del registry
+
 
 class TestIngestionService:
     """Tests for IngestionService."""
@@ -657,10 +668,12 @@ class TestAPIEndpoints:
         with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
             f.write(json.dumps(sarif_data).encode())
             f.flush()
+            temp_path = f.name
 
+        with open(temp_path, "rb") as upload_file:
             response = client.post(
                 "/api/v1/ingest/multipart",
-                files={"files": ("test.sarif", open(f.name, "rb"), "application/json")},
+                files={"files": ("test.sarif", upload_file, "application/json")},
                 headers={"X-API-Key": "demo-token-12345"},
             )
 

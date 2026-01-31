@@ -4159,21 +4159,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[
             "sarif",
             "cyclonedx",
-            "spdx",
-            "vex",
             "cnapp",
             "dark_web_intel",
-            "cve_feed",
-            "snyk",
-            "trivy",
-            "grype",
-            "semgrep",
-            "dependabot",
-            "aws_security_hub",
-            "azure_defender",
-            "gcp_scc",
         ],
-        help="Force a specific format (auto-detected if not specified)",
+        help="Force a specific format (auto-detected if not specified). "
+        "Only implemented normalizers are available.",
     )
     ingest_file_parser.add_argument(
         "--output",

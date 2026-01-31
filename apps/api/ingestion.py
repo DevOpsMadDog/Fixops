@@ -1042,6 +1042,17 @@ class NormalizerRegistry:
 
         return results
 
+    def close(self) -> None:
+        """Shutdown the executor to release resources."""
+        self._executor.shutdown(wait=False)
+
+    def __del__(self) -> None:
+        """Cleanup executor on garbage collection."""
+        try:
+            self._executor.shutdown(wait=False)
+        except Exception:
+            pass
+
 
 class IngestionResult(BaseModel):
     """Result of an ingestion operation."""
