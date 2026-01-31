@@ -1213,13 +1213,18 @@ class IngestionService:
         Uses deterministic identifiers instead of random UUIDs to ensure
         re-ingesting the same asset updates existing records rather than
         creating duplicates.
+
+        Note: For packages, we strip the version to align with _compute_asset_key
+        which deduplicates by package name only (not version). This ensures
+        multiple versions of the same package are merged into one inventory entry.
         """
         if asset.resource_id:
             return f"cloud:{asset.cloud_provider or 'unknown'}:{asset.resource_id}"
         if asset.asset_type == AssetType.IMAGE:
             return f"container:{asset.name}"
         if asset.asset_type == AssetType.PACKAGE:
-            return f"package:{asset.name}"
+            package_name = asset.name.split("@")[0] if "@" in asset.name else asset.name
+            return f"package:{package_name}"
         if asset.asset_type == AssetType.APPLICATION:
             return f"file:{asset.name}"
         return f"asset:{asset.asset_type.value}:{asset.name}"
