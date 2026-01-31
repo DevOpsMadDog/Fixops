@@ -840,10 +840,41 @@ class NormalizerRegistry:
                 "confidence_threshold": 0.7,
             },
             "normalizers": {
-                "sarif": {"enabled": True, "priority": 100},
-                "cyclonedx": {"enabled": True, "priority": 90},
-                "dark_web_intel": {"enabled": True, "priority": 70},
-                "cnapp": {"enabled": True, "priority": 75},
+                "sarif": {
+                    "enabled": True,
+                    "priority": 100,
+                    "detection_patterns": [
+                        r'"version"\s*:\s*"2\.1',
+                        r'"runs"\s*:',
+                        r"\$schema.*sarif",
+                    ],
+                },
+                "cyclonedx": {
+                    "enabled": True,
+                    "priority": 90,
+                    "detection_patterns": [
+                        r'"bomFormat"\s*:\s*"CycloneDX"',
+                        r'"specVersion"\s*:',
+                    ],
+                },
+                "dark_web_intel": {
+                    "enabled": True,
+                    "priority": 70,
+                    "detection_patterns": [
+                        r'"dark_web"',
+                        r'"threat_intel"',
+                        r'"breach_data"',
+                    ],
+                },
+                "cnapp": {
+                    "enabled": True,
+                    "priority": 75,
+                    "detection_patterns": [
+                        r'"cloud_provider"',
+                        r'"resource_type"',
+                        r'"cnapp"',
+                    ],
+                },
             },
         }
 
