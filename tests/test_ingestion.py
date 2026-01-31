@@ -2798,3 +2798,516 @@ class TestDependabotNormalizer:
         assert len(findings) == 2
         assert findings[0].package_name == "pkg1"
         assert findings[1].package_name == "pkg2"
+
+
+class TestMissingCoverageLines:
+    """Tests to cover specific missing lines for 100% diff coverage."""
+
+    def test_sarif_with_cwe_from_taxa(self):
+        """Test SARIF normalization with CWE extracted from taxa (lines 544-550)."""
+        from apps.api.ingestion import NormalizerConfig, SARIFNormalizer
+
+        config = NormalizerConfig(name="sarif", enabled=True, detection_patterns=[])
+        normalizer = SARIFNormalizer(config)
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "test-tool", "rules": []}},
+                    "results": [
+                        {
+                            "ruleId": "rule-1",
+                            "level": "error",
+                            "message": {"text": "Test finding with taxa"},
+                            "taxa": [
+                                {
+                                    "toolComponent": {"name": "CWE"},
+                                    "id": "89",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].cwe_id == "CWE-89"
+
+    def test_sarif_with_cwe_from_rule_properties(self):
+        """Test SARIF normalization with CWE from rule properties (line 555)."""
+        from apps.api.ingestion import NormalizerConfig, SARIFNormalizer
+
+        config = NormalizerConfig(name="sarif", enabled=True, detection_patterns=[])
+        normalizer = SARIFNormalizer(config)
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "test-tool",
+                            "rules": [
+                                {
+                                    "id": "rule-1",
+                                    "properties": {"cwe": [79]},
+                                }
+                            ],
+                        }
+                    },
+                    "results": [
+                        {
+                            "ruleId": "rule-1",
+                            "level": "warning",
+                            "message": {"text": "Test finding with CWE in rule"},
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].cwe_id == "CWE-79"
+
+    def test_sarif_with_web_request_response(self):
+        """Test SARIF normalization with web request/response (lines 578-579)."""
+        from apps.api.ingestion import NormalizerConfig, SARIFNormalizer
+
+        config = NormalizerConfig(name="sarif", enabled=True, detection_patterns=[])
+        normalizer = SARIFNormalizer(config)
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.2.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "dast-tool", "rules": []}},
+                    "results": [
+                        {
+                            "ruleId": "xss-1",
+                            "level": "error",
+                            "message": {"text": "XSS vulnerability"},
+                            "webRequest": {
+                                "method": "POST",
+                                "uri": "https://example.com/api",
+                            },
+                            "webResponse": {
+                                "statusCode": 200,
+                                "body": {"text": "<script>alert(1)</script>"},
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].metadata.get("web_request") is not None
+        assert findings[0].metadata.get("web_response") is not None
+        assert findings[0].metadata["web_request"]["method"] == "POST"
+
+    def test_vex_with_non_dict_non_string_vuln_id(self):
+        """Test VEX normalization with non-dict, non-string vuln_id (line 958)."""
+        from apps.api.ingestion import NormalizerConfig, VEXNormalizer
+
+        config = NormalizerConfig(name="vex", enabled=True, detection_patterns=[])
+        normalizer = VEXNormalizer(config)
+
+        vex_data = {
+            "statements": [
+                {
+                    "id": "stmt-123",
+                    "vulnerability": 12345,  # Integer, not dict or string
+                    "status": "affected",
+                    "products": [{"id": "product-1"}],
+                }
+            ]
+        }
+        content = json.dumps(vex_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_id == "stmt-123"
+
+    def test_semgrep_with_secret_category(self):
+        """Test Semgrep normalization with secret category (line 1245)."""
+        from apps.api.ingestion import NormalizerConfig, SemgrepNormalizer
+
+        config = NormalizerConfig(name="semgrep", enabled=True, detection_patterns=[])
+        normalizer = SemgrepNormalizer(config)
+
+        semgrep_data = {
+            "results": [
+                {
+                    "check_id": "secret-detection",
+                    "path": "/src/config.py",
+                    "start": {"line": 10, "col": 1},
+                    "extra": {
+                        "severity": "ERROR",
+                        "message": "Hardcoded API key detected",
+                        "metadata": {
+                            "category": "secret",
+                        },
+                    },
+                }
+            ]
+        }
+        content = json.dumps(semgrep_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].finding_type.value == "secret"
+
+    def test_semgrep_with_string_confidence(self):
+        """Test Semgrep normalization with string confidence (lines 1258-1260)."""
+        from apps.api.ingestion import NormalizerConfig, SemgrepNormalizer
+
+        config = NormalizerConfig(name="semgrep", enabled=True, detection_patterns=[])
+        normalizer = SemgrepNormalizer(config)
+
+        semgrep_data = {
+            "results": [
+                {
+                    "check_id": "sql-injection",
+                    "path": "/src/db.py",
+                    "start": {"line": 25, "col": 5},
+                    "extra": {
+                        "severity": "ERROR",
+                        "message": "SQL injection vulnerability",
+                        "metadata": {
+                            "category": "security",
+                            "confidence": "HIGH",
+                        },
+                    },
+                }
+            ]
+        }
+        content = json.dumps(semgrep_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].confidence == 0.9
+
+    def test_registry_custom_plugin_loading_invalid_config(self):
+        """Test custom plugin loading with invalid config (lines 1583-1587)."""
+        import tempfile
+        from pathlib import Path
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        # Create a temporary YAML config with invalid plugin config
+        config = {
+            "normalizers": {},
+            "plugins": [
+                {"name": "incomplete_plugin"},  # Missing module and class
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            config_path = Path(f.name)
+
+        try:
+            registry = NormalizerRegistry(config_path=config_path)
+            # Should not crash, just log warning
+            assert registry is not None
+            registry.close()
+        finally:
+            config_path.unlink()
+
+    def test_registry_custom_plugin_loading_disabled(self):
+        """Test custom plugin loading with disabled plugin (lines 1589-1591)."""
+        import tempfile
+        from pathlib import Path
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        config = {
+            "normalizers": {},
+            "plugins": [
+                {
+                    "name": "disabled_plugin",
+                    "module": "nonexistent.module",
+                    "class": "NonexistentClass",
+                    "enabled": False,
+                },
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            config_path = Path(f.name)
+
+        try:
+            registry = NormalizerRegistry(config_path=config_path)
+            # Should skip disabled plugin without error
+            assert "disabled_plugin" not in registry.list_normalizers()
+            registry.close()
+        finally:
+            config_path.unlink()
+
+    def test_registry_custom_plugin_loading_import_error(self):
+        """Test custom plugin loading with import error (lines 1621-1622)."""
+        import tempfile
+        from pathlib import Path
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        config = {
+            "normalizers": {},
+            "plugins": [
+                {
+                    "name": "bad_import",
+                    "module": "nonexistent.module.path",
+                    "class": "SomeClass",
+                    "enabled": True,
+                },
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            config_path = Path(f.name)
+
+        try:
+            registry = NormalizerRegistry(config_path=config_path)
+            # Should handle import error gracefully
+            assert "bad_import" not in registry.list_normalizers()
+            registry.close()
+        finally:
+            config_path.unlink()
+
+    def test_registry_custom_plugin_loading_attribute_error(self):
+        """Test custom plugin loading with attribute error (lines 1625-1626)."""
+        import tempfile
+        from pathlib import Path
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        config = {
+            "normalizers": {},
+            "plugins": [
+                {
+                    "name": "bad_class",
+                    "module": "json",  # Valid module
+                    "class": "NonexistentClass",  # Invalid class
+                    "enabled": True,
+                },
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            config_path = Path(f.name)
+
+        try:
+            registry = NormalizerRegistry(config_path=config_path)
+            # Should handle attribute error gracefully
+            assert "bad_class" not in registry.list_normalizers()
+            registry.close()
+        finally:
+            config_path.unlink()
+
+    def test_registry_custom_plugin_loading_not_subclass(self):
+        """Test custom plugin loading with non-BaseNormalizer class (lines 1597-1601)."""
+        import tempfile
+        from pathlib import Path
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        config = {
+            "normalizers": {},
+            "plugins": [
+                {
+                    "name": "not_normalizer",
+                    "module": "json",
+                    "class": "JSONEncoder",  # Valid class but not BaseNormalizer
+                    "enabled": True,
+                },
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            config_path = Path(f.name)
+
+        try:
+            registry = NormalizerRegistry(config_path=config_path)
+            # Should skip non-BaseNormalizer classes
+            assert "not_normalizer" not in registry.list_normalizers()
+            registry.close()
+        finally:
+            config_path.unlink()
+
+    def test_registry_custom_plugin_loading_generic_error(self):
+        """Test custom plugin loading with generic error (lines 1629-1630)."""
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        config = {
+            "normalizers": {},
+            "plugins": [
+                {
+                    "name": "error_plugin",
+                    "module": "apps.api.ingestion",
+                    "class": "BaseNormalizer",
+                    "enabled": True,
+                },
+            ],
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            config_path = Path(f.name)
+
+        try:
+            # Mock importlib.import_module to raise a generic exception
+            with patch("importlib.import_module") as mock_import:
+                mock_import.side_effect = RuntimeError("Generic error")
+                registry = NormalizerRegistry(config_path=config_path)
+                # Should handle generic error gracefully
+                assert "error_plugin" not in registry.list_normalizers()
+                registry.close()
+        finally:
+            config_path.unlink()
+
+    def test_registry_schema_caching_disabled(self):
+        """Test schema caching when disabled (lines 1690-1692)."""
+        from apps.api.ingestion import NormalizerRegistry
+
+        registry = NormalizerRegistry()
+        # Modify config to disable caching
+        registry._config["settings"]["cache_schemas"] = False
+
+        # Should return None when caching is disabled
+        result = registry.get_cached_schema("https://example.com/schema.json")
+        assert result is None
+        registry.close()
+
+    def test_registry_schema_caching_expired(self):
+        """Test schema caching with expired cache (lines 1694-1702)."""
+        import time
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        registry = NormalizerRegistry()
+        # Set immediate expiry
+        registry._config["settings"]["cache_ttl_seconds"] = 0
+
+        # Cache a schema
+        registry.cache_schema("https://example.com/schema.json", {"type": "object"})
+
+        # Wait a tiny bit to ensure expiry
+        time.sleep(0.01)
+
+        # Should return None for expired cache
+        result = registry.get_cached_schema("https://example.com/schema.json")
+        assert result is None
+        registry.close()
+
+    def test_registry_schema_caching_valid(self):
+        """Test schema caching with valid cache (lines 1706-1709)."""
+        from apps.api.ingestion import NormalizerRegistry
+
+        registry = NormalizerRegistry()
+        registry._config["settings"]["cache_ttl_seconds"] = 3600
+
+        schema = {"type": "object", "properties": {"name": {"type": "string"}}}
+        registry.cache_schema("https://example.com/schema.json", schema)
+
+        # Should return cached schema
+        result = registry.get_cached_schema("https://example.com/schema.json")
+        assert result == schema
+        registry.close()
+
+    def test_registry_normalize_exceeds_max_bytes(self):
+        """Test normalization with content exceeding max_document_bytes (line 1737)."""
+        from apps.api.ingestion import NormalizerRegistry
+
+        registry = NormalizerRegistry()
+        # Set very small limit
+        registry._config["settings"]["max_document_bytes"] = 100
+
+        # Create content larger than limit
+        large_content = b"x" * 200
+
+        with pytest.raises(ValueError) as exc_info:
+            registry.normalize(large_content)
+
+        assert "exceeds maximum allowed size" in str(exc_info.value)
+        registry.close()
+
+    def test_registry_custom_plugin_successful_load(self):
+        """Test successful custom plugin loading (lines 1593-1617)."""
+        import sys
+        import tempfile
+        from pathlib import Path
+
+        import yaml
+
+        from apps.api.ingestion import NormalizerRegistry
+
+        # Create a temporary module with a valid normalizer
+        plugin_code = """
+from apps.api.ingestion import BaseNormalizer, NormalizerConfig, UnifiedFinding
+from typing import List, Optional
+
+class TestCustomNormalizer(BaseNormalizer):
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> List[UnifiedFinding]:
+        return []
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create the module file
+            module_path = Path(tmpdir) / "test_custom_normalizer.py"
+            module_path.write_text(plugin_code)
+
+            # Add to sys.path temporarily
+            sys.path.insert(0, tmpdir)
+            try:
+                config = {
+                    "normalizers": {},
+                    "plugins": [
+                        {
+                            "name": "test_custom",
+                            "module": "test_custom_normalizer",
+                            "class": "TestCustomNormalizer",
+                            "enabled": True,
+                            "priority": 100,
+                        },
+                    ],
+                }
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".yaml", delete=False
+                ) as f:
+                    yaml.dump(config, f)
+                    config_path = Path(f.name)
+
+                try:
+                    registry = NormalizerRegistry(config_path=config_path)
+
+                    # Should have loaded the custom plugin
+                    assert "test_custom" in registry.list_normalizers()
+                    registry.close()
+                finally:
+                    config_path.unlink()
+            finally:
+                sys.path.remove(tmpdir)
