@@ -1862,7 +1862,7 @@ class TestRemainingCoverage:
             format=None,
             output=None,
             pretty=False,
-            quiet=False,
+            quiet=True,
         )
 
         mock_result = MagicMock()
