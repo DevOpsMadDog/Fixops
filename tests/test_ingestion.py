@@ -589,16 +589,38 @@ class TestIngestionService:
         assert result.findings_count >= 0
 
     @pytest.mark.asyncio
-    async def test_ingest_with_error(self):
-        """Test ingestion with invalid content returns error status and 0 findings."""
+    async def test_ingest_with_invalid_content(self):
+        """Test ingestion with invalid content returns 0 findings.
+
+        Note: The system uses lenient parsing, so unparseable content returns
+        success with 0 findings rather than an error status. This is by design
+        to handle format drift gracefully.
+        """
         service = IngestionService()
 
         content = b"invalid json content {"
         result = await service.ingest(content, filename="test.json")
 
         assert result.findings_count == 0
-        assert result.status in ("error", "success")
+        assert result.status == "success"
         assert isinstance(result.errors, list)
+
+    @pytest.mark.asyncio
+    async def test_ingest_with_exception(self):
+        """Test ingestion returns error status when an exception is raised."""
+        from unittest.mock import patch
+
+        service = IngestionService()
+
+        # Mock the registry to raise an exception
+        with patch.object(
+            service.registry, "detect_format", side_effect=RuntimeError("Test error")
+        ):
+            result = await service.ingest(b"{}", filename="test.json")
+
+        assert result.status == "error"
+        assert len(result.errors) > 0
+        assert "Test error" in result.errors[0]
 
     def test_get_asset_inventory(self):
         """Test getting asset inventory."""

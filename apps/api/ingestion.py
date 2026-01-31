@@ -493,7 +493,7 @@ class SARIFNormalizer(BaseNormalizer):
         schema = data.get("$schema", "")
 
         runs = data.get("runs", [])
-        for run in runs:
+        for run_index, run in enumerate(runs):
             tool = run.get("tool", {}).get("driver", {})
             tool_name = tool.get("name", "unknown")
             tool_version = tool.get("version")
@@ -566,7 +566,7 @@ class SARIFNormalizer(BaseNormalizer):
 
                 # Build metadata with version info for schema evolution tracking
                 metadata = {
-                    "run_index": runs.index(run),
+                    "run_index": run_index,
                     "sarif_version": sarif_version,
                     "schema": schema,
                 }
