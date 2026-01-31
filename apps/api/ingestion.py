@@ -33,7 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 try:
     import yaml
-except ImportError:
+except ImportError:  # pragma: no cover
     yaml = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
@@ -357,13 +357,13 @@ class NormalizerPlugin(Protocol):
 
     def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
         """Return confidence (0.0-1.0) that this normalizer can handle the content."""
-        ...
+        ...  # pragma: no cover
 
     def normalize(
         self, content: bytes, content_type: Optional[str] = None
     ) -> List[UnifiedFinding]:
         """Normalize the content into unified findings."""
-        ...
+        ...  # pragma: no cover
 
 
 @dataclass
