@@ -957,3 +957,487 @@ class TestEnums:
         assert AssetType.STORAGE.value == "storage"
         assert AssetType.CONTAINER.value == "container"
         assert AssetType.KUBERNETES.value == "kubernetes"
+
+
+class TestEdgeCasesAndErrorHandling:
+    """Tests for edge cases and error handling to achieve 100% coverage."""
+
+    def test_severity_normalization_non_string_non_enum(self):
+        """Test severity normalization with non-string, non-enum input."""
+        finding = UnifiedFinding(title="Test", severity=123)
+        assert finding.severity == FindingSeverity.UNKNOWN
+
+        finding2 = UnifiedFinding(title="Test", severity=None)
+        assert finding2.severity == FindingSeverity.UNKNOWN
+
+        finding3 = UnifiedFinding(title="Test", severity=[])
+        assert finding3.severity == FindingSeverity.UNKNOWN
+
+    def test_base_normalizer_invalid_pattern(self):
+        """Test BaseNormalizer with invalid regex pattern."""
+        config = NormalizerConfig(
+            name="test",
+            enabled=True,
+            detection_patterns=["[invalid(regex"],
+        )
+        normalizer = SARIFNormalizer(config)
+        assert len(normalizer._compiled_patterns) == 0
+
+    def test_base_normalizer_can_handle_decode_error(self):
+        """Test can_handle with content that causes decode issues."""
+        config = NormalizerConfig(
+            name="test", enabled=True, detection_patterns=["test"]
+        )
+        normalizer = SARIFNormalizer(config)
+        invalid_bytes = bytes([0x80, 0x81, 0x82])
+        confidence = normalizer.can_handle(invalid_bytes)
+        assert confidence == 0.0
+
+    def test_base_normalizer_map_severity_fallback(self):
+        """Test _map_severity with various edge cases."""
+        config = NormalizerConfig(name="test", enabled=True)
+        normalizer = SARIFNormalizer(config)
+
+        assert normalizer._map_severity(None) == FindingSeverity.UNKNOWN
+        assert normalizer._map_severity([]) == FindingSeverity.UNKNOWN
+        assert normalizer._map_severity({}) == FindingSeverity.UNKNOWN
+        assert normalizer._map_severity(0) == FindingSeverity.INFO
+        assert normalizer._map_severity(0.5) == FindingSeverity.LOW
+        assert normalizer._map_severity("unknown_string") == FindingSeverity.UNKNOWN
+
+    def test_dark_web_intel_normalizer_list_input(self):
+        """Test DarkWebIntelNormalizer with list input wrapped in items."""
+        config = NormalizerConfig(name="dark_web_intel", enabled=True)
+        normalizer = DarkWebIntelNormalizer(config)
+
+        intel_data = {
+            "items": [
+                {"title": "Threat 1", "type": "credential_leak", "confidence": 0.95},
+                {"name": "Threat 2", "type": "malware", "severity": "high"},
+                {"indicator": "192.168.1.1", "type": "breach"},
+            ]
+        }
+        content = json.dumps(intel_data).encode()
+        findings = normalizer.normalize(content)
+        assert len(findings) == 3
+
+    def test_dark_web_intel_normalizer_severity_from_confidence(self):
+        """Test DarkWebIntelNormalizer severity assessment from confidence."""
+        config = NormalizerConfig(name="dark_web_intel", enabled=True)
+        normalizer = DarkWebIntelNormalizer(config)
+
+        intel_data = {
+            "items": [
+                {"title": "Critical", "confidence": 0.95},
+                {"title": "High", "confidence": 0.75},
+                {"title": "Medium", "confidence": 0.55},
+                {"title": "Low", "confidence": 0.3},
+            ]
+        }
+        content = json.dumps(intel_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert findings[0].severity == FindingSeverity.CRITICAL
+        assert findings[1].severity == FindingSeverity.HIGH
+        assert findings[2].severity == FindingSeverity.MEDIUM
+        assert findings[3].severity == FindingSeverity.LOW
+
+    def test_cnapp_normalizer_type_determination(self):
+        """Test CNAPPNormalizer type determination for various categories."""
+        config = NormalizerConfig(name="cnapp", enabled=True)
+        normalizer = CNAPPNormalizer(config)
+
+        cnapp_data = {
+            "findings": [
+                {"title": "Misconfig", "type": "misconfiguration"},
+                {"title": "Vuln", "category": "vulnerability"},
+                {"title": "Secret", "type": "secret_exposure"},
+                {"title": "Compliance", "category": "compliance_violation"},
+                {"title": "IAM", "type": "iam_issue"},
+                {"title": "Identity", "category": "identity_risk"},
+                {"title": "Unknown", "type": "other"},
+            ]
+        }
+        content = json.dumps(cnapp_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert findings[0].finding_type == FindingType.MISCONFIGURATION
+        assert findings[1].finding_type == FindingType.VULNERABILITY
+        assert findings[2].finding_type == FindingType.SECRET
+        assert findings[3].finding_type == FindingType.COMPLIANCE
+        assert findings[4].finding_type == FindingType.IDENTITY
+        assert findings[5].finding_type == FindingType.IDENTITY
+        assert findings[6].finding_type == FindingType.MISCONFIGURATION
+
+    def test_registry_normalize_unknown_format(self):
+        """Test registry normalize with unknown format."""
+        registry = NormalizerRegistry()
+        content = b"not a valid format at all"
+        findings = registry.normalize(content)
+        assert findings == []
+        registry.close()
+
+    def test_registry_normalize_with_format_hint(self):
+        """Test registry normalize with explicit format hint."""
+        registry = NormalizerRegistry()
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+        content = json.dumps(sarif_data).encode()
+        findings = registry.normalize(content, format_hint="sarif")
+        assert isinstance(findings, list)
+        registry.close()
+
+    def test_registry_normalize_batch_sequential(self):
+        """Test registry batch normalization in sequential mode."""
+        registry = NormalizerRegistry()
+        registry._config["settings"]["parallel_processing"] = False
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+        content = json.dumps(sarif_data).encode()
+        items = [(content, "sarif", "application/json")]
+        results = registry.normalize_batch(items)
+        assert len(results) == 1
+        registry.close()
+
+    def test_registry_normalize_batch_parallel(self):
+        """Test registry batch normalization in parallel mode."""
+        registry = NormalizerRegistry()
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+        content = json.dumps(sarif_data).encode()
+        items = [(content, "sarif", "application/json"), (content, "sarif", None)]
+        results = registry.normalize_batch(items)
+        assert len(results) == 2
+        registry.close()
+
+    def test_registry_try_all_normalizers_fallback(self):
+        """Test registry _try_all_normalizers fallback."""
+        registry = NormalizerRegistry()
+        content = b'{"some": "json"}'
+        findings = registry._try_all_normalizers(content, "application/json")
+        assert isinstance(findings, list)
+        registry.close()
+
+
+class TestIngestionServiceEdgeCases:
+    """Tests for IngestionService edge cases."""
+
+    def test_extract_assets_cloud_resource(self):
+        """Test asset extraction for cloud resources."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Cloud Finding",
+                cloud_resource_id="arn:aws:ec2:us-east-1:123456:instance/i-1234",
+                cloud_provider="aws",
+                cloud_region="us-east-1",
+                cloud_account="123456",
+                cloud_resource_type="ec2:instance",
+                severity=FindingSeverity.CRITICAL,
+            )
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].asset_type == AssetType.CLOUD_RESOURCE
+        assert assets[0].critical_count == 1
+
+    def test_extract_assets_container_image(self):
+        """Test asset extraction for container images."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Container Finding",
+                container_image="nginx",
+                container_tag="1.21",
+                severity=FindingSeverity.HIGH,
+            )
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].asset_type == AssetType.IMAGE
+        assert assets[0].high_count == 1
+
+    def test_extract_assets_package(self):
+        """Test asset extraction for packages."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Package Finding",
+                package_name="lodash",
+                package_version="4.17.21",
+                package_ecosystem="npm",
+                severity=FindingSeverity.MEDIUM,
+            )
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].asset_type == AssetType.PACKAGE
+
+    def test_extract_assets_file(self):
+        """Test asset extraction for files."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="File Finding",
+                file_path="/src/app.py",
+                severity=FindingSeverity.LOW,
+            )
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].asset_type == AssetType.APPLICATION
+
+    def test_extract_assets_no_identifiable_asset(self):
+        """Test asset extraction when no asset can be identified."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Generic Finding",
+                severity=FindingSeverity.INFO,
+            )
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 0
+
+    def test_extract_assets_with_asset_name(self):
+        """Test asset extraction with asset_name fallback."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Named Asset Finding",
+                asset_name="my-custom-asset",
+                severity=FindingSeverity.MEDIUM,
+            )
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 0
+
+    def test_get_stable_asset_key_cloud(self):
+        """Test stable asset key for cloud resources."""
+        service = IngestionService()
+        asset = Asset(
+            name="test-resource",
+            asset_type=AssetType.CLOUD_RESOURCE,
+            resource_id="arn:aws:ec2:us-east-1:123:instance/i-1234",
+            cloud_provider="aws",
+        )
+        key = service._get_stable_asset_key(asset)
+        assert key.startswith("cloud:aws:")
+
+    def test_get_stable_asset_key_container(self):
+        """Test stable asset key for container images."""
+        service = IngestionService()
+        asset = Asset(name="nginx:1.21", asset_type=AssetType.IMAGE)
+        key = service._get_stable_asset_key(asset)
+        assert key == "container:nginx:1.21"
+
+    def test_get_stable_asset_key_package_scoped(self):
+        """Test stable asset key for scoped npm packages."""
+        service = IngestionService()
+        asset = Asset(name="@angular/core@12.0.0", asset_type=AssetType.PACKAGE)
+        key = service._get_stable_asset_key(asset)
+        assert key == "package:@angular/core"
+
+    def test_get_stable_asset_key_package_unscoped(self):
+        """Test stable asset key for unscoped packages."""
+        service = IngestionService()
+        asset = Asset(name="lodash@4.17.21", asset_type=AssetType.PACKAGE)
+        key = service._get_stable_asset_key(asset)
+        assert key == "package:lodash"
+
+    def test_get_stable_asset_key_package_no_version(self):
+        """Test stable asset key for packages without version."""
+        service = IngestionService()
+        asset = Asset(name="requests", asset_type=AssetType.PACKAGE)
+        key = service._get_stable_asset_key(asset)
+        assert key == "package:requests"
+
+    def test_get_stable_asset_key_application(self):
+        """Test stable asset key for applications."""
+        service = IngestionService()
+        asset = Asset(name="/src/app.py", asset_type=AssetType.APPLICATION)
+        key = service._get_stable_asset_key(asset)
+        assert key == "file:/src/app.py"
+
+    def test_get_stable_asset_key_other(self):
+        """Test stable asset key for other asset types."""
+        service = IngestionService()
+        asset = Asset(name="my-database", asset_type=AssetType.DATABASE)
+        key = service._get_stable_asset_key(asset)
+        assert key == "asset:database:my-database"
+
+    @pytest.mark.asyncio
+    async def test_ingest_batch(self):
+        """Test batch ingestion."""
+        service = IngestionService()
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+        content = json.dumps(sarif_data).encode()
+        files = [(content, "test.sarif", "application/json")]
+        results = await service.ingest_batch(files)
+        assert len(results) == 1
+
+    def test_create_asset_from_finding_container_no_tag(self):
+        """Test asset creation from finding with container but no tag."""
+        service = IngestionService()
+        finding = UnifiedFinding(
+            title="Container Finding",
+            container_image="nginx",
+            severity=FindingSeverity.HIGH,
+        )
+        asset = service._create_asset_from_finding(finding)
+        assert asset.asset_type == AssetType.IMAGE
+        assert "latest" in asset.name
+
+    def test_create_asset_from_finding_package_no_version(self):
+        """Test asset creation from finding with package but no version."""
+        service = IngestionService()
+        finding = UnifiedFinding(
+            title="Package Finding",
+            package_name="requests",
+            severity=FindingSeverity.MEDIUM,
+        )
+        asset = service._create_asset_from_finding(finding)
+        assert asset.asset_type == AssetType.PACKAGE
+        assert "unknown" in asset.name
+
+    @pytest.mark.asyncio
+    async def test_asset_inventory_deduplication(self):
+        """Test that asset inventory properly deduplicates."""
+        service = IngestionService()
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "test"}},
+                    "results": [
+                        {
+                            "ruleId": "rule1",
+                            "message": {"text": "Finding 1"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "/src/app.py"},
+                                        "region": {"startLine": 10},
+                                    }
+                                }
+                            ],
+                        },
+                        {
+                            "ruleId": "rule2",
+                            "message": {"text": "Finding 2"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "/src/app.py"},
+                                        "region": {"startLine": 20},
+                                    }
+                                }
+                            ],
+                        },
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+
+        await service.ingest(content, "test1.sarif")
+        await service.ingest(content, "test2.sarif")
+
+        inventory = service.get_asset_inventory()
+        assert len(inventory) == 1
+        assert inventory[0].finding_count >= 2
+
+
+class TestCycloneDXEdgeCases:
+    """Tests for CycloneDX normalizer edge cases."""
+
+    def test_cyclonedx_with_severity_string(self):
+        """Test CycloneDX with severity as string instead of score."""
+        config = NormalizerConfig(name="cyclonedx", enabled=True)
+        normalizer = CycloneDXNormalizer(config)
+
+        cyclonedx_data = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "components": [{"bom-ref": "pkg:npm/lodash@4.17.21", "name": "lodash"}],
+            "vulnerabilities": [
+                {
+                    "id": "CVE-2021-23337",
+                    "ratings": [{"severity": "high"}],
+                    "affects": [{"ref": "pkg:npm/lodash@4.17.21"}],
+                }
+            ],
+        }
+        content = json.dumps(cyclonedx_data).encode()
+        findings = normalizer.normalize(content)
+        assert len(findings) == 1
+        assert findings[0].severity == FindingSeverity.HIGH
+
+    def test_cyclonedx_no_affects(self):
+        """Test CycloneDX vulnerability with no affects."""
+        config = NormalizerConfig(name="cyclonedx", enabled=True)
+        normalizer = CycloneDXNormalizer(config)
+
+        cyclonedx_data = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "components": [],
+            "vulnerabilities": [
+                {"id": "CVE-2021-12345", "ratings": [{"score": 7.5}], "affects": []}
+            ],
+        }
+        content = json.dumps(cyclonedx_data).encode()
+        findings = normalizer.normalize(content)
+        assert len(findings) == 0
+
+
+class TestSARIFEdgeCases:
+    """Tests for SARIF normalizer edge cases."""
+
+    def test_sarif_with_no_locations(self):
+        """Test SARIF result with no locations."""
+        config = NormalizerConfig(name="sarif", enabled=True)
+        normalizer = SARIFNormalizer(config)
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "test", "rules": []}},
+                    "results": [
+                        {"ruleId": "rule1", "message": {"text": "No location"}}
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+        findings = normalizer.normalize(content)
+        assert len(findings) == 1
+        assert findings[0].file_path is None
+
+    def test_sarif_level_mapping(self):
+        """Test SARIF level to severity mapping."""
+        config = NormalizerConfig(name="sarif", enabled=True)
+        normalizer = SARIFNormalizer(config)
+
+        assert normalizer._map_sarif_level("error") == FindingSeverity.HIGH
+        assert normalizer._map_sarif_level("warning") == FindingSeverity.MEDIUM
+        assert normalizer._map_sarif_level("note") == FindingSeverity.LOW
+        assert normalizer._map_sarif_level("none") == FindingSeverity.INFO
+        assert normalizer._map_sarif_level("unknown") == FindingSeverity.MEDIUM
