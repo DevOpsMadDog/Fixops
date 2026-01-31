@@ -2192,3 +2192,52 @@ class TestFinalCoverage:
 
         confidence = normalizer.can_handle(mock_content)
         assert confidence == 0.0
+
+    def test_base_normalizer_can_handle_empty_patterns(self):
+        """Test can_handle returns 0.0 when no patterns are compiled (line 415)."""
+        from apps.api.ingestion import NormalizerConfig, SARIFNormalizer
+
+        # Create a normalizer with empty detection patterns
+        config = NormalizerConfig(name="test", enabled=True, detection_patterns=[])
+        normalizer = SARIFNormalizer(config)
+
+        # Verify patterns are empty
+        assert len(normalizer._compiled_patterns) == 0
+
+        # Call can_handle - should return 0.0 due to empty patterns
+        content = b'{"version": "2.1.0"}'
+        confidence = normalizer.can_handle(content)
+        assert confidence == 0.0
+
+    def test_try_all_normalizers_successful_fallback(self):
+        """Test _try_all_normalizers returns findings on successful fallback (lines 1019-1020)."""
+        from apps.api.ingestion import NormalizerRegistry
+
+        registry = NormalizerRegistry()
+
+        # Create valid SARIF content that will be normalized by the fallback
+        sarif_data = {
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "TestTool", "rules": []}},
+                    "results": [
+                        {
+                            "ruleId": "TEST001",
+                            "level": "error",
+                            "message": {"text": "Test finding for fallback"},
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(sarif_data).encode()
+
+        # Call _try_all_normalizers directly - this should find a normalizer that works
+        findings = registry._try_all_normalizers(content, None)
+
+        # Should return findings from the successful normalizer
+        assert len(findings) > 0
+        assert findings[0].rule_id == "TEST001"
+
+        registry.close()
