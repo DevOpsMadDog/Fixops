@@ -2261,3 +2261,207 @@ class TestUnitCoverageGaps:
         assert result["confidence_score"] == 0.0
         assert "Test error" in result["evidence"]
         assert result["error"] == "Test error"
+
+
+class TestActualCodePathCoverage:
+    """Integration tests that actually execute the source code paths for coverage."""
+
+    def test_trigger_sync_pagerduty_unsupported(self, client):
+        """Test sync with PAGERDUTY type which is not handled - covers integrations_router.py line 404.
+
+        PAGERDUTY is in the IntegrationType enum but not handled in trigger_sync's if/elif chain.
+        """
+        from unittest.mock import MagicMock, patch
+
+        from core.integration_models import (
+            Integration,
+            IntegrationStatus,
+            IntegrationType,
+        )
+
+        # Create a mock integration with PAGERDUTY type
+        mock_integration = MagicMock(spec=Integration)
+        mock_integration.id = "pagerduty-test-123"
+        mock_integration.name = "Test PagerDuty"
+        mock_integration.integration_type = IntegrationType.PAGERDUTY
+        mock_integration.status = IntegrationStatus.ACTIVE
+        mock_integration.config = {"api_key": "test-key"}
+        mock_integration.last_sync_at = None
+        mock_integration.last_sync_status = None
+
+        with patch("apps.api.integrations_router.db") as mock_db:
+            mock_db.get_integration.return_value = mock_integration
+
+            response = client.post(
+                f"/api/v1/integrations/{mock_integration.id}/sync",
+                headers={"X-API-Key": "demo-token-12345"},
+            )
+
+            # Should succeed but with error in details about unsupported type
+            assert response.status_code == 200
+            data = response.json()
+            assert "Sync not implemented for" in data.get("details", {}).get(
+                "error", ""
+            )
+
+    def test_login_inactive_user_direct(self):
+        """Test login with inactive user - covers users_router.py line 178.
+
+        This test directly calls the login function to ensure the inactive user path is covered.
+        """
+        import asyncio
+        from unittest.mock import MagicMock
+
+        from fastapi import HTTPException
+
+        from core.user_models import User, UserRole, UserStatus
+
+        # Create a mock inactive user
+        mock_user = MagicMock(spec=User)
+        mock_user.id = "inactive-user-direct-123"
+        mock_user.email = "inactive_direct@test.com"
+        mock_user.password_hash = "hashed_password"
+        mock_user.first_name = "Inactive"
+        mock_user.last_name = "User"
+        mock_user.role = UserRole.VIEWER
+        mock_user.status = UserStatus.INACTIVE  # Key: user is INACTIVE
+        mock_user.department = None
+
+        # Import the login function and call it directly
+        from apps.api import users_router
+
+        # Patch the db module at the source
+        original_db = users_router.db
+
+        try:
+            # Create mock db
+            mock_db = MagicMock()
+            mock_db.get_user_by_email.return_value = mock_user
+            mock_db.verify_password.return_value = True  # Password is correct
+            users_router.db = mock_db
+
+            # Clear rate limiting
+            users_router._login_attempts.clear()
+
+            # Create mock request
+            mock_request = MagicMock()
+            mock_request.client = MagicMock()
+            mock_request.client.host = "127.0.0.1"
+
+            # Create login credentials
+            from apps.api.users_router import LoginRequest
+
+            credentials = LoginRequest(
+                email="inactive_direct@test.com", password="correct_password"
+            )
+
+            # Call the login function directly
+            try:
+                asyncio.get_event_loop().run_until_complete(
+                    users_router.login(credentials, mock_request)
+                )
+                assert False, "Should have raised HTTPException"
+            except HTTPException as e:
+                # Should get 403 for inactive account
+                assert e.status_code == 403
+                assert "not active" in e.detail
+        finally:
+            users_router.db = original_db
+
+    @pytest.mark.asyncio
+    async def test_automated_remediation_llm_parse_exception(self):
+        """Test LLM response parsing exception - covers automated_remediation.py lines 663-664."""
+        from unittest.mock import MagicMock
+
+        from core.automated_remediation import AutomatedRemediationEngine
+        from core.llm_providers import LLMResponse
+
+        # Create mock dependencies without spec to allow any attribute
+        mock_llm_manager = MagicMock()
+        mock_pentagi_client = MagicMock()
+
+        engine = AutomatedRemediationEngine(
+            llm_manager=mock_llm_manager, pentagi_client=mock_pentagi_client
+        )
+
+        # Create a mock response that will cause an exception during JSON serialization
+        mock_response = MagicMock(spec=LLMResponse)
+        mock_response.success = True
+        mock_response.recommended_action = "Test action"
+        mock_response.reasoning = "Test reasoning"
+        mock_response.confidence = 0.9
+        mock_response.metadata = {"mode": "remote"}
+        # Make compliance_concerns raise an exception when converted to list
+        mock_response.compliance_concerns = MagicMock()
+        mock_response.compliance_concerns.__iter__ = MagicMock(
+            side_effect=TypeError("Cannot iterate")
+        )
+        mock_response.mitre_techniques = []
+
+        # Set up the mock to return our response (analyse is the method used, not call_llm)
+        mock_llm_manager.analyse.return_value = mock_response
+
+        # Call _call_llm which should hit the exception handler (it's async)
+        result = await engine._call_llm("openai", "Test prompt for suggestions")
+
+        # Should return fallback response (the exception is caught and fallback is returned)
+        assert "suggestions" in result or "regressions" in result
+
+    def test_pentagi_api_failure_inconclusive(self):
+        """Test PentAGI API failure returns inconclusive - covers pentagi_advanced.py line 959."""
+        import asyncio
+        from enum import Enum
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from core.llm_providers import LLMProviderManager
+        from core.pentagi_advanced import AdvancedPentagiClient, PenTestConfig
+
+        # Create a mock priority enum
+        class MockPriority(Enum):
+            HIGH = "high"
+            MEDIUM = "medium"
+            LOW = "low"
+
+        # Create mock config
+        mock_config = MagicMock(spec=PenTestConfig)
+        mock_config.pentagi_url = "http://localhost:8080"
+        mock_config.api_key = "test-key"
+        mock_config.timeout_seconds = 30
+
+        mock_llm_manager = MagicMock(spec=LLMProviderManager)
+
+        # Create client
+        pentagi_client = AdvancedPentagiClient(
+            config=mock_config,
+            llm_manager=mock_llm_manager,
+        )
+
+        # Create a test request with proper enum for priority
+        mock_request = MagicMock()
+        mock_request.id = "test-request-456"
+        mock_request.finding_id = "finding-123"
+        mock_request.target_url = "http://test.com"
+        mock_request.vulnerability_type = "sql_injection"
+        mock_request.test_case = "Test case"
+        mock_request.priority = MockPriority.HIGH  # Use enum with .value
+        mock_request.metadata = {}
+
+        # Mock aiohttp to raise an exception
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_session.__aexit__ = AsyncMock(return_value=None)
+            mock_session.post = MagicMock(side_effect=Exception("Connection refused"))
+            mock_session_class.return_value = mock_session
+
+            # Run the async function
+            async def run_test():
+                return await pentagi_client._call_pentagi_api(mock_request)
+
+            result = asyncio.get_event_loop().run_until_complete(run_test())
+
+            # Should return inconclusive response
+            assert result["status"] == "failed"
+            assert result["exploit_successful"] is False
+            assert result["exploitability"] == "inconclusive"
+            assert "Connection refused" in result["error"]
