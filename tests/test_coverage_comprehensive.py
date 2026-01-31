@@ -2304,12 +2304,12 @@ class TestActualCodePathCoverage:
                 "error", ""
             )
 
-    def test_login_inactive_user_direct(self):
+    @pytest.mark.asyncio
+    async def test_login_inactive_user_direct(self):
         """Test login with inactive user - covers users_router.py line 178.
 
         This test directly calls the login function to ensure the inactive user path is covered.
         """
-        import asyncio
         from unittest.mock import MagicMock
 
         from fastapi import HTTPException
@@ -2355,11 +2355,9 @@ class TestActualCodePathCoverage:
                 email="inactive_direct@test.com", password="correct_password"
             )
 
-            # Call the login function directly
+            # Call the login function directly (pytest-asyncio handles the event loop)
             try:
-                asyncio.get_event_loop().run_until_complete(
-                    users_router.login(credentials, mock_request)
-                )
+                await users_router.login(credentials, mock_request)
                 assert False, "Should have raised HTTPException"
             except HTTPException as e:
                 # Should get 403 for inactive account
@@ -2407,9 +2405,9 @@ class TestActualCodePathCoverage:
         # Should return fallback response (the exception is caught and fallback is returned)
         assert "suggestions" in result or "regressions" in result
 
-    def test_pentagi_api_failure_inconclusive(self):
+    @pytest.mark.asyncio
+    async def test_pentagi_api_failure_inconclusive(self):
         """Test PentAGI API failure returns inconclusive - covers pentagi_advanced.py line 959."""
-        import asyncio
         from enum import Enum
         from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -2454,11 +2452,8 @@ class TestActualCodePathCoverage:
             mock_session.post = MagicMock(side_effect=Exception("Connection refused"))
             mock_session_class.return_value = mock_session
 
-            # Run the async function
-            async def run_test():
-                return await pentagi_client._call_pentagi_api(mock_request)
-
-            result = asyncio.get_event_loop().run_until_complete(run_test())
+            # Run the async function directly (pytest-asyncio handles the event loop)
+            result = await pentagi_client._call_pentagi_api(mock_request)
 
             # Should return inconclusive response
             assert result["status"] == "failed"
