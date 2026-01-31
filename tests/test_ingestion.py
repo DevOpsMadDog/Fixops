@@ -1441,3 +1441,269 @@ class TestSARIFEdgeCases:
         assert normalizer._map_sarif_level("note") == FindingSeverity.LOW
         assert normalizer._map_sarif_level("none") == FindingSeverity.INFO
         assert normalizer._map_sarif_level("unknown") == FindingSeverity.MEDIUM
+
+
+class TestMoreEdgeCases:
+    """Additional edge case tests for 100% coverage."""
+
+    def test_registry_detect_format_low_confidence(self):
+        """Test registry detect_format with low confidence warning."""
+        registry = NormalizerRegistry()
+        content = b'{"some": "random", "json": "data"}'
+        detected_format, confidence = registry.detect_format(content)
+        assert confidence < 0.5
+        registry.close()
+
+    def test_registry_normalize_error_handling(self):
+        """Test registry normalize with normalizer that raises exception."""
+        registry = NormalizerRegistry()
+        content = b"invalid content that will fail"
+        findings = registry.normalize(content, format_hint="sarif")
+        assert findings == []
+        registry.close()
+
+    def test_registry_batch_with_exception(self):
+        """Test batch normalization with items that cause exceptions."""
+        registry = NormalizerRegistry()
+        items = [
+            (b"invalid", "sarif", None),
+            (b"also invalid", "cyclonedx", None),
+        ]
+        results = registry.normalize_batch(items)
+        assert len(results) == 2
+        registry.close()
+
+    @pytest.mark.asyncio
+    async def test_ingestion_service_error_handling(self):
+        """Test IngestionService error handling during ingestion."""
+        from unittest.mock import patch
+
+        service = IngestionService()
+        with patch.object(
+            service.registry, "detect_format", side_effect=Exception("Test error")
+        ):
+            result = await service.ingest(b"test content", "test.sarif")
+            assert result.status == "error"
+            assert len(result.errors) > 0
+
+    def test_extract_assets_with_severity_counts(self):
+        """Test asset extraction with multiple findings updating severity counts."""
+        service = IngestionService()
+        findings = [
+            UnifiedFinding(
+                title="Critical Finding",
+                file_path="/src/app.py",
+                severity=FindingSeverity.CRITICAL,
+            ),
+            UnifiedFinding(
+                title="High Finding",
+                file_path="/src/app.py",
+                severity=FindingSeverity.HIGH,
+            ),
+            UnifiedFinding(
+                title="Medium Finding",
+                file_path="/src/app.py",
+                severity=FindingSeverity.MEDIUM,
+            ),
+        ]
+        assets = service._extract_assets(findings)
+        assert len(assets) == 1
+        assert assets[0].critical_count == 1
+        assert assets[0].high_count == 1
+        assert assets[0].finding_count == 3
+
+    def test_create_asset_from_finding_fallback_name(self):
+        """Test asset creation with fallback to asset_name."""
+        service = IngestionService()
+        finding = UnifiedFinding(
+            title="Generic Finding",
+            asset_name="my-custom-asset",
+            severity=FindingSeverity.MEDIUM,
+        )
+        asset = service._create_asset_from_finding(finding)
+        assert asset.name == "my-custom-asset"
+
+    def test_create_asset_from_finding_unknown_fallback(self):
+        """Test asset creation with fallback to Unknown Asset."""
+        service = IngestionService()
+        finding = UnifiedFinding(
+            title="Generic Finding",
+            severity=FindingSeverity.MEDIUM,
+        )
+        asset = service._create_asset_from_finding(finding)
+        assert asset.name == "Unknown Asset"
+
+
+class TestCLIEdgeCases:
+    """Tests for CLI edge cases."""
+
+    def test_handle_ingest_file_with_exception(self):
+        """Test CLI ingest with files that cause exceptions."""
+        import argparse
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from core.cli import _handle_ingest_file
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(json.dumps(sarif_data).encode())
+            f.flush()
+            temp_path = f.name
+
+        args = argparse.Namespace(
+            files=[Path(temp_path)],
+            format=None,
+            output=None,
+            pretty=False,
+            quiet=True,
+        )
+
+        with patch(
+            "apps.api.ingestion.IngestionService.ingest",
+            side_effect=Exception("Test error"),
+        ):
+            result = _handle_ingest_file(args)
+            assert result == 1
+
+        Path(temp_path).unlink()
+
+    def test_handle_ingest_file_with_output(self):
+        """Test CLI ingest with output file."""
+        import argparse
+        import tempfile
+        from pathlib import Path
+
+        from core.cli import _handle_ingest_file
+
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "test"}}, "results": []}],
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(json.dumps(sarif_data).encode())
+            f.flush()
+            input_path = f.name
+
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            output_path = f.name
+
+        args = argparse.Namespace(
+            files=[Path(input_path)],
+            format="sarif",
+            output=Path(output_path),
+            pretty=True,
+            quiet=False,
+        )
+        result = _handle_ingest_file(args)
+        assert result == 0
+
+        assert Path(output_path).exists()
+        Path(input_path).unlink()
+        Path(output_path).unlink()
+
+    def test_handle_ingest_file_with_result_errors(self):
+        """Test CLI ingest when results have errors."""
+        import argparse
+        import tempfile
+        from pathlib import Path
+
+        from core.cli import _handle_ingest_file
+
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(b'{"invalid": "sarif"}')
+            f.flush()
+            temp_path = f.name
+
+        args = argparse.Namespace(
+            files=[Path(temp_path)],
+            format="sarif",
+            output=None,
+            pretty=False,
+            quiet=False,
+        )
+        _handle_ingest_file(args)
+
+        Path(temp_path).unlink()
+
+
+class TestAPIMultipartEdgeCases:
+    """Tests for API multipart endpoint edge cases."""
+
+    @pytest.fixture
+    def client(self):
+        import os
+
+        os.environ["FIXOPS_API_TOKEN"] = "demo-token-12345"
+        os.environ["FIXOPS_JWT_SECRET"] = "demo-secret-key-for-testing-only-12345678"
+        from apps.api.app import create_app
+
+        app = create_app()
+        from fastapi.testclient import TestClient
+
+        return TestClient(app)
+
+    def test_ingest_multipart_with_errors(self, client):
+        """Test multipart ingestion with files that cause errors."""
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(b"invalid json content")
+            f.flush()
+            temp_path = f.name
+
+        with open(temp_path, "rb") as upload_file:
+            response = client.post(
+                "/api/v1/ingest/multipart",
+                files={"files": ("test.sarif", upload_file, "application/json")},
+                headers={"X-API-Key": "demo-token-12345"},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] in ["success", "partial"]
+
+        Path(temp_path).unlink()
+
+    def test_ingest_multipart_with_result_errors(self, client):
+        """Test multipart ingestion when results have errors."""
+        sarif_data = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "test"}},
+                    "results": [
+                        {
+                            "ruleId": "rule1",
+                            "message": {"text": "Test finding"},
+                            "level": "error",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        with tempfile.NamedTemporaryFile(suffix=".sarif", delete=False) as f:
+            f.write(json.dumps(sarif_data).encode())
+            f.flush()
+            temp_path = f.name
+
+        with open(temp_path, "rb") as upload_file:
+            response = client.post(
+                "/api/v1/ingest/multipart",
+                files={"files": ("test.sarif", upload_file, "application/json")},
+                headers={"X-API-Key": "demo-token-12345"},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "results" in data
+
+        Path(temp_path).unlink()
