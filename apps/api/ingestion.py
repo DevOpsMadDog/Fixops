@@ -853,7 +853,7 @@ class SPDXNormalizer(BaseNormalizer):
 
         # SPDX 2.2+ structure
         packages = data.get("packages", [])
-        external_refs = {}
+        external_refs: Dict[str, List[Dict[str, Any]]] = {}
 
         # Build package lookup by SPDXID
         packages_by_id: Dict[str, Dict] = {}
