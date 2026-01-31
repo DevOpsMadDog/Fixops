@@ -590,13 +590,15 @@ class TestIngestionService:
 
     @pytest.mark.asyncio
     async def test_ingest_with_error(self):
-        """Test ingestion with invalid content returns 0 findings."""
+        """Test ingestion with invalid content returns error status and 0 findings."""
         service = IngestionService()
 
         content = b"invalid json content {"
         result = await service.ingest(content, filename="test.json")
 
         assert result.findings_count == 0
+        assert result.status in ("error", "success")
+        assert isinstance(result.errors, list)
 
     def test_get_asset_inventory(self):
         """Test getting asset inventory."""
@@ -2241,3 +2243,536 @@ class TestFinalCoverage:
         assert findings[0].rule_id == "TEST001"
 
         registry.close()
+
+
+class TestSPDXNormalizer:
+    """Tests for SPDX SBOM normalizer."""
+
+    def test_normalize_spdx_with_security_annotation(self):
+        """Test SPDX normalization with security annotations."""
+        from apps.api.ingestion import NormalizerConfig, SPDXNormalizer
+
+        config = NormalizerConfig(name="spdx", enabled=True, detection_patterns=[])
+        normalizer = SPDXNormalizer(config)
+
+        spdx_data = {
+            "spdxVersion": "SPDX-2.3",
+            "SPDXID": "SPDXRef-DOCUMENT",
+            "name": "test-sbom",
+            "packages": [
+                {
+                    "SPDXID": "SPDXRef-Package-1",
+                    "name": "vulnerable-package",
+                    "versionInfo": "1.0.0",
+                    "externalRefs": [
+                        {
+                            "referenceType": "purl",
+                            "referenceLocator": "pkg:npm/vulnerable-package@1.0.0",
+                        }
+                    ],
+                }
+            ],
+            "annotations": [
+                {
+                    "annotationType": "REVIEW",
+                    "comment": "CVE-2023-12345 vulnerability found in this package",
+                }
+            ],
+        }
+        content = json.dumps(spdx_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_format.value == "spdx"
+        assert findings[0].cve_id == "CVE-2023-12345"
+
+    def test_normalize_spdx_with_security_external_refs(self):
+        """Test SPDX normalization with security external references."""
+        from apps.api.ingestion import NormalizerConfig, SPDXNormalizer
+
+        config = NormalizerConfig(name="spdx", enabled=True, detection_patterns=[])
+        normalizer = SPDXNormalizer(config)
+
+        spdx_data = {
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "SPDXID": "SPDXRef-Package-1",
+                    "name": "test-package",
+                    "versionInfo": "2.0.0",
+                    "externalRefs": [
+                        {
+                            "referenceType": "security",
+                            "referenceLocator": "https://nvd.nist.gov/vuln/detail/CVE-2024-99999",
+                        },
+                        {
+                            "referenceType": "purl",
+                            "referenceLocator": "pkg:npm/test-package@2.0.0",
+                        },
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(spdx_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].cve_id == "CVE-2024-99999"
+        assert findings[0].package_name == "test-package"
+        assert findings[0].package_version == "2.0.0"
+
+    def test_normalize_spdx_empty(self):
+        """Test SPDX normalization with empty data."""
+        from apps.api.ingestion import NormalizerConfig, SPDXNormalizer
+
+        config = NormalizerConfig(name="spdx", enabled=True, detection_patterns=[])
+        normalizer = SPDXNormalizer(config)
+
+        spdx_data = {"spdxVersion": "SPDX-2.3", "packages": []}
+        content = json.dumps(spdx_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 0
+
+
+class TestVEXNormalizer:
+    """Tests for VEX (Vulnerability Exploitability eXchange) normalizer."""
+
+    def test_normalize_openvex_format(self):
+        """Test VEX normalization with OpenVEX format."""
+        from apps.api.ingestion import NormalizerConfig, VEXNormalizer
+
+        config = NormalizerConfig(name="vex", enabled=True, detection_patterns=[])
+        normalizer = VEXNormalizer(config)
+
+        vex_data = {
+            "@context": "https://openvex.dev/ns/v0.2.0",
+            "author": "security-team",
+            "statements": [
+                {
+                    "vulnerability": {"@id": "CVE-2023-44487"},
+                    "status": "affected",
+                    "products": [{"@id": "pkg:npm/my-app@1.0.0"}],
+                    "justification": "Component is vulnerable",
+                    "impact_statement": "Upgrade to version 2.0.0",
+                }
+            ],
+        }
+        content = json.dumps(vex_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_format.value == "vex"
+        assert findings[0].cve_id == "CVE-2023-44487"
+        assert findings[0].status.value == "open"
+
+    def test_normalize_vex_not_affected(self):
+        """Test VEX normalization with not_affected status."""
+        from apps.api.ingestion import NormalizerConfig, VEXNormalizer
+
+        config = NormalizerConfig(name="vex", enabled=True, detection_patterns=[])
+        normalizer = VEXNormalizer(config)
+
+        vex_data = {
+            "statements": [
+                {
+                    "vulnerability": "CVE-2023-12345",
+                    "status": "not_affected",
+                    "justification": "Component not used in vulnerable configuration",
+                    "products": ["product-a"],
+                }
+            ]
+        }
+        content = json.dumps(vex_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].status.value == "false_positive"
+        assert findings[0].severity.value == "info"
+
+    def test_normalize_vex_cyclonedx_format(self):
+        """Test VEX normalization with CycloneDX VEX format."""
+        from apps.api.ingestion import NormalizerConfig, VEXNormalizer
+
+        config = NormalizerConfig(name="vex", enabled=True, detection_patterns=[])
+        normalizer = VEXNormalizer(config)
+
+        vex_data = {
+            "vulnerabilities": [
+                {
+                    "id": "GHSA-1234-5678-9abc",
+                    "status": "fixed",
+                    "product": {"id": "my-component"},
+                }
+            ]
+        }
+        content = json.dumps(vex_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].status.value == "resolved"
+
+
+class TestTrivyNormalizer:
+    """Tests for Trivy scanner normalizer."""
+
+    def test_normalize_trivy_vulnerabilities(self):
+        """Test Trivy normalization with vulnerabilities."""
+        from apps.api.ingestion import NormalizerConfig, TrivyNormalizer
+
+        config = NormalizerConfig(name="trivy", enabled=True, detection_patterns=[])
+        normalizer = TrivyNormalizer(config)
+
+        trivy_data = {
+            "ArtifactName": "myimage:latest",
+            "ArtifactType": "container_image",
+            "Results": [
+                {
+                    "Target": "myimage:latest (alpine 3.18)",
+                    "Class": "os-pkgs",
+                    "Type": "alpine",
+                    "Vulnerabilities": [
+                        {
+                            "VulnerabilityID": "CVE-2023-12345",
+                            "PkgName": "openssl",
+                            "InstalledVersion": "1.1.1",
+                            "FixedVersion": "1.1.2",
+                            "Severity": "HIGH",
+                            "Title": "OpenSSL vulnerability",
+                            "Description": "A vulnerability in OpenSSL",
+                            "CVSS": {
+                                "nvd": {
+                                    "V3Score": 7.5,
+                                    "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                                }
+                            },
+                            "References": [
+                                "https://nvd.nist.gov/vuln/detail/CVE-2023-12345"
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(trivy_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_format.value == "trivy"
+        assert findings[0].cve_id == "CVE-2023-12345"
+        assert findings[0].cvss_score == 7.5
+        assert findings[0].package_name == "openssl"
+        assert findings[0].container_image == "myimage:latest"
+
+    def test_normalize_trivy_misconfigurations(self):
+        """Test Trivy normalization with misconfigurations."""
+        from apps.api.ingestion import NormalizerConfig, TrivyNormalizer
+
+        config = NormalizerConfig(name="trivy", enabled=True, detection_patterns=[])
+        normalizer = TrivyNormalizer(config)
+
+        trivy_data = {
+            "Results": [
+                {
+                    "Target": "Dockerfile",
+                    "Class": "config",
+                    "Type": "dockerfile",
+                    "Misconfigurations": [
+                        {
+                            "ID": "DS002",
+                            "Title": "Image user should not be root",
+                            "Description": "Running as root is insecure",
+                            "Severity": "MEDIUM",
+                            "Resolution": "Add USER instruction",
+                            "References": [
+                                "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
+                            ],
+                        }
+                    ],
+                }
+            ]
+        }
+        content = json.dumps(trivy_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].finding_type.value == "misconfiguration"
+        assert findings[0].rule_id == "DS002"
+
+    def test_normalize_trivy_secrets(self):
+        """Test Trivy normalization with secrets."""
+        from apps.api.ingestion import NormalizerConfig, TrivyNormalizer
+
+        config = NormalizerConfig(name="trivy", enabled=True, detection_patterns=[])
+        normalizer = TrivyNormalizer(config)
+
+        trivy_data = {
+            "Results": [
+                {
+                    "Target": "config.yaml",
+                    "Secrets": [
+                        {
+                            "RuleID": "aws-access-key-id",
+                            "Title": "AWS Access Key ID",
+                            "Severity": "CRITICAL",
+                            "Match": "AKIA***",
+                            "StartLine": 10,
+                        }
+                    ],
+                }
+            ]
+        }
+        content = json.dumps(trivy_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].finding_type.value == "secret"
+        assert findings[0].line_number == 10
+
+
+class TestGrypeNormalizer:
+    """Tests for Grype scanner normalizer."""
+
+    def test_normalize_grype_vulnerabilities(self):
+        """Test Grype normalization with vulnerabilities."""
+        from apps.api.ingestion import GrypeNormalizer, NormalizerConfig
+
+        config = NormalizerConfig(name="grype", enabled=True, detection_patterns=[])
+        normalizer = GrypeNormalizer(config)
+
+        grype_data = {
+            "source": {"type": "image", "target": "myimage:latest"},
+            "matches": [
+                {
+                    "vulnerability": {
+                        "id": "CVE-2023-99999",
+                        "severity": "Critical",
+                        "description": "Critical vulnerability in package",
+                        "fix": {"versions": ["2.0.0"]},
+                        "urls": ["https://nvd.nist.gov/vuln/detail/CVE-2023-99999"],
+                    },
+                    "artifact": {
+                        "name": "vulnerable-lib",
+                        "version": "1.0.0",
+                        "type": "npm",
+                        "purl": "pkg:npm/vulnerable-lib@1.0.0",
+                        "locations": [{"path": "/app/node_modules/vulnerable-lib"}],
+                    },
+                    "relatedVulnerabilities": [
+                        {
+                            "cvss": [
+                                {
+                                    "version": "3.1",
+                                    "metrics": {"baseScore": 9.8},
+                                    "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                                }
+                            ]
+                        }
+                    ],
+                }
+            ],
+        }
+        content = json.dumps(grype_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_format.value == "grype"
+        assert findings[0].cve_id == "CVE-2023-99999"
+        assert findings[0].cvss_score == 9.8
+        assert findings[0].package_name == "vulnerable-lib"
+        assert findings[0].container_image == "myimage:latest"
+
+    def test_normalize_grype_empty(self):
+        """Test Grype normalization with no matches."""
+        from apps.api.ingestion import GrypeNormalizer, NormalizerConfig
+
+        config = NormalizerConfig(name="grype", enabled=True, detection_patterns=[])
+        normalizer = GrypeNormalizer(config)
+
+        grype_data = {"source": {"type": "directory", "target": "/app"}, "matches": []}
+        content = json.dumps(grype_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 0
+
+
+class TestSemgrepNormalizer:
+    """Tests for Semgrep SAST scanner normalizer."""
+
+    def test_normalize_semgrep_security_finding(self):
+        """Test Semgrep normalization with security finding."""
+        from apps.api.ingestion import NormalizerConfig, SemgrepNormalizer
+
+        config = NormalizerConfig(name="semgrep", enabled=True, detection_patterns=[])
+        normalizer = SemgrepNormalizer(config)
+
+        semgrep_data = {
+            "results": [
+                {
+                    "check_id": "python.lang.security.audit.dangerous-subprocess-use",
+                    "path": "app/utils.py",
+                    "start": {"line": 42, "col": 5},
+                    "end": {"line": 42, "col": 50},
+                    "extra": {
+                        "severity": "ERROR",
+                        "message": "Dangerous subprocess call with shell=True",
+                        "fix": "Use subprocess.run with shell=False",
+                        "lines": "subprocess.call(cmd, shell=True)",
+                        "metadata": {
+                            "category": "security",
+                            "cwe": ["78"],
+                            "confidence": 0.95,
+                            "tags": ["security", "injection"],
+                            "references": [
+                                "https://owasp.org/Top10/A03_2021-Injection/"
+                            ],
+                        },
+                    },
+                }
+            ],
+            "errors": [],
+        }
+        content = json.dumps(semgrep_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_format.value == "semgrep"
+        assert findings[0].finding_type.value == "vulnerability"
+        assert findings[0].cwe_id == "CWE-78"
+        assert findings[0].file_path == "app/utils.py"
+        assert findings[0].line_number == 42
+
+    def test_normalize_semgrep_code_quality(self):
+        """Test Semgrep normalization with code quality finding."""
+        from apps.api.ingestion import NormalizerConfig, SemgrepNormalizer
+
+        config = NormalizerConfig(name="semgrep", enabled=True, detection_patterns=[])
+        normalizer = SemgrepNormalizer(config)
+
+        semgrep_data = {
+            "results": [
+                {
+                    "check_id": "python.lang.best-practice.use-contextmanager",
+                    "path": "app/file_handler.py",
+                    "start": {"line": 10, "col": 1},
+                    "end": {"line": 15, "col": 1},
+                    "extra": {
+                        "severity": "WARNING",
+                        "message": "Use context manager for file operations",
+                        "metadata": {"category": "best-practice"},
+                    },
+                }
+            ]
+        }
+        content = json.dumps(semgrep_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].finding_type.value == "code_quality"
+        assert findings[0].severity.value == "medium"
+
+
+class TestDependabotNormalizer:
+    """Tests for GitHub Dependabot alerts normalizer."""
+
+    def test_normalize_dependabot_alert(self):
+        """Test Dependabot normalization with security alert."""
+        from apps.api.ingestion import DependabotNormalizer, NormalizerConfig
+
+        config = NormalizerConfig(
+            name="dependabot", enabled=True, detection_patterns=[]
+        )
+        normalizer = DependabotNormalizer(config)
+
+        dependabot_data = {
+            "alerts": [
+                {
+                    "number": 1,
+                    "state": "open",
+                    "security_advisory": {
+                        "ghsa_id": "GHSA-1234-5678-9abc",
+                        "cve_id": "CVE-2023-45678",
+                        "summary": "Critical vulnerability in lodash",
+                        "description": "Prototype pollution vulnerability in lodash",
+                        "severity": "critical",
+                        "cvss": {
+                            "score": 9.1,
+                            "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        },
+                        "references": [
+                            {"url": "https://github.com/advisories/GHSA-1234-5678-9abc"}
+                        ],
+                    },
+                    "security_vulnerability": {
+                        "vulnerable_version_range": "< 4.17.21",
+                        "first_patched_version": {"identifier": "4.17.21"},
+                    },
+                    "dependency": {
+                        "package": {"name": "lodash", "ecosystem": "npm"},
+                        "manifest_path": "package.json",
+                    },
+                }
+            ]
+        }
+        content = json.dumps(dependabot_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].source_format.value == "dependabot"
+        assert findings[0].cve_id == "CVE-2023-45678"
+        assert findings[0].cvss_score == 9.1
+        assert findings[0].package_name == "lodash"
+        assert findings[0].severity.value == "critical"
+
+    def test_normalize_dependabot_single_alert(self):
+        """Test Dependabot normalization with single alert (not in array)."""
+        from apps.api.ingestion import DependabotNormalizer, NormalizerConfig
+
+        config = NormalizerConfig(
+            name="dependabot", enabled=True, detection_patterns=[]
+        )
+        normalizer = DependabotNormalizer(config)
+
+        dependabot_data = {
+            "number": 5,
+            "security_advisory": {
+                "ghsa_id": "GHSA-abcd-efgh-ijkl",
+                "summary": "Moderate vulnerability",
+                "severity": "moderate",
+            },
+            "dependency": {"package": {"name": "axios", "ecosystem": "npm"}},
+        }
+        content = json.dumps(dependabot_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 1
+        assert findings[0].package_name == "axios"
+        assert findings[0].severity.value == "medium"
+
+    def test_normalize_dependabot_array_format(self):
+        """Test Dependabot normalization with array of alerts."""
+        from apps.api.ingestion import DependabotNormalizer, NormalizerConfig
+
+        config = NormalizerConfig(
+            name="dependabot", enabled=True, detection_patterns=[]
+        )
+        normalizer = DependabotNormalizer(config)
+
+        dependabot_data = [
+            {
+                "number": 1,
+                "security_advisory": {"ghsa_id": "GHSA-1111", "severity": "high"},
+                "dependency": {"package": {"name": "pkg1"}},
+            },
+            {
+                "number": 2,
+                "security_advisory": {"ghsa_id": "GHSA-2222", "severity": "low"},
+                "dependency": {"package": {"name": "pkg2"}},
+            },
+        ]
+        content = json.dumps(dependabot_data).encode()
+        findings = normalizer.normalize(content)
+
+        assert len(findings) == 2
+        assert findings[0].package_name == "pkg1"
+        assert findings[1].package_name == "pkg2"

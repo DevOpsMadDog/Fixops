@@ -420,8 +420,11 @@ def _handle_ingest(args: argparse.Namespace) -> int:
 def _handle_ingest_file(args: argparse.Namespace) -> int:
     """Handle scanner-agnostic file ingestion with auto-detection."""
     import asyncio
+    import logging
 
     from apps.api.ingestion import get_ingestion_service
+
+    logger = logging.getLogger(__name__)
 
     file_paths: List[Path] = getattr(args, "files", [])
     format_hint: Optional[str] = getattr(args, "format", None)
@@ -482,12 +485,16 @@ def _handle_ingest_file(args: argparse.Namespace) -> int:
                     errors.extend(result.errors)
 
             except Exception as e:
-                errors.append(f"{file_path}: {str(e)}")
+                # Sanitize error messages to prevent information exposure
+                error_type = type(e).__name__
+                safe_error = f"Ingestion failed: {error_type}"
+                logger.error(f"Failed to ingest {file_path}: {e}")
+                errors.append(f"{file_path.name}: {safe_error}")
                 all_results.append(
                     {
                         "filename": str(file_path),
                         "status": "error",
-                        "error": str(e),
+                        "error": safe_error,
                     }
                 )
 
@@ -4159,11 +4166,17 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[
             "sarif",
             "cyclonedx",
+            "spdx",
+            "vex",
+            "trivy",
+            "grype",
+            "semgrep",
+            "dependabot",
             "cnapp",
             "dark_web_intel",
         ],
         help="Force a specific format (auto-detected if not specified). "
-        "Only implemented normalizers are available.",
+        "All implemented normalizers are available.",
     )
     ingest_file_parser.add_argument(
         "--output",

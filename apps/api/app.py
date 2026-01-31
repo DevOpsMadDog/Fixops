@@ -993,15 +993,14 @@ def create_app() -> FastAPI:
         Returns:
             Ingestion results with normalized findings and asset inventory
         """
+        import asyncio
+
         from apps.api.ingestion import get_ingestion_service
 
         service = get_ingestion_service()
-        results = []
-        total_findings = 0
-        total_assets = 0
-        errors = []
 
-        for file in files:
+        async def process_file(file: UploadFile) -> Dict[str, Any]:
+            """Process a single file and return result dict."""
             try:
                 buffer, total = await _read_limited(file, "sarif")
                 buffer.seek(0)
@@ -1013,35 +1012,49 @@ def create_app() -> FastAPI:
                     content_type=file.content_type,
                     format_hint=format_hint,
                 )
-                results.append(
-                    {
-                        "filename": file.filename,
-                        "status": result.status,
-                        "format_detected": result.format_detected,
-                        "detection_confidence": result.detection_confidence,
-                        "findings_count": result.findings_count,
-                        "assets_count": result.assets_count,
-                        "processing_time_ms": result.processing_time_ms,
-                        "errors": result.errors,
-                        "warnings": result.warnings,
-                    }
-                )
-                total_findings += result.findings_count
-                total_assets += result.assets_count
-                if result.errors:
-                    errors.extend(result.errors)
+                return {
+                    "filename": file.filename,
+                    "status": result.status,
+                    "format_detected": result.format_detected,
+                    "detection_confidence": result.detection_confidence,
+                    "findings_count": result.findings_count,
+                    "assets_count": result.assets_count,
+                    "processing_time_ms": result.processing_time_ms,
+                    "errors": result.errors,
+                    "warnings": result.warnings,
+                    "_findings_count": result.findings_count,
+                    "_assets_count": result.assets_count,
+                    "_errors": result.errors,
+                }
             except Exception as e:
                 logger.error(f"Failed to ingest {file.filename}: {e}")
                 error_type = type(e).__name__
                 safe_error = f"Ingestion failed: {error_type}"
-                results.append(
-                    {
-                        "filename": file.filename,
-                        "status": "error",
-                        "error": safe_error,
-                    }
-                )
-                errors.append(f"{file.filename}: {safe_error}")
+                return {
+                    "filename": file.filename,
+                    "status": "error",
+                    "error": safe_error,
+                    "_findings_count": 0,
+                    "_assets_count": 0,
+                    "_errors": [f"{file.filename}: {safe_error}"],
+                }
+
+        # Process all files in parallel using asyncio.gather
+        raw_results = await asyncio.gather(*[process_file(f) for f in files])
+
+        # Aggregate results
+        results = []
+        total_findings = 0
+        total_assets = 0
+        errors = []
+
+        for raw in raw_results:
+            total_findings += raw.pop("_findings_count", 0)
+            total_assets += raw.pop("_assets_count", 0)
+            file_errors = raw.pop("_errors", [])
+            if file_errors:
+                errors.extend(file_errors)
+            results.append(raw)
 
         return {
             "status": "success" if not errors else "partial",

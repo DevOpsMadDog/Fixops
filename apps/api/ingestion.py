@@ -472,13 +472,25 @@ class BaseNormalizer:
 
 
 class SARIFNormalizer(BaseNormalizer):
-    """Normalizer for SARIF 2.1+ format."""
+    """
+    Normalizer for SARIF 2.1+ format with schema evolution support.
+
+    Handles differences between SARIF versions:
+    - 2.1.0: Original schema
+    - 2.2.0: Added taxonomies, webRequests/webResponses, threadFlowLocations enhancements
+
+    Uses lenient parsing to handle missing/extra fields gracefully.
+    """
 
     def normalize(
         self, content: bytes, content_type: Optional[str] = None
     ) -> List[UnifiedFinding]:
         findings: List[UnifiedFinding] = []
         data = self._parse_json(content)
+
+        # Detect SARIF version for schema evolution handling
+        sarif_version = data.get("version", "2.1.0")
+        schema = data.get("$schema", "")
 
         runs = data.get("runs", [])
         for run in runs:
@@ -525,6 +537,47 @@ class SARIFNormalizer(BaseNormalizer):
                 properties = result.get("properties", {})
                 tags = properties.get("tags", [])
 
+                # Extract CWE from taxonomies (SARIF 2.2 feature) or rule properties
+                cwe_id = None
+                taxa = result.get("taxa", [])
+                if taxa:
+                    for taxon in taxa:
+                        if (
+                            taxon.get("toolComponent", {}).get("name", "").lower()
+                            == "cwe"
+                        ):
+                            cwe_id = f"CWE-{taxon.get('id', '')}"
+                            break
+                if not cwe_id:
+                    rule_props = rule.get("properties", {})
+                    cwe_list = rule_props.get("cwe", [])
+                    if cwe_list:
+                        cwe_id = (
+                            cwe_list[0]
+                            if isinstance(cwe_list[0], str)
+                            else f"CWE-{cwe_list[0]}"
+                        )
+
+                # Extract code snippet from region (lenient - may not exist)
+                code_snippet = None
+                if locations:
+                    region = locations[0].get("physicalLocation", {}).get("region", {})
+                    code_snippet = region.get("snippet", {}).get("text")
+
+                # Build metadata with version info for schema evolution tracking
+                metadata = {
+                    "run_index": runs.index(run),
+                    "sarif_version": sarif_version,
+                    "schema": schema,
+                }
+
+                # SARIF 2.2: Extract web request/response info if present
+                web_request = result.get("webRequest")
+                web_response = result.get("webResponse")
+                if web_request or web_response:
+                    metadata["web_request"] = web_request
+                    metadata["web_response"] = web_response
+
                 finding = UnifiedFinding(
                     source_format=SourceFormat.SARIF,
                     source_tool=tool_name,
@@ -535,14 +588,16 @@ class SARIFNormalizer(BaseNormalizer):
                     title=title[:500] if title else "Unknown finding",
                     description=description,
                     recommendation=help_text,
+                    cwe_id=cwe_id,
                     rule_id=rule_id,
                     rule_name=rule.get("name"),
                     file_path=file_path,
                     line_number=line_number,
                     column_number=column_number,
+                    code_snippet=code_snippet,
                     tags=tags if isinstance(tags, list) else [],
                     raw_data=result,
-                    metadata={"run_index": runs.index(run)},
+                    metadata=metadata,
                 )
                 finding.compute_fingerprint()
                 findings.append(finding)
@@ -787,6 +842,537 @@ class CNAPPNormalizer(BaseNormalizer):
         return FindingType.MISCONFIGURATION
 
 
+class SPDXNormalizer(BaseNormalizer):
+    """Normalizer for SPDX SBOM format (2.2 and 2.3)."""
+
+    def normalize(
+        self, content: bytes, content_type: Optional[str] = None
+    ) -> List[UnifiedFinding]:
+        findings: List[UnifiedFinding] = []
+        data = self._parse_json(content)
+
+        # SPDX 2.2+ structure
+        packages = data.get("packages", [])
+        external_refs = {}
+
+        # Build package lookup by SPDXID
+        packages_by_id: Dict[str, Dict] = {}
+        for pkg in packages:
+            spdx_id = pkg.get("SPDXID")
+            if spdx_id:
+                packages_by_id[spdx_id] = pkg
+                # Extract external references (vulnerabilities, security advisories)
+                for ref in pkg.get("externalRefs", []):
+                    ref_type = ref.get("referenceType", "")
+                    if ref_type in ("cpe23Type", "purl", "security", "advisory"):
+                        if spdx_id not in external_refs:
+                            external_refs[spdx_id] = []
+                        external_refs[spdx_id].append(ref)
+
+        # Check for vulnerabilities in annotations or external document refs
+        annotations = data.get("annotations", [])
+        for annotation in annotations:
+            if annotation.get("annotationType") == "REVIEW":
+                comment = annotation.get("comment", "")
+                if "CVE-" in comment or "vulnerability" in comment.lower():
+                    # Extract CVE from comment
+                    cve_match = re.search(r"CVE-\d{4}-\d+", comment)
+                    cve_id = cve_match.group(0) if cve_match else None
+
+                    finding = UnifiedFinding(
+                        source_format=SourceFormat.SPDX,
+                        source_tool="spdx",
+                        finding_type=FindingType.VULNERABILITY,
+                        severity=FindingSeverity.MEDIUM,
+                        title=f"Security annotation: {comment[:100]}",
+                        description=comment,
+                        cve_id=cve_id,
+                        raw_data=annotation,
+                    )
+                    finding.compute_fingerprint()
+                    findings.append(finding)
+
+        # Process packages with security external refs
+        for spdx_id, refs in external_refs.items():
+            pkg = packages_by_id.get(spdx_id, {})
+            for ref in refs:
+                ref_type = ref.get("referenceType", "")
+                ref_locator = ref.get("referenceLocator", "")
+
+                if ref_type == "security" or "advisory" in ref_type.lower():
+                    cve_match = re.search(r"CVE-\d{4}-\d+", ref_locator)
+                    cve_id = cve_match.group(0) if cve_match else None
+
+                    finding = UnifiedFinding(
+                        source_format=SourceFormat.SPDX,
+                        source_tool="spdx",
+                        source_id=ref_locator,
+                        finding_type=FindingType.VULNERABILITY,
+                        severity=FindingSeverity.MEDIUM,
+                        title=f"Security reference for {pkg.get('name', 'Unknown')}",
+                        description=f"Security reference: {ref_locator}",
+                        cve_id=cve_id,
+                        package_name=pkg.get("name"),
+                        package_version=pkg.get("versionInfo"),
+                        purl=next(
+                            (
+                                r.get("referenceLocator")
+                                for r in pkg.get("externalRefs", [])
+                                if r.get("referenceType") == "purl"
+                            ),
+                            None,
+                        ),
+                        references=[ref_locator]
+                        if ref_locator.startswith("http")
+                        else [],
+                        raw_data={"package": pkg, "reference": ref},
+                    )
+                    finding.compute_fingerprint()
+                    findings.append(finding)
+
+        return findings
+
+
+class VEXNormalizer(BaseNormalizer):
+    """Normalizer for VEX (Vulnerability Exploitability eXchange) format."""
+
+    def normalize(
+        self, content: bytes, content_type: Optional[str] = None
+    ) -> List[UnifiedFinding]:
+        findings: List[UnifiedFinding] = []
+        data = self._parse_json(content)
+
+        # Support both OpenVEX and CycloneDX VEX formats
+        statements = data.get("statements", [])
+        if not statements:
+            # Try CycloneDX VEX format
+            statements = data.get("vulnerabilities", [])
+
+        for stmt in statements:
+            vuln_id = stmt.get("vulnerability", {})
+            if isinstance(vuln_id, dict):
+                vuln_id = vuln_id.get("@id") or vuln_id.get("id", "")
+            elif isinstance(vuln_id, str):
+                pass
+            else:
+                vuln_id = str(stmt.get("id", ""))
+
+            status = stmt.get("status", "").lower()
+            justification = stmt.get("justification", "")
+            impact = stmt.get("impact_statement") or stmt.get("actionStatement", "")
+
+            # Map VEX status to finding status
+            status_map = {
+                "not_affected": FindingStatus.FALSE_POSITIVE,
+                "affected": FindingStatus.OPEN,
+                "fixed": FindingStatus.RESOLVED,
+                "under_investigation": FindingStatus.IN_PROGRESS,
+            }
+            finding_status = status_map.get(status, FindingStatus.OPEN)
+
+            # Determine severity from VEX data
+            severity = FindingSeverity.UNKNOWN
+            if status == "affected":
+                severity = FindingSeverity.HIGH
+            elif status == "not_affected":
+                severity = FindingSeverity.INFO
+
+            products = stmt.get("products", [])
+            if not products:
+                products = [stmt.get("product", {})]
+
+            for product in products:
+                if isinstance(product, dict):
+                    product_id = product.get("@id") or product.get("id", "Unknown")
+                else:
+                    product_id = str(product) if product else "Unknown"
+
+                finding = UnifiedFinding(
+                    source_format=SourceFormat.VEX,
+                    source_tool=data.get("author") or data.get("tooling", "vex"),
+                    source_id=vuln_id,
+                    finding_type=FindingType.VULNERABILITY,
+                    severity=severity,
+                    status=finding_status,
+                    title=f"VEX: {vuln_id} - {status}",
+                    description=impact or justification or f"VEX status: {status}",
+                    cve_id=vuln_id if vuln_id.startswith("CVE-") else None,
+                    asset_name=product_id,
+                    metadata={
+                        "vex_status": status,
+                        "justification": justification,
+                        "impact_statement": impact,
+                    },
+                    raw_data=stmt,
+                )
+                finding.compute_fingerprint()
+                findings.append(finding)
+
+        return findings
+
+
+class TrivyNormalizer(BaseNormalizer):
+    """Normalizer for Trivy scanner output (JSON format)."""
+
+    def normalize(
+        self, content: bytes, content_type: Optional[str] = None
+    ) -> List[UnifiedFinding]:
+        findings: List[UnifiedFinding] = []
+        data = self._parse_json(content)
+
+        # Trivy JSON output structure
+        results = data.get("Results", [])
+        if not results:
+            # Try alternate format
+            results = data.get("results", [])
+
+        artifact_name = data.get("ArtifactName") or data.get("artifactName", "")
+        artifact_type = data.get("ArtifactType") or data.get("artifactType", "")
+
+        for result in results:
+            target = result.get("Target") or result.get("target", "")
+            result_type = result.get("Type") or result.get("type", "")
+
+            vulnerabilities = result.get("Vulnerabilities") or result.get(
+                "vulnerabilities", []
+            )
+            for vuln in vulnerabilities or []:
+                vuln_id = vuln.get("VulnerabilityID") or vuln.get("vulnerabilityID", "")
+                pkg_name = vuln.get("PkgName") or vuln.get("pkgName", "")
+                pkg_version = vuln.get("InstalledVersion") or vuln.get(
+                    "installedVersion", ""
+                )
+                fixed_version = vuln.get("FixedVersion") or vuln.get("fixedVersion", "")
+                severity_str = vuln.get("Severity") or vuln.get("severity", "UNKNOWN")
+                title = vuln.get("Title") or vuln.get("title", vuln_id)
+                description = vuln.get("Description") or vuln.get("description", "")
+
+                cvss_data = vuln.get("CVSS", {})
+                cvss_score = None
+                cvss_vector = None
+                for source, cvss in cvss_data.items():
+                    if isinstance(cvss, dict):
+                        cvss_score = cvss.get("V3Score") or cvss.get("V2Score")
+                        cvss_vector = cvss.get("V3Vector") or cvss.get("V2Vector")
+                        if cvss_score:
+                            break
+
+                finding = UnifiedFinding(
+                    source_format=SourceFormat.TRIVY,
+                    source_tool="trivy",
+                    source_id=vuln_id,
+                    finding_type=FindingType.VULNERABILITY,
+                    severity=self._map_severity(severity_str),
+                    title=f"{vuln_id}: {title[:200]}" if title else vuln_id,
+                    description=description,
+                    recommendation=f"Upgrade to version {fixed_version}"
+                    if fixed_version
+                    else None,
+                    cve_id=vuln_id if vuln_id.startswith("CVE-") else None,
+                    cvss_score=cvss_score,
+                    cvss_vector=cvss_vector,
+                    package_name=pkg_name,
+                    package_version=pkg_version,
+                    package_ecosystem=result_type,
+                    container_image=artifact_name
+                    if artifact_type == "container_image"
+                    else None,
+                    file_path=target,
+                    references=vuln.get("References") or vuln.get("references", []),
+                    raw_data=vuln,
+                )
+                finding.compute_fingerprint()
+                findings.append(finding)
+
+            # Process misconfigurations
+            misconfigs = result.get("Misconfigurations") or result.get(
+                "misconfigurations", []
+            )
+            for misconfig in misconfigs or []:
+                misconfig_id = misconfig.get("ID") or misconfig.get("id", "")
+                severity_str = misconfig.get("Severity") or misconfig.get(
+                    "severity", "UNKNOWN"
+                )
+
+                finding = UnifiedFinding(
+                    source_format=SourceFormat.TRIVY,
+                    source_tool="trivy",
+                    source_id=misconfig_id,
+                    finding_type=FindingType.MISCONFIGURATION,
+                    severity=self._map_severity(severity_str),
+                    title=misconfig.get("Title")
+                    or misconfig.get("title", misconfig_id),
+                    description=misconfig.get("Description")
+                    or misconfig.get("description", ""),
+                    recommendation=misconfig.get("Resolution")
+                    or misconfig.get("resolution", ""),
+                    rule_id=misconfig_id,
+                    file_path=target,
+                    references=misconfig.get("References")
+                    or misconfig.get("references", []),
+                    raw_data=misconfig,
+                )
+                finding.compute_fingerprint()
+                findings.append(finding)
+
+            # Process secrets
+            secrets = result.get("Secrets") or result.get("secrets", [])
+            for secret in secrets or []:
+                finding = UnifiedFinding(
+                    source_format=SourceFormat.TRIVY,
+                    source_tool="trivy",
+                    source_id=secret.get("RuleID") or secret.get("ruleID", ""),
+                    finding_type=FindingType.SECRET,
+                    severity=self._map_severity(
+                        secret.get("Severity") or secret.get("severity", "HIGH")
+                    ),
+                    title=secret.get("Title") or secret.get("title", "Secret detected"),
+                    description=secret.get("Match") or secret.get("match", ""),
+                    file_path=target,
+                    line_number=secret.get("StartLine") or secret.get("startLine"),
+                    rule_id=secret.get("RuleID") or secret.get("ruleID"),
+                    raw_data=secret,
+                )
+                finding.compute_fingerprint()
+                findings.append(finding)
+
+        return findings
+
+
+class GrypeNormalizer(BaseNormalizer):
+    """Normalizer for Grype scanner output (JSON format)."""
+
+    def normalize(
+        self, content: bytes, content_type: Optional[str] = None
+    ) -> List[UnifiedFinding]:
+        findings: List[UnifiedFinding] = []
+        data = self._parse_json(content)
+
+        matches = data.get("matches", [])
+        source = data.get("source", {})
+        artifact_type = source.get("type", "")
+        artifact_target = source.get("target", "")
+
+        for match in matches:
+            vuln = match.get("vulnerability", {})
+            artifact = match.get("artifact", {})
+            related_vulns = match.get("relatedVulnerabilities", [])
+
+            vuln_id = vuln.get("id", "")
+            severity_str = vuln.get("severity", "Unknown")
+            description = vuln.get("description", "")
+            fix_versions = vuln.get("fix", {}).get("versions", [])
+
+            # Get CVSS from related vulnerabilities
+            cvss_score = None
+            cvss_vector = None
+            for related in related_vulns:
+                cvss_list = related.get("cvss", [])
+                for cvss in cvss_list:
+                    if cvss.get("version", "").startswith("3"):
+                        cvss_score = cvss.get("metrics", {}).get("baseScore")
+                        cvss_vector = cvss.get("vector")
+                        break
+                if cvss_score:
+                    break
+
+            finding = UnifiedFinding(
+                source_format=SourceFormat.GRYPE,
+                source_tool="grype",
+                source_id=vuln_id,
+                finding_type=FindingType.VULNERABILITY,
+                severity=self._map_severity(severity_str),
+                title=f"{vuln_id}: {artifact.get('name', 'Unknown')}",
+                description=description,
+                recommendation=f"Upgrade to version {', '.join(fix_versions)}"
+                if fix_versions
+                else None,
+                cve_id=vuln_id if vuln_id.startswith("CVE-") else None,
+                cvss_score=cvss_score,
+                cvss_vector=cvss_vector,
+                package_name=artifact.get("name"),
+                package_version=artifact.get("version"),
+                package_ecosystem=artifact.get("type"),
+                purl=artifact.get("purl"),
+                container_image=artifact_target if artifact_type == "image" else None,
+                file_path=artifact.get("locations", [{}])[0].get("path")
+                if artifact.get("locations")
+                else None,
+                references=vuln.get("urls", []),
+                raw_data=match,
+            )
+            finding.compute_fingerprint()
+            findings.append(finding)
+
+        return findings
+
+
+class SemgrepNormalizer(BaseNormalizer):
+    """Normalizer for Semgrep SAST scanner output (JSON format)."""
+
+    def normalize(
+        self, content: bytes, content_type: Optional[str] = None
+    ) -> List[UnifiedFinding]:
+        findings: List[UnifiedFinding] = []
+        data = self._parse_json(content)
+
+        results = data.get("results", [])
+
+        for result in results:
+            check_id = result.get("check_id", "")
+            path = result.get("path", "")
+            start = result.get("start", {})
+            extra = result.get("extra", {})
+
+            severity_str = extra.get("severity", "WARNING")
+            message = extra.get("message", "")
+            metadata = extra.get("metadata", {})
+
+            # Map Semgrep severity
+            severity_map = {
+                "ERROR": FindingSeverity.HIGH,
+                "WARNING": FindingSeverity.MEDIUM,
+                "INFO": FindingSeverity.LOW,
+            }
+            severity = severity_map.get(severity_str.upper(), FindingSeverity.MEDIUM)
+
+            # Determine finding type from metadata
+            finding_type = FindingType.CODE_QUALITY
+            category = metadata.get("category", "").lower()
+            if "security" in category or "vulnerability" in category:
+                finding_type = FindingType.VULNERABILITY
+            elif "secret" in category:
+                finding_type = FindingType.SECRET
+
+            cwe_ids = metadata.get("cwe", [])
+            cwe_id = cwe_ids[0] if cwe_ids else None
+            if isinstance(cwe_id, str) and not cwe_id.startswith("CWE-"):
+                cwe_id = f"CWE-{cwe_id}"
+
+            # Convert string confidence to float if needed
+            confidence_raw = metadata.get("confidence")
+            confidence_value = None
+            if confidence_raw is not None:
+                if isinstance(confidence_raw, (int, float)):
+                    confidence_value = float(confidence_raw)
+                elif isinstance(confidence_raw, str):
+                    confidence_map = {"HIGH": 0.9, "MEDIUM": 0.7, "LOW": 0.5}
+                    confidence_value = confidence_map.get(confidence_raw.upper())
+
+            finding = UnifiedFinding(
+                source_format=SourceFormat.SEMGREP,
+                source_tool="semgrep",
+                source_id=check_id,
+                finding_type=finding_type,
+                severity=severity,
+                title=f"{check_id}: {message[:100]}" if message else check_id,
+                description=message,
+                recommendation=extra.get("fix", ""),
+                cwe_id=cwe_id,
+                file_path=path,
+                line_number=start.get("line"),
+                column_number=start.get("col"),
+                code_snippet=extra.get("lines", ""),
+                rule_id=check_id,
+                rule_name=metadata.get("rule_name", check_id),
+                tags=metadata.get("tags", []),
+                references=metadata.get("references", []),
+                confidence=confidence_value,
+                raw_data=result,
+            )
+            finding.compute_fingerprint()
+            findings.append(finding)
+
+        return findings
+
+
+class DependabotNormalizer(BaseNormalizer):
+    """Normalizer for GitHub Dependabot alerts (JSON format)."""
+
+    def normalize(
+        self, content: bytes, content_type: Optional[str] = None
+    ) -> List[UnifiedFinding]:
+        findings: List[UnifiedFinding] = []
+        data = self._parse_json(content)
+
+        # Handle both single alert and array of alerts
+        alerts = data if isinstance(data, list) else data.get("alerts", [data])
+
+        for alert in alerts:
+            security_advisory = alert.get("security_advisory", {})
+            security_vuln = alert.get("security_vulnerability", {})
+            dependency = alert.get("dependency", {})
+
+            ghsa_id = security_advisory.get("ghsa_id", "")
+            cve_id = security_advisory.get("cve_id")
+            summary = security_advisory.get("summary", "")
+            description = security_advisory.get("description", "")
+            severity_str = security_advisory.get("severity", "moderate")
+
+            # Get CVSS from advisory
+            cvss = security_advisory.get("cvss", {})
+            cvss_score = cvss.get("score")
+            cvss_vector = cvss.get("vector_string")
+
+            # Get package info
+            pkg = dependency.get("package", {})
+            pkg_name = pkg.get("name", "")
+            pkg_ecosystem = pkg.get("ecosystem", "")
+            manifest_path = dependency.get("manifest_path", "")
+
+            # Get vulnerable and patched versions
+            vulnerable_range = security_vuln.get("vulnerable_version_range", "")
+            first_patched = security_vuln.get("first_patched_version", {})
+            patched_version = first_patched.get("identifier") if first_patched else None
+
+            # Map severity
+            severity_map = {
+                "critical": FindingSeverity.CRITICAL,
+                "high": FindingSeverity.HIGH,
+                "moderate": FindingSeverity.MEDIUM,
+                "medium": FindingSeverity.MEDIUM,
+                "low": FindingSeverity.LOW,
+            }
+            severity = severity_map.get(severity_str.lower(), FindingSeverity.MEDIUM)
+
+            finding = UnifiedFinding(
+                source_format=SourceFormat.DEPENDABOT,
+                source_tool="dependabot",
+                source_id=ghsa_id or str(alert.get("number", "")),
+                finding_type=FindingType.VULNERABILITY,
+                severity=severity,
+                title=f"{ghsa_id or cve_id}: {summary[:200]}"
+                if summary
+                else ghsa_id or cve_id or "Dependabot Alert",
+                description=description,
+                recommendation=f"Upgrade to version {patched_version}"
+                if patched_version
+                else "Review and update dependency",
+                cve_id=cve_id,
+                cvss_score=cvss_score,
+                cvss_vector=cvss_vector,
+                package_name=pkg_name,
+                package_ecosystem=pkg_ecosystem,
+                file_path=manifest_path,
+                references=[
+                    ref.get("url")
+                    for ref in security_advisory.get("references", [])
+                    if ref.get("url")
+                ],
+                metadata={
+                    "ghsa_id": ghsa_id,
+                    "vulnerable_range": vulnerable_range,
+                    "state": alert.get("state"),
+                    "dismissed_reason": alert.get("dismissed_reason"),
+                },
+                raw_data=alert,
+            )
+            finding.compute_fingerprint()
+            findings.append(finding)
+
+        return findings
+
+
 class NormalizerRegistry:
     """
     Registry for normalizer plugins with YAML configuration support.
@@ -801,6 +1387,8 @@ class NormalizerRegistry:
     def __init__(self, config_path: Optional[Path] = None):
         self._normalizers: Dict[str, BaseNormalizer] = {}
         self._config: Dict[str, Any] = {}
+        self._schema_cache: Dict[str, Any] = {}
+        self._cache_timestamps: Dict[str, float] = {}
         self._executor = ThreadPoolExecutor(max_workers=4)
 
         if config_path and config_path.exists():
@@ -875,6 +1463,61 @@ class NormalizerRegistry:
                         r'"cnapp"',
                     ],
                 },
+                "spdx": {
+                    "enabled": True,
+                    "priority": 85,
+                    "detection_patterns": [
+                        r'"spdxVersion"\s*:',
+                        r'"SPDXID"\s*:',
+                        r'"SPDXRef-',
+                    ],
+                },
+                "vex": {
+                    "enabled": True,
+                    "priority": 80,
+                    "detection_patterns": [
+                        r'"@context".*openvex',
+                        r'"statements"\s*:',
+                        r'"status"\s*:\s*"(not_affected|affected|fixed|under_investigation)"',
+                    ],
+                },
+                "trivy": {
+                    "enabled": True,
+                    "priority": 88,
+                    "detection_patterns": [
+                        r'"ArtifactName"\s*:',
+                        r'"ArtifactType"\s*:',
+                        r'"Results"\s*:\s*\[',
+                        r'"Vulnerabilities"\s*:',
+                    ],
+                },
+                "grype": {
+                    "enabled": True,
+                    "priority": 87,
+                    "detection_patterns": [
+                        r'"matches"\s*:\s*\[',
+                        r'"artifact"\s*:.*"purl"',
+                        r'"vulnerability"\s*:.*"severity"',
+                    ],
+                },
+                "semgrep": {
+                    "enabled": True,
+                    "priority": 82,
+                    "detection_patterns": [
+                        r'"results"\s*:\s*\[',
+                        r'"check_id"\s*:',
+                        r'"extra"\s*:.*"severity"',
+                    ],
+                },
+                "dependabot": {
+                    "enabled": True,
+                    "priority": 83,
+                    "detection_patterns": [
+                        r'"security_advisory"\s*:',
+                        r'"security_vulnerability"\s*:',
+                        r'"ghsa_id"\s*:',
+                    ],
+                },
             },
         }
 
@@ -885,6 +1528,12 @@ class NormalizerRegistry:
             "cyclonedx": CycloneDXNormalizer,
             "dark_web_intel": DarkWebIntelNormalizer,
             "cnapp": CNAPPNormalizer,
+            "spdx": SPDXNormalizer,
+            "vex": VEXNormalizer,
+            "trivy": TrivyNormalizer,
+            "grype": GrypeNormalizer,
+            "semgrep": SemgrepNormalizer,
+            "dependabot": DependabotNormalizer,
         }
 
         normalizers_config = self._config.get("normalizers", {})
@@ -903,6 +1552,82 @@ class NormalizerRegistry:
                 settings=config_data.get("settings", {}),
             )
             self._normalizers[name] = cls(config)
+
+        # Load custom plugins from config
+        self._load_custom_plugins()
+
+    def _load_custom_plugins(self) -> None:
+        """
+        Load custom normalizer plugins from YAML configuration.
+
+        Supports dynamic loading of normalizer classes from module paths.
+        Config format:
+            plugins:
+              - name: custom_scanner
+                module: mypackage.normalizers.custom
+                class: CustomNormalizer
+                enabled: true
+                priority: 60
+                detection_patterns: [...]
+        """
+        import importlib
+
+        plugins_config = self._config.get("plugins", [])
+        normalizers_config = self._config.get("normalizers", {})
+
+        for plugin in plugins_config:
+            name = plugin.get("name")
+            module_path = plugin.get("module")
+            class_name = plugin.get("class")
+
+            if not all([name, module_path, class_name]):
+                logger.warning(
+                    f"Invalid plugin config (missing name/module/class): {plugin}"
+                )
+                continue
+
+            if not plugin.get("enabled", True):
+                logger.debug(f"Plugin {name} is disabled, skipping")
+                continue
+
+            try:
+                module = importlib.import_module(module_path)
+                cls = getattr(module, class_name)
+
+                if not issubclass(cls, BaseNormalizer):
+                    logger.warning(
+                        f"Plugin {name} class {class_name} is not a BaseNormalizer subclass"
+                    )
+                    continue
+
+                # Merge plugin config with normalizers config
+                config_data = {**plugin, **normalizers_config.get(name, {})}
+                config = NormalizerConfig(
+                    name=name,
+                    enabled=config_data.get("enabled", True),
+                    priority=config_data.get("priority", 50),
+                    description=config_data.get("description", ""),
+                    supported_versions=config_data.get("supported_versions", []),
+                    schemas=config_data.get("schemas", []),
+                    lenient_fields=config_data.get("lenient_fields", []),
+                    detection_patterns=config_data.get("detection_patterns", []),
+                    settings=config_data.get("settings", {}),
+                )
+                self._normalizers[name] = cls(config)
+                logger.info(
+                    f"Loaded custom plugin: {name} from {module_path}.{class_name}"
+                )
+
+            except ImportError as e:
+                logger.warning(
+                    f"Failed to import plugin {name} from {module_path}: {e}"
+                )
+            except AttributeError as e:
+                logger.warning(
+                    f"Failed to find class {class_name} in {module_path}: {e}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load plugin {name}: {e}")
 
     def register(self, name: str, normalizer: BaseNormalizer) -> None:
         """Register a custom normalizer."""
@@ -960,6 +1685,29 @@ class NormalizerRegistry:
 
         return best_match, best_confidence
 
+    def get_cached_schema(self, schema_url: str) -> Optional[Any]:
+        """Get a cached schema if available and not expired."""
+        settings = self._config.get("settings", {})
+        if not settings.get("cache_schemas", True):
+            return None
+
+        cache_ttl = settings.get("cache_ttl_seconds", 3600)
+        if schema_url in self._schema_cache:
+            cached_time = self._cache_timestamps.get(schema_url, 0)
+            if time.time() - cached_time < cache_ttl:
+                return self._schema_cache[schema_url]
+            else:
+                del self._schema_cache[schema_url]
+                del self._cache_timestamps[schema_url]
+        return None
+
+    def cache_schema(self, schema_url: str, schema: Any) -> None:
+        """Cache a schema for future use."""
+        settings = self._config.get("settings", {})
+        if settings.get("cache_schemas", True):
+            self._schema_cache[schema_url] = schema
+            self._cache_timestamps[schema_url] = time.time()
+
     def normalize(
         self,
         content: bytes,
@@ -976,8 +1724,20 @@ class NormalizerRegistry:
 
         Returns:
             List of unified findings
+
+        Raises:
+            ValueError: If content exceeds max_document_bytes
         """
         start_time = time.time()
+
+        # Enforce max_document_bytes setting
+        settings = self._config.get("settings", {})
+        max_bytes = settings.get("max_document_bytes", 100 * 1024 * 1024)
+        if len(content) > max_bytes:
+            raise ValueError(
+                f"Document size ({len(content)} bytes) exceeds maximum "
+                f"allowed size ({max_bytes} bytes)"
+            )
 
         if format_hint and format_hint in self._normalizers:
             normalizer = self._normalizers[format_hint]
