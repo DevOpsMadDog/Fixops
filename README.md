@@ -440,7 +440,7 @@ python -m core.cli playbook list --dir config/playbooks
 | Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
 | Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
-### ~90 CLI Commands (30 Command Groups)
+### 112+ CLI Commands (31 Command Groups)
 
 | Command Group | Commands | Description |
 |---------------|----------|-------------|
