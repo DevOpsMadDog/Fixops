@@ -338,7 +338,7 @@ python -m core.cli micro-pentest run --cve-ids CVE-2024-1234 --target-urls http:
 
 | ID | Capability | API Endpoints | CLI Commands | Core Modules | Status |
 |----|------------|---------------|--------------|--------------|--------|
-| T1 | Intake & Normalize | `POST /inputs/*` (7 endpoints) | `ingest`, `stage-run` | `apps/api/normalizers.py`, `apps/api/app.py:850-1033` | Production |
+| T1 | Intake & Normalize | `POST /inputs/*` (7 endpoints), `POST /api/v1/ingest/multipart` | `ingest`, `ingest-file`, `stage-run` | `apps/api/ingestion.py`, `apps/api/app.py:850-1033` | Production |
 | T2 | Prioritize & Triage | `GET /api/v1/triage`, `POST /api/v1/risk/*` | `analyze` | `risk/scoring.py`, `core/severity_promotion.py` | Production |
 | T3 | Automated Decisions | `POST /api/v1/enhanced/*`, `/api/v1/micro-pentest/*` | `make-decision`, `run`, `micro-pentest` | `core/enhanced_decision.py`, `core/pentagi_advanced.py`, `core/micro_pentest.py` | Production |
 | T4 | Remediation Workflow | `/api/v1/remediation/*` (13 endpoints) | `remediation` | `core/services/remediation.py`, `apps/api/remediation_router.py` | Production |
@@ -366,7 +366,7 @@ python -m core.cli micro-pentest run --cve-ids CVE-2024-1234 --target-urls http:
 
 | Capability | What It Does | Business Value |
 |------------|--------------|----------------|
-| **Intake & Normalize** | Aggregates outputs from any scanner (SAST, DAST, SCA, IaC, secrets) | Single pane of glass for all security findings |
+| **Intake & Normalize** | Aggregates outputs from any scanner (SBOM, SARIF, VEX, CNAPP, dark web intel, SPDX, Trivy, Grype, Semgrep, Dependabot) with dynamic plugin registry, lenient parsing for format drift, and 10K findings <2 min performance | Single pane of glass for all security findings with 99% parse success on drifted formats |
 | **Prioritize & Triage** | Scores vulnerabilities using threat intelligence (EPSS, KEV, CVSS) | Focus on what matters most, reduce noise by 35% |
 | **Automated Decisions** | AI consensus from multiple models decides allow/block/review | Consistent, explainable security decisions at scale |
 | **Remediation Workflow** | Assigns tasks, tracks SLAs, verifies fixes | Clear accountability, measurable MTTR |

@@ -16,7 +16,7 @@ if ENTERPRISE_SRC.exists():  # pragma: no cover - enterprise path setup
     enterprise_path = str(ENTERPRISE_SRC)
     if enterprise_path not in sys.path:
         sys.path.append(enterprise_path)
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 if TYPE_CHECKING:
     from src.services import id_allocator, signing  # noqa: F401
@@ -415,6 +415,116 @@ def _handle_ingest(args: argparse.Namespace) -> int:
 
     _copy_evidence(result, getattr(args, "evidence_dir", None))
     return 0
+
+
+def _handle_ingest_file(args: argparse.Namespace) -> int:
+    """Handle scanner-agnostic file ingestion with auto-detection."""
+    import asyncio
+    import logging
+
+    from apps.api.ingestion import get_ingestion_service
+
+    logger = logging.getLogger(__name__)
+
+    file_paths: List[Path] = getattr(args, "files", [])
+    format_hint: Optional[str] = getattr(args, "format", None)
+    output_path: Optional[Path] = getattr(args, "output", None)
+    pretty: bool = getattr(args, "pretty", False)
+
+    if not file_paths:
+        print(
+            "Error: No files specified. Use --file to specify files.", file=sys.stderr
+        )
+        return 1
+
+    service = get_ingestion_service()
+    all_results = []
+    total_findings = 0
+    total_assets = 0
+    errors = []
+
+    async def process_files() -> None:
+        nonlocal total_findings, total_assets
+        for file_path in file_paths:
+            file_path = file_path.expanduser().resolve()
+            if not file_path.exists():
+                errors.append(f"File not found: {file_path}")
+                continue
+
+            try:
+                with open(file_path, "rb") as f:
+                    content = f.read()
+
+                result = await service.ingest(
+                    content=content,
+                    filename=file_path.name,
+                    content_type=None,
+                    format_hint=format_hint,
+                )
+
+                all_results.append(
+                    {
+                        "filename": str(file_path),
+                        "status": result.status,
+                        "format_detected": result.format_detected,
+                        "detection_confidence": result.detection_confidence,
+                        "findings_count": result.findings_count,
+                        "assets_count": result.assets_count,
+                        "processing_time_ms": result.processing_time_ms,
+                        "errors": result.errors,
+                        "warnings": result.warnings,
+                        "findings": [f.model_dump() for f in result.findings]
+                        if getattr(args, "include_findings", False)
+                        else [],
+                    }
+                )
+                total_findings += result.findings_count
+                total_assets += result.assets_count
+
+                if result.errors:
+                    errors.extend(result.errors)
+
+            except Exception as e:
+                # Sanitize error messages to prevent information exposure
+                error_type = type(e).__name__
+                safe_error = f"Ingestion failed: {error_type}"
+                logger.error(f"Failed to ingest {file_path}: {e}")
+                errors.append(f"{file_path.name}: {safe_error}")
+                all_results.append(
+                    {
+                        "filename": str(file_path),
+                        "status": "error",
+                        "error": safe_error,
+                    }
+                )
+
+    asyncio.run(process_files())
+
+    output = {
+        "status": "success" if not errors else "partial",
+        "files_processed": len(file_paths),
+        "total_findings": total_findings,
+        "total_assets": total_assets,
+        "results": all_results,
+        "errors": errors,
+    }
+
+    if output_path is not None:
+        output_path = output_path.expanduser().resolve()
+        _write_output(output_path, output, pretty=pretty)
+        print(f"Results written to {output_path}")
+    else:
+        print(json.dumps(output, indent=2 if pretty else None, default=str))
+
+    if not getattr(args, "quiet", False):
+        print(
+            f"\nSummary: {total_findings} findings from {len(file_paths)} files",
+            file=sys.stderr,
+        )
+        if errors:
+            print(f"Errors: {len(errors)}", file=sys.stderr)
+
+    return 0 if not errors else 1
 
 
 def _derive_decision_exit(result: Mapping[str, Any]) -> tuple[str, int]:
@@ -4037,6 +4147,60 @@ def build_parser() -> argparse.ArgumentParser:
         ingest_parser, include_quiet=False, include_overlay_flag=True
     )
     ingest_parser.set_defaults(func=_handle_ingest)
+
+    ingest_file_parser = subparsers.add_parser(
+        "ingest-file",
+        help="Scanner-agnostic file ingestion with auto-detection (SARIF, CycloneDX, SPDX, VEX, CNAPP, dark web intel)",
+    )
+    ingest_file_parser.add_argument(
+        "--file",
+        "-f",
+        type=Path,
+        action="append",
+        dest="files",
+        required=True,
+        help="File(s) to ingest (can be specified multiple times)",
+    )
+    ingest_file_parser.add_argument(
+        "--format",
+        choices=[
+            "sarif",
+            "cyclonedx",
+            "spdx",
+            "vex",
+            "trivy",
+            "grype",
+            "semgrep",
+            "dependabot",
+            "cnapp",
+            "dark_web_intel",
+        ],
+        help="Force a specific format (auto-detected if not specified). "
+        "All implemented normalizers are available.",
+    )
+    ingest_file_parser.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        help="Output file for results (prints to stdout if not specified)",
+    )
+    ingest_file_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Pretty-print JSON output",
+    )
+    ingest_file_parser.add_argument(
+        "--include-findings",
+        action="store_true",
+        help="Include full finding details in output",
+    )
+    ingest_file_parser.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Suppress summary output",
+    )
+    ingest_file_parser.set_defaults(func=_handle_ingest_file)
 
     decision_parser = subparsers.add_parser(
         "make-decision",
