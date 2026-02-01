@@ -956,30 +956,27 @@ class AdvancedPentagiClient:
                 return result
         except Exception as e:
             logger.error(f"PentAGI API call failed: {e}")
-            # Return mock result for development
-            return self._mock_pentagi_response(request)
+            return self._create_inconclusive_response(request, str(e))
 
-    def _mock_pentagi_response(self, request: PenTestRequest) -> Dict:
-        """Mock PentAGI response for development/testing."""
+    def _create_inconclusive_response(
+        self, request: PenTestRequest, error_reason: str
+    ) -> Dict:
+        """Create an inconclusive response when PentAGI API is unavailable.
+
+        For production safety, we return inconclusive results rather than
+        fake successful exploits when the external service fails.
+        """
         return {
-            "job_id": f"mock-{request.id}",
-            "status": "completed",
-            "exploit_successful": True,
-            "exploitability": "confirmed_exploitable",
-            "confidence_score": 0.85,
-            "execution_time_seconds": 120.0,
-            "evidence": "Successfully exploited vulnerability",
-            "steps_taken": [
-                "Reconnaissance with nmap",
-                "Vulnerability validation",
-                "Exploit execution",
-                "Evidence collection",
-            ],
-            "artifacts": [
-                "exploit_payload.txt",
-                "network_capture.pcap",
-                "evidence_screenshot.png",
-            ],
+            "job_id": f"inconclusive-{request.id}",
+            "status": "failed",
+            "exploit_successful": False,
+            "exploitability": "inconclusive",
+            "confidence_score": 0.0,
+            "execution_time_seconds": 0.0,
+            "evidence": f"PentAGI service unavailable: {error_reason}",
+            "steps_taken": ["API call attempted", "Service unavailable"],
+            "artifacts": [],
+            "error": error_reason,
         }
 
     def _create_result_from_response(

@@ -591,10 +591,82 @@ If no regressions are likely, return empty array.
             return f"{total_hours:.0f} hours"
 
     async def _call_llm(self, provider: str, prompt: str) -> str:
-        """Call LLM provider."""
-        # Mock response for now
+        """Call LLM provider using the real LLMProviderManager.
+
+        Args:
+            provider: The LLM provider to use ('openai', 'anthropic', 'gemini')
+            prompt: The prompt to send to the LLM
+
+        Returns:
+            JSON string response from the LLM
+        """
         import json
 
+        # Map provider names to LLMProviderManager names
+        provider_map = {
+            "gemini": "gemini",
+            "anthropic": "anthropic",
+            "openai": "openai",
+        }
+
+        llm_provider_name = provider_map.get(provider.lower(), "openai")
+
+        # Use the real LLM provider manager
+        response = self.llm_manager.analyse(
+            llm_provider_name,
+            prompt=prompt,
+            context={"source": "automated_remediation"},
+            default_action="review",
+            default_confidence=0.7,
+            default_reasoning="Analysis based on security best practices",
+        )
+
+        # Check if we got a real response or a fallback
+        if response.metadata.get("mode") == "remote":
+            # Real LLM response - extract the reasoning which contains the JSON
+            # The LLM was asked to return JSON, so parse it from reasoning
+            try:
+                # Try to extract JSON from the response
+                if "regression" in prompt.lower():
+                    return json.dumps(
+                        {
+                            "regressions": response.compliance_concerns
+                            if response.compliance_concerns
+                            else []
+                        }
+                    )
+                else:
+                    return json.dumps(
+                        {
+                            "suggestions": [
+                                {
+                                    "title": response.recommended_action,
+                                    "description": response.reasoning,
+                                    "type": "code_patch",
+                                    "priority": "high"
+                                    if response.confidence > 0.8
+                                    else "medium",
+                                    "code_changes": [],
+                                    "testing_guidance": "Test thoroughly before deployment",
+                                    "risk_assessment": f"Confidence: {response.confidence}",
+                                    "effort_estimate": "2-4 hours",
+                                    "success_probability": response.confidence,
+                                    "confidence": response.confidence,
+                                    "mitre_techniques": list(response.mitre_techniques),
+                                    "compliance_concerns": list(
+                                        response.compliance_concerns
+                                    ),
+                                }
+                            ]
+                        }
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to parse LLM response: {e}")
+
+        # Fallback response when LLM is unavailable
+        logger.info(
+            f"Using fallback response for {provider} (mode: {response.metadata.get('mode', 'unknown')})"
+        )
         if "regression" in prompt.lower():
             return json.dumps({"regressions": []})
         else:
@@ -602,23 +674,16 @@ If no regressions are likely, return empty array.
                 {
                     "suggestions": [
                         {
-                            "title": "Input validation enhancement",
-                            "description": "Add comprehensive input validation",
+                            "title": "Security review recommended",
+                            "description": response.reasoning,
                             "type": "code_patch",
-                            "priority": "high",
-                            "code_changes": [
-                                {
-                                    "file": "app.py",
-                                    "line": 42,
-                                    "old_code": "query = request.args.get('q')",
-                                    "new_code": "query = sanitize_input(request.args.get('q'))",
-                                }
-                            ],
-                            "testing_guidance": "Test with SQL injection payloads",
-                            "risk_assessment": "Low risk change",
-                            "effort_estimate": "2 hours",
-                            "success_probability": 0.9,
-                            "confidence": 0.85,
+                            "priority": "medium",
+                            "code_changes": [],
+                            "testing_guidance": "Manual security review required",
+                            "risk_assessment": "Automated analysis unavailable - manual review needed",
+                            "effort_estimate": "4 hours",
+                            "success_probability": 0.7,
+                            "confidence": response.confidence,
                         }
                     ]
                 }

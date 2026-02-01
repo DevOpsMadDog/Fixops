@@ -1,23 +1,64 @@
 """
-User and team management API endpoints.
+User and team management API endpoints with secure authentication.
+
+This module provides production-ready user management with:
+- Secure JWT authentication with required secret
+- Password hashing with bcrypt
+- Role-based access control
+- Session management
+- Audit logging
 """
+import logging
 import os
+import secrets
+import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from apps.api.dependencies import get_org_id
 from core.user_db import UserDB
 from core.user_models import User, UserRole, UserStatus
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 db = UserDB()
 
-JWT_SECRET = os.getenv("FIXOPS_JWT_SECRET", "demo-secret-key")
+
+def _get_jwt_secret() -> str:
+    """Get JWT secret from environment, raising error if not configured.
+
+    SECURITY: Never use a default secret in production.
+    The JWT secret must be:
+    - At least 32 characters long
+    - Randomly generated
+    - Stored securely (environment variable or secrets manager)
+    """
+    secret = os.environ.get("FIXOPS_JWT_SECRET")
+    if not secret:
+        raise RuntimeError(
+            "FIXOPS_JWT_SECRET environment variable is required. "
+            'Generate a secure secret with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
+    if len(secret) < 32:
+        raise RuntimeError(
+            "FIXOPS_JWT_SECRET must be at least 32 characters long for security"
+        )
+    return secret
+
+
 JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_HOURS = int(os.environ.get("FIXOPS_JWT_EXPIRE_HOURS", "2"))
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("FIXOPS_JWT_REFRESH_DAYS", "7"))
+
+# Rate limiting for login attempts
+_login_attempts: Dict[str, List[float]] = {}
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_LOCKOUT_SECONDS = 300  # 5 minutes
 
 
 class LoginRequest(BaseModel):
@@ -80,28 +121,89 @@ class PaginatedUserResponse(BaseModel):
     offset: int
 
 
+def _check_rate_limit(email: str) -> None:
+    """Check if login attempts are rate limited.
+
+    Raises HTTPException if too many failed attempts.
+    """
+    now = time.time()
+    attempts = _login_attempts.get(email, [])
+
+    # Remove old attempts outside the lockout window
+    attempts = [t for t in attempts if now - t < LOGIN_LOCKOUT_SECONDS]
+    _login_attempts[email] = attempts
+
+    if len(attempts) >= MAX_LOGIN_ATTEMPTS:
+        remaining = int(LOGIN_LOCKOUT_SECONDS - (now - attempts[0]))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many login attempts. Try again in {remaining} seconds.",
+        )
+
+
+def _record_failed_attempt(email: str) -> None:
+    """Record a failed login attempt."""
+    if email not in _login_attempts:
+        _login_attempts[email] = []
+    _login_attempts[email].append(time.time())
+
+
+def _clear_failed_attempts(email: str) -> None:
+    """Clear failed login attempts after successful login."""
+    _login_attempts.pop(email, None)
+
+
 @router.post("/login", response_model=LoginResponse)
-async def login(credentials: LoginRequest):
-    """Authenticate user and return JWT token."""
+async def login(credentials: LoginRequest, request: Request):
+    """Authenticate user and return JWT token.
+
+    Features:
+    - Rate limiting to prevent brute force attacks
+    - Secure JWT token generation
+    - Audit logging
+    """
+    # Check rate limiting
+    _check_rate_limit(credentials.email)
+
     user = db.get_user_by_email(credentials.email)
     if not user or not db.verify_password(credentials.password, user.password_hash):
+        _record_failed_attempt(credentials.email)
+        logger.warning(
+            f"Failed login attempt for email: {credentials.email} "
+            f"from IP: {request.client.host if request.client else 'unknown'}"
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if user.status != UserStatus.ACTIVE:
+        logger.warning(f"Login attempt for inactive account: {credentials.email}")
         raise HTTPException(status_code=403, detail="Account is not active")
+
+    # Clear failed attempts on successful login
+    _clear_failed_attempts(credentials.email)
 
     user.last_login_at = datetime.utcnow()
     db.update_user(user)
+
+    # Generate JWT token with secure secret
+    jwt_secret = _get_jwt_secret()
+    token_id = secrets.token_urlsafe(16)
 
     token = jwt.encode(
         {
             "user_id": user.id,
             "email": user.email,
             "role": user.role.value,
-            "exp": datetime.utcnow() + timedelta(hours=2),
+            "jti": token_id,  # JWT ID for token revocation
+            "iat": datetime.utcnow(),
+            "exp": datetime.utcnow() + timedelta(hours=JWT_ACCESS_TOKEN_EXPIRE_HOURS),
         },
-        JWT_SECRET,
+        jwt_secret,
         algorithm=JWT_ALGORITHM,
+    )
+
+    logger.info(
+        f"Successful login for user: {user.id} "
+        f"from IP: {request.client.host if request.client else 'unknown'}"
     )
 
     return {
