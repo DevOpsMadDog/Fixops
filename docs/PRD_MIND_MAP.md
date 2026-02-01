@@ -39,10 +39,10 @@ mindmap
     
     Product Overview
       REST API
-        303 Endpoints
+        313+ Endpoints
         32 Routers
       CLI
-        111 Commands
+        112+ Commands
         31 Top-level Groups
       Web UI
         16 Pages
@@ -193,7 +193,8 @@ mindmap
         FR-ING-002: SARIF
         FR-ING-003: CVE/VEX
         FR-ING-004: CNAPP
-        FR-ING-005: Context
+        FR-ING-005: Scanner-Agnostic Multipart
+        FR-ING-006: Business Context
       FR-COR: Correlation
         FR-COR-001: Risk Graph
         FR-COR-002: Deduplication

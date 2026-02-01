@@ -20,7 +20,7 @@ FixOps is a comprehensive DevSecOps platform that operationalizes vulnerability 
 | **Prove & Retain** | RSA-SHA256 signed evidence bundles, immutable evidence lake with integrity verification, SLSA v1 provenance/attestations, configurable multi-year retention |
 | **Automate & Extend** | YAML overlay configuration, YAML playbook scripting (21 pre-approved actions), compliance marketplace, Jira/Confluence/Slack/GitHub integrations |
 
-**Platform Interfaces:** REST API (303 endpoints across 32 router modules), CLI (111 commands/subcommands across 31 command groups), and modular UI (16 frontend pages) - deployable on-prem or air-gapped as needed.
+**Platform Interfaces:** REST API (313+ endpoints across 32 router modules), CLI (112+ commands/subcommands across 31 command groups), and modular UI (16 frontend pages) - deployable on-prem or air-gapped as needed.
 
 **Documentation:** See [Product Status & Technical Mapping](docs/FIXOPS_PRODUCT_STATUS.md) for detailed capability maps, workflow diagrams, and code references.
 
@@ -407,7 +407,7 @@ python -m core.cli playbook list --dir config/playbooks
 
 ## API & CLI Coverage
 
-### 303 API Endpoints (32 Router Modules)
+### 313+ API Endpoints (32 Router Modules)
 
 | Router | Endpoints | Description |
 |--------|-----------|-------------|
@@ -440,7 +440,7 @@ python -m core.cli playbook list --dir config/playbooks
 | Webhooks | 20 | Jira/ServiceNow/GitLab/Azure DevOps sync, outbox |
 | Feeds | 20 | Threat intelligence, EPSS, KEV, exploit feeds |
 
-### ~90 CLI Commands (30 Command Groups)
+### 112+ CLI Commands (31 Command Groups, partial list below)
 
 | Command Group | Commands | Description |
 |---------------|----------|-------------|
@@ -633,7 +633,7 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
 # Animated demo with all 7 capability areas
 ./scripts/aldeci-demo-runner.sh
 
-# Interactive API tester (303 endpoints)
+# Interactive API tester (313+ endpoints)
 ./scripts/fixops-interactive.sh
 
 # Or via Docker
