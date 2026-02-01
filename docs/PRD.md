@@ -630,7 +630,7 @@ Universal scanner-agnostic ingestion endpoint that auto-detects and normalizes s
 - `POST /api/v1/iac/scan/*` - IaC scanning endpoints
 - `POST /api/v1/secrets/scan/*` - Secrets scanning endpoints
 
-#### FR-ING-005: Business Context Enrichment
+#### FR-ING-006: Business Context Enrichment
 **Priority:** P0 (Critical)
 **Status:** ✅ Implemented
 
