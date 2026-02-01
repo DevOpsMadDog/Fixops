@@ -30,7 +30,7 @@
 
 ---
 
-## CORE PIPELINE & INGESTION (19 API → 6 CLI)
+## CORE PIPELINE & INGESTION (22 API → 7 CLI)
 
 | # | API Endpoint | Method | CLI Command | Notes |
 |---|--------------|--------|-------------|-------|
