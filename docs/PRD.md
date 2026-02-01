@@ -235,12 +235,13 @@ FixOps is **not a scanner** - it's the decision and evidence layer that sits bet
 
 FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 
-1. **REST API** (303 endpoints across 32 routers)
+1. **REST API** (313+ endpoints across 32 routers)
    - Programmatic access for CI/CD integration
    - Webhook receivers for external system events
    - Comprehensive CRUD operations for all entities
+   - Scanner-agnostic multipart ingestion endpoint
 
-2. **Command-Line Interface** (111 commands/subcommands)
+2. **Command-Line Interface** (112+ commands/subcommands)
    - Pipeline orchestration and stage execution
    - Integration management and testing
    - Evidence bundle operations
@@ -591,6 +592,41 @@ Ingest findings from Cloud-Native Application Protection Platform (CNAPP) tools.
 
 **API Endpoints:**
 - `POST /inputs/cnapp` - Upload CNAPP findings
+
+#### FR-ING-005: Scanner-Agnostic Multipart Ingestion
+**Priority:** P0 (Critical)
+**Status:** ✅ Implemented (January 2026)
+
+**Description:**
+Universal scanner-agnostic ingestion endpoint that auto-detects and normalizes security findings from any supported format with dynamic asset inventory.
+
+**Supported Formats:**
+- SARIF 2.1+ (with schema drift handling for 2.1 → 2.2)
+- CycloneDX SBOM
+- SPDX SBOM
+- VEX (Vulnerability Exploitability eXchange)
+- CNAPP findings
+- Trivy container/filesystem scanner output
+- Grype container vulnerability scanner output
+- Semgrep SAST scanner output
+- Dependabot GitHub dependency alerts
+- Dark web intelligence feeds
+
+**Acceptance Criteria:**
+- Auto-detect format from file content with 99% accuracy
+- Handle 10,000+ findings in under 2 minutes
+- 99% parse success rate on drifted/variant formats
+- Dynamic asset inventory with stable deduplication keys
+- Plugin registry for custom format handlers via YAML config
+- Lenient Pydantic parsing for schema evolution
+
+**API Endpoints:**
+- `POST /api/v1/ingest/multipart` - Upload multiple files with auto-detection
+- `GET /api/v1/ingest/assets` - Retrieve dynamic asset inventory
+- `GET /api/v1/ingest/formats` - List available normalizers and plugins
+
+**CLI Commands:**
+- `python -m core.cli ingest-file --file <path> [--format <format>]`
 - `POST /api/v1/iac/scan/*` - IaC scanning endpoints
 - `POST /api/v1/secrets/scan/*` - Secrets scanning endpoints
 
