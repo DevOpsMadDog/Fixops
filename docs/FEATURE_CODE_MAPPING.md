@@ -385,20 +385,37 @@ pytest tests/test_crypto.py              # Evidence signing
 
 ## Feature 1: Vulnerability Intake & Normalization
 
-**Purpose:** Ingest security scan results from any tool (SARIF, SBOM, CVE, VEX) and normalize to common format.
+**Purpose:** Ingest security scan results from any tool (SARIF, SBOM, CVE, VEX, CNAPP, dark web intel, and more) and normalize to a unified finding model with dynamic asset inventory.
 
 ### Code Paths
 
 | Component | File Path | LOC | Key Functions/Classes |
 |-----------|-----------|-----|----------------------|
 | Main API App | `apps/api/app.py` | 1,747 | `upload_sbom()`, `upload_sarif()`, `upload_cve()`, `upload_vex()` |
+| **Ingestion Module** | `apps/api/ingestion.py` | 2,099 | `NormalizerRegistry`, `IngestionService`, `UnifiedFinding`, format normalizers |
+| **Registry Config** | `config/normalizers/registry.yaml` | 150 | YAML plugin configuration for normalizers |
 | Normalizers | `apps/api/normalizers.py` | 1,838 | `normalize_sarif()`, `normalize_sbom()`, `normalize_cve()` |
 | Format Adapters | `core/adapters.py` | 1,148 | `SARIFAdapter`, `SBOMAdapter`, `CVEAdapter`, `VEXAdapter` |
 | Validation Router | `apps/api/validation_router.py` | 491 | `validate_sbom()`, `validate_sarif()` |
 | SARIF Canonicalization | `core/sarif_canon.py` | 264 | `canonicalize_sarif()` |
 | SBOM Library | `lib4sbom/` | 699 | SBOM parsing utilities |
-| CLI Handler | `core/cli.py:403-417` | 15 | `_handle_ingest()` |
+| CLI Handler | `core/cli.py:403-417` | 15 | `_handle_ingest()`, `_handle_ingest_file()` |
 | Stage Runner | `core/stage_runner.py` | 1,149 | `run_stage()`, `StageRunner` |
+
+### Supported Formats (Scanner-Agnostic)
+
+| Format | Normalizer Class | Auto-Detection | Notes |
+|--------|------------------|----------------|-------|
+| SARIF 2.1+ | `SARIFNormalizer` | Yes | Supports schema drift (2.1 → 2.2) |
+| CycloneDX | `CycloneDXNormalizer` | Yes | SBOM format |
+| SPDX | `SPDXNormalizer` | Yes | SBOM format |
+| VEX | `VEXNormalizer` | Yes | Vulnerability Exploitability eXchange |
+| CNAPP | `CNAPPNormalizer` | Yes | Cloud-Native Application Protection |
+| Trivy | `TrivyNormalizer` | Yes | Container/filesystem scanner |
+| Grype | `GrypeNormalizer` | Yes | Container vulnerability scanner |
+| Semgrep | `SemgrepNormalizer` | Yes | SAST scanner |
+| Dependabot | `DependabotNormalizer` | Yes | GitHub dependency alerts |
+| Dark Web Intel | `DarkWebIntelNormalizer` | Yes | Threat intelligence feeds |
 
 ### API Endpoints
 
@@ -410,6 +427,9 @@ pytest tests/test_crypto.py              # Evidence signing
 | POST | `/inputs/vex` | `upload_vex` | `apps/api/app.py:976-1016` |
 | POST | `/inputs/design` | `upload_design` | `apps/api/app.py:808-848` |
 | POST | `/inputs/cnapp` | `upload_cnapp` | `apps/api/app.py:1018-1033` |
+| **POST** | **`/api/v1/ingest/multipart`** | `ingest_multipart` | `apps/api/ingestion.py` |
+| **GET** | **`/api/v1/ingest/assets`** | `get_asset_inventory` | `apps/api/ingestion.py` |
+| **GET** | **`/api/v1/ingest/formats`** | `list_formats` | `apps/api/ingestion.py` |
 | POST | `/api/v1/validate/input` | `validate_input` | `apps/api/validation_router.py:225-380` |
 | POST | `/api/v1/validate/batch` | `validate_batch` | `apps/api/validation_router.py:381-423` |
 | GET | `/api/v1/validate/supported-formats` | `get_supported_formats` | `apps/api/validation_router.py:424-491` |
@@ -420,6 +440,7 @@ pytest tests/test_crypto.py              # Evidence signing
 |---------|-----------------|-----------|
 | `ingest --sbom FILE` | `_handle_ingest()` | `core/cli.py:403-417` |
 | `ingest --sarif FILE` | `_handle_ingest()` | `core/cli.py:403-417` |
+| **`ingest-file --file FILE [--format FORMAT]`** | `_handle_ingest_file()` | `core/cli.py` |
 | `stage-run --stage build` | `_handle_stage_run()` | `core/cli.py:622-678` |
 | `stage-run --stage test` | `_handle_stage_run()` | `core/cli.py:622-678` |
 

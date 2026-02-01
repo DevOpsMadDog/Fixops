@@ -4,7 +4,7 @@
 
 | Category | API Endpoints | CLI Commands | Coverage |
 |----------|---------------|--------------|----------|
-| Core Pipeline & Ingestion | 19 | 6 | Full |
+| Core Pipeline & Ingestion | 22 | 7 | Full |
 | Security Decision & Analysis | 21 | 3 | Partial (via run/analyze) |
 | Compliance | 12 | 4 | Full |
 | Reports | 10 | 4 | Full |
@@ -53,6 +53,9 @@
 | 17 | `/api/v1/triage` | GET | - | Get triage results (API only) |
 | 18 | `/api/v1/triage/export` | GET | - | Export triage (API only) |
 | 19 | `/api/v1/graph` | GET | - | Graph visualization (API only) |
+| 20 | `/api/v1/ingest/multipart` | POST | `ingest-file` | Scanner-agnostic multipart ingestion (SARIF, CycloneDX, SPDX, VEX, CNAPP, Trivy, Grype, Semgrep, Dependabot, dark web intel) |
+| 21 | `/api/v1/ingest/assets` | GET | - | Get dynamic asset inventory from ingested findings |
+| 22 | `/api/v1/ingest/formats` | GET | - | List available normalizer formats and plugins |
 
 ---
 
