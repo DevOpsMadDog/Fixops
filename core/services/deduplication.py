@@ -595,6 +595,38 @@ class DeduplicationService:
         finally:
             conn.close()
 
+    def get_all_correlations(
+        self, limit: int = 100, offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Get all correlation links from the database.
+
+        Args:
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of correlation link dictionaries
+        """
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM correlation_links
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+                """,
+                (limit, offset),
+            )
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        except sqlite3.OperationalError:
+            # Table might not exist
+            return []
+        finally:
+            conn.close()
+
     def get_related_clusters(
         self, cluster_id: str, min_confidence: float = 0.5
     ) -> List[Dict[str, Any]]:

@@ -73,13 +73,23 @@ async def list_teams(
 @router.post("", response_model=TeamResponse, status_code=201)
 async def create_team(team_data: TeamCreate):
     """Create a new team."""
+    import sqlite3
+
     team = Team(
         id="",
         name=team_data.name,
         description=team_data.description,
     )
-    created_team = db.create_team(team)
-    return TeamResponse(**created_team.to_dict())
+    try:
+        created_team = db.create_team(team)
+        return TeamResponse(**created_team.to_dict())
+    except sqlite3.IntegrityError as e:
+        if "UNIQUE constraint failed" in str(e):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Team with name '{team_data.name}' already exists",
+            )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{id}", response_model=TeamResponse)

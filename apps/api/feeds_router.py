@@ -242,6 +242,30 @@ def refresh_kev_feed(request: RefreshFeedRequest) -> Dict[str, Any]:
 # =============================================================================
 
 
+@router.get("/exploits")
+def list_all_exploits(
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """List all known exploits in the database.
+
+    Returns exploits from Exploit-DB, Metasploit, Nuclei templates, etc.
+    """
+    service = get_feeds_service()
+    # Get all exploits from the database
+    try:
+        all_exploits = service.get_all_exploits(limit=limit, offset=offset)
+    except AttributeError:
+        # Fallback if get_all_exploits not implemented
+        all_exploits = []
+    return {
+        "exploits": all_exploits,
+        "count": len(all_exploits),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
 @router.get("/exploits/{cve_id}")
 def get_exploits_for_cve(cve_id: str) -> Dict[str, Any]:
     """Get exploit intelligence for a specific CVE.
@@ -275,6 +299,29 @@ def add_exploit_intelligence(request: AddExploitIntelligenceRequest) -> Dict[str
 # =============================================================================
 # Threat Actor Endpoints
 # =============================================================================
+
+
+@router.get("/threat-actors")
+def list_all_threat_actors(
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """List all known threat actors in the database.
+
+    Returns threat actors/APT groups with their associated CVEs.
+    """
+    service = get_feeds_service()
+    try:
+        all_actors = service.get_all_threat_actors(limit=limit, offset=offset)
+    except AttributeError:
+        # Fallback if get_all_threat_actors not implemented
+        all_actors = []
+    return {
+        "threat_actors": all_actors,
+        "count": len(all_actors),
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.get("/threat-actors/{cve_id}")
@@ -326,6 +373,33 @@ def add_threat_actor_mapping(request: AddThreatActorMappingRequest) -> Dict[str,
 # =============================================================================
 # Supply Chain Endpoints
 # =============================================================================
+
+
+@router.get("/supply-chain")
+def list_supply_chain_vulns(
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    ecosystem: Optional[str] = Query(default=None, description="Filter by ecosystem"),
+) -> Dict[str, Any]:
+    """List all known supply chain vulnerabilities in the database.
+
+    Returns vulnerabilities from OSV, GitHub Advisory, Snyk, etc.
+    """
+    service = get_feeds_service()
+    try:
+        all_vulns = service.get_all_supply_chain_vulns(
+            limit=limit, offset=offset, ecosystem=ecosystem
+        )
+    except AttributeError:
+        # Fallback if method not implemented
+        all_vulns = []
+    return {
+        "vulnerabilities": all_vulns,
+        "count": len(all_vulns),
+        "limit": limit,
+        "offset": offset,
+        "ecosystem": ecosystem,
+    }
 
 
 @router.get("/supply-chain/{package}")

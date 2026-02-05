@@ -1,0 +1,50 @@
+# MindsDB Integration for ALdeci Intelligent Security Engine
+# Provides AI/ML intermediary layer for predictions, knowledge bases, and agents
+
+services:
+  mindsdb:
+    image: mindsdb/mindsdb:latest
+    container_name: aldeci-mindsdb
+    restart: unless-stopped
+    ports:
+      - "47334:47334"   # HTTP API
+      - "47335:47335"   # MySQL API
+      - "47336:47336"   # MongoDB API
+    environment:
+      - MINDSDB_STORAGE_DIR=/root/mindsdb_storage
+      # OpenAI integration for LLM features
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Anthropic integration
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - mindsdb_data:/root/mindsdb_storage
+      - ./mindsdb/config:/root/mindsdb_config:ro
+    networks:
+      - aldeci-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:47334/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Redis for caching and job queues
+  aldeci-redis:
+    image: redis:7-alpine
+    container_name: aldeci-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aldeci-network
+    command: redis-server --appendonly yes
+
+volumes:
+  mindsdb_data:
+  redis_data:
+
+networks:
+  aldeci-network:
+    driver: bridge

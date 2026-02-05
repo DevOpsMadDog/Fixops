@@ -1766,6 +1766,49 @@ class FeedsService:
         finally:
             conn.close()
 
+    def get_all_threat_actors(
+        self, limit: int = 100, offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Get all known threat actors from the database.
+
+        Args:
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of threat actor dictionaries
+        """
+        import json as json_mod
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM threat_actor_mappings ORDER BY last_seen DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            )
+            results = []
+            for row in cursor.fetchall():
+                results.append({
+                    "cve_id": row["cve_id"],
+                    "threat_actor": row["threat_actor"],
+                    "campaign": row["campaign"],
+                    "first_seen": row["first_seen"],
+                    "last_seen": row["last_seen"],
+                    "target_sectors": json_mod.loads(row["target_sectors"] or "[]"),
+                    "target_countries": json_mod.loads(row["target_countries"] or "[]"),
+                    "ttps": json_mod.loads(row["ttps"] or "[]"),
+                    "confidence": row["confidence"],
+                    "source": row["source"],
+                })
+            return results
+        except sqlite3.OperationalError:
+            # Table might not exist
+            return []
+        finally:
+            conn.close()
+
     # =========================================================================
     # Exploit Intelligence
     # =========================================================================
@@ -1836,6 +1879,46 @@ class FeedsService:
                     )
                 )
             return results
+        finally:
+            conn.close()
+
+    def get_all_exploits(
+        self, limit: int = 100, offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Get all known exploits from the database.
+
+        Args:
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of exploit dictionaries
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM exploit_intelligence ORDER BY exploit_date DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            )
+            results = []
+            for row in cursor.fetchall():
+                results.append({
+                    "cve_id": row["cve_id"],
+                    "exploit_source": row["exploit_source"],
+                    "exploit_type": row["exploit_type"],
+                    "exploit_url": row["exploit_url"],
+                    "exploit_date": row["exploit_date"],
+                    "verified": bool(row["verified"]),
+                    "reliability": row["reliability"],
+                    "metasploit_module": row["metasploit_module"],
+                    "nuclei_template": row["nuclei_template"],
+                })
+            return results
+        except sqlite3.OperationalError:
+            # Table might not exist
+            return []
         finally:
             conn.close()
 
@@ -1925,6 +2008,58 @@ class FeedsService:
                     )
                 )
             return results
+        finally:
+            conn.close()
+
+    def get_all_supply_chain_vulns(
+        self, limit: int = 100, offset: int = 0, ecosystem: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get all supply chain vulnerabilities from the database.
+
+        Args:
+            limit: Maximum number of results
+            offset: Offset for pagination
+            ecosystem: Optional ecosystem filter
+
+        Returns:
+            List of vulnerability dictionaries
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            if ecosystem:
+                cursor.execute(
+                    """
+                    SELECT * FROM supply_chain_vulns
+                    WHERE ecosystem = ?
+                    ORDER BY updated_at DESC LIMIT ? OFFSET ?
+                    """,
+                    (ecosystem, limit, offset),
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM supply_chain_vulns ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
+                )
+            results = []
+            for row in cursor.fetchall():
+                results.append({
+                    "vuln_id": row["vuln_id"],
+                    "ecosystem": row["ecosystem"],
+                    "package_name": row["package_name"],
+                    "affected_versions": row["affected_versions"],
+                    "patched_versions": row["patched_versions"],
+                    "severity": row["severity"],
+                    "cvss_score": row["cvss_score"],
+                    "reachable": bool(row["reachable"]) if row["reachable"] is not None else None,
+                    "transitive": bool(row["transitive"]),
+                    "source": row["source"],
+                })
+            return results
+        except sqlite3.OperationalError:
+            # Table might not exist
+            return []
         finally:
             conn.close()
 

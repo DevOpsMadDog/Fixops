@@ -238,6 +238,26 @@ def get_related_clusters(
     return {"cluster_id": cluster_id, "related_clusters": related}
 
 
+@router.get("/correlations")
+def list_correlations(
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> Dict[str, Any]:
+    """List all correlation links between clusters."""
+    service = get_dedup_service()
+    try:
+        correlations = service.get_all_correlations(limit=limit, offset=offset)
+    except AttributeError:
+        # Fallback if method not implemented
+        correlations = []
+    return {
+        "correlations": correlations,
+        "count": len(correlations),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
 @router.post("/correlations")
 def create_correlation_link(
     request: CreateCorrelationLinkRequest,

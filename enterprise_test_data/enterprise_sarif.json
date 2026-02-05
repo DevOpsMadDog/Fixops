@@ -1,0 +1,229 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "FinServ-Enterprise-SAST",
+          "version": "4.2.0",
+          "informationUri": "https://finserv.com/security/sast",
+          "rules": [
+            {
+              "id": "SQL001",
+              "name": "SQLInjection",
+              "shortDescription": {"text": "SQL Injection vulnerability detected"},
+              "fullDescription": {"text": "User input is directly concatenated into SQL query without parameterization, allowing attackers to execute arbitrary SQL commands."},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "9.8", "tags": ["security", "sql-injection", "owasp-a03"]}
+            },
+            {
+              "id": "AUTH001",
+              "name": "HardcodedCredentials",
+              "shortDescription": {"text": "Hardcoded credentials detected"},
+              "fullDescription": {"text": "Credentials are hardcoded in source code, exposing sensitive authentication data."},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "8.5", "tags": ["security", "credentials", "owasp-a07"]}
+            },
+            {
+              "id": "XSS001",
+              "name": "CrossSiteScripting",
+              "shortDescription": {"text": "XSS vulnerability detected"},
+              "fullDescription": {"text": "User input is rendered without sanitization, allowing script injection."},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "7.5", "tags": ["security", "xss", "owasp-a03"]}
+            },
+            {
+              "id": "CRYPTO001",
+              "name": "WeakCryptography",
+              "shortDescription": {"text": "Weak cryptographic algorithm"},
+              "fullDescription": {"text": "Use of deprecated or weak cryptographic algorithm that does not meet security standards."},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"security-severity": "6.5", "tags": ["security", "crypto", "owasp-a02"]}
+            },
+            {
+              "id": "IDOR001",
+              "name": "InsecureDirectObjectReference",
+              "shortDescription": {"text": "IDOR vulnerability detected"},
+              "fullDescription": {"text": "Direct object reference without authorization check allows unauthorized access to resources."},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "8.0", "tags": ["security", "idor", "owasp-a01"]}
+            },
+            {
+              "id": "SSRF001",
+              "name": "ServerSideRequestForgery",
+              "shortDescription": {"text": "SSRF vulnerability detected"},
+              "fullDescription": {"text": "Server-side request forgery allows attackers to make requests from the server to internal resources."},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "9.0", "tags": ["security", "ssrf", "owasp-a10"]}
+            },
+            {
+              "id": "DESERIAL001",
+              "name": "InsecureDeserialization",
+              "shortDescription": {"text": "Insecure deserialization detected"},
+              "fullDescription": {"text": "Untrusted data is deserialized without validation, potentially leading to RCE."},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "9.5", "tags": ["security", "deserialization", "owasp-a08"]}
+            },
+            {
+              "id": "LOG001",
+              "name": "SensitiveDataLogging",
+              "shortDescription": {"text": "Sensitive data in logs"},
+              "fullDescription": {"text": "Sensitive information such as passwords or tokens being logged."},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"security-severity": "5.5", "tags": ["security", "logging", "owasp-a09"]}
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "SQL001",
+          "level": "error",
+          "message": {"text": "SQL injection vulnerability in payment query. User-supplied 'account_id' is directly interpolated into SQL string without parameterization."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/payments/PaymentRepository.java"},
+              "region": {"startLine": 127, "startColumn": 12, "endLine": 127, "endColumn": 85}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "a1b2c3d4e5f6"},
+          "partialFingerprints": {"primaryLocationLineHash": "a1b2c3d4e5f6"},
+          "properties": {"severity": "critical", "cwe": "CWE-89", "owasp": "A03:2021"}
+        },
+        {
+          "ruleId": "SQL001",
+          "level": "error",
+          "message": {"text": "SQL injection in customer search endpoint. Parameter 'lastName' used in dynamic query construction."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/customers/CustomerService.java"},
+              "region": {"startLine": 89, "startColumn": 8, "endLine": 91, "endColumn": 42}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "b2c3d4e5f6a1"},
+          "partialFingerprints": {"primaryLocationLineHash": "b2c3d4e5f6a1"},
+          "properties": {"severity": "critical", "cwe": "CWE-89", "owasp": "A03:2021"}
+        },
+        {
+          "ruleId": "AUTH001",
+          "level": "error",
+          "message": {"text": "Hardcoded API key for payment gateway detected. Production credentials should be stored in secure vault."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/config/PaymentConfig.java"},
+              "region": {"startLine": 45, "startColumn": 4, "endLine": 45, "endColumn": 78}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "c3d4e5f6a1b2"},
+          "partialFingerprints": {"primaryLocationLineHash": "c3d4e5f6a1b2"},
+          "properties": {"severity": "high", "cwe": "CWE-798", "owasp": "A07:2021"}
+        },
+        {
+          "ruleId": "XSS001",
+          "level": "error",
+          "message": {"text": "Reflected XSS in customer profile page. User input from 'displayName' parameter rendered without escaping."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/webapp/WEB-INF/views/profile.jsp"},
+              "region": {"startLine": 78, "startColumn": 15, "endLine": 78, "endColumn": 55}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "d4e5f6a1b2c3"},
+          "partialFingerprints": {"primaryLocationLineHash": "d4e5f6a1b2c3"},
+          "properties": {"severity": "high", "cwe": "CWE-79", "owasp": "A03:2021"}
+        },
+        {
+          "ruleId": "IDOR001",
+          "level": "error",
+          "message": {"text": "IDOR vulnerability in transaction history endpoint. User can access other users' transactions by manipulating 'userId' parameter."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/transactions/TransactionController.java"},
+              "region": {"startLine": 156, "startColumn": 4, "endLine": 162, "endColumn": 5}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "e5f6a1b2c3d4"},
+          "partialFingerprints": {"primaryLocationLineHash": "e5f6a1b2c3d4"},
+          "properties": {"severity": "high", "cwe": "CWE-639", "owasp": "A01:2021"}
+        },
+        {
+          "ruleId": "SSRF001",
+          "level": "error",
+          "message": {"text": "SSRF vulnerability in webhook handler. External URL from request body used to make server-side HTTP request without validation."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/webhooks/WebhookProcessor.java"},
+              "region": {"startLine": 234, "startColumn": 8, "endLine": 238, "endColumn": 10}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "f6a1b2c3d4e5"},
+          "partialFingerprints": {"primaryLocationLineHash": "f6a1b2c3d4e5"},
+          "properties": {"severity": "critical", "cwe": "CWE-918", "owasp": "A10:2021"}
+        },
+        {
+          "ruleId": "DESERIAL001",
+          "level": "error",
+          "message": {"text": "Insecure deserialization of user-controlled data. ObjectInputStream used to deserialize untrusted input."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/messaging/MessageHandler.java"},
+              "region": {"startLine": 89, "startColumn": 12, "endLine": 95, "endColumn": 14}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "a2b3c4d5e6f7"},
+          "partialFingerprints": {"primaryLocationLineHash": "a2b3c4d5e6f7"},
+          "properties": {"severity": "critical", "cwe": "CWE-502", "owasp": "A08:2021"}
+        },
+        {
+          "ruleId": "CRYPTO001",
+          "level": "warning",
+          "message": {"text": "Weak cryptographic algorithm MD5 used for password hashing. Use bcrypt, scrypt, or Argon2 instead."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/auth/PasswordHasher.java"},
+              "region": {"startLine": 34, "startColumn": 8, "endLine": 34, "endColumn": 52}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "b3c4d5e6f7a2"},
+          "partialFingerprints": {"primaryLocationLineHash": "b3c4d5e6f7a2"},
+          "properties": {"severity": "medium", "cwe": "CWE-327", "owasp": "A02:2021"}
+        },
+        {
+          "ruleId": "LOG001",
+          "level": "warning",
+          "message": {"text": "Password being logged in authentication failure handler. Remove sensitive data from log statements."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/java/com/finserv/auth/AuthenticationHandler.java"},
+              "region": {"startLine": 112, "startColumn": 12, "endLine": 112, "endColumn": 78}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "c4d5e6f7a2b3"},
+          "partialFingerprints": {"primaryLocationLineHash": "c4d5e6f7a2b3"},
+          "properties": {"severity": "medium", "cwe": "CWE-532", "owasp": "A09:2021"}
+        },
+        {
+          "ruleId": "AUTH001",
+          "level": "error",
+          "message": {"text": "Database connection string with embedded credentials in configuration file."},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "src/main/resources/application.properties"},
+              "region": {"startLine": 23, "startColumn": 1, "endLine": 23, "endColumn": 89}
+            }
+          }],
+          "fingerprints": {"primaryLocationLineHash": "d5e6f7a2b3c4"},
+          "partialFingerprints": {"primaryLocationLineHash": "d5e6f7a2b3c4"},
+          "properties": {"severity": "high", "cwe": "CWE-798", "owasp": "A07:2021"}
+        }
+      ],
+      "invocations": [{
+        "executionSuccessful": true,
+        "commandLine": "finserv-sast scan --project finserv-core --severity high,critical",
+        "startTimeUtc": "2026-02-01T09:00:00Z",
+        "endTimeUtc": "2026-02-01T09:15:32Z"
+      }]
+    }
+  ]
+}

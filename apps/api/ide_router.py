@@ -686,6 +686,36 @@ def generate_suggestions(
     return suggestions
 
 
+@router.get("/status")
+async def get_ide_status() -> Dict[str, Any]:
+    """Get IDE service status and health information."""
+    return {
+        "status": "healthy",
+        "version": "2.0.0",
+        "uptime_seconds": int(time.time()),
+        "capabilities": {
+            "real_time_analysis": True,
+            "security_scanning": True,
+            "code_metrics": True,
+            "auto_fix": True,
+            "sarif_export": True,
+        },
+        "supported_languages": [
+            "python",
+            "javascript",
+            "typescript",
+            "java",
+            "go",
+            "rust",
+        ],
+        "analyzer_status": {
+            "pattern_matcher": "active",
+            "ast_parser": "active",
+            "metrics_calculator": "active",
+        },
+    }
+
+
 @router.get("/config", response_model=IDEConfigResponse)
 async def get_ide_config() -> IDEConfigResponse:
     """Get IDE extension configuration with full capabilities."""

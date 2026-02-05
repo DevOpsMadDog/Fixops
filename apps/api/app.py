@@ -88,6 +88,84 @@ except ImportError as e:
     logging.getLogger(__name__).warning(
         f"Enterprise marketplace router not available: {e}"
     )
+
+# Predictive analytics router - Markov Chain and Bayesian Network
+predictions_router: Optional[APIRouter] = None
+try:
+    from apps.api.predictions_router import router as predictions_router
+
+    logging.getLogger(__name__).info("Loaded predictive analytics router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Predictions router not available: {e}"
+    )
+
+# LLM configuration and status router
+llm_router: Optional[APIRouter] = None
+try:
+    from apps.api.llm_router import router as llm_router
+
+    logging.getLogger(__name__).info("Loaded LLM configuration router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"LLM router not available: {e}"
+    )
+
+# ALdeci Algorithmic Engines router - Monte Carlo, Causal Inference, GNN
+algorithmic_router: Optional[APIRouter] = None
+try:
+    from apps.api.algorithmic_router import router as algorithmic_router
+
+    logging.getLogger(__name__).info("Loaded ALdeci algorithmic engines router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Algorithmic router not available: {e}"
+    )
+
+# ALdeci Intelligent Security Engine router - unified pentest + ML
+intelligent_engine_router: Optional[APIRouter] = None
+try:
+    from backend.api.intelligent_engine_routes import router as intelligent_engine_router
+
+    logging.getLogger(__name__).info("Loaded ALdeci Intelligent Security Engine router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Intelligent Security Engine router not available: {e}"
+    )
+
+# ALdeci Copilot Chat router - MindsDB-powered AI assistant
+copilot_router: Optional[APIRouter] = None
+try:
+    from apps.api.copilot_router import router as copilot_router
+
+    logging.getLogger(__name__).info("Loaded ALdeci Copilot Chat router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Copilot router not available: {e}"
+    )
+
+# ALdeci Copilot Agents router - specialized AI agents
+copilot_agents_router: Optional[APIRouter] = None
+try:
+    from apps.api.agents_router import router as copilot_agents_router
+
+    logging.getLogger(__name__).info("Loaded ALdeci Copilot Agents router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Copilot Agents router not available: {e}"
+    )
+
+# ALdeci Vulnerability Discovery router - pentest-discovered vulns
+vuln_discovery_router: Optional[APIRouter] = None
+try:
+    from apps.api.vuln_discovery_router import router as vuln_discovery_router
+
+    logging.getLogger(__name__).info("Loaded ALdeci Vulnerability Discovery router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Vulnerability Discovery router not available: {e}"
+    )
+
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -460,6 +538,55 @@ def create_app() -> FastAPI:
         app.include_router(
             marketplace_router,
             prefix="/api/v1/marketplace",
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # Predictive analytics API - Markov Chain and Bayesian Network
+    if predictions_router:
+        app.include_router(
+            predictions_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # LLM configuration and status API
+    if llm_router:
+        app.include_router(
+            llm_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # ALdeci Algorithmic Engines API - Monte Carlo, Causal Inference, GNN
+    if algorithmic_router:
+        app.include_router(
+            algorithmic_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # ALdeci Intelligent Security Engine API - unified pentest + ML
+    if intelligent_engine_router:
+        app.include_router(
+            intelligent_engine_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # ALdeci Copilot Chat API - MindsDB-powered AI assistant
+    if copilot_router:
+        app.include_router(
+            copilot_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # ALdeci Copilot Agents API - specialized AI agents
+    if copilot_agents_router:
+        app.include_router(
+            copilot_agents_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # ALdeci Vulnerability Discovery API - pentest-discovered vulns
+    if vuln_discovery_router:
+        app.include_router(
+            vuln_discovery_router,
             dependencies=[Depends(_verify_api_key)],
         )
 

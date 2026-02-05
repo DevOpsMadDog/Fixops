@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Main FixOps API
   fixops:
-    image: devopsaico/fixops:latest
+    image: ${FIXOPS_IMAGE:-fixops:local}
     container_name: fixops-api
     ports:
       - "8000:8000"
@@ -11,6 +11,9 @@ services:
       - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
       - FIXOPS_DISABLE_TELEMETRY=1
       - FIXOPS_MODE=demo
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
     volumes:
       - ./data:/app/data
       - ./config:/app/config

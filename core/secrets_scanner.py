@@ -645,16 +645,52 @@ class SecretsDetector:
                 if not selected_scanner:
                     available = self.get_available_scanners()
                     if not available:
+                        # Fallback to built-in scanner when no external tools available
+                        logger.info("No external secrets scanner available, using built-in scanner")
+                        from core.real_scanner import get_real_secrets_scanner
+                        builtin_scanner = get_real_secrets_scanner()
+                        real_findings = builtin_scanner.scan_content(content, filename)
+                        
+                        # Convert real findings to SecretFinding format
+                        findings = []
+                        for rf in real_findings:
+                            finding = SecretFinding(
+                                id=rf.finding_id,
+                                secret_type=self._map_secret_type(
+                                    rf.evidence.get("secret_type", "generic"), 
+                                    rf.description
+                                ),
+                                status=SecretStatus.ACTIVE,
+                                file_path=filename,
+                                line_number=rf.evidence.get("line_number", 0),
+                                repository=repository,
+                                branch=branch,
+                                commit_hash=None,
+                                matched_pattern=rf.evidence.get("redacted_match"),
+                                entropy_score=None,
+                                metadata={
+                                    "scanner": "builtin",
+                                    "verified": rf.verified,
+                                    "evidence": rf.evidence,
+                                },
+                            )
+                            findings.append(finding)
+                        
+                        completed_at = datetime.now()
+                        duration = (completed_at - started_at).total_seconds()
+                        
                         return SecretsScanResult(
                             scan_id=scan_id,
-                            status=SecretsScanStatus.FAILED,
-                            scanner=SecretsScanner.GITLEAKS,
+                            status=SecretsScanStatus.COMPLETED,
+                            scanner=SecretsScanner.GITLEAKS,  # Report as gitleaks for compatibility
                             target_path=filename,
                             repository=repository,
                             branch=branch,
+                            findings=findings,
                             started_at=started_at,
-                            completed_at=datetime.now(),
-                            error_message="No secrets scanner available",
+                            completed_at=completed_at,
+                            duration_seconds=duration,
+                            metadata={"fallback": "builtin_scanner"},
                         )
                     selected_scanner = available[0]
 

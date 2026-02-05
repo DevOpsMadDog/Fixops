@@ -136,7 +136,7 @@ flowchart LR
 
 | Metric | Count |
 |--------|-------|
-| **Total API Endpoints** | 313 |
+| **Total API Endpoints** | 363 |
 | **CLI Commands/Subcommands** | 111 (13 standalone + 98 subcommands across 18 groups; 31 top-level total) |
 | **API Endpoints with CLI Coverage** | 211 (67%) |
 | **API-Only Endpoints** | 102 (33%) |

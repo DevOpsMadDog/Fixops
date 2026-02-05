@@ -595,15 +595,53 @@ class IaCScanner:
                 if not selected_scanner:
                     available = self.get_available_scanners()
                     if not available:
+                        # Fallback to built-in scanner when no external tools available
+                        logger.info("No external IaC scanner available, using built-in scanner")
+                        from core.real_scanner import get_real_iac_scanner
+                        builtin_scanner = get_real_iac_scanner()
+                        real_findings = builtin_scanner.scan_content(content, filename)
+                        
+                        # Convert real findings to IaCFinding format
+                        findings = []
+                        for rf in real_findings:
+                            finding = IaCFinding(
+                                id=rf.finding_id,
+                                provider=detected_provider,
+                                status=IaCFindingStatus.OPEN,
+                                severity=rf.severity,
+                                title=rf.title,
+                                description=rf.description,
+                                file_path=filename,
+                                line_number=rf.evidence.get("line_number", 0),
+                                resource_type=rf.evidence.get("file_type", "unknown"),
+                                resource_name=rf.evidence.get("rule", "unknown"),
+                                rule_id=rf.cwe_id or "BUILTIN-001",
+                                remediation=rf.remediation,
+                                metadata={
+                                    "scanner": "builtin",
+                                    "verified": rf.verified,
+                                    "evidence": rf.evidence,
+                                },
+                            )
+                            findings.append(finding)
+                        
+                        completed_at = datetime.now()
+                        duration = (completed_at - started_at).total_seconds()
+                        
+                        for finding in findings:
+                            finding.file_path = filename
+                        
                         return ScanResult(
                             scan_id=scan_id,
-                            status=ScanStatus.FAILED,
-                            scanner=ScannerType.CHECKOV,
+                            status=ScanStatus.COMPLETED,
+                            scanner=ScannerType.CHECKOV,  # Report as checkov for compatibility
                             provider=detected_provider,
                             target_path=filename,
+                            findings=findings,
                             started_at=started_at,
-                            completed_at=datetime.now(),
-                            error_message="No IaC scanner available",
+                            completed_at=completed_at,
+                            duration_seconds=duration,
+                            metadata={"fallback": "builtin_scanner"},
                         )
                     selected_scanner = available[0]
 
