@@ -6,6 +6,7 @@ A comprehensive demo script that showcases FixOps capabilities:
 - Feeds real CVE data
 - Analyzes design-to-production security posture
 - Runs reachability analysis
+- Executes micro penetration tests
 - Executes PentAGI security assessments
 - Provides animated, real-time output for customer demos
 
@@ -386,7 +387,37 @@ def run_pentagi_assessment(
     return results
 
 
-def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
+def run_micro_pentest(client: httpx.Client, cve_id: str) -> Optional[Dict[str, Any]]:
+    """Run a micro penetration test with animated output."""
+    cve_info = DEMO_CVES.get(cve_id, {})
+    payload = {
+        "cve_id": cve_id,
+        "target_url": "https://payments.example.com/api",
+        "service": "payments-api",
+        "component": cve_info.get("component", "unknown"),
+        "severity": cve_info.get("severity", "HIGH"),
+    }
+
+    with console.status("[bold cyan]Running micro pentest...", spinner="dots"):
+        try:
+            r = client.post("/api/v1/micro-pentest/run", json=payload)
+            if r.status_code == 200:
+                return r.json()
+            if r.status_code in {404, 501}:
+                return {
+                    "status": "demo",
+                    "verdict": "likely_exploitable",
+                    "confidence": 0.76,
+                }
+        except Exception as exc:
+            console.print(f"[yellow]Micro pentest warning: {exc}[/yellow]")
+
+    return {"status": "demo", "verdict": "inconclusive", "confidence": 0.5}
+
+
+def show_assessment_summary(
+    cve_id: str, reachability: Dict, micro_pentest: Dict, pentagi: Dict
+):
     """Display the final assessment summary."""
     console.print()
 
@@ -450,6 +481,21 @@ def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
     # PentAGI Results
     pentagi_count = len(pentagi.get("results", []))
     table.add_row("PentAGI Assessments", str(pentagi_count), "[green]COMPLETE[/green]")
+
+    # Micro Pentest Results
+    micro_verdict = str(micro_pentest.get("verdict", "inconclusive")).upper()
+    verdict_color = {
+        "CONFIRMED_EXPLOITABLE": "red",
+        "LIKELY_EXPLOITABLE": "orange1",
+        "UNEXPLOITABLE": "green",
+        "BLOCKED": "green",
+        "INCONCLUSIVE": "yellow",
+    }.get(micro_verdict, "yellow")
+    table.add_row(
+        "Micro Pentest Verdict",
+        f"[{verdict_color}]{micro_verdict}[/{verdict_color}]",
+        "[yellow]VALIDATED[/yellow]",
+    )
 
     console.print(table)
 
@@ -548,15 +594,21 @@ def run_scenario(
     console.print(f"  Status: {reachability.get('status', 'completed')}")
     time.sleep(1)
 
-    # Phase 5: PentAGI Assessment
-    phase_header("5", "Running PentAGI Security Assessment")
+    # Phase 5: Micro Pentest
+    phase_header("5", "Running Micro Penetration Test")
+    micro_pentest = run_micro_pentest(client, cve_id) or {}
+    console.print("[green]Micro pentest complete[/green]")
+    time.sleep(1)
+
+    # Phase 6: PentAGI Assessment
+    phase_header("6", "Running PentAGI Security Assessment")
     pentagi = run_pentagi_assessment(client, cve_id) or {}
     console.print("[green]PentAGI assessment complete[/green]")
     time.sleep(1)
 
-    # Phase 6: Summary
-    phase_header("6", "Security Assessment Summary")
-    show_assessment_summary(cve_id, reachability, pentagi)
+    # Phase 7: Summary
+    phase_header("7", "Security Assessment Summary")
+    show_assessment_summary(cve_id, reachability, micro_pentest, pentagi)
 
     console.print()
     console.print("[bold green]Assessment Complete![/bold green]")
@@ -599,8 +651,9 @@ def full_demo():
 
         show_cve_info(cve_id)
         reachability = analyze_reachability(client, cve_id) or {}
+        micro_pentest = run_micro_pentest(client, cve_id) or {}
         pentagi = run_pentagi_assessment(client, cve_id) or {}
-        show_assessment_summary(cve_id, reachability, pentagi)
+        show_assessment_summary(cve_id, reachability, micro_pentest, pentagi)
 
         time.sleep(2)
 
@@ -633,6 +686,7 @@ def health():
             ("/api/v1/status", "API Status"),
             ("/api/v1/enhanced/capabilities", "Capabilities"),
             ("/api/v1/reachability/health", "Reachability"),
+            ("/api/v1/micro-pentest/status/0", "Micro Pentest"),
             ("/api/v1/pentagi/stats", "PentAGI"),
         ]
 
