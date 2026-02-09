@@ -1338,9 +1338,9 @@ class TestAutomatedRemediationLLM:
         mock_llm_manager = MagicMock()
         mock_llm_manager.analyse.return_value = mock_response
 
-        mock_pentagi_client = MagicMock()
+        mock_mpte_client = MagicMock()
 
-        engine = AutomatedRemediationEngine(mock_llm_manager, mock_pentagi_client)
+        engine = AutomatedRemediationEngine(mock_llm_manager, mock_mpte_client)
 
         result = await engine._call_llm("openai", "Check for regression issues")
         import json
@@ -1366,9 +1366,9 @@ class TestAutomatedRemediationLLM:
         mock_llm_manager = MagicMock()
         mock_llm_manager.analyse.return_value = mock_response
 
-        mock_pentagi_client = MagicMock()
+        mock_mpte_client = MagicMock()
 
-        engine = AutomatedRemediationEngine(mock_llm_manager, mock_pentagi_client)
+        engine = AutomatedRemediationEngine(mock_llm_manager, mock_mpte_client)
 
         result = await engine._call_llm("openai", "Generate fix suggestions")
         import json
@@ -1392,9 +1392,9 @@ class TestAutomatedRemediationLLM:
         mock_llm_manager = MagicMock()
         mock_llm_manager.analyse.return_value = mock_response
 
-        mock_pentagi_client = MagicMock()
+        mock_mpte_client = MagicMock()
 
-        engine = AutomatedRemediationEngine(mock_llm_manager, mock_pentagi_client)
+        engine = AutomatedRemediationEngine(mock_llm_manager, mock_mpte_client)
 
         result = await engine._call_llm("gemini", "Generate suggestions")
         import json
@@ -1403,23 +1403,23 @@ class TestAutomatedRemediationLLM:
         assert "suggestions" in data
 
 
-class TestPentagiInconclusive:
-    """Tests for PentAGI inconclusive response - covers line 959."""
+class TestMPTEInconclusive:
+    """Tests for MPTE inconclusive response - covers line 959."""
 
     def test_create_inconclusive_response(self):
         """Test creating inconclusive response - covers line 959."""
         from unittest.mock import MagicMock
 
-        from core.pentagi_advanced import AdvancedPentagiClient
+        from core.mpte_advanced import AdvancedMPTEClient
 
         mock_config = MagicMock()
-        mock_config.pentagi_url = "https://pentagi.example.com"
+        mock_config.mpte_url = "https://mpte.example.com"
         mock_config.api_key = "test-key"
         mock_config.timeout_seconds = 30
 
         mock_llm_manager = MagicMock()
 
-        client = AdvancedPentagiClient(mock_config, mock_llm_manager)
+        client = AdvancedMPTEClient(mock_config, mock_llm_manager)
 
         mock_request = MagicMock()
         mock_request.id = "test-123"
@@ -2227,12 +2227,12 @@ class TestUnitCoverageGaps:
         parsed = json.loads(fallback_response)
         assert "regressions" in parsed
 
-    def test_pentagi_inconclusive_response_creation(self):
-        """Test inconclusive response creation - covers pentagi_advanced.py line 959."""
+    def test_mpte_inconclusive_response_creation(self):
+        """Test inconclusive response creation - covers mpte_advanced.py line 959."""
         from unittest.mock import MagicMock
 
         from core.llm_providers import LLMProviderManager
-        from core.pentagi_advanced import AdvancedPentagiClient, PenTestConfig
+        from core.mpte_advanced import AdvancedMPTEClient, PenTestConfig
 
         # Create a mock request
         mock_request = MagicMock()
@@ -2240,14 +2240,14 @@ class TestUnitCoverageGaps:
 
         # Create mock config and llm_manager
         mock_config = MagicMock(spec=PenTestConfig)
-        mock_config.pentagi_url = "http://localhost:8080"
+        mock_config.mpte_url = "http://localhost:8080"
         mock_config.api_key = "test-key"
         mock_config.timeout_seconds = 30
 
         mock_llm_manager = MagicMock(spec=LLMProviderManager)
 
         # Create client with required arguments
-        client = AdvancedPentagiClient(
+        client = AdvancedMPTEClient(
             config=mock_config,
             llm_manager=mock_llm_manager,
         )
@@ -2376,10 +2376,10 @@ class TestActualCodePathCoverage:
 
         # Create mock dependencies without spec to allow any attribute
         mock_llm_manager = MagicMock()
-        mock_pentagi_client = MagicMock()
+        mock_mpte_client = MagicMock()
 
         engine = AutomatedRemediationEngine(
-            llm_manager=mock_llm_manager, pentagi_client=mock_pentagi_client
+            llm_manager=mock_llm_manager, mpte_client=mock_mpte_client
         )
 
         # Create a mock response that will cause an exception during JSON serialization
@@ -2406,13 +2406,13 @@ class TestActualCodePathCoverage:
         assert "suggestions" in result or "regressions" in result
 
     @pytest.mark.asyncio
-    async def test_pentagi_api_failure_inconclusive(self):
-        """Test PentAGI API failure returns inconclusive - covers pentagi_advanced.py line 959."""
+    async def test_mpte_api_failure_inconclusive(self):
+        """Test MPTE API failure returns inconclusive - covers mpte_advanced.py line 959."""
         from enum import Enum
         from unittest.mock import AsyncMock, MagicMock, patch
 
         from core.llm_providers import LLMProviderManager
-        from core.pentagi_advanced import AdvancedPentagiClient, PenTestConfig
+        from core.mpte_advanced import AdvancedMPTEClient, PenTestConfig
 
         # Create a mock priority enum
         class MockPriority(Enum):
@@ -2422,14 +2422,14 @@ class TestActualCodePathCoverage:
 
         # Create mock config
         mock_config = MagicMock(spec=PenTestConfig)
-        mock_config.pentagi_url = "http://localhost:8080"
+        mock_config.mpte_url = "http://localhost:8080"
         mock_config.api_key = "test-key"
         mock_config.timeout_seconds = 30
 
         mock_llm_manager = MagicMock(spec=LLMProviderManager)
 
         # Create client
-        pentagi_client = AdvancedPentagiClient(
+        mpte_client = AdvancedMPTEClient(
             config=mock_config,
             llm_manager=mock_llm_manager,
         )
@@ -2453,7 +2453,7 @@ class TestActualCodePathCoverage:
             mock_session_class.return_value = mock_session
 
             # Run the async function directly (pytest-asyncio handles the event loop)
-            result = await pentagi_client._call_pentagi_api(mock_request)
+            result = await mpte_client._call_mpte_api(mock_request)
 
             # Should return inconclusive response
             assert result["status"] == "failed"

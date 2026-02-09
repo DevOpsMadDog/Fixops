@@ -1,0 +1,90 @@
+INFO:apps.api.app:Loaded Micro Pentest router from suite-attack
+INFO:apps.api.app:Loaded Vulnerability Discovery router from suite-attack
+INFO:apps.api.app:Loaded Secrets Scanner router from suite-attack
+INFO:apps.api.app:Loaded Feeds router from suite-feeds
+INFO:apps.api.app:Loaded enterprise marketplace router
+INFO:apps.api.app:Loaded Nerve Center router from suite-core
+INFO:apps.api.app:Loaded Decisions router from suite-core
+INFO:apps.api.app:Loaded Deduplication router from suite-core
+INFO:apps.api.app:Loaded ML/MindsDB router from suite-core
+INFO:apps.api.app:Loaded AutoFix router from suite-core
+INFO:apps.api.app:Loaded Fuzzy Identity router from suite-core
+INFO:apps.api.app:Loaded Exposure Case router from suite-core
+INFO:apps.api.app:Loaded Pipeline router from suite-core
+INFO:apps.api.app:Loaded Copilot router from suite-core
+INFO:apps.api.app:Loaded Agents router from suite-core
+INFO:apps.api.app:Loaded Predictions router from suite-core
+INFO:apps.api.app:Loaded LLM router from suite-core
+INFO:apps.api.app:Loaded Algorithmic router from suite-core
+INFO:apps.api.app:Loaded Intelligent Engine router from suite-core
+INFO:apps.api.app:Loaded LLM Monitor router from suite-core
+INFO:apps.api.app:Loaded Code-to-Cloud router from suite-core
+INFO:apps.api.app:Loaded Attack Simulation router from suite-attack
+INFO:apps.api.app:Loaded SAST router from suite-attack
+INFO:apps.api.app:Loaded Container Security router from suite-attack
+INFO:apps.api.app:Loaded DAST router from suite-attack
+INFO:apps.api.app:Loaded CSPM router from suite-attack
+INFO:apps.api.app:Loaded API Fuzzer router from suite-attack
+INFO:apps.api.app:Loaded Malware Analysis router from suite-attack
+INFO:apps.api.app:Loaded Evidence router from suite-evidence-risk
+INFO:apps.api.app:Loaded Risk router from suite-evidence-risk
+WARNING:telemetry:Failed to configure telemetry: '_SilentMetricExporter' object has no attribute '_preferred_temporality'. Application will continue without telemetry.
+INFO:apps.api.app:Loaded Graph router from suite-evidence-risk
+INFO:apps.api.app:Loaded Provenance router from suite-evidence-risk
+INFO:apps.api.app:Loaded Business Context router from suite-evidence-risk
+INFO:apps.api.app:Loaded Business Context Enhanced router from suite-evidence-risk
+INFO:apps.api.app:Loaded Integrations router from suite-integrations
+INFO:apps.api.app:Loaded Webhooks routers from suite-integrations
+INFO:apps.api.app:Loaded IaC router from suite-integrations
+INFO:apps.api.app:Loaded IDE router from suite-integrations
+INFO:apps.api.app:Loaded OSS Tools router from suite-integrations
+INFO:core.evidence:RSA signing module loaded successfully
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "refresh_exploit_feeds" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:core.exploit_signals:Exploit feed scheduler started (24h interval).
+INFO:apps.api.app:Using JWT signing key from environment variable
+INFO:core.flags.provider_factory:Initialized LocalOverlayProvider
+WARNING:core.flags.ld_provider:LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+INFO:core.flags.provider_factory:LaunchDarkly running in offline mode
+INFO:core.flags.provider_factory:Using CombinedProvider: Local Overlay → Defaults
+INFO:apps.api.app:LearningMiddleware enabled — API traffic will be captured for ML
+WARNING:apps.api.app:FIXOPS_ALLOWED_ORIGINS not set in non-demo mode. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+INFO:core.decision_policy:Initialized DecisionPolicyEngine: block_internet_facing_sqli=True, block_auth_path_sqli=True, internet_facing_multiplier=3.0
+INFO:apps.api.app:Loaded Knowledge Brain router from suite-core
+INFO:apps.api.app:Mounted Nerve Center router from suite-core
+INFO:apps.api.app:Mounted Decisions router from suite-core
+INFO:apps.api.app:Mounted Deduplication router from suite-core
+INFO:apps.api.app:Mounted ML/MindsDB router from suite-core
+INFO:apps.api.app:Mounted AutoFix router from suite-core
+INFO:apps.api.app:Mounted Fuzzy Identity router from suite-core
+INFO:apps.api.app:Mounted Exposure Case router from suite-core
+INFO:apps.api.app:Mounted Pipeline router from suite-core
+INFO:apps.api.app:Mounted Copilot router from suite-core
+INFO:apps.api.app:Mounted Agents router from suite-core
+INFO:apps.api.app:Mounted Predictions router from suite-core
+INFO:apps.api.app:Mounted LLM router from suite-core
+INFO:apps.api.app:Mounted Algorithmic router from suite-core
+INFO:apps.api.app:Mounted Intelligent Engine router from suite-core
+INFO:apps.api.app:Mounted LLM Monitor router from suite-core
+INFO:apps.api.app:Mounted Code-to-Cloud router from suite-core
+INFO:apps.api.app:Mounted Attack Simulation router from suite-attack
+INFO:apps.api.app:Mounted SAST router from suite-attack
+INFO:apps.api.app:Mounted Container Security router from suite-attack
+INFO:apps.api.app:Mounted DAST router from suite-attack
+INFO:apps.api.app:Mounted CSPM router from suite-attack
+INFO:apps.api.app:Mounted API Fuzzer router from suite-attack
+INFO:apps.api.app:Mounted Malware Analysis router from suite-attack
+INFO:apps.api.app:Mounted Evidence router from suite-evidence-risk
+INFO:apps.api.app:Mounted Risk router from suite-evidence-risk
+INFO:apps.api.app:Mounted Graph router from suite-evidence-risk
+INFO:apps.api.app:Mounted Provenance router from suite-evidence-risk
+INFO:apps.api.app:Mounted Business Context router from suite-evidence-risk
+INFO:apps.api.app:Mounted Business Context Enhanced router from suite-evidence-risk
+INFO:apps.api.app:Mounted Integrations router from suite-integrations
+INFO:apps.api.app:Mounted Webhooks router from suite-integrations
+INFO:apps.api.app:Mounted IaC router from suite-integrations
+INFO:apps.api.app:Mounted IDE router from suite-integrations
+INFO:apps.api.app:Mounted Webhooks Receiver router (no API key auth)
+INFO:apps.api.app:Mounted OSS Tools router from suite-integrations
+INFO:apscheduler.scheduler:Scheduler has been shut down

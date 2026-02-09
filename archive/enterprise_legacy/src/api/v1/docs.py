@@ -1,6 +1,7 @@
 """
 Serve documentation markdown files via API for easy linking from UI
 """
+import os
 from pathlib import Path
 
 import structlog
@@ -9,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Response
 logger = structlog.get_logger()
 router = APIRouter(prefix="/docs", tags=["documentation"])
 
-DOCS_DIR = Path("/app/enterprise/docs")
+DOCS_DIR = Path(os.environ.get("FIXOPS_DOCS_DIR", "docs"))
 
 
 @router.get("/{name}")

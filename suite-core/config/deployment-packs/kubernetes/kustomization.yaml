@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fixops
+
+resources:
+  - manifests/namespace.yaml
+  - manifests/configmap.yaml
+  - manifests/secret.yaml
+  - manifests/pvc.yaml
+  - manifests/rbac.yaml
+  - manifests/mongodb-deployment.yaml
+  - manifests/redis-deployment.yaml
+  - manifests/backend-deployment.yaml
+  - manifests/ingress.yaml
+  - manifests/hpa.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: fixops-platform
+  app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: fixops/backend
+    newName: fixops/backend
+    newTag: latest

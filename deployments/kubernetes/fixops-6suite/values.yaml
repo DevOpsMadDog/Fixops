@@ -1,0 +1,162 @@
+# ALdeci (FixOps) 6-Suite Helm Chart — Production Values
+# Suites: api, core, attack, feeds, evidence-risk, integrations + UI
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  env:
+    FIXOPS_JWT_SECRET: "CHANGE_ME"
+    FIXOPS_ALLOWED_ORIGINS: "https://aldeci.example.com"
+    FIXOPS_AUTH_MODE: "enforced"
+    FIXOPS_CACHE_URL: "redis://aldeci-redis-master:6379/0"
+
+# ---------- suite-api (gateway, 224 endpoints) ----------
+suiteApi:
+  replicaCount: 2
+  image:
+    repository: aldeci/suite-api
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests: { cpu: "500m", memory: "512Mi" }
+    limits:   { cpu: "1",    memory: "1Gi" }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+# ---------- suite-core (graph, brain, ML — 192 endpoints) ----------
+suiteCore:
+  replicaCount: 2
+  image:
+    repository: aldeci/suite-core
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests: { cpu: "1",  memory: "1Gi" }
+    limits:   { cpu: "2",  memory: "2Gi" }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+  persistence:
+    enabled: true
+    size: "20Gi"
+    mountPath: /data
+
+# ---------- suite-attack (SAST, DAST, pen-test — 83 endpoints) ----------
+suiteAttack:
+  replicaCount: 1
+  image:
+    repository: aldeci/suite-attack
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests: { cpu: "1",  memory: "1Gi" }
+    limits:   { cpu: "4",  memory: "4Gi" }
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 80
+
+# ---------- suite-feeds (NVD, KEV, EPSS — 29 endpoints) ----------
+suiteFeeds:
+  replicaCount: 1
+  image:
+    repository: aldeci/suite-feeds
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8003
+  resources:
+    requests: { cpu: "250m", memory: "256Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }
+  autoscaling:
+    enabled: false
+
+# ---------- suite-evidence-risk (SOC2, risk — 29 endpoints) ----------
+suiteEvidenceRisk:
+  replicaCount: 1
+  image:
+    repository: aldeci/suite-evidence-risk
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8004
+  resources:
+    requests: { cpu: "250m", memory: "256Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }
+  autoscaling:
+    enabled: false
+
+# ---------- suite-integrations (connectors — 46 endpoints) ----------
+suiteIntegrations:
+  replicaCount: 1
+  image:
+    repository: aldeci/suite-integrations
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8005
+  resources:
+    requests: { cpu: "250m", memory: "256Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }
+  autoscaling:
+    enabled: false
+
+# ---------- suite-ui (React SPA — 56 screens) ----------
+suiteUi:
+  replicaCount: 2
+  image:
+    repository: aldeci/suite-ui
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests: { cpu: "100m", memory: "128Mi" }
+    limits:   { cpu: "250m", memory: "256Mi" }
+
+# ---------- Ingress ----------
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  host: aldeci.example.com
+  tls:
+    enabled: true
+    secretName: aldeci-tls
+
+# ---------- Redis ----------
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: "5Gi"
+    resources:
+      requests: { cpu: "250m", memory: "256Mi" }
+      limits:   { cpu: "500m", memory: "512Mi" }
+

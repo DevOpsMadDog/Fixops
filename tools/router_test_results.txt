@@ -1,0 +1,20 @@
+suite-api in sys.path: True
+apps/ exists: True
+apps/api/ exists: True
+apps/__init__.py exists: False
+apps/api/__init__.py exists: True
+apps/api/app.py exists: True
+archive/legacy exists: True
+archive/legacy in sys.path: True
+sys.path suite entries: ['/Users/devops.ai/developement/fixops/Fixops/archive/legacy', '/Users/devops.ai/developement/fixops/Fixops/suite-evidence-risk', '/Users/devops.ai/developement/fixops/Fixops/suite-integrations', '/Users/devops.ai/developement/fixops/Fixops/suite-feeds', '/Users/devops.ai/developement/fixops/Fixops/suite-attack', '/Users/devops.ai/developement/fixops/Fixops/suite-core', '/Users/devops.ai/developement/fixops/Fixops/suite-api', '/Users/devops.ai/developement/fixops/Fixops/tools', '/Users/devops.ai/developement/fixops/Fixops/.venv/lib/python3.14/site-packages']
+ERROR: name 'Query' is not defined
+Traceback (most recent call last):
+  File "/Users/devops.ai/developement/fixops/Fixops/tools/test_router_loading.py", line 44, in <module>
+    from apps.api.app import create_app
+  File "/Users/devops.ai/developement/fixops/Fixops/suite-api/apps/api/app.py", line 2275, in <module>
+    app = create_app()
+  File "/Users/devops.ai/developement/fixops/Fixops/suite-api/apps/api/app.py", line 685, in create_app
+    async def global_search(q: str = Query("", description="Search query")) -> Dict[str, Any]:
+                                     ^^^^^
+NameError: name 'Query' is not defined
+

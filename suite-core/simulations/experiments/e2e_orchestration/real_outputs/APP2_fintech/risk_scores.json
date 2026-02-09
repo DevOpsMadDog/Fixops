@@ -1,0 +1,17 @@
+{
+  "components": [],
+  "cves": {},
+  "generated_at": "2025-10-28T11:49:39.505815+00:00",
+  "summary": {
+    "component_count": 0,
+    "cve_count": 0,
+    "highest_risk_component": null,
+    "max_risk_score": 0.0
+  },
+  "weights": {
+    "epss": 0.5,
+    "exposure": 0.1,
+    "kev": 0.2,
+    "version_lag": 0.2
+  }
+}

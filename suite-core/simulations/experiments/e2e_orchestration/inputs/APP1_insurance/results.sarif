@@ -1,0 +1,242 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Snyk Code",
+          "informationUri": "https://snyk.io",
+          "version": "1.1045.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "javascript/sql-injection",
+          "level": "error",
+          "message": {
+            "text": "Potential SQL injection vulnerability in pricing engine query builder. User input is concatenated directly into SQL query without parameterization."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/pricing-engine/src/database/queries.js"
+                },
+                "region": {
+                  "startLine": 123,
+                  "endLine": 127
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.8"
+          }
+        },
+        {
+          "ruleId": "javascript/hardcoded-credentials",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded database credentials found in configuration file. Credentials should be stored in environment variables or secrets manager."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/pricing-engine/config/database.js"
+                },
+                "region": {
+                  "startLine": 45,
+                  "endLine": 48
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.5"
+          }
+        },
+        {
+          "ruleId": "javascript/jwt-weak-secret",
+          "level": "error",
+          "message": {
+            "text": "JWT secret key is too weak (less than 32 characters). This makes tokens vulnerable to brute force attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/underwriting-service/src/auth/jwt.js"
+                },
+                "region": {
+                  "startLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "7.8"
+          }
+        },
+        {
+          "ruleId": "javascript/xxe-injection",
+          "level": "error",
+          "message": {
+            "text": "XML External Entity (XXE) injection vulnerability in medical records parser. XML parser is configured to process external entities."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "integration/medical-records-api/src/parsers/hl7.js"
+                },
+                "region": {
+                  "startLine": 234,
+                  "endLine": 240
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.1"
+          }
+        },
+        {
+          "ruleId": "javascript/insecure-random",
+          "level": "warning",
+          "message": {
+            "text": "Cryptographically weak random number generator used for session token generation. Use crypto.randomBytes instead of Math.random."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/quote-frontend/src/utils/session.js"
+                },
+                "region": {
+                  "startLine": 89
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "6.5"
+          }
+        },
+        {
+          "ruleId": "javascript/path-traversal",
+          "level": "error",
+          "message": {
+            "text": "Path traversal vulnerability in policy document download endpoint. User-controlled input is used to construct file paths without validation."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/pricing-engine/src/routes/documents.js"
+                },
+                "region": {
+                  "startLine": 156,
+                  "endLine": 159
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.9"
+          }
+        },
+        {
+          "ruleId": "javascript/cors-misconfiguration",
+          "level": "warning",
+          "message": {
+            "text": "CORS policy allows all origins (*). This exposes the API to cross-origin attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/pricing-engine/src/middleware/cors.js"
+                },
+                "region": {
+                  "startLine": 23
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "5.8"
+          }
+        },
+        {
+          "ruleId": "javascript/missing-rate-limiting",
+          "level": "warning",
+          "message": {
+            "text": "No rate limiting configured on authentication endpoint. This makes the endpoint vulnerable to brute force attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/pricing-engine/src/routes/auth.js"
+                },
+                "region": {
+                  "startLine": 34,
+                  "endLine": 45
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "6.2"
+          }
+        },
+        {
+          "ruleId": "javascript/sensitive-data-logging",
+          "level": "warning",
+          "message": {
+            "text": "Sensitive PII data (SSN, DOB) is being logged in plaintext. This violates HIPAA and GDPR requirements."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/underwriting-service/src/services/underwriting.js"
+                },
+                "region": {
+                  "startLine": 178
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "7.5"
+          }
+        },
+        {
+          "ruleId": "javascript/unvalidated-redirect",
+          "level": "warning",
+          "message": {
+            "text": "Open redirect vulnerability in OAuth callback handler. User-controlled redirect URL is not validated against whitelist."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "web/quote-frontend/src/auth/oauth.js"
+                },
+                "region": {
+                  "startLine": 112
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "6.8"
+          }
+        }
+      ]
+    }
+  ]
+}

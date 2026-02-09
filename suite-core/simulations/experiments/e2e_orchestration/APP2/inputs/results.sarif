@@ -1,0 +1,274 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SonarQube",
+          "informationUri": "https://www.sonarqube.org",
+          "version": "10.2.0",
+          "rules": [
+            {
+              "id": "java:S2076",
+              "name": "NoSQLInjection",
+              "shortDescription": {"text": "NoSQL Injection"},
+              "fullDescription": {"text": "User-controlled data flows into MongoDB query without sanitization"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"tags": ["security", "external/cwe/cwe-943"], "precision": "high"}
+            },
+            {
+              "id": "java:S5131",
+              "name": "Log4jJNDILookup",
+              "shortDescription": {"text": "Log4Shell Vulnerability"},
+              "fullDescription": {"text": "Log4j version vulnerable to JNDI injection (CVE-2021-44228)"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"tags": ["security", "external/cwe/cwe-502"], "precision": "high"}
+            },
+            {
+              "id": "java:S3649",
+              "name": "SQLInjection",
+              "shortDescription": {"text": "SQL Injection"},
+              "fullDescription": {"text": "SQL query constructed with string concatenation using user input"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"tags": ["security", "external/cwe/cwe-89"], "precision": "high"}
+            },
+            {
+              "id": "java:S2068",
+              "name": "HardcodedSensitiveValue",
+              "shortDescription": {"text": "Hardcoded Credentials"},
+              "fullDescription": {"text": "Hardcoded auth_string or sensitive_value key found in source code"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"tags": ["security", "external/cwe/cwe-798"], "precision": "high"}
+            },
+            {
+              "id": "java:S4502",
+              "name": "InsecureDeserialization",
+              "shortDescription": {"text": "Insecure Deserialization"},
+              "fullDescription": {"text": "Untrusted data deserialization can lead to remote code execution"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"tags": ["security", "external/cwe/cwe-502"], "precision": "high"}
+            },
+            {
+              "id": "java:S5131",
+              "name": "KafkaAuthBypass",
+              "shortDescription": {"text": "Kafka Authentication Bypass"},
+              "fullDescription": {"text": "Kafka client configuration allows unauthenticated connections"},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"tags": ["security", "external/cwe/cwe-306"], "precision": "medium"}
+            },
+            {
+              "id": "java:S3330",
+              "name": "HTTPVerbTampering",
+              "shortDescription": {"text": "HTTP Verb Tampering"},
+              "fullDescription": {"text": "HTTP method not validated, allowing verb tampering attacks"},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"tags": ["security", "external/cwe/cwe-352"], "precision": "medium"}
+            },
+            {
+              "id": "java:S5122",
+              "name": "CORS",
+              "shortDescription": {"text": "Permissive CORS Policy"},
+              "fullDescription": {"text": "CORS policy allows requests from any origin"},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"tags": ["security", "external/cwe/cwe-942"], "precision": "medium"}
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "java:S2076",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {"text": "MongoDB query constructed with unsanitized user input from searchQuery parameter"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/product-service/src/main/java/com/marketplace/product/SearchController.java"},
+              "region": {
+                "startLine": 87,
+                "startColumn": 20,
+                "snippet": {"text": "Document query = Document.parse(\"{name: {$regex: '\" + searchQuery + \"'}}\");"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "a1b2c3d4e5f6g7h8"},
+          "properties": {
+            "priorityScore": 880,
+            "priorityScoreFactors": [
+              {"label": "Internet-facing", "value": true},
+              {"label": "NoSQL injection", "value": true},
+              {"label": "Product catalog", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S5131",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {"text": "Log4j 2.20.0 vulnerable to Log4Shell (CVE-2021-44228). Upgrade to 2.17.1 or later"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "pom.xml"},
+              "region": {
+                "startLine": 156,
+                "snippet": {"text": "<version>2.20.0</version>"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "b2c3d4e5f6g7h8i9"},
+          "properties": {
+            "priorityScore": 950,
+            "priorityScoreFactors": [
+              {"label": "RCE vulnerability", "value": true},
+              {"label": "KEV-listed", "value": true},
+              {"label": "Known exploitation", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S3649",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {"text": "SQL injection in order query - user ID from JWT not validated"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/order-service/src/main/java/com/marketplace/order/OrderRepository.java"},
+              "region": {
+                "startLine": 134,
+                "snippet": {"text": "String sql = \"SELECT * FROM orders WHERE user_id = '\" + userId + \"'\";"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "c3d4e5f6g7h8i9j0"},
+          "properties": {
+            "priorityScore": 870,
+            "priorityScoreFactors": [
+              {"label": "PII/PCI data", "value": true},
+              {"label": "SQL injection", "value": true},
+              {"label": "Order processing", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S2068",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {"text": "Hardcoded Stripe sensitive_value key in payment service configuration"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/payment-service/src/main/resources/application.properties"},
+              "region": {
+                "startLine": 23,
+                "snippet": {"text": "stripe.sensitive_value.key=STRIPE_KEY_PLACEHOLDER..."}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "d4e5f6g7h8i9j0k1"},
+          "properties": {
+            "priorityScore": 920,
+            "priorityScoreFactors": [
+              {"label": "PCI scope", "value": true},
+              {"label": "Production credentials", "value": true},
+              {"label": "Payment processing", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S4502",
+          "ruleIndex": 4,
+          "level": "error",
+          "message": {"text": "Insecure deserialization of Kafka message payload"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/order-service/src/main/java/com/marketplace/order/OrderEventConsumer.java"},
+              "region": {
+                "startLine": 67,
+                "snippet": {"text": "Order order = (Order) objectInputStream.readObject();"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "e5f6g7h8i9j0k1l2"},
+          "properties": {
+            "priorityScore": 850,
+            "priorityScoreFactors": [
+              {"label": "RCE risk", "value": true},
+              {"label": "Kafka consumer", "value": true},
+              {"label": "Untrusted data", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S5131",
+          "ruleIndex": 5,
+          "level": "warning",
+          "message": {"text": "Kafka client configured without SASL authentication"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/order-service/src/main/resources/application.yml"},
+              "region": {
+                "startLine": 45,
+                "snippet": {"text": "security.protocol: PLAINTEXT"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "f6g7h8i9j0k1l2m3"},
+          "properties": {
+            "priorityScore": 720,
+            "priorityScoreFactors": [
+              {"label": "Message broker", "value": true},
+              {"label": "No authentication", "value": true},
+              {"label": "PII in messages", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S3330",
+          "ruleIndex": 6,
+          "level": "warning",
+          "message": {"text": "HTTP method not validated in admin endpoint"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/admin-service/src/main/java/com/marketplace/admin/RefundController.java"},
+              "region": {
+                "startLine": 92,
+                "snippet": {"text": "@RequestMapping(\"/api/admin/refund\")"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "g7h8i9j0k1l2m3n4"},
+          "properties": {
+            "priorityScore": 650,
+            "priorityScoreFactors": [
+              {"label": "Admin endpoint", "value": true},
+              {"label": "Financial operation", "value": true}
+            ]
+          }
+        },
+        {
+          "ruleId": "java:S5122",
+          "ruleIndex": 7,
+          "level": "warning",
+          "message": {"text": "CORS configuration allows all origins (*)"},
+          "locations": [{
+            "physicalLocation": {
+              "artifactLocation": {"uri": "services/api-gateway/src/main/java/com/marketplace/gateway/CorsConfig.java"},
+              "region": {
+                "startLine": 34,
+                "snippet": {"text": "config.addAllowedOrigin(\"*\");"}
+              }
+            }
+          }],
+          "partialFingerprints": {"primaryLocationLineHash": "h8i9j0k1l2m3n4o5"},
+          "properties": {
+            "priorityScore": 600,
+            "priorityScoreFactors": [
+              {"label": "API gateway", "value": true},
+              {"label": "Permissive CORS", "value": true}
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

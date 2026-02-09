@@ -1,0 +1,13 @@
+{
+  "app_id": "APP-1825",
+  "epss": [],
+  "kev_hits": [],
+  "operate_risk_score": 0.51,
+  "pressure_by_service": [
+    {
+      "pressure": 0.74,
+      "service": "life-claims-portal"
+    }
+  ],
+  "run_id": "SAMPLE-RUN-02"
+}

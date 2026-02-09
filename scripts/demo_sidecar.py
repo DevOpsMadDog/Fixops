@@ -6,7 +6,7 @@ A comprehensive demo script that showcases FixOps capabilities:
 - Feeds real CVE data
 - Analyzes design-to-production security posture
 - Runs reachability analysis
-- Executes PentAGI security assessments
+- Executes MPTE security assessments
 - Provides animated, real-time output for customer demos
 
 Usage:
@@ -324,10 +324,10 @@ def analyze_reachability(client: httpx.Client, cve_id: str) -> Optional[Dict[str
     return {"status": "completed", "reachable": "unknown", "confidence": 0.75}
 
 
-def run_pentagi_assessment(
+def run_mpte_assessment(
     client: httpx.Client, cve_id: str
 ) -> Optional[Dict[str, Any]]:
-    """Run PentAGI security assessment with animated output."""
+    """Run MPTE security assessment with animated output."""
     results = {}
 
     with Progress(
@@ -336,12 +336,12 @@ def run_pentagi_assessment(
         BarColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("[cyan]Running PentAGI assessment...", total=5)
+        task = progress.add_task("[cyan]Running MPTE assessment...", total=5)
 
         # Step 1: Get stats
-        progress.update(task, description="[cyan]Fetching PentAGI stats...")
+        progress.update(task, description="[cyan]Fetching MPTE stats...")
         try:
-            r = client.get("/api/v1/pentagi/stats")
+            r = client.get("/api/v1/mpte/stats")
             results["stats"] = r.json() if r.status_code == 200 else {}
         except Exception:
             results["stats"] = {}
@@ -351,7 +351,7 @@ def run_pentagi_assessment(
         # Step 2: Get configs
         progress.update(task, description="[cyan]Loading security configurations...")
         try:
-            r = client.get("/api/v1/pentagi/configs")
+            r = client.get("/api/v1/mpte/configs")
             results["configs"] = r.json() if r.status_code == 200 else []
         except Exception:
             results["configs"] = []
@@ -361,7 +361,7 @@ def run_pentagi_assessment(
         # Step 3: Check monitoring
         progress.update(task, description="[cyan]Checking security monitoring...")
         try:
-            r = client.get("/api/v1/pentagi/monitoring")
+            r = client.get("/api/v1/mpte/monitoring")
             results["monitoring"] = r.json() if r.status_code == 200 else {}
         except Exception:
             results["monitoring"] = {}
@@ -371,7 +371,7 @@ def run_pentagi_assessment(
         # Step 4: Get existing results
         progress.update(task, description="[cyan]Retrieving assessment results...")
         try:
-            r = client.get("/api/v1/pentagi/results")
+            r = client.get("/api/v1/mpte/results")
             results["results"] = r.json() if r.status_code == 200 else []
         except Exception:
             results["results"] = []
@@ -386,7 +386,7 @@ def run_pentagi_assessment(
     return results
 
 
-def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
+def show_assessment_summary(cve_id: str, reachability: Dict, mpte: Dict):
     """Display the final assessment summary."""
     console.print()
 
@@ -447,9 +447,9 @@ def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
         "[red]URGENT[/red]" if in_kev else "[yellow]STANDARD[/yellow]",
     )
 
-    # PentAGI Results
-    pentagi_count = len(pentagi.get("results", []))
-    table.add_row("PentAGI Assessments", str(pentagi_count), "[green]COMPLETE[/green]")
+    # MPTE Results
+    mpte_count = len(mpte.get("results", []))
+    table.add_row("MPTE Assessments", str(mpte_count), "[green]COMPLETE[/green]")
 
     console.print(table)
 
@@ -548,15 +548,15 @@ def run_scenario(
     console.print(f"  Status: {reachability.get('status', 'completed')}")
     time.sleep(1)
 
-    # Phase 5: PentAGI Assessment
-    phase_header("5", "Running PentAGI Security Assessment")
-    pentagi = run_pentagi_assessment(client, cve_id) or {}
-    console.print("[green]PentAGI assessment complete[/green]")
+    # Phase 5: MPTE Assessment
+    phase_header("5", "Running MPTE Security Assessment")
+    mpte = run_mpte_assessment(client, cve_id) or {}
+    console.print("[green]MPTE assessment complete[/green]")
     time.sleep(1)
 
     # Phase 6: Summary
     phase_header("6", "Security Assessment Summary")
-    show_assessment_summary(cve_id, reachability, pentagi)
+    show_assessment_summary(cve_id, reachability, mpte)
 
     console.print()
     console.print("[bold green]Assessment Complete![/bold green]")
@@ -599,8 +599,8 @@ def full_demo():
 
         show_cve_info(cve_id)
         reachability = analyze_reachability(client, cve_id) or {}
-        pentagi = run_pentagi_assessment(client, cve_id) or {}
-        show_assessment_summary(cve_id, reachability, pentagi)
+        mpte = run_mpte_assessment(client, cve_id) or {}
+        show_assessment_summary(cve_id, reachability, mpte)
 
         time.sleep(2)
 
@@ -633,7 +633,7 @@ def health():
             ("/api/v1/status", "API Status"),
             ("/api/v1/enhanced/capabilities", "Capabilities"),
             ("/api/v1/reachability/health", "Reachability"),
-            ("/api/v1/pentagi/stats", "PentAGI"),
+            ("/api/v1/mpte/stats", "MPTE"),
         ]
 
         for endpoint, name in endpoints:

@@ -32,7 +32,7 @@ from apps.api.app import create_app
 def get_openapi_schema_safely(app):
     """Get OpenAPI schema while suppressing duplicate operation ID warnings.
 
-    The pentagi router has duplicate operation IDs which cause warnings.
+    The mpte router has duplicate operation IDs which cause warnings.
     In CI environments with warnings-as-errors, this can cause 500 errors
     when accessing /openapi.json. This function suppresses those specific
     warnings to allow schema generation to succeed.
@@ -62,7 +62,7 @@ SKIP_ENDPOINTS = {
     # Destructive operations
     "/api/v1/bulk/delete",
     # Long-running operations
-    "/api/v1/pentagi/scan/comprehensive",
+    "/api/v1/mpte/scan/comprehensive",
 }
 
 
@@ -175,7 +175,7 @@ class TestOpenAPISchema:
 
         Note: We use the openapi_schema fixture instead of hitting /openapi.json
         directly because the endpoint can fail in CI environments with
-        warnings-as-errors due to duplicate operation IDs in the pentagi router.
+        warnings-as-errors due to duplicate operation IDs in the mpte router.
         """
         # Verify schema structure
         assert "openapi" in openapi_schema
@@ -595,9 +595,9 @@ class TestCriticalAPIs:
         response = api_client.get("/api/v1/marketplace", headers=auth_headers)
         assert response.status_code in [200, 404]
 
-    def test_api_v1_pentagi_requests(self, api_client, auth_headers):
-        """Test /api/v1/pentagi/requests endpoint."""
-        response = api_client.get("/api/v1/pentagi/requests", headers=auth_headers)
+    def test_api_v1_mpte_requests(self, api_client, auth_headers):
+        """Test /api/v1/mpte/requests endpoint."""
+        response = api_client.get("/api/v1/mpte/requests", headers=auth_headers)
         assert response.status_code in [200, 404]
 
 

@@ -24,7 +24,7 @@ logger = structlog.get_logger()
 def _resolve_feeds_dir() -> Path:
     """Return the directory that should contain feed snapshots."""
 
-    base = Path(os.getenv("FIXOPS_FEEDS_DIR", "/app/data/feeds"))
+    base = Path(os.getenv("FIXOPS_FEEDS_DIR", "data/feeds"))
     base.mkdir(parents=True, exist_ok=True)
     return base
 

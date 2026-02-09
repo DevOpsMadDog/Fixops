@@ -354,38 +354,38 @@ docker exec fixops python -m core.cli groups unmerge --id group-123 --event-ids 
 
 ---
 
-### 13. pentagi - Manage PentAGI Testing
+### 13. mpte - Manage MPTE Testing
 
-**Purpose:** Basic pentest job management via PentAGI service.
+**Purpose:** Basic pentest job management via MPTE service.
 
-**What it operates on:** PentAGI requests and results in database. Actual pentests run on PentAGI service.
+**What it operates on:** MPTE requests and results in database. Actual pentests run on MPTE service.
 
 **Prerequisites:** 
-- PentAGI service must be running (use `docker-compose.pentagi.yml`)
-- Target URL must be accessible from PentAGI container
+- MPTE service must be running (use `docker-compose.mpte.yml`)
+- Target URL must be accessible from MPTE container
 
-**Data flow:** Create request → PentAGI executes → Results stored → Query results.
+**Data flow:** Create request → MPTE executes → Results stored → Query results.
 
 ```bash
 # List pentest requests
-docker exec fixops python -m core.cli pentagi list-requests
+docker exec fixops python -m core.cli mpte list-requests
 
 # Create pentest request (target must be accessible)
-docker exec fixops python -m core.cli pentagi create-request \
+docker exec fixops python -m core.cli mpte create-request \
   --target "https://example.com" \
   --scope "web application"
 
 # Get request details
-docker exec fixops python -m core.cli pentagi get-request --id req-123
+docker exec fixops python -m core.cli mpte get-request --id req-123
 
 # List results (after pentest completes)
-docker exec fixops python -m core.cli pentagi list-results
+docker exec fixops python -m core.cli mpte list-results
 
 # List configurations
-docker exec fixops python -m core.cli pentagi list-configs
+docker exec fixops python -m core.cli mpte list-configs
 
 # Create configuration
-docker exec fixops python -m core.cli pentagi create-config --name "default" --settings '{"timeout": 300}'
+docker exec fixops python -m core.cli mpte create-config --name "default" --settings '{"timeout": 300}'
 ```
 
 ---
@@ -397,11 +397,11 @@ docker exec fixops python -m core.cli pentagi create-config --name "default" --s
 **What it operates on:** Specific CVEs against target URLs. Tests if the CVE is exploitable on the target.
 
 **Prerequisites:**
-- PentAGI service must be running
+- MPTE service must be running
 - Target URLs must be accessible
 - CVE IDs must be valid
 
-**Data flow:** CVE + Target → PentAGI micro-test → Exploitability result.
+**Data flow:** CVE + Target → MPTE micro-test → Exploitability result.
 
 ```bash
 # Run micro pentest for specific CVE against target
@@ -648,7 +648,7 @@ A typical enterprise scan result includes:
 **What it operates on:** Target application URL. Uses multiple LLMs to plan and execute pentest.
 
 **Prerequisites:**
-- PentAGI service running
+- MPTE service running
 - LLM API keys configured (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
 - Target accessible
 
@@ -1822,7 +1822,7 @@ curl -H "X-API-Key: demo-token-12345" \
 - `/api/v1/integrations/*` - Integration configs
 - `/api/v1/inventory/*` - Asset inventory
 - `/api/v1/marketplace/*` - Marketplace items
-- `/api/v1/pentagi/*` - Pen testing
+- `/api/v1/mpte/*` - Pen testing
 - `/api/v1/policies/*` - Security policies
 - `/api/v1/reports/*` - Reports
 - `/api/v1/teams/*` - Team management
@@ -1883,11 +1883,11 @@ curl -H "X-API-Key: demo-token-12345" \
 **What it operates on:** Runs targeted penetration tests for specific CVEs against target URLs to verify exploitability.
 
 **Prerequisites:**
-- PentAGI service must be running (use `docker-compose.pentagi.yml`)
+- MPTE service must be running (use `docker-compose.mpte.yml`)
 - Target URLs must be accessible from the container
 - Valid CVE IDs
 
-**Data flow:** CVE + Target → PentAGI micro-test → Exploitability result.
+**Data flow:** CVE + Target → MPTE micro-test → Exploitability result.
 
 ```bash
 # Run micro pentest for specific CVE against target
@@ -1918,113 +1918,113 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ---
 
-### PentAGI Endpoints
+### MPTE Endpoints
 
-**What it operates on:** PentAGI pentest requests and results. Full penetration testing via PentAGI service.
+**What it operates on:** MPTE pentest requests and results. Full penetration testing via MPTE service.
 
 **Prerequisites:**
-- PentAGI service must be running (use `docker-compose.pentagi.yml`)
-- Target must be accessible from PentAGI container
+- MPTE service must be running (use `docker-compose.mpte.yml`)
+- Target must be accessible from MPTE container
 
-**Data flow:** Create request → Approve → Start → PentAGI executes → Results stored.
+**Data flow:** Create request → Approve → Start → MPTE executes → Results stored.
 
 ```bash
 # List all pentest requests
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/requests | jq
+  http://localhost:8000/api/v1/mpte/requests | jq
 
 # Create pentest request
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"target": "https://example.com", "scope": "web application"}' \
-  http://localhost:8000/api/v1/pentagi/requests
+  http://localhost:8000/api/v1/mpte/requests
 
 # Get request by ID
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/requests/req-123 | jq
+  http://localhost:8000/api/v1/mpte/requests/req-123 | jq
 
 # Update request (e.g., approve)
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   -H "Content-Type: application/json" \
   -d '{"status": "approved"}' \
-  http://localhost:8000/api/v1/pentagi/requests/req-123
+  http://localhost:8000/api/v1/mpte/requests/req-123
 
 # Start pentest execution
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
-  http://localhost:8000/api/v1/pentagi/requests/req-123/start
+  http://localhost:8000/api/v1/mpte/requests/req-123/start
 
 # Cancel pentest
 curl -H "X-API-Key: demo-token-12345" \
   -X POST \
-  http://localhost:8000/api/v1/pentagi/requests/req-123/cancel
+  http://localhost:8000/api/v1/mpte/requests/req-123/cancel
 
 # List all pentest results
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/results | jq
+  http://localhost:8000/api/v1/mpte/results | jq
 
 # Create result
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"request_id": "req-123", "findings": [...]}' \
-  http://localhost:8000/api/v1/pentagi/results
+  http://localhost:8000/api/v1/mpte/results
 
 # Get results by request
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/results/by-request/req-123 | jq
+  http://localhost:8000/api/v1/mpte/results/by-request/req-123 | jq
 
 # List configs
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/configs | jq
+  http://localhost:8000/api/v1/mpte/configs | jq
 
 # Create config
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"name": "default", "settings": {"timeout": 300}}' \
-  http://localhost:8000/api/v1/pentagi/configs
+  http://localhost:8000/api/v1/mpte/configs
 
 # Get config
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/configs/cfg-123 | jq
+  http://localhost:8000/api/v1/mpte/configs/cfg-123 | jq
 
 # Update config
 curl -H "X-API-Key: demo-token-12345" \
   -X PUT \
   -H "Content-Type: application/json" \
   -d '{"settings": {"timeout": 600}}' \
-  http://localhost:8000/api/v1/pentagi/configs/cfg-123
+  http://localhost:8000/api/v1/mpte/configs/cfg-123
 
 # Delete config
 curl -H "X-API-Key: demo-token-12345" \
   -X DELETE \
-  http://localhost:8000/api/v1/pentagi/configs/cfg-123
+  http://localhost:8000/api/v1/mpte/configs/cfg-123
 
 # Verify exploitability
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"cve_id": "CVE-2024-1234", "target": "https://example.com"}' \
-  http://localhost:8000/api/v1/pentagi/verify | jq
+  http://localhost:8000/api/v1/mpte/verify | jq
 
 # Monitoring scan
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"target": "https://example.com", "schedule": "daily"}' \
-  http://localhost:8000/api/v1/pentagi/monitoring
+  http://localhost:8000/api/v1/mpte/monitoring
 
 # Comprehensive scan
 curl -H "X-API-Key: demo-token-12345" \
   -H "Content-Type: application/json" \
   -d '{"target": "https://example.com", "depth": "full"}' \
-  http://localhost:8000/api/v1/pentagi/scan/comprehensive | jq
+  http://localhost:8000/api/v1/mpte/scan/comprehensive | jq
 
 # Get finding exploitability
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/findings/finding-123/exploitability | jq
+  http://localhost:8000/api/v1/mpte/findings/finding-123/exploitability | jq
 
 # Get stats
 curl -H "X-API-Key: demo-token-12345" \
-  http://localhost:8000/api/v1/pentagi/stats | jq
+  http://localhost:8000/api/v1/mpte/stats | jq
 ```
 
 ---

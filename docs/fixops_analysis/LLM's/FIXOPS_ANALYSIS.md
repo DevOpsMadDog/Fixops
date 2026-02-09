@@ -49,7 +49,7 @@
 - **Attack Path Analysis**: Identifies exploitation paths and attack vectors
 
 ### 1.6 Advanced Features
-- **PentAGI**: AI-powered penetration testing automation
+- **MPTE**: AI-powered penetration testing automation
 - **Reachability Analysis**: Determines if vulnerabilities are reachable in codebase
 - **Knowledge Graph**: Builds relationships between services, components, findings, controls
 - **Threat Intelligence**: CISA KEV integration, EPSS scoring, exploitability signals
@@ -75,7 +75,7 @@
   - Risk Graph Explorer (Cytoscape.js)
   - Compliance Management
   - Evidence Timeline
-  - PentAGI Interface
+  - MPTE Interface
   - Analytics Dashboard
 - **Design System**: Shared `@fixops/ui` package
 - **State Management**: React Context + API client hooks
@@ -119,7 +119,7 @@
   - Advanced Pen Testing (45 endpoints)
   - Reachability (7 endpoints)
   - Teams & Users (14 endpoints)
-  - PentAGI (8 endpoints)
+  - MPTE (8 endpoints)
   - Evidence (12 endpoints)
 
 ### 3.2 CLI Coverage

@@ -1,0 +1,22 @@
+{
+  "detectedManifests": {
+    "package-lock.json": {
+      "resolved": {
+        "customer-api@1.4.2": {
+          "name": "customer-api",
+          "version": "1.4.2",
+          "packageUrl": "pkg:npm/customer-api@1.4.2",
+          "licenses": ["Apache-2.0"],
+          "source": {"name": "FixOps"}
+        },
+        "payments-gateway@2.1.0": {
+          "name": "payments-gateway",
+          "version": "2.1.0",
+          "packageUrl": "pkg:docker/payments-gateway@2.1.0",
+          "licenses": ["MIT"],
+          "source": {"name": "FixOps"}
+        }
+      }
+    }
+  }
+}

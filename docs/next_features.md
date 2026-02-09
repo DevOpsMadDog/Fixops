@@ -36,7 +36,7 @@ This document consolidates all planned features and "What's Needed" items into a
 | SLSA v1 Provenance | **COMPLETED** | ~~Implement SLSA provenance format, in-toto attestations~~ | ~~2-3 weeks~~ | `services/provenance/attestation.py` |
 | Evidence Verification Endpoint | **COMPLETED** | ~~Add `/api/v1/evidence/verify` that calls `rsa_verify()`~~ | ~~1-2 days~~ | `backend/api/evidence/router.py:162-303` |
 | WORM-Compliant Storage | **COMPLETED** | ~~S3 Object Lock / Azure Immutable Blob adapter~~ | ~~3-4 weeks~~ | `core/storage_backends.py` |
-| Wire Real LLM Providers | **COMPLETED** | ~~Replace mocked responses with actual provider calls~~ | ~~3-5 days~~ | `core/pentagi_advanced.py:354-460` |
+| Wire Real LLM Providers | **COMPLETED** | ~~Replace mocked responses with actual provider calls~~ | ~~3-5 days~~ | `core/mpte_advanced.py:354-460` |
 
 ### High Priority (Product Completeness)
 
@@ -233,4 +233,4 @@ These tools are mentioned in the pitch deck persona analysis but lack native Fix
 | Evidence Signing | **RSA-SHA256** | RSA-SHA256 | `POST /api/v1/evidence/verify` |
 | SLSA Provenance | **v1 + in-toto** | SLSA v1 | `services/provenance/attestation.py` |
 | Storage Backends | **3** | 3 | Local, S3 Object Lock, Azure Immutable Blob |
-| AI Consensus | **Real LLM** | Real LLM | `core/pentagi_advanced.py` |
+| AI Consensus | **Real LLM** | Real LLM | `core/mpte_advanced.py` |

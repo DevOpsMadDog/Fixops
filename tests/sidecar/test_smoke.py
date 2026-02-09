@@ -135,52 +135,52 @@ def test_reachability_analyze(client):
 
 
 # =============================================================================
-# PentAGI Endpoints
+# MPTE Endpoints
 # =============================================================================
 
 
-def test_pentagi_stats(client):
-    """Test /api/v1/pentagi/stats endpoint."""
-    r = client.get("/api/v1/pentagi/stats")
+def test_mpte_stats(client):
+    """Test /api/v1/mpte/stats endpoint."""
+    r = client.get("/api/v1/mpte/stats")
     assert r.status_code == 200
     data = r.json()
     assert "total_requests" in data or "total_results" in data
-    print("PASS: /api/v1/pentagi/stats")
+    print("PASS: /api/v1/mpte/stats")
 
 
-def test_pentagi_configs(client):
-    """Test /api/v1/pentagi/configs endpoint."""
-    r = client.get("/api/v1/pentagi/configs")
+def test_mpte_configs(client):
+    """Test /api/v1/mpte/configs endpoint."""
+    r = client.get("/api/v1/mpte/configs")
     assert r.status_code == 200
     # Response could be empty list or list of configs
     data = r.json()
     assert isinstance(data, list)
-    print(f"PASS: /api/v1/pentagi/configs - {len(data)} configs")
+    print(f"PASS: /api/v1/mpte/configs - {len(data)} configs")
 
 
-def test_pentagi_requests(client):
-    """Test /api/v1/pentagi/requests endpoint."""
-    r = client.get("/api/v1/pentagi/requests")
+def test_mpte_requests(client):
+    """Test /api/v1/mpte/requests endpoint."""
+    r = client.get("/api/v1/mpte/requests")
     assert r.status_code == 200
     data = r.json()
     assert isinstance(data, list)
-    print(f"PASS: /api/v1/pentagi/requests - {len(data)} requests")
+    print(f"PASS: /api/v1/mpte/requests - {len(data)} requests")
 
 
-def test_pentagi_results(client):
-    """Test /api/v1/pentagi/results endpoint."""
-    r = client.get("/api/v1/pentagi/results")
+def test_mpte_results(client):
+    """Test /api/v1/mpte/results endpoint."""
+    r = client.get("/api/v1/mpte/results")
     assert r.status_code == 200
     data = r.json()
     assert isinstance(data, list)
-    print(f"PASS: /api/v1/pentagi/results - {len(data)} results")
+    print(f"PASS: /api/v1/mpte/results - {len(data)} results")
 
 
-def test_pentagi_monitoring(client):
-    """Test /api/v1/pentagi/monitoring endpoint."""
-    r = client.get("/api/v1/pentagi/monitoring")
+def test_mpte_monitoring(client):
+    """Test /api/v1/mpte/monitoring endpoint."""
+    r = client.get("/api/v1/mpte/monitoring")
     assert r.status_code == 200
-    print("PASS: /api/v1/pentagi/monitoring")
+    print("PASS: /api/v1/mpte/monitoring")
 
 
 # =============================================================================

@@ -36,7 +36,7 @@
 - `core/services/deduplication.py` - 22.74%
 
 **Uncovered Modules (0%):**
-- `core/pentagi_*.py` - Pen testing integration
+- `core/mpte_*.py` - Pen testing integration
 - `core/stage_runner.py` - Pipeline stage execution
 - `core/sarif_canon.py` - SARIF canonicalization
 - `core/*_db.py` - Database models
@@ -105,7 +105,7 @@ Focus areas:
 Focus areas:
 - [ ] `risk/reachability/*.py` - Reachability analysis
 - [ ] `risk/feeds/*.py` - Vulnerability feeds
-- [ ] `core/pentagi_*.py` - Pen testing integration
+- [ ] `core/mpte_*.py` - Pen testing integration
 - [ ] All remaining modules
 
 ---

@@ -92,22 +92,22 @@
 
 **Flow:** CLI → Load fixtures → PipelineOrchestrator.run() → Output
 
-### 10. pentagi
-**Purpose:** Manage Pentagi pen testing integration
-**Entry Point:** `core/cli.py:_handle_pentagi()`
+### 10. mpte
+**Purpose:** Manage MPTE pen testing integration
+**Entry Point:** `core/cli.py:_handle_mpte()`
 
-#### 10.1 pentagi list-requests
+#### 10.1 mpte list-requests
 ```bash
-python -m core.cli pentagi list-requests [--finding-id ID] [--status STATUS] [--limit N] [--offset N] [--format table|json]
+python -m core.cli mpte list-requests [--finding-id ID] [--status STATUS] [--limit N] [--offset N] [--format table|json]
 ```
 - Lists pen test requests with optional filtering
 - Status choices: pending, running, completed, failed, cancelled
 - Default format: table
 - Returns exit code 0 on success
 
-#### 10.2 pentagi create-request
+#### 10.2 mpte create-request
 ```bash
-python -m core.cli pentagi create-request \
+python -m core.cli mpte create-request \
   --finding-id "finding-123" \
   --target-url "https://test.example.com/api" \
   --vuln-type "sql_injection" \
@@ -119,70 +119,70 @@ python -m core.cli pentagi create-request \
 - Returns request ID and JSON on success
 - Returns exit code 0 on success
 
-#### 10.3 pentagi get-request
+#### 10.3 mpte get-request
 ```bash
-python -m core.cli pentagi get-request <request_id>
+python -m core.cli mpte get-request <request_id>
 ```
 - Gets pen test request details by ID
 - Returns JSON with full request details
 - Returns exit code 0 if found, 1 if not found
 
-#### 10.4 pentagi list-results
+#### 10.4 mpte list-results
 ```bash
-python -m core.cli pentagi list-results [--finding-id ID] [--exploitability LEVEL] [--limit N] [--offset N] [--format table|json]
+python -m core.cli mpte list-results [--finding-id ID] [--exploitability LEVEL] [--limit N] [--offset N] [--format table|json]
 ```
 - Lists pen test results with optional filtering
 - Exploitability choices: confirmed_exploitable, likely_exploitable, unexploitable, blocked, inconclusive
 - Default format: table
 - Returns exit code 0 on success
 
-#### 10.5 pentagi list-configs
+#### 10.5 mpte list-configs
 ```bash
-python -m core.cli pentagi list-configs [--limit N] [--offset N] [--format table|json]
+python -m core.cli mpte list-configs [--limit N] [--offset N] [--format table|json]
 ```
-- Lists Pentagi configuration instances
+- Lists MPTE configuration instances
 - Default format: table
 - Returns exit code 0 on success
 
-#### 10.6 pentagi create-config
+#### 10.6 mpte create-config
 ```bash
-python -m core.cli pentagi create-config \
-  --name "Production Pentagi" \
-  --url "https://pentagi.example.com" \
+python -m core.cli mpte create-config \
+  --name "Production MPTE" \
+  --url "https://mpte.example.com" \
   [--api-key "secret-key"] \
   [--disabled]
 ```
-- Creates new Pentagi configuration
+- Creates new MPTE configuration
 - Config is enabled by default unless --disabled flag is used
 - API key is optional
 - Returns config ID and JSON on success
 - Returns exit code 0 on success
 
-**Flow:** CLI → PentagiDB operations → Output results
+**Flow:** CLI → MPTEDB operations → Output results
 
 ## API Endpoints (apps/api/app.py)
 
-### Phase 6: Pentagi Integration (12 endpoints) ✅
+### Phase 6: MPTE Integration (12 endpoints) ✅
 
-#### Pen Test Request Management (apps/api/pentagi_router.py)
-- `GET /api/v1/pentagi/requests` - List pen test requests with filtering
-- `POST /api/v1/pentagi/requests` - Create pen test request
-- `GET /api/v1/pentagi/requests/{id}` - Get pen test request details
-- `PUT /api/v1/pentagi/requests/{id}` - Update pen test request
-- `POST /api/v1/pentagi/requests/{id}/start` - Start pen test execution
-- `POST /api/v1/pentagi/requests/{id}/cancel` - Cancel running pen test
+#### Pen Test Request Management (apps/api/mpte_router.py)
+- `GET /api/v1/mpte/requests` - List pen test requests with filtering
+- `POST /api/v1/mpte/requests` - Create pen test request
+- `GET /api/v1/mpte/requests/{id}` - Get pen test request details
+- `PUT /api/v1/mpte/requests/{id}` - Update pen test request
+- `POST /api/v1/mpte/requests/{id}/start` - Start pen test execution
+- `POST /api/v1/mpte/requests/{id}/cancel` - Cancel running pen test
 
-#### Pen Test Results (apps/api/pentagi_router.py)
-- `GET /api/v1/pentagi/results` - List pen test results with filtering
-- `POST /api/v1/pentagi/results` - Create pen test result
-- `GET /api/v1/pentagi/results/by-request/{request_id}` - Get result by request ID
+#### Pen Test Results (apps/api/mpte_router.py)
+- `GET /api/v1/mpte/results` - List pen test results with filtering
+- `POST /api/v1/mpte/results` - Create pen test result
+- `GET /api/v1/mpte/results/by-request/{request_id}` - Get result by request ID
 
-#### Pentagi Configuration (apps/api/pentagi_router.py)
-- `GET /api/v1/pentagi/configs` - List Pentagi configurations
-- `POST /api/v1/pentagi/configs` - Create Pentagi configuration
-- `GET /api/v1/pentagi/configs/{id}` - Get configuration details
-- `PUT /api/v1/pentagi/configs/{id}` - Update configuration
-- `DELETE /api/v1/pentagi/configs/{id}` - Delete configuration
+#### MPTE Configuration (apps/api/mpte_router.py)
+- `GET /api/v1/mpte/configs` - List MPTE configurations
+- `POST /api/v1/mpte/configs` - Create MPTE configuration
+- `GET /api/v1/mpte/configs/{id}` - Get configuration details
+- `PUT /api/v1/mpte/configs/{id}` - Update configuration
+- `DELETE /api/v1/mpte/configs/{id}` - Delete configuration
 
 **Total API Surface: 137 endpoints** (125 from Phases 1-5 + 12 from Phase 6)
 

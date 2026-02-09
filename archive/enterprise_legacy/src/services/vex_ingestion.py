@@ -22,7 +22,7 @@ logger = structlog.get_logger()
 
 
 def _resolve_vex_cache() -> Path:
-    base = Path(os.getenv("FIXOPS_FEEDS_DIR", "/app/data/feeds"))
+    base = Path(os.getenv("FIXOPS_FEEDS_DIR", "data/feeds"))
     base.mkdir(parents=True, exist_ok=True)
     return base / "vex"
 

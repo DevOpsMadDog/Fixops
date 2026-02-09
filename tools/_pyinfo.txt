@@ -1,0 +1,2 @@
+/Users/devops.ai/developement/fixops/Fixops/.venv/bin/python3
+3.14.1 (main, Dec  2 2025, 12:51:37) [Clang 17.0.0 (clang-1700.4.4.1)]

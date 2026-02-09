@@ -1,0 +1,18 @@
+version: 1
+artifact: dist/fixops-{tag}.tar.gz
+sources:
+  - path: .
+    destination: source
+steps:
+  - run: |
+      mkdir -p dist
+      rm -rf source/dist source/artifacts source/analysis source/reports source/tmp source/.pytest_cache source/__pycache__ source/**/__pycache__ source/**/*.pyc
+      GZIP=-n tar --sort=name --mtime='UTC 2023-01-01' \
+        --owner=0 --group=0 --numeric-owner \
+        --pax-option=delete=atime,delete=ctime,exthdr.name=%d/PaxHeaders/%f \
+        -czf dist/fixops-{tag}.tar.gz -C source .
+reference_attestation: artifacts/attestations/fixops-{tag}.json
+environment:
+  LC_ALL: C.UTF-8
+  LANG: C.UTF-8
+  TZ: UTC

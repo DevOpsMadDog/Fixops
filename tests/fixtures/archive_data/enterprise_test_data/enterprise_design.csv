@@ -1,0 +1,16 @@
+service_name,environment,customer_impact,data_classification,exposure,threat_id,threat_description,severity,mitigation_status
+payment-gateway,prod,mission_critical,pci,internet,STRIDE-S-001,SQL injection in payment processing endpoint /api/v1/payments/process,critical,incomplete
+payment-gateway,prod,mission_critical,pci,internet,STRIDE-T-001,Log4j RCE vulnerability in logging framework,critical,incomplete
+auth-service,prod,mission_critical,pii,internet,STRIDE-S-002,Hardcoded API credentials in configuration,high,incomplete
+auth-service,prod,mission_critical,pii,internet,STRIDE-E-001,Weak MD5 password hashing algorithm,high,incomplete
+customer-portal,prod,external,pii,internet,STRIDE-T-002,Reflected XSS in customer profile display,high,incomplete
+customer-portal,prod,external,pii,internet,STRIDE-I-001,IDOR vulnerability exposing customer data,high,incomplete
+webhook-processor,prod,internal,internal,partner,STRIDE-S-003,SSRF vulnerability in webhook URL validation,critical,incomplete
+messaging-service,prod,external,pii,partner,STRIDE-R-001,Insecure deserialization of message payloads,critical,incomplete
+transaction-history,prod,mission_critical,pci,internet,STRIDE-I-002,Unauthorized access to transaction records,high,incomplete
+reporting-api,stage,internal,internal,internal,STRIDE-D-001,Sensitive password logged in authentication handler,medium,incomplete
+database-connector,prod,mission_critical,pci,internal,STRIDE-S-004,Database credentials in connection string,high,incomplete
+api-gateway,prod,mission_critical,pci,internet,STRIDE-T-003,Spring Framework RCE vulnerability,critical,incomplete
+notification-service,prod,external,pii,internal,STRIDE-I-003,Email template injection vulnerability,medium,incomplete
+audit-logger,prod,mission_critical,compliance,internal,STRIDE-R-002,Insufficient audit log protection,medium,incomplete
+config-service,prod,internal,secrets,internal,STRIDE-S-005,Secrets exposed in environment variables,high,incomplete

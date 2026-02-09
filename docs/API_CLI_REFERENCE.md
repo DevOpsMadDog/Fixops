@@ -17,7 +17,7 @@
 | Advanced Pen Testing | 45 | 6 | Full |
 | Reachability | 7 | 3 | Full |
 | Teams & Users | 14 | 8 | Full |
-| PentAGI | 14 | 3 | Full |
+| MPTE | 14 | 3 | Full |
 | Evidence | 12 | 2 | Partial |
 | Health & Status | 4 | 1 | Full |
 | **Deduplication & Correlation** | **17** | **8** | **Full** |
@@ -285,18 +285,18 @@
 
 ---
 
-## PENTAGI (8 API → 3 CLI)
+## MPTE (8 API → 3 CLI)
 
 | # | API Endpoint | Method | CLI Command | Notes |
 |---|--------------|--------|-------------|-------|
-| 1 | `/api/v1/pentagi/requests` | GET | `pentagi list` | List requests |
-| 2 | `/api/v1/pentagi/requests/{id}` | GET | `pentagi status {id}` | Get request status |
-| 3 | `/api/v1/pentagi/requests` | POST | `pentagi create` | Create request |
-| 4 | `/api/v1/pentagi/requests/{id}/cancel` | POST | - | Cancel request (API only) |
-| 5 | `/api/v1/pentagi/results/{id}` | GET | `pentagi status {id}` | Get results |
-| 6 | `/api/v1/pentagi/capabilities` | GET | - | List capabilities (API only) |
-| 7 | `/api/v1/pentagi/config` | GET | - | Get config (API only) |
-| 8 | `/api/v1/pentagi/config` | PUT | - | Update config (API only) |
+| 1 | `/api/v1/mpte/requests` | GET | `mpte list` | List requests |
+| 2 | `/api/v1/mpte/requests/{id}` | GET | `mpte status {id}` | Get request status |
+| 3 | `/api/v1/mpte/requests` | POST | `mpte create` | Create request |
+| 4 | `/api/v1/mpte/requests/{id}/cancel` | POST | - | Cancel request (API only) |
+| 5 | `/api/v1/mpte/results/{id}` | GET | `mpte status {id}` | Get results |
+| 6 | `/api/v1/mpte/capabilities` | GET | - | List capabilities (API only) |
+| 7 | `/api/v1/mpte/config` | GET | - | Get config (API only) |
+| 8 | `/api/v1/mpte/config` | PUT | - | Update config (API only) |
 
 ---
 
@@ -347,7 +347,7 @@
 | `train-forecast` | - | Train forecasting model |
 | `teams` | list, get, create | Team management |
 | `users` | list, get, create, reset-password | User management |
-| `pentagi` | list, create, status | PentAGI management |
+| `mpte` | list, create, status | MPTE management |
 | `compliance` | frameworks, status, gaps, report | Compliance management |
 | `reports` | list, generate, export, schedules | Report generation |
 | `inventory` | apps, add, get, services, search | Asset inventory |

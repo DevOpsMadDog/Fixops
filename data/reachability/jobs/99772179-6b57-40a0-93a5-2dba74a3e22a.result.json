@@ -1,0 +1,8 @@
+{
+  "job_id": "99772179-6b57-40a0-93a5-2dba74a3e22a",
+  "status": "failed",
+  "error": "Git clone failed: Cloning into '/var/folders/pc/64y19nzs047c7byks502btvh0000gn/T/fixops_repos/temp_61d28fce855755ed'...\nremote: Repository not found.\nfatal: repository 'https://github.com/test/repo/' not found\n\nCommand: git clone --depth 1 --branch main https://github.com/test/repo /var/folders/pc/64y19nzs047c7byks502btvh0000gn/T/fixops_repos/temp_61d28fce855755ed",
+  "progress": 20.0,
+  "started_at": "2026-02-06T01:20:00.235912+00:00",
+  "completed_at": "2026-02-06T01:20:01.431522+00:00"
+}

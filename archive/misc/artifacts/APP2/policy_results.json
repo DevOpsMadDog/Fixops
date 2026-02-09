@@ -1,0 +1,12 @@
+{
+  "app": "APP2",
+  "run_id": "91e1f59b-fef7-4637-9d36-0a7ef5a547ab",
+  "results": [
+    {"rule": "Webhook route must enforce HMAC signature plugin", "status": "fail", "resource": "kong/route/webhooks"},
+    {"rule": "Service must use https", "status": "pass", "resource": "kong/service/graphql"},
+    {"rule": "CDN origins cannot be public buckets", "status": "pass", "resource": "cloudfront/app2"},
+    {"rule": "Image older than 180 days", "status": "warn", "resource": "partner-base:2024-02"},
+    {"rule": "Partner secrets from secrets manager", "status": "fail", "resource": "lambda/transformer"}
+  ],
+  "evaluated_at": "2025-10-28T13:45:00Z"
+}

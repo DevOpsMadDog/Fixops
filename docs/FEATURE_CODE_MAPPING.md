@@ -96,7 +96,7 @@ curl -H "X-API-Key: demo-token-12345" http://localhost:8000/pipeline/run | jq
 | `docker-compose.yml` | Main dev stack with sidecars | `demo-token` |
 | `docker-compose.demo.yml` | Demo with OpenTelemetry | (env var) |
 | `docker-compose.enterprise.yml` | Enterprise with ChromaDB | `enterprise-token` |
-| `docker-compose.pentagi.yml` | With PentAGI pentest service | (env var) |
+| `docker-compose.mpte.yml` | With MPTE pentest service | (env var) |
 | `deployment-packs/docker/docker-compose.yml` | Production template | (env var) |
 
 ---
@@ -174,7 +174,7 @@ All CLI command groups with their purpose and usage. Run `python -m core.cli <co
 | `teams` | Manage teams | Create/list/delete security teams | `python -m core.cli teams list` |
 | `users` | Manage users | User administration | `python -m core.cli users list` |
 | `groups` | Manage finding groups | Cluster related findings | `python -m core.cli groups list` |
-| `pentagi` | Manage PentAGI testing | Basic pentest job management | `python -m core.cli pentagi list` |
+| `mpte` | Manage MPTE testing | Basic pentest job management | `python -m core.cli mpte list` |
 | `micro-pentest` | Run micro penetration tests | Quick CVE-specific pentest | `python -m core.cli micro-pentest run --cve-ids CVE-2024-1234` |
 | `advanced-pentest` | AI-powered pentest | Multi-LLM consensus pentest | `python -m core.cli advanced-pentest run --target https://app.com` |
 | `compliance` | Manage compliance | Framework status and reports | `python -m core.cli compliance status --framework PCI-DSS` |
@@ -203,8 +203,8 @@ All 30 API routers with their purpose. Access OpenAPI docs at `http://localhost:
 | Feeds | 15 | Threat intelligence | EPSS, KEV, NVD, OSV feed access | `/api/v1/feeds/*` |
 | Policies | 6 | Decision policies | CRUD for security policies | `/api/v1/policies/*` |
 | Validation | 3 | Input validation | Validate SBOM/SARIF before processing | `/api/v1/validate/*` |
-| PentAGI | 14 | Basic pentest | Job management for PentAGI | `/api/v1/pentagi/*` |
-| PentAGI Enhanced | 19 | Advanced pentest | Playbooks, campaigns, reporting | `/api/v1/pentagi/enhanced/*` |
+| MPTE | 14 | Basic pentest | Job management for MPTE | `/api/v1/mpte/*` |
+| MPTE Enhanced | 19 | Advanced pentest | Playbooks, campaigns, reporting | `/api/v1/mpte/enhanced/*` |
 | Micro Pentest | 3 | Quick pentest | CVE-specific micro tests | `/api/v1/micro-pentest/*` |
 | Compliance | 12 | Compliance management | Frameworks, assessments, evidence | `/api/v1/compliance/*` |
 | Reports | 8 | Report generation | PDF/HTML/JSON security reports | `/api/v1/reports/*` |
@@ -332,7 +332,7 @@ curl -H "X-API-Key: demo-token" \
   http://127.0.0.1:8000/api/v1/remediation/tasks | jq
 ```
 
-### 5. Micro Penetration Testing (Requires PentAGI Service)
+### 5. Micro Penetration Testing (Requires MPTE Service)
 
 ```bash
 # CLI: Run micro pentest
@@ -663,20 +663,20 @@ Final Decision (accept/reject/defer/escalate)
 
 ## Feature 4: Penetration Testing
 
-**Purpose:** Automated and micro penetration testing via PentAGI integration.
+**Purpose:** Automated and micro penetration testing via MPTE integration.
 
 ### Code Paths
 
 | Component | File Path | LOC | Key Functions/Classes |
 |-----------|-----------|-----|----------------------|
 | Micro Pentest Core | `core/micro_pentest.py` | 445 | `run_micro_pentest()`, `MicroPentestConfig`, `BatchTestConfig` |
-| Advanced Pentest | `core/pentagi_advanced.py` | 1,093 | `AdvancedPentestEngine`, `run_advanced_pentest()` |
-| PentAGI DB | `core/pentagi_db.py` | 507 | `PentAGIDB`, job storage |
-| PentAGI Client | `integrations/pentagi_client.py` | 388 | `PentAGIClient`, API client |
-| PentAGI Service | `integrations/pentagi_service.py` | 470 | `PentAGIService` |
-| Decision Integration | `integrations/pentagi_decision_integration.py` | 277 | Integration layer |
-| Basic Router | `apps/api/pentagi_router.py` | 290 | 14 basic endpoints |
-| Enhanced Router | `apps/api/pentagi_router_enhanced.py` | 619 | 19 advanced endpoints |
+| Advanced Pentest | `core/mpte_advanced.py` | 1,093 | `AdvancedPentestEngine`, `run_advanced_pentest()` |
+| MPTE DB | `core/mpte_db.py` | 507 | `MPTEDB`, job storage |
+| MPTE Client | `integrations/mpte_client.py` | 388 | `MPTEClient`, API client |
+| MPTE Service | `integrations/mpte_service.py` | 470 | `MPTEService` |
+| Decision Integration | `integrations/mpte_decision_integration.py` | 277 | Integration layer |
+| Basic Router | `apps/api/mpte_router.py` | 290 | 14 basic endpoints |
+| Enhanced Router | `apps/api/mpte_router.py` | 619 | 19 advanced endpoints |
 | Micro Router | `apps/api/micro_pentest_router.py` | 222 | 3 micro endpoints |
 | Enterprise Engine | `fixops-enterprise/src/services/advanced_pentest_engine.py` | 2,292 | Enterprise pentest |
 | Automated Pentest | `fixops-enterprise/src/services/automated_pentest.py` | 1,430 | Automation |
@@ -686,25 +686,25 @@ Final Decision (accept/reject/defer/escalate)
 
 | Method | Endpoint | Handler | File:Line |
 |--------|----------|---------|-----------|
-| POST | `/api/v1/pentagi/requests` | `create_request` | `apps/api/pentagi_router.py:45-90` |
-| GET | `/api/v1/pentagi/requests` | `list_requests` | `apps/api/pentagi_router.py:92-120` |
-| GET | `/api/v1/pentagi/requests/{id}` | `get_request` | `apps/api/pentagi_router.py:122-150` |
-| GET | `/api/v1/pentagi/requests/{id}/status` | `get_status` | `apps/api/pentagi_router.py:152-180` |
-| GET | `/api/v1/pentagi/requests/{id}/results` | `get_results` | `apps/api/pentagi_router.py:182-220` |
+| POST | `/api/v1/mpte/requests` | `create_request` | `apps/api/mpte_router.py:45-90` |
+| GET | `/api/v1/mpte/requests` | `list_requests` | `apps/api/mpte_router.py:92-120` |
+| GET | `/api/v1/mpte/requests/{id}` | `get_request` | `apps/api/mpte_router.py:122-150` |
+| GET | `/api/v1/mpte/requests/{id}/status` | `get_status` | `apps/api/mpte_router.py:152-180` |
+| GET | `/api/v1/mpte/requests/{id}/results` | `get_results` | `apps/api/mpte_router.py:182-220` |
 | POST | `/api/v1/micro-pentest/run` | `run_pentest` | `apps/api/micro_pentest_router.py:98-140` |
 | GET | `/api/v1/micro-pentest/status/{flow_id}` | `get_pentest_status` | `apps/api/micro_pentest_router.py:143-164` |
 | POST | `/api/v1/micro-pentest/batch` | `run_batch_pentests` | `apps/api/micro_pentest_router.py:167-219` |
-| POST | `/api/v1/advanced-pentest/run` | `run_advanced` | `apps/api/pentagi_router_enhanced.py:80-150` |
-| POST | `/api/v1/advanced-pentest/threat-intel` | `get_threat_intel` | `apps/api/pentagi_router_enhanced.py:152-200` |
-| POST | `/api/v1/advanced-pentest/simulate` | `simulate_attack` | `apps/api/pentagi_router_enhanced.py:202-280` |
+| POST | `/api/v1/advanced-pentest/run` | `run_advanced` | `apps/api/mpte_router.py:80-150` |
+| POST | `/api/v1/advanced-pentest/threat-intel` | `get_threat_intel` | `apps/api/mpte_router.py:152-200` |
+| POST | `/api/v1/advanced-pentest/simulate` | `simulate_attack` | `apps/api/mpte_router.py:202-280` |
 
 ### CLI Commands
 
 | Command | Handler Function | File:Line |
 |---------|-----------------|-----------|
-| `pentagi create --target APP --cve CVE` | `_handle_pentagi()` | `core/cli.py:1346-1443` |
-| `pentagi list` | `_handle_pentagi()` | `core/cli.py:1346-1443` |
-| `pentagi status --id ID` | `_handle_pentagi()` | `core/cli.py:1346-1443` |
+| `mpte create --target APP --cve CVE` | `_handle_mpte()` | `core/cli.py:1346-1443` |
+| `mpte list` | `_handle_mpte()` | `core/cli.py:1346-1443` |
+| `mpte status --id ID` | `_handle_mpte()` | `core/cli.py:1346-1443` |
 | `micro-pentest run --cve-ids CVE --target-urls URL` | `_handle_micro_pentest()` | `core/cli.py:1451-1581` |
 | `micro-pentest status FLOW_ID` | `_handle_micro_pentest()` | `core/cli.py:1451-1581` |
 | `micro-pentest batch CONFIG.json` | `_handle_micro_pentest()` | `core/cli.py:1451-1581` |
@@ -726,17 +726,17 @@ Pentest Request (CVE + Target)
     |-- Sanitize context (size limit)
     |
     v
-[integrations/pentagi_client.py:PentAGIClient.create_flow()]
-    |-- POST to PentAGI service
+[integrations/mpte_client.py:MPTEClient.create_flow()]
+    |-- POST to MPTE service
     |-- Get flow_id
     |
     v
-[core/pentagi_db.py:store_job()]
+[core/mpte_db.py:store_job()]
     |-- Store job metadata
     |-- Track status
     |
     v
-PentAGI executes pentest asynchronously
+MPTE executes pentest asynchronously
     |
     v
 [apps/api/micro_pentest_router.py:get_pentest_status()]
@@ -745,7 +745,7 @@ PentAGI executes pentest asynchronously
 [core/micro_pentest.py:get_micro_pentest_status()]
     |
     v
-[integrations/pentagi_client.py:get_flow_status()]
+[integrations/mpte_client.py:get_flow_status()]
     |
     v
 Return findings + recommendations

@@ -14,10 +14,24 @@ def test_cors_origins_applied(monkeypatch):
     cors_middleware = [
         mw for mw in application.user_middleware if mw.cls is CORSMiddleware
     ][0]
-    assert cors_middleware.options["allow_origins"] == [
+    assert cors_middleware.kwargs["allow_origins"] == [
         "https://fixops.ai",
         "https://demo.fixops.ai",
     ]
+
+
+def test_cors_includes_vite_dev_server(monkeypatch):
+    """PR1: Ensure CORS allows Vite dev server (ui/aldeci) on port 5173."""
+    # Clear any existing CORS config to use defaults
+    monkeypatch.delenv("FIXOPS_ALLOWED_ORIGINS", raising=False)
+    application = app_module.create_app()
+    cors_middleware = [
+        mw for mw in application.user_middleware if mw.cls is CORSMiddleware
+    ][0]
+    origins = cors_middleware.kwargs["allow_origins"]
+    # Vite dev server should be allowed
+    assert "http://localhost:5173" in origins, "CORS should allow Vite dev server"
+    assert "http://127.0.0.1:5173" in origins, "CORS should allow Vite dev server on 127.0.0.1"
 
 
 def test_generate_access_token_expiry(monkeypatch):

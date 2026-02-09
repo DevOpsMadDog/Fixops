@@ -1,0 +1,173 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:8f3d9e2a-1b4c-5d6e-7f8a-9b0c1d2e3f4a",
+  "metadata": {
+    "timestamp": "2025-10-28T12:10:00Z",
+    "tools": [
+      {
+        "vendor": "Insurance Platform Security Team",
+        "name": "vex-generator",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "id": "CVE-2021-44228",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 10.0,
+          "severity": "critical",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [502, 400, 20],
+      "description": "Apache Log4j2 JNDI RCE vulnerability",
+      "recommendation": "Upgrade to log4j-core 2.17.1 or later immediately",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "Component is used in pricing engine which processes user input and logs extensively. JNDI lookup is enabled by default.",
+        "response": ["will_not_fix", "workaround_available"],
+        "detail": "CRITICAL: This vulnerability is actively exploited in the wild (KEV). Pricing engine is internet-facing and processes untrusted input. Immediate patching required. Temporary mitigation: Set log4j2.formatMsgNoLookups=true"
+      },
+      "affects": [
+        {
+          "ref": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.0"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2020-28469",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-28469"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 5.9,
+          "severity": "medium",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [918],
+      "description": "SSRF vulnerability in axios HTTP client",
+      "recommendation": "Upgrade to axios 0.21.2 or later",
+      "analysis": {
+        "state": "not_affected",
+        "justification": "Axios is only used for outbound requests to whitelisted partner APIs (Stripe, Experian). All URLs are hardcoded and not user-controllable.",
+        "response": ["update"],
+        "detail": "LOW PRIORITY: SSRF requires user-controlled URLs. Our implementation only makes requests to pre-configured partner endpoints. Scheduled for next maintenance window."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/axios@0.21.1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2024-12345",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-12345"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 9.1,
+          "severity": "critical",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [89, 94],
+      "description": "SQL injection in PostgreSQL client library",
+      "recommendation": "Upgrade to pg 8.11.0 or later",
+      "analysis": {
+        "state": "exploitable",
+        "justification": "PostgreSQL client is used throughout the application. Connection strings are partially constructed from environment variables which could be manipulated in certain deployment scenarios.",
+        "response": ["can_not_fix"],
+        "detail": "HIGH PRIORITY: While connection strings are from env vars (not direct user input), this is still exploitable if env vars are compromised. Upgrade scheduled for this week."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/pg@8.9.0"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2021-23337",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-23337"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 7.2,
+          "severity": "high",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [94, 78],
+      "description": "Command injection in lodash template function",
+      "recommendation": "Upgrade to lodash 4.17.21 or later",
+      "analysis": {
+        "state": "not_affected",
+        "justification": "Lodash is used only for utility functions (cloneDeep, merge, etc.). Template function is never called with user input.",
+        "response": ["update"],
+        "detail": "MEDIUM PRIORITY: Code review confirms lodash.template is not used anywhere in codebase. Only safe utility functions are used. Upgrade planned for next sprint."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/lodash@4.17.20"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2023-11111",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-11111"
+      },
+      "ratings": [
+        {
+          "source": {
+            "name": "NVD"
+          },
+          "score": 4.3,
+          "severity": "medium",
+          "method": "CVSSv3"
+        }
+      ],
+      "cwes": [209, 532],
+      "description": "Information disclosure in Stripe SDK error messages",
+      "recommendation": "Upgrade to stripe 13.0.0 or later",
+      "analysis": {
+        "state": "in_triage",
+        "justification": "Stripe SDK is used for payment processing. Error messages are logged but logs are restricted to security team only.",
+        "response": ["update"],
+        "detail": "LOW PRIORITY: Error logs are not exposed to end users and are only accessible to authorized security personnel. Upgrade scheduled for Q1 2026."
+      },
+      "affects": [
+        {
+          "ref": "pkg:npm/stripe@12.3.0"
+        }
+      ]
+    }
+  ]
+}

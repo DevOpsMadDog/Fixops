@@ -1,0 +1,8 @@
+{
+  "id": "1bf37ecf0f344e688a2e607336d24dd6",
+  "stage": "sbom",
+  "stored_at": "2026-02-07T12:23:51.468792Z",
+  "original_filename": "fixops_master_sbom_10arch_4000vulns.cdx.json",
+  "raw_path": "/Users/devops.ai/developement/fixops/Fixops/suite-core/data/data/archive/sbom/2026-02-07T122351.468792Z-1bf37ecf0f344e688a2e607336d24dd6.raw",
+  "normalized_path": "/Users/devops.ai/developement/fixops/Fixops/suite-core/data/data/archive/sbom/2026-02-07T122351.468792Z-1bf37ecf0f344e688a2e607336d24dd6.json"
+}

@@ -1,0 +1,149 @@
+{
+  "application": {
+    "id": "app-gaming-matchmaker-001",
+    "name": "gaming-matchmaker",
+    "display_name": "Gaming Matchmaking Service",
+    "description": "Real-time multiplayer matchmaking service for competitive gaming platform with anti-cheat integration",
+    "portfolio": "Gaming Platform",
+    "business_unit": "Interactive Entertainment",
+    "criticality": "high",
+    "tier": "tier-1",
+    "data_classification": "confidential",
+    "pii_data": true,
+    "pci_data": true,
+    "phi_data": false,
+    "architecture": {
+      "type": "microservices",
+      "deployment_model": "multi-cloud",
+      "cloud_provider": ["aws", "gcp"],
+      "regions": ["us-east-1", "us-west-2", "eu-west-1", "ap-northeast-1", "sa-east-1"],
+      "container_orchestration": "EKS/GKE",
+      "service_mesh": "Istio",
+      "game_servers": "Agones"
+    },
+    "tech_stack": {
+      "primary_language": "C++",
+      "secondary_language": "Go",
+      "framework": "gRPC",
+      "runtime": "Native Binary",
+      "database": ["ScyllaDB", "Redis Cluster", "CockroachDB"],
+      "message_queue": "NATS",
+      "cache": "Redis",
+      "additional": ["Open Match", "Nakama", "PlayFab"]
+    },
+    "repository": {
+      "url": "https://github.com/acme-corp/gaming-matchmaker",
+      "branch": "main",
+      "last_commit": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+      "ci_cd": "GitHub Actions",
+      "build_system": "CMake/Bazel"
+    },
+    "compliance_frameworks": ["gdpr", "ccpa", "coppa", "pci-dss"],
+    "security_contacts": {
+      "primary": "gaming-security@acme-corp.com",
+      "escalation": "ciso@acme-corp.com",
+      "on_call": "gaming-oncall@acme-corp.com"
+    },
+    "sla": {
+      "availability": "99.95%",
+      "rto_hours": 1,
+      "rpo_hours": 0.25,
+      "critical_fix_hours": 4,
+      "high_fix_hours": 12
+    }
+  },
+  "sbom": {
+    "format": "CycloneDX",
+    "version": "1.5",
+    "generated_at": "2024-12-26T08:00:00Z",
+    "tool": "syft",
+    "components_count": 234,
+    "direct_dependencies": 45,
+    "transitive_dependencies": 189,
+    "licenses": ["MIT", "Apache-2.0", "BSD-3-Clause", "Boost"],
+    "critical_components": [
+      {
+        "name": "grpc",
+        "version": "1.60.0",
+        "type": "framework",
+        "purpose": "RPC framework"
+      },
+      {
+        "name": "protobuf",
+        "version": "25.1",
+        "type": "library",
+        "purpose": "Serialization"
+      },
+      {
+        "name": "openssl",
+        "version": "3.2.0",
+        "type": "library",
+        "purpose": "Cryptography",
+        "cve_history": ["CVE-2014-0160", "CVE-2022-3602"]
+      }
+    ]
+  },
+  "risk_profile": {
+    "overall_risk_score": 76,
+    "risk_factors": {
+      "data_sensitivity": "medium",
+      "internet_exposure": "critical",
+      "regulatory_impact": "high",
+      "financial_impact": "high",
+      "reputational_impact": "critical"
+    },
+    "attack_surface": {
+      "external_endpoints": 25,
+      "internal_endpoints": 89,
+      "api_endpoints": 167,
+      "admin_interfaces": 5,
+      "concurrent_players": 2000000,
+      "game_servers": 15000
+    },
+    "threat_model": {
+      "primary_threats": [
+        "DDoS attacks",
+        "Cheating/Hacking",
+        "Account theft",
+        "Virtual currency fraud",
+        "Match manipulation",
+        "Memory exploitation"
+      ],
+      "mitre_attack_techniques": [
+        "T1498",
+        "T1203",
+        "T1078",
+        "T1565",
+        "T1055",
+        "T1574"
+      ]
+    }
+  },
+  "recent_findings_summary": {
+    "critical": 4,
+    "high": 7,
+    "medium": 16,
+    "low": 32,
+    "informational": 54,
+    "correlation_ids": [
+      "CORR-GAMING-BUFFER-001",
+      "CORR-GAMING-OPENSSL-001",
+      "CORR-GAMING-GRPC-001",
+      "CORR-GAMING-MEMORY-001"
+    ]
+  },
+  "integrations": {
+    "ticketing": "Jira",
+    "chat": "Discord",
+    "siem": "Datadog",
+    "secrets_manager": "AWS Secrets Manager",
+    "anti_cheat": "Easy Anti-Cheat"
+  },
+  "gaming_security": {
+    "anti_cheat_enabled": true,
+    "server_authoritative": true,
+    "replay_validation": true,
+    "rate_limiting": "adaptive",
+    "ddos_protection": "AWS Shield Advanced"
+  }
+}

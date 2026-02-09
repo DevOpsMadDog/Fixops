@@ -47,7 +47,7 @@
 | Graph/Risk | 4 | Interactive visualization requires UI |
 | Risk | 3 | Backend risk analysis |
 | Provenance | 2 | Backend provenance tracking |
-| PentAGI (Backend) | 5 | Backend pentesting service |
+| MPTE (Backend) | 5 | Backend pentesting service |
 | **Total** | **92** | |
 
 ---
@@ -224,35 +224,35 @@
 | 109 | GET | `/api/v1/inventory/apis/{id}/security` | API-only | Test |
 | 110 | GET | `/api/v1/inventory/search` | `inventory search` | Design |
 
-### 13. PentAGI (apps/api/pentagi_router.py) - 14 endpoints
+### 13. MPTE (apps/api/mpte_router.py) - 14 endpoints
 
 | # | Method | Endpoint | CLI Command | Workflow Stage |
 |---|--------|----------|-------------|----------------|
-| 111 | GET | `/api/v1/pentagi/requests` | `pentagi list` | Test |
-| 112 | POST | `/api/v1/pentagi/requests` | `pentagi create` | Test |
-| 113 | GET | `/api/v1/pentagi/requests/{request_id}` | `pentagi status {id}` | Test |
-| 114 | PUT | `/api/v1/pentagi/requests/{request_id}` | API-only | Test |
-| 115 | POST | `/api/v1/pentagi/requests/{request_id}/start` | API-only | Test |
-| 116 | POST | `/api/v1/pentagi/requests/{request_id}/cancel` | API-only | Test |
-| 117 | GET | `/api/v1/pentagi/results` | `pentagi status {id}` | Test |
-| 118 | POST | `/api/v1/pentagi/results` | API-only | Test |
-| 119 | GET | `/api/v1/pentagi/results/by-request/{request_id}` | `pentagi status {id}` | Test |
-| 120 | GET | `/api/v1/pentagi/configs` | API-only | Admin |
-| 121 | POST | `/api/v1/pentagi/configs` | API-only | Admin |
-| 122 | GET | `/api/v1/pentagi/configs/{config_id}` | API-only | Admin |
-| 123 | PUT | `/api/v1/pentagi/configs/{config_id}` | API-only | Admin |
-| 124 | DELETE | `/api/v1/pentagi/configs/{config_id}` | API-only | Admin |
+| 111 | GET | `/api/v1/mpte/requests` | `mpte list` | Test |
+| 112 | POST | `/api/v1/mpte/requests` | `mpte create` | Test |
+| 113 | GET | `/api/v1/mpte/requests/{request_id}` | `mpte status {id}` | Test |
+| 114 | PUT | `/api/v1/mpte/requests/{request_id}` | API-only | Test |
+| 115 | POST | `/api/v1/mpte/requests/{request_id}/start` | API-only | Test |
+| 116 | POST | `/api/v1/mpte/requests/{request_id}/cancel` | API-only | Test |
+| 117 | GET | `/api/v1/mpte/results` | `mpte status {id}` | Test |
+| 118 | POST | `/api/v1/mpte/results` | API-only | Test |
+| 119 | GET | `/api/v1/mpte/results/by-request/{request_id}` | `mpte status {id}` | Test |
+| 120 | GET | `/api/v1/mpte/configs` | API-only | Admin |
+| 121 | POST | `/api/v1/mpte/configs` | API-only | Admin |
+| 122 | GET | `/api/v1/mpte/configs/{config_id}` | API-only | Admin |
+| 123 | PUT | `/api/v1/mpte/configs/{config_id}` | API-only | Admin |
+| 124 | DELETE | `/api/v1/mpte/configs/{config_id}` | API-only | Admin |
 
-### 14. Enhanced PentAGI (apps/api/pentagi_router_enhanced.py) - 19 endpoints
+### 14. Enhanced MPTE (apps/api/mpte_router.py) - 19 endpoints
 
 | # | Method | Endpoint | CLI Command | Workflow Stage |
 |---|--------|----------|-------------|----------------|
 | 125-138 | (same as above) | (same as above) | (same as above) | Test |
-| 139 | POST | `/api/v1/pentagi/verify` | `advanced-pentest run` | Test |
-| 140 | POST | `/api/v1/pentagi/monitoring` | API-only | Monitor |
-| 141 | POST | `/api/v1/pentagi/scan/comprehensive` | `advanced-pentest run` | Test |
-| 142 | GET | `/api/v1/pentagi/findings/{finding_id}/exploitability` | `advanced-pentest threat-intel` | Test |
-| 143 | GET | `/api/v1/pentagi/stats` | API-only | Monitor |
+| 139 | POST | `/api/v1/mpte/verify` | `advanced-pentest run` | Test |
+| 140 | POST | `/api/v1/mpte/monitoring` | API-only | Monitor |
+| 141 | POST | `/api/v1/mpte/scan/comprehensive` | `advanced-pentest run` | Test |
+| 142 | GET | `/api/v1/mpte/findings/{finding_id}/exploitability` | `advanced-pentest threat-intel` | Test |
+| 143 | GET | `/api/v1/mpte/stats` | API-only | Monitor |
 
 ### 15. IaC Findings (apps/api/iac_router.py) - 5 endpoints
 
@@ -334,11 +334,11 @@
 |---|--------|----------|-------------|----------------|
 | 183 | GET | `/api/v1/provenance/` | API-only | Build |
 | 184 | GET | `/api/v1/provenance/{artifact_name}` | API-only | Build |
-| 185 | GET | `/api/v1/pentagi/requests` | `pentagi list` | Test |
-| 186 | GET | `/api/v1/pentagi/requests/{request_id}` | `pentagi status {id}` | Test |
-| 187 | POST | `/api/v1/pentagi/requests` | `pentagi create` | Test |
-| 188 | PATCH | `/api/v1/pentagi/requests/{request_id}` | API-only | Test |
-| 189 | DELETE | `/api/v1/pentagi/requests/{request_id}` | API-only | Test |
+| 185 | GET | `/api/v1/mpte/requests` | `mpte list` | Test |
+| 186 | GET | `/api/v1/mpte/requests/{request_id}` | `mpte status {id}` | Test |
+| 187 | POST | `/api/v1/mpte/requests` | `mpte create` | Test |
+| 188 | PATCH | `/api/v1/mpte/requests/{request_id}` | API-only | Test |
+| 189 | DELETE | `/api/v1/mpte/requests/{request_id}` | API-only | Test |
 | 190 | GET | `/api/v1/graph/` | API-only (visualization) | Decision |
 | 191 | GET | `/api/v1/graph/lineage/{artifact_name}` | API-only (visualization) | Decision |
 | 192 | GET | `/api/v1/graph/kev-components` | API-only | Decision |
@@ -459,8 +459,8 @@
 
 | Command | Subcommand | API Equivalent | Description |
 |---------|------------|----------------|-------------|
-| `advanced-pentest` | `run` | `POST /api/v1/pentagi/verify` | Run pen test |
-| `advanced-pentest` | `threat-intel {cve}` | `GET /api/v1/pentagi/findings/{id}/exploitability` | Threat intelligence |
+| `advanced-pentest` | `run` | `POST /api/v1/mpte/verify` | Run pen test |
+| `advanced-pentest` | `threat-intel {cve}` | `GET /api/v1/mpte/findings/{id}/exploitability` | Threat intelligence |
 | `advanced-pentest` | `business-impact` | Enterprise API | Business impact analysis |
 | `advanced-pentest` | `simulate` | Enterprise API | Attack simulation |
 | `advanced-pentest` | `remediation {cve}` | Enterprise API | Remediation guidance |
@@ -491,13 +491,13 @@
 | `users` | `create` | `POST /api/v1/users` | Create user |
 | `users` | `reset-password {id}` | `PUT /api/v1/users/{id}` | Reset password |
 
-### PentAGI Commands (3)
+### MPTE Commands (3)
 
 | Command | Subcommand | API Equivalent | Description |
 |---------|------------|----------------|-------------|
-| `pentagi` | `list` | `GET /api/v1/pentagi/requests` | List requests |
-| `pentagi` | `create` | `POST /api/v1/pentagi/requests` | Create request |
-| `pentagi` | `status {id}` | `GET /api/v1/pentagi/requests/{id}` | Get status |
+| `mpte` | `list` | `GET /api/v1/mpte/requests` | List requests |
+| `mpte` | `create` | `POST /api/v1/mpte/requests` | Create request |
+| `mpte` | `status {id}` | `GET /api/v1/mpte/requests/{id}` | Get status |
 
 ### Utility Commands (4)
 
@@ -538,13 +538,13 @@ POST /inputs/sbom
 ```bash
 # CLI
 python -m core.cli stage-run --stage test --input scan.sarif
-python -m core.cli pentagi create --target payments-api --cve CVE-2024-1234
+python -m core.cli mpte create --target payments-api --cve CVE-2024-1234
 python -m core.cli advanced-pentest run --target payments-api --cves CVE-2024-1234
 
 # API
 POST /inputs/sarif
 POST /inputs/cve
-POST /api/v1/pentagi/requests
+POST /api/v1/mpte/requests
 ```
 
 ### Release Gate (Evidence Creation)

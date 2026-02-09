@@ -3,34 +3,34 @@ version: '3.9'
 # ALdeci Complete Stack - Intelligent Security Platform
 # 
 # This brings together:
-# - PentAGI (rebranded as ALdeci)
+# - MPTE (rebranded as ALdeci)
 # - FixOps API
 # - MindsDB ML Layer
 # - Redis for caching
 # - PostgreSQL for persistent storage
 #
 # Usage:
-#   docker compose -f docker-compose.aldeci-complete.yml --env-file .env.pentagi up -d
+#   docker compose -f docker-compose.aldeci-complete.yml --env-file .env.mpte up -d
 
 services:
   # ============================================
   # Core Platform Services
   # ============================================
   
-  # ALdeci UI (PentAGI with custom branding)
+  # ALdeci UI (MPTE with custom branding)
   aldeci-ui:
-    image: vxcontrol/pentagi:latest
+    image: vxcontrol/mpte:latest
     container_name: aldeci-ui
     restart: unless-stopped
     ports:
       - "8443:8443"
     environment:
-      DATABASE_URL: "postgresql://pentagi:pentagi@aldeci-db:5432/pentagi?sslmode=disable"
+      DATABASE_URL: "postgresql://mpte:mpte@aldeci-db:5432/mpte?sslmode=disable"
       POSTGRES_HOST: aldeci-db
       POSTGRES_PORT: 5432
-      POSTGRES_DB: pentagi
-      POSTGRES_USER: pentagi
-      POSTGRES_PASSWORD: pentagi
+      POSTGRES_DB: mpte
+      POSTGRES_USER: mpte
+      POSTGRES_PASSWORD: mpte
       OPEN_AI_KEY: "${OPENAI_API_KEY}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       SERVER_URL: "https://localhost:8443"
@@ -40,20 +40,30 @@ services:
       ADMIN_PASSWORD: "admin"
       LOG_LEVEL: "info"
       DEBUG_MODE: "false"
+      # Docker access for pentest agents
+      DOCKER_HOST: "unix:///var/run/docker.sock"
+      DOCKER_GID: "998"
+      DOCKER_INSIDE: "true"
+      SERVER_USE_SSL: "true"
+      SERVER_PORT: "8443"
+      SERVER_HOST: "0.0.0.0"
       # ALdeci customizations
       ALDECI_API_URL: "http://aldeci-api:8000/api/v1"
       ALDECI_MINDSDB_URL: "http://aldeci-mindsdb:47334"
     volumes:
-      - ./pentagi-aldeci/aldeci-professional-ui.js:/opt/pentagi/fe/aldeci-professional-ui.js:ro
-      - ./pentagi-aldeci/index.html:/opt/pentagi/fe/index.html:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./mpte-aldeci/aldeci-professional-ui.js:/opt/mpte/fe/aldeci-professional-ui.js:ro
+      - ./mpte-aldeci/index.html:/opt/mpte/fe/index.html:ro
       - aldeci-data:/app/data
+      - aldeci-ssl:/opt/mpte/ssl
+    user: root:root
     depends_on:
       aldeci-db:
         condition: service_healthy
     networks:
       - aldeci-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://localhost:8443/health"]
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:8443/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -64,26 +74,26 @@ services:
     container_name: aldeci-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: pentagi
-      POSTGRES_PASSWORD: pentagi
-      POSTGRES_DB: pentagi
+      POSTGRES_USER: mpte
+      POSTGRES_PASSWORD: mpte
+      POSTGRES_DB: mpte
     volumes:
       - aldeci-postgres-data:/var/lib/postgresql/data
     networks:
       - aldeci-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pentagi"]
+      test: ["CMD-SHELL", "pg_isready -U mpte"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # Web Scraper Service (for OSINT)
   aldeci-scraper:
-    image: vxcontrol/pentagi-scraper:latest
+    image: vxcontrol/scraper:latest
     container_name: aldeci-scraper
     restart: unless-stopped
     ports:
-      - "9443:9443"
+      - "9443:443"
     environment:
       LOG_LEVEL: "info"
     networks:
@@ -104,6 +114,7 @@ services:
       - "8000:8000"
     environment:
       FIXOPS_MODE: "demo"
+      START_API_SERVER: "false"
       FIXOPS_JWT_SECRET: "${FIXOPS_JWT_SECRET:-aldeci-jwt-secret-demo}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
@@ -111,8 +122,8 @@ services:
       # MindsDB integration
       MINDSDB_URL: "http://aldeci-mindsdb:47334"
       ALDECI_MINDSDB_ENABLED: "true"
-      # PentAGI integration
-      PENTAGI_BASE_URL: "https://aldeci-ui:8443"
+      # MPTE integration
+      MPTE_BASE_URL: "https://aldeci-ui:8443"
       # Intelligent Security Engine settings
       ALDECI_INTELLIGENCE_LEVEL: "guided"
       ALDECI_CONSENSUS_THRESHOLD: "0.85"
@@ -195,6 +206,8 @@ volumes:
     name: aldeci-api-data
   aldeci-data:
     name: aldeci-data
+  aldeci-ssl:
+    name: aldeci-ssl
 
 # ============================================
 # Network Configuration

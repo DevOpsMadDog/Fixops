@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -21,7 +22,7 @@ from pydantic import BaseModel, Field
 
 logger = structlog.get_logger()
 
-DATA_DIR = Path("/app/data/marketplace")
+DATA_DIR = Path(os.environ.get("FIXOPS_MARKETPLACE_DIR", "data/marketplace"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 ITEMS_FILE = DATA_DIR / "items.json"
 PURCHASES_FILE = DATA_DIR / "purchases.json"

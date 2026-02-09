@@ -85,7 +85,7 @@ collect_ignore = [
     "test_feature_matrix.py",  # missing ai_agent_analysis feature
     "test_feeds_enrichment.py",  # FeedsService missing _path attribute
     "test_golden_regression_integration.py",  # GoldenRegressionStore missing _cases_by_id
-    "test_pentagi_integration.py",  # pentagi orchestrator issues
+    "test_mpte_integration.py",  # mpte orchestrator issues
     # E2E tests requiring external services or full evidence pipeline not available in CI
     "e2e/test_critical_decision_policy.py",  # requires external policy engine on 127.0.0.1:8765
     "e2e/test_evidence_generation.py",  # evidence bundle creation not wired in CI profile

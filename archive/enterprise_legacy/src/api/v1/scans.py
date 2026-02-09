@@ -32,7 +32,7 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/scans", tags=["scan-ingestion"])
 settings = get_settings()
 
-UPLOAD_DIR = Path("/app/data/uploads")
+UPLOAD_DIR = Path(os.environ.get("FIXOPS_UPLOAD_DIR", "data/uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 

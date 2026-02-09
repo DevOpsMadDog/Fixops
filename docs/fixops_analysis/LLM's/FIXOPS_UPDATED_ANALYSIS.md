@@ -48,7 +48,7 @@
 10. **inventory** - Asset inventory
 11. **marketplace** - Compliance marketplace
 12. **micro-pentest** - Micro penetration testing
-13. **pentagi** - AI-powered pentesting
+13. **mpte** - AI-powered pentesting
 14. **policies** - Policy management
 15. **reachability** - Vulnerability reachability analysis
 16. **reports** - Reporting and analytics
@@ -86,7 +86,7 @@
 7. `show-overlay` - Show configuration
 8. `train-forecast` - Train forecasting model
 9. `demo` - Run demo mode
-10. `pentagi` - Pentagi management (with subcommands)
+10. `mpte` - MPTE management (with subcommands)
 11. Plus many more management commands (teams, users, compliance, etc.)
 
 **Note**: The README is conservative ("25+") while actual implementation has 67 commands/subcommands covering ~85% of API surface.

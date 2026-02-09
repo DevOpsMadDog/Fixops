@@ -39,7 +39,7 @@ services:
   dashboard:
     image: nginx:alpine
     volumes:
-      - ./ui/dashboard:/usr/share/nginx/html:ro
+      - ./archive/old-ui/ui_dashboard:/usr/share/nginx/html:ro
     ports:
       - "8080:80"
     depends_on:

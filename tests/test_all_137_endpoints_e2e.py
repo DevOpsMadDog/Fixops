@@ -959,13 +959,13 @@ class TestPhase5EnterpriseEndpoints:
         assert response.status_code == 200
 
 
-class TestPhase6PentagiEndpoints:
-    """Test all 12 Phase 6 Pentagi endpoints."""
+class TestPhase6MPTEEndpoints:
+    """Test all 12 Phase 6 MPTE endpoints."""
 
     def test_110_create_pentest_request(self, api_client, auth_headers):
-        """POST /api/v1/pentagi/requests"""
+        """POST /api/v1/mpte/requests"""
         response = api_client.post(
-            "/api/v1/pentagi/requests",
+            "/api/v1/mpte/requests",
             json={
                 "finding_id": "test-finding-1",
                 "target_url": "https://test.example.com/api",
@@ -979,49 +979,49 @@ class TestPhase6PentagiEndpoints:
         pytest.pentest_request_id = response.json()["id"]
 
     def test_111_list_pentest_requests(self, api_client, auth_headers):
-        """GET /api/v1/pentagi/requests"""
-        response = api_client.get("/api/v1/pentagi/requests", headers=auth_headers)
+        """GET /api/v1/mpte/requests"""
+        response = api_client.get("/api/v1/mpte/requests", headers=auth_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
     def test_112_get_pentest_request(self, api_client, auth_headers):
-        """GET /api/v1/pentagi/requests/{id}"""
+        """GET /api/v1/mpte/requests/{id}"""
         request_id = getattr(pytest, "pentest_request_id", "test-request-1")
         response = api_client.get(
-            f"/api/v1/pentagi/requests/{request_id}", headers=auth_headers
+            f"/api/v1/mpte/requests/{request_id}", headers=auth_headers
         )
         assert response.status_code in [200, 404]
 
     def test_113_update_pentest_request(self, api_client, auth_headers):
-        """PUT /api/v1/pentagi/requests/{id}"""
+        """PUT /api/v1/mpte/requests/{id}"""
         request_id = getattr(pytest, "pentest_request_id", "test-request-1")
         response = api_client.put(
-            f"/api/v1/pentagi/requests/{request_id}",
+            f"/api/v1/mpte/requests/{request_id}",
             json={"priority": "critical"},
             headers=auth_headers,
         )
         assert response.status_code in [200, 404]
 
     def test_114_start_pentest(self, api_client, auth_headers):
-        """POST /api/v1/pentagi/requests/{id}/start"""
+        """POST /api/v1/mpte/requests/{id}/start"""
         request_id = getattr(pytest, "pentest_request_id", "test-request-1")
         response = api_client.post(
-            f"/api/v1/pentagi/requests/{request_id}/start", headers=auth_headers
+            f"/api/v1/mpte/requests/{request_id}/start", headers=auth_headers
         )
         assert response.status_code in [200, 404]
 
     def test_115_cancel_pentest(self, api_client, auth_headers):
-        """POST /api/v1/pentagi/requests/{id}/cancel"""
+        """POST /api/v1/mpte/requests/{id}/cancel"""
         request_id = getattr(pytest, "pentest_request_id", "test-request-1")
         response = api_client.post(
-            f"/api/v1/pentagi/requests/{request_id}/cancel", headers=auth_headers
+            f"/api/v1/mpte/requests/{request_id}/cancel", headers=auth_headers
         )
         assert response.status_code in [200, 404]
 
     def test_116_create_pentest_result(self, api_client, auth_headers):
-        """POST /api/v1/pentagi/results"""
+        """POST /api/v1/mpte/results"""
         response = api_client.post(
-            "/api/v1/pentagi/results",
+            "/api/v1/mpte/results",
             json={
                 "request_id": getattr(pytest, "pentest_request_id", "test-request-1"),
                 "exploitability": "confirmed_exploitable",
@@ -1033,62 +1033,62 @@ class TestPhase6PentagiEndpoints:
         assert response.status_code == 200
 
     def test_117_list_pentest_results(self, api_client, auth_headers):
-        """GET /api/v1/pentagi/results"""
-        response = api_client.get("/api/v1/pentagi/results", headers=auth_headers)
+        """GET /api/v1/mpte/results"""
+        response = api_client.get("/api/v1/mpte/results", headers=auth_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
     def test_118_get_pentest_result_by_request(self, api_client, auth_headers):
-        """GET /api/v1/pentagi/results/by-request/{request_id}"""
+        """GET /api/v1/mpte/results/by-request/{request_id}"""
         request_id = getattr(pytest, "pentest_request_id", "test-request-1")
         response = api_client.get(
-            f"/api/v1/pentagi/results/by-request/{request_id}", headers=auth_headers
+            f"/api/v1/mpte/results/by-request/{request_id}", headers=auth_headers
         )
         assert response.status_code in [200, 404]
 
-    def test_119_create_pentagi_config(self, api_client, auth_headers):
-        """POST /api/v1/pentagi/configs"""
+    def test_119_create_mpte_config(self, api_client, auth_headers):
+        """POST /api/v1/mpte/configs"""
         response = api_client.post(
-            "/api/v1/pentagi/configs",
+            "/api/v1/mpte/configs",
             json={
-                "name": "E2E Pentagi Config",
-                "pentagi_url": "https://pentagi.example.com",
+                "name": "E2E MPTE Config",
+                "mpte_url": "https://mpte.example.com",
                 "api_key": "test-api-key",
                 "enabled": True,
             },
             headers=auth_headers,
         )
         assert response.status_code == 200
-        pytest.pentagi_config_id = response.json()["id"]
+        pytest.mpte_config_id = response.json()["id"]
 
-    def test_120_list_pentagi_configs(self, api_client, auth_headers):
-        """GET /api/v1/pentagi/configs"""
-        response = api_client.get("/api/v1/pentagi/configs", headers=auth_headers)
+    def test_120_list_mpte_configs(self, api_client, auth_headers):
+        """GET /api/v1/mpte/configs"""
+        response = api_client.get("/api/v1/mpte/configs", headers=auth_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
-    def test_121_get_pentagi_config(self, api_client, auth_headers):
-        """GET /api/v1/pentagi/configs/{id}"""
-        config_id = getattr(pytest, "pentagi_config_id", "test-config-1")
+    def test_121_get_mpte_config(self, api_client, auth_headers):
+        """GET /api/v1/mpte/configs/{id}"""
+        config_id = getattr(pytest, "mpte_config_id", "test-config-1")
         response = api_client.get(
-            f"/api/v1/pentagi/configs/{config_id}", headers=auth_headers
+            f"/api/v1/mpte/configs/{config_id}", headers=auth_headers
         )
         assert response.status_code in [200, 404]
 
-    def test_122_update_pentagi_config(self, api_client, auth_headers):
-        """PUT /api/v1/pentagi/configs/{id}"""
-        config_id = getattr(pytest, "pentagi_config_id", "test-config-1")
+    def test_122_update_mpte_config(self, api_client, auth_headers):
+        """PUT /api/v1/mpte/configs/{id}"""
+        config_id = getattr(pytest, "mpte_config_id", "test-config-1")
         response = api_client.put(
-            f"/api/v1/pentagi/configs/{config_id}",
+            f"/api/v1/mpte/configs/{config_id}",
             json={"enabled": False},
             headers=auth_headers,
         )
         assert response.status_code in [200, 404]
 
-    def test_123_delete_pentagi_config(self, api_client, auth_headers):
-        """DELETE /api/v1/pentagi/configs/{id}"""
+    def test_123_delete_mpte_config(self, api_client, auth_headers):
+        """DELETE /api/v1/mpte/configs/{id}"""
         response = api_client.delete(
-            "/api/v1/pentagi/configs/temp-config", headers=auth_headers
+            "/api/v1/mpte/configs/temp-config", headers=auth_headers
         )
         assert response.status_code in [200, 404]
 

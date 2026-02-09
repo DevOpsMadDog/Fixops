@@ -287,7 +287,7 @@ modules:
   policy_automation: true
   reachability: false      # Enterprise feature
   marketplace: false       # Enterprise feature
-  enhanced_pentagi: false  # Enterprise feature
+  enhanced_mpte: false  # Enterprise feature
 ```
 
 ### Multi-Year Evidence Retention
@@ -423,8 +423,8 @@ python -m core.cli playbook list --dir config/playbooks
 | Integrations | 8 | Jira, Confluence, Slack configuration |
 | Workflows | 7 | Workflow automation, execution history |
 | Inventory | 15 | Applications, services, components |
-| PentAGI | 14 | Pen test requests, results, configs |
-| Enhanced PentAGI | 19 | Verification, monitoring, comprehensive scans |
+| MPTE | 14 | Pen test requests, results, configs |
+| Enhanced MPTE | 19 | Verification, monitoring, comprehensive scans |
 | Micro-Pentest | 3 | Automated vulnerability verification |
 | IaC | 5 | Infrastructure-as-Code findings |
 | Secrets | 5 | Secrets scanning findings |
@@ -459,7 +459,7 @@ python -m core.cli playbook list --dir config/playbooks
 | Audit | `audit logs/decisions/export` | Audit trails |
 | Workflows | `workflows list/get/create/execute/history` | Workflow automation |
 | Teams/Users | `teams`, `users` | Team and user management |
-| PentAGI | `pentagi list/create/status` | Pen testing |
+| MPTE | `mpte list/create/status` | Pen testing |
 | Advanced | `advanced-pentest run/threat-intel/simulate` | Advanced pen testing |
 | Reachability | `reachability analyze/bulk/status` | Vulnerability reachability |
 
@@ -480,7 +480,7 @@ This section covers installation for local development, customer implementations
 | Git | 2.30+ | Version control |
 
 **System Requirements:**
-- 8GB RAM minimum (16GB recommended for full stack with PentAGI)
+- 8GB RAM minimum (16GB recommended for full stack with MPTE)
 - 20GB disk space
 - macOS, Linux, or Windows with WSL2
 
@@ -518,6 +518,56 @@ uvicorn apps.api.app:create_app --factory --reload --host 0.0.0.0 --port 8000
 
 # 6. Verify installation
 curl http://localhost:8000/health
+
+# 7. Start the UI (ALdeci - Official UI)
+cd suite-ui/aldeci
+npm install
+npm run dev
+# Open http://localhost:5173 in your browser
+```
+
+### Frontend (ALdeci UI)
+
+The official FixOps frontend is located at `suite-ui/aldeci/`. It's a modern React + Vite + TypeScript application.
+
+```bash
+# Navigate to the UI directory
+cd suite-ui/aldeci
+
+# Install dependencies
+npm install
+
+# Create environment config
+cp .env.example .env.local
+# Edit .env.local:
+#   VITE_API_URL=http://localhost:8000
+#   VITE_API_KEY=your-api-key (optional)
+
+# Start development server
+npm run dev
+# Opens at http://localhost:5173
+
+# Build for production
+npm run build
+```
+
+See [suite-ui/aldeci/SCREEN_API_MAPPING.md](suite-ui/aldeci/SCREEN_API_MAPPING.md) for screen-to-API endpoint mappings.
+
+> **Note:** The legacy micro-frontends under `web/` are deprecated and have been moved to `archive/web_mfe_legacy/`. See [docs/legacy-ui.md](docs/legacy-ui.md) for details.
+
+### API Surface Report
+
+To inspect the API surface size without running uvicorn:
+
+```bash
+# Print report to stdout
+python scripts/api_surface_report.py
+
+# Export JSON summary
+python scripts/api_surface_report.py --json api_surface.json
+
+# Fail if fewer than 363 endpoints (CI check)
+python scripts/api_surface_report.py --min-endpoints 363
 ```
 
 ### Option 2: Docker Compose (Recommended for Customers)
@@ -551,7 +601,7 @@ docker compose -f deployment-packs/docker/docker-compose.yml up -d
 curl http://localhost:8000/health
 ```
 
-### Option 3: Full Stack with PentAGI (Micro-Pentest Capabilities)
+### Option 3: Full Stack with MPTE (Micro-Pentest Capabilities)
 
 Best for security teams who want automated vulnerability verification.
 
@@ -560,29 +610,29 @@ Best for security teams who want automated vulnerability verification.
 git clone https://github.com/DevOpsMadDog/Fixops.git
 cd Fixops
 cp .env.example .env
-cp env.pentagi.example .env.pentagi
+cp env.mpte.example .env.mpte
 
-# 2. Configure LLM API keys in .env.pentagi (at least one required)
-# Edit .env.pentagi:
+# 2. Configure LLM API keys in .env.mpte (at least one required)
+# Edit .env.mpte:
 #   OPENAI_API_KEY=sk-...
 #   ANTHROPIC_API_KEY=sk-ant-...
 
-# 3. Start FixOps with PentAGI
-make up-pentagi
+# 3. Start FixOps with MPTE
+make up-mpte
 
 # Or for enterprise mode:
-make up-pentagi-enterprise
+make up-mpte-enterprise
 
 # 4. Verify all services
 curl http://localhost:8000/health          # FixOps API
-curl -k https://localhost:8443/health      # PentAGI (self-signed SSL)
+curl -k https://localhost:8443/health      # MPTE (self-signed SSL)
 
 # 5. (Optional) Use air-gapped fork without VXControl Cloud SDK
-export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
-make down-pentagi && make up-pentagi
+export MPTE_IMAGE=ghcr.io/devopsmaddog/mpte_fork:latest
+make down-mpte && make up-mpte
 ```
 
-See [PentAGI Integration Guide](docs/PENTAGI_INTEGRATION.md) for detailed configuration.
+See [MPTE Integration Guide](docs/MPTE_INTEGRATION.md) for detailed configuration.
 
 ---
 
@@ -641,16 +691,16 @@ docker build -f Dockerfile.interactive -t fixops-demo .
 docker run -it fixops-demo demo
 ```
 
-### 5. Test PentAGI Integration (if installed)
+### 5. Test MPTE Integration (if installed)
 ```bash
-# Verify PentAGI is running
+# Verify MPTE is running
 curl -k https://localhost:8443/health
 
 # Trigger a micro-pentest via FixOps
 curl -H "X-API-Key: $FIXOPS_API_TOKEN" -X POST \
   -H 'Content-Type: application/json' \
   -d '{"target":"https://example.com","cve":"CVE-2021-44228","scope":"verify"}' \
-  http://localhost:8000/api/v1/pentagi/micro-pentest | jq
+  http://localhost:8000/api/v1/mpte/micro-pentest | jq
 ```
 
 ### 6. Run Test Suite
@@ -680,7 +730,7 @@ Use this checklist to verify all FixOps features are working in your installatio
 | CLI Demo | `python -m core.cli demo --mode demo` | Pipeline output |
 | Multi-LLM Consensus | `curl -X POST .../compare-llms` | Consensus result |
 | Evidence Bundles | Check `data/evidence/` directory | Signed bundles |
-| PentAGI (optional) | `curl -k https://localhost:8443/health` | `{"status":"ok"}` |
+| MPTE (optional) | `curl -k https://localhost:8443/health` | `{"status":"ok"}` |
 
 ---
 
@@ -855,12 +905,12 @@ For detailed Docker documentation, see [Docker Guide](docs/DOCKER.md).
 | `make help` | Show all available targets |
 | `make demo` | Run demo pipeline |
 | `make demo-enterprise` | Run enterprise pipeline |
-| `make up-pentagi` | Start FixOps + PentAGI (default compose) |
-| `make up-pentagi-enterprise` | Start FixOps Enterprise + PentAGI |
-| `make up-pentagi-demo` | Start FixOps Demo + PentAGI |
-| `make up-pentagi-deployment` | Start Deployment Pack + PentAGI |
-| `make down-pentagi` | Stop FixOps + PentAGI |
-| `make logs-pentagi` | View PentAGI logs |
+| `make up-mpte` | Start FixOps + MPTE (default compose) |
+| `make up-mpte-enterprise` | Start FixOps Enterprise + MPTE |
+| `make up-mpte-demo` | Start FixOps Demo + MPTE |
+| `make up-mpte-deployment` | Start Deployment Pack + MPTE |
+| `make down-mpte` | Stop FixOps + MPTE |
+| `make logs-mpte` | View MPTE logs |
 | `make clean` | Remove cached artifacts |
 
 ---
@@ -871,55 +921,55 @@ For environments without internet access, choose one of the following options:
 
 **Option A: Using Official Images**
 
-The official PentAGI images work offline but include VXControl Cloud SDK (which will fail gracefully without connectivity).
+The official MPTE images work offline but include VXControl Cloud SDK (which will fail gracefully without connectivity).
 
 ```bash
 # 1. Pre-pull all required images on a connected machine
-docker pull vxcontrol/pentagi:latest
+docker pull vxcontrol/mpte:latest
 docker pull vxcontrol/pgvector:latest
 docker pull vxcontrol/scraper:latest
 
 # 2. Save images to tar files
-docker save vxcontrol/pentagi:latest > pentagi.tar
+docker save vxcontrol/mpte:latest > mpte.tar
 docker save vxcontrol/pgvector:latest > pgvector.tar
 docker save vxcontrol/scraper:latest > scraper.tar
 
 # 3. Transfer tar files to air-gapped environment
 
 # 4. Load images on air-gapped machine
-docker load < pentagi.tar
+docker load < mpte.tar
 docker load < pgvector.tar
 docker load < scraper.tar
 
-# 5. Start FixOps with PentAGI
-make up-pentagi
+# 5. Start FixOps with MPTE
+make up-mpte
 ```
 
 **Option B: Using Fork Images (No Cloud SDK)**
 
-The [DevOpsMadDog/pentagi_fork](https://github.com/DevOpsMadDog/pentagi_fork) has VXControl Cloud SDK completely removed for fully offline operation with no phone-home behavior.
+The [DevOpsMadDog/mpte_fork](https://github.com/DevOpsMadDog/mpte_fork) has VXControl Cloud SDK completely removed for fully offline operation with no phone-home behavior.
 
 ```bash
 # 1. Pre-pull fork image on a connected machine
-docker pull ghcr.io/devopsmaddog/pentagi_fork:latest
+docker pull ghcr.io/devopsmaddog/mpte_fork:latest
 docker pull vxcontrol/pgvector:latest
 docker pull vxcontrol/scraper:latest
 
 # 2. Save images to tar files
-docker save ghcr.io/devopsmaddog/pentagi_fork:latest > pentagi-fork.tar
+docker save ghcr.io/devopsmaddog/mpte_fork:latest > mpte-fork.tar
 docker save vxcontrol/pgvector:latest > pgvector.tar
 docker save vxcontrol/scraper:latest > scraper.tar
 
 # 3. Transfer tar files to air-gapped environment
 
 # 4. Load images on air-gapped machine
-docker load < pentagi-fork.tar
+docker load < mpte-fork.tar
 docker load < pgvector.tar
 docker load < scraper.tar
 
 # 5. Start FixOps with fork image
-export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest
-make up-pentagi
+export MPTE_IMAGE=ghcr.io/devopsmaddog/mpte_fork:latest
+make up-mpte
 ```
 
 ---
@@ -932,7 +982,7 @@ make up-pentagi
 | [Docker Guide](docs/DOCKER.md) | Complete Docker and docker-compose documentation |
 | [API/CLI Reference](docs/API_CLI_REFERENCE.md) | Complete API to CLI mapping |
 | [Complete API Mapping](docs/COMPLETE_API_CLI_MAPPING.md) | Full endpoint list by router |
-| [PentAGI Integration](docs/PENTAGI_INTEGRATION.md) | Micro-pentest deployment and configuration guide |
+| [MPTE Integration](docs/MPTE_INTEGRATION.md) | Micro-pentest deployment and configuration guide |
 | [CLI/API Inventory](CLI_API_INVENTORY.md) | CLI commands and API endpoints inventory |
 | [Configuration Guide](config/fixops.overlay.yml) | Overlay configuration options |
 | [DeepWiki](https://deepwiki.com/DevOpsMadDog/Fixops) | AI-indexed documentation with search |
@@ -952,7 +1002,7 @@ make up-pentagi
 ### Enterprise Features (Conditional)
 - Reachability analysis
 - Marketplace compliance packs
-- Enhanced PentAGI
+- Enhanced MPTE
 - IDE integration APIs
 - SSO/OAuth configuration
 - **Deduplication & Correlation Engine** - Two-layer system with cluster management, correlation linking, and 35% noise reduction targeting

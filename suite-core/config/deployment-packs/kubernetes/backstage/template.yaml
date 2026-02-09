@@ -1,0 +1,398 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: fixops-kubernetes-deployment
+  title: Deploy FixOps to Vanilla Kubernetes
+  description: |
+    Deploy FixOps Decision Engine to any Kubernetes cluster using vanilla manifests.
+    Works with any Kubernetes distribution (k3s, k8s, OpenShift, Rancher, etc.)
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/DevOpsMadDog/Fixops/tree/main/deployment-packs/kubernetes
+  tags:
+    - kubernetes
+    - k8s
+    - security
+    - devsecops
+    - fixops
+    - vanilla
+spec:
+  owner: platform-engineering
+  type: infrastructure
+  
+  parameters:
+    - title: Kubernetes Configuration
+      required:
+        - deployment_name
+        - environment
+        - namespace
+      properties:
+        deployment_name:
+          title: Deployment Name
+          type: string
+          description: Unique name for this FixOps deployment
+          default: fixops-decision-engine
+          pattern: '^[a-z0-9-]+$'
+        environment:
+          title: Environment
+          type: string
+          description: Target deployment environment
+          enum:
+            - development
+            - staging
+            - production
+          enumNames:
+            - Development
+            - Staging
+            - Production
+        namespace:
+          title: Kubernetes Namespace
+          type: string
+          description: Kubernetes namespace for FixOps
+          default: fixops
+        kubeconfig_context:
+          title: Kubeconfig Context
+          type: string
+          description: Kubectl context name (leave empty for current context)
+          
+    - title: FixOps Configuration
+      required:
+        - backend_replicas
+        - storage_size
+      properties:
+        backend_replicas:
+          title: Backend Replicas
+          type: integer
+          description: Number of backend replicas for high availability
+          default: 3
+          minimum: 1
+          maximum: 10
+        storage_size:
+          title: Evidence Lake Storage
+          type: string
+          description: Persistent storage size for audit data
+          default: 10Gi
+          enum: [10Gi, 50Gi, 100Gi, 500Gi, 1Ti]
+        storage_class:
+          title: Storage Class
+          type: string
+          description: Kubernetes storage class name
+          default: standard
+        ingress_host:
+          title: Ingress Hostname
+          type: string
+          description: Hostname for FixOps ingress (e.g., fixops.example.com)
+        ingress_class:
+          title: Ingress Class
+          type: string
+          description: Ingress controller class
+          default: nginx
+          enum: [nginx, traefik, haproxy, istio]
+        enable_autoscaling:
+          title: Enable Autoscaling
+          type: boolean
+          description: Enable horizontal pod autoscaling
+          default: true
+
+  steps:
+    - id: fetch-base
+      name: Fetch FixOps Kubernetes Manifests
+      action: fetch:template
+      input:
+        url: https://github.com/DevOpsMadDog/Fixops/tree/main/deployment-packs/kubernetes
+        targetPath: ./kubernetes
+        values:
+          deployment_name: ${{ parameters.deployment_name }}
+          environment: ${{ parameters.environment }}
+          namespace: ${{ parameters.namespace }}
+          backend_replicas: ${{ parameters.backend_replicas }}
+          storage_size: ${{ parameters.storage_size }}
+          storage_class: ${{ parameters.storage_class }}
+          ingress_host: ${{ parameters.ingress_host }}
+          ingress_class: ${{ parameters.ingress_class }}
+          enable_autoscaling: ${{ parameters.enable_autoscaling }}
+
+    - id: create-kustomization
+      name: Create Kustomization Overlay
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./kubernetes/kustomization-overlay.yaml
+        content: |
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          
+          namespace: ${{ parameters.namespace }}
+          
+          bases:
+            - ./
+          
+          patchesStrategicMerge:
+            - |-
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: fixops-backend
+                namespace: ${{ parameters.namespace }}
+              spec:
+                replicas: ${{ parameters.backend_replicas }}
+            - |-
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+              metadata:
+                name: fixops-evidence-lake
+                namespace: ${{ parameters.namespace }}
+              spec:
+                storageClassName: ${{ parameters.storage_class }}
+                resources:
+                  requests:
+                    storage: ${{ parameters.storage_size }}
+            - |-
+              apiVersion: networking.k8s.io/v1
+              kind: Ingress
+              metadata:
+                name: fixops-ingress
+                namespace: ${{ parameters.namespace }}
+              spec:
+                ingressClassName: ${{ parameters.ingress_class }}
+                rules:
+                  - host: ${{ parameters.ingress_host }}
+
+    - id: create-deploy-script
+      name: Create Deployment Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./deploy.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "🚀 Deploying FixOps to Kubernetes"
+          echo "=================================="
+          echo "Deployment: ${{ parameters.deployment_name }}"
+          echo "Environment: ${{ parameters.environment }}"
+          echo "Namespace: ${{ parameters.namespace }}"
+          echo ""
+          
+          command -v kubectl >/dev/null 2>&1 || { echo "❌ kubectl not found"; exit 1; }
+          
+          {% if parameters.kubeconfig_context %}
+          echo "🔧 Setting kubectl context to ${{ parameters.kubeconfig_context }}..."
+          kubectl config use-context ${{ parameters.kubeconfig_context }}
+          {% endif %}
+          
+          echo "✅ Verifying cluster connectivity..."
+          kubectl cluster-info
+          
+          cd kubernetes/
+          
+          echo "📦 Creating namespace ${{ parameters.namespace }}..."
+          kubectl create namespace ${{ parameters.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          echo "🔐 Configuring secrets..."
+          if [ -z "$EMERGENT_LLM_KEY" ]; then
+            echo "⚠️  Warning: EMERGENT_LLM_KEY not set"
+          fi
+          
+          kubectl create secret generic fixops-secrets \
+            --from-literal=EMERGENT_LLM_KEY="${EMERGENT_LLM_KEY:-REPLACE_WITH_YOUR_KEY}" \
+            --from-literal=SECRET_KEY="${SECRET_KEY:-$(openssl rand -hex 32)}" \
+            --from-literal=MONGO_INITDB_ROOT_USERNAME="${MONGO_USERNAME:-fixops}" \
+            --from-literal=MONGO_INITDB_ROOT_PASSWORD="${MONGO_PASSWORD:-$(openssl rand -hex 16)}" \
+            --from-literal=REDIS_PASSWORD="${REDIS_PASSWORD:-$(openssl rand -hex 16)}" \
+            --namespace=${{ parameters.namespace }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          echo "🚀 Applying Kubernetes manifests..."
+          kubectl apply -k .
+          
+          echo "⏳ Waiting for deployments to be ready..."
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/mongodb \
+            deployment/redis \
+            deployment/fixops-backend \
+            -n ${{ parameters.namespace }}
+          
+          echo ""
+          echo "✅ FixOps deployed successfully to Kubernetes!"
+          echo ""
+          echo "🌐 Access Information:"
+          echo "Namespace: ${{ parameters.namespace }}"
+          echo "Backend Service: fixops-backend-service.${{ parameters.namespace }}.svc.cluster.local:8001"
+          {% if parameters.ingress_host %}
+          echo "Ingress URL: https://${{ parameters.ingress_host }}"
+          {% endif %}
+          
+          echo ""
+          echo "🧪 Validation Commands:"
+          echo "kubectl get pods -n ${{ parameters.namespace }}"
+          echo "kubectl get svc -n ${{ parameters.namespace }}"
+          echo "kubectl logs -f deployment/fixops-backend -n ${{ parameters.namespace }}"
+          {% if parameters.ingress_host %}
+          echo "curl https://${{ parameters.ingress_host }}/health"
+          {% endif %}
+
+    - id: create-destroy-script
+      name: Create Destroy Script
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./destroy.sh
+        content: |
+          #!/bin/bash
+          
+          set -e
+          
+          echo "⚠️  Destroying FixOps deployment from Kubernetes"
+          echo "================================================"
+          echo "Deployment: ${{ parameters.deployment_name }}"
+          echo "Namespace: ${{ parameters.namespace }}"
+          echo ""
+          
+          read -p "Are you sure you want to destroy this deployment? (yes/no): " confirm
+          if [ "$confirm" != "yes" ]; then
+            echo "❌ Destroy cancelled"
+            exit 0
+          fi
+          
+          cd kubernetes/
+          
+          echo "🗑️  Deleting resources..."
+          kubectl delete -k .
+          
+          echo "🗑️  Deleting namespace..."
+          kubectl delete namespace ${{ parameters.namespace }}
+          
+          echo "✅ FixOps deployment destroyed"
+
+    - id: create-readme
+      name: Create README
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./README.md
+        content: |
+          
+          This repository contains Kubernetes manifests for deploying FixOps Decision Engine.
+          
+          
+          - **Deployment Name**: ${{ parameters.deployment_name }}
+          - **Environment**: ${{ parameters.environment }}
+          - **Namespace**: ${{ parameters.namespace }}
+          - **Backend Replicas**: ${{ parameters.backend_replicas }}
+          - **Storage Size**: ${{ parameters.storage_size }}
+          
+          
+          - kubectl installed and configured
+          - Access to a Kubernetes cluster
+          - Required secrets (EMERGENT_LLM_KEY, etc.)
+          
+          
+          1. Set environment variables:
+          ```bash
+          export EMERGENT_LLM_KEY="your-key-here"
+          export SECRET_KEY="$(openssl rand -hex 32)"
+          export MONGO_PASSWORD="$(openssl rand -hex 16)"
+          export REDIS_PASSWORD="$(openssl rand -hex 16)"
+          ```
+          
+          2. Deploy FixOps:
+          ```bash
+          chmod +x deploy.sh
+          ./deploy.sh
+          ```
+          
+          3. Verify deployment:
+          ```bash
+          kubectl get pods -n ${{ parameters.namespace }}
+          kubectl logs -f deployment/fixops-backend -n ${{ parameters.namespace }}
+          ```
+          
+          
+          - **API Endpoint**: http://fixops-backend-service.${{ parameters.namespace }}.svc.cluster.local:8001
+          {% if parameters.ingress_host %}
+          - **External URL**: https://${{ parameters.ingress_host }}
+          {% endif %}
+          
+          
+          Edit the manifests in `kubernetes/manifests/` to customize the deployment.
+          
+          Use kustomize overlays for environment-specific configurations.
+          
+          
+          To remove the deployment:
+          ```bash
+          chmod +x destroy.sh
+          ./destroy.sh
+          ```
+
+    - id: create-catalog-info
+      name: Create Backstage Catalog Entry
+      action: roadiehq:utils:fs:write
+      input:
+        path: ./catalog-info.yaml
+        content: |
+          apiVersion: backstage.io/v1alpha1
+          kind: Component
+          metadata:
+            name: ${{ parameters.deployment_name }}
+            title: FixOps ${{ parameters.environment | title }} (Kubernetes)
+            description: FixOps Decision Engine deployed to Kubernetes via Backstage
+            annotations:
+              backstage.io/techdocs-ref: dir:.
+              kubernetes.io/namespace: ${{ parameters.namespace }}
+              fixops.io/deployment-type: vanilla-kubernetes
+              {% if parameters.ingress_host %}
+              fixops.io/api-url: https://${{ parameters.ingress_host }}
+              {% endif %}
+            tags:
+              - kubernetes
+              - k8s
+              - security
+              - devsecops
+              - ${{ parameters.environment }}
+              - kubectl-managed
+            links:
+              {% if parameters.ingress_host %}
+              - url: https://${{ parameters.ingress_host }}
+                title: FixOps API
+                icon: web
+              {% endif %}
+              - url: https://github.com/DevOpsMadDog/Fixops
+                title: FixOps Repository
+                icon: github
+          spec:
+            type: service
+            lifecycle: ${{ parameters.environment }}
+            owner: platform-engineering
+            system: security-platform
+            providesApis:
+              - fixops-decision-api
+              - fixops-cicd-api
+
+    - id: publish
+      name: Publish to Git Repository
+      action: publish:github
+      input:
+        repoUrl: github.com?owner=DevOpsMadDog&repo=fixops-k8s-${{ parameters.deployment_name }}
+        description: FixOps Kubernetes deployment for ${{ parameters.environment }}
+        visibility: private
+        defaultBranch: main
+
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Kubernetes Manifests
+        url: ${{ steps.publish.output.remoteUrl }}/tree/main/kubernetes/manifests
+      - title: Deployment Script
+        url: ${{ steps.publish.output.remoteUrl }}/blob/main/deploy.sh
+      - title: README
+        url: ${{ steps.publish.output.remoteUrl }}/blob/main/README.md
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

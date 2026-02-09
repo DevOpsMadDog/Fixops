@@ -1,0 +1,335 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SonarQube",
+          "informationUri": "https://sonarqube.org",
+          "version": "9.9.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "javascript/sql-injection",
+          "level": "error",
+          "message": {
+            "text": "SQL injection vulnerability in order search query. User-supplied order_id parameter is concatenated directly into SQL query without sanitization."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-management-service/src/controllers/order-controller.js"
+                },
+                "region": {
+                  "startLine": 234,
+                  "endLine": 241
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.8"
+          }
+        },
+        {
+          "ruleId": "javascript/idor",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) in order details API. Users can view other customers' orders by manipulating order_id parameter."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-management-service/src/routes/orders.js"
+                },
+                "region": {
+                  "startLine": 156,
+                  "endLine": 168
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.5"
+          }
+        },
+        {
+          "ruleId": "javascript/payment-bypass",
+          "level": "error",
+          "message": {
+            "text": "Payment verification bypass in checkout flow. Client-side price validation allows attackers to modify order total before payment submission."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/checkout-service/src/services/payment-processor.js"
+                },
+                "region": {
+                  "startLine": 89,
+                  "endLine": 103
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "10.0"
+          }
+        },
+        {
+          "ruleId": "javascript/session-fixation",
+          "level": "error",
+          "message": {
+            "text": "Session fixation vulnerability in user authentication. Session ID not regenerated after login allowing session hijacking attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/user-service/src/auth/session-manager.js"
+                },
+                "region": {
+                  "startLine": 67,
+                  "endLine": 78
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.9"
+          }
+        },
+        {
+          "ruleId": "javascript/stored-xss",
+          "level": "error",
+          "message": {
+            "text": "Stored Cross-Site Scripting (XSS) in product review submission. User-supplied review content not sanitized before rendering on product pages."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/product-catalog-service/src/controllers/review-controller.js"
+                },
+                "region": {
+                  "startLine": 123,
+                  "endLine": 135
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.7"
+          }
+        },
+        {
+          "ruleId": "javascript/hardcoded-stripe-key",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded Stripe secret API key in payment processing code. Key is committed to Git repository and exposed in source code."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/checkout-service/src/config/stripe-config.js"
+                },
+                "region": {
+                  "startLine": 12
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.8"
+          }
+        },
+        {
+          "ruleId": "javascript/path-traversal",
+          "level": "error",
+          "message": {
+            "text": "Path traversal vulnerability in invoice download endpoint. Allows attackers to read arbitrary files from server including database credentials."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/order-management-service/src/routes/invoices.js"
+                },
+                "region": {
+                  "startLine": 189,
+                  "endLine": 197
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.3"
+          }
+        },
+        {
+          "ruleId": "javascript/mass-assignment",
+          "level": "error",
+          "message": {
+            "text": "Mass assignment vulnerability in user profile update. Allows users to escalate privileges by setting is_admin field."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/user-service/src/controllers/profile-controller.js"
+                },
+                "region": {
+                  "startLine": 145,
+                  "endLine": 156
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "9.6"
+          }
+        },
+        {
+          "ruleId": "javascript/race-condition",
+          "level": "error",
+          "message": {
+            "text": "Race condition in inventory management allows overselling. Multiple concurrent purchases can deplete inventory below zero."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/cart-service/src/services/inventory-service.js"
+                },
+                "region": {
+                  "startLine": 234,
+                  "endLine": 256
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "8.5"
+          }
+        },
+        {
+          "ruleId": "javascript/credit-card-logging",
+          "level": "error",
+          "message": {
+            "text": "Credit card numbers logged in plaintext. Payment processing logs contain full PAN violating PCI DSS requirement 3.4."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/checkout-service/src/services/payment-logger.js"
+                },
+                "region": {
+                  "startLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "10.0"
+          }
+        },
+        {
+          "ruleId": "javascript/weak-password-policy",
+          "level": "warning",
+          "message": {
+            "text": "Weak password policy allows passwords as short as 6 characters with no complexity requirements."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/user-service/src/validation/password-validator.js"
+                },
+                "region": {
+                  "startLine": 23,
+                  "endLine": 29
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "6.5"
+          }
+        },
+        {
+          "ruleId": "javascript/missing-rate-limiting",
+          "level": "warning",
+          "message": {
+            "text": "No rate limiting on checkout endpoint. Allows attackers to perform credential stuffing and payment fraud attempts."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/checkout-service/src/routes/checkout.js"
+                },
+                "region": {
+                  "startLine": 45,
+                  "endLine": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "7.8"
+          }
+        },
+        {
+          "ruleId": "javascript/cors-misconfiguration",
+          "level": "warning",
+          "message": {
+            "text": "CORS configured to allow all origins (*) with credentials. Allows cross-origin attacks on authenticated endpoints."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/cart-service/src/middleware/cors-config.js"
+                },
+                "region": {
+                  "startLine": 12
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "7.2"
+          }
+        },
+        {
+          "ruleId": "javascript/insecure-random",
+          "level": "warning",
+          "message": {
+            "text": "Insecure random number generator (Math.random) used for discount code generation. Predictable codes allow unauthorized discounts."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "api/checkout-service/src/services/discount-service.js"
+                },
+                "region": {
+                  "startLine": 89
+                }
+              }
+            }
+          ],
+          "properties": {
+            "security-severity": "6.8"
+          }
+        }
+      ]
+    }
+  ]
+}

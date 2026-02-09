@@ -6,6 +6,7 @@ Real Vector Store Implementation with ChromaDB for Production Mode
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -215,7 +216,7 @@ class ChromaDBVectorStore(VectorStore):
                 Settings(
                     anonymized_telemetry=False,
                     is_persistent=True,
-                    persist_directory="/app/data/chromadb",
+                    persist_directory=os.environ.get("FIXOPS_CHROMADB_DIR", "data/chromadb"),
                 )
             )
 

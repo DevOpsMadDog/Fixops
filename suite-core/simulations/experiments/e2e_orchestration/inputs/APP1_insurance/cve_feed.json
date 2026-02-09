@@ -1,0 +1,167 @@
+{
+  "generated": "2025-10-28T12:00:00Z",
+  "source": "CISA KEV + NVD + FIRST.org EPSS",
+  "cves": [
+    {
+      "id": "CVE-2021-44228",
+      "package": "log4j-core",
+      "version": "2.14.0",
+      "cvss": 10.0,
+      "severity": "critical",
+      "epss": 0.975,
+      "kev": true,
+      "published": "2021-12-10",
+      "summary": "Apache Log4j2 JNDI features do not protect against attacker controlled LDAP and other JNDI related endpoints. Remote code execution via crafted log messages.",
+      "cwe": ["CWE-502", "CWE-400", "CWE-20"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+      ],
+      "exploitability": "active_exploitation",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2021-23337",
+      "package": "lodash",
+      "version": "4.17.20",
+      "cvss": 7.2,
+      "severity": "high",
+      "epss": 0.012,
+      "kev": false,
+      "published": "2021-02-15",
+      "summary": "Command injection vulnerability in lodash template function. Allows arbitrary code execution via template strings.",
+      "cwe": ["CWE-94", "CWE-78"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-23337"
+      ],
+      "exploitability": "proof_of_concept",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "required"
+    },
+    {
+      "id": "CVE-2020-28469",
+      "package": "axios",
+      "version": "0.21.1",
+      "cvss": 5.9,
+      "severity": "medium",
+      "epss": 0.003,
+      "kev": false,
+      "published": "2020-11-06",
+      "summary": "Server-Side Request Forgery (SSRF) vulnerability in axios. Allows attackers to make requests to arbitrary internal resources.",
+      "cwe": ["CWE-918"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2020-28469"
+      ],
+      "exploitability": "proof_of_concept",
+      "attack_vector": "network",
+      "attack_complexity": "high",
+      "privileges_required": "none",
+      "user_interaction": "required"
+    },
+    {
+      "id": "CVE-2024-12345",
+      "package": "pg",
+      "version": "8.9.0",
+      "cvss": 9.1,
+      "severity": "critical",
+      "epss": 0.856,
+      "kev": true,
+      "published": "2024-09-15",
+      "summary": "PostgreSQL client library allows SQL injection via malformed connection strings. Remote code execution possible.",
+      "cwe": ["CWE-89", "CWE-94"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-12345"
+      ],
+      "exploitability": "active_exploitation",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "low",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2023-45857",
+      "package": "axios",
+      "version": "0.21.1",
+      "cvss": 6.5,
+      "severity": "medium",
+      "epss": 0.008,
+      "kev": false,
+      "published": "2023-11-08",
+      "summary": "Prototype pollution vulnerability in axios request configuration. Can lead to denial of service or property injection.",
+      "cwe": ["CWE-1321"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-45857"
+      ],
+      "exploitability": "proof_of_concept",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2022-25878",
+      "package": "sequelize",
+      "version": "6.28.0",
+      "cvss": 7.5,
+      "severity": "high",
+      "epss": 0.045,
+      "kev": false,
+      "published": "2022-08-03",
+      "summary": "SQL injection vulnerability in Sequelize ORM query builder. Improper escaping of user input in raw queries.",
+      "cwe": ["CWE-89"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2022-25878"
+      ],
+      "exploitability": "functional",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "low",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2024-67890",
+      "package": "jsonwebtoken",
+      "version": "8.5.1",
+      "cvss": 8.8,
+      "severity": "high",
+      "epss": 0.234,
+      "kev": false,
+      "published": "2024-03-22",
+      "summary": "JWT signature verification bypass in jsonwebtoken library. Allows attackers to forge valid tokens.",
+      "cwe": ["CWE-347", "CWE-345"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-67890"
+      ],
+      "exploitability": "functional",
+      "attack_vector": "network",
+      "attack_complexity": "low",
+      "privileges_required": "none",
+      "user_interaction": "none"
+    },
+    {
+      "id": "CVE-2023-11111",
+      "package": "stripe",
+      "version": "12.3.0",
+      "cvss": 4.3,
+      "severity": "medium",
+      "epss": 0.001,
+      "kev": false,
+      "published": "2023-06-15",
+      "summary": "Information disclosure in Stripe SDK error messages. May leak sensitive payment information in logs.",
+      "cwe": ["CWE-209", "CWE-532"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2023-11111"
+      ],
+      "exploitability": "unproven",
+      "attack_vector": "network",
+      "attack_complexity": "high",
+      "privileges_required": "low",
+      "user_interaction": "required"
+    }
+  ]
+}

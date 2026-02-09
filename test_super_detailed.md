@@ -423,11 +423,11 @@ for customer in CUSTOMERS:
 
 ### Phase 1.5: Data Seeding
 
-**Purpose:** Create prerequisite data for testing (pentagi configs, compliance frameworks, etc.)
+**Purpose:** Create prerequisite data for testing (mpte configs, compliance frameworks, etc.)
 
 **How It Was Executed:**
 ```python
-# Create PentAGI configurations for each customer
+# Create MPTE configurations for each customer
 for customer in CUSTOMERS:
     payload = {
         "name": f"{customer['id']}-pentest-config",
@@ -435,7 +435,7 @@ for customer in CUSTOMERS:
         "scan_depth": "comprehensive",
         "authentication": {"type": "bearer", "token": "test-token"},
     }
-    POST("/api/v1/pentagi/configs", payload)
+    POST("/api/v1/mpte/configs", payload)
 
 # Create compliance frameworks
 for framework in ["PCI-DSS", "HIPAA", "SOC2", "GDPR"]:
@@ -450,7 +450,7 @@ for framework in ["PCI-DSS", "HIPAA", "SOC2", "GDPR"]:
 **Endpoints Tested:**
 | Method | Endpoint | Purpose | Expected Status |
 |--------|----------|---------|-----------------|
-| POST | /api/v1/pentagi/configs | Create pentest config | 201 |
+| POST | /api/v1/mpte/configs | Create pentest config | 201 |
 | POST | /api/v1/audit/compliance/frameworks | Create compliance framework | 201 |
 | POST | /api/v1/audit/compliance/controls | Create compliance control | 201 |
 | POST | /api/v1/reports/templates | Create report template | 201 |
@@ -689,19 +689,19 @@ response = POST("/pipeline/run", json={
 
 ---
 
-#### Category 8: PentAGI Endpoints (4 GET + 3 POST)
+#### Category 8: MPTE Endpoints (4 GET + 3 POST)
 
 | Method | Endpoint | Purpose | Result |
 |--------|----------|---------|--------|
-| GET | /api/v1/pentagi/configs | List pentest configs | PASS |
-| GET | /api/v1/pentagi/requests | List pentest requests | PASS |
-| GET | /api/v1/pentagi/results | List pentest results | PASS |
-| GET | /api/v1/pentagi/stats | Pentest statistics | PASS |
-| POST | /api/v1/pentagi/verify | Verify vulnerability | PASS (503 - service unavailable) |
-| POST | /api/v1/pentagi/monitoring | Start monitoring | PASS (503 - service unavailable) |
-| POST | /api/v1/pentagi/scan/comprehensive | Comprehensive scan | PASS (503 - service unavailable) |
+| GET | /api/v1/mpte/configs | List pentest configs | PASS |
+| GET | /api/v1/mpte/requests | List pentest requests | PASS |
+| GET | /api/v1/mpte/results | List pentest results | PASS |
+| GET | /api/v1/mpte/stats | Pentest statistics | PASS |
+| POST | /api/v1/mpte/verify | Verify vulnerability | PASS (503 - service unavailable) |
+| POST | /api/v1/mpte/monitoring | Start monitoring | PASS (503 - service unavailable) |
+| POST | /api/v1/mpte/scan/comprehensive | Comprehensive scan | PASS (503 - service unavailable) |
 
-**Note:** The 503 responses from pentagi endpoints are expected in platform-readiness mode because the external Pentagi service is not configured. This is treated as PASS since it's an optional integration.
+**Note:** The 503 responses from mpte endpoints are expected in platform-readiness mode because the external MPTE service is not configured. This is treated as PASS since it's an optional integration.
 
 ---
 
@@ -1029,9 +1029,9 @@ def record_operator_feedback(self, ...):
 
 ---
 
-### Bug 3: /api/v1/pentagi/verify, /monitoring, /scan/comprehensive
+### Bug 3: /api/v1/mpte/verify, /monitoring, /scan/comprehensive
 
-**Problem:** Endpoints returned 500 error when external Pentagi service was unavailable.
+**Problem:** Endpoints returned 500 error when external MPTE service was unavailable.
 
 **Root Cause:** The exception handler caught `ConnectionError, OSError, TimeoutError` but httpx throws `httpx.ConnectError` which wasn't being caught.
 
@@ -1050,7 +1050,7 @@ except Exception as e:
         raise HTTPException(status_code=503, detail="...")
 ```
 
-**File:** `apps/api/pentagi_router_enhanced.py`
+**File:** `apps/api/mpte_router.py`
 
 ---
 

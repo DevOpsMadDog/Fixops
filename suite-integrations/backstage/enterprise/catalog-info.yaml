@@ -1,0 +1,171 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fixops-decision-engine
+  title: FixOps Decision & Verification Engine
+  description: |
+    Bank-grade containerized security decision engine for CI/CD pipelines.
+    Processes SARIF, SBOM, and security scan data to make ALLOW/BLOCK/DEFER decisions
+    with 85% consensus threshold and evidence-based audit trails.
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/devopsai/fixops-decision-engine
+    backstage.io/techdocs-ref: dir:.
+    github.com/project-slug: devopsai/fixops-decision-engine
+    jenkins.io/job-full-name: platform/fixops-deploy
+    sonarqube.org/project-key: fixops-decision-engine
+    security.devops.ai/classification: open-source
+    compliance.devops.ai/frameworks: configurable
+  tags:
+    - security
+    - devsecops  
+    - decision-engine
+    - ci-cd
+    - marketplace
+    - free-tool
+  links:
+    - url: https://fixops.devops.ai
+      title: FixOps Dashboard
+      icon: web
+    - url: https://api.fixops.devops.ai/docs
+      title: API Documentation
+      icon: docs
+    - url: https://marketplace.fixops.devops.ai
+      title: Security Marketplace
+      icon: dashboard
+    - url: https://github.com/devopsai/fixops-decision-engine
+      title: Source Code
+      icon: github
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-engineering
+  system: security-platform
+  providesApis:
+    - fixops-decision-api
+    - fixops-cicd-api
+    - fixops-upload-api
+  consumesApis:
+    - jira-api
+    - confluence-api
+    - sonarqube-api
+    - snyk-api
+  dependsOn:
+    - component:mongodb-cluster
+    - component:redis-cluster
+    - resource:fixops-k8s-namespace
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: fixops-decision-api
+  title: FixOps Decision API
+  description: Core decision-making API for security pipeline gates
+  annotations:
+    backstage.io/managed-by-location: url:https://git.bank.internal/platform/fixops
+spec:
+  type: openapi
+  lifecycle: production
+  owner: platform-engineering
+  system: security-platform
+  definition: |
+    openapi: 3.0.1
+    info:
+      title: FixOps Decision API
+      version: 1.0.0
+      description: Bank-grade security decision engine
+    servers:
+      - url: https://fixops-api.bank.internal
+        description: Bank production environment
+    paths:
+      /api/v1/cicd/decision:
+        post:
+          summary: Make CI/CD security decision
+          operationId: makeCICDDecision
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    service_name:
+                      type: string
+                      example: payment-processor
+                    environment:
+                      type: string
+                      enum: [production, staging, development]
+                    sarif_results:
+                      type: object
+                      description: SonarQube/CodeQL SARIF results
+                    sca_results:
+                      type: object  
+                      description: Snyk/SCA vulnerability results
+                    business_criticality:
+                      type: string
+                      enum: [critical, high, medium, low]
+                    compliance_requirements:
+                      type: array
+                      items:
+                        type: string
+                        enum: [pci_dss, sox, ffiec, gdpr]
+          responses:
+            200:
+              description: Security decision made
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      decision:
+                        type: string
+                        enum: [ALLOW, BLOCK, DEFER]
+                      confidence_score:
+                        type: number
+                        minimum: 0
+                        maximum: 1
+                      exit_code:
+                        type: integer
+                        enum: [0, 1, 2]
+                      evidence_id:
+                        type: string
+                        pattern: '^(EVD|DEMO-EVD)-\\d{4}-\\d+$'
+                      deployment_approved:
+                        type: boolean
+                      compliance_status:
+                        type: object
+                        properties:
+                          pci_dss:
+                            type: string
+                            enum: [compliant, review_required, non_compliant]
+                          sox:
+                            type: string
+                            enum: [compliant, review_required, non_compliant]
+
+---
+apiVersion: backstage.io/v1alpha1  
+kind: Resource
+metadata:
+  name: fixops-k8s-namespace
+  title: FixOps Kubernetes Namespace
+  description: Dedicated namespace for FixOps deployment with security policies
+  annotations:
+    backstage.io/managed-by-location: url:https://git.bank.internal/platform/fixops-infrastructure
+spec:
+  type: kubernetes-namespace
+  lifecycle: production
+  owner: platform-engineering
+  system: security-platform
+  
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: security-platform
+  title: Bank Security Platform
+  description: Enterprise security tooling and decision engines
+  annotations:
+    backstage.io/managed-by-location: url:https://git.bank.internal/platform/security-platform
+spec:
+  owner: security-team
+  domain: security

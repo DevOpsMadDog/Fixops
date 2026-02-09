@@ -1,0 +1,8 @@
+{
+  "job_id": "e2efa5e9-37ac-4348-b21a-ea1d8cece8a2",
+  "cve_id": "CVE-2024-1234",
+  "component_name": "test-pkg",
+  "component_version": "1.0.0",
+  "repository_url": "https://github.com/test/repo",
+  "created_at": "2026-02-06T05:08:38.489723+00:00"
+}

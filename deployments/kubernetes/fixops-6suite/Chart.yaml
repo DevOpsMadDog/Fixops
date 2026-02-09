@@ -1,0 +1,31 @@
+apiVersion: v2
+name: aldeci
+description: ALdeci (FixOps) — 6-Suite Security Vulnerability Management Platform
+type: application
+version: 2.0.0
+appVersion: "6suite-latest"
+keywords:
+  - security
+  - vulnerability-management
+  - application-security
+  - sast
+  - dast
+  - sca
+  - cspm
+  - sbom
+  - knowledge-graph
+home: https://aldeci.io
+sources:
+  - https://github.com/DevOpsMadDog/Fixops
+maintainers:
+  - name: ALdeci Team
+    email: info@devopsai.co
+dependencies:
+  - name: redis
+    version: "~18.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+annotations:
+  category: Security
+  licenses: Proprietary
+

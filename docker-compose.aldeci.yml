@@ -1,12 +1,12 @@
-# ALdeci-enhanced PentAGI Docker Compose
-# This extends the base pentagi compose with ALdeci branding and features
+# ALdeci-enhanced MPTE Docker Compose
+# This extends the base mpte compose with ALdeci branding and features
 
 services:
-  pentagi:
+  mpte:
     volumes:
       # Mount ALdeci enhancement script
-      - ./pentagi-aldeci/aldeci-inject.js:/opt/pentagi/fe/assets/aldeci-inject.js:ro
+      - ./mpte-aldeci/aldeci-inject.js:/opt/mpte/fe/assets/aldeci-inject.js:ro
       # Mount custom index.html with ALdeci branding
-      - ./pentagi-aldeci/index.html:/opt/pentagi/fe/index.html:ro
-      # Mount patched JS with PentAGI -> ALdeci replacement
-      - ./pentagi-aldeci/index-B8aPzWeF.js:/opt/pentagi/fe/assets/index-B8aPzWeF.js:ro
+      - ./mpte-aldeci/index.html:/opt/mpte/fe/index.html:ro
+      # Mount patched JS with MPTE -> ALdeci replacement
+      - ./mpte-aldeci/index-B8aPzWeF.js:/opt/mpte/fe/assets/index-B8aPzWeF.js:ro

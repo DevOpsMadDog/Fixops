@@ -1,0 +1,13 @@
+{
+  "generated_at": "2025-10-28T11:49:41.786280+00:00",
+  "metrics": {
+    "coverage_percent": 100.0,
+    "generator_variance_score": 0.0,
+    "license_coverage_percent": 0.0,
+    "resolvability_percent": 100.0
+  },
+  "policy_status": "pass",
+  "total_components": 24,
+  "unique_components": 24,
+  "warnings": []
+}

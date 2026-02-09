@@ -338,7 +338,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 │  │ • Vulnerability Intelligence (NVD/KEV/EPSS)         │         │
 │  │ • Ticketing Systems (Jira/ServiceNow/GitHub)        │         │
 │  │ • Notifications (Slack/Confluence)                  │         │
-│  │ • PentAGI Micro-Pentest Service                     │         │
+│  │ • MPTE Micro-Pentest Service                     │         │
 │  └──────────────────────────────────────────────────────┘         │
 │                                                                   │
 └─────────────────────────────────────────────────────────────────┘
@@ -934,7 +934,7 @@ Automated vulnerability verification through targeted exploit simulation.
 - Support batch testing of multiple CVEs
 - Return confidence score per test
 - Collect cryptographic evidence of exploit success/failure
-- Integrate with PentAGI service for advanced testing
+- Integrate with MPTE service for advanced testing
 - Right-click execution from Risk Graph UI
 
 **API Endpoints:**
@@ -975,35 +975,35 @@ Determine if vulnerabilities are reachable from external attack surfaces.
 - `POST /api/v1/reachability/analyze` - Analyze CVE reachability
 - `POST /api/v1/reachability/batch` - Batch analysis
 
-#### FR-VER-003: PentAGI Integration
+#### FR-VER-003: MPTE Integration
 **Priority:** P2 (Medium)
 **Status:** ✅ Implemented
 
 **Description:**
-Integration with PentAGI automated pentesting service for advanced exploit validation.
+Integration with MPTE automated pentesting service for advanced exploit validation.
 
 **Capabilities:**
 - Create pentest requests for findings
 - Track pentest execution status
 - Retrieve detailed results with exploitability verdict
-- Manage Pentagi configuration
+- Manage MPTE configuration
 
 **Acceptance Criteria:**
 - Submit pentest requests via API/CLI
 - Poll for completion or receive webhooks
 - Parse exploitability results (confirmed/likely/unexploitable)
-- Update finding status based on Pentagi verdict
+- Update finding status based on MPTE verdict
 
 **API Endpoints:**
-- `POST /api/v1/pentagi/requests` - Create pentest request
-- `GET /api/v1/pentagi/requests/{id}` - Get request status
-- `POST /api/v1/pentagi/requests/{id}/start` - Start execution
-- `GET /api/v1/pentagi/results` - List results
+- `POST /api/v1/mpte/requests` - Create pentest request
+- `GET /api/v1/mpte/requests/{id}` - Get request status
+- `POST /api/v1/mpte/requests/{id}/start` - Start execution
+- `GET /api/v1/mpte/results` - List results
 
 **CLI Commands:**
-- `python -m core.cli pentagi create-request --finding-id <id>`
-- `python -m core.cli pentagi list-requests`
-- `python -m core.cli pentagi get-request <id>`
+- `python -m core.cli mpte create-request --finding-id <id>`
+- `python -m core.cli mpte list-requests`
+- `python -m core.cli mpte get-request <id>`
 
 ### 6.5 Capability Area 5: Operationalize Remediation
 

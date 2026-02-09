@@ -34,7 +34,7 @@ The following metrics were verified against actual code via deep code dive:
 - **Confluence Connector** (`core/connectors.py`): Full CRUD operations (create_page, update_page, get_page, search_pages) with real HTTP I/O
 
 ### Wiring Verification (where implementations are called)
-- LLM Providers: `apps/pentagi_integration.py`, `core/enhanced_decision.py`, `core/pentagi_advanced.py`, `core/automated_remediation.py`
+- LLM Providers: `apps/mpte_integration.py`, `core/enhanced_decision.py`, `core/mpte_advanced.py`, `core/automated_remediation.py`
 - Jira/Confluence: `apps/api/integrations_router.py`, `apps/api/webhooks_router.py` (AutomationConnectors.deliver)
 - Forecasting: Tests exist in `tests/test_forecasting.py`, `tests/risk/test_forecasting.py`
 

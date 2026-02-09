@@ -1,0 +1,134 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SecurityScanner-Pro",
+          "version": "5.2.1",
+          "informationUri": "https://example.com/scanner",
+          "rules": [
+            {
+              "id": "SQL001",
+              "name": "SQLInjection",
+              "shortDescription": {"text": "SQL Injection vulnerability detected"},
+              "fullDescription": {"text": "User input is directly concatenated into SQL query without proper sanitization"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "9.8", "tags": ["security", "sql", "injection"]}
+            },
+            {
+              "id": "XSS001",
+              "name": "CrossSiteScripting",
+              "shortDescription": {"text": "Cross-Site Scripting (XSS) vulnerability"},
+              "fullDescription": {"text": "User input is rendered in HTML without proper encoding"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "7.5", "tags": ["security", "xss", "web"]}
+            },
+            {
+              "id": "CRYPTO001",
+              "name": "WeakCryptography",
+              "shortDescription": {"text": "Weak cryptographic algorithm detected"},
+              "fullDescription": {"text": "MD5 or SHA1 used for security-sensitive operations"},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"security-severity": "5.3", "tags": ["security", "crypto"]}
+            },
+            {
+              "id": "AUTH001",
+              "name": "HardcodedCredentials",
+              "shortDescription": {"text": "Hardcoded credentials detected"},
+              "fullDescription": {"text": "Credentials or API keys found hardcoded in source code"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "8.5", "tags": ["security", "credentials"]}
+            },
+            {
+              "id": "PATH001",
+              "name": "PathTraversal",
+              "shortDescription": {"text": "Path traversal vulnerability"},
+              "fullDescription": {"text": "User input used in file path without validation"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"security-severity": "7.8", "tags": ["security", "path-traversal"]}
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "SQL001",
+          "level": "error",
+          "message": {"text": "SQL injection vulnerability: User input directly concatenated in query"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/main/java/com/payment/dao/UserDAO.java"},
+                "region": {"startLine": 45, "startColumn": 12, "endLine": 45, "endColumn": 78}
+              }
+            }
+          ],
+          "fingerprints": {"primaryLocationLineHash": "abc123def456"},
+          "properties": {"cwe": "CWE-89", "owasp": "A03:2021"}
+        },
+        {
+          "ruleId": "XSS001",
+          "level": "error",
+          "message": {"text": "Reflected XSS: User input rendered without encoding"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/main/java/com/payment/controller/PaymentController.java"},
+                "region": {"startLine": 112, "startColumn": 8, "endLine": 112, "endColumn": 45}
+              }
+            }
+          ],
+          "fingerprints": {"primaryLocationLineHash": "def456ghi789"},
+          "properties": {"cwe": "CWE-79", "owasp": "A03:2021"}
+        },
+        {
+          "ruleId": "AUTH001",
+          "level": "error",
+          "message": {"text": "Hardcoded API key found in source code"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/main/java/com/payment/config/ApiConfig.java"},
+                "region": {"startLine": 23, "startColumn": 5, "endLine": 23, "endColumn": 65}
+              }
+            }
+          ],
+          "fingerprints": {"primaryLocationLineHash": "ghi789jkl012"},
+          "properties": {"cwe": "CWE-798", "owasp": "A07:2021"}
+        },
+        {
+          "ruleId": "CRYPTO001",
+          "level": "warning",
+          "message": {"text": "MD5 hash used for password storage"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/main/java/com/payment/security/PasswordUtil.java"},
+                "region": {"startLine": 67, "startColumn": 10, "endLine": 67, "endColumn": 42}
+              }
+            }
+          ],
+          "fingerprints": {"primaryLocationLineHash": "jkl012mno345"},
+          "properties": {"cwe": "CWE-328", "owasp": "A02:2021"}
+        },
+        {
+          "ruleId": "PATH001",
+          "level": "error",
+          "message": {"text": "Path traversal: User-controlled filename used in file read"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/main/java/com/payment/service/FileService.java"},
+                "region": {"startLine": 89, "startColumn": 15, "endLine": 89, "endColumn": 58}
+              }
+            }
+          ],
+          "fingerprints": {"primaryLocationLineHash": "mno345pqr678"},
+          "properties": {"cwe": "CWE-22", "owasp": "A01:2021"}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+ReviewReport_v1:
+  category: performance_operability
+  global_findings:
+    - severity: medium
+      topic: concurrency
+      description: "`app.state.artifacts` is a shared dict reused across requests; concurrent uploads can stomp stages before `/pipeline/run` executes, leading to race conditions and inconsistent runs." 
+      evidence:
+        - "F:apps/api/app.py†L80-L165"
+      recommendation: "Scope artefacts to per-request IDs or store uploads in tenant-specific directories keyed by token/run." 
+    - severity: medium
+      topic: blocking_io
+      description: "Exploit feed refresher performs synchronous HTTP requests during pipeline execution, which can extend request latency or exhaust workers when feeds stall." 
+      evidence:
+        - "F:core/exploit_signals.py†L227-L352"
+      recommendation: "Move refresh into background jobs with retry/backoff or switch to async clients with bounded timeouts." 
+    - severity: low
+      topic: observability
+      description: "CLI and API produce minimal structured logs beyond archive errors; analytics persistence silently drops failures." 
+      evidence:
+        - "F:apps/api/app.py†L326-L338"
+        - "F:core/cli.py†L288-L310"
+      recommendation: "Emit structured logs or metrics for archive/persistence outcomes and expose health endpoints that reflect storage readiness." 
+    - severity: low
+      topic: infra_capacity
+      description: "Kubernetes backend deployment sets static replica counts without autoscaling or disruption budgets, risking capacity issues under load or node maintenance." 
+      evidence:
+        - "F:enterprise/kubernetes/backend-deployment.yaml†L9-L101"
+      recommendation: "Add HPA/PodDisruptionBudget and tune resource requests in tandem with load testing results." 

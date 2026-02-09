@@ -114,7 +114,7 @@ mindmap
           SSRF
           RCE
         Reachability Analysis
-        PentAGI Integration
+        MPTE Integration
       
       5 Operationalize Remediation
         Lifecycle Management
@@ -208,7 +208,7 @@ mindmap
       FR-VER: Verification
         FR-VER-001: Micro-Pentest
         FR-VER-002: Reachability
-        FR-VER-003: PentAGI
+        FR-VER-003: MPTE
       FR-REM: Remediation
         FR-REM-001: Lifecycle
         FR-REM-002: Ticketing
