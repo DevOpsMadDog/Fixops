@@ -125,7 +125,265 @@ export default function LogViewer() {
   const [beStatusMax, setBeStatusMax] = useState('');
   const [beSearch, setBeSearch] = useState('');
 
-  /* placeholder — rest of component will be added */
-  return <div className="p-6 space-y-6"><h1 className="text-3xl font-bold">Log Viewer</h1></div>;
+  /* ── Backend fetchers ──────────────────────────── */
+
+  const fetchBackendLogs = useCallback(async () => {
+    setBeLoading(true);
+    try {
+      const params: Record<string, string | number> = { limit: bePageSize, offset: bePage * bePageSize };
+      if (beMethodFilter) params.method = beMethodFilter;
+      if (beStatusMin) params.status_min = Number(beStatusMin);
+      if (beStatusMax) params.status_max = Number(beStatusMax);
+      if (beSearch) params.search = beSearch;
+      const res = await api.get('/api/v1/logs', { params });
+      const data = res.data;
+      setBeLogs(Array.isArray(data) ? data : data?.items || []);
+      setBeTotal(data?.total ?? (Array.isArray(data) ? data.length : 0));
+    } catch (e) { console.error('Failed to fetch backend logs', e); }
+    finally { setBeLoading(false); }
+  }, [bePage, beMethodFilter, beStatusMin, beStatusMax, beSearch]);
+
+  const fetchBackendStats = useCallback(async () => {
+    try {
+      const res = await api.get('/api/v1/logs/stats');
+      setBeStats(res.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { if (tab === 'backend') { fetchBackendLogs(); fetchBackendStats(); } },
+    [tab, fetchBackendLogs, fetchBackendStats]);
+
+  /* ── SSE streaming ───────────────────────────────── */
+
+  const toggleStreaming = useCallback(() => {
+    if (streaming && sseRef.current) { sseRef.current.close(); sseRef.current = null; setStreaming(false); return; }
+    try {
+      const es = new EventSource('/api/v1/logs/stream');
+      es.onmessage = () => { fetchBackendLogs(); fetchBackendStats(); };
+      es.onerror = () => { es.close(); setStreaming(false); };
+      sseRef.current = es;
+      setStreaming(true);
+    } catch { setStreaming(false); }
+  }, [streaming, fetchBackendLogs, fetchBackendStats]);
+
+  useEffect(() => { return () => { sseRef.current?.close(); }; }, []);
+
+  /* ── Frontend filtering & sorting ──────────────── */
+
+  const filtered = (() => {
+    let out = filter === 'all' ? feLogs : feLogs.filter(l => l.type === filter);
+    if (search) {
+      const q = search.toLowerCase();
+      out = out.filter(l =>
+        l.url.toLowerCase().includes(q) || l.method.toLowerCase().includes(q) ||
+        (l.target || '').toLowerCase().includes(q) || (l.page || '').toLowerCase().includes(q) ||
+        (l.responseBody || '').toLowerCase().includes(q)
+      );
+    }
+    const dir = sortDir === 'asc' ? 1 : -1;
+    out = [...out].sort((a, b) => {
+      if (sortField === 'timestamp') return dir * (a.timestamp - b.timestamp);
+      if (sortField === 'duration') return dir * ((a.duration ?? 0) - (b.duration ?? 0));
+      if (sortField === 'status') return dir * ((a.status ?? 0) - (b.status ?? 0));
+      return dir * a.method.localeCompare(b.method);
+    });
+    return out;
+  })();
+
+  const feStats = {
+    total: feLogs.length,
+    api: feLogs.filter(l => l.type === 'api').length,
+    nav: feLogs.filter(l => l.type === 'navigation').length,
+    click: feLogs.filter(l => l.type === 'click').length,
+    errors: feLogs.filter(l => l.state === 'error').length,
+    avgDuration: feLogs.filter(l => l.duration != null).length > 0
+      ? Math.round(feLogs.filter(l => l.duration != null).reduce((s, l) => s + (l.duration ?? 0), 0) / feLogs.filter(l => l.duration != null).length)
+      : 0,
+  };
+
+  /* ── Export ──────────────────────────────────────── */
+
+  const exportLogs = useCallback((format: 'json' | 'csv') => {
+    const data = tab === 'frontend' ? filtered : beLogs;
+    let blob: Blob;
+    if (format === 'json') {
+      blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    } else {
+      const keys = data.length > 0 ? Object.keys(data[0]) : [];
+      const csv = [keys.join(','), ...data.map((r: Record<string, unknown>) => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+      blob = new Blob([csv], { type: 'text/csv' });
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `aldeci-logs-${tab}-${Date.now()}.${format}`;
+    a.click(); URL.revokeObjectURL(url);
+  }, [tab, filtered, beLogs]);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('desc'); }
+  };
+
+  /* ── Render ─────────────────────────────────────── */
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Activity className="w-8 h-8 text-primary" /> Log Viewer
+          </h1>
+          <p className="text-muted-foreground mt-1">Full request/response logging — every screen, every button, every API call</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportLogs('json')}>
+            <Download className="w-4 h-4 mr-1" /> JSON
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportLogs('csv')}>
+            <Download className="w-4 h-4 mr-1" /> CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <Card><CardContent className="pt-4 pb-3 text-center">
+          <div className="text-2xl font-bold">{tab === 'frontend' ? feStats.total : beStats?.total ?? '—'}</div>
+          <div className="text-xs text-muted-foreground">Total Logs</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3 text-center">
+          <div className="text-2xl font-bold text-red-400">{tab === 'frontend' ? feStats.errors : beStats?.errors ?? '—'}</div>
+          <div className="text-xs text-muted-foreground">Errors</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3 text-center">
+          <div className="text-2xl font-bold text-blue-400">{tab === 'frontend' ? feStats.api : beStats?.by_method?.GET ?? '—'}</div>
+          <div className="text-xs text-muted-foreground">{tab === 'frontend' ? 'API Calls' : 'GET Requests'}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3 text-center">
+          <div className="text-2xl font-bold text-cyan-400">{tab === 'frontend' ? feStats.nav : beStats?.by_method?.POST ?? '—'}</div>
+          <div className="text-xs text-muted-foreground">{tab === 'frontend' ? 'Navigations' : 'POST Requests'}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3 text-center">
+          <div className="text-2xl font-bold text-purple-400">{tab === 'frontend' ? feStats.click : Object.values(beStats?.by_status ?? {}).reduce((a, b) => a + b, 0) || '—'}</div>
+          <div className="text-xs text-muted-foreground">{tab === 'frontend' ? 'Clicks' : 'Total by Status'}</div>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3 text-center">
+          <div className="text-2xl font-bold text-green-400">{tab === 'frontend' ? `${feStats.avgDuration}ms` : `${Math.round(beStats?.avg_duration_ms ?? 0)}ms`}</div>
+          <div className="text-xs text-muted-foreground">Avg Duration</div>
+        </CardContent></Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as ViewTab)}>
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="frontend">🖥️ Frontend Logs ({feLogs.length})</TabsTrigger>
+            <TabsTrigger value="backend">🖧 Backend Logs ({beStats?.total ?? '…'})</TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-2">
+            {tab === 'frontend' && (
+              <Button variant="ghost" size="sm" onClick={() => clearApiLogs()}>
+                <Trash2 className="w-4 h-4 mr-1" /> Clear
+              </Button>
+            )}
+            {tab === 'backend' && (
+              <>
+                <Button variant={streaming ? 'default' : 'outline'} size="sm" onClick={toggleStreaming}>
+                  {streaming ? <><Wifi className="w-4 h-4 mr-1 animate-pulse" /> Live</> : <><WifiOff className="w-4 h-4 mr-1" /> Stream</>}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { fetchBackendLogs(); fetchBackendStats(); }}>
+                  <RefreshCw className={`w-4 h-4 mr-1 ${beLoading ? 'animate-spin' : ''}`} /> Refresh
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Frontend Tab ──────────────────────────── */}
+        <TabsContent value="frontend" className="space-y-4 mt-4">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            {(['all', 'api', 'navigation', 'click'] as FilterType[]).map(f => (
+              <Button key={f} variant={filter === f ? 'default' : 'outline'} size="sm"
+                onClick={() => setFilter(f)} className="capitalize h-7 text-xs">
+                {f === 'all' ? `All (${feLogs.length})` : `${f} (${feLogs.filter(l => l.type === f).length})`}
+              </Button>
+            ))}
+            <div className="flex-1" />
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input placeholder="Search logs…" value={search} onChange={e => setSearch(e.target.value)}
+                className="pl-8 h-7 text-xs" />
+            </div>
+          </div>
+
+          {/* Table Header */}
+          <div className="grid grid-cols-[40px_70px_1fr_70px_80px_60px] gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">
+            <span />
+            <button className="flex items-center gap-1" onClick={() => toggleSort('method')}>Method <ArrowUpDown className="w-3 h-3" /></button>
+            <span>URL / Target</span>
+            <button className="flex items-center gap-1" onClick={() => toggleSort('status')}>Status <ArrowUpDown className="w-3 h-3" /></button>
+            <button className="flex items-center gap-1" onClick={() => toggleSort('duration')}>Duration <ArrowUpDown className="w-3 h-3" /></button>
+            <span>Size</span>
+          </div>
+
+          {/* Rows */}
+          <div className="max-h-[60vh] overflow-y-auto space-y-0.5">
+            {filtered.length === 0 && (
+              <div className="text-center text-muted-foreground py-12">No log entries match your filters. Interact with the UI to generate logs.</div>
+            )}
+            {filtered.map(entry => (
+              <div key={entry.id}>
+                <button
+                  onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                  className={`w-full grid grid-cols-[40px_70px_1fr_70px_80px_60px] gap-2 px-3 py-1.5 text-xs rounded hover:bg-accent/50 transition-colors items-center ${entry.state === 'error' ? 'bg-red-500/5' : ''}`}
+                >
+                  <StatusIcon entry={entry} />
+                  <span className={`font-mono px-1.5 py-0.5 rounded text-[11px] text-center ${methodColor(entry.method)}`}>{entry.method}</span>
+                  <span className="truncate text-left font-mono text-muted-foreground">
+                    {entry.type === 'click' ? (entry.target || '') : entry.type === 'navigation' ? entry.page : entry.url.replace(/(https?:\/\/[^/]+)/, '')}
+                  </span>
+                  <span className={`text-center px-1 py-0.5 rounded ${statusBg(entry.status)}`}>{entry.status ?? '—'}</span>
+                  <span className="text-center text-muted-foreground flex items-center justify-center gap-1">
+                    <Clock className="w-3 h-3" />{entry.duration != null ? `${entry.duration}ms` : '—'}
+                  </span>
+                  <span className="text-center text-muted-foreground/60">{fmtSize(entry.responseSize)}</span>
+                </button>
+                {expandedId === entry.id && (
+                  <div className="ml-10 mr-4 mb-2 p-3 rounded-md bg-card/50 border border-border/50 space-y-2 text-xs font-mono">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                      <p><span className="text-muted-foreground">Time:</span> {fmtTs(entry.timestamp)}</p>
+                      <p><span className="text-muted-foreground">Type:</span> {entry.type}</p>
+                      <p><span className="text-muted-foreground">URL:</span> {entry.url}</p>
+                      {entry.duration != null && <p><span className="text-muted-foreground">Duration:</span> {entry.duration}ms</p>}
+                      {entry.page && <p><span className="text-muted-foreground">Page:</span> {entry.page}</p>}
+                      {entry.target && <p><span className="text-muted-foreground">Target:</span> {entry.target}</p>}
+                      {entry.error && <p className="text-red-400 col-span-2"><span className="text-red-400/60">Error:</span> {entry.error}</p>}
+                    </div>
+                    {Object.keys(entry.requestHeaders).length > 0 && (
+                      <JsonViewer data={JSON.stringify(entry.requestHeaders)} label="Request Headers" />
+                    )}
+                    <JsonViewer data={entry.requestBody} label="Request Body" />
+                    {Object.keys(entry.responseHeaders).length > 0 && (
+                      <JsonViewer data={JSON.stringify(entry.responseHeaders)} label="Response Headers" />
+                    )}
+                    <JsonViewer data={entry.responseBody} label="Response Body" />
+                    {entry.metadata && <JsonViewer data={JSON.stringify(entry.metadata)} label="Metadata" />}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* ── Backend Tab (placeholder — will be added) ── */}
+        <TabsContent value="backend" className="space-y-4 mt-4">
+          <div>Backend tab content</div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
 
