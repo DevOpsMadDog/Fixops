@@ -32,13 +32,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Add fixops-enterprise to path for FeedsService
-_ENTERPRISE_SRC = Path(__file__).resolve().parent.parent.parent / "fixops-enterprise"
-if _ENTERPRISE_SRC.exists() and str(_ENTERPRISE_SRC) not in sys.path:
-    sys.path.append(str(_ENTERPRISE_SRC))
-
+# Import FeedsService from suite-feeds (has proper __init__ with db_path param)
 try:
-    from src.services.feeds_service import FeedsService
+    from feeds_service import FeedsService
     _FEEDS_SERVICE_AVAILABLE = True
 except ImportError:
     _FEEDS_SERVICE_AVAILABLE = False

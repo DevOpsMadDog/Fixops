@@ -1589,9 +1589,9 @@ def receive_azure_devops_webhook(payload: AzureDevOpsWebhookPayload) -> Dict[str
 class CreateWorkItemRequest(BaseModel):
     """Request to create a work item in an ALM system."""
 
-    cluster_id: str
-    integration_type: Literal["gitlab", "azure_devops", "jira", "servicenow"]
-    title: str
+    cluster_id: str = "default-cluster"
+    integration_type: Literal["gitlab", "azure_devops", "jira", "servicenow"] = "jira"
+    title: str = "Untitled Work Item"
     description: Optional[str] = None
     severity: Optional[str] = None
     labels: Optional[List[str]] = None

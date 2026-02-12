@@ -77,6 +77,39 @@ def _resolve_directories(request: Request) -> tuple[Path, Path]:
     return Path(manifest_dir), Path(bundle_dir)
 
 
+@router.get("/stats")
+async def evidence_stats(request: Request) -> dict[str, Any]:
+    """Get evidence vault statistics."""
+    try:
+        manifest_dir, bundle_dir = _resolve_directories(request)
+    except HTTPException:
+        return {
+            "total_bundles": 0,
+            "total_releases": 0,
+            "storage_status": "not_configured",
+            "worm_enabled": False,
+        }
+
+    releases = []
+    if manifest_dir.exists():
+        releases = [
+            p.stem for p in sorted(manifest_dir.glob("*.yaml"))
+        ] + [p.stem for p in sorted(manifest_dir.glob("*.yml"))]
+
+    total_bundles = 0
+    if bundle_dir.exists():
+        total_bundles = sum(1 for p in bundle_dir.rglob("*") if p.is_file())
+
+    return {
+        "total_bundles": total_bundles,
+        "total_releases": len(releases),
+        "releases": releases[:50],
+        "storage_status": "operational",
+        "worm_enabled": False,
+        "integrity_verified": True,
+    }
+
+
 @router.get("/")
 async def list_evidence(request: Request) -> dict[str, Any]:
     manifest_dir, bundle_dir = _resolve_directories(request)
@@ -348,37 +381,7 @@ async def verify_evidence(
     return result
 
 
-@router.get("/stats")
-async def evidence_stats(request: Request) -> dict[str, Any]:
-    """Get evidence vault statistics."""
-    try:
-        manifest_dir, bundle_dir = _resolve_directories(request)
-    except HTTPException:
-        return {
-            "total_bundles": 0,
-            "total_releases": 0,
-            "storage_status": "not_configured",
-            "worm_enabled": False,
-        }
-
-    releases = []
-    if manifest_dir.exists():
-        releases = [
-            p.stem for p in sorted(manifest_dir.glob("*.yaml"))
-        ] + [p.stem for p in sorted(manifest_dir.glob("*.yml"))]
-
-    total_bundles = 0
-    if bundle_dir.exists():
-        total_bundles = sum(1 for p in bundle_dir.rglob("*") if p.is_file())
-
-    return {
-        "total_bundles": total_bundles,
-        "total_releases": len(releases),
-        "releases": releases[:50],
-        "storage_status": "operational",
-        "worm_enabled": False,
-        "integrity_verified": True,
-    }
+# NOTE: /stats endpoint moved above /{release} to avoid wildcard capture
 
 
 @router.post("/{bundle_id}/collect")

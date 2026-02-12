@@ -1276,6 +1276,10 @@ def create_app() -> FastAPI:
             (
                 "application/json",
                 "text/json",
+                "application/xml",
+                "text/xml",
+                "text/plain",
+                "application/octet-stream",
                 "application/zip",
                 "application/x-zip-compressed",
                 "application/gzip",
@@ -1330,7 +1334,7 @@ def create_app() -> FastAPI:
 
     @app.post("/inputs/cnapp", dependencies=[Depends(_verify_api_key)])
     async def ingest_cnapp(file: UploadFile = File(...)) -> Dict[str, Any]:
-        _validate_content_type(file, ("application/json", "text/json"))
+        _validate_content_type(file, ("application/json", "text/json", "text/plain", "application/octet-stream"))
         buffer, total = await _read_limited(file, "cnapp")
         try:
             return _process_cnapp(buffer, total, file.filename or "cnapp.json")
@@ -1345,6 +1349,8 @@ def create_app() -> FastAPI:
             (
                 "application/json",
                 "text/json",
+                "text/plain",
+                "application/octet-stream",
                 "application/zip",
                 "application/x-zip-compressed",
                 "application/gzip",
@@ -2325,7 +2331,7 @@ def create_app() -> FastAPI:
 
         # Critical prefixes that must exist for a functional deployment
         critical = [
-            "/api/v1/nerve-center", "/api/v1/copilot", "/api/v1/pipeline",
+            "/api/v1/nerve-center", "/api/v1/copilot", "/api/v1/brain",
             "/api/v1/attack-sim", "/api/v1/feeds", "/api/v1/evidence",
             "/api/v1/risk", "/api/v1/stream",
         ]

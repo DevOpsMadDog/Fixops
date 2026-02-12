@@ -425,7 +425,7 @@ class OPAEngineFactory:
             logger.info("🎭 Creating Demo OPA Engine (local evaluation)")
             return DemoOPAEngine()
         opa_url = getattr(settings, "OPA_SERVER_URL", None) or "http://localhost:8181"
-        logger.info("🏭 Creating Production OPA Engine", opa_url=opa_url)
+        logger.info(f"🏭 Creating Production OPA Engine opa_url={opa_url}")
         return ProductionOPAEngine(
             opa_url,
             policy_package=getattr(settings, "OPA_POLICY_PACKAGE", "fixops"),

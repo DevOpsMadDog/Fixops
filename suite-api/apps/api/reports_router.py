@@ -39,10 +39,18 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 class ReportCreate(BaseModel):
     """Request model for creating a report."""
 
-    name: str = Field(..., min_length=1, max_length=255)
-    report_type: ReportType
+    name: str = Field(default="", max_length=255)
+    report_type: ReportType = ReportType.COMPLIANCE
     format: ReportFormat = ReportFormat.PDF
     parameters: Dict[str, Any] = Field(default_factory=dict)
+    # Allow extra fields from frontend (e.g. framework) without 422
+    framework: Optional[str] = None
+
+    def model_post_init(self, __context: Any) -> None:
+        """Auto-generate name from framework/report_type if not provided."""
+        if not self.name:
+            fw = self.framework or self.parameters.get("framework", "")
+            self.name = f"{fw} {self.report_type.value} Report".strip() if fw else f"{self.report_type.value} Report {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
 
 
 class ReportScheduleCreate(BaseModel):

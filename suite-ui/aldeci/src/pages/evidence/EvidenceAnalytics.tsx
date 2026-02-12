@@ -35,7 +35,7 @@ const EvidenceAnalytics = () => {
 
   const handleExport = async (format: string) => {
     try {
-      const res = await api.get('/api/v1/analytics/export', { params: { format, org_id: 'default' }, responseType: format === 'csv' ? 'blob' : 'json' });
+      const res = await api.get('/api/v1/audit/logs/export', { params: { format, days: 30 }, responseType: format === 'csv' ? 'blob' : 'json' });
       if (format === 'csv') {
         const blob = new Blob([res.data], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);

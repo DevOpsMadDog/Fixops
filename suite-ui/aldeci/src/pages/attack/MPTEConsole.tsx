@@ -94,24 +94,24 @@ const MPTEConsole = () => {
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-green-500/20 text-green-400 dark:text-green-300';
       case 'running':
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress': return 'bg-blue-500/20 text-blue-400 dark:text-blue-300';
+      case 'pending': return 'bg-yellow-500/20 text-yellow-400 dark:text-yellow-300';
       case 'failed':
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-500/20 text-red-400 dark:text-red-300';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getExploitabilityColor = (level: string) => {
     switch (level?.toLowerCase()) {
       case 'confirmed':
-      case 'exploitable': return 'bg-red-100 text-red-800';
-      case 'likely': return 'bg-orange-100 text-orange-800';
-      case 'possible': return 'bg-yellow-100 text-yellow-800';
-      case 'not_exploitable': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'exploitable': return 'bg-red-500/20 text-red-400 dark:text-red-300';
+      case 'likely': return 'bg-orange-500/20 text-orange-400 dark:text-orange-300';
+      case 'possible': return 'bg-yellow-500/20 text-yellow-400 dark:text-yellow-300';
+      case 'not_exploitable': return 'bg-green-500/20 text-green-400 dark:text-green-300';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -166,7 +166,7 @@ const MPTEConsole = () => {
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             placeholder="Target URL or IP (e.g., https://app.example.com)"
-            className="flex-1 px-4 py-2 border rounded-lg"
+            className="flex-1 px-4 py-2 border rounded-lg bg-background text-foreground"
           />
           <Button onClick={handleCreateRequest} disabled={!target.trim()}>
             Create Request
@@ -195,9 +195,9 @@ const MPTEConsole = () => {
                       <div className="text-sm text-muted-foreground">Type: {req.vulnerability_type}</div>
                     )}
                     <div className="flex gap-2 text-xs">
-                      <span className="px-2 py-0.5 bg-gray-100 rounded">Priority: {req.priority}</span>
-                      {req.finding_id && <span className="px-2 py-0.5 bg-blue-50 rounded">Finding: {req.finding_id}</span>}
-                      {req.requested_by && <span className="px-2 py-0.5 bg-purple-50 rounded">{req.requested_by}</span>}
+                      <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded">Priority: {req.priority}</span>
+                      {req.finding_id && <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded">Finding: {req.finding_id}</span>}
+                      {req.requested_by && <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded">{req.requested_by}</span>}
                     </div>
                     {req.created_at && (
                       <div className="text-xs text-muted-foreground">
@@ -214,9 +214,9 @@ const MPTEConsole = () => {
                         <span className="font-medium">{req.findings_count}</span> findings
                         {req.severity_found && (
                           <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
-                            req.severity_found === 'critical' ? 'bg-red-100 text-red-800' :
-                            req.severity_found === 'high' ? 'bg-orange-100 text-orange-800' :
-                            'bg-yellow-100 text-yellow-800'
+                            req.severity_found === 'critical' ? 'bg-red-500/20 text-red-400' :
+                            req.severity_found === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-yellow-500/20 text-yellow-400'
                           }`}>{req.severity_found}</span>
                         )}
                       </div>
@@ -253,7 +253,7 @@ const MPTEConsole = () => {
                       {res.exploitability?.replace('_', ' ').toUpperCase()}
                     </span>
                     {res.exploit_successful !== undefined && (
-                      <span className={`ml-2 px-2 py-0.5 rounded text-xs ${res.exploit_successful ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                      <span className={`ml-2 px-2 py-0.5 rounded text-xs ${res.exploit_successful ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
                         {res.exploit_successful ? '⚠️ Exploit Successful' : '✅ Not Exploited'}
                       </span>
                     )}
@@ -280,7 +280,7 @@ const MPTEConsole = () => {
                 {res.evidence && (
                   <details className="mt-3">
                     <summary className="text-xs font-medium cursor-pointer">View Evidence</summary>
-                    <pre className="mt-2 text-xs bg-gray-50 p-3 rounded overflow-auto max-h-48">
+                    <pre className="mt-2 text-xs bg-muted p-3 rounded overflow-auto max-h-48 text-foreground">
                       {res.evidence}
                     </pre>
                   </details>

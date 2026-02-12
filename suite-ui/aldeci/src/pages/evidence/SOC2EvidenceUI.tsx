@@ -68,7 +68,7 @@ const SOC2EvidenceUI = () => {
 
   const fetchPacks = useCallback(async () => {
     try {
-      const res = await api.get('/api/v1/pipeline/evidence/packs').catch(() => ({ data: { packs: [] } }));
+      const res = await api.get('/api/v1/brain/evidence/packs').catch(() => ({ data: { packs: [] } }));
       setPacks(res.data?.packs || []);
     } catch { /* ignore */ }
   }, []);
@@ -78,7 +78,7 @@ const SOC2EvidenceUI = () => {
   const generatePack = async () => {
     setGenerating(true);
     try {
-      const res = await api.post('/api/v1/pipeline/evidence/generate', {
+      const res = await api.post('/api/v1/brain/evidence/generate', {
         org_id: orgId,
         timeframe_days: timeframeDays,
       }).catch(() => ({ data: null }));

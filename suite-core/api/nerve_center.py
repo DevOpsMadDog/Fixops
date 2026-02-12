@@ -195,23 +195,27 @@ async def get_nerve_center_state():
     bus = _event_bus()
 
     # ── Suite health via real HTTP probes ──────────────────────────────
+    # All suites run in one monolithic process on port 8000.
+    api_port = int(os.environ.get("FIXOPS_API_PORT", "8000"))
     suite_defs = [
-        ("suite-api", 8000, "/api/v1/health"),
-        ("suite-core", 8001, "/health"),
-        ("suite-attack", 8002, "/health"),
-        ("suite-feeds", 8003, "/health"),
-        ("suite-evidence-risk", 8004, "/health"),
-        ("suite-integrations", 8005, "/health"),
+        ("suite-api",             "/api/v1/health"),
+        ("suite-core",            "/api/v1/nerve-center/pulse"),
+        ("suite-attack",          "/api/v1/attack-sim/health"),
+        ("suite-feeds",           "/api/v1/feeds/health"),
+        ("suite-evidence-risk",   "/api/v1/evidence/stats"),
+        ("suite-integrations",    "/api/v1/integrations"),
     ]
     suites: List[SuiteStatus] = []
-    for name, port, path in suite_defs:
+    api_token = os.environ.get("FIXOPS_API_TOKEN", "")
+    probe_headers = {"X-API-Key": api_token} if api_token else {}
+    for name, path in suite_defs:
         status, latency, endpoints = "offline", 0.0, 0
         try:
             t0 = time.monotonic()
             async with httpx.AsyncClient(timeout=2.0) as c:
-                r = await c.get(f"http://127.0.0.1:{port}{path}")
+                r = await c.get(f"http://127.0.0.1:{api_port}{path}", headers=probe_headers)
             latency = round((time.monotonic() - t0) * 1000, 1)
-            if r.status_code < 300:
+            if r.status_code < 400:
                 status = "healthy"
                 body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
                 endpoints = body.get("routes", body.get("endpoints", 0))
@@ -488,6 +492,7 @@ async def get_overlay_config():
     api_token = os.environ.get("FIXOPS_API_TOKEN", "")
     api_key_hint = f"{api_token[:4]}…" if len(api_token) >= 4 else "(not set)"
     return {
+        "mode": os.environ.get("FIXOPS_MODE", "enterprise"),
         "api_config": {
             "api_url": os.environ.get("FIXOPS_API_URL", "http://localhost:8000"),
             "api_version": "2.0.0",

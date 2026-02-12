@@ -3,9 +3,10 @@
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from apps.api.dependencies import get_org_id
 from core.services.remediation import (
     VALID_TRANSITIONS,
     RemediationService,
@@ -122,7 +123,7 @@ async def create_task(request: CreateTaskRequest) -> Dict[str, Any]:
 
 @router.get("/tasks")
 def list_tasks(
-    org_id: str,
+    org_id: str = Depends(get_org_id),
     app_id: Optional[str] = None,
     status: Optional[str] = None,
     assignee: Optional[str] = None,

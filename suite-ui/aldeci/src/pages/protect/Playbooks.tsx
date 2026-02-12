@@ -117,8 +117,9 @@ export default function Playbooks() {
     },
   });
 
-  // Sample playbooks (would come from API)
-  const playbooks: Playbook[] = workflowsData?.workflows || workflowsData || [
+  // Extract playbooks from API response (handles {items:[...]}, {workflows:[...]}, or array)
+  const rawData = workflowsData?.items || workflowsData?.workflows || (Array.isArray(workflowsData) ? workflowsData : null);
+  const playbooks: Playbook[] = Array.isArray(rawData) && rawData.length > 0 ? rawData : [
     { 
       id: 'pb-1', 
       name: 'Critical CVE Response', 

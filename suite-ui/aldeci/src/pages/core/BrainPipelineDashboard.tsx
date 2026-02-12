@@ -81,7 +81,7 @@ const BrainPipelineDashboard = () => {
 
   const fetchRuns = useCallback(async () => {
     try {
-      const res = await api.get('/api/v1/pipeline/pipeline/runs').catch(() => ({ data: { runs: [] } }));
+      const res = await api.get('/api/v1/brain/pipeline/runs').catch(() => ({ data: { runs: [] } }));
       setRuns(res.data?.runs || []);
     } catch { /* ignore */ }
   }, []);
@@ -96,17 +96,21 @@ const BrainPipelineDashboard = () => {
     setCurrentStep(0);
 
     // Animate steps progressively while waiting for API
+    // Each step takes 2-4 seconds to feel realistic
     const statuses: StepStatus[] = PIPELINE_STEPS.map(() => 'pending');
     let step = 0;
-    animRef.current = setInterval(() => {
+    const stepDelays = [2200, 1800, 2500, 3000, 3500, 2800, 3200, 2000, 4000, 3500, 2200, 2500];
+    const advanceStep = () => {
       if (step < 12) {
         if (step > 0) statuses[step - 1] = 'done';
         statuses[step] = 'running';
         setStepStatuses([...statuses]);
         setCurrentStep(step);
         step++;
+        animRef.current = setTimeout(advanceStep, stepDelays[step - 1] || 2500);
       }
-    }, 600);
+    };
+    animRef.current = setTimeout(advanceStep, 500);
 
     try {
       // Generate mock findings for the pipeline
@@ -123,17 +127,20 @@ const BrainPipelineDashboard = () => {
         id: `ASSET-${String(i + 1).padStart(3, '0')}`,
         name: `service-${['payments', 'auth', 'gateway', 'orders', 'users', 'inventory', 'billing', 'notifications', 'search', 'analytics', 'logging', 'monitoring'][i % 12]}-prod`,
         type: ['service', 'container', 'database', 'api'][i % 4],
-        criticality: ['crown_jewel', 'high', 'medium', 'low'][i % 4],
+        criticality: [1.0, 0.8, 0.5, 0.2][i % 4],
       }));
 
-      const res = await api.post('/api/v1/pipeline/pipeline/run', {
+      const res = await api.post('/api/v1/brain/pipeline/run', {
         org_id: orgId,
         findings,
         assets,
-        options: { enable_pentest: true, enable_llm: true, enable_evidence: true },
+        source: 'ui',
+        run_pentest: true,
+        run_playbooks: true,
+        generate_evidence: true,
       }).catch(() => ({ data: null }));
 
-      if (animRef.current) clearInterval(animRef.current);
+      if (animRef.current) clearTimeout(animRef.current);
 
       if (res.data) {
         // Map real results to step statuses
@@ -150,7 +157,7 @@ const BrainPipelineDashboard = () => {
         setCurrentStep(11);
       }
     } catch {
-      if (animRef.current) clearInterval(animRef.current);
+      if (animRef.current) clearTimeout(animRef.current);
       setStepStatuses(prev => prev.map((s, i) => i === currentStep ? 'error' : s === 'running' ? 'error' : s));
     } finally {
       setRunning(false);

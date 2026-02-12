@@ -388,7 +388,7 @@ const dashboard = {
 
 const copilot = {
   chat: {
-    createSession: (data?: { context?: unknown }) => api.post('/api/v1/copilot/sessions', data).then(r => r.data),
+    createSession: (data?: { context?: unknown }) => api.post('/api/v1/copilot/sessions', data || {}).then(r => r.data),
     getSessions: () => api.get('/api/v1/copilot/sessions').then(r => r.data),
     getSession: (sessionId: string) => api.get(`/api/v1/copilot/sessions/${sessionId}`).then(r => r.data),
     sendMessage: (sessionId: string, message: string, context?: unknown) => api.post(`/api/v1/copilot/sessions/${sessionId}/messages`, { message, context }).then(r => r.data),
@@ -428,12 +428,12 @@ const codeSuite = {
     ingestSBOM: (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      return api.post('/inputs/sbom', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+      return api.post('/inputs/sbom', formData).then(r => r.data)
     },
     ingestSARIF: (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      return api.post('/inputs/sarif', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+      return api.post('/inputs/sarif', formData).then(r => r.data)
     },
     validateInput: (data: unknown) => api.post('/api/v1/validate/input', data).then(r => r.data),
   },
@@ -467,7 +467,7 @@ const cloudSuite = {
     ingestCNAPP: (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      return api.post('/inputs/cnapp', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+      return api.post('/inputs/cnapp', formData).then(r => r.data)
     },
     getFindings: () => api.get('/api/v1/analytics/findings', { params: { source: 'cnapp' } }).then(r => r.data),
     // Fixed: use /iac/scan/content with POST
@@ -493,7 +493,10 @@ const cloudSuite = {
       }).then(r => r.data),
   },
   attackPath: {
-    getGraph: () => api.get('/api/v1/graph/').then(r => r.data),
+    getGraph: () => api.post('/api/v1/algorithms/gnn/attack-surface', {
+      infrastructure: [{ id: 'default-network', type: 'network', properties: {}, risk_score: 0.5 }],
+      connections: [], vulnerabilities: [], max_paths: 10, depth: 5, include_mitigations: true,
+    }).then(r => r.data?.result || r.data).catch(() => ({ attack_paths: [], graph_stats: { nodes: 0, edges: 0 } })),
     analyzeSurface: (data: { infrastructure?: { id: string, type: string, properties?: Record<string, unknown>, risk_score?: number }[], connections?: unknown[], vulnerabilities?: unknown[], max_paths?: number }) => 
       api.post('/api/v1/algorithms/gnn/attack-surface', {
         infrastructure: data.infrastructure || [{ id: 'network', type: 'network', properties: {}, risk_score: 0.5 }],
@@ -573,7 +576,7 @@ const protectSuite = {
         app_id: data.app_id || 'default-app'
       }).then(r => r.data),
     generateFix: (cveId: string) => api.post('/api/v1/enhanced/analysis', { service_name: 'remediation', context: { cve_id: cveId, action: 'generate_fix' } }).then(r => r.data),
-    createPR: (data: { cve: string, fix?: string, title: string }) => api.post('/api/v1/webhooks/alm/work-items', { type: 'pull_request', ...data }).then(r => r.data),
+    createPR: (data: { cve: string, fix?: string, title: string }) => api.post('/api/v1/webhooks/alm/work-items', { ...data, cluster_id: 'default-cluster', integration_type: 'jira', description: data.fix || `Remediation for ${data.cve}`, severity: 'high' }).then(r => r.data),
   },
   bulk: {
     updateFindings: (data: { finding_ids: string[], updates: unknown }) => api.post('/api/v1/bulk/findings/update', data).then(r => r.data),
@@ -718,13 +721,13 @@ const nerveCenter = {
 
 const brainPipeline = {
   run: (data: { org_id: string, findings: unknown[], assets: unknown[], options?: Record<string, boolean> }) =>
-    api.post('/api/v1/pipeline/pipeline/run', data).then(r => r.data),
-  listRuns: () => api.get('/api/v1/pipeline/pipeline/runs').then(r => r.data),
-  getRun: (runId: string) => api.get(`/api/v1/pipeline/pipeline/runs/${runId}`).then(r => r.data),
+    api.post('/api/v1/brain/pipeline/run', data).then(r => r.data),
+  listRuns: () => api.get('/api/v1/brain/pipeline/runs').then(r => r.data),
+  getRun: (runId: string) => api.get(`/api/v1/brain/pipeline/runs/${runId}`).then(r => r.data),
   generateEvidence: (data: { org_id: string, timeframe_days?: number, controls?: string[] }) =>
-    api.post('/api/v1/pipeline/evidence/generate', data).then(r => r.data),
-  listEvidencePacks: () => api.get('/api/v1/pipeline/evidence/packs').then(r => r.data),
-  getEvidencePack: (packId: string) => api.get(`/api/v1/pipeline/evidence/packs/${packId}`).then(r => r.data),
+    api.post('/api/v1/brain/evidence/generate', data).then(r => r.data),
+  listEvidencePacks: () => api.get('/api/v1/brain/evidence/packs').then(r => r.data),
+  getEvidencePack: (packId: string) => api.get(`/api/v1/brain/evidence/packs/${packId}`).then(r => r.data),
 };
 
 const exposureCases = {
@@ -986,8 +989,18 @@ export const graphApi = {
 export const attackGraphApi = {
   ...graphApi,
   getGraph: graphApi.get,
-  // Fixed: use attack-surface instead of non-existent analyze
-  analyze: (data: unknown) => api.post('/api/v1/algorithms/gnn/attack-surface', data).then(r => r.data),
+  // Fixed: use attack-surface with required infrastructure field defaults
+  analyze: (data: unknown) => {
+    const d = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+    return api.post('/api/v1/algorithms/gnn/attack-surface', {
+      infrastructure: d.infrastructure || [{ id: 'default-network', type: 'network', properties: {}, risk_score: 0.5 }],
+      connections: d.connections || [],
+      vulnerabilities: d.vulnerabilities || [],
+      max_paths: d.max_paths || 10,
+      depth: d.depth || 5,
+      include_mitigations: d.include_mitigations !== false,
+    }).then(r => r.data);
+  },
   // Fixed: export not available, use analytics export
   export: (format: string) => api.get('/api/v1/analytics/export', { params: { format } }).then(r => r.data),
 }
@@ -1064,8 +1077,8 @@ export const webhooksApi = {
   
   // ALM Work Items
   getWorkItems: () => api.get('/api/v1/webhooks/alm/work-items').then(r => r.data),
-  createWorkItem: (data: { type: string, integration_id?: string, title: string, description?: string }) => 
-    api.post('/api/v1/webhooks/alm/work-items', data).then(r => r.data),
+  createWorkItem: (data: { type: string, integration_id?: string, title: string, description?: string }) =>
+    api.post('/api/v1/webhooks/alm/work-items', { cluster_id: 'default-cluster', integration_type: 'jira', ...data }).then(r => r.data),
   updateWorkItem: (id: string, data: unknown) => api.put(`/api/v1/webhooks/alm/work-items/${id}`, data).then(r => r.data),
 }
 
@@ -1091,7 +1104,16 @@ export const reportsApi = {
   generate: evidence.reports.generate,
   // Fixed: correct path for templates
   getTemplates: () => api.get('/api/v1/reports/templates/list').then(r => r.data),
-  create: (data: unknown) => api.post('/api/v1/reports', data).then(r => r.data),
+  create: (data: unknown) => {
+    const d = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+    return api.post('/api/v1/reports', {
+      name: d.name || `${d.framework || d.report_type || 'Security'} Report`,
+      report_type: d.report_type || d.type || 'compliance',
+      format: d.format || 'pdf',
+      parameters: d.parameters || {},
+      ...(d.framework ? { framework: d.framework } : {}),
+    }).then(r => r.data);
+  },
 }
 
 // Audit API

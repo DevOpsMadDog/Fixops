@@ -16,7 +16,7 @@ from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from core.attack_simulation_engine import (
     AttackSimulationEngine,
@@ -57,9 +57,20 @@ class CreateScenarioRequest(BaseModel):
 
 class GenerateScenarioRequest(BaseModel):
     """Request to AI-generate a scenario."""
-    target_description: str = Field(..., description="Description of the target")
+    target_description: str = Field("Web application", description="Description of the target")
+    target: Optional[str] = Field(None, description="Alias for target_description")
     threat_actor: str = Field("cybercriminal", description="Threat actor profile")
+    attack_type: Optional[str] = Field(None, description="Type of attack (e.g., rce, xss)")
     cve_ids: List[str] = Field(default_factory=list, description="Known CVEs")
+
+    @validator("target_description", pre=True, always=True)
+    def resolve_target(cls, v, values):
+        """Accept 'target' as alias for 'target_description'."""
+        if not v or v == "Web application":
+            target = values.get("target")
+            if target:
+                return target
+        return v or "Web application"
 
 
 class RunCampaignRequest(BaseModel):

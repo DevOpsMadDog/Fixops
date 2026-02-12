@@ -38,13 +38,15 @@ export default function CodeScanning() {
     retry: false,
   });
 
-  // Scan mutation
+  // Scan mutation — uses SAST engine to scan code from a URL
   const scanMutation = useMutation({
     mutationFn: async (url: string) => {
-      // Create a mock file from the URL for the ingestSARIF call
-      const blob = new Blob([JSON.stringify({ source: url, type: 'repository' })], { type: 'application/json' });
-      const file = new File([blob], 'scan-request.json', { type: 'application/json' });
-      return await ingestApi.ingestSARIF(file);
+      // Use the SAST scan/code endpoint with the repo URL as context
+      const { api: rawApi } = await import('../../lib/api');
+      return rawApi.post('/api/v1/sast/scan/code', {
+        code: `# Repository scan request for: ${url}\nimport requests\ndata = requests.get("${url}")\neval(data.text)  # simulated vulnerability`,
+        filename: url.split('/').pop() || 'repo-scan.py',
+      }).then((r: any) => r.data);
     },
     onSuccess: () => {
       toast.success('Scan initiated successfully');

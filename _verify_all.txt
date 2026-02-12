@@ -1,0 +1,18 @@
+=== DECISIONS ===
+IDs: ['PROD-EVD-1770634216'], demo_mode: False
+=== OVERLAY ===
+mode=enterprise
+=== PIPELINE ===
+HTTP 200
+=== BRAIN ===
+nodes=53, edges=33
+=== MARKETPLACE ===
+items=3
+=== FEEDS ===
+  EPSS: 314410 (healthy)
+  KEV: 1507 (healthy)
+  NVD: 1249 (healthy)
+  ExploitDB: 46488 (healthy)
+  OSV: 104 (healthy)
+  GitHub: 104 (healthy)
+=== DONE ===

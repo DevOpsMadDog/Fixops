@@ -1705,22 +1705,42 @@ class FeedsService:
                 summary = adv.get("summary", "")
                 severity = (adv.get("severity") or "unknown").upper()
                 cvss_score = None
-                cvss = adv.get("cvss", {})
-                if cvss:
+                cvss = adv.get("cvss")
+                if cvss and isinstance(cvss, dict):
                     cvss_score = cvss.get("score")
+                elif cvss and isinstance(cvss, (int, float)):
+                    cvss_score = float(cvss)
+                elif cvss and isinstance(cvss, str):
+                    try:
+                        cvss_score = float(cvss)
+                    except (ValueError, TypeError):
+                        cvss_score = None
 
                 # Extract CVE aliases
                 cve_id = adv.get("cve_id", "") or ""
 
                 # Extract affected packages
                 for vuln in adv.get("vulnerabilities", []):
+                    if not isinstance(vuln, dict):
+                        continue
                     pkg = vuln.get("package", {})
-                    pkg_name = pkg.get("name", "")
-                    ecosystem = pkg.get("ecosystem", "")
+                    if isinstance(pkg, str):
+                        pkg_name = pkg
+                        ecosystem = ""
+                    elif isinstance(pkg, dict):
+                        pkg_name = pkg.get("name", "")
+                        ecosystem = pkg.get("ecosystem", "")
+                    else:
+                        pkg_name = ""
+                        ecosystem = ""
                     vuln_range = vuln.get("vulnerable_version_range", "")
-                    patched = (
-                        vuln.get("first_patched_version", {}) or {}
-                    ).get("identifier", "")
+                    fpv = vuln.get("first_patched_version")
+                    if isinstance(fpv, dict):
+                        patched = fpv.get("identifier", "")
+                    elif isinstance(fpv, str):
+                        patched = fpv
+                    else:
+                        patched = ""
 
                     vid = cve_id if cve_id else ghsa_id
                     records.append(

@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
-const STATUS_COLUMNS = ['open', 'triaging', 'fixing', 'resolved', 'closed'] as const;
-type CaseStatus = typeof STATUS_COLUMNS[number] | 'accepted_risk' | 'false_positive';
+const STATUS_COLUMNS = ['open', 'triaging', 'fixing', 'resolved', 'closed', 'accepted_risk', 'false_positive'] as const;
+type CaseStatus = typeof STATUS_COLUMNS[number];
 
 interface ExposureCase {
   case_id: string;
@@ -50,6 +51,8 @@ const statusColor = (s: string) => {
     case 'fixing': return 'from-blue-900/20 to-blue-800/5 border-blue-500/30';
     case 'resolved': return 'from-green-900/20 to-green-800/5 border-green-500/30';
     case 'closed': return 'from-gray-900/20 to-gray-800/5 border-gray-600/30';
+    case 'accepted_risk': return 'from-purple-900/20 to-purple-800/5 border-purple-500/30';
+    case 'false_positive': return 'from-slate-900/20 to-slate-800/5 border-slate-500/30';
     default: return 'from-gray-900/20 to-gray-800/5 border-gray-600/30';
   }
 };
@@ -61,6 +64,8 @@ const statusHeaderColor = (s: string) => {
     case 'fixing': return 'text-blue-400';
     case 'resolved': return 'text-green-400';
     case 'closed': return 'text-gray-400';
+    case 'accepted_risk': return 'text-purple-400';
+    case 'false_positive': return 'text-slate-400';
     default: return 'text-gray-400';
   }
 };
@@ -72,8 +77,21 @@ const statusEmoji = (s: string) => {
     case 'fixing': return '🔵';
     case 'resolved': return '🟢';
     case 'closed': return '⚪';
+    case 'accepted_risk': return '🟣';
+    case 'false_positive': return '⬜';
     default: return '⚫';
   }
+};
+
+// Valid transitions from the backend state machine (mirrors suite-core/core/exposure_case.py)
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  open: ['triaging', 'accepted_risk', 'false_positive'],
+  triaging: ['fixing', 'accepted_risk', 'false_positive', 'open'],
+  fixing: ['resolved', 'triaging', 'open'],
+  resolved: ['closed', 'open'],
+  closed: ['open'],
+  accepted_risk: ['open'],
+  false_positive: ['open'],
 };
 
 const ExposureCaseCenter = () => {
@@ -102,8 +120,12 @@ const ExposureCaseCenter = () => {
   const transitionCase = async (caseId: string, newStatus: string) => {
     try {
       await api.post(`/api/v1/cases/${caseId}/transition`, { new_status: newStatus, actor: 'ui_user' });
+      toast.success(`Case ${caseId} transitioned to ${newStatus}`);
       fetchData();
-    } catch { /* ignore */ }
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Unknown error';
+      toast.error(`Transition failed: ${msg}`);
+    }
   };
 
   const casesByStatus = (status: string) => cases.filter(c => c.status === status);
@@ -156,7 +178,7 @@ const ExposureCaseCenter = () => {
           {loading ? (
             <div className="text-center py-16 text-muted-foreground animate-pulse">Loading cases...</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3">
               {STATUS_COLUMNS.map(status => (
                 <div key={status} className="space-y-2">
                   <div className={`text-sm font-semibold uppercase tracking-wider ${statusHeaderColor(status)} flex items-center gap-2 mb-3`}>
@@ -269,10 +291,10 @@ const ExposureCaseCenter = () => {
                     <div><span className="text-muted-foreground">Findings:</span> <span className="text-gray-200">{selectedCase.finding_ids?.length ?? 0}</span></div>
                   </div>
 
-                  {/* Transition buttons */}
+                  {/* Transition buttons - only show valid transitions */}
                   <div className="flex gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground self-center mr-2">Transition to:</span>
-                    {STATUS_COLUMNS.filter(s => s !== selectedCase.status).map(s => (
+                    {(VALID_TRANSITIONS[selectedCase.status] || []).map(s => (
                       <Button key={s} size="sm" variant="outline"
                         className={`text-xs capitalize border-gray-600/50 hover:bg-gray-800/50`}
                         onClick={() => transitionCase(selectedCase.case_id, s)}>

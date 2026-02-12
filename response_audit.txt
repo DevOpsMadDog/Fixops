@@ -1,0 +1,704 @@
+==========================================================================================
+DEEP RESPONSE AUDIT - Every 200 OK with empty/null/zero/broken data
+==========================================================================================
+
+--- 1. 200 OK but EMPTY/NULL/ZERO responses ---
+  [1001x] GET  /api/v1/evidence/
+         RSP: {"count": 0, "releases": []}
+
+  [959x] GET  /api/v1/integrations
+         RSP: {"items": [{"id": "13f22f79-86b6-4624-9d3d-874535faf562", "name": "test-integration_1770360513911", "integration_type": "github", "status": "active", "config": {"url": "https://github.com"}, "last_sync_at": null, "last_sync_status": null, "created_at": "2026-02-06T06:48:40.634398", "updated_at": "20
+
+  [ 68x] GET  /api/v1/inventory/assets
+         RSP: {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [ 63x] GET  /api/v1/feeds/kev
+         RSP: {"message": "Use cve_ids parameter to lookup specific CVEs", "total_kev_entries": 0}
+
+  [ 58x] GET  /api/v1/container/status
+         RSP: {"status": "healthy", "engine": "ALdeci Container Scanner", "trivy_available": false, "grype_available": false, "dockerfile_rules": 10, "known_vulnerable_images": 15, "capabilities": ["dockerfile_analysis", "base_image_check", "trivy_integration", "grype_integration"]}
+
+  [ 51x] GET  /api/v1/inventory/applications
+         RSP: {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [ 50x] GET  /api/v1/analytics/dashboard/overview
+         RSP: {"total_findings": 0, "open_findings": 0, "critical_findings": 0, "recent_findings_30d": 0, "timestamp": "2026-02-08T23:52:23.822003", "org_id": "default"}
+
+  [ 45x] GET  /api/v1/brain/stats
+         RSP: {"total_nodes": 35, "total_edges": 13, "density": 0.0, "node_types": {"asset": 6, "cve": 17, "exposure_case": 1, "finding": 11}, "edge_types": {"AFFECTS": 1, "groups": 1, "references": 11}, "organizations": {"acme-corp": 1}}
+
+  [ 39x] GET  /api/v1/vulns/discovered
+         RSP: []
+
+  [ 34x] GET  /api/v1/ml/analytics/stats
+         RSP: {"total_requests": 8976, "total_errors": 799, "total_anomalies": 0, "avg_duration_ms": 59.65, "unique_endpoints": 174, "error_rate": 8.9, "top_endpoints": [{"path": "/api/v1/health", "count": 2060}, {"path": "/api/v1/nerve-center/pulse", "count": 778}, {"path": "/api/v1/evidence/", "count": 756}, {"
+
+  [ 34x] GET  /api/v1/mpte/results
+         RSP: {"items": [], "total": 0}
+
+  [ 33x] GET  /api/v1/ml/analytics/anomalies
+         RSP: []
+
+  [ 32x] GET  /api/v1/llm/status
+         RSP: {"status": "unconfigured", "providers": [{"name": "openai", "enabled": false, "configured": false, "api_key_set": "***REDACTED***", "model": "gpt-4o-mini", "status": "unconfigured", "error": "API key not set. Set one of: OPENAI_API_KEY, FIXOPS_OPENAI_KEY"}, {"name": "anthropic", "enabled": false, "c
+
+  [ 27x] GET  /api/v1/analytics/findings
+         RSP: []
+
+  [ 26x] GET  /api/v1/enhanced/capabilities
+         RSP: {"status": "ready", "api_version": "enhanced_v1", "supported_llms": ["gpt-5", "claude-3", "gemini-2", "sentinel-cyber"], "runs": 0, "knowledge_graph": {"nodes": 3, "edges": 2, "description": "Context-to-control knowledge graph for consensus telemetry"}, "last_decision": null, "mean_confidence": null
+
+  [ 23x] GET  /api/v1/remediation/metrics
+         RSP: {"status_breakdown": {"open": 6}, "severity_breakdown": {"high": 6}, "mttr_by_severity_hours": {}, "sla_compliance_percent": 100.0, "overdue_count": 0, "total_resolved": 0, "total_breached": 0}
+
+  [ 18x] GET  /api/v1/cases/stats/summary
+         RSP: {"total_cases": 29, "by_status": {"open": 29}, "by_priority": {"medium": 29}, "avg_risk_score": 0, "kev_cases": 0}
+
+  [ 18x] GET  /api/v1/pipeline/pipeline/runs
+         RSP: {"total": 0, "limit": 20, "offset": 0, "runs": []}
+
+  [ 17x] GET  /api/v1/brain/all-edges
+         RSP: {"edges": [], "count": 0}
+
+  [ 17x] GET  /api/v1/remediation/tasks
+         RSP: {"tasks": [{"task_id": "f140dd29-e57e-4d1e-8479-776c0f169147", "cluster_id": "test-cluster-123", "org_id": "default", "app_id": "test-app", "title": "Fix vulnerability", "description": null, "severity": "high", "status": "open", "assignee": null, "assignee_email": null, "created_at": "2026-02-06T06:
+
+  [ 16x] POST /api/v1/enhanced/analysis
+         RSP: {"final_decision": "allow", "consensus_confidence": 0.554, "method": "multi-llm-weighted-consensus", "summary": "Consensus ALLOW at 55.4% confidence across 0 findings.", "individual_analyses": [{"provider": "gpt-5", "recommended_action": "allow", "confidence": 0.577, "reasoning": "Detected 0 finding
+
+  [ 14x] GET  /api/v1/graph/
+         RSP: {"nodes": 201, "edges": 111, "configured_sources": {"sbom": false, "risk": false}}
+
+  [ 14x] GET  /api/v1/workflows
+         RSP: {"items": [{"id": "0a2221eb-90fa-4378-beac-4ed65d2bb6a8", "name": "Test Flow_1770360513911", "description": "workflow", "steps": [], "triggers": {}, "enabled": true, "created_by": null, "created_at": "2026-02-06T06:48:40.604599", "updated_at": "2026-02-08T21:01:16.467403"}, {"id": "d62102c3-d2ea-430
+
+  [ 13x] GET  /api/v1/brain/pipeline/runs
+         RSP: {"total": 0, "limit": 20, "offset": 0, "runs": []}
+
+  [ 12x] GET  /api/v1/provenance/
+         RSP: []
+
+  [ 10x] GET  /api/v1/iac
+         RSP: {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [ 10x] POST /api/v1/iac/scan/content
+         RSP: {"scan_id": "d6fc27c6-14b5-492a-add2-b16011efa3a8", "status": "completed", "scanner": "checkov", "provider": "terraform", "target_path": "cloud.tf", "findings_count": 0, "findings": [], "started_at": "2026-02-09T10:57:28.944564", "completed_at": "2026-02-09T10:57:28.945706", "duration_seconds": 0.00
+
+  [  9x] GET  /api/v1/collaboration/notifications/pending
+         RSP: {"notifications": [], "count": 0}
+
+  [  8x] POST /api/v1/nerve-center/playbooks/execute/pb-soc2-access
+         RSP: {"execution_id": "exec-pb-soc2-access-1770624911", "playbook_id": "pb-soc2-access", "dry_run": false, "status": "running", "steps_total": 4, "steps_completed": 0, "started_at": "2026-02-09T08:15:11.880614+00:00"}
+
+  [  7x] GET  /api/v1/autofix/history
+         RSP: {"status": "ok", "history": []}
+
+  [  7x] POST /api/v1/vulns/discovered
+         RSP: {"id": "40fd3330-53ba-4881-b665-e9c960cd7e23", "internal_id": "ALDECI-2026-0001", "title": "SQL Injection in User Login Endpoint", "severity": "critical", "status": "draft", "created_at": "2026-02-09T09:24:44.809509Z", "discovered_by": "ALdeci Red Team", "cvss_score": 10.0, "cve_id": null}
+
+  [  6x] GET  /api/v1/evidence/stats
+         RSP: {"total_bundles": 15, "total_releases": 4, "releases": ["incident-IR-2025-001", "release-2024-Q4", "release-2025-Q1", "release-2025-Q2"], "storage_status": "operational", "worm_enabled": false, "integrity_verified": true}
+
+  [  5x] POST /api/v1/copilot/sessions
+         RSP: {"id": "c28ef792-669e-414c-b521-ee99a5f8f6b0", "name": "Session c28ef792", "agent_type": "general", "created_at": "2026-02-09T08:14:15.989071Z", "updated_at": "2026-02-09T08:14:15.989071Z", "message_count": 0, "context": {}}
+
+  [  4x] GET  /api/v1/copilot/sessions
+         RSP: []
+
+  [  4x] GET  /api/v1/secrets
+         RSP: {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [  4x] POST /api/v1/cases/EC-c68148498079/transition
+         RSP: {"case_id": "EC-c68148498079", "title": "Exposure-e89c29da", "description": "Auto-generated from dedup cluster e89c29da-0d36-452b-aed4-47f7678d04d9", "status": "triaging", "priority": "medium", "org_id": "acme", "root_cve": null, "root_cwe": null, "root_component": null, "affected_assets": [], "clus
+
+  [  4x] POST /api/v1/copilot/agents/analyst/prioritize
+         RSP: {"algorithm": "ssvc", "prioritized_findings": [], "total_immediate": 0, "total_scheduled": 0, "sla_at_risk": 0, "recommendations": ["No high-priority items found based on EPSS/KEV data"], "data_source": "EPSS + CISA KEV"}
+
+  [  3x] GET  /api/v1/analytics/dashboard/compliance-status
+         RSP: {"compliance_score": 100.0, "total_findings": 0, "open_findings": 0, "critical_findings": 0, "timestamp": "2026-02-09T00:38:08.367387"}
+
+  [  3x] GET  /api/v1/collaboration/comments
+         RSP: {"comments": [], "count": 0, "entity_type": "all", "entity_id": "all"}
+
+  [  3x] GET  /api/v1/ml/stats
+         RSP: {"total_requests": 10204, "total_errors": 831, "total_anomalies": 0, "avg_duration_ms": 57.58, "unique_endpoints": 178, "error_rate": 8.14, "top_endpoints": [{"path": "/api/v1/health", "count": 2410}, {"path": "/api/v1/nerve-center/pulse", "count": 891}, {"path": "/api/v1/evidence/", "count": 873}, 
+
+  [  3x] GET  /api/v1/reports/templates/list
+         RSP: {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [  3x] GET  /api/v1/secrets/scanners/status
+         RSP: {"gitleaks_available": false, "trufflehog_available": false, "available_scanners": []}
+
+  [  3x] GET  /api/v1/webhooks/mappings
+         RSP: {"mappings": [], "count": 0}
+
+  [  3x] POST /api/v1/cases/EC-fe6172c6fb9a/transition
+         RSP: {"case_id": "EC-fe6172c6fb9a", "title": "Exposure-f4962203", "description": "Auto-generated from dedup cluster f4962203-ac0f-45b2-936d-60dc409695eb", "status": "triaging", "priority": "medium", "org_id": "acme", "root_cve": null, "root_cwe": null, "root_component": null, "affected_assets": [], "clus
+
+  [  2x] GET  /api/v1/analytics/trends/anomalies
+         RSP: {"org_id": "default", "period_days": 90, "threshold_sigma": 2.0, "total_days_analysed": 20, "anomalies_detected": 0, "anomalies": []}
+
+  [  2x] GET  /api/v1/attack-sim/mitre/heatmap
+         RSP: {"heatmap": {}, "total_campaigns": 0}
+
+  [  2x] GET  /api/v1/attack-sim/scenarios
+         RSP: []
+
+  [  2x] GET  /api/v1/audit/chain/verify
+         RSP: {"chain_length": 0, "logs_total": 0, "recomputed_length": 0, "mismatches": 0, "integrity": "valid", "verified_at": "2026-02-09T08:51:56.042629+00:00"}
+
+  [  2x] GET  /api/v1/feeds/geo-risk/CVE-2024-1234
+         RSP: {"cve_id": "CVE-2024-1234", "base_score": 0.0641, "geo_scores": {"north_america": 0.0834, "europe": 0.077, "asia_pacific": 0.0834, "global": 0.0641}, "cert_mentions": {}, "calculated_at": "2026-02-09T08:14:15.955426+00:00"}
+
+  [  2x] GET  /api/v1/stream/events
+         RSP: NULL
+
+  [  2x] POST /api/v1/feeds/github/refresh
+         RSP: {"status": "failed", "records_updated": 0, "source": "github_advisories", "timestamp": "2026-02-09T08:12:47.162094+00:00", "error": "Error processing GitHub advisories: 'str' object has no attribute 'get'"}
+
+  [  2x] POST /api/v1/feeds/osv/refresh
+         RSP: {"status": "refreshed", "records_updated": 0, "source": "osv", "timestamp": "2026-02-09T08:12:45.919283+00:00", "error": null}
+
+  [  2x] POST /api/v1/nerve-center/playbooks/execute/pb-kev-response
+         RSP: {"execution_id": "exec-pb-kev-response-1770629364", "playbook_id": "pb-kev-response", "dry_run": false, "status": "running", "steps_total": 4, "steps_completed": 0, "started_at": "2026-02-09T09:29:24.483016+00:00"}
+
+  [  2x] POST /api/v1/nerve-center/playbooks/validate
+         RSP: {"valid": true, "errors": [], "warnings": [{"field": "spec.steps", "message": "No steps defined"}]}
+
+  [  2x] POST /api/v1/workflows/0a2221eb-90fa-4378-beac-4ed65d2bb6a8/execute
+         RSP: {"id": "2434178b-5c2a-4046-b78f-65dffb92c893", "workflow_id": "0a2221eb-90fa-4378-beac-4ed65d2bb6a8", "status": "completed", "triggered_by": null, "input_data": {}, "output_data": {"result": "success", "steps_completed": 0, "steps_skipped": 0, "steps_failed": 0, "steps_total": 0, "sla_breached": fal
+
+  [  2x] PUT  /api/v1/workflows/0a2221eb-90fa-4378-beac-4ed65d2bb6a8
+         RSP: {"id": "0a2221eb-90fa-4378-beac-4ed65d2bb6a8", "name": "Test Flow_1770360513911", "description": "workflow", "steps": [], "triggers": {}, "enabled": true, "created_by": null, "created_at": "2026-02-06T06:48:40.604599", "updated_at": "2026-02-09T09:32:53.942563"}
+
+  [  1x] GET  /api/v1/analytics/export
+         RSP: {"data": [], "count": 0, "format": "json"}
+
+  [  1x] GET  /api/v1/brain/evidence/packs
+         RSP: {"total": 0, "packs": []}
+
+  [  1x] POST /api/v1/workflows/badae0ea-8d7a-48ce-8716-1b7414933450/execute
+         RSP: {"id": "290e98c1-217b-4f17-8dff-e6b546e501f9", "workflow_id": "badae0ea-8d7a-48ce-8716-1b7414933450", "status": "completed", "triggered_by": null, "input_data": {}, "output_data": {"result": "success", "steps_completed": 0, "steps_skipped": 0, "steps_failed": 0, "steps_total": 0, "sla_breached": fal
+
+  [  1x] POST /api/v1/workflows/f93118b8-7a68-4ce7-95cc-dc3d42ac9009/execute
+         RSP: {"id": "514eb37c-1226-4ee6-abb2-abddce29c363", "workflow_id": "f93118b8-7a68-4ce7-95cc-dc3d42ac9009", "status": "completed", "triggered_by": null, "input_data": {}, "output_data": {"result": "success", "steps_completed": 0, "steps_skipped": 0, "steps_failed": 0, "steps_total": 0, "sla_breached": fal
+
+
+--- 2. ALL 4xx/5xx ERRORS ---
+  [ 27x] GET  /api/v1/vulns/discovered                                -> 405  body={"detail": "Method Not Allowed"}
+  [ 21x] GET  /api/v1/pipeline/pipeline/runs                          -> 404  body={"detail": "Not Found"}
+  [ 18x] POST /api/v1/algorithms/gnn/attack-surface                   -> 422  body={"detail": [{"type": "missing", "loc": ["body", "infrastructure"], "msg": "Field required", "input": {"depth": 5, "include_mitigations": true}}]}
+  [ 11x] POST /api/v1/pipeline/evidence/generate                      -> 404  body={"detail": "Not Found"}
+  [  9x] GET  /api/v1/brain/nodes/undefined/neighbors                 -> 404  body={"detail": "Not Found"}
+  [  9x] POST /api/v1/cases/EC-9ee921668751/transition                -> 400  body={"detail": "Invalid transition: open \u2192 fixing. Allowed: ['false_positive', 'triaging', 'accepted_risk']"}
+  [  9x] POST /api/v1/cases/EC-fe6172c6fb9a/transition                -> 400  body={"detail": "Invalid transition: open \u2192 fixing. Allowed: ['false_positive', 'triaging', 'accepted_risk']"}
+  [  8x] GET  /api/v1/evidence/stats                                  -> 404  body={"detail": "Evidence manifest not found"}
+  [  8x] POST /api/v1/brain/edges                                     -> 422  body={"detail": "source_id, target_id, and edge_type are required"}
+  [  8x] POST /api/v1/pipeline/pipeline/run                           -> 404  body={"detail": "Not Found"}
+  [  6x] POST /api/v1/cases/EC-c68148498079/transition                -> 400  body={"detail": "Invalid transition: triaging \u2192 resolved. Allowed: ['false_positive', 'accepted_risk', 'open', 'fixing']"}
+  [  6x] POST /api/v1/pipeline/pipeline/run                           -> 422  body={"detail": [{"type": "float_parsing", "loc": ["body", "assets", 0, "criticality"], "msg": "Input should be a valid number, unable to parse string as a number", "input": "crown_jewel"}, {"type": "float
+  [  6x] POST /api/v1/vulns/discovered                                -> 422  body={"detail": [{"type": "enum", "loc": ["body", "impact_type"], "msg": "Input should be 'remote_code_execution', 'sql_injection', 'cross_site_scripting', 'server_side_request_forgery', 'xml_external_enti
+  [  5x] GET  /api/v1/collaboration/comments                          -> 422  body={"detail": [{"type": "missing", "loc": ["query", "entity_type"], "msg": "Field required", "input": null}, {"type": "missing", "loc": ["query", "entity_id"], "msg": "Field required", "input": null}]}
+  [  4x] POST /api/v1/autofix/generate                                -> 422  body={"detail": [{"type": "missing", "loc": ["body", "finding"], "msg": "Field required", "input": {"finding_id": "demo-finding-1770595244830", "severity": "high", "title": "Security vulnerability", "cve_i
+  [  4x] POST /api/v1/brain/ingest/finding                            -> 422  body={"detail": [{"type": "json_invalid", "loc": ["body", 67], "msg": "JSON decode error", "input": {}, "ctx": {"error": "Unterminated string starting at"}}]}
+  [  4x] POST /api/v1/copilot/sessions                                -> 422  body={"detail": [{"type": "missing", "loc": ["body"], "msg": "Field required", "input": null}]}
+  [  4x] POST /api/v1/iac/mc-1/remediate                              -> 404  body={"detail": "Not Found"}
+  [  3x] POST /api/v1/feeds/refresh                                   -> 404  body={"detail": "Not Found"}
+  [  3x] POST /api/v1/micro-pentest/run                               -> 400  body={"detail": "At least one CVE ID is required"}
+  [  2x] GET  /api/v1/analytics/summary                               -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /api/v1/brain/pipeline/runs                             -> 500  body=
+  [  2x] GET  /api/v1/collaboration/notifications                     -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /api/v1/feeds/epss/CVE-2024-1234                        -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /api/v1/feeds/kev/CVE-2024-1234                         -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /api/v1/ml/stats                                        -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /api/v1/nerve-center/pulse                              -> 401  body={"detail": "Invalid or missing API token"}
+  [  2x] GET  /api/v1/pipeline/evidence/packs                         -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /evidence/bundles                                       -> 404  body={"detail": "Not Found"}
+  [  2x] GET  /evidence/soc2                                          -> 404  body={"detail": "Not Found"}
+
+--- 3. FEEDS ENDPOINTS (all calls) ---
+  :34:28.706021+00:00 GET  /api/v1/feeds/health                          -> 200 (121ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :34:24.800139+00:00 GET  /api/v1/feeds/health                          -> 200 (365ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :33:58.741401+00:00 GET  /api/v1/feeds/health                          -> 200 (123ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :33:54.817875+00:00 GET  /api/v1/feeds/health                          -> 200 (392ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :33:28.758027+00:00 GET  /api/v1/feeds/health                          -> 200 (126ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :33:24.786614+00:00 GET  /api/v1/feeds/health                          -> 200 (359ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :32:58.708483+00:00 GET  /api/v1/feeds/health                          -> 200 (151ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :32:54.821073+00:00 GET  /api/v1/feeds/health                          -> 200 (385ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :32:28.653665+00:00 GET  /api/v1/feeds/health                          -> 200 (119ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :32:24.923570+00:00 GET  /api/v1/feeds/health                          -> 200 (503ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :31:58.689652+00:00 GET  /api/v1/feeds/health                          -> 200 (131ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :31:54.833067+00:00 GET  /api/v1/feeds/health                          -> 200 (401ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :31:28.679729+00:00 GET  /api/v1/feeds/health                          -> 200 (124ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :31:24.768007+00:00 GET  /api/v1/feeds/health                          -> 200 (352ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :31:00.512152+00:00 GET  /api/v1/feeds/kev                             -> 200 (155ms)
+         RSP: {"message": "Use cve_ids parameter to lookup specific CVEs", "total_kev_entries": 1507}
+
+  :31:00.366227+00:00 GET  /api/v1/feeds/epss                            -> 200 (10ms)
+         RSP: {"scores":[{"cve_id":"CVE-2024-27198","epss_score":0.94579,"epss_percentile":1.0,"vulnerability_name":"JetBrains TeamCity Authentication Bypass Vulnerability","kev_date_added":"2024-03-07","kev_due_date":"2024-03-28","ransomware_use":"Known"},{"cve_i
+
+  :30:58.860242+00:00 GET  /api/v1/feeds/health                          -> 200 (312ms)
+         RSP: {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "status": "healthy", "total_records": 1507, "new_today
+
+  :30:58.830426+00:00 GET  /api/v1/feeds/stats                           -> 200 (282ms)
+         RSP: {"categories": {"authoritative": {"epss_scores": 314410, "kev_entries": 1507}, "exploit": {"exploit_intelligence": 46488}, "threat_actor": {"threat_actor_mappings": 0}, "supply_chain": {"supply_chain_vulns": 0}, "cloud_runtime": {"cloud_security_bull
+
+  :30:58.745971+00:00 GET  /api/v1/feeds/kev                             -> 200 (140ms)
+         RSP: {"message": "Use cve_ids parameter to lookup specific CVEs", "total_kev_entries": 1507}
+
+  :30:58.626846+00:00 GET  /api/v1/feeds/epss                            -> 200 (25ms)
+         RSP: {"scores":[{"cve_id":"CVE-2024-27198","epss_score":0.94579,"epss_percentile":1.0,"vulnerability_name":"JetBrains TeamCity Authentication Bypass Vulnerability","kev_date_added":"2024-03-07","kev_due_date":"2024-03-28","ransomware_use":"Known"},{"cve_i
+
+
+--- 4. ALL GET 200 ENDPOINTS (response preview) ---
+  [ 32x     10ms] /api/v1/algorithms/capabilities
+        {"algorithms": [{"name": "Monte Carlo Risk Quantification", "endpoint": "/api/v1/algorithms/monte-carlo/quantify", "method": "POST", "description": "FAIR-compliant financial risk quantification using 
+
+  [ 34x     12ms] /api/v1/algorithms/status
+        {"status": "healthy", "engines": {"monte_carlo": {"status": "available", "description": "FAIR-based Monte Carlo risk quantification", "capabilities": ["Value-at-Risk (VaR) calculation", "Expected Annu
+
+  [  3x     45ms] /api/v1/analytics/dashboard/compliance-status
+        {"compliance_score": 100.0, "total_findings": 0, "open_findings": 0, "critical_findings": 0, "timestamp": "2026-02-09T00:38:08.367387"}
+
+  [ 50x     18ms] /api/v1/analytics/dashboard/overview
+        {"total_findings": 0, "open_findings": 0, "critical_findings": 0, "recent_findings_30d": 0, "timestamp": "2026-02-08T23:52:23.822003", "org_id": "default"}
+
+  [  1x      4ms] /api/v1/analytics/export
+        {"data": [], "count": 0, "format": "json"}
+
+  [ 27x     16ms] /api/v1/analytics/findings
+        []
+
+  [  1x      3ms] /api/v1/analytics/summary
+        {"org_id": "default", "total_findings": 20, "total_decisions": 20, "severity_breakdown": {"medium": 5, "critical": 8, "high": 5, "low": 2}, "status_breakdown": {"accepted_risk": 1, "false_positive": 2
+
+  [  2x     37ms] /api/v1/analytics/trends/anomalies
+        {"org_id": "default", "period_days": 90, "threshold_sigma": 2.0, "total_days_analysed": 20, "anomalies_detected": 0, "anomalies": []}
+
+  [  2x     25ms] /api/v1/analytics/trends/severity-over-time
+        {"org_id": "default", "bucket": "day", "days": 30, "series": [{"period": "2026-01-11", "critical": 1, "total": 1, "moving_avg": 1.0}, {"period": "2026-01-12", "critical": 1, "total": 1, "moving_avg": 
+
+  [  2x      1ms] /api/v1/attack-sim/mitre/heatmap
+        {"heatmap": {}, "total_campaigns": 0}
+
+  [  2x      1ms] /api/v1/attack-sim/scenarios
+        []
+
+  [  2x     21ms] /api/v1/audit/chain/verify
+        {"chain_length": 0, "logs_total": 0, "recomputed_length": 0, "mismatches": 0, "integrity": "valid", "verified_at": "2026-02-09T08:51:56.042629+00:00"}
+
+  [  7x    165ms] /api/v1/autofix/fix-types
+        {"status": "ok", "fix_types": [{"value": "code_patch", "name": "CODE_PATCH"}, {"value": "dependency_update", "name": "DEPENDENCY_UPDATE"}, {"value": "config_hardening", "name": "CONFIG_HARDENING"}, {"
+
+  [  7x    144ms] /api/v1/autofix/history
+        {"status": "ok", "history": []}
+
+  [  9x    112ms] /api/v1/autofix/stats
+        {"status": "ok", "stats": {"total_generated": 0, "total_applied": 0, "total_prs_created": 0, "total_merged": 0, "total_failed": 0, "total_rolled_back": 0, "by_type": {}, "by_confidence": {"high": 0, "
+
+  [ 17x      9ms] /api/v1/brain/all-edges
+        {"edges": [], "count": 0}
+
+  [  2x      1ms] /api/v1/brain/events
+        {"events":[{"event_id":51,"event_type":"copilot.response","source":"copilot_router","data":{"session_id":"c28ef792-669e-414c-b521-ee99a5f8f6b0","message_id":"081ab526-af51-4a0d-8f17-f66749a22938","age
+
+  [  1x      7ms] /api/v1/brain/evidence/packs
+        {"total": 0, "packs": []}
+
+  [ 20x      8ms] /api/v1/brain/nodes
+        {"nodes":[{"node_id":"cve:CVE-2024-99999","node_type":"cve","org_id":null,"properties":{"cve_id":"CVE-2024-99999","severity":"low","title":"Test CVE"},"created_at":"2026-02-08T21:52:40.754243+00:00","
+
+  [ 13x      7ms] /api/v1/brain/pipeline/runs
+        {"total": 0, "limit": 20, "offset": 0, "runs": []}
+
+  [ 45x      4ms] /api/v1/brain/stats
+        {"total_nodes": 35, "total_edges": 13, "density": 0.0, "node_types": {"asset": 6, "cve": 17, "exposure_case": 1, "finding": 11}, "edge_types": {"AFFECTS": 1, "groups": 1, "references": 11}, "organizat
+
+  [ 18x      9ms] /api/v1/cases
+        {"cases":[{"case_id":"EC-9ee921668751","title":"Exposure-2fcfdb4e","description":"Auto-generated from dedup cluster 2fcfdb4e-39b5-4f77-8380-363283104096","status":"open","priority":"medium","org_id":"
+
+  [ 18x     11ms] /api/v1/cases/stats/summary
+        {"total_cases": 29, "by_status": {"open": 29}, "by_priority": {"medium": 29}, "avg_risk_score": 0, "kev_cases": 0}
+
+  [  3x      4ms] /api/v1/collaboration/comments
+        {"comments": [], "count": 0, "entity_type": "all", "entity_id": "all"}
+
+  [  1x      9ms] /api/v1/collaboration/entity-types
+        {"entity_types": ["cluster", "task", "finding"]}
+
+  [  9x      5ms] /api/v1/collaboration/notifications/pending
+        {"notifications": [], "count": 0}
+
+  [ 58x      3ms] /api/v1/container/status
+        {"status": "healthy", "engine": "ALdeci Container Scanner", "trivy_available": false, "grype_available": false, "dockerfile_rules": 10, "known_vulnerable_images": 15, "capabilities": ["dockerfile_anal
+
+  [  4x      2ms] /api/v1/copilot/sessions
+        []
+
+  [  2x      4ms] /api/v1/decisions/metrics
+        {"status": "success", "data": {"total_decisions": 400, "pending_review": 0, "high_confidence_rate": 0.0, "context_enrichment_rate": 0.0, "avg_decision_latency_us": 87650.0, "consensus_rate": 0.0, "evi
+
+  [  2x      1ms] /api/v1/decisions/recent
+        {"status": "success", "data": [{"evidence_id": "DEMO-EVD-0", "service_name": "payment-service", "environment": "production", "decision": "ALLOW", "confidence": 0.9, "timestamp": "2026-02-09T08:14:16.0
+
+  [ 35x     45ms] /api/v1/deduplication/stats
+        {"total_clusters": 1, "total_events": 6, "noise_reduction_percent": 83.3, "status_breakdown": {"open": 1}, "severity_breakdown": {"critical": 1}}
+
+  [ 26x     32ms] /api/v1/enhanced/capabilities
+        {"status": "ready", "api_version": "enhanced_v1", "supported_llms": ["gpt-5", "claude-3", "gemini-2", "sentinel-cyber"], "runs": 0, "knowledge_graph": {"nodes": 3, "edges": 2, "description": "Context-
+
+  [1001x      2ms] /api/v1/evidence/
+        {"count": 0, "releases": []}
+
+  [  6x     61ms] /api/v1/evidence/stats
+        {"total_bundles": 15, "total_releases": 4, "releases": ["incident-IR-2025-001", "release-2024-Q4", "release-2025-Q1", "release-2025-Q2"], "storage_status": "operational", "worm_enabled": false, "integ
+
+  [ 62x     33ms] /api/v1/feeds/epss
+        {"scores":[{"cve_id":"CVE-2024-27198","epss_score":0.94579,"epss_percentile":1.0,"vulnerability_name":"JetBrains TeamCity Authentication Bypass Vulnerability","kev_date_added":"2024-03-07","kev_due_da
+
+  [  2x      4ms] /api/v1/feeds/geo-risk/CVE-2024-1234
+        {"cve_id": "CVE-2024-1234", "base_score": 0.0641, "geo_scores": {"north_america": 0.0834, "europe": 0.077, "asia_pacific": 0.0834, "global": 0.0641}, "cert_mentions": {}, "calculated_at": "2026-02-09T
+
+  [ 63x    207ms] /api/v1/feeds/kev
+        {"message": "Use cve_ids parameter to lookup specific CVEs", "total_kev_entries": 0}
+
+  [ 55x    362ms] /api/v1/feeds/stats
+        {"categories": {"authoritative": {"epss_scores": 314410, "kev_entries": 1507}, "exploit": {"exploit_intelligence": 0}, "threat_actor": {"threat_actor_mappings": 0}, "supply_chain": {"supply_chain_vuln
+
+  [ 14x     97ms] /api/v1/graph/
+        {"nodes": 201, "edges": 111, "configured_sources": {"sbom": false, "risk": false}}
+
+  [ 10x      3ms] /api/v1/iac
+        {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [959x      3ms] /api/v1/integrations
+        {"items": [{"id": "13f22f79-86b6-4624-9d3d-874535faf562", "name": "test-integration_1770360513911", "integration_type": "github", "status": "active", "config": {"url": "https://github.com"}, "last_syn
+
+  [ 51x      7ms] /api/v1/inventory/applications
+        {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [ 68x      9ms] /api/v1/inventory/assets
+        {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [ 32x     14ms] /api/v1/llm/status
+        {"status": "unconfigured", "providers": [{"name": "openai", "enabled": false, "configured": false, "api_key_set": "***REDACTED***", "model": "gpt-4o-mini", "status": "unconfigured", "error": "API key 
+
+  [  2x      2ms] /api/v1/marketplace/browse
+        {"items": [{"id": "demo-remediation-pack-1", "name": "SQL Injection Remediation Pack", "description": "Comprehensive remediation guidance for SQL injection vulnerabilities", "content_type": "remediati
+
+  [ 33x     20ms] /api/v1/ml/analytics/anomalies
+        []
+
+  [ 34x     22ms] /api/v1/ml/analytics/stats
+        {"total_requests": 8976, "total_errors": 799, "total_anomalies": 0, "avg_duration_ms": 59.65, "unique_endpoints": 174, "error_rate": 8.9, "top_endpoints": [{"path": "/api/v1/health", "count": 2060}, {
+
+  [ 30x     20ms] /api/v1/ml/models
+        {"models": [{"model_id": "anomaly_detector", "name": "anomaly_detector", "type": "IsolationForest", "status": "untrained", "accuracy": 0.0, "last_trained": null, "predictions_count": 0, "feature_names
+
+  [  3x      3ms] /api/v1/ml/stats
+        {"total_requests": 10204, "total_errors": 831, "total_anomalies": 0, "avg_duration_ms": 57.58, "unique_endpoints": 178, "error_rate": 8.14, "top_endpoints": [{"path": "/api/v1/health", "count": 2410},
+
+  [ 15x      3ms] /api/v1/ml/status
+        {"models": {"anomaly_detector": {"name": "anomaly_detector", "type": "IsolationForest", "status": "untrained", "samples_trained": 0, "accuracy": 0.0, "last_trained": null, "feature_names": ["method_en
+
+  [ 11x     85ms] /api/v1/mpte/configs
+        {"items": [{"id": "07e61e1f-49ca-4c3f-b1c6-2b36375dc14a", "name": "demo-config", "mpte_url": "http://localhost:9000", "api_key": "***REDACTED***", "enabled": true, "max_concurrent_tests": 5, "timeout_
+
+  [ 29x      8ms] /api/v1/mpte/requests
+        {"items": [{"id": "656e6d6e-3a85-4f50-9f8e-fed8304eb509", "finding_id": "test-e2e", "target_url": "http://test.local", "vulnerability_type": "xss", "test_case": "e2e-verify", "priority": "low", "statu
+
+  [ 34x      9ms] /api/v1/mpte/results
+        {"items": [], "total": 0}
+
+  [  1x      3ms] /api/v1/mpte/stats
+        {"total_requests": 8, "total_results": 7, "by_status": {"running": 1, "completed": 7}, "by_exploitability": {"confirmed_exploitable": 4, "unexploitable": 1, "likely_exploitable": 2}, "by_priority": {"
+
+  [ 10x     37ms] /api/v1/nerve-center/intelligence-map
+        {"nodes": [{"id": "ingest", "suite": "suite-api", "label": "Data Ingestion", "type": "entry", "apis": ["SBOM", "SARIF", "CVE", "VEX", "CNAPP"]}, {"id": "pipeline", "suite": "suite-core", "label": "Pip
+
+  [ 84x     20ms] /api/v1/nerve-center/overlay
+        {"api_config": {"api_url": "http://localhost:8000", "api_version": "2.0.0", "api_key_hint": "***REDACTED***", "auth_mode": "dev", "mode": "demo", "features": {"api_activity_logger": true, "overlay_edi
+
+  [  5x      3ms] /api/v1/nerve-center/playbooks
+        {"playbooks": [{"id": "pb-soc2-access", "name": "SOC2 Access Control Validation", "kind": "CompliancePack", "version": "1.0.0", "status": "active", "last_run": null, "run_count": 0, "steps": 4, "frame
+
+  [984x     18ms] /api/v1/nerve-center/pulse
+        {"level": "medium", "score": 42.5, "active_incidents": 3, "auto_blocked": 17, "pending_decisions": 5, "timestamp": "2026-02-08T23:42:47.373976+00:00"}
+
+  [ 27x     77ms] /api/v1/nerve-center/state
+        {"threat_pulse": {"level": "medium", "score": 42.5, "active_incidents": 3, "auto_blocked": 17, "pending_decisions": 5, "timestamp": "2026-02-08T23:54:40.406326+00:00"}, "suites": [{"suite": "suite-api
+
+  [ 18x      7ms] /api/v1/pipeline/pipeline/runs
+        {"total": 0, "limit": 20, "offset": 0, "runs": []}
+
+  [ 12x      2ms] /api/v1/provenance/
+        []
+
+  [ 12x    257ms] /api/v1/reachability/metrics
+        {"timestamp": "2026-02-08T23:57:00.734438+00:00", "storage": {"total_results": 0, "expired_results": 0, "database_size_mb": 0.04}, "job_queue": {"queued": 0, "running": 0, "completed": 0, "failed": 0,
+
+  [ 23x     37ms] /api/v1/remediation/metrics
+        {"status_breakdown": {"open": 6}, "severity_breakdown": {"high": 6}, "mttr_by_severity_hours": {}, "sla_compliance_percent": 100.0, "overdue_count": 0, "total_resolved": 0, "total_breached": 0}
+
+  [ 17x     23ms] /api/v1/remediation/tasks
+        {"tasks": [{"task_id": "f140dd29-e57e-4d1e-8479-776c0f169147", "cluster_id": "test-cluster-123", "org_id": "default", "app_id": "test-app", "title": "Fix vulnerability", "description": null, "severity
+
+  [  3x     12ms] /api/v1/reports/templates/list
+        {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [  4x      6ms] /api/v1/secrets
+        {"items": [], "total": 0, "limit": 100, "offset": 0}
+
+  [  3x     12ms] /api/v1/secrets/scanners/status
+        {"gitleaks_available": false, "trufflehog_available": false, "available_scanners": []}
+
+  [ 31x      9ms] /api/v1/status
+        {"status": "ok", "timestamp": "2026-02-08T23:54:36.422190Z", "service": "fixops-api", "version": "0.1.0"}
+
+  [  2x   3002ms] /api/v1/stream/events
+        NULL
+
+  [ 39x      5ms] /api/v1/vulns/discovered
+        []
+
+  [  3x     14ms] /api/v1/webhooks/mappings
+        {"mappings": [], "count": 0}
+
+  [ 14x      3ms] /api/v1/workflows
+        {"items": [{"id": "0a2221eb-90fa-4378-beac-4ed65d2bb6a8", "name": "Test Flow_1770360513911", "description": "workflow", "steps": [], "triggers": {}, "enabled": true, "created_by": null, "created_at": 
+
+
+--- 5. ALL POST 200 ENDPOINTS (req+resp preview) ---
+  [  1x] POST /api/v1/algorithms/gnn/attack-surface
+        REQ:  {"infrastructure": [{"id": "default-network", "type": "network", "properties": {}, "risk_score": 0.5}], "connections": [], "vulnerabilities": [], "max
+        RSP:  {"status": "success", "algorithm": "Graph Neural Network Attack Path Prediction", "result": {"graph_stats": {"nodes": 1, "edges": 0, "vulnerabilities": 0}, "attack_paths": [{"path": ["default-network"
+
+  [ 11x] POST /api/v1/brain/ingest/asset
+        REQ:  {"asset_id": "payments-prod", "name": "payments-service", "type": "service", "criticality": "crown_jewel", "org_id": "acme", "environment": "productio
+        RSP:  {"node_id": "asset:payments-prod", "node_type": "asset", "ingested": true}
+
+  [ 14x] POST /api/v1/brain/ingest/cve
+        REQ:  {"cve_id": "CVE-2021-44228", "severity": "critical", "cvss": 10.0, "description": "Log4Shell RCE in Apache Log4j", "affected_product": "log4j-core", "
+        RSP:  {"node_id": "cve:CVE-2021-44228", "node_type": "cve", "ingested": true}
+
+  [ 17x] POST /api/v1/brain/ingest/finding
+        REQ:  {"finding_id": "FIND-001", "cve_id": "CVE-2021-44228", "org_id": "acme", "title": "Log4Shell in payments-service", "severity": "critical", "asset": "p
+        RSP:  {"node_id": "finding:FIND-001", "node_type": "finding", "ingested": true}
+
+  [  3x] POST /api/v1/brain/ingest/remediation
+        REQ:  {"task_id": "REM-001", "finding_id": "FIND-006", "org_id": "acme", "action": "patch_applied", "assignee": "security-team", "status": "completed"}
+        RSP:  {"node_id": "remediation:REM-001", "node_type": "remediation", "ingested": true}
+
+  [  2x] POST /api/v1/brain/ingest/scan
+        REQ:  {"scan_id": "SCAN-001", "org_id": "acme", "tool": "trivy", "target": "production-cluster", "findings": ["FIND-001", "FIND-005", "FIND-009", "FIND-010"
+        RSP:  {"node_id": "scan:SCAN-001", "node_type": "scan", "ingested": true}
+
+  [  3x] POST /api/v1/brain/pipeline/run
+        REQ:  {"org_id": "acme", "findings": [{"id": "FIND-001", "cve_id": "CVE-2021-44228", "severity": "critical", "asset_name": "payments-prod", "title": "Log4Sh
+        RSP:  {"run_id": "BR-9D3B7C6899BF", "org_id": "acme", "status": "completed", "started_at": "2026-02-09T00:47:27.573224+00:00", "finished_at": "2026-02-09T00:47:27.596065+00:00", "total_duration_ms": 21.34, 
+
+  [  4x] POST /api/v1/cases/EC-c68148498079/transition
+        REQ:  {"new_status": "triaging", "actor": "ui_user"}
+        RSP:  {"case_id": "EC-c68148498079", "title": "Exposure-e89c29da", "description": "Auto-generated from dedup cluster e89c29da-0d36-452b-aed4-47f7678d04d9", "status": "triaging", "priority": "medium", "org_i
+
+  [  3x] POST /api/v1/cases/EC-fe6172c6fb9a/transition
+        REQ:  {"new_status": "triaging", "actor": "ui_user"}
+        RSP:  {"case_id": "EC-fe6172c6fb9a", "title": "Exposure-f4962203", "description": "Auto-generated from dedup cluster f4962203-ac0f-45b2-936d-60dc409695eb", "status": "triaging", "priority": "medium", "org_i
+
+  [  4x] POST /api/v1/copilot/agents/analyst/prioritize
+        REQ:  {"algorithms": ["CVSS", "EPSS", "KEV"], "context": {"asset_criticality": "high", "data_sensitivity": "pii"}}
+        RSP:  {"algorithm": "ssvc", "prioritized_findings": [], "total_immediate": 0, "total_scheduled": 0, "sla_at_risk": 0, "recommendations": ["No high-priority items found based on EPSS/KEV data"], "data_source
+
+  [  5x] POST /api/v1/copilot/sessions
+        REQ:  {"title": "E2E Workflow Test Session"}
+        RSP:  {"id": "c28ef792-669e-414c-b521-ee99a5f8f6b0", "name": "Session c28ef792", "agent_type": "general", "created_at": "2026-02-09T08:14:15.989071Z", "updated_at": "2026-02-09T08:14:15.989071Z", "message_c
+
+  [  1x] POST /api/v1/copilot/sessions/316fce7f-e943-454b-a0cc-5c1c30119811/messages
+        REQ:  {"message": "Analyze CVE-2024-1234 for web-app-1", "role": "user"}
+        RSP:  {"id": "80df707b-79f3-4adf-a2b9-817a3f0b1472", "session_id": "316fce7f-e943-454b-a0cc-5c1c30119811", "role": "assistant", "content": "**Agent: general** | *Provider: sentinel*\n\nSentinel cyber heuris
+
+  [  1x] POST /api/v1/copilot/sessions/c28ef792-669e-414c-b521-ee99a5f8f6b0/messages
+        REQ:  {"message": "Analyze CVE-2024-1234 for web-app-1", "role": "user"}
+        RSP:  {"id": "081ab526-af51-4a0d-8f17-f66749a22938", "session_id": "c28ef792-669e-414c-b521-ee99a5f8f6b0", "role": "assistant", "content": "**Agent: general** | *Provider: sentinel*\n\nSentinel cyber heuris
+
+  [ 16x] POST /api/v1/enhanced/analysis
+        REQ:  {"service_name": "multi-llm-consensus", "context": {"environment": "production", "findings": [], "threshold": 0.7}}
+        RSP:  {"final_decision": "allow", "consensus_confidence": 0.554, "method": "multi-llm-weighted-consensus", "summary": "Consensus ALLOW at 55.4% confidence across 0 findings.", "individual_analyses": [{"prov
+
+  [  2x] POST /api/v1/feeds/exploitdb/refresh
+        REQ:  NULL
+        RSP:  {"status": "refreshed", "records_updated": 46960, "source": "exploitdb", "timestamp": "2026-02-09T08:12:42.424653+00:00", "error": null}
+
+  [  2x] POST /api/v1/feeds/github/refresh
+        REQ:  NULL
+        RSP:  {"status": "failed", "records_updated": 0, "source": "github_advisories", "timestamp": "2026-02-09T08:12:47.162094+00:00", "error": "Error processing GitHub advisories: 'str' object has no attribute '
+
+  [  4x] POST /api/v1/feeds/nvd/refresh
+        REQ:  NULL
+        RSP:  {"status": "refreshed", "records_updated": 1226, "source": "nvd", "timestamp": "2026-02-09T08:12:37.311778+00:00", "error": null}
+
+  [  2x] POST /api/v1/feeds/osv/refresh
+        REQ:  NULL
+        RSP:  {"status": "refreshed", "records_updated": 0, "source": "osv", "timestamp": "2026-02-09T08:12:45.919283+00:00", "error": null}
+
+  [  1x] POST /api/v1/feeds/refresh
+        REQ:  NULL
+        RSP:  {"status": "partial", "feeds_refreshed": 6, "total_records_updated": 364103, "results": {"epss": {"success": true, "records_updated": 314410, "error": null}, "kev": {"success": true, "records_updated"
+
+  [ 10x] POST /api/v1/iac/scan/content
+        REQ:  {"content": "{\"provider\":\"all\",\"full_scan\":true}", "filename": "cloud.tf"}
+        RSP:  {"scan_id": "d6fc27c6-14b5-492a-add2-b16011efa3a8", "status": "completed", "scanner": "checkov", "provider": "terraform", "target_path": "cloud.tf", "findings_count": 0, "findings": [], "started_at": 
+
+  [  1x] POST /api/v1/ml/models/anomaly_detector/train
+        REQ:  NULL
+        RSP:  {"model_id": "anomaly_detector", "name": "anomaly_detector", "status": "ready", "samples_trained": 10000, "accuracy": 0.95}
+
+  [  1x] POST /api/v1/ml/models/error_predictor/train
+        REQ:  NULL
+        RSP:  {"model_id": "error_predictor", "name": "error_predictor", "status": "ready", "samples_trained": 10000, "accuracy": 0.9995}
+
+  [  1x] POST /api/v1/ml/models/response_predictor/train
+        REQ:  NULL
+        RSP:  {"model_id": "response_predictor", "name": "response_predictor", "status": "ready", "samples_trained": 10000, "accuracy": 0.0286}
+
+  [  1x] POST /api/v1/ml/models/threat_classifier/train
+        REQ:  NULL
+        RSP:  {"model_id": "threat_classifier", "name": "threat_classifier", "status": "ready", "samples_trained": 10000, "accuracy": 1.0}
+
+  [  1x] POST /api/v1/ml/train
+        REQ:  NULL
+        RSP:  {"anomaly_detector": {"name": "anomaly_detector", "status": "ready", "samples_trained": 10000, "accuracy": 0.95}, "response_predictor": {"name": "response_predictor", "status": "ready", "samples_train
+
+  [  3x] POST /api/v1/mpte/requests
+        REQ:  {"finding_id": "finding-1770595013635", "target_url": "google.com", "vulnerability_type": "general", "test_case": "automated-pentest", "priority": "hi
+        RSP:  {"id": "5d8ed5d4-80c7-48e9-9099-c2e1bf597229", "finding_id": "finding-1770595013635", "target_url": "google.com", "vulnerability_type": "general", "test_case": "automated-pentest", "priority": "high",
+
+  [  4x] POST /api/v1/mpte/scan/comprehensive
+        REQ:  {"target": "localhost", "scope": "full"}
+        RSP:  {"status": "scan_started", "requests": []}
+
+  [  6x] POST /api/v1/nerve-center/auto-remediate
+        REQ:  {"finding_ids": ["demo-finding-1"], "action": "escalate", "reason": "Manual trigger from Nerve Center"}
+        RSP:  {"status": "accepted", "action_id": "ar-1770594883", "action": "escalate", "findings": ["demo-finding-1"], "confidence": 0.92, "message": "Auto-remediation 'escalate' queued for 1 finding(s)"}
+
+  [  2x] POST /api/v1/nerve-center/playbooks/execute/pb-kev-response
+        REQ:  null
+        RSP:  {"execution_id": "exec-pb-kev-response-1770629364", "playbook_id": "pb-kev-response", "dry_run": false, "status": "running", "steps_total": 4, "steps_completed": 0, "started_at": "2026-02-09T09:29:24.
+
+  [  8x] POST /api/v1/nerve-center/playbooks/execute/pb-soc2-access
+        REQ:  null
+        RSP:  {"execution_id": "exec-pb-soc2-access-1770624911", "playbook_id": "pb-soc2-access", "dry_run": false, "status": "running", "steps_total": 4, "steps_completed": 0, "started_at": "2026-02-09T08:15:11.88
+
+  [  1x] POST /api/v1/nerve-center/playbooks/execute/pb-vuln-triage
+        REQ:  null
+        RSP:  {"execution_id": "exec-pb-vuln-triage-1770629672", "playbook_id": "pb-vuln-triage", "dry_run": true, "status": "dry_run_complete", "steps_total": 4, "steps_completed": 4, "started_at": "2026-02-09T09:
+
+  [  2x] POST /api/v1/nerve-center/playbooks/validate
+        REQ:  {"apiVersion": "fixops.io/v1", "kind": "Playbook", "metadata": {"name": "my-playbook", "version": "1.0.0", "description": "Automated vulnerability res
+        RSP:  {"valid": true, "errors": [], "warnings": [{"field": "spec.steps", "message": "No steps defined"}]}
+
+  [  5x] POST /api/v1/predictions/risk-trajectory
+        REQ:  {"cve_ids": ["skjsksj"]}
+        RSP:  {"status": "success", "trajectory": {"start_state": "Initial", "horizon_steps": 10, "trajectory": [{"step": 1, "expected_risk": 0.2, "probability_impact": 0.0, "probability_contained": 0.1, "top_state
+
+  [  3x] POST /api/v1/reports
+        REQ:  {"name": "pci-dss Report", "report_type": "compliance", "format": "pdf", "parameters": {}, "framework": "pci-dss"}
+        RSP:  {"id": "33be6b94-a0b5-400b-a003-7203243bc6e2", "name": "pci-dss Report", "report_type": "compliance", "format": "pdf", "status": "completed", "parameters": {}, "file_path": "/tmp/reports/33be6b94-a0b5
+
+  [  7x] POST /api/v1/vulns/discovered
+        REQ:  {"title": "SQL Injection in User Login Endpoint", "description": "Discovered during manual penetration testing - user input in login form is not prope
+        RSP:  {"id": "40fd3330-53ba-4881-b665-e9c960cd7e23", "internal_id": "ALDECI-2026-0001", "title": "SQL Injection in User Login Endpoint", "severity": "critical", "status": "draft", "created_at": "2026-02-09T
+
+  [  2x] POST /api/v1/workflows/0a2221eb-90fa-4378-beac-4ed65d2bb6a8/execute
+        REQ:  NULL
+        RSP:  {"id": "2434178b-5c2a-4046-b78f-65dffb92c893", "workflow_id": "0a2221eb-90fa-4378-beac-4ed65d2bb6a8", "status": "completed", "triggered_by": null, "input_data": {}, "output_data": {"result": "success"
+
+  [  1x] POST /api/v1/workflows/badae0ea-8d7a-48ce-8716-1b7414933450/execute
+        REQ:  NULL
+        RSP:  {"id": "290e98c1-217b-4f17-8dff-e6b546e501f9", "workflow_id": "badae0ea-8d7a-48ce-8716-1b7414933450", "status": "completed", "triggered_by": null, "input_data": {}, "output_data": {"result": "success"
+
+  [  1x] POST /api/v1/workflows/f93118b8-7a68-4ce7-95cc-dc3d42ac9009/execute
+        REQ:  NULL
+        RSP:  {"id": "514eb37c-1226-4ee6-abb2-abddce29c363", "workflow_id": "f93118b8-7a68-4ce7-95cc-dc3d42ac9009", "status": "completed", "triggered_by": null, "input_data": {}, "output_data": {"result": "success"
+
+  [  1x] POST /inputs/sbom
+        REQ:  ------WebKitFormBoundaryMClR0P8WNZXBSpuo
+Content-Disposition: form-data; name="file"; filename="fixops_master_sbom_10arch_4000vulns.cdx-2.json"
+Cont
+        RSP:  {"status": "ok", "stage": "sbom", "input_filename": "fixops_master_sbom_10arch_4000vulns.cdx-2.json", "metadata": {"component_count": 65, "relationship_count": 0, "service_count": 0, "vulnerability_co
+
+
+--- 6. RECENT ERRORS (last 5 min) ---
+  :30:53.381901+00:00 POST /api/v1/cases/EC-c68148498079/transition           -> 400
+         {"detail": "Invalid transition: triaging \u2192 resolved. Allowed: ['false_positive', 'accepted_risk', 'open', 'fixing']"}
+  :30:52.148235+00:00 POST /api/v1/cases/EC-c68148498079/transition           -> 400
+         {"detail": "Invalid transition: triaging \u2192 triaging. Allowed: ['false_positive', 'accepted_risk', 'open', 'fixing']"}
+  :30:51.962579+00:00 POST /api/v1/cases/EC-c68148498079/transition           -> 400
+         {"detail": "Invalid transition: triaging \u2192 triaging. Allowed: ['false_positive', 'accepted_risk', 'open', 'fixing']"}
+  :30:44.562352+00:00 GET  /api/v1/pipeline/pipeline/runs                     -> 404
+         {"detail": "Not Found"}
+  :30:44.551589+00:00 POST /api/v1/pipeline/pipeline/run                      -> 404
+         {"detail": "Not Found"}
+  :30:42.853493+00:00 GET  /api/v1/pipeline/pipeline/runs                     -> 404
+         {"detail": "Not Found"}
+  :30:21.717899+00:00 POST /api/v1/cases/EC-fe6172c6fb9a/transition           -> 400
+         {"detail": "Invalid transition: fixing \u2192 false_positive. Allowed: ['open', 'triaging', 'resolved']"}
+  :30:21.125828+00:00 POST /api/v1/cases/EC-fe6172c6fb9a/transition           -> 400
+         {"detail": "Invalid transition: fixing \u2192 accepted_risk. Allowed: ['open', 'triaging', 'resolved']"}
+  :30:20.682889+00:00 POST /api/v1/cases/EC-fe6172c6fb9a/transition           -> 400
+         {"detail": "Invalid transition: fixing \u2192 accepted_risk. Allowed: ['open', 'triaging', 'resolved']"}
+  :30:20.020272+00:00 POST /api/v1/cases/EC-fe6172c6fb9a/transition           -> 400
+         {"detail": "Invalid transition: fixing \u2192 accepted_risk. Allowed: ['open', 'triaging', 'resolved']"}
+  :30:19.461194+00:00 POST /api/v1/cases/EC-fe6172c6fb9a/transition           -> 400
+         {"detail": "Invalid transition: fixing \u2192 accepted_risk. Allowed: ['open', 'triaging', 'resolved']"}
+  :30:12.800850+00:00 GET  /api/v1/pipeline/pipeline/runs                     -> 404
+         {"detail": "Not Found"}
+  :30:12.791028+00:00 POST /api/v1/pipeline/pipeline/run                      -> 404
+         {"detail": "Not Found"}
+  :30:05.134669+00:00 GET  /api/v1/pipeline/pipeline/runs                     -> 404
+         {"detail": "Not Found"}
+  :30:05.066586+00:00 POST /api/v1/pipeline/pipeline/run                      -> 404
+         {"detail": "Not Found"}
+  :30:00.280196+00:00 GET  /api/v1/pipeline/pipeline/runs                     -> 404
+         {"detail": "Not Found"}
+  :29:08.169811+00:00 POST /api/v1/micro-pentest/run                          -> 400
+         {"detail": "At least one CVE ID is required"}
+  :27:33.311776+00:00 GET  /api/v1/nerve-center/pulse                         -> 401
+         {"detail": "Invalid or missing API token"}
+  :27:30.305862+00:00 POST /api/v1/algorithms/monte-carlo/cve                 -> 422
+         {"detail": [{"type": "missing", "loc": ["body", "cvss_score"], "msg": "Field required", "input": {"cve_id": "CVE-2024-1234", "simulations": 100}}]}
+  :27:30.282777+00:00 POST /api/v1/decisions/make-decision                    -> 422
+         {"detail": [{"type": "missing", "loc": ["body", "service_name"], "msg": "Field required", "input": {"finding_id": "FIND-001", "action": "remediate", "priority": "high", "rationale": "Public-facing app
+
+--- SUMMARY ---
+Total logs: 10504
+Total errors: 228 (2.2%)
+Empty/null 200 paths: 60

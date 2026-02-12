@@ -61,7 +61,7 @@ export default function AttackPaths() {
       return result;
     },
     onSuccess: (data) => {
-      toast.success(`Analysis complete! Found ${data?.paths?.length || 0} attack paths`);
+      toast.success(`Analysis complete! Found ${data?.result?.attack_paths?.length || data?.attack_paths?.length || 0} attack paths`);
       refetchGraph();
     },
     onError: (error) => {
@@ -90,13 +90,25 @@ export default function AttackPaths() {
     },
   });
 
-  // Mock attack paths (would come from real API)
-  const attackPaths: AttackPath[] = graphData?.paths || [
-    { id: '1', name: 'Internet → Web Server → Database', source: 'External', target: 'Production DB', hops: 3, risk_score: 92, exploitability: 'HIGH', status: 'active' },
-    { id: '2', name: 'VPN → Jump Host → Admin Console', source: 'Contractor VPN', target: 'Admin Portal', hops: 2, risk_score: 78, exploitability: 'MEDIUM', status: 'investigating' },
-    { id: '3', name: 'Container → K8s API → Secrets', source: 'Workload Pod', target: 'Secrets Store', hops: 2, risk_score: 85, exploitability: 'HIGH', status: 'active' },
-    { id: '4', name: 'CI/CD → Registry → Production', source: 'Build Pipeline', target: 'Prod Cluster', hops: 4, risk_score: 67, exploitability: 'MEDIUM', status: 'mitigated' },
-  ];
+  // Map GNN attack paths to display format + fallback
+  const rawPaths = graphData?.attack_paths || graphData?.result?.attack_paths || graphData?.paths || [];
+  const attackPaths: AttackPath[] = rawPaths.length > 0
+    ? rawPaths.map((p: any, i: number) => ({
+        id: p.id || String(i + 1),
+        name: (p.path || []).join(' → ') || p.name || `Path ${i + 1}`,
+        source: p.entry_point || (p.path || [])[0] || 'Unknown',
+        target: p.target || (p.path || []).slice(-1)[0] || 'Unknown',
+        hops: (p.path || []).length || p.hops || 1,
+        risk_score: Math.round((p.impact_score || p.risk_score || 0.5) * 100),
+        exploitability: (p.probability || 0) > 0.7 ? 'HIGH' : (p.probability || 0) > 0.3 ? 'MEDIUM' : 'LOW',
+        status: p.status || 'active',
+      }))
+    : [
+        { id: '1', name: 'Internet → Web Server → Database', source: 'External', target: 'Production DB', hops: 3, risk_score: 92, exploitability: 'HIGH', status: 'active' as const },
+        { id: '2', name: 'VPN → Jump Host → Admin Console', source: 'Contractor VPN', target: 'Admin Portal', hops: 2, risk_score: 78, exploitability: 'MEDIUM', status: 'investigating' as const },
+        { id: '3', name: 'Container → K8s API → Secrets', source: 'Workload Pod', target: 'Secrets Store', hops: 2, risk_score: 85, exploitability: 'HIGH', status: 'active' as const },
+        { id: '4', name: 'CI/CD → Registry → Production', source: 'Build Pipeline', target: 'Prod Cluster', hops: 4, risk_score: 67, exploitability: 'MEDIUM', status: 'mitigated' as const },
+      ];
 
   const filteredPaths = attackPaths.filter(p => 
     p.name.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -300,15 +312,15 @@ export default function AttackPaths() {
                         <p className="text-lg font-bold">{path.risk_score}</p>
                         <p className="text-xs text-muted-foreground">Risk Score</p>
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toast.info(`Viewing details for path: ${path.name}`);
+                          setSelectedPath(selectedPath === path.id ? null : path.id);
                         }}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className={`w-4 h-4 ${selectedPath === path.id ? 'text-primary' : ''}`} />
                       </Button>
                     </div>
                   </div>

@@ -336,7 +336,7 @@ class AttackSimulationEngine:
             initial_access_vector=initial_access_vector or "T1190",
         )
         self._scenarios[scenario.scenario_id] = scenario
-        logger.info("scenario.created", extra={"scenario_id": scenario.scenario_id, "name": name})
+        logger.info("scenario.created", extra={"scenario_id": scenario.scenario_id, "scenario_name": name})
         return scenario
 
     def list_scenarios(self) -> List[AttackScenario]:

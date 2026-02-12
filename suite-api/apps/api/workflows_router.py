@@ -34,7 +34,7 @@ class WorkflowCreate(BaseModel):
     """Request model for creating a workflow."""
 
     name: str = Field(..., min_length=1, max_length=255)
-    description: str
+    description: str = Field("", description="Workflow description")
     steps: List[Dict[str, Any]] = Field(default_factory=list)
     triggers: Dict[str, Any] = Field(default_factory=dict)
     enabled: bool = True

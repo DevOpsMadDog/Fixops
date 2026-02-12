@@ -43,7 +43,7 @@ export default function AttackSimulation() {
     },
     {
       label: 'Attack Paths',
-      value: (graphData as any)?.paths?.length || (graphData as any)?.total_paths || 0,
+      value: (graphData as any)?.attack_paths?.length || (graphData as any)?.paths?.length || (graphData as any)?.total_paths || 0,
       icon: Network,
       color: 'text-purple-400',
     },

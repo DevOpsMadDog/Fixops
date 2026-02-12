@@ -78,8 +78,9 @@ def _auto_refresh_feeds():
         service = _feeds_service
         if service:
             stats = service.get_feed_stats()
-            epss_count = stats.get("epss_count", 0)
-            kev_count = stats.get("kev_count", 0)
+            # get_feed_stats() returns nested: {"epss": {"total_cves": N}, "kev": {"total_cves": N}}
+            epss_count = stats.get("epss", {}).get("total_cves", 0)
+            kev_count = stats.get("kev", {}).get("total_cves", 0)
             
             # Refresh EPSS if empty
             if epss_count == 0:
@@ -253,11 +254,11 @@ def get_kev_entries(
                 entries.append(entry.to_dict())
         return {"entries": entries, "count": len(entries)}
 
-    # Return all KEV entries
+    # Return all KEV entries with correct nested key access
     stats = service.get_feed_stats()
     return {
         "message": "Use cve_ids parameter to lookup specific CVEs",
-        "total_kev_entries": stats.get("kev_count", 0),
+        "total_kev_entries": stats.get("kev", {}).get("total_cves", 0),
     }
 
 
@@ -805,9 +806,31 @@ async def enrich_findings(request: EnrichFindingsRequest) -> Dict[str, Any]:
 
 @router.get("/stats")
 def get_feed_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
-    """Get comprehensive statistics across all feed categories."""
+    """Get comprehensive statistics across all feed categories.
+
+    Returns both detailed category stats and frontend-friendly summary.
+    """
     service = get_feeds_service()
-    return service.get_comprehensive_stats()
+    comp = service.get_comprehensive_stats()
+    basic = service.get_feed_stats()
+
+    # Add frontend-friendly top-level fields
+    epss_count = basic.get("epss", {}).get("total_cves", 0)
+    kev_count = basic.get("kev", {}).get("total_cves", 0)
+    total_unique = comp.get("totals", {}).get("unique_cves", 0)
+    last_refresh = basic.get("epss", {}).get("last_refresh") or basic.get("kev", {}).get("last_refresh")
+
+    comp["total_cves"] = total_unique or (epss_count + kev_count)
+    comp["new_today"] = 0  # Would need date filtering
+    comp["sources"] = {
+        "EPSS": epss_count,
+        "KEV": kev_count,
+        "NVD": comp.get("categories", {}).get("authoritative", {}).get("nvd_cves", 0),
+        "ExploitDB": comp.get("categories", {}).get("exploit", {}).get("exploit_intelligence", 0),
+        "OSV": comp.get("categories", {}).get("supply_chain", {}).get("supply_chain_vulns", 0),
+    }
+    comp["last_refresh"] = last_refresh
+    return comp
 
 
 @router.get("/categories")
@@ -902,24 +925,105 @@ def get_feed_health() -> Dict[str, Any]:
     service = get_feeds_service()
     stats = service.get_feed_stats()
 
+    # get_feed_stats() returns nested structure: {"epss": {"total_cves": N}, "kev": {"total_cves": N}, ...}
+    epss_data = stats.get("epss", {})
+    kev_data = stats.get("kev", {})
+
+    # Quick lightweight counts instead of expensive get_comprehensive_stats()
+    import sqlite3 as _sql
+    cats: Dict[str, Any] = {"authoritative": {}, "exploit": {}, "supply_chain": {}, "threat_actor": {}}
+    try:
+        conn = _sql.connect(service.db_path)
+        cur = conn.cursor()
+        for table, cat, key in [
+            ("nvd_cves", "authoritative", "nvd_cves"),
+            ("exploit_intelligence", "exploit", "exploit_intelligence"),
+            ("supply_chain_vulns", "supply_chain", "supply_chain_vulns"),
+            ("threat_actor_mappings", "threat_actor", "threat_actor_mappings"),
+        ]:
+            try:
+                cur.execute(f"SELECT COUNT(*) FROM {table}")
+                cats[cat][key] = cur.fetchone()[0]
+            except _sql.OperationalError:
+                cats[cat][key] = 0
+        conn.close()
+    except Exception:
+        pass
+
+    epss_count = epss_data.get("total_cves", 0)
+    kev_count = kev_data.get("total_cves", 0)
+
+    # Build per-feed status list for frontend
+    feeds_list = [
+        {
+            "name": "EPSS",
+            "status": "healthy" if epss_count > 0 else "stale",
+            "total_records": epss_count,
+            "new_today": 0,
+            "latency_ms": 0,
+            "last_update": epss_data.get("last_refresh"),
+        },
+        {
+            "name": "KEV",
+            "status": "healthy" if kev_count > 0 else "stale",
+            "total_records": kev_count,
+            "new_today": 0,
+            "latency_ms": 0,
+            "last_update": kev_data.get("last_refresh"),
+        },
+        {
+            "name": "NVD",
+            "status": "healthy" if cats.get("authoritative", {}).get("nvd_cves", 0) > 0 else "stale",
+            "total_records": cats.get("authoritative", {}).get("nvd_cves", 0),
+            "new_today": 0,
+            "latency_ms": 0,
+            "last_update": None,
+        },
+        {
+            "name": "ExploitDB",
+            "status": "healthy" if cats.get("exploit", {}).get("exploit_intelligence", 0) > 0 else "stale",
+            "total_records": cats.get("exploit", {}).get("exploit_intelligence", 0),
+            "new_today": 0,
+            "latency_ms": 0,
+            "last_update": None,
+        },
+        {
+            "name": "OSV",
+            "status": "healthy" if cats.get("supply_chain", {}).get("supply_chain_vulns", 0) > 0 else "stale",
+            "total_records": cats.get("supply_chain", {}).get("supply_chain_vulns", 0),
+            "new_today": 0,
+            "latency_ms": 0,
+            "last_update": None,
+        },
+        {
+            "name": "GitHub",
+            "status": "healthy" if cats.get("supply_chain", {}).get("supply_chain_vulns", 0) > 0 else "stale",
+            "total_records": cats.get("supply_chain", {}).get("supply_chain_vulns", 0),
+            "new_today": 0,
+            "latency_ms": 0,
+            "last_update": None,
+        },
+    ]
+
     return {
-        "status": "healthy",
+        "status": "healthy" if (epss_count + kev_count) > 0 else "degraded",
+        "feeds": feeds_list,
         "epss": {
-            "count": stats.get("epss_count", 0),
-            "last_updated": stats.get("epss_last_updated"),
+            "count": epss_count,
+            "last_updated": epss_data.get("last_refresh"),
         },
         "kev": {
-            "count": stats.get("kev_count", 0),
-            "last_updated": stats.get("kev_last_updated"),
+            "count": kev_count,
+            "last_updated": kev_data.get("last_refresh"),
         },
         "exploit_intelligence": {
-            "count": stats.get("exploit_count", 0),
+            "count": cats.get("exploit", {}).get("exploit_intelligence", 0),
         },
         "threat_actors": {
-            "count": stats.get("threat_actor_count", 0),
+            "count": cats.get("threat_actor", {}).get("threat_actor_mappings", 0),
         },
         "supply_chain": {
-            "count": stats.get("supply_chain_count", 0),
+            "count": cats.get("supply_chain", {}).get("supply_chain_vulns", 0),
         },
     }
 
@@ -940,6 +1044,22 @@ def get_scheduler_status() -> Dict[str, Any]:
         ],
         "note": "Background scheduler can be started via FeedsService.scheduler() method",
     }
+
+
+@router.post("/refresh")
+async def refresh_feeds_alias(
+    include_nvd: bool = Query(default=True, description="Include NVD feed"),
+    include_exploitdb: bool = Query(default=True, description="Include ExploitDB feed"),
+    include_osv: bool = Query(default=True, description="Include OSV feed"),
+    include_github: bool = Query(default=True, description="Include GitHub Advisories"),
+) -> Dict[str, Any]:
+    """Alias for /refresh/all — keeps frontend happy."""
+    return await refresh_all_feeds(
+        include_nvd=include_nvd,
+        include_exploitdb=include_exploitdb,
+        include_osv=include_osv,
+        include_github=include_github,
+    )
 
 
 @router.post("/refresh/all")

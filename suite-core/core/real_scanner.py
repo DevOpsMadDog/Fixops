@@ -46,6 +46,19 @@ class VulnerabilityType(str, Enum):
     INFORMATION_DISCLOSURE = "information_disclosure"
     SECRETS_EXPOSURE = "secrets_exposure"
     IAC_MISCONFIGURATION = "iac_misconfiguration"
+    CORS_MISCONFIGURATION = "cors_misconfiguration"
+    COOKIE_SECURITY = "cookie_security"
+    HTTP_METHOD_EXPOSURE = "http_method_exposure"
+    TECHNOLOGY_FINGERPRINT = "technology_fingerprint"
+    WAF_DETECTION = "waf_detection"
+    OPEN_REDIRECT = "open_redirect"
+    CRLF_INJECTION = "crlf_injection"
+    API_EXPOSURE = "api_exposure"
+    SSTI = "ssti"
+    HTTP_REQUEST_SMUGGLING = "http_request_smuggling"
+    HOST_HEADER_INJECTION = "host_header_injection"
+    DESERIALIZATION = "deserialization"
+    CACHE_POISONING = "cache_poisoning"
 
 
 @dataclass
@@ -118,11 +131,9 @@ SECURITY_HEADERS = {
         "severity": "low",
         "cwe": "CWE-16",
     },
-    "X-XSS-Protection": {
-        "expected": ["1; mode=block", "1"],
-        "severity": "low",
-        "cwe": "CWE-79",
-    },
+    # NOTE: X-XSS-Protection intentionally REMOVED.
+    # It is deprecated (Chrome 78+, Edge, Firefox never supported it).
+    # Modern browsers ignore it; flagging it as missing is misleading.
     "Strict-Transport-Security": {
         "expected_pattern": r"max-age=\d+",
         "severity": "medium",
@@ -223,22 +234,77 @@ class RealVulnerabilityScanner:
             
             # Phase 6: Path traversal
             await self._check_path_traversal(client, url, headers)
-            
+
+            # Phase 7: CORS misconfiguration
+            await self._check_cors_misconfiguration(client, url, headers)
+
+            # Phase 8: Cookie security
+            await self._check_cookie_security(client, url, headers)
+
+            # Phase 9: HTTP method enumeration
+            await self._check_http_methods(client, url, headers)
+
+            # Phase 10: Technology fingerprinting
+            await self._check_technology_fingerprinting(client, url, headers)
+
+            # Phase 11: WAF detection
+            await self._check_waf_detection(client, url, headers)
+
+            # Phase 12: Open redirect
+            await self._check_open_redirect(client, url, headers)
+
+            # Phase 13: CRLF injection
+            await self._check_crlf_injection(client, url, headers)
+
+            # Phase 14: API endpoint discovery
+            await self._check_api_endpoint_discovery(client, url, headers)
+
+            # Phase 15: Server-Side Template Injection (SSTI)
+            await self._check_ssti(client, url, headers)
+
+            # Phase 16: HTTP Request Smuggling indicators
+            await self._check_http_request_smuggling(client, url, headers)
+
+            # Phase 17: Host Header Injection
+            await self._check_host_header_injection(client, url, headers)
+
+            # Phase 18: Deserialization indicators
+            await self._check_deserialization(client, url, headers)
+
+            # Phase 19: Cache Poisoning
+            await self._check_cache_poisoning(client, url, headers)
+
         return self._findings
     
     async def _check_security_headers(
-        self, 
-        client: httpx.AsyncClient, 
+        self,
+        client: httpx.AsyncClient,
         url: str,
         headers: Optional[Dict[str, str]] = None
     ) -> None:
-        """Check for missing or misconfigured security headers."""
+        """Check for missing or misconfigured security headers.
+
+        Context-aware: skips X-Frame-Options / CSP checks on JSON API
+        responses because those headers are only relevant for browser-
+        rendered HTML content.
+        """
         try:
             response = await client.get(url, headers=headers)
-            
+
+            # Detect response context for smart filtering
+            ct = response.headers.get("content-type", "")
+            is_json_api = "json" in ct.lower()
+
+            # Headers that only matter on HTML pages (not JSON APIs)
+            _HTML_ONLY_HEADERS = {"X-Frame-Options", "Content-Security-Policy"}
+
             for header_name, config in SECURITY_HEADERS.items():
+                # Skip HTML-only headers on JSON API endpoints
+                if is_json_api and header_name in _HTML_ONLY_HEADERS:
+                    continue
+
                 header_value = response.headers.get(header_name)
-                
+
                 if not header_value:
                     self._findings.append(RealFinding(
                         finding_id=self._generate_finding_id(),
@@ -250,6 +316,7 @@ class RealVulnerabilityScanner:
                         evidence={
                             "header": header_name,
                             "status": "missing",
+                            "content_type": ct,
                             "response_headers": dict(response.headers),
                         },
                         affected_url=url,
@@ -270,6 +337,7 @@ class RealVulnerabilityScanner:
                                 "header": header_name,
                                 "value": header_value,
                                 "expected": config["expected"],
+                                "content_type": ct,
                             },
                             affected_url=url,
                             remediation=f"Set {header_name} to one of: {', '.join(config['expected'])}",
@@ -333,102 +401,138 @@ class RealVulnerabilityScanner:
             pass  # Other errors handled elsewhere
     
     async def _check_sql_injection(
-        self, 
-        client: httpx.AsyncClient, 
+        self,
+        client: httpx.AsyncClient,
         url: str,
         headers: Optional[Dict[str, str]] = None
     ) -> None:
-        """Check for SQL injection vulnerabilities using real payloads."""
+        """Check for SQL injection via differential analysis + error-based detection."""
         parsed = urlparse(url)
         base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-        
-        # Test query parameters if present
-        if parsed.query:
-            params = parse_qs(parsed.query)
-            for param_name in params:
-                for payload in SQL_INJECTION_PAYLOADS[:3]:  # Limit payloads for speed
-                    test_params = dict(params)
-                    test_params[param_name] = [payload]
-                    test_url = f"{base_url}?{urlencode(test_params, doseq=True)}"
-                    
-                    try:
-                        response = await client.get(test_url, headers=headers)
-                        text = response.text
-                        
-                        # Check for SQL error patterns
-                        for pattern in SQL_ERROR_PATTERNS:
-                            if re.search(pattern, text, re.IGNORECASE):
-                                self._findings.append(RealFinding(
-                                    finding_id=self._generate_finding_id(),
-                                    vulnerability_type=VulnerabilityType.SQL_INJECTION,
-                                    title="SQL Injection Vulnerability Detected",
-                                    description=f"SQL error message detected in response when testing "
-                                                f"parameter '{param_name}' with payload '{payload}'. "
-                                                f"This indicates the application may be vulnerable to SQL injection.",
-                                    severity="critical",
-                                    evidence={
-                                        "parameter": param_name,
-                                        "payload": payload,
-                                        "error_pattern": pattern,
-                                        "response_snippet": text[:500],
-                                    },
-                                    affected_url=url,
-                                    remediation="Use parameterized queries or prepared statements. "
-                                                "Never concatenate user input into SQL queries.",
-                                    cwe_id="CWE-89",
-                                    cvss_score=9.8,
-                                ))
-                                return  # Found vulnerability, stop testing
-                                
-                    except httpx.RequestError:
-                        pass  # Network errors handled elsewhere
-    
-    async def _check_xss(
-        self, 
-        client: httpx.AsyncClient, 
-        url: str,
-        headers: Optional[Dict[str, str]] = None
-    ) -> None:
-        """Check for XSS vulnerabilities by testing reflection."""
-        parsed = urlparse(url)
-        base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-        
-        if parsed.query:
-            params = parse_qs(parsed.query)
-            for param_name in params:
-                for payload in XSS_PAYLOADS[:2]:  # Limit for speed
-                    test_params = dict(params)
-                    test_params[param_name] = [payload]
-                    test_url = f"{base_url}?{urlencode(test_params, doseq=True)}"
-                    
-                    try:
-                        response = await client.get(test_url, headers=headers)
-                        
-                        # Check if payload is reflected unencoded
-                        if payload in response.text:
+
+        if not parsed.query:
+            return
+        params = parse_qs(parsed.query)
+        for param_name in params:
+            # Step 1: Baseline with benign value
+            benign_params = dict(params)
+            benign_params[param_name] = ["ALDECI_BENIGN_VALUE"]
+            try:
+                benign_resp = await client.get(
+                    f"{base_url}?{urlencode(benign_params, doseq=True)}",
+                    headers=headers, timeout=5.0,
+                )
+                benign_text = benign_resp.text
+                benign_status = benign_resp.status_code
+            except httpx.RequestError:
+                continue
+            # Step 2: Malicious payloads with differential check
+            for payload in SQL_INJECTION_PAYLOADS[:3]:
+                test_params = dict(params)
+                test_params[param_name] = [payload]
+                try:
+                    response = await client.get(
+                        f"{base_url}?{urlencode(test_params, doseq=True)}",
+                        headers=headers, timeout=5.0,
+                    )
+                    text = response.text
+                    # Must find SQL error pattern AND it must NOT appear in benign response
+                    for pattern in SQL_ERROR_PATTERNS:
+                        malicious_match = re.search(pattern, text, re.IGNORECASE)
+                        benign_match = re.search(pattern, benign_text, re.IGNORECASE)
+                        if malicious_match and not benign_match:
                             self._findings.append(RealFinding(
                                 finding_id=self._generate_finding_id(),
-                                vulnerability_type=VulnerabilityType.XSS,
-                                title="Reflected XSS Vulnerability Detected",
-                                description=f"XSS payload was reflected in the response without encoding "
-                                            f"when testing parameter '{param_name}'. This indicates "
-                                            f"the application is vulnerable to cross-site scripting.",
-                                severity="high",
+                                vulnerability_type=VulnerabilityType.SQL_INJECTION,
+                                title="SQL Injection Vulnerability Detected (Differential Confirmed)",
+                                description=(
+                                    f"SQL error message detected in response for parameter '{param_name}' "
+                                    f"with payload '{payload}'. Confirmed by differential analysis: "
+                                    f"benign input did NOT trigger the error."
+                                ),
+                                severity="critical",
                                 evidence={
                                     "parameter": param_name,
                                     "payload": payload,
-                                    "reflected": True,
+                                    "error_pattern": pattern,
+                                    "response_snippet": text[:500],
+                                    "differential": True,
+                                    "benign_status": benign_status,
+                                    "malicious_status": response.status_code,
                                 },
                                 affected_url=url,
-                                remediation="Encode all user input before reflecting it in responses. "
-                                            "Implement Content Security Policy headers.",
-                                cwe_id="CWE-79",
-                                cvss_score=7.5,
+                                remediation="Use parameterized queries or prepared statements. "
+                                            "Never concatenate user input into SQL queries.",
+                                cwe_id="CWE-89",
+                                cvss_score=9.8,
                             ))
                             return
-                            
-                    except httpx.RequestError:
-                        pass
+                except httpx.RequestError:
+                    pass
+    
+    async def _check_xss(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Check for XSS via unique token reflection with differential analysis."""
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+        if not parsed.query:
+            return
+        params = parse_qs(parsed.query)
+        # Use a unique canary token so we don't match static page content
+        canary = f"ALDECI{hashlib.md5(url.encode()).hexdigest()[:8]}"
+        for param_name in params:
+            # Step 1: Check if the parameter reflects values at all using a unique canary
+            canary_params = dict(params)
+            canary_params[param_name] = [canary]
+            try:
+                canary_resp = await client.get(
+                    f"{base_url}?{urlencode(canary_params, doseq=True)}",
+                    headers=headers, timeout=5.0,
+                )
+                if canary not in canary_resp.text:
+                    continue  # Parameter is not reflected — skip
+            except httpx.RequestError:
+                continue
+            # Step 2: Now test XSS payload — we know this param reflects
+            for payload in XSS_PAYLOADS[:2]:
+                test_params = dict(params)
+                test_params[param_name] = [payload]
+                try:
+                    response = await client.get(
+                        f"{base_url}?{urlencode(test_params, doseq=True)}",
+                        headers=headers, timeout=5.0,
+                    )
+                    if payload in response.text:
+                        self._findings.append(RealFinding(
+                            finding_id=self._generate_finding_id(),
+                            vulnerability_type=VulnerabilityType.XSS,
+                            title="Reflected XSS Vulnerability Detected (Canary Confirmed)",
+                            description=(
+                                f"XSS payload reflected without encoding in parameter '{param_name}'. "
+                                f"Confirmed via unique canary: param reflects arbitrary input."
+                            ),
+                            severity="high",
+                            evidence={
+                                "parameter": param_name,
+                                "payload": payload,
+                                "reflected": True,
+                                "canary_reflected": True,
+                                "differential": True,
+                            },
+                            affected_url=url,
+                            remediation="Encode all user input before reflecting it in responses. "
+                                        "Implement Content Security Policy headers.",
+                            cwe_id="CWE-79",
+                            cvss_score=7.5,
+                        ))
+                        return
+                except httpx.RequestError:
+                    pass
     
     async def _check_information_disclosure(
         self, 
@@ -527,11 +631,615 @@ class RealVulnerabilityScanner:
                     except httpx.RequestError:
                         pass
     
+    async def _check_cors_misconfiguration(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Check for CORS misconfiguration vulnerabilities."""
+        test_origins = ["https://evil.com", "null", "https://attacker.example.com"]
+        for origin in test_origins:
+            try:
+                h = dict(headers or {})
+                h["Origin"] = origin
+                resp = await client.get(url, headers=h)
+                acao = resp.headers.get("Access-Control-Allow-Origin", "")
+                acac = resp.headers.get("Access-Control-Allow-Credentials", "")
+                if acao == "*" or acao == origin:
+                    sev = "high" if acac.lower() == "true" else "medium"
+                    detail = f"ACAO reflects '{origin}'" + (", credentials allowed" if acac.lower() == "true" else "")
+                    self._findings.append(RealFinding(
+                        finding_id=self._generate_finding_id(),
+                        vulnerability_type=VulnerabilityType.CORS_MISCONFIGURATION,
+                        title="CORS Misconfiguration Detected",
+                        description=f"Server reflects arbitrary Origin header. {detail}",
+                        severity=sev,
+                        evidence={"origin_sent": origin, "acao": acao, "acac": acac},
+                        affected_url=url,
+                        remediation="Restrict Access-Control-Allow-Origin to trusted domains. "
+                                    "Never combine wildcard origin with Allow-Credentials: true.",
+                        cwe_id="CWE-942",
+                        cvss_score=7.5 if acac.lower() == "true" else 5.3,
+                    ))
+                    return  # One finding per URL
+            except httpx.RequestError:
+                pass
+
+    async def _check_cookie_security(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Check for insecure cookie configurations."""
+        try:
+            resp = await client.get(url, headers=headers)
+            raw_cookies = resp.headers.get_list("set-cookie") if hasattr(resp.headers, "get_list") else [
+                v for k, v in resp.headers.multi_items() if k.lower() == "set-cookie"
+            ]
+            for cookie_str in raw_cookies:
+                name = cookie_str.split("=")[0].strip() if "=" in cookie_str else cookie_str
+                lower = cookie_str.lower()
+                issues = []
+                if "secure" not in lower:
+                    issues.append("missing Secure flag")
+                if "httponly" not in lower:
+                    issues.append("missing HttpOnly flag")
+                if "samesite" not in lower:
+                    issues.append("missing SameSite attribute")
+                if issues:
+                    self._findings.append(RealFinding(
+                        finding_id=self._generate_finding_id(),
+                        vulnerability_type=VulnerabilityType.COOKIE_SECURITY,
+                        title=f"Insecure Cookie: {name}",
+                        description=f"Cookie '{name}' has security issues: {', '.join(issues)}.",
+                        severity="medium",
+                        evidence={"cookie_name": name, "issues": issues, "raw_header": cookie_str[:200]},
+                        affected_url=url,
+                        remediation="Set Secure, HttpOnly, and SameSite=Strict on all sensitive cookies.",
+                        cwe_id="CWE-614",
+                        cvss_score=4.7,
+                    ))
+        except httpx.RequestError:
+            pass
+
+    async def _check_http_methods(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Enumerate allowed HTTP methods and flag dangerous ones."""
+        try:
+            resp = await client.options(url, headers=headers)
+            allow = resp.headers.get("Allow", "")
+            if not allow:
+                allow = resp.headers.get("Access-Control-Allow-Methods", "")
+            if allow:
+                methods = [m.strip().upper() for m in allow.split(",")]
+                dangerous = [m for m in methods if m in ("TRACE", "PUT", "DELETE", "CONNECT")]
+                if dangerous:
+                    self._findings.append(RealFinding(
+                        finding_id=self._generate_finding_id(),
+                        vulnerability_type=VulnerabilityType.HTTP_METHOD_EXPOSURE,
+                        title="Dangerous HTTP Methods Enabled",
+                        description=f"Server allows potentially dangerous HTTP methods: {', '.join(dangerous)}.",
+                        severity="medium" if "TRACE" in dangerous else "low",
+                        evidence={"allowed_methods": methods, "dangerous_methods": dangerous},
+                        affected_url=url,
+                        remediation="Disable TRACE, PUT, DELETE, and CONNECT methods unless explicitly required.",
+                        cwe_id="CWE-749",
+                        cvss_score=5.3 if "TRACE" in dangerous else 3.7,
+                    ))
+        except httpx.RequestError:
+            pass
+
+    async def _check_technology_fingerprinting(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Fingerprint web technologies from response headers and body."""
+        try:
+            resp = await client.get(url, headers=headers)
+            techs = []
+            server = resp.headers.get("Server", "")
+            if server:
+                techs.append(("Server", server))
+            powered = resp.headers.get("X-Powered-By", "")
+            if powered:
+                techs.append(("Framework", powered))
+            asp_ver = resp.headers.get("X-AspNet-Version", "")
+            if asp_ver:
+                techs.append(("ASP.NET", asp_ver))
+            generator = resp.headers.get("X-Generator", "")
+            if generator:
+                techs.append(("Generator", generator))
+            body = resp.text[:5000].lower()
+            # Body-based detection
+            fp_patterns = [
+                ("WordPress", "wp-content"), ("Drupal", "drupal.settings"),
+                ("Joomla", "joomla"), ("Django", "csrfmiddlewaretoken"),
+                ("Laravel", "laravel_session"), ("Express", "x-powered-by: express"),
+                ("React", "react"), ("Angular", "ng-version"),
+                ("Vue.js", "data-v-"), ("Next.js", "__next"),
+                ("Rails", "action_dispatch"), ("Spring", "x-application-context"),
+                ("Tomcat", "apache-coyote"), ("nginx", "nginx"),
+                ("IIS", "microsoft-iis"),
+            ]
+            for name, pattern in fp_patterns:
+                if pattern in body or pattern in server.lower() or pattern in powered.lower():
+                    techs.append(("Technology", name))
+            if techs:
+                self._findings.append(RealFinding(
+                    finding_id=self._generate_finding_id(),
+                    vulnerability_type=VulnerabilityType.TECHNOLOGY_FINGERPRINT,
+                    title="Technology Stack Fingerprinted",
+                    description=f"Detected {len(techs)} technology indicators. "
+                                "Detailed version information aids targeted attacks.",
+                    severity="info",
+                    evidence={"technologies": [{"type": t, "value": v} for t, v in techs]},
+                    affected_url=url,
+                    remediation="Remove version information from Server/X-Powered-By headers. "
+                                "Use generic error pages to reduce technology fingerprinting.",
+                    cwe_id="CWE-200",
+                    cvss_score=0.0,
+                ))
+        except httpx.RequestError:
+            pass
+
+    async def _check_waf_detection(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Detect presence of WAF/CDN/security appliances."""
+        waf_indicators = {
+            "Cloudflare": ["cf-ray", "cf-cache-status", "__cfduid", "cf-request-id"],
+            "AWS WAF": ["x-amzn-requestid", "x-amz-cf-id"],
+            "Akamai": ["x-akamai-transformed", "akamai-origin-hop"],
+            "Imperva/Incapsula": ["x-iinfo", "incap_ses", "visid_incap"],
+            "Sucuri": ["x-sucuri-id", "x-sucuri-cache"],
+            "F5 BIG-IP": ["x-cnection", "bigipserver"],
+            "Barracuda": ["barra_counter_session"],
+            "ModSecurity": ["mod_security", "modsecurity"],
+        }
+        try:
+            resp = await client.get(url, headers=headers)
+            resp_headers_lower = {k.lower(): v for k, v in resp.headers.items()}
+            detected = []
+            for waf_name, indicators in waf_indicators.items():
+                for ind in indicators:
+                    if ind.lower() in resp_headers_lower:
+                        detected.append(waf_name)
+                        break
+            # Also try a malicious-looking request to trigger WAF
+            try:
+                atk_resp = await client.get(
+                    url + "?id=1' OR 1=1--&<script>alert(1)</script>",
+                    headers=headers, timeout=5.0
+                )
+                if atk_resp.status_code in (403, 406, 429, 503) and resp.status_code == 200:
+                    detected.append("WAF (behavior-based)")
+            except httpx.RequestError:
+                pass
+            if detected:
+                self._findings.append(RealFinding(
+                    finding_id=self._generate_finding_id(),
+                    vulnerability_type=VulnerabilityType.WAF_DETECTION,
+                    title=f"WAF/CDN Detected: {', '.join(set(detected))}",
+                    description=f"Detected {len(set(detected))} security appliance(s). "
+                                "This is informational and indicates defense-in-depth.",
+                    severity="info",
+                    evidence={"detected_wafs": list(set(detected)), "header_indicators": dict(resp_headers_lower)},
+                    affected_url=url,
+                    remediation="WAF detected is positive. Ensure rules are up-to-date and properly tuned.",
+                    cwe_id="CWE-693",
+                    cvss_score=0.0,
+                ))
+        except httpx.RequestError:
+            pass
+
+    async def _check_open_redirect(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Check for open redirect vulnerabilities."""
+        redirect_params = ["url", "redirect", "next", "dest", "destination", "redir", "redirect_uri", "return", "returnTo", "go", "target", "link", "out"]
+        redirect_target = "https://evil.example.com"
+        parsed = urlparse(url)
+        base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        for param in redirect_params:
+            try:
+                test_url = f"{base}?{param}={redirect_target}"
+                resp = await client.get(test_url, headers=headers, follow_redirects=False, timeout=5.0)
+                location = resp.headers.get("Location", "")
+                if resp.status_code in (301, 302, 303, 307, 308) and "evil.example.com" in location:
+                    self._findings.append(RealFinding(
+                        finding_id=self._generate_finding_id(),
+                        vulnerability_type=VulnerabilityType.OPEN_REDIRECT,
+                        title=f"Open Redirect via '{param}' Parameter",
+                        description=f"Server redirects to attacker-controlled URL when '{param}' "
+                                    f"parameter is set to an external domain.",
+                        severity="medium",
+                        evidence={"parameter": param, "redirect_target": redirect_target,
+                                  "location_header": location, "status_code": resp.status_code},
+                        affected_url=url,
+                        remediation="Validate redirect URLs against an allowlist of trusted domains. "
+                                    "Use relative paths instead of full URLs.",
+                        cwe_id="CWE-601",
+                        cvss_score=6.1,
+                    ))
+                    return  # One finding per URL
+            except httpx.RequestError:
+                pass
+
+    async def _check_crlf_injection(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Check for CRLF injection in HTTP headers."""
+        crlf_payloads = [
+            "%0d%0aX-Injected: true",
+            "%0d%0aSet-Cookie: crlf=injected",
+            "\\r\\nX-CRLF-Test: true",
+        ]
+        parsed = urlparse(url)
+        base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        for payload in crlf_payloads:
+            try:
+                test_url = f"{base}?q={payload}"
+                resp = await client.get(test_url, headers=headers, follow_redirects=False, timeout=5.0)
+                if "x-injected" in resp.headers or "x-crlf-test" in resp.headers:
+                    self._findings.append(RealFinding(
+                        finding_id=self._generate_finding_id(),
+                        vulnerability_type=VulnerabilityType.CRLF_INJECTION,
+                        title="CRLF Injection Detected",
+                        description="Server processes CRLF sequences in URL parameters, allowing "
+                                    "HTTP response splitting and header injection.",
+                        severity="high",
+                        evidence={"payload": payload, "injected_header_found": True,
+                                  "response_headers": dict(resp.headers)},
+                        affected_url=url,
+                        remediation="Sanitize all user input that appears in HTTP headers. "
+                                    "Strip CR (\\r) and LF (\\n) characters from header values.",
+                        cwe_id="CWE-93",
+                        cvss_score=7.5,
+                    ))
+                    return
+            except httpx.RequestError:
+                pass
+
+    async def _check_api_endpoint_discovery(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Discover exposed API endpoints and documentation."""
+        parsed = urlparse(url)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        api_paths = [
+            "/api", "/api/v1", "/api/v2", "/api/v3",
+            "/graphql", "/graphiql",
+            "/swagger", "/swagger-ui", "/swagger-ui.html", "/swagger.json",
+            "/openapi.json", "/openapi.yaml", "/docs", "/redoc",
+            "/api-docs", "/api/docs",
+            "/.well-known/openid-configuration",
+            "/actuator", "/actuator/health", "/actuator/env",
+            "/debug", "/debug/vars", "/debug/pprof",
+            "/metrics", "/prometheus/metrics",
+            "/health", "/healthz", "/readyz", "/status",
+            "/admin", "/admin/login", "/wp-admin",
+            "/.env", "/config", "/config.json",
+            "/server-status", "/server-info",
+            "/phpinfo.php", "/info.php",
+        ]
+        discovered = []
+        for path in api_paths:
+            try:
+                resp = await client.get(urljoin(base, path), headers=headers, timeout=3.0)
+                if resp.status_code in (200, 301, 302, 401):
+                    content_type = resp.headers.get("Content-Type", "")
+                    discovered.append({
+                        "path": path,
+                        "status_code": resp.status_code,
+                        "content_type": content_type[:80],
+                        "content_length": len(resp.content),
+                    })
+            except httpx.RequestError:
+                pass
+        if discovered:
+            sensitive = [d for d in discovered if any(s in d["path"] for s in [
+                ".env", "config", "debug", "admin", "actuator/env", "phpinfo",
+                "server-status", "server-info", "swagger", "graphiql"
+            ])]
+            sev = "high" if sensitive else "info"
+            self._findings.append(RealFinding(
+                finding_id=self._generate_finding_id(),
+                vulnerability_type=VulnerabilityType.API_EXPOSURE,
+                title=f"API/Endpoint Discovery: {len(discovered)} endpoints found",
+                description=f"Discovered {len(discovered)} accessible endpoints. "
+                            f"{len(sensitive)} are potentially sensitive.",
+                severity=sev,
+                evidence={"endpoints": discovered, "sensitive_endpoints": sensitive, "total": len(discovered)},
+                affected_url=url,
+                remediation="Restrict access to admin panels, debug endpoints, and API documentation in production. "
+                            "Use authentication and network-level access controls.",
+                cwe_id="CWE-200",
+                cvss_score=7.5 if sensitive else 0.0,
+            ))
+
+    async def _check_ssti(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Detect Server-Side Template Injection via differential math evaluation."""
+        parsed = urlparse(url)
+        if not parsed.query:
+            return
+        params = parse_qs(parsed.query)
+        base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        # Unique math probe: if the server evaluates the expression, the result shows up
+        probes = [
+            ("{{7*7}}", "49"),
+            ("${7*7}", "49"),
+            ("<%= 7*7 %>", "49"),
+            ("{{7*'7'}}", "7777777"),  # Jinja2
+            ("#{7*7}", "49"),
+        ]
+        for param_name in params:
+            # First get baseline with benign value
+            benign_params = dict(params)
+            benign_params[param_name] = ["ALDECI_BENIGN_PROBE"]
+            try:
+                benign_resp = await client.get(
+                    f"{base_url}?{urlencode(benign_params, doseq=True)}",
+                    headers=headers, timeout=5.0,
+                )
+                benign_text = benign_resp.text
+            except httpx.RequestError:
+                continue
+            for tpl, expected in probes:
+                test_params = dict(params)
+                test_params[param_name] = [tpl]
+                try:
+                    resp = await client.get(
+                        f"{base_url}?{urlencode(test_params, doseq=True)}",
+                        headers=headers, timeout=5.0,
+                    )
+                    # Only flag if: (a) expected result appears AND (b) it was NOT in benign response
+                    if expected in resp.text and expected not in benign_text:
+                        self._findings.append(RealFinding(
+                            finding_id=self._generate_finding_id(),
+                            vulnerability_type=VulnerabilityType.SSTI,
+                            title="Server-Side Template Injection (SSTI) Detected",
+                            description=(
+                                f"Template expression '{tpl}' evaluated to '{expected}' "
+                                f"on parameter '{param_name}'. Confirms server-side template evaluation."
+                            ),
+                            severity="critical",
+                            evidence={
+                                "parameter": param_name,
+                                "payload": tpl,
+                                "expected_result": expected,
+                                "reflected": True,
+                                "differential": True,
+                                "benign_contained_result": False,
+                            },
+                            affected_url=url,
+                            remediation="Sanitize all user input before template rendering. "
+                                        "Use sandboxed template engines. Avoid rendering user input as templates.",
+                            cwe_id="CWE-1336",
+                            cvss_score=9.8,
+                        ))
+                        return
+                except httpx.RequestError:
+                    pass
+
+    async def _check_http_request_smuggling(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Detect HTTP Request Smuggling indicators via CL.TE / TE.CL probes."""
+        indicators = []
+        # Probe 1: Send conflicting Content-Length + Transfer-Encoding
+        smuggle_headers = dict(headers or {})
+        smuggle_headers["Transfer-Encoding"] = "chunked"
+        smuggle_headers["Content-Length"] = "4"
+        try:
+            resp = await client.post(
+                url, headers=smuggle_headers,
+                content="0\r\n\r\n", timeout=8.0,
+            )
+            # A properly hardened server rejects conflicting CL/TE or returns 400
+            if resp.status_code not in (400, 405, 501):
+                indicators.append({
+                    "probe": "CL.TE conflict",
+                    "status_code": resp.status_code,
+                    "note": "Server accepted conflicting Content-Length and Transfer-Encoding",
+                })
+        except httpx.RequestError:
+            pass
+        # Probe 2: Multiple Transfer-Encoding headers (obfuscation)
+        try:
+            te_headers = dict(headers or {})
+            te_headers["Transfer-Encoding"] = "chunked"
+            te_headers["Transfer-encoding"] = "cow"  # case variant
+            resp2 = await client.post(
+                url, headers=te_headers,
+                content="0\r\n\r\n", timeout=8.0,
+            )
+            if resp2.status_code not in (400, 405, 501):
+                indicators.append({
+                    "probe": "TE.TE obfuscation",
+                    "status_code": resp2.status_code,
+                    "note": "Server accepted obfuscated Transfer-Encoding headers",
+                })
+        except httpx.RequestError:
+            pass
+        # Only flag if MULTIPLE indicators suggest smuggling susceptibility
+        if len(indicators) >= 2:
+            self._findings.append(RealFinding(
+                finding_id=self._generate_finding_id(),
+                vulnerability_type=VulnerabilityType.HTTP_REQUEST_SMUGGLING,
+                title="HTTP Request Smuggling Indicators Detected",
+                description=(
+                    f"Server shows {len(indicators)} indicators of HTTP Request Smuggling susceptibility. "
+                    "Conflicting Content-Length/Transfer-Encoding headers were not rejected."
+                ),
+                severity="high",
+                evidence={"indicators": indicators, "indicator_count": len(indicators)},
+                affected_url=url,
+                remediation="Ensure front-end and back-end servers normalize Transfer-Encoding handling. "
+                            "Reject ambiguous requests with conflicting CL/TE. "
+                            "Use HTTP/2 end-to-end to eliminate smuggling vectors.",
+                cwe_id="CWE-444",
+                cvss_score=8.1,
+            ))
+
+    async def _check_host_header_injection(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Detect Host Header Injection via differential response analysis."""
+        canary = "aldeci-evil.example.com"
+        try:
+            # Baseline with legitimate Host
+            baseline = await client.get(url, headers=headers, timeout=5.0)
+            baseline_text = baseline.text
+            # Inject evil host
+            evil_headers = dict(headers or {})
+            evil_headers["Host"] = canary
+            evil_resp = await client.get(url, headers=evil_headers, timeout=5.0)
+            evil_text = evil_resp.text
+            # Only flag if the canary host is reflected back in the response body
+            if canary in evil_text and canary not in baseline_text:
+                self._findings.append(RealFinding(
+                    finding_id=self._generate_finding_id(),
+                    vulnerability_type=VulnerabilityType.HOST_HEADER_INJECTION,
+                    title="Host Header Injection Detected",
+                    description=(
+                        f"Injected Host header '{canary}' was reflected in the response body. "
+                        "This can lead to cache poisoning, password reset hijacking, or SSRF."
+                    ),
+                    severity="high",
+                    evidence={
+                        "injected_host": canary,
+                        "reflected": True,
+                        "differential": True,
+                        "baseline_contained_canary": False,
+                    },
+                    affected_url=url,
+                    remediation="Validate the Host header against an allowed list. "
+                                "Never use the Host header to generate URLs in responses.",
+                    cwe_id="CWE-644",
+                    cvss_score=7.5,
+                ))
+        except httpx.RequestError:
+            pass
+
+    async def _check_deserialization(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Detect insecure deserialization indicators by probing accept/content headers."""
+        indicators = []
+        parsed = urlparse(url)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        # Check if the server accepts Java serialized objects
+        deser_probes = [
+            {"Accept": "application/x-java-serialized-object"},
+            {"Content-Type": "application/x-java-serialized-object"},
+            {"Accept": "application/x-python-serialize"},
+        ]
+        for probe_headers in deser_probes:
+            try:
+                h = dict(headers or {})
+                h.update(probe_headers)
+                resp = await client.get(url, headers=h, timeout=5.0)
+                ct = resp.headers.get("Content-Type", "")
+                # Server responding with serialized content type is an indicator
+                if "java-serialized" in ct or "python-serialize" in ct:
+                    indicators.append({
+                        "sent_header": probe_headers,
+                        "response_content_type": ct,
+                    })
+            except httpx.RequestError:
+                pass
+        # Also check for common deserialization endpoints
+        deser_paths = ["/invoker/JMXInvokerServlet", "/invoker/EJBInvokerServlet",
+                       "/jmx-console", "/_session"]
+        for path in deser_paths:
+            try:
+                resp = await client.get(urljoin(base, path), headers=headers, timeout=3.0)
+                if resp.status_code in (200, 401, 403, 500):
+                    indicators.append({"path": path, "status_code": resp.status_code})
+            except httpx.RequestError:
+                pass
+        if indicators:
+            self._findings.append(RealFinding(
+                finding_id=self._generate_finding_id(),
+                vulnerability_type=VulnerabilityType.DESERIALIZATION,
+                title=f"Insecure Deserialization Indicators ({len(indicators)} signals)",
+                description=(
+                    f"Detected {len(indicators)} indicators of insecure deserialization: "
+                    "the server accepts or exposes serialized object endpoints."
+                ),
+                severity="high" if len(indicators) >= 2 else "medium",
+                evidence={"indicators": indicators, "count": len(indicators)},
+                affected_url=url,
+                remediation="Disable Java/Python deserialization endpoints. "
+                            "Use allowlists for deserialized classes. "
+                            "Prefer JSON/Protocol Buffers over native serialization.",
+                cwe_id="CWE-502",
+                cvss_score=8.1 if len(indicators) >= 2 else 5.5,
+            ))
+
+    async def _check_cache_poisoning(
+        self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Detect web cache poisoning via unkeyed header reflection."""
+        canary = "aldeci-cache-probe-12345"
+        # Unkeyed headers commonly used in cache poisoning attacks
+        probe_headers_list = [
+            {"X-Forwarded-Host": canary},
+            {"X-Forwarded-Scheme": "nothttps"},
+            {"X-Original-URL": f"/{canary}"},
+            {"X-Rewrite-URL": f"/{canary}"},
+        ]
+        try:
+            baseline = await client.get(url, headers=headers, timeout=5.0)
+            baseline_text = baseline.text
+            baseline_hdrs = dict(baseline.headers)
+        except httpx.RequestError:
+            return
+        poisoned = []
+        for probe in probe_headers_list:
+            try:
+                h = dict(headers or {})
+                h.update(probe)
+                resp = await client.get(url, headers=h, timeout=5.0)
+                resp_text = resp.text
+                header_name = list(probe.keys())[0]
+                probe_val = list(probe.values())[0]
+                # Check if probe value reflected in body or response headers
+                reflected_in_body = probe_val in resp_text and probe_val not in baseline_text
+                reflected_in_headers = any(
+                    probe_val in v for v in resp.headers.values()
+                ) and not any(probe_val in v for v in baseline_hdrs.values())
+                if reflected_in_body or reflected_in_headers:
+                    poisoned.append({
+                        "header": header_name,
+                        "value": probe_val,
+                        "reflected_in_body": reflected_in_body,
+                        "reflected_in_headers": reflected_in_headers,
+                    })
+            except httpx.RequestError:
+                pass
+        if poisoned:
+            self._findings.append(RealFinding(
+                finding_id=self._generate_finding_id(),
+                vulnerability_type=VulnerabilityType.CACHE_POISONING,
+                title=f"Cache Poisoning via Unkeyed Headers ({len(poisoned)} vectors)",
+                description=(
+                    f"Unkeyed header values reflected in {len(poisoned)} vectors. "
+                    "If a cache sits in front, these reflections can poison cached responses."
+                ),
+                severity="high",
+                evidence={"poisoned_vectors": poisoned, "count": len(poisoned)},
+                affected_url=url,
+                remediation="Include all varied headers in cache keys. "
+                            "Strip unexpected X-Forwarded-* headers at the edge. "
+                            "Use Vary header or disable caching for dynamic content.",
+                cwe_id="CWE-349",
+                cvss_score=7.5,
+            ))
+
     def _generate_finding_id(self) -> str:
         """Generate a unique finding ID."""
         import uuid
         return str(uuid.uuid4())
-    
+
     def _severity_to_cvss(self, severity: str) -> float:
         """Convert severity string to CVSS score."""
         mapping = {

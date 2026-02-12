@@ -1,0 +1,37 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "api-gateway:v1.8.2",
+      "digest": {
+        "sha256": "55950e3624d6281c34e8fb09118a0c222bf15192a90f7b6fea08e729701ce8f5"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://aldeci.io/build/v1",
+      "externalParameters": {
+        "repository": "https://github.com/acme/api-gateway",
+        "ref": "refs/tags/v1.8.2"
+      },
+      "internalParameters": {
+        "builder_id": "aldeci-ci/platform-team"
+      }
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://aldeci.io/builders/platform-team",
+        "version": {
+          "aldeci-ci": "2.1.0"
+        }
+      },
+      "metadata": {
+        "invocationId": "108f4bba-bb0d-42bf-ad36-02ec27b25663",
+        "startedOn": "2026-02-04T07:24:59.007899",
+        "finishedOn": "2026-02-04T08:24:59.007899"
+      }
+    }
+  }
+}

@@ -323,6 +323,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {/* Bottom Actions */}
         <div className="p-2 border-t border-border space-y-1">
           <Button
+            variant={location.pathname === '/settings/logs' ? 'secondary' : 'ghost'}
+            size="sm"
+            className={`w-full justify-start gap-3 h-9 ${sidebarCollapsed ? 'px-3' : ''} ${location.pathname === '/settings/logs' ? 'bg-primary/10 text-primary' : ''}`}
+            onClick={() => navigate('/settings/logs')}
+            title={sidebarCollapsed ? 'API Logs' : undefined}
+          >
+            <ScrollText className="w-4 h-4" />
+            {!sidebarCollapsed && <span>API Logs</span>}
+          </Button>
+          <Button
             variant={location.pathname === '/settings' ? 'secondary' : 'ghost'}
             size="sm"
             className={`w-full justify-start gap-3 h-9 ${sidebarCollapsed ? 'px-3' : ''}`}

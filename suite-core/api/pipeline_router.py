@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/pipeline", tags=["Brain Pipeline"])
+router = APIRouter(prefix="/api/v1/brain", tags=["Brain Pipeline"])
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ async def list_pipeline_runs(limit: int = 20, offset: int = 0) -> Dict[str, Any]
         "total": total,
         "limit": limit,
         "offset": offset,
-        "runs": [r.to_dict() for r in page],
+        "runs": page,
     }
 
 

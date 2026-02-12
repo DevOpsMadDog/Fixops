@@ -236,7 +236,7 @@ class FixOpsMetrics:
     # Domain specific metrics
     # ------------------------------------------------------------------
     @staticmethod
-    def record_decision(verdict: str) -> None:
+    def record_decision(verdict: str, confidence: float = 0.0, duration_seconds: float = 0.0) -> None:
         try:
             ENGINE_DECISIONS.labels(verdict=verdict).inc()
             DECISION_LATENCY.labels(verdict=verdict).observe(duration_seconds)

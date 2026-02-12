@@ -73,7 +73,17 @@ const LiveFeedDashboard = () => {
   const handleRefreshFeed = async (feedName: string) => {
     setRefreshing(feedName);
     try {
-      await api.post('/api/v1/feeds/refresh', { source: feedName.toLowerCase() }).catch(() => {});
+      // Map feed names to correct backend refresh endpoints
+      const feedEndpoints: Record<string, string> = {
+        epss: '/api/v1/feeds/epss/refresh',
+        kev: '/api/v1/feeds/kev/refresh',
+        nvd: '/api/v1/feeds/nvd/refresh',
+        exploitdb: '/api/v1/feeds/exploitdb/refresh',
+        osv: '/api/v1/feeds/osv/refresh',
+        github: '/api/v1/feeds/github/refresh',
+      };
+      const endpoint = feedEndpoints[feedName.toLowerCase()] || '/api/v1/feeds/refresh/all';
+      await api.post(endpoint).catch(() => {});
       await fetchData();
     } catch (e) { console.error('Refresh error', e); }
     finally { setRefreshing(null); }

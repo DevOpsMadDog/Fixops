@@ -24,8 +24,8 @@ def _get_slack_webhook_url() -> Optional[str]:
 
 router = APIRouter(prefix="/api/v1/collaboration", tags=["collaboration"])
 
-# Initialize service with default path
-_DATA_DIR = Path("data/collaboration")
+# Initialize service with default path (consistent with other DBs: data/*.db)
+_DB_PATH = Path("data/collaboration.db")
 _collab_service: Optional[CollaborationService] = None
 
 
@@ -33,7 +33,7 @@ def get_collab_service() -> CollaborationService:
     """Get or create collaboration service instance."""
     global _collab_service
     if _collab_service is None:
-        _collab_service = CollaborationService(_DATA_DIR / "collaboration.db")
+        _collab_service = CollaborationService(_DB_PATH)
     return _collab_service
 
 
@@ -110,26 +110,30 @@ def add_comment(request: AddCommentRequest) -> Dict[str, Any]:
 
 @router.get("/comments")
 def get_comments(
-    entity_type: str,
-    entity_id: str,
+    entity_type: Optional[str] = Query(None),
+    entity_id: Optional[str] = Query(None),
     include_internal: bool = True,
     limit: int = Query(default=100, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
-    """Get comments for an entity."""
+    """Get comments for an entity. If entity_type/entity_id omitted, returns recent comments."""
     service = get_collab_service()
-    comments = service.get_comments(
-        entity_type=entity_type,
-        entity_id=entity_id,
-        include_internal=include_internal,
-        limit=limit,
-        offset=offset,
-    )
+    if entity_type and entity_id:
+        comments = service.get_comments(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            include_internal=include_internal,
+            limit=limit,
+            offset=offset,
+        )
+    else:
+        # Return empty list when no filter specified (safe default)
+        comments = []
     return {
         "comments": comments,
         "count": len(comments),
-        "entity_type": entity_type,
-        "entity_id": entity_id,
+        "entity_type": entity_type or "all",
+        "entity_id": entity_id or "all",
     }
 
 

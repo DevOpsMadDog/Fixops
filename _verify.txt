@@ -1,0 +1,1 @@
+{"status":"healthy","timestamp":"2026-02-09T11:49:39.930870Z","service":"fixops-api","version":"0.1.0"}DONE

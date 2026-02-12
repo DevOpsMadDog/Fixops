@@ -423,7 +423,7 @@ export const useRuntimeConfigStore = create<RuntimeConfigStore>((set, get) => ({
   apiVersion: '',
   apiKeyHint: '',
   authMode: 'dev',
-  mode: 'demo',
+  mode: '',
   features: defaultFeatures,
   services: {},
   serviceHealth: [],
@@ -444,7 +444,7 @@ export const useRuntimeConfigStore = create<RuntimeConfigStore>((set, get) => ({
           apiVersion: cfg.api_version || '',
           apiKeyHint: cfg.api_key_hint || '',
           authMode: cfg.auth_mode || 'dev',
-          mode: cfg.mode || 'demo',
+          mode: cfg.mode || 'enterprise',
           features: { ...defaultFeatures, ...(cfg.features || {}) },
           services: cfg.services || {},
           serviceHealth: svcEntries.map(([key, svc]) => ({
@@ -473,8 +473,8 @@ export const useRuntimeConfigStore = create<RuntimeConfigStore>((set, get) => ({
       { key: 'core', endpoint: '/api/v1/nerve-center/pulse' },
       { key: 'attack', endpoint: '/api/v1/attack-sim/health' },
       { key: 'feeds', endpoint: '/api/v1/feeds/health' },
-      { key: 'evidence_risk', endpoint: '/api/v1/evidence/' },
-      { key: 'integrations', endpoint: '/api/v1/integrations/' },
+      { key: 'evidence_risk', endpoint: '/api/v1/evidence' },
+      { key: 'integrations', endpoint: '/api/v1/integrations' },
     ]
 
     for (const check of healthChecks) {

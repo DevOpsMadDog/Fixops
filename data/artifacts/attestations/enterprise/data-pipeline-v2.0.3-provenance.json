@@ -1,0 +1,37 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "data-pipeline:v2.0.3",
+      "digest": {
+        "sha256": "21b6147e39dceee2cd9c49ebcc94913f2f34b8b912051a89a8e3955b9bbd5289"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://aldeci.io/build/v1",
+      "externalParameters": {
+        "repository": "https://github.com/acme/data-pipeline",
+        "ref": "refs/tags/v2.0.3"
+      },
+      "internalParameters": {
+        "builder_id": "aldeci-ci/data-team"
+      }
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://aldeci.io/builders/data-team",
+        "version": {
+          "aldeci-ci": "2.1.0"
+        }
+      },
+      "metadata": {
+        "invocationId": "ee6971e5-da27-4705-92f7-0f0a58a6281b",
+        "startedOn": "2026-02-04T07:24:59.007899",
+        "finishedOn": "2026-02-04T08:24:59.007899"
+      }
+    }
+  }
+}

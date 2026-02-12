@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # FixOps Operation Mode
     DEMO_MODE: bool = Field(
-        default=True, description="Enable demo mode with simulated data"
+        default=False, description="Enable demo mode with simulated data (default: off for enterprise)"
     )
 
     # Demo Mode Configuration

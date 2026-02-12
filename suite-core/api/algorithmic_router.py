@@ -65,13 +65,14 @@ class MonteCarloRequest(BaseModel):
 
 class CVERiskRequest(BaseModel):
     """Request for CVE-based risk quantification."""
-    
+
     cve_id: str = Field(..., description="CVE identifier")
-    cvss_score: float = Field(..., ge=0.0, le=10.0, description="CVSS score")
+    cvss_score: float = Field(5.0, ge=0.0, le=10.0, description="CVSS score (default 5.0 if unknown)")
     epss_score: float = Field(0.0, ge=0.0, le=1.0, description="EPSS score (0-1)")
     kev_listed: bool = Field(False, description="Whether in CISA KEV catalog")
     asset_value: float = Field(100000, ge=0, description="Asset value in dollars")
     is_reachable: bool = Field(True, description="Whether vulnerable code is reachable")
+    simulations: int = Field(10000, ge=100, le=100000, description="Number of simulations")
 
 
 class PortfolioRiskRequest(BaseModel):

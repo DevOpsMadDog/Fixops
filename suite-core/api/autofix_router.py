@@ -11,7 +11,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,35 @@ router = APIRouter(prefix="/api/v1/autofix", tags=["AutoFix"])
 
 
 class GenerateFixRequest(BaseModel):
-    """Request to generate a fix for a finding."""
-    finding: Dict[str, Any] = Field(..., description="Finding dict with id, title, severity, cve_ids, cwe_id, etc.")
+    """Request to generate a fix for a finding.
+
+    Accepts either a full 'finding' dict or individual fields (finding_id, title, severity, cve_id).
+    """
+    finding: Optional[Dict[str, Any]] = Field(None, description="Finding dict with id, title, severity, cve_ids, cwe_id, etc.")
+    finding_id: Optional[str] = Field(None, description="Finding ID (shorthand)")
+    title: Optional[str] = Field(None, description="Finding title (shorthand)")
+    severity: Optional[str] = Field(None, description="Finding severity (shorthand)")
+    cve_id: Optional[str] = Field(None, description="CVE ID (shorthand)")
+    language: Optional[str] = Field(None, description="Language hint (python, java, etc.)")
+    fix_type: Optional[str] = Field(None, description="Fix type (patch, config, upgrade)")
     source_code: Optional[str] = Field(None, description="Source code surrounding the vulnerability")
     repo_context: Optional[Dict[str, Any]] = Field(None, description="Repo metadata (language, framework, etc.)")
+
+    @validator("finding", pre=True, always=True)
+    def build_finding(cls, v, values):
+        """Build finding dict from individual fields if not provided."""
+        if v:
+            return v
+        # Build from individual fields
+        fid = values.get("finding_id") or f"FIND-{id(values) % 10000:04d}"
+        return {
+            "id": fid,
+            "title": values.get("title") or f"Vulnerability {fid}",
+            "severity": values.get("severity") or "high",
+            "cve_ids": [values.get("cve_id")] if values.get("cve_id") else [],
+            "language": values.get("language"),
+            "fix_type": values.get("fix_type"),
+        }
 
 
 class ApplyFixRequest(BaseModel):

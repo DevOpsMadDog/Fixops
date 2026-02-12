@@ -23,6 +23,7 @@ class CacheService:
     _instance: Optional["CacheService"] = None
     _redis_pool: Optional[ConnectionPool] = None
     _redis_client: Optional[redis.Redis] = None
+    _in_memory_cache: Dict[str, Any] = {}
 
     def __init__(self):
         if CacheService._instance is not None:
@@ -61,12 +62,9 @@ class CacheService:
         # Test connection
         try:
             await cls._redis_client.ping()
+            display_url = redis_url.split("@")[-1] if "@" in redis_url else redis_url
             logger.info(
-                "Redis cache service initialized",
-                max_connections=settings.REDIS_MAX_CONNECTIONS,
-                url=redis_url.split("@")[-1]
-                if "@" in redis_url
-                else redis_url,  # Hide credentials
+                f"Redis cache service initialized max_connections={settings.REDIS_MAX_CONNECTIONS} url={display_url}"
             )
         except Exception as e:
             logger.warning(

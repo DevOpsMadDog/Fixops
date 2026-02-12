@@ -126,6 +126,19 @@ async def resolve_iac_finding(id: str):
     return IaCFindingResponse(**updated_finding.to_dict())
 
 
+@router.post("/{id}/remediate", response_model=IaCFindingResponse)
+async def remediate_iac_finding(id: str):
+    """Remediate IaC finding (alias for resolve with REMEDIATED status)."""
+    finding = db.get_finding(id)
+    if not finding:
+        raise HTTPException(status_code=404, detail="IaC finding not found")
+
+    finding.status = IaCFindingStatus.RESOLVED
+    finding.resolved_at = datetime.utcnow()
+    updated_finding = db.update_finding(finding)
+    return IaCFindingResponse(**updated_finding.to_dict())
+
+
 class IaCScanResponse(BaseModel):
     """Response model for IaC scan."""
 

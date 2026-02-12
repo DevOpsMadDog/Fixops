@@ -163,7 +163,7 @@ class MetricResponse(BaseModel):
 
 @router.get("/dashboard/overview")
 async def get_dashboard_overview(
-    org_id: str = Query(..., description="Organization ID for multi-tenancy"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get security posture overview for dashboard."""
     overview = db.get_dashboard_overview()
@@ -173,7 +173,7 @@ async def get_dashboard_overview(
 
 @router.get("/dashboard/trends")
 async def get_dashboard_trends(
-    org_id: str = Query(..., description="Organization ID for multi-tenancy"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365),
 ):
     """Get trend data for the specified number of days."""
@@ -198,7 +198,7 @@ async def get_dashboard_trends(
 
 @router.get("/dashboard/top-risks")
 async def get_top_risks(
-    org_id: str = Query(..., description="Organization ID for multi-tenancy"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(10, ge=1, le=100),
 ):
     """Get top security risks by severity and exploitability."""
@@ -527,6 +527,12 @@ async def get_analytics_stats(org_id: str = Depends(get_org_id)):
         "status_breakdown": status_counts,
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@router.get("/summary")
+async def get_analytics_summary(org_id: str = Depends(get_org_id)):
+    """Get analytics summary (alias for /stats)."""
+    return await get_analytics_stats(org_id)
 
 
 

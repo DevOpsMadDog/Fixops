@@ -136,35 +136,39 @@ class AffectedComponent(BaseModel):
 
 
 class DiscoveredVulnRequest(BaseModel):
-    """Request to report a discovered vulnerability."""
-    
-    title: str = Field(..., min_length=10, max_length=200)
-    description: str = Field(..., min_length=50)
-    severity: VulnSeverity
-    impact_type: ImpactType
-    attack_vector: AttackVector
-    
-    discovery_source: DiscoverySource
-    discovered_by: str = Field(..., description="Researcher/team name")
-    discovered_date: datetime
-    
-    affected_components: List[AffectedComponent]
-    affected_versions: str = Field(..., description="e.g., '< 2.1.5' or '1.0.0 - 2.0.0'")
-    
+    """Request to report a discovered vulnerability.
+
+    Most fields are optional with sensible defaults to support both quick
+    reporting from the UI and detailed researcher submissions.
+    """
+
+    title: str = Field("Untitled Vulnerability", min_length=1, max_length=200)
+    description: str = Field("Vulnerability discovered via ALdeci platform.", min_length=1)
+    severity: VulnSeverity = VulnSeverity.MEDIUM
+    impact_type: ImpactType = ImpactType.OTHER
+    attack_vector: AttackVector = AttackVector.NETWORK
+
+    discovery_source: DiscoverySource = DiscoverySource.PENTEST_AUTOMATED
+    discovered_by: str = Field("ALdeci Platform", description="Researcher/team name")
+    discovered_date: Optional[datetime] = None
+
+    affected_components: List[AffectedComponent] = Field(default_factory=list)
+    affected_versions: str = Field("unknown", description="e.g., '< 2.1.5' or '1.0.0 - 2.0.0'")
+
     proof_of_concept: Optional[str] = Field(None, description="PoC code or steps")
     exploitation_difficulty: str = Field(default="medium", description="trivial, low, medium, high")
-    
+
     cvss_vector: Optional[str] = Field(None, description="CVSS 3.1 vector string")
     cvss_score: Optional[float] = Field(None, ge=0.0, le=10.0)
-    
+
     remediation: Optional[str] = None
     workaround: Optional[str] = None
-    
+
     evidence: List[VulnerabilityEvidence] = Field(default_factory=list)
-    
+
     internal_only: bool = Field(default=True, description="Keep internal, don't publish")
     notify_vendor: bool = Field(default=False)
-    
+
     references: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
     
@@ -323,6 +327,23 @@ def _calculate_cvss(vector: Optional[str]) -> Optional[float]:
 # =============================================================================
 
 
+@router.get("/discovered", response_model=List[DiscoveredVulnResponse])
+async def list_discovered_vulnerabilities(
+    status: Optional[VulnStatus] = None,
+    severity: Optional[VulnSeverity] = None,
+    limit: int = Query(default=50, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> List[DiscoveredVulnResponse]:
+    """List discovered vulnerabilities (GET alias for /internal)."""
+    vulns = list(_discovered_vulns.values())
+    if status:
+        vulns = [v for v in vulns if v["status"] == status]
+    if severity:
+        vulns = [v for v in vulns if v["severity"] == severity]
+    vulns = sorted(vulns, key=lambda v: v["discovered_date"], reverse=True)
+    return [DiscoveredVulnResponse(**v) for v in vulns[offset : offset + limit]]
+
+
 @router.post("/discovered", response_model=DiscoveredVulnResponse)
 async def report_discovered_vulnerability(
     request: DiscoveredVulnRequest,
@@ -356,7 +377,7 @@ async def report_discovered_vulnerability(
         "attack_vector": request.attack_vector,
         "discovery_source": request.discovery_source,
         "discovered_by": request.discovered_by,
-        "discovered_date": request.discovered_date,
+        "discovered_date": request.discovered_date or now,
         "affected_components": [c.model_dump() for c in request.affected_components],
         "affected_versions": request.affected_versions,
         "proof_of_concept": request.proof_of_concept,

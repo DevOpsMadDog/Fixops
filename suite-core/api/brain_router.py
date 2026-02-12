@@ -135,6 +135,44 @@ async def create_edge(body: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+@router.get("/all-edges")
+async def list_all_edges(
+    limit: int = Query(500, ge=1, le=5000),
+    edge_type: Optional[str] = Query(None, description="Filter by edge type"),
+) -> Dict[str, Any]:
+    """List all edges in the graph with optional filtering."""
+    import json as _json
+    brain = get_brain()
+    all_edges: List[Dict[str, Any]] = []
+    # Query SQLite directly (same approach as stats() and get_edges())
+    try:
+        with brain._conn_lock:
+            if edge_type:
+                cursor = brain._conn.execute(
+                    "SELECT source_id, target_id, edge_type, properties, confidence, created_at "
+                    "FROM brain_edges WHERE edge_type = ? LIMIT ?",
+                    (edge_type, limit),
+                )
+            else:
+                cursor = brain._conn.execute(
+                    "SELECT source_id, target_id, edge_type, properties, confidence, created_at "
+                    "FROM brain_edges LIMIT ?",
+                    (limit,),
+                )
+            for row in cursor:
+                all_edges.append({
+                    "source": row[0],
+                    "target": row[1],
+                    "edge_type": row[2],
+                    "properties": _json.loads(row[3]) if row[3] else {},
+                    "confidence": row[4],
+                    "created_at": row[5],
+                })
+    except Exception as exc:
+        logger.error("Failed to list edges: %s", exc)
+    return {"edges": all_edges, "count": len(all_edges)}
+
+
 @router.get("/edges/{node_id}")
 async def get_edges(
     node_id: str,

@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Activity, Download, Trash2, RefreshCw, Search, Copy,
-  ChevronDown, ChevronUp, Filter, Wifi, WifiOff,
+  Filter, Wifi, WifiOff,
   CheckCircle2, XCircle, Loader2, Clock, ArrowUpDown,
   Navigation, MousePointerClick, FileText
 } from 'lucide-react';
-import api, {
-  getApiLogs, subscribeApiLogs, clearApiLogs,
-  type ApiLogEntry, type LogEntryType
+import {
+  api, getApiLogs, subscribeApiLogs, clearApiLogs,
+  type ApiLogEntry,
 } from '../../lib/api';
 
 /* ── Helpers ────────────────────────────────────────── */
@@ -210,7 +210,7 @@ export default function LogViewer() {
       blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     } else {
       const keys = data.length > 0 ? Object.keys(data[0]) : [];
-      const csv = [keys.join(','), ...data.map((r: Record<string, unknown>) => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+      const csv = [keys.join(','), ...data.map((r: any) => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
       blob = new Blob([csv], { type: 'text/csv' });
     }
     const url = URL.createObjectURL(blob);
@@ -378,9 +378,100 @@ export default function LogViewer() {
           </div>
         </TabsContent>
 
-        {/* ── Backend Tab (placeholder — will be added) ── */}
+        {/* ── Backend Tab ────────────────────────────── */}
         <TabsContent value="backend" className="space-y-4 mt-4">
-          <div>Backend tab content</div>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            {['', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
+              <Button key={m || 'ALL'} variant={beMethodFilter === m ? 'default' : 'outline'}
+                size="sm" className="h-7 text-xs" onClick={() => { setBeMethodFilter(m); setBePage(0); }}>
+                {m || 'All Methods'}
+              </Button>
+            ))}
+            <Input placeholder="Status min" value={beStatusMin} onChange={e => setBeStatusMin(e.target.value)}
+              className="w-24 h-7 text-xs" type="number" />
+            <Input placeholder="Status max" value={beStatusMax} onChange={e => setBeStatusMax(e.target.value)}
+              className="w-24 h-7 text-xs" type="number" />
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input placeholder="Search path, body…" value={beSearch}
+                onChange={e => setBeSearch(e.target.value)} className="pl-8 h-7 text-xs"
+                onKeyDown={e => { if (e.key === 'Enter') { setBePage(0); fetchBackendLogs(); } }} />
+            </div>
+          </div>
+
+          {/* Status Distribution */}
+          {beStats && (
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-muted-foreground">Status distribution:</span>
+              {Object.entries(beStats.by_status).map(([k, v]) => (
+                <Badge key={k} variant="outline" className={k.startsWith('2') ? 'border-green-500/30 text-green-400' : k.startsWith('4') ? 'border-orange-500/30 text-orange-400' : k.startsWith('5') ? 'border-red-500/30 text-red-400' : ''}>
+                  {k}: {v}
+                </Badge>
+              ))}
+              {Object.entries(beStats.by_method).map(([k, v]) => (
+                <Badge key={k} variant="outline">{k}: {v}</Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="grid grid-cols-[60px_70px_1fr_70px_80px_100px_120px] gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">
+            <span>ID</span><span>Method</span><span>Path</span><span>Status</span><span>Duration</span><span>Size (Req/Res)</span><span>Timestamp</span>
+          </div>
+
+          <div className="max-h-[55vh] overflow-y-auto space-y-0.5">
+            {beLoading && <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}
+            {!beLoading && beLogs.length === 0 && (
+              <div className="text-center text-muted-foreground py-12">No backend logs found. Make some API requests to generate logs.</div>
+            )}
+            {!beLoading && beLogs.map(log => (
+              <div key={log.id}>
+                <button
+                  onClick={() => setExpandedId(expandedId === `be-${log.id}` ? null : `be-${log.id}`)}
+                  className={`w-full grid grid-cols-[60px_70px_1fr_70px_80px_100px_120px] gap-2 px-3 py-1.5 text-xs rounded hover:bg-accent/50 transition-colors items-center ${log.status_code >= 400 ? 'bg-red-500/5' : ''}`}
+                >
+                  <span className="text-muted-foreground/50">#{log.id}</span>
+                  <span className={`font-mono px-1.5 py-0.5 rounded text-[11px] text-center ${methodColor(log.method)}`}>{log.method}</span>
+                  <span className="truncate text-left font-mono text-muted-foreground">{log.path}{log.query_params ? `?${log.query_params}` : ''}</span>
+                  <span className={`text-center px-1 py-0.5 rounded ${statusBg(log.status_code)}`}>{log.status_code}</span>
+                  <span className="text-center text-muted-foreground">{log.duration_ms.toFixed(1)}ms</span>
+                  <span className="text-center text-muted-foreground/60">{fmtSize(log.req_size)}/{fmtSize(log.resp_size)}</span>
+                  <span className="text-muted-foreground/50 text-[10px]">{new Date(log.ts).toLocaleTimeString()}</span>
+                </button>
+                {expandedId === `be-${log.id}` && (
+                  <div className="ml-10 mr-4 mb-2 p-3 rounded-md bg-card/50 border border-border/50 space-y-2 text-xs font-mono">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                      <p><span className="text-muted-foreground">Correlation ID:</span> {log.correlation_id}</p>
+                      <p><span className="text-muted-foreground">Client IP:</span> {log.client_ip}</p>
+                      <p><span className="text-muted-foreground">Level:</span> <span className={log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-yellow-400' : 'text-green-400'}>{log.level}</span></p>
+                      <p><span className="text-muted-foreground">User Agent:</span> <span className="truncate">{log.user_agent}</span></p>
+                      {log.error && <p className="text-red-400 col-span-2"><span className="text-red-400/60">Error:</span> {log.error}</p>}
+                      {log.error_type && <p className="text-red-400 col-span-2"><span className="text-red-400/60">Type:</span> {log.error_type}</p>}
+                    </div>
+                    <JsonViewer data={log.req_headers} label="Request Headers" />
+                    <JsonViewer data={log.req_body} label="Request Body" />
+                    <JsonViewer data={log.resp_headers} label="Response Headers" />
+                    <JsonViewer data={log.resp_body} label="Response Body" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {!beLoading && beTotal > bePageSize && (
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-xs text-muted-foreground">
+                Showing {bePage * bePageSize + 1}–{Math.min((bePage + 1) * bePageSize, beTotal)} of {beTotal}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={bePage === 0} onClick={() => setBePage(p => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={(bePage + 1) * bePageSize >= beTotal} onClick={() => setBePage(p => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

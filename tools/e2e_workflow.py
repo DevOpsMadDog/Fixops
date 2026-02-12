@@ -130,7 +130,7 @@ else:
 # 8. AutoFix
 section("8. AutoFix Generation")
 step("Generate autofix", "POST", "/api/v1/autofix/generate",
-     {"finding_id": "FIND-001", "language": "python", "fix_type": "patch"},
+     {"finding_id": "FIND-001", "language": "python", "fix_type": "patch", "severity": "high", "title": "Test vulnerability"},
      accept_statuses=[200, 201, 422, 404])
 step("AutoFix stats", "GET", "/api/v1/autofix/stats",
      accept_statuses=[200])
@@ -139,7 +139,7 @@ step("AutoFix stats", "GET", "/api/v1/autofix/stats",
 section("9. Attack Simulation")
 step("List scenarios", "GET", "/api/v1/attack-sim/scenarios")
 step("Generate scenario", "POST", "/api/v1/attack-sim/scenarios/generate",
-     {"target": "web-app-1", "attack_type": "rce"},
+     {"target_description": "Production web application with user authentication", "threat_actor": "cybercriminal", "cve_ids": ["CVE-2024-1234"]},
      accept_statuses=[200, 201, 422])
 step("MITRE heatmap", "GET", "/api/v1/attack-sim/mitre/heatmap")
 

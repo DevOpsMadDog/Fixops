@@ -20,7 +20,7 @@ router = APIRouter(prefix="/decisions", tags=["decision-engine"])
 
 
 class DecisionRequest(BaseModel):
-    service_name: str
+    service_name: str = "unknown-service"
     environment: str = "production"
     business_context: Dict[str, Any] = {}
     security_findings: List[Dict[str, Any]] = []

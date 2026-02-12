@@ -250,6 +250,13 @@ async def predict_response_time(
 # Analytics
 # ---------------------------------------------------------------------------
 
+@router.get("/stats")
+async def get_stats_alias():
+    """Alias for /analytics/stats — keeps frontend happy."""
+    store = _get_store()
+    return store.get_stats()
+
+
 @router.get("/analytics/stats")
 async def get_traffic_stats():
     """Get overall API traffic statistics."""

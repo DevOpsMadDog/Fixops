@@ -1,0 +1,89 @@
+newman
+
+ALdeci / FixOps API
+
+❏ Health & Status
+↳ API Status
+  GET http://localhost:8000/api/v1/status [200 OK, 400B, 20ms]
+  ✓  Status 200
+  ✓  Has status field
+
+↳ Copilot Health
+  GET http://localhost:8000/api/v1/copilot/health [200 OK, 680B, 6ms]
+  ✓  Status 200
+  ✓  Copilot healthy
+
+↳ Feeds Health
+  GET http://localhost:8000/api/v1/feeds/health [200 OK, 1.26kB, 195ms]
+  ✓  Status 200
+  ✓  Feeds healthy
+
+↳ Attack-Sim Health
+  GET http://localhost:8000/api/v1/attack-sim/health [200 OK, 611B, 4ms]
+  ✓  Status 200
+  ✓  Attack engine healthy
+
+❏ Nerve Center
+↳ Get Pulse
+  GET http://localhost:8000/api/v1/nerve-center/pulse [200 OK, 439B, 17ms]
+  ✓  Status 200
+  ✓  Has score and level
+
+↳ Get Incidents
+  GET http://localhost:8000/api/v1/nerve-center/pulse [200 OK, 438B, 11ms]
+  ✓  Status 200
+  ✓  Has active_incidents
+
+❏ Copilot
+↳ List Sessions
+  GET http://localhost:8000/api/v1/copilot/sessions [200 OK, 940B, 3ms]
+  ✓  Status 200
+  ✓  Returns array
+
+↳ Create Session
+  POST http://localhost:8000/api/v1/copilot/sessions [200 OK, 514B, 5ms]
+  ✓  Status 200 or 201
+  ✓  Has id
+
+❏ Pipeline
+↳ List Runs
+  GET http://localhost:8000/api/v1/brain/pipeline/runs [200 OK, 345B, 3ms]
+  ✓  Status 200
+  ✓  Has total field
+
+❏ Risk & Evidence
+↳ Evidence Stats
+  GET http://localhost:8000/api/v1/evidence/stats [200 OK, 510B, 5ms]
+  ✓  Status 200
+  ✓  Has total_releases
+
+↳ Evidence List
+  GET http://localhost:8000/api/v1/evidence/ [200 OK, 1.17kB, 5ms]
+  ✓  Status 200
+  ✓  Has count
+
+❏ Auth Verification
+↳ Reject missing token
+  GET http://localhost:8000/api/v1/nerve-center/pulse [200 OK, 438B, 9ms]
+  ✓  Returns 401 or 200 (dev mode)
+
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                12 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                12 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                 0 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                23 │                0 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 420ms                                      │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 4.12kB (approx)                           │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 23ms [min: 3ms, max: 195ms, s.d.: 51ms] │
+└────────────────────────────────────────────────────────────────┘
+EXIT=0

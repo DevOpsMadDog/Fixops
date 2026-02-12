@@ -181,12 +181,12 @@ auth:
   token_env: FIXOPS_API_TOKEN
   header: X-API-Key
 data:
-  design_context_dir: data/design_context
-  evidence_dir: data/evidence
-  archive_dir: data/archive
-  analytics_dir: data/analytics
-  automation_dir: data/automation
-  feedback_dir: data/feedback
+  design_context_dir: design_context
+  evidence_dir: evidence
+  archive_dir: archive
+  analytics_dir: analytics
+  automation_dir: automation
+  feedback_dir: feedback
 limits:
   max_upload_bytes:
     default: 3145728

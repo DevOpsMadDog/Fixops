@@ -92,6 +92,50 @@ async def list_audit_logs(
     }
 
 
+@router.get("/logs/export")
+async def export_audit_logs(
+    format: str = Query("json", pattern="^(json|csv|siem)$"),
+    days: int = Query(30, ge=1, le=365),
+):
+    """Export audit logs in JSON, CSV, or SIEM-compatible format."""
+    logs = db.list_audit_logs(limit=50000)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    filtered = []
+    for log in logs:
+        ts = log.timestamp
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        if ts >= cutoff:
+            filtered.append(log.to_dict())
+
+    if format == "csv":
+        if not filtered:
+            return {"data": [], "count": 0}
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=list(filtered[0].keys()))
+        writer.writeheader()
+        for row in filtered:
+            writer.writerow({k: str(v) for k, v in row.items()})
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="text/csv",
+                                  headers={"Content-Disposition": "attachment; filename=audit_logs.csv"})
+    elif format == "siem":
+        # CEF (Common Event Format) style
+        cef_lines = []
+        for entry in filtered:
+            cef = (f"CEF:0|FixOps|AuditLog|1.0|{entry.get('event_type', '')}|"
+                   f"{entry.get('action', '')}|{entry.get('severity', 'info')}|"
+                   f"src={entry.get('ip_address', '')} "
+                   f"duser={entry.get('user_id', '')} "
+                   f"msg={json.dumps(entry.get('details', {}))}")
+            cef_lines.append(cef)
+        buf = io.StringIO("\n".join(cef_lines))
+        return StreamingResponse(buf, media_type="text/plain",
+                                  headers={"Content-Disposition": "attachment; filename=audit_logs.cef"})
+
+    return {"logs": filtered, "count": len(filtered), "period_days": days}
+
+
 @router.get("/logs/{id}", response_model=AuditLogResponse)
 async def get_audit_log(id: str):
     """Get audit log entry by ID."""
@@ -376,50 +420,6 @@ async def verify_chain():
         "integrity": "valid" if mismatches == 0 else "tampered",
         "verified_at": datetime.now(timezone.utc).isoformat(),
     }
-
-
-@router.get("/logs/export")
-async def export_audit_logs(
-    format: str = Query("json", pattern="^(json|csv|siem)$"),
-    days: int = Query(30, ge=1, le=365),
-):
-    """Export audit logs in JSON, CSV, or SIEM-compatible format."""
-    logs = db.list_audit_logs(limit=50000)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    filtered = []
-    for log in logs:
-        ts = log.timestamp
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
-        if ts >= cutoff:
-            filtered.append(log.to_dict())
-
-    if format == "csv":
-        if not filtered:
-            return {"data": [], "count": 0}
-        buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=list(filtered[0].keys()))
-        writer.writeheader()
-        for row in filtered:
-            writer.writerow({k: str(v) for k, v in row.items()})
-        buf.seek(0)
-        return StreamingResponse(buf, media_type="text/csv",
-                                  headers={"Content-Disposition": "attachment; filename=audit_logs.csv"})
-    elif format == "siem":
-        # CEF (Common Event Format) style
-        cef_lines = []
-        for entry in filtered:
-            cef = (f"CEF:0|FixOps|AuditLog|1.0|{entry.get('event_type', '')}|"
-                   f"{entry.get('action', '')}|{entry.get('severity', 'info')}|"
-                   f"src={entry.get('ip_address', '')} "
-                   f"duser={entry.get('user_id', '')} "
-                   f"msg={json.dumps(entry.get('details', {}))}")
-            cef_lines.append(cef)
-        buf = io.StringIO("\n".join(cef_lines))
-        return StreamingResponse(buf, media_type="text/plain",
-                                  headers={"Content-Disposition": "attachment; filename=audit_logs.cef"})
-
-    return {"logs": filtered, "count": len(filtered), "period_days": days}
 
 
 @router.get("/retention")

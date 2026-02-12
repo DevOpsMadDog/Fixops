@@ -72,6 +72,9 @@ const OverlayConfig = lazy(() => import('./pages/settings/OverlayConfig'));
 // Playbook Editor (Full)
 const PlaybookEditor = lazy(() => import('./pages/protect/PlaybookEditor'));
 
+// Log Viewer (Phase 17)
+const LogViewer = lazy(() => import('./pages/settings/LogViewer'));
+
 // Phase 9 — Dedicated pages replacing stubs + new feature pages
 const AutoFixDashboard = lazy(() => import('./pages/protect/AutoFixDashboard'));
 const KnowledgeGraphExplorer = lazy(() => import('./pages/core/KnowledgeGraphExplorer'));
@@ -219,6 +222,7 @@ function AnimatedRoutes() {
             <Route path="/settings/system-health" element={<SystemHealth />} />
             <Route path="/settings/webhooks" element={<Webhooks />} />
             <Route path="/settings/overlay-config" element={<OverlayConfig />} />
+            <Route path="/settings/logs" element={<LogViewer />} />
             
             {/* Phase 9 — New feature routes */}
             <Route path="/protect/autofix" element={<AutoFixDashboard />} />
