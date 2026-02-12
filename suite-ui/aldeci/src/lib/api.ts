@@ -19,7 +19,7 @@ export const api = axios.create({
     'Content-Type': 'application/json',
     'X-API-Key': API_KEY,
   },
-  timeout: 30000,
+  timeout: 120_000,  // 120s — pentest scans can take 30-60s
 })
 
 /**
@@ -533,8 +533,14 @@ const attackSuite = {
     run: (data: { cve_ids: string[], target_urls: string[], context?: unknown }) => api.post('/api/v1/micro-pentest/run', data).then(r => r.data),
     getStatus: (flowId: string) => api.get(`/api/v1/micro-pentest/status/${flowId}`).then(r => r.data),
     // Enterprise scan endpoint
-    runEnterprise: (data: { target_urls: string[], attack_vectors?: string[], compliance_frameworks?: string[] }) => 
+    runEnterprise: (data: { target_urls: string[], attack_vectors?: string[], compliance_frameworks?: string[] }) =>
       api.post('/api/v1/micro-pentest/enterprise/scan', data).then(r => r.data),
+    // Report generation + download
+    generateReport: (data: { cve_ids: string[], target_urls: string[], context?: unknown }) =>
+      api.post('/api/v1/micro-pentest/report/generate', data).then(r => r.data),
+    getReportData: () => api.get('/api/v1/micro-pentest/report/data').then(r => r.data),
+    downloadReportUrl: `${API_BASE_URL}/api/v1/micro-pentest/report/download`,
+    viewReportUrl: `${API_BASE_URL}/api/v1/micro-pentest/report/view`,
   },
   simulation: {
     simulateAttack: (data: { scenario: string, assets: string[] }) => api.post('/api/v1/predictions/simulate-attack', data).then(r => r.data),
@@ -975,6 +981,10 @@ export const microPentestApi = {
   run: attackSuite.microPentest.run,
   getStatus: attackSuite.microPentest.getStatus,
   getHealth: () => api.get('/api/v1/micro-pentest/health').then(r => r.data),
+  generateReport: attackSuite.microPentest.generateReport,
+  getReportData: attackSuite.microPentest.getReportData,
+  downloadReportUrl: attackSuite.microPentest.downloadReportUrl,
+  viewReportUrl: attackSuite.microPentest.viewReportUrl,
 }
 
 // Graph API

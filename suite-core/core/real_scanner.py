@@ -62,6 +62,32 @@ class VulnerabilityType(str, Enum):
 
 
 @dataclass
+class ArchitectureProfile:
+    """Target architecture intelligence gathered during Phase 0."""
+    os_fingerprint: Dict[str, Any] = field(default_factory=dict)
+    cloud_provider: Dict[str, Any] = field(default_factory=dict)
+    cdn_waf: Dict[str, Any] = field(default_factory=dict)
+    tech_stack: Dict[str, Any] = field(default_factory=dict)
+    architecture_class: str = "unknown"  # monolith, microservices, serverless, hybrid
+    deployment_model: str = "unknown"  # cloud-native, on-prem, hybrid, edge
+    security_posture: Dict[str, Any] = field(default_factory=dict)
+    confidence: float = 0.0
+    raw_headers: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "os_fingerprint": self.os_fingerprint,
+            "cloud_provider": self.cloud_provider,
+            "cdn_waf": self.cdn_waf,
+            "tech_stack": self.tech_stack,
+            "architecture_class": self.architecture_class,
+            "deployment_model": self.deployment_model,
+            "security_posture": self.security_posture,
+            "confidence": self.confidence,
+        }
+
+
+@dataclass
 class RealFinding:
     """A real security finding from actual scanning."""
     finding_id: str
@@ -76,6 +102,11 @@ class RealFinding:
     cwe_id: Optional[str] = None
     discovered_at: datetime = field(default_factory=datetime.utcnow)
     verified: bool = True  # These are real findings, not simulated
+    # Source code traceability
+    source_file: str = ""
+    source_function: str = ""
+    source_lines: str = ""
+    detection_logic: str = ""
 
 
 # SQL Injection test payloads (benign - cause errors but don't exploit)
@@ -199,24 +230,29 @@ class RealVulnerabilityScanner:
         self.timeout = timeout
         self.verify_ssl = verify_ssl
         self._findings: List[RealFinding] = []
-        
+        self.architecture_profiles: Dict[str, ArchitectureProfile] = {}
+
     async def scan_url(self, url: str, headers: Optional[Dict[str, str]] = None) -> List[RealFinding]:
         """Perform comprehensive security scan on a URL.
-        
+
         Args:
             url: Target URL to scan
             headers: Optional HTTP headers to include
-            
+
         Returns:
             List of real security findings
         """
         self._findings = []
-        
+
         async with httpx.AsyncClient(
             timeout=self.timeout,
             verify=self.verify_ssl,
             follow_redirects=True,
         ) as client:
+            # Phase 0: Architecture Intelligence Profiling
+            arch_profile = await self._profile_architecture(client, url, headers)
+            self.architecture_profiles[url] = arch_profile
+
             # Phase 1: Basic connectivity and header check
             await self._check_security_headers(client, url, headers)
             
@@ -275,7 +311,182 @@ class RealVulnerabilityScanner:
             await self._check_cache_poisoning(client, url, headers)
 
         return self._findings
-    
+
+    # ── Phase 0: Architecture Intelligence Profiling ────────────────
+    async def _profile_architecture(
+        self, client: httpx.AsyncClient, url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> ArchitectureProfile:
+        """Profile target architecture: OS, cloud, CDN/WAF, tech stack, deployment model."""
+        profile = ArchitectureProfile()
+        signals = 0
+        try:
+            resp = await client.get(url, headers=headers)
+            hdrs = {k.lower(): v for k, v in resp.headers.items()}
+            profile.raw_headers = dict(hdrs)
+            # ── OS fingerprinting ──
+            server = hdrs.get("server", "")
+            os_hints: Dict[str, float] = {}
+            if any(k in server.lower() for k in ("ubuntu", "debian", "centos", "rhel", "amazon linux", "linux")):
+                os_hints["Linux"] = 0.9
+            elif any(k in server.lower() for k in ("microsoft", "iis", "windows")):
+                os_hints["Windows"] = 0.9
+            elif "darwin" in server.lower() or "macos" in server.lower():
+                os_hints["macOS"] = 0.8
+            elif "freebsd" in server.lower() or "openbsd" in server.lower():
+                os_hints["BSD"] = 0.8
+            # Infer from server software
+            if any(k in server.lower() for k in ("nginx", "apache", "gunicorn", "uvicorn")):
+                os_hints.setdefault("Linux", 0.7)
+            if "iis" in server.lower():
+                os_hints.setdefault("Windows", 0.85)
+            # Date header timezone hint (RFC 7231)
+            date_hdr = hdrs.get("date", "")
+            if date_hdr and "gmt" in date_hdr.lower():
+                signals += 1  # Confirms real web server
+            profile.os_fingerprint = {
+                "detected_os": max(os_hints, key=os_hints.get) if os_hints else "Unknown",
+                "confidence": max(os_hints.values()) if os_hints else 0.0,
+                "server_header": server,
+                "signals": os_hints,
+            }
+            if os_hints:
+                signals += 1
+
+            # ── Cloud provider detection ──
+            cloud: Dict[str, float] = {}
+            _CLOUD_HEADERS = {
+                "AWS": ["x-amz-cf-id", "x-amz-request-id", "x-amzn-requestid", "x-amz-id-2", "x-amzn-trace-id"],
+                "Google Cloud": ["x-cloud-trace-context", "x-goog-", "via: 1.1 google"],
+                "Azure": ["x-azure-ref", "x-ms-request-id", "x-msedge-ref"],
+                "Cloudflare": ["cf-ray", "cf-cache-status"],
+                "Fastly": ["x-served-by", "x-cache", "x-cache-hits", "fastly-restarts"],
+                "DigitalOcean": ["x-do-"],
+                "Vercel": ["x-vercel-id", "x-vercel-cache"],
+                "Netlify": ["x-nf-request-id", "netlify"],
+                "Heroku": ["heroku"],
+            }
+            for provider, indicators in _CLOUD_HEADERS.items():
+                for ind in indicators:
+                    if any(ind in k or ind in v.lower() for k, v in hdrs.items()):
+                        cloud[provider] = max(cloud.get(provider, 0), 0.85)
+                        break
+            # Check CNAME / IP hints from via header
+            via = hdrs.get("via", "")
+            if "cloudfront" in via.lower():
+                cloud["AWS"] = max(cloud.get("AWS", 0), 0.9)
+            if "google" in via.lower():
+                cloud["Google Cloud"] = max(cloud.get("Google Cloud", 0), 0.9)
+            profile.cloud_provider = {
+                "detected": max(cloud, key=cloud.get) if cloud else "Unknown / On-Premises",
+                "confidence": max(cloud.values()) if cloud else 0.0,
+                "signals": cloud,
+            }
+            if cloud:
+                signals += 1
+
+            # ── CDN / WAF detection ──
+            cdn_waf: Dict[str, str] = {}
+            _CDN_WAF_MAP = {
+                "Cloudflare": ["cf-ray", "cf-cache-status"],
+                "AWS CloudFront": ["x-amz-cf-id", "x-amz-cf-pop"],
+                "Akamai": ["x-akamai-transformed", "akamai-origin-hop"],
+                "Fastly": ["x-served-by", "fastly-restarts"],
+                "Google CDN": ["via: 1.1 google"],
+                "Sucuri WAF": ["x-sucuri-id"],
+                "Imperva/Incapsula": ["x-iinfo", "incap_ses"],
+                "AWS WAF": ["x-amzn-waf-"],
+                "ModSecurity": ["mod_security"],
+                "F5 BIG-IP": ["bigipserver"],
+            }
+            for name, indicators in _CDN_WAF_MAP.items():
+                for ind in indicators:
+                    matched_keys = [k for k in hdrs if ind in k]
+                    matched_vals = [k for k, v in hdrs.items() if ind in v.lower()]
+                    if matched_keys or matched_vals:
+                        cdn_waf[name] = "detected"
+                        break
+            profile.cdn_waf = {
+                "detected": list(cdn_waf.keys()),
+                "count": len(cdn_waf),
+                "waf_present": any("WAF" in n or "Incapsula" in n or "ModSecurity" in n or "Sucuri" in n for n in cdn_waf),
+            }
+            if cdn_waf:
+                signals += 1
+
+            # ── Tech stack ──
+            tech: Dict[str, str] = {}
+            if server:
+                tech["web_server"] = server
+            powered = hdrs.get("x-powered-by", "")
+            if powered:
+                tech["runtime"] = powered
+            asp = hdrs.get("x-aspnet-version", "")
+            if asp:
+                tech["framework"] = f"ASP.NET {asp}"
+            body = resp.text[:8000].lower()
+            _FW_PATTERNS = [
+                ("React", "__react", "frontend"), ("Next.js", "__next", "frontend"),
+                ("Angular", "ng-version", "frontend"), ("Vue.js", "data-v-", "frontend"),
+                ("WordPress", "wp-content", "cms"), ("Drupal", "drupal", "cms"),
+                ("Django", "csrfmiddlewaretoken", "backend"), ("Laravel", "laravel_session", "backend"),
+                ("Express", "x-powered-by: express", "backend"), ("Rails", "action_dispatch", "backend"),
+                ("Spring", "x-application-context", "backend"), ("Flask", "werkzeug", "backend"),
+            ]
+            for name, pattern, category in _FW_PATTERNS:
+                if pattern in body or pattern in server.lower() or pattern in powered.lower():
+                    tech[category] = tech.get(category, "") + (", " if tech.get(category) else "") + name
+            profile.tech_stack = tech
+            if tech:
+                signals += 1
+
+            # ── Architecture classification ──
+            # Heuristics: multiple microservice indicators vs monolith
+            is_api = "application/json" in hdrs.get("content-type", "")
+            has_cors = "access-control-allow-origin" in hdrs
+            has_api_gateway = any(k in " ".join(hdrs.values()).lower() for k in ("api gateway", "kong", "envoy", "istio", "traefik"))
+            if has_api_gateway:
+                profile.architecture_class = "microservices"
+            elif is_api and has_cors:
+                profile.architecture_class = "api-first (likely microservices)"
+            elif any(k in body for k in ("wp-content", "drupal", "joomla")):
+                profile.architecture_class = "monolith (CMS)"
+            elif is_api:
+                profile.architecture_class = "api-first"
+            else:
+                profile.architecture_class = "traditional web (likely monolith)"
+
+            # ── Deployment model ──
+            if cloud:
+                if any("Lambda" in v or "Functions" in v or "Cloud Run" in v for v in hdrs.values()):
+                    profile.deployment_model = "serverless"
+                else:
+                    profile.deployment_model = "cloud-native"
+            else:
+                profile.deployment_model = "on-premises / unknown"
+
+            # ── Security posture ──
+            sec_headers_present = sum(1 for h in (
+                "strict-transport-security", "content-security-policy",
+                "x-content-type-options", "x-frame-options",
+                "referrer-policy", "permissions-policy",
+            ) if h in hdrs)
+            profile.security_posture = {
+                "https_enforced": url.startswith("https"),
+                "hsts_enabled": "strict-transport-security" in hdrs,
+                "csp_enabled": "content-security-policy" in hdrs,
+                "security_headers_count": sec_headers_present,
+                "security_headers_max": 6,
+                "security_headers_pct": round(sec_headers_present / 6 * 100, 1),
+                "waf_present": profile.cdn_waf.get("waf_present", False),
+            }
+            signals += 1
+            profile.confidence = min(1.0, signals / 5)
+
+        except Exception:
+            profile.confidence = 0.0
+        return profile
+
     async def _check_security_headers(
         self,
         client: httpx.AsyncClient,
@@ -831,17 +1042,32 @@ class RealVulnerabilityScanner:
     async def _check_open_redirect(
         self, client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None
     ) -> None:
-        """Check for open redirect vulnerabilities."""
+        """Check for open redirect vulnerabilities.
+
+        Uses hostname-level validation to avoid false positives: the Location
+        header's **hostname** must match the evil probe domain.  A substring
+        match is not enough — many servers (e.g. Google) redirect to their own
+        error/CAPTCHA pages and include the original URL as a query parameter,
+        which would cause a naive ``in`` check to false-positive.
+        """
         redirect_params = ["url", "redirect", "next", "dest", "destination", "redir", "redirect_uri", "return", "returnTo", "go", "target", "link", "out"]
-        redirect_target = "https://evil.example.com"
+        evil_host = "evil.example.com"
+        redirect_target = f"https://{evil_host}"
         parsed = urlparse(url)
+        original_host = parsed.hostname or ""
         base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
         for param in redirect_params:
             try:
                 test_url = f"{base}?{param}={redirect_target}"
                 resp = await client.get(test_url, headers=headers, follow_redirects=False, timeout=5.0)
                 location = resp.headers.get("Location", "")
-                if resp.status_code in (301, 302, 303, 307, 308) and "evil.example.com" in location:
+                if resp.status_code not in (301, 302, 303, 307, 308) or not location:
+                    continue
+                # Parse the Location URL and check the HOSTNAME — not a substring
+                loc_parsed = urlparse(location)
+                loc_host = (loc_parsed.hostname or "").lower()
+                # Redirect goes to evil domain → confirmed open redirect
+                if loc_host == evil_host or loc_host.endswith(f".{evil_host}"):
                     self._findings.append(RealFinding(
                         finding_id=self._generate_finding_id(),
                         vulnerability_type=VulnerabilityType.OPEN_REDIRECT,
@@ -858,6 +1084,12 @@ class RealVulnerabilityScanner:
                         cvss_score=6.1,
                     ))
                     return  # One finding per URL
+                # Redirect stays on same host but embeds evil URL → NOT vulnerable
+                # (server is blocking the redirect, e.g. Google /sorry/ page)
+                if loc_host == original_host or loc_host.endswith(f".{original_host}"):
+                    continue
+                # Redirect goes to a DIFFERENT external domain (not the probe) —
+                # still suspicious but not a confirmed open redirect to our probe
             except httpx.RequestError:
                 pass
 

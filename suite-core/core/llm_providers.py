@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Mapping, Optional, Sequence
 
 import requests  # type: ignore[import-untyped]
+from dotenv import load_dotenv
+
+# Load environment variables from .env file so API keys are available
+load_dotenv()
 
 
 @dataclass

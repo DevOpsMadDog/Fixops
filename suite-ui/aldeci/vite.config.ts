@@ -16,6 +16,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        timeout: 120_000,  // 120s — pentest scans can take 30-60s
       },
       '/health': {
         target: 'http://localhost:8000',
