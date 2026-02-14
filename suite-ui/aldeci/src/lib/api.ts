@@ -565,7 +565,24 @@ const attackSuite = {
   discovery: {
     reportDiscovered: (data: { title: string, severity: string }) => api.post('/api/v1/vulns/discovered', data).then(r => r.data),
     getInternal: () => api.get('/api/v1/vulns/internal').then(r => r.data),
-  }
+  },
+  pentagi: {
+    // Health & capabilities
+    health: () => api.get('/api/v1/pentagi/health').then(r => r.data),
+    capabilities: () => api.get('/api/v1/pentagi/capabilities').then(r => r.data),
+    // Threat intelligence
+    threatIntel: (data: { cve_id: string }) => api.post('/api/v1/pentagi/threat-intel', data).then(r => r.data),
+    // Business impact analysis
+    businessImpact: (data: { target?: string, cve_ids?: string[] }) => api.post('/api/v1/pentagi/business-impact', data).then(r => r.data),
+    // Attack simulation
+    simulate: (data: { target: string, attack_type?: string }) => api.post('/api/v1/pentagi/simulate', data).then(r => r.data),
+    // Remediation guidance
+    remediation: (data: { cve_id: string }) => api.post('/api/v1/pentagi/remediation', data).then(r => r.data),
+    // Run advanced pentest
+    run: (data: { target: string, cve_ids?: string[] }) => api.post('/api/v1/pentagi/run', data).then(r => r.data),
+    // Get pentest status
+    getStatus: (testId: string) => api.get(`/api/v1/pentagi/status/${testId}`).then(r => r.data),
+  },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -764,6 +781,7 @@ export default {
   code: codeSuite,
   cloud: cloudSuite,
   attack: attackSuite,
+  pentagi: attackSuite.pentagi,
   protect: protectSuite,
   ai: aiEngine,
   evidence,
@@ -985,6 +1003,20 @@ export const microPentestApi = {
   getReportData: attackSuite.microPentest.getReportData,
   downloadReportUrl: attackSuite.microPentest.downloadReportUrl,
   viewReportUrl: attackSuite.microPentest.viewReportUrl,
+}
+
+// PentAGI Unified API
+export const pentagiApi = {
+  health: attackSuite.pentagi.health,
+  capabilities: attackSuite.pentagi.capabilities,
+  threatIntel: attackSuite.pentagi.threatIntel,
+  businessImpact: attackSuite.pentagi.businessImpact,
+  simulate: attackSuite.pentagi.simulate,
+  remediation: attackSuite.pentagi.remediation,
+  run: attackSuite.pentagi.run,
+  getStatus: attackSuite.pentagi.getStatus,
+  // Also expose micro-pentest endpoints under pentagi namespace
+  microPentest: attackSuite.microPentest,
 }
 
 // Graph API

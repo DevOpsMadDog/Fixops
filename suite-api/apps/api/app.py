@@ -75,6 +75,13 @@ try:
 except ImportError as e:
     _logger.warning("Vulnerability Discovery router not available: %s", e)
 
+pentagi_router: Optional[APIRouter] = None
+try:
+    from api.pentagi_router import router as pentagi_router
+    _logger.info("Loaded PentAGI unified router from suite-attack")
+except ImportError as e:
+    _logger.warning("PentAGI router not available: %s", e)
+
 secrets_router: Optional[APIRouter] = None
 try:
     from api.secrets_router import router as secrets_router
@@ -768,6 +775,7 @@ def create_app() -> FastAPI:
         (mpte_router, "MPTE"),
         (micro_pentest_router, "Micro Pentest"),
         (vuln_discovery_router, "Vulnerability Discovery"),
+        (pentagi_router, "PentAGI"),
         (secrets_router, "Secrets Scanner"),
     ]:
         if _r:
