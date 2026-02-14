@@ -1,0 +1,259 @@
+=== LOG REPORT 2026-02-09 20:33:03 ===
+
+Total logs: 10452 | Last 5 min: 10080 requests, 204 errors (2.0%)
+
+=== RECENT 4xx/5xx ERRORS (last 5 min) ===
+  [ 27x] GET  /api/v1/vulns/discovered                                -> 405
+         {"detail": "Method Not Allowed"}
+
+  [ 21x] GET  /api/v1/pipeline/pipeline/runs                          -> 404
+         {"detail": "Not Found"}
+
+  [ 18x] POST /api/v1/algorithms/gnn/attack-surface                   -> 422
+         {"detail": [{"type": "missing", "loc": ["body", "infrastructure"], "msg": "Field required", "input": {"depth": 5, "include_mitigations": true}}]}
+
+  [ 11x] POST /api/v1/pipeline/evidence/generate                      -> 404
+         {"detail": "Not Found"}
+
+  [  9x] POST /api/v1/cases/EC-fe6172c6fb9a/transition                -> 400
+         {"detail": "Invalid transition: open \u2192 fixing. Allowed: ['false_positive', 'triaging', 'accepted_risk']"}
+
+  [  8x] GET  /api/v1/evidence/stats                                  -> 404
+         {"detail": "Evidence manifest not found"}
+
+  [  8x] POST /api/v1/pipeline/pipeline/run                           -> 404
+         {"detail": "Not Found"}
+
+  [  6x] POST /api/v1/cases/EC-c68148498079/transition                -> 400
+         {"detail": "Invalid transition: triaging \u2192 resolved. Allowed: ['false_positive', 'accepted_risk', 'open', 'fixing']"}
+
+  [  6x] POST /api/v1/vulns/discovered                                -> 422
+         {"detail": [{"type": "enum", "loc": ["body", "impact_type"], "msg": "Input should be 'remote_code_execution', 'sql_injection', 'cross_site_scripting', 'server_side_request_forgery', 'xml_external_entity', 'insecure_direct_object_reference', 'authenti
+
+  [  5x] GET  /api/v1/collaboration/comments                          -> 422
+         {"detail": [{"type": "missing", "loc": ["query", "entity_type"], "msg": "Field required", "input": null}, {"type": "missing", "loc": ["query", "entity_id"], "msg": "Field required", "input": null}]}
+
+  [  4x] POST /api/v1/autofix/generate                                -> 422
+         {"detail": [{"type": "missing", "loc": ["body", "finding"], "msg": "Field required", "input": {"finding_id": "demo-finding-1770595244830", "severity": "high", "title": "Security vulnerability", "cve_id": "demo-finding-1770595244830"}}]}
+
+  [  4x] POST /api/v1/brain/edges                                     -> 422
+         {"detail": "source_id, target_id, and edge_type are required"}
+
+  [  4x] POST /api/v1/brain/ingest/finding                            -> 422
+         {"detail": [{"type": "json_invalid", "loc": ["body", 67], "msg": "JSON decode error", "input": {}, "ctx": {"error": "Unterminated string starting at"}}]}
+
+  [  4x] POST /api/v1/copilot/sessions                                -> 422
+         {"detail": [{"type": "missing", "loc": ["body"], "msg": "Field required", "input": null}]}
+
+  [  4x] POST /api/v1/iac/mc-1/remediate                              -> 404
+         {"detail": "Not Found"}
+
+  [  3x] POST /api/v1/feeds/refresh                                   -> 404
+         {"detail": "Not Found"}
+
+  [  3x] POST /api/v1/micro-pentest/run                               -> 400
+         {"detail": "At least one CVE ID is required"}
+
+  [  3x] POST /api/v1/pipeline/pipeline/run                           -> 422
+         {"detail": [{"type": "float_parsing", "loc": ["body", "assets", 0, "criticality"], "msg": "Input should be a valid number, unable to parse string as a number", "input": "crown_jewel"}, {"type": "float_parsing", "loc": ["body", "assets", 1, "criticali
+
+  [  2x] GET  /api/v1/analytics/summary                               -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /api/v1/brain/pipeline/runs                             -> 500
+         null
+
+  [  2x] GET  /api/v1/collaboration/notifications                     -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /api/v1/feeds/epss/CVE-2024-1234                        -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /api/v1/feeds/kev/CVE-2024-1234                         -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /api/v1/ml/stats                                        -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /api/v1/nerve-center/pulse                              -> 401
+         {"detail": "Invalid or missing API token"}
+
+  [  2x] GET  /api/v1/pipeline/evidence/packs                         -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /evidence/bundles                                       -> 404
+         {"detail": "Not Found"}
+
+  [  2x] GET  /evidence/soc2                                          -> 404
+         {"detail": "Not Found"}
+
+  [  2x] POST /api/v1/algorithms/monte-carlo/cve                      -> 422
+         {"detail": [{"type": "missing", "loc": ["body", "cvss_score"], "msg": "Field required", "input": {"cve_id": "CVE-2024-1234", "simulations": 100}}]}
+
+  [  2x] POST /api/v1/attack-sim/scenarios/generate                   -> 422
+         {"detail": [{"type": "missing", "loc": ["body", "target_description"], "msg": "Field required", "input": {"target": "web-app-1", "attack_type": "rce"}}]}
+
+=== EMPTY/NULL 200 RESPONSES (last 5 min) ===
+  [ 33x] GET  /api/v1/ml/analytics/anomalies                         
+         []
+
+  [ 29x] GET  /api/v1/vulns/discovered                               
+         []
+
+  [ 11x] GET  /api/v1/analytics/findings                             
+         []
+
+  [  7x] GET  /api/v1/provenance/                                    
+         []
+
+  [  2x] GET  /api/v1/attack-sim/scenarios                           
+         []
+
+  [  2x] GET  /api/v1/stream/events                                  
+         null
+
+=== LAST 50 REQUESTS ===
+  [OK] 221680+00:00 GET  /api/v1/health                                          -> 200 (3ms)
+         {"status": "healthy", "timestamp": "2026-02-09T00:42:50.220760Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 081301+00:00 GET  /api/v1/nerve-center/pulse                              -> 200 (3ms)
+         {"level": "medium", "score": 42.5, "active_incidents": 3, "auto_blocked": 17, "pending_decisions": 5, "timestamp": "2026
+  [OK] 869338+00:00 GET  /api/v1/health                                          -> 200 (5ms)
+         {"status": "healthy", "timestamp": "2026-02-09T07:18:35.868484Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 283554+00:00 GET  /api/v1/iac                                             -> 200 (1ms)
+         {"items": [], "total": 0, "limit": 100, "offset": 0}
+  [OK] 328208+00:00 GET  /api/v1/integrations/                                   -> 307 (1ms)
+         null
+  [OK] 435839+00:00 GET  /api/v1/nerve-center/pulse                              -> 200 (7ms)
+         {"level": "info", "score": 8.9, "active_incidents": 0, "auto_blocked": 0, "pending_decisions": 0, "timestamp": "2026-02-
+  [OK] 318688+00:00 GET  /api/v1/evidence/                                       -> 200 (3ms)
+         {"count": 4, "releases": [{"tag": "incident-IR-2025-001", "manifest_path": "/Users/devops.ai/developement/fixops/Fixops/
+  [OK] 188221+00:00 GET  /api/v1/integrations                                    -> 200 (2ms)
+         {"items": [{"id": "13f22f79-86b6-4624-9d3d-874535faf562", "name": "test-integration_1770360513911", "integration_type": 
+  [OK] 366580+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T02:45:32.365514Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 494496+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T08:03:26.493573Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 606392+00:00 GET  /api/v1/ml/analytics/anomalies                          -> 200 (12ms)
+         []
+  [OK] 219608+00:00 GET  /api/v1/evidence/                                       -> 200 (1ms)
+         {"count": 0, "releases": []}
+  [OK] 231063+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T09:24:24.230503Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 705723+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T02:28:43.704811Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 686753+00:00 GET  /api/v1/health                                          -> 200 (1ms)
+         {"status": "healthy", "timestamp": "2026-02-09T06:49:39.685994Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 683759+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T02:13:55.682672Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 018200+00:00 GET  /api/v1/nerve-center/overlay                            -> 200 (5ms)
+         {"api_config": {"api_url": "http://localhost:8000", "api_version": "2.0.0", "api_key_hint": "***REDACTED***", "auth_mode
+  [OK] 201844+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T05:52:37.200991Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 233048+00:00 GET  /api/v1/health                                          -> 200 (1ms)
+         {"status": "healthy", "timestamp": "2026-02-09T04:00:36.232252Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 224618+00:00 POST /api/v1/mpte/requests                                   -> 201 (3022ms)
+         {"id": "ab683bfd-32dc-4087-a83d-aabbe6fbf99c", "finding_id": "finding-1770624845195", "target_url": "google.com", "vulne
+  [OK] 991546+00:00 GET  /api/v1/evidence/                                       -> 200 (1ms)
+         {"count": 0, "releases": []}
+  [OK] 782923+00:00 GET  /api/v1/remediation/metrics                             -> 200 (18ms)
+         {"status_breakdown": {"open": 6}, "severity_breakdown": {"high": 6}, "mttr_by_severity_hours": {}, "sla_compliance_perce
+  [OK] 575500+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T03:37:14.574960Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 729656+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T05:57:23.728836Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 879660+00:00 GET  /api/v1/health                                          -> 200 (11ms)
+         {"status": "healthy", "timestamp": "2026-02-09T09:13:40.876302Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 234332+00:00 GET  /api/v1/health                                          -> 200 (1ms)
+         {"status": "healthy", "timestamp": "2026-02-09T09:21:54.233724Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 889978+00:00 GET  /api/v1/ml/models                                       -> 200 (13ms)
+         {"models": [{"model_id": "anomaly_detector", "name": "anomaly_detector", "type": "IsolationForest", "status": "untrained
+  [OK] 789721+00:00 GET  /api/v1/health                                          -> 200 (7ms)
+         {"status": "healthy", "timestamp": "2026-02-09T03:04:33.787602Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 986857+00:00 GET  /api/v1/evidence/                                       -> 200 (1ms)
+         {"count": 4, "releases": [{"tag": "incident-IR-2025-001", "manifest_path": "/Users/devops.ai/developement/fixops/Fixops/
+  [OK] 117357+00:00 GET  /api/v1/health                                          -> 200 (4ms)
+         {"status": "healthy", "timestamp": "2026-02-09T01:31:34.114724Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 431194+00:00 GET  /api/v1/evidence/                                       -> 200 (1ms)
+         {"count": 0, "releases": []}
+  [OK] 060992+00:00 GET  /api/v1/attack-sim/health                               -> 200 (2ms)
+         {"status": "healthy", "engine": "AttackSimulationEngine", "scenarios_count": 0, "campaigns_count": 0, "mitre_techniques"
+  [OK] 770541+00:00 GET  /api/v1/health                                          -> 200 (4ms)
+         {"status": "healthy", "timestamp": "2026-02-09T08:10:11.769108Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 894293+00:00 GET  /api/v1/health                                          -> 200 (2ms)
+         {"status": "healthy", "timestamp": "2026-02-09T02:29:43.893557Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 993271+00:00 GET  /api/v1/attack-sim/health                               -> 200 (4ms)
+         {"status": "healthy", "engine": "AttackSimulationEngine", "scenarios_count": 0, "campaigns_count": 0, "mitre_techniques"
+  [OK] 132052+00:00 GET  /api/v1/health                                          -> 200 (3ms)
+         {"status": "healthy", "timestamp": "2026-02-09T04:19:41.130280Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 552148+00:00 GET  /api/v1/integrations/                                   -> 307 (1ms)
+         null
+  [OK] 185419+00:00 GET  /api/v1/feeds/health                                    -> 200 (263ms)
+         {"status": "healthy", "epss": {"count": 0, "last_updated": null}, "kev": {"count": 0, "last_updated": null}, "exploit_in
+  [OK] 962035+00:00 GET  /api/v1/nerve-center/pulse                              -> 200 (22ms)
+         {"level": "info", "score": 4.1, "active_incidents": 0, "auto_blocked": 0, "pending_decisions": 0, "timestamp": "2026-02-
+  [OK] 581429+00:00 GET  /api/v1/integrations/                                   -> 307 (1ms)
+         null
+  [OK] 770766+00:00 GET  /api/v1/health                                          -> 200 (4ms)
+         {"status": "healthy", "timestamp": "2026-02-09T07:46:34.769803Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 491928+00:00 GET  /api/v1/integrations/                                   -> 307 (1ms)
+         null
+  [OK] 265039+00:00 GET  /api/v1/health                                          -> 200 (7ms)
+         {"status": "healthy", "timestamp": "2026-02-09T01:49:20.262984Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 871665+00:00 GET  /api/v1/health                                          -> 200 (1ms)
+         {"status": "healthy", "timestamp": "2026-02-09T07:13:05.871014Z", "service": "fixops-api", "version": "0.1.0"}
+  [OK] 802007+00:00 GET  /api/v1/attack-sim/health                               -> 200 (1ms)
+         {"status": "healthy", "engine": "AttackSimulationEngine", "scenarios_count": 0, "campaigns_count": 0, "mitre_techniques"
+  [ERR] 976142+00:00 POST /api/v1/pipeline/evidence/generate                      -> 404 (1ms)
+         {"detail": "Not Found"}
+  [OK] 876428+00:00 GET  /api/v1/nerve-center/pulse                              -> 200 (33ms)
+         {"level": "info", "score": 3.6, "active_incidents": 0, "auto_blocked": 0, "pending_decisions": 0, "timestamp": "2026-02-
+  [OK] 331334+00:00 GET  /api/v1/health                                          -> 200 (4ms)
+         {"status": "healthy", "timestamp": "2026-02-09T04:50:04.330131Z", "service": "fixops-api", "version": "0.1.0"}
+  [ERR] 570799+00:00 POST /api/v1/webhooks/alm/work-items                         -> 422 (3ms)
+         {"detail": [{"type": "missing", "loc": ["body", "cluster_id"], "msg": "Field required", "input": {"type": "pull_request"
+  [OK] 104854+00:00 GET  /api/v1/nerve-center/pulse                              -> 200 (23ms)
+         {"level": "info", "score": 5.0, "active_incidents": 0, "auto_blocked": 0, "pending_decisions": 0, "timestamp": "2026-02-
+
+=== FEEDS ENDPOINTS ===
+  708483+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  821073+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  653665+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  923570+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  689652+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  833067+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  679729+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  768007+00:00 GET  /api/v1/feeds/health                               -> 200
+         {"status": "healthy", "feeds": [{"name": "EPSS", "status": "healthy", "total_records": 314410, "new_today": 0, "latency_ms": 0, "last_update": "2026-02-09T07:56:49.308454+00:00"}, {"name": "KEV", "sta
+  512152+00:00 GET  /api/v1/feeds/kev                                  -> 200
+         {"message": "Use cve_ids parameter to lookup specific CVEs", "total_kev_entries": 1507}
+  366227+00:00 GET  /api/v1/feeds/epss                                 -> 200
+         {"scores":[{"cve_id":"CVE-2024-27198","epss_score":0.94579,"epss_percentile":1.0,"vulnerability_name":"JetBrains TeamCity Authentication Bypass Vulnerability","kev_date_added":"2024-03-07","kev_due_da
+
+=== DEMO/MOCK/FAKE IN RESPONSES ===
+  GET  /api/v1/decisions/metrics
+         {"status": "success", "data": {"total_decisions": 400, "pending_review": 0, "high_confidence_rate": 0.0, "context_enrichment_rate": 0.0, "avg_decision_latency_us": 87650.0, "consensus_rate": 0.0, "evi
+  GET  /api/v1/decisions/metrics
+         {"status": "success", "data": {"total_decisions": 520, "pending_review": 0, "high_confidence_rate": 0.0, "context_enrichment_rate": 0.0, "avg_decision_latency_us": 75970.0, "consensus_rate": 0.0, "evi
+  GET  /api/v1/decisions/recent
+         {"status": "success", "data": [{"evidence_id": "DEMO-EVD-0", "service_name": "payment-service", "environment": "production", "decision": "ALLOW", "confidence": 0.9, "timestamp": "2026-02-09T08:14:16.0
+  GET  /api/v1/decisions/recent
+         {"status": "success", "data": [{"evidence_id": "DEMO-EVD-0", "service_name": "payment-service", "environment": "production", "decision": "ALLOW", "confidence": 0.9, "timestamp": "2026-02-09T09:27:30.2
+  GET  /api/v1/marketplace/browse
+         {"items": [{"id": "demo-remediation-pack-1", "name": "SQL Injection Remediation Pack", "description": "Comprehensive remediation guidance for SQL injection vulnerabilities", "content_type": "remediati
+  GET  /api/v1/micro-pentest/health
+         {"status": "degraded", "service": "micro-pentest", "demo_mode": false, "mpte_url": "https://localhost:8443", "mpte_status": "disconnected", "mpte_error": "Cannot connect to https://localhost:8443", "c
+  GET  /api/v1/mpte/configs
+         {"items": [{"id": "07e61e1f-49ca-4c3f-b1c6-2b36375dc14a", "name": "demo-config", "mpte_url": "http://localhost:9000", "api_key": "***REDACTED***", "enabled": true, "max_concurrent_tests": 5, "timeout_
+  POST /api/v1/nerve-center/auto-remediate
+         {"status": "accepted", "action_id": "ar-1770594883", "action": "escalate", "findings": ["demo-finding-1"], "confidence": 0.92, "message": "Auto-remediation 'escalate' queued for 1 finding(s)"}
+  POST /api/v1/nerve-center/auto-remediate
+         {"status": "accepted", "action_id": "ar-1770597511", "action": "quarantine", "findings": ["demo-finding-1"], "confidence": 0.92, "message": "Auto-remediation 'quarantine' queued for 1 finding(s)"}
+  POST /api/v1/nerve-center/auto-remediate
+         {"status": "accepted", "action_id": "ar-1770619754", "action": "quarantine", "findings": ["demo-finding-1"], "confidence": 0.92, "message": "Auto-remediation 'quarantine' queued for 1 finding(s)"}

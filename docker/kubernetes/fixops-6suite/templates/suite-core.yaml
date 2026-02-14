@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aldeci.fullname" . }}-suite-core
+  labels:
+    {{- include "aldeci.labels" . | nindent 4 }}
+    app.kubernetes.io/name: suite-core
+spec:
+  replicas: {{ .Values.suiteCore.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: suite-core
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: suite-core
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: suite-core
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.suiteCore.image.repository }}:{{ .Values.suiteCore.image.tag }}"
+          imagePullPolicy: {{ .Values.suiteCore.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.suiteCore.service.port }}
+              protocol: TCP
+          env:
+            {{- include "aldeci.globalEnv" . | nindent 12 }}
+          {{- if .Values.suiteCore.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.suiteCore.persistence.mountPath }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.suiteCore.service.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.suiteCore.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.suiteCore.resources | nindent 12 }}
+      {{- if .Values.suiteCore.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "aldeci.fullname" . }}-suite-core-data
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aldeci.fullname" . }}-suite-core
+spec:
+  type: {{ .Values.suiteCore.service.type }}
+  ports:
+    - port: {{ .Values.suiteCore.service.port }}
+      targetPort: {{ .Values.suiteCore.service.port }}
+  selector:
+    app.kubernetes.io/name: suite-core
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.suiteCore.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aldeci.fullname" . }}-suite-core-data
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.suiteCore.persistence.size }}
+{{- end }}
+{{- if .Values.suiteCore.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "aldeci.fullname" . }}-suite-core
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "aldeci.fullname" . }}-suite-core
+  minReplicas: {{ .Values.suiteCore.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.suiteCore.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.suiteCore.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+

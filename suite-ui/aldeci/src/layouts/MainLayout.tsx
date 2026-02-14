@@ -87,7 +87,7 @@ const navigationSections: NavSection[] = [
       { id: 'knowledge-graph', label: 'Knowledge Graph', icon: Network, path: '/core/knowledge-graph', badge: 'BRAIN' },
       { id: 'brain-pipeline', label: 'Brain Pipeline', icon: Workflow, path: '/core/brain-pipeline', badge: 'E2E' },
       { id: 'exposure-cases', label: 'Exposure Cases', icon: FolderKanban, path: '/core/exposure-cases', badge: 'NEW' },
-      { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, path: '/attack/mpte-chat', badge: 'AI' },
+      { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, path: '/attack/micro-pentest', badge: 'AI' },
     ],
   },
   // CODE SUITE (FR-ING: Ingest)
@@ -118,7 +118,7 @@ const navigationSections: NavSection[] = [
     id: 'attack-suite',
     title: '⚔️ ATTACK SUITE',
     items: [
-      { id: 'attack-lab', label: 'AI Pentesting (MPTE)', icon: Swords, path: '/attack/mpte-chat' },
+      { id: 'attack-lab', label: 'AI Pentesting (MPTE)', icon: Swords, path: '/attack/micro-pentest' },
       { id: 'attack-simulation', label: 'Attack Simulation', icon: Target, path: '/attack/attack-simulation' },
       { id: 'playbooks', label: 'Playbooks & Campaigns', icon: ClipboardList, path: '/protect/playbooks' },
       { id: 'playbook-editor', label: 'Playbook Editor', icon: FileText, path: '/protect/playbook-editor' },

@@ -1,0 +1,15 @@
+Decisions router not available: No module named 'src'
+FeedsService not available - using fallback behavior
+Failed to configure telemetry: '_SilentMetricExporter' object has no attribute '_preferred_temporality'. Application will continue without telemetry.
+Business Context router not available: No module named 'src'
+Business Context Enhanced router not available: No module named 'src'
+OSS Tools router not available: No module named 'src'
+INFO:apps.api.app:Using JWT signing key from environment variable
+INFO:core.flags.provider_factory:Initialized LocalOverlayProvider
+WARNING:core.flags.ld_provider:LaunchDarkly SDK not available. Install with: pip install launchdarkly-server-sdk
+INFO:core.flags.provider_factory:LaunchDarkly running in offline mode
+INFO:core.flags.provider_factory:Using CombinedProvider: Local Overlay → Defaults
+INFO:apps.api.app:LearningMiddleware enabled — API traffic will be captured for ML
+WARNING:apps.api.app:FIXOPS_ALLOWED_ORIGINS not set in non-demo mode. Using default localhost origins. Set FIXOPS_ALLOWED_ORIGINS for production deployments.
+INFO:core.decision_policy:Initialized DecisionPolicyEngine: block_internet_facing_sqli=True, block_auth_path_sqli=True, internet_facing_multiplier=3.0
+INFO:apscheduler.scheduler:Scheduler has been shut down

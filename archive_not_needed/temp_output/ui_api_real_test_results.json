@@ -1,0 +1,725 @@
+{
+  "timestamp": "2026-02-06T13:16:36.598274",
+  "summary": {
+    "total": 106,
+    "passed": 84,
+    "failed": 22,
+    "rate": 79.25
+  },
+  "results": {
+    "Dashboard": [
+      {
+        "name": "systemApi.getHealth",
+        "url": "/health",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "systemApi.getStatus",
+        "url": "/api/v1/status",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feedsApi.getEPSS()",
+        "url": "/api/v1/feeds/epss",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feedsApi.getKEV()",
+        "url": "/api/v1/feeds/kev",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "algorithmsApi.getCapabilities",
+        "url": "/api/v1/algorithms/capabilities",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feedsApi.getHealth",
+        "url": "/api/v1/feeds/health",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "algorithmsApi.getStatus",
+        "url": "/api/v1/algorithms/status",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "dashboardApi.getOverview('default')",
+        "url": "/api/v1/analytics/dashboard/overview",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Copilot": [
+      {
+        "name": "copilot.chat.createSession()",
+        "url": "/api/v1/copilot/sessions",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "copilot.chat.sendMessage()",
+        "url": "/api/v1/copilot/sessions/test-session/messages",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "DataFabric": [
+      {
+        "name": "feedsApi.getEPSS()",
+        "url": "/api/v1/feeds/epss",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feedsApi.getKEV()",
+        "url": "/api/v1/feeds/kev",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "IntelligenceHub": [
+      {
+        "name": "feedsApi.getEPSS()",
+        "url": "/api/v1/feeds/epss",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feedsApi.getKEV()",
+        "url": "/api/v1/feeds/kev",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feedsApi.getKEV([cve])",
+        "url": "/api/v1/feeds/kev",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "DecisionEngine": [
+      {
+        "name": "algorithmsApi.getCapabilities",
+        "url": "/api/v1/algorithms/capabilities",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "algorithmsApi.prioritize()",
+        "url": "/api/v1/copilot/agents/analyst/prioritize",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "AttackLab": [
+      {
+        "name": "pentestApi.getTests",
+        "url": "/api/v1/mpte/requests",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "pentestApi.runMicroPentest()",
+        "url": "/api/v1/micro-pentest/run",
+        "status": "201",
+        "result": "PASS"
+      },
+      {
+        "name": "pentestApi.validateExploit()",
+        "url": "/api/v1/mpte/verify",
+        "status": "503",
+        "result": "ERROR_503"
+      }
+    ],
+    "EvidenceVault": [
+      {
+        "name": "complianceApi.getStatus",
+        "url": "/api/v1/analytics/dashboard/compliance-status",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "complianceApi.generateReport()",
+        "url": "/api/v1/reports",
+        "status": "201",
+        "result": "PASS"
+      },
+      {
+        "name": "complianceApi.collectEvidence()",
+        "url": "/api/v1/evidence/bundles/test-id/collect",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "RemediationCenter": [
+      {
+        "name": "remediationApi.generateFix()",
+        "url": "/api/v1/enhanced/analysis",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "remediationApi.createPR()",
+        "url": "/api/v1/webhooks/alm/work-items",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Settings": [
+      {
+        "name": "systemApi.getHealth",
+        "url": "/health",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "systemApi.getStatus",
+        "url": "/api/v1/status",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "AttackPaths": [
+      {
+        "name": "attackGraphApi.getGraph()",
+        "url": "/graph/",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "reachabilityApi.getMetrics()",
+        "url": "/api/v1/reachability/metrics",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "attackGraphApi.analyze()",
+        "url": "/api/v1/algorithms/gnn/attack-surface",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "attackGraphApi.export('json')",
+        "url": "/api/v1/analytics/export",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "AttackSimulation": [
+      {
+        "name": "microPentestApi.getHealth()",
+        "url": "/api/v1/micro-pentest/enterprise/health",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "reachabilityApi.getMetrics()",
+        "url": "/api/v1/reachability/metrics",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "graphApi.getGraph()",
+        "url": "/graph/",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "MicroPentest": [
+      {
+        "name": "microPentest.run()",
+        "url": "/api/v1/micro-pentest/run",
+        "status": "201",
+        "result": "PASS"
+      },
+      {
+        "name": "microPentest.getStatus()",
+        "url": "/api/v1/micro-pentest/status/123",
+        "status": "503",
+        "result": "ERROR_503"
+      }
+    ],
+    "MPTEConsole": [
+      {
+        "name": "mpte.getRequests()",
+        "url": "/api/v1/mpte/requests",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "mpte.getResults()",
+        "url": "/api/v1/mpte/results",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "mpte.createRequest()",
+        "url": "/api/v1/mpte/requests",
+        "status": "201",
+        "result": "PASS"
+      }
+    ],
+    "Reachability": [
+      {
+        "name": "reachability.analyze()",
+        "url": "/api/v1/reachability/analyze",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "reachability.getResults()",
+        "url": "/api/v1/reachability/jobs/test-job-id",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "AlgorithmicLab": [
+      {
+        "name": "labs.monteCarloQuantify()",
+        "url": "/api/v1/algorithms/monte-carlo/quantify",
+        "status": "500",
+        "result": "SERVER_ERROR"
+      },
+      {
+        "name": "labs.causalAnalyze()",
+        "url": "/api/v1/algorithms/causal/analyze",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "MultiLLMPage": [
+      {
+        "name": "llmApi.getStatus()",
+        "url": "/api/v1/llm/status",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "algorithmsApi.getCapabilities()",
+        "url": "/api/v1/algorithms/capabilities",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "enhancedApi.analyze()",
+        "url": "/api/v1/enhanced/analysis",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Policies": [
+      {
+        "name": "policies.list()",
+        "url": "/api/v1/policies",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "policies.validate()",
+        "url": "/api/v1/policies/test-id/validate",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "Predictions": [
+      {
+        "name": "predictions.riskTrajectory()",
+        "url": "/api/v1/predictions/risk-trajectory",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "CloudPosture": [
+      {
+        "name": "cnappApi.getFindings",
+        "url": "/api/v1/analytics/findings",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "inventoryApi.getAssets",
+        "url": "/api/v1/inventory/applications",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "cnappApi.getSummary",
+        "url": "/api/v1/analytics/dashboard/overview",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "cnappApi.scan()",
+        "url": "/api/v1/iac/scan/content",
+        "status": "500",
+        "result": "SERVER_ERROR"
+      },
+      {
+        "name": "cnappApi.export('json')",
+        "url": "/api/v1/analytics/export",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "cnappApi.remediate()",
+        "url": "/api/v1/iac/test-id/remediate",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "CorrelationEngine": [
+      {
+        "name": "getClusters()",
+        "url": "/api/v1/deduplication/clusters",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "processFinding()",
+        "url": "/api/v1/deduplication/process",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "ThreatFeeds": [
+      {
+        "name": "feeds.getEPSS()",
+        "url": "/api/v1/feeds/epss",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "feeds.getKEV()",
+        "url": "/api/v1/feeds/kev",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "CodeScanning": [
+      {
+        "name": "inventoryApi.getApplications()",
+        "url": "/api/v1/inventory/applications",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "dedupApi.getStats()",
+        "url": "/api/v1/deduplication/stats",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "IaCScanning": [
+      {
+        "name": "iac.list()",
+        "url": "/api/v1/iac",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "cspm.scan()",
+        "url": "/api/v1/iac/scan/content",
+        "status": "500",
+        "result": "SERVER_ERROR"
+      }
+    ],
+    "Inventory": [
+      {
+        "name": "inventory.getApplications()",
+        "url": "/api/v1/inventory/applications",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "SecretsDetection": [
+      {
+        "name": "secretsApi.list",
+        "url": "/api/v1/secrets",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "secretsApi.getScannersStatus",
+        "url": "/api/v1/secrets/scanners/status",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "secretsApi.scanContent()",
+        "url": "/api/v1/secrets/scan/content",
+        "status": "500",
+        "result": "SERVER_ERROR"
+      },
+      {
+        "name": "secretsApi.resolve()",
+        "url": "/api/v1/secrets/test-id/resolve",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "AuditLogs": [
+      {
+        "name": "audit.getLogs()",
+        "url": "/api/v1/audit/logs",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "ComplianceReports": [
+      {
+        "name": "complianceApi.getStatus()",
+        "url": "/api/v1/analytics/dashboard/compliance-status",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "reportsApi.getTemplates()",
+        "url": "/api/v1/reports/templates/list",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "auditApi.getLogs()",
+        "url": "/api/v1/audit/logs",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "reportsApi.create()",
+        "url": "/api/v1/reports",
+        "status": "201",
+        "result": "PASS"
+      }
+    ],
+    "EvidenceBundles": [
+      {
+        "name": "bundles.list()",
+        "url": "/evidence/",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "bundles.verify()",
+        "url": "/evidence/verify",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "Reports": [
+      {
+        "name": "reports.list()",
+        "url": "/api/v1/reports",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "reports.generate()",
+        "url": "/api/v1/reports",
+        "status": "201",
+        "result": "PASS"
+      }
+    ],
+    "BulkOperations": [
+      {
+        "name": "analyticsApi.getFindings()",
+        "url": "/api/v1/analytics/findings",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "dedupApi.getStats",
+        "url": "/api/v1/deduplication/stats",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "remediationApi.getTasks()",
+        "url": "/api/v1/remediation/tasks",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "remediationApi.generateFix()",
+        "url": "/api/v1/enhanced/analysis",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "remediationApi.createPR()",
+        "url": "/api/v1/webhooks/alm/work-items",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "remediationApi.assignTask()",
+        "url": "/api/v1/remediation/tasks/test-id/assign",
+        "status": "405",
+        "result": "WRONG_METHOD"
+      }
+    ],
+    "Collaboration": [
+      {
+        "name": "collaboration.getComments()",
+        "url": "/api/v1/collaboration/comments",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "collaboration.getNotifications()",
+        "url": "/api/v1/collaboration/notifications/pending",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Integrations": [
+      {
+        "name": "integrationsApi.list",
+        "url": "/api/v1/integrations",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "webhooksApi.getMappings",
+        "url": "/api/v1/webhooks/mappings",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "integrationsApi.test()",
+        "url": "/api/v1/integrations/test-id/test",
+        "status": "404",
+        "result": "MISSING"
+      },
+      {
+        "name": "integrationsApi.create()",
+        "url": "/api/v1/integrations",
+        "status": "201",
+        "result": "PASS"
+      },
+      {
+        "name": "integrationsApi.delete()",
+        "url": "/api/v1/integrations/test-id",
+        "status": "404",
+        "result": "MISSING"
+      },
+      {
+        "name": "integrationsApi.sync()",
+        "url": "/api/v1/integrations/test-id/sync",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "Playbooks": [
+      {
+        "name": "workflowsApi.list",
+        "url": "/api/v1/workflows",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "automationApi.getRules",
+        "url": "/api/v1/workflows",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "workflowsApi.create()",
+        "url": "/api/v1/workflows",
+        "status": "201",
+        "result": "PASS"
+      },
+      {
+        "name": "workflowsApi.execute()",
+        "url": "/api/v1/workflows/test-id/execute",
+        "status": "404",
+        "result": "MISSING"
+      },
+      {
+        "name": "workflowsApi.update()",
+        "url": "/api/v1/workflows/test-id",
+        "status": "404",
+        "result": "MISSING"
+      },
+      {
+        "name": "workflowsApi.delete()",
+        "url": "/api/v1/workflows/test-id",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "Remediation": [
+      {
+        "name": "remediation.getTasks()",
+        "url": "/api/v1/remediation/tasks",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Workflows": [
+      {
+        "name": "workflows.list()",
+        "url": "/api/v1/workflows",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "workflows.execute()",
+        "url": "/api/v1/workflows/test-id/execute",
+        "status": "404",
+        "result": "MISSING"
+      }
+    ],
+    "Marketplace": [
+      {
+        "name": "marketplace.browse()",
+        "url": "/api/v1/marketplace/browse",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "marketplace.install()",
+        "url": "/api/v1/marketplace/purchase/test-id",
+        "status": "403",
+        "result": "ERROR_403"
+      }
+    ],
+    "SystemHealth": [
+      {
+        "name": "system.health()",
+        "url": "/health",
+        "status": "200",
+        "result": "PASS"
+      },
+      {
+        "name": "system.version()",
+        "url": "/api/v1/version",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Teams": [
+      {
+        "name": "access.teams()",
+        "url": "/api/v1/teams",
+        "status": "200",
+        "result": "PASS"
+      }
+    ],
+    "Users": [
+      {
+        "name": "access.users()",
+        "url": "/api/v1/users",
+        "status": "200",
+        "result": "PASS"
+      }
+    ]
+  }
+}

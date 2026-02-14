@@ -17,3 +17,49 @@ profile = "black"
 line_length = 88
 skip_gitignore = true
 extend_skip = ["WIP"]
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=risk",
+    "--cov=automation",
+    "--cov=cli",
+    "--cov=apps",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=60",
+    "--durations=10",
+    "-ra",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "performance: Performance tests",
+    "slow: Slow running tests",
+    "security: Security-related tests",
+    "regression: Regression tests",
+    "requires_network: Tests that require network access",
+    "requires_docker: Tests that require Docker",
+    "requires_k8s: Tests that require Kubernetes",
+    "e2e: End-to-end scenario tests",
+    "asyncio: Async tests using pytest-asyncio",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore:Unclosed.*MemoryObject.*:ResourceWarning",
+]

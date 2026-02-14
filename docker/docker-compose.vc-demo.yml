@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  fixops-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.demo
+    container_name: fixops-vc-demo
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount output directory to access results from host
+      - ./demo_decision_outputs:/app/demo_decision_outputs
+      - ./demo_decision_inputs:/app/demo_decision_inputs
+    environment:
+      - FIXOPS_MODE=demo
+      - FIXOPS_API_TOKEN=demo-token
+      - FIXOPS_DISABLE_TELEMETRY=1
+    command: >
+      bash -c "
+      echo '=== FixOps VC Demo Container Ready ===' &&
+      echo 'Starting API server on port 8000...' &&
+      python demo_api_server.py &
+      sleep 5 &&
+      echo 'API server started. You can now run demo commands.' &&
+      echo 'To run the demo: docker exec -it fixops-vc-demo python -m core.cli demo --mode demo --output demo_decision_outputs/decision.json --pretty' &&
+      tail -f /dev/null
+      "
+    stdin_open: true
+    tty: true

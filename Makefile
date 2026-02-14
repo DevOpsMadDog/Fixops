@@ -13,16 +13,15 @@ help:
 	@echo "  make lint           Run flake8 lint checks"
 	@echo "  make test           Run pytest with coverage gate"
 	@echo "  make sim            Generate SSDLC simulation artifacts (design & test)"
-	@echo "  make demo           Run the FixOps demo pipeline end-to-end"
-	@echo "  make demo-enterprise Run the FixOps enterprise pipeline with hardened overlay"
+	@echo "  make demo           Run the ALdeci demo pipeline end-to-end"
+	@echo "  make demo-enterprise Run the ALdeci enterprise pipeline with hardened overlay"
 	@echo "  make inventory      Rebuild the file usage inventory artefacts"
 	@echo "  make clean          Remove cached artefacts and the virtual environment"
 	@echo ""
 	@echo "PentAGI Integration (layer for any compose file):"
-	@echo "  make up-pentagi              Start FixOps + PentAGI (default compose)"
-	@echo "  make up-pentagi-enterprise   Start FixOps Enterprise + PentAGI"
-	@echo "  make up-pentagi-demo         Start FixOps Demo + PentAGI"
-	@echo "  make up-pentagi-deployment   Start Deployment Pack + PentAGI"
+	@echo "  make up-pentagi              Start ALdeci + PentAGI (default compose)"
+	@echo "  make up-pentagi-enterprise   Start ALdeci Enterprise + PentAGI"
+	@echo "  make up-pentagi-demo         Start ALdeci Demo + PentAGI"
 	@echo "  make down-pentagi            Stop services (use BASE_COMPOSE for variants)"
 	@echo "  make logs-pentagi            View PentAGI container logs"
 
@@ -101,7 +100,7 @@ clean:
 .PHONY: demo-setup demo-feeds demo-cves demo-quick demo-full demo-test demo-all demo-clean
 
 demo-setup:
-	@echo "Setting up FixOps demo environment..."
+	@echo "Setting up ALdeci demo environment..."
 	@mkdir -p data/feeds data/inputs/{container,cloud,appsec} artifacts reports
 	@echo "✓ Demo directories created"
 
@@ -116,7 +115,7 @@ demo-cves: demo-feeds
 	@echo "✓ CVE dataset generated"
 
 demo-quick: demo-cves
-	@echo "Running FixOps quick demo (5k CVEs)..."
+	@echo "Running ALdeci quick demo (5k CVEs)..."
 	@python scripts/demo_run.py --mode quick --top-n 50
 	@echo ""
 	@echo "✅ Quick demo complete!"
@@ -124,7 +123,7 @@ demo-quick: demo-cves
 	@echo "  Evidence: artifacts/evidence_bundle_quick.zip"
 
 demo-full: demo-cves
-	@echo "Running FixOps full demo (50k CVEs)..."
+	@echo "Running ALdeci full demo (50k CVEs)..."
 	@python scripts/demo_run.py --mode full --top-n 100
 	@echo ""
 	@echo "✅ Full demo complete!"
@@ -139,7 +138,7 @@ demo-test:
 
 demo-all: demo-setup demo-feeds demo-cves demo-full demo-test
 	@echo ""
-	@echo "✅ Complete FixOps demo pipeline finished!"
+	@echo "✅ Complete ALdeci demo pipeline finished!"
 	@echo ""
 	@echo "Results:"
 	@echo "  - Summary: reports/demo_summary_full.md"
@@ -159,16 +158,15 @@ demo-clean:
 # PentAGI Integration Targets
 # ===================================================================
 # PentAGI can be added as a layer to ANY docker-compose file:
-#   make up-pentagi                    # with docker-compose.yml (default)
-#   make up-pentagi-enterprise         # with docker-compose.enterprise.yml
-#   make up-pentagi-demo               # with docker-compose.demo.yml
-#   make up-pentagi-deployment         # with deployment-packs/docker/docker-compose.yml
+#   make up-pentagi                    # with docker/docker-compose.yml (default)
+#   make up-pentagi-enterprise         # with docker/docker-compose.enterprise.yml
+#   make up-pentagi-demo               # with docker/docker-compose.demo.yml
 #
 # Or use BASE_COMPOSE variable:
-#   make up-pentagi BASE_COMPOSE=docker-compose.enterprise.yml
+#   make up-pentagi BASE_COMPOSE=docker/docker-compose.enterprise.yml
 
-BASE_COMPOSE ?= docker-compose.yml
-PENTAGI_COMPOSE := docker-compose.pentagi.yml
+BASE_COMPOSE ?= docker/docker-compose.yml
+PENTAGI_COMPOSE := docker/docker-compose.pentagi.yml
 
 .PHONY: up-pentagi down-pentagi logs-pentagi
 .PHONY: up-pentagi-enterprise down-pentagi-enterprise
@@ -184,20 +182,20 @@ _pentagi-env-check:
 
 _pentagi-start-msg:
 	@echo ""
-	@echo "✓ FixOps + PentAGI started"
+	@echo "✓ ALdeci + PentAGI started"
 	@echo "  PentAGI:    https://localhost:8443 (self-signed SSL)"
 	@echo ""
 	@echo "To use your fork's image (no VXControl Cloud SDK):"
 	@echo "  export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest"
 
 up-pentagi: _pentagi-env-check
-	@echo "Starting FixOps ($(BASE_COMPOSE)) with PentAGI integration..."
+	@echo "Starting ALdeci ($(BASE_COMPOSE)) with PentAGI integration..."
 	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
 	@$(MAKE) _pentagi-start-msg
-	@echo "  FixOps API: http://localhost:8000"
+	@echo "  ALdeci API: http://localhost:8000"
 
 down-pentagi:
-	@echo "Stopping FixOps + PentAGI..."
+	@echo "Stopping ALdeci + PentAGI..."
 	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) down
 	@echo "✓ Services stopped"
 
@@ -205,36 +203,24 @@ logs-pentagi:
 	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) logs -f pentagi
 
 up-pentagi-enterprise: _pentagi-env-check
-	@echo "Starting FixOps Enterprise with PentAGI integration..."
-	docker compose -f docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
+	@echo "Starting ALdeci Enterprise with PentAGI integration..."
+	docker compose -f docker/docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
 	@$(MAKE) _pentagi-start-msg
-	@echo "  FixOps Enterprise: http://localhost:8000"
+	@echo "  ALdeci Enterprise: http://localhost:8000"
 
 down-pentagi-enterprise:
-	@echo "Stopping FixOps Enterprise + PentAGI..."
-	docker compose -f docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) down
+	@echo "Stopping ALdeci Enterprise + PentAGI..."
+	docker compose -f docker/docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) down
 	@echo "✓ Services stopped"
 
 up-pentagi-demo: _pentagi-env-check
-	@echo "Starting FixOps Demo with PentAGI integration..."
-	docker compose -f docker-compose.demo.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
+	@echo "Starting ALdeci Demo with PentAGI integration..."
+	docker compose -f docker/docker-compose.demo.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
 	@$(MAKE) _pentagi-start-msg
-	@echo "  FixOps Demo API: http://localhost:8000"
+	@echo "  ALdeci Demo API: http://localhost:8000"
 	@echo "  Dashboard:       http://localhost:8080"
 
 down-pentagi-demo:
-	@echo "Stopping FixOps Demo + PentAGI..."
-	docker compose -f docker-compose.demo.yml -f $(PENTAGI_COMPOSE) down
-	@echo "✓ Services stopped"
-
-up-pentagi-deployment: _pentagi-env-check
-	@echo "Starting FixOps Deployment Pack with PentAGI integration..."
-	docker compose -f deployment-packs/docker/docker-compose.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
-	@$(MAKE) _pentagi-start-msg
-	@echo "  FixOps Backend:  http://localhost:8001"
-	@echo "  FixOps Frontend: http://localhost:3000 (if enabled)"
-
-down-pentagi-deployment:
-	@echo "Stopping FixOps Deployment Pack + PentAGI..."
-	docker compose -f deployment-packs/docker/docker-compose.yml -f $(PENTAGI_COMPOSE) down
+	@echo "Stopping ALdeci Demo + PentAGI..."
+	docker compose -f docker/docker-compose.demo.yml -f $(PENTAGI_COMPOSE) down
 	@echo "✓ Services stopped"

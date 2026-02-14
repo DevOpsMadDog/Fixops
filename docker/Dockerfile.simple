@@ -1,0 +1,58 @@
+# Simple FixOps VC Demo Dockerfile
+FROM python:3.11-slim
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+COPY apps/api/requirements.txt apps_api_requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -r apps_api_requirements.txt uvicorn
+
+# Copy only necessary application files
+COPY apps ./apps
+COPY new_apps ./new_apps
+COPY core ./core
+COPY config ./config
+COPY backend ./backend
+COPY services ./services
+COPY domain ./domain
+COPY fixops ./fixops
+COPY fixops-enterprise ./fixops-enterprise
+COPY simulations ./simulations
+COPY demo_ssdlc_stages ./demo_ssdlc_stages
+COPY demo ./demo
+COPY ssvc ./ssvc
+COPY data ./data
+COPY fixtures ./fixtures
+
+# Copy documentation for customer reference
+COPY README.md ./
+COPY docs/ ./docs/
+
+# Create directories
+RUN mkdir -p demo_decision_inputs demo_decision_outputs data/feeds data/evidence
+
+# Environment
+ENV FIXOPS_MODE=demo \
+    FIXOPS_API_TOKEN=demo-token \
+    FIXOPS_DISABLE_TELEMETRY=1 \
+    PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+# Create demo server script with proper newlines
+RUN printf 'import os\n\
+os.environ.setdefault("FIXOPS_MODE", "demo")\n\
+from apps.api.app import create_app\n\
+app = create_app()\n\
+if __name__ == "__main__":\n\
+    import uvicorn\n\
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")\n' > demo_api_server.py
+
+CMD ["python", "-m", "core.cli", "demo", "--mode", "demo", "--output", "demo_decision_outputs/decision.json", "--pretty"]

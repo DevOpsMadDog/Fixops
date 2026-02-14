@@ -3468,6 +3468,321 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
 
 
 # ============================================================================
+# PENTAGI UNIFIED COMMANDS (wraps micro-pentest + mpte + advanced-pentest)
+# ============================================================================
+
+
+def _handle_pentagi(args: argparse.Namespace) -> int:
+    """Handle unified PentAGI commands — delegates to micro-pentest, mpte, and
+    advanced-pentest handlers for a single cohesive 'pentagi' CLI."""
+    import argparse as _argparse
+    import asyncio
+    import json
+    import os
+    from datetime import datetime, timezone
+
+    cmd = args.pentagi_command
+
+    # --- scan: delegates to micro-pentest run ---
+    if cmd == "scan":
+        proxy = _argparse.Namespace(
+            micro_command="run",
+            cve_ids=args.cve_ids,
+            target_urls=args.target_urls,
+            context=getattr(args, "context", None),
+            format=getattr(args, "format", "text"),
+        )
+        return _handle_micro_pentest(proxy)
+
+    # --- status: delegates to micro-pentest status ---
+    elif cmd == "status":
+        if hasattr(args, "flow_id") and args.flow_id:
+            proxy = _argparse.Namespace(
+                micro_command="status",
+                flow_id=args.flow_id,
+                format=getattr(args, "format", "text"),
+            )
+            return _handle_micro_pentest(proxy)
+        else:
+            # General PentAGI system status
+            from core.mpte_db import MPTEDB
+
+            db = MPTEDB()
+            pending = db.list_requests(status=None, limit=1000)
+            running = [r for r in pending if r.status.value == "running"]
+            completed = [r for r in pending if r.status.value == "completed"]
+            failed = [r for r in pending if r.status.value == "failed"]
+
+            result = {
+                "pentagi_status": "operational",
+                "mpte_url": os.environ.get("MPTE_BASE_URL", "http://mpte:8443"),
+                "requests": {
+                    "total": len(pending),
+                    "running": len(running),
+                    "completed": len(completed),
+                    "failed": len(failed),
+                },
+                "capabilities": [
+                    "micro-pentest",
+                    "advanced-pentest",
+                    "threat-intel",
+                    "business-impact",
+                    "attack-simulation",
+                    "remediation",
+                    "enterprise-scan",
+                    "report-generation",
+                ],
+            }
+            print(json.dumps(result, indent=2))
+            return 0
+
+    # --- list: delegates to mpte list-requests ---
+    elif cmd == "list":
+        proxy = _argparse.Namespace(
+            mpte_command="list-requests",
+            finding_id=getattr(args, "finding_id", None),
+            status=getattr(args, "status", None),
+            limit=getattr(args, "limit", 100),
+            offset=getattr(args, "offset", 0),
+            format=getattr(args, "format", "table"),
+        )
+        return _handle_mpte(proxy)
+
+    # --- batch: delegates to micro-pentest batch ---
+    elif cmd == "batch":
+        proxy = _argparse.Namespace(
+            micro_command="batch",
+            config_file=args.config_file,
+            format=getattr(args, "format", "text"),
+        )
+        return _handle_micro_pentest(proxy)
+
+    # --- threat-intel: delegates to advanced-pentest threat-intel ---
+    elif cmd == "threat-intel":
+        proxy = _argparse.Namespace(
+            advanced_pentest_command="threat-intel",
+            cve=args.cve,
+        )
+        return _handle_advanced_pentest(proxy)
+
+    # --- business-impact: delegates to advanced-pentest business-impact ---
+    elif cmd == "business-impact":
+        proxy = _argparse.Namespace(
+            advanced_pentest_command="business-impact",
+            target=getattr(args, "target", None),
+            cves=getattr(args, "cves", None),
+        )
+        return _handle_advanced_pentest(proxy)
+
+    # --- simulate: delegates to advanced-pentest simulate ---
+    elif cmd == "simulate":
+        proxy = _argparse.Namespace(
+            advanced_pentest_command="simulate",
+            target=args.target,
+            attack_type=getattr(args, "attack_type", "chained_exploit"),
+        )
+        return _handle_advanced_pentest(proxy)
+
+    # --- remediation: delegates to advanced-pentest remediation ---
+    elif cmd == "remediation":
+        proxy = _argparse.Namespace(
+            advanced_pentest_command="remediation",
+            cve=args.cve,
+        )
+        return _handle_advanced_pentest(proxy)
+
+    # --- capabilities: delegates to advanced-pentest capabilities ---
+    elif cmd == "capabilities":
+        proxy = _argparse.Namespace(
+            advanced_pentest_command="capabilities",
+        )
+        return _handle_advanced_pentest(proxy)
+
+    # --- enterprise-scan: calls /api/v1/micro-pentest/enterprise/scan ---
+    elif cmd == "enterprise-scan":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        target = args.target
+        scan_type = getattr(args, "scan_type", "full")
+        compliance = getattr(args, "compliance", None)
+
+        payload = {
+            "target_url": target,
+            "scan_type": scan_type,
+        }
+        if compliance:
+            payload["compliance_frameworks"] = [c.strip() for c in compliance.split(",")]
+
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/scan",
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Enterprise scan failed: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- enterprise-scans: list enterprise scans ---
+    elif cmd == "enterprise-scans":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/scans",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to list enterprise scans: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- audit-logs: get enterprise audit logs ---
+    elif cmd == "audit-logs":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/audit-logs",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to get audit logs: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- attack-vectors: list enterprise attack vectors ---
+    elif cmd == "attack-vectors":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/attack-vectors",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to list attack vectors: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- threat-categories: list enterprise threat categories ---
+    elif cmd == "threat-categories":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/threat-categories",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to list threat categories: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- compliance-frameworks: list supported compliance frameworks ---
+    elif cmd == "compliance-frameworks":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/compliance-frameworks",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to list compliance frameworks: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- scan-modes: list enterprise scan modes ---
+    elif cmd == "scan-modes":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/enterprise/scan-modes",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to list scan modes: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- generate-report: trigger report generation ---
+    elif cmd == "generate-report":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        target = args.target
+        payload = {"target_url": target, "report_format": getattr(args, "report_format", "pdf")}
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/report/generate",
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Report generation failed: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    # --- report-data: get report data ---
+    elif cmd == "report-data":
+        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        try:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{url}/api/v1/micro-pentest/report/data",
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode())
+            print(json.dumps(result, indent=2))
+        except Exception as e:
+            print(f"❌ Failed to get report data: {e}", file=sys.stderr)
+            return 1
+        return 0
+
+    else:
+        print(f"Unknown pentagi command: {cmd}", file=sys.stderr)
+        return 1
+
+
+# ============================================================================
 # REACHABILITY COMMANDS
 # ============================================================================
 
@@ -5361,6 +5676,171 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     playbook_parser.set_defaults(func=_handle_playbook)
+
+    # =========================================================================
+    # PENTAGI UNIFIED COMMANDS
+    # =========================================================================
+    pentagi_parser = subparsers.add_parser(
+        "pentagi",
+        help="Unified PentAGI — AI-powered penetration testing (wraps micro-pentest + mpte + advanced-pentest)",
+    )
+    pentagi_subparsers = pentagi_parser.add_subparsers(dest="pentagi_command")
+
+    # pentagi scan — run a micro penetration test
+    ptg_scan = pentagi_subparsers.add_parser(
+        "scan", help="Run a micro penetration test for specific CVEs"
+    )
+    ptg_scan.add_argument(
+        "--cve-ids", required=True, help="Comma-separated CVE IDs to test"
+    )
+    ptg_scan.add_argument(
+        "--target-urls", required=True, help="Comma-separated target URLs"
+    )
+    ptg_scan.add_argument("--context", help="Additional context for the test")
+    ptg_scan.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    # pentagi status — overall status or specific flow status
+    ptg_status = pentagi_subparsers.add_parser(
+        "status", help="Get PentAGI system status or check a specific flow"
+    )
+    ptg_status.add_argument(
+        "flow_id", nargs="?", type=int, default=None, help="Flow ID (optional)"
+    )
+    ptg_status.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    # pentagi list — list all pen test requests
+    ptg_list = pentagi_subparsers.add_parser(
+        "list", help="List pen test requests"
+    )
+    ptg_list.add_argument("--finding-id", help="Filter by finding ID")
+    ptg_list.add_argument(
+        "--status",
+        choices=["pending", "running", "completed", "failed", "cancelled"],
+        help="Filter by status",
+    )
+    ptg_list.add_argument("--limit", type=int, default=100)
+    ptg_list.add_argument("--offset", type=int, default=0)
+    ptg_list.add_argument(
+        "--format", choices=["table", "json"], default="table", help="Output format"
+    )
+
+    # pentagi batch — run batch tests from config file
+    ptg_batch = pentagi_subparsers.add_parser(
+        "batch", help="Run batch micro penetration tests from a config file"
+    )
+    ptg_batch.add_argument("config_file", help="Path to JSON config file")
+    ptg_batch.add_argument(
+        "--format", choices=["json", "text"], default="text", help="Output format"
+    )
+
+    # pentagi threat-intel — get threat intelligence for a CVE
+    ptg_threat = pentagi_subparsers.add_parser(
+        "threat-intel", help="Get threat intelligence for a CVE"
+    )
+    ptg_threat.add_argument("cve", help="CVE ID")
+
+    # pentagi business-impact — analyze business impact
+    ptg_biz = pentagi_subparsers.add_parser(
+        "business-impact", help="Analyze business impact of vulnerabilities"
+    )
+    ptg_biz.add_argument("--target", help="Target service name")
+    ptg_biz.add_argument("--cves", help="Comma-separated CVE IDs")
+
+    # pentagi simulate — simulate attack chain
+    ptg_sim = pentagi_subparsers.add_parser(
+        "simulate", help="Simulate attack chain"
+    )
+    ptg_sim.add_argument("--target", required=True, help="Target URL")
+    ptg_sim.add_argument(
+        "--attack-type",
+        choices=[
+            "single_exploit",
+            "chained_exploit",
+            "privilege_escalation",
+            "lateral_movement",
+        ],
+        default="chained_exploit",
+    )
+
+    # pentagi remediation — generate remediation guidance
+    ptg_rem = pentagi_subparsers.add_parser(
+        "remediation", help="Generate remediation guidance for a CVE"
+    )
+    ptg_rem.add_argument("cve", help="CVE ID")
+
+    # pentagi capabilities — list all capabilities
+    pentagi_subparsers.add_parser(
+        "capabilities", help="List PentAGI capabilities"
+    )
+
+    # pentagi enterprise-scan — run enterprise-grade scan
+    ptg_escan = pentagi_subparsers.add_parser(
+        "enterprise-scan", help="Run enterprise-grade penetration scan"
+    )
+    ptg_escan.add_argument("--target", required=True, help="Target URL")
+    ptg_escan.add_argument(
+        "--scan-type",
+        choices=["quick", "standard", "full", "stealth"],
+        default="full",
+        help="Scan type",
+    )
+    ptg_escan.add_argument(
+        "--compliance",
+        help="Comma-separated compliance frameworks (PCI_DSS,SOC2,HIPAA,GDPR)",
+    )
+
+    # pentagi enterprise-scans — list enterprise scans
+    pentagi_subparsers.add_parser(
+        "enterprise-scans", help="List enterprise penetration scans"
+    )
+
+    # pentagi audit-logs — view enterprise audit logs
+    pentagi_subparsers.add_parser(
+        "audit-logs", help="View enterprise audit logs"
+    )
+
+    # pentagi attack-vectors — list attack vectors
+    pentagi_subparsers.add_parser(
+        "attack-vectors", help="List supported attack vectors"
+    )
+
+    # pentagi threat-categories — list threat categories
+    pentagi_subparsers.add_parser(
+        "threat-categories", help="List threat categories"
+    )
+
+    # pentagi compliance-frameworks — list compliance frameworks
+    pentagi_subparsers.add_parser(
+        "compliance-frameworks", help="List supported compliance frameworks"
+    )
+
+    # pentagi scan-modes — list scan modes
+    pentagi_subparsers.add_parser(
+        "scan-modes", help="List available scan modes"
+    )
+
+    # pentagi generate-report — generate pentest report
+    ptg_report = pentagi_subparsers.add_parser(
+        "generate-report", help="Generate penetration test report"
+    )
+    ptg_report.add_argument("--target", required=True, help="Target URL for report")
+    ptg_report.add_argument(
+        "--report-format",
+        choices=["pdf", "html", "json"],
+        default="pdf",
+        help="Report format",
+    )
+
+    # pentagi report-data — get latest report data
+    pentagi_subparsers.add_parser(
+        "report-data", help="Get latest report data"
+    )
+
+    pentagi_parser.set_defaults(func=_handle_pentagi)
 
     return parser
 

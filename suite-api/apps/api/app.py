@@ -17,7 +17,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import jwt
-from fastapi import APIRouter, Body, Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
@@ -574,7 +574,14 @@ def create_app() -> FastAPI:
     api_key_header = APIKeyHeader(name=header_name, auto_error=False)
     expected_tokens = overlay.auth_tokens if auth_strategy == "token" else tuple()
 
-    async def _verify_api_key(api_key: Optional[str] = Depends(api_key_header)) -> None:
+    async def _verify_api_key(
+        request: Request,
+        api_key: Optional[str] = Depends(api_key_header),
+    ) -> None:
+        # Also accept token via ?api_key= query parameter (for browser-opened
+        # URLs like report view/download where headers cannot be sent).
+        if not api_key:
+            api_key = request.query_params.get("api_key")
         if auth_strategy == "token":
             if not api_key or api_key not in expected_tokens:
                 raise HTTPException(

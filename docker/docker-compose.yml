@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Main FixOps API
+  fixops:
+    image: ${FIXOPS_IMAGE:-fixops:local}
+    container_name: fixops-api
+    ports:
+      - "8000:8000"
+    environment:
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+      - FIXOPS_DISABLE_TELEMETRY=1
+      - FIXOPS_MODE=demo
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Interactive Demo Sidecar - runs animated security assessment demo
+  fixops-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-demo
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    profiles:
+      - demo
+    # Run full demo by default, or override with: docker compose run fixops-demo python demo_sidecar.py run-scenario --cve CVE-2021-44228
+
+  # Smoke Test Sidecar - runs automated API tests
+  fixops-smoke:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-smoke
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    command: ["pytest", "-v", "-s", "tests/sidecar/"]
+    profiles:
+      - test
+
+  # Real-Time Feed Sidecar - fetches CVE/KEV feeds and pushes to FixOps
+  fixops-feeds:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-feeds
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    command: ["python", "scripts/feed_sidecar.py", "continuous", "--interval", "3600"]
+    restart: on-failure
+    profiles:
+      - feeds
+
+  # Micro Penetration Test Sidecar - animated security testing
+  fixops-micropentest:
+    build:
+      context: .
+      dockerfile: Dockerfile.sidecar
+    container_name: fixops-micropentest
+    depends_on:
+      fixops:
+        condition: service_healthy
+    environment:
+      - FIXOPS_BASE_URL=http://fixops:8000
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token}
+    command: ["python", "scripts/micropentest_sidecar.py", "demo"]
+    profiles:
+      - pentest
+
+  # Risk Graph UI - React/Next.js visualization app
+  risk-graph-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.risk-graph
+      args:
+        # NEXT_PUBLIC_* vars are embedded at build time in Next.js
+        NEXT_PUBLIC_FIXOPS_API_URL: http://fixops:8000
+        NEXT_PUBLIC_FIXOPS_API_TOKEN: ${FIXOPS_API_TOKEN:-demo-token}
+    container_name: risk-graph-ui
+    ports:
+      - "3000:3000"
+    depends_on:
+      fixops:
+        condition: service_healthy
+    profiles:
+      - ui
+
+volumes:
+  fixops-data:

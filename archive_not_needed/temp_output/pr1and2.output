@@ -1,0 +1,274 @@
+================================================================================
+PR1 + PR2 DIFFS AND VALIDATION COMMANDS
+================================================================================
+
+================================================================================
+MODIFIED FILES (git diff)
+================================================================================
+
+--- .github/workflows/ci.yml ---
+@@ -40,6 +40,10 @@ jobs:
+       - name: Test with Coverage (fail if below 18% baseline)
+         run: |
+           pytest --cov=core --cov=apps --cov=risk --cov=evidence --cov=telemetry --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
++      - name: API Contract Check
++        run: |
++          echo "Verifying UI API contract against backend OpenAPI spec..."
++          python scripts/api_contract_check.py --introspect
+       - name: Enforce 100% Coverage on New Code
+         run: |
+
+--- README.md ---
+@@ -518,8 +518,43 @@ uvicorn apps.api.app:create_app --factory --reload --host 0.0.0.0 --port 8000
+
+ # 6. Verify installation
+ curl http://localhost:8000/health
++
++# 7. Start the UI (ALdeci - Official UI)
++cd ui/aldeci
++npm install
++npm run dev
++# Open http://localhost:5173 in your browser
++```
++
++### Frontend (ALdeci UI)
++
++The official FixOps frontend is located at `ui/aldeci/`. It's a modern React + Vite + TypeScript application.
++
++```bash
++# Navigate to the UI directory
++cd ui/aldeci
++
++# Install dependencies
++npm install
++
++# Create environment config
++cp .env.example .env.local
++# Edit .env.local:
++#   VITE_API_URL=http://localhost:8000
++#   VITE_API_KEY=your-api-key (optional)
++
++# Start development server
++npm run dev
++# Opens at http://localhost:5173
++
++# Build for production
++npm run build
+ ```
+
++See [ui/aldeci/SCREEN_API_MAPPING.md](ui/aldeci/SCREEN_API_MAPPING.md) for screen-to-API endpoint mappings.
++
++> **Note:** The legacy micro-frontends under `web/` are deprecated and have been moved to `archive/web_mfe_legacy/`. See [docs/legacy-ui.md](docs/legacy-ui.md) for details.
+
+--- apps/api/app.py ---
+@@ -319,8 +319,10 @@ def create_app() -> FastAPI:
+     if not origins:
+         origins = [
+             "http://localhost:3000",
++            "http://localhost:5173",  # Vite dev server (ui/aldeci)
+             "http://localhost:8000",
+             "http://127.0.0.1:3000",
++            "http://127.0.0.1:5173",  # Vite dev server (ui/aldeci)
+             "http://127.0.0.1:8000",
+             "https://*.devinapps.com",
+         ]
+
+--- apps/api/inventory_router.py ---
+@@ -1,6 +1,8 @@
++import uuid
++from datetime import datetime
+ from typing import Any, Dict, List, Optional
+
++@router.get("/assets", response_model=PaginatedAssetResponse)
++async def list_assets(
++    org_id: str = Depends(get_org_id),
++    asset_type: Optional[str] = Query(None, description="Filter by asset type: application, service, api"),
++    limit: int = Query(100, ge=1, le=1000),
++    offset: int = Query(0, ge=0),
++):
++    """List all assets across the inventory."""
++    # [68 lines added - unified asset view]
+
+--- apps/api/reports_router.py ---
+@@ -98,8 +98,8 @@ async def list_reports(
+ @router.post("", response_model=ReportResponse, status_code=201)
+-async def generate_report(report_data: ReportCreate):
+-    """Generate a new report."""
++async def create_report(report_data: ReportCreate):
++    """Create and generate a new report."""
+
++@router.post("/generate", response_model=ReportResponse, status_code=201)
++async def generate_report(report_data: ReportCreate):
++    """Generate a new report (alias for POST /api/v1/reports)."""
++    return await create_report(report_data)
+
+@@ -231,7 +240,26 @@ async def get_report_file(id: str):
+     file_path = Path(report.file_path)
+     if not file_path.exists():
+-        # Generate demo file on-the-fly if it doesn't exist
++        # Only generate fallback files in demo mode
++        import os
++        demo_mode = os.environ.get("FIXOPS_DEMO_MODE", "false").lower() == "true"
++        if not demo_mode:
++            raise HTTPException(
++                status_code=503,
++                detail={
++                    "error": {
++                        "code": "INTEGRATION_UNAVAILABLE",
++                        "message": "Report file not generated - report generation service unavailable",
++                        ...
++                    }
++                }
++            )
++        # Demo mode: Generate fallback file on-the-fly
+
+--- tests/test_cors_jwt.py ---
+@@ -14,12 +14,26 @@ def test_cors_origins_applied(monkeypatch):
+     cors_middleware = [
+         mw for mw in application.user_middleware if mw.cls is CORSMiddleware
+     ][0]
+-    assert cors_middleware.options["allow_origins"] == [
++    assert cors_middleware.kwargs["allow_origins"] == [
+         "https://fixops.ai",
+         "https://demo.fixops.ai",
+     ]
+
++def test_cors_includes_vite_dev_server(monkeypatch):
++    """PR1: Ensure CORS allows Vite dev server (ui/aldeci) on port 5173."""
++    monkeypatch.delenv("FIXOPS_ALLOWED_ORIGINS", raising=False)
++    application = app_module.create_app()
++    cors_middleware = [
++        mw for mw in application.user_middleware if mw.cls is CORSMiddleware
++    ][0]
++    origins = cors_middleware.kwargs["allow_origins"]
++    assert "http://localhost:5173" in origins
++    assert "http://127.0.0.1:5173" in origins
+
+================================================================================
+NEW FILES
+================================================================================
+
+--- docs/legacy-ui.md (77 lines) ---
+# Legacy UI Documentation
+
+## Deprecation Notice
+The micro-frontend (MFE) stack previously located at `web/` has been **deprecated**
+as of February 2026 and moved to `archive/web_mfe_legacy/`.
+
+## Reason for Deprecation
+1. Complexity Reduction
+2. Maintenance Burden
+3. Mock Data Prevalence
+4. Unified Experience
+
+## Official UI: ALdeci
+Location: ui/aldeci/
+Quick Start:
+  cd ui/aldeci && npm install && npm run dev
+
+## Archived Location
+archive/web_mfe_legacy/
+
+--- ui/aldeci/.env.example (37 lines) ---
+VITE_API_URL=http://localhost:8000
+# VITE_API_KEY=your-secure-api-key
+
+--- scripts/api_contract_check.py (332 lines) ---
+#!/usr/bin/env python3
+"""
+API Contract Checker for ALdeci UI
+Parses ui/aldeci/SCREEN_API_MAPPING.md and verifies all endpoints exist in
+the FastAPI OpenAPI spec. Exits non-zero if any mapped endpoint is missing.
+"""
+# [Full script parses SCREEN_API_MAPPING.md, extracts endpoints, compares against OpenAPI]
+
+--- tests/test_pr1_official_ui.py (146 lines) ---
+"""PR1 tests: ui/aldeci is official UI, web/ deprecated."""
+# 15 tests across 4 classes:
+# - TestUIAldeciIsOfficialUI (7 tests)
+# - TestLegacyMFEsDeprecated (4 tests)
+# - TestReadmeUpdated (3 tests)
+# - TestBackendCORS (1 test)
+
+--- tests/test_pr2_api_contract.py (310 lines) ---
+"""PR2 API Contract Enforcement Tests"""
+# 22 tests across 7 classes:
+# - TestDashboardOverview (4 tests)
+# - TestFeedsEndpoint (5 tests)
+# - TestCopilotIntelligenceEndpoint (3 tests)
+# - TestMicroPentestEndpoint (4 tests)
+# - TestInventoryAssets (2 tests)
+# - TestReportsGenerate (2 tests)
+# - TestContractChecker (2 tests)
+
+================================================================================
+MOVED DIRECTORIES
+================================================================================
+
+web/ → archive/web_mfe_legacy/
+
+================================================================================
+VALIDATION COMMANDS
+================================================================================
+
+# PR1 Tests (16 tests)
+pytest tests/test_pr1_official_ui.py tests/test_cors_jwt.py::test_cors_includes_vite_dev_server -v --override-ini="addopts=" -W ignore
+
+Expected output:
+============================== 16 passed in 1.40s ==============================
+
+# PR2 Tests (22 tests)
+pytest tests/test_pr2_api_contract.py -v --override-ini="addopts=" -W ignore
+
+Expected output:
+============================== 22 passed in 1.57s ==============================
+
+# API Contract Check
+python scripts/api_contract_check.py --introspect
+
+Expected output:
+Parsed 80 endpoints from SCREEN_API_MAPPING.md
+Introspecting app for OpenAPI spec...
+Found 416 endpoints in OpenAPI spec
+
+--- Summary ---
+Mapped endpoints:  80
+Found in OpenAPI:  80
+Missing:           0
+Coverage:          100.0%
+
+✅ CONTRACT CHECK PASSED: All mapped endpoints exist
+
+# Run the UI locally
+cd ui/aldeci && npm install && npm run dev
+
+Expected output:
+  VITE v5.x.x  ready in XXX ms
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+# Verify CORS for Vite
+curl -s http://localhost:8000/health
+
+Expected output:
+{"status":"healthy",...}
+
+================================================================================
+FILE SUMMARY
+================================================================================
+
+PR1 - Make ui/aldeci Official:
+  EDIT  README.md
+  ADD   docs/legacy-ui.md
+  EDIT  apps/api/app.py (CORS)
+  ADD   ui/aldeci/.env.example
+  ADD   tests/test_pr1_official_ui.py
+  EDIT  tests/test_cors_jwt.py
+  MOVE  web/ → archive/web_mfe_legacy/
+
+PR2 - API Contract Enforcement:
+  ADD   scripts/api_contract_check.py
+  EDIT  apps/api/inventory_router.py
+  EDIT  apps/api/reports_router.py
+  ADD   tests/test_pr2_api_contract.py
+  EDIT  .github/workflows/ci.yml

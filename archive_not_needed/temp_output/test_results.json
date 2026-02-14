@@ -1,0 +1,138 @@
+{
+  "timestamp": "2026-02-05T19:39:25.355021Z",
+  "summary": {
+    "total_categories": 10,
+    "total_tests": 106,
+    "passed": 52,
+    "failed": 54,
+    "success_rate": 49.06
+  },
+  "results": {
+    "Dashboard": {
+      "Get Overview": false,
+      "Get Trends (30 days)": false,
+      "Get Top Risks": false,
+      "Get Compliance Status": true,
+      "Get MTTR": true,
+      "Get Noise Reduction": true,
+      "Get ROI": true,
+      "Get Coverage": true,
+      "Get Findings": true,
+      "Get Decisions": true,
+      "Get Stats": false
+    },
+    "Copilot": {
+      "Get Health": false,
+      "Create Chat Session": false,
+      "List Sessions": false,
+      "Quick Analyze": false,
+      "Security Analyst - Analyze": false,
+      "Security Analyst - Threat Intel": false,
+      "Pentest Agent - Validate": false,
+      "Compliance Agent - Gap Analysis": false
+    },
+    "Code Suite": {
+      "Validate Input": false,
+      "List Secrets": true,
+      "Scan Content for Secrets": false,
+      "Get Secrets Status": false,
+      "Get Scanners Status": false,
+      "List IaC Findings": true,
+      "Scan IaC Content": false,
+      "IaC Scan": false,
+      "Search Inventory": false,
+      "Get Applications": true,
+      "Get Assets": false
+    },
+    "Cloud Suite": {
+      "Get CNAPP Findings": true,
+      "Get CSPM Summary": false,
+      "Get EPSS Scores": true,
+      "Get KEV Data": true,
+      "Get Exploits": true,
+      "Get Threat Actors": true,
+      "Get Feeds Health": true,
+      "Get Feeds Stats": true,
+      "Get Clusters": false,
+      "Get Dedup Stats": true,
+      "Process Finding": false,
+      "Get Attack Graph": true,
+      "Analyze Attack Surface (GNN)": false,
+      "Get Critical Nodes (GNN)": false
+    },
+    "Attack Suite": {
+      "Get MPTE Requests": true,
+      "Create MPTE Request": false,
+      "Get MPTE Results": true,
+      "Verify Vulnerability": false,
+      "Get MPTE Configs": true,
+      "Run Micro Pentest": false,
+      "Get Micro Pentest Health": false,
+      "Simulate Attack": true,
+      "Analyze Attack Chain": false,
+      "Analyze Reachability": false,
+      "Get Reachability Metrics": true,
+      "Report Discovered Vuln": false,
+      "Get Internal Vulns": false
+    },
+    "Protect Suite": {
+      "Get Remediation Tasks": false,
+      "Create Remediation Task": false,
+      "Get Remediation Metrics": true,
+      "Generate Fix": false,
+      "Bulk Update Findings": false,
+      "Bulk Assign Clusters": false,
+      "Get Comments": false,
+      "Add Comment": false,
+      "Get Notifications": true,
+      "List Workflows": true,
+      "Get Workflow Rules": false,
+      "Create Workflow": false,
+      "List Integrations": true,
+      "Create Integration": false
+    },
+    "AI Engine": {
+      "Get LLM Status": true,
+      "Get LLM Providers": true,
+      "Enhanced Analysis": false,
+      "Compare LLMs": false,
+      "Get Enhanced Capabilities": true,
+      "Get Algorithms Status": true,
+      "Get Algorithms Capabilities": true,
+      "Monte Carlo Quantification": false,
+      "Causal Analysis": true,
+      "Prioritize Findings": false,
+      "Risk Trajectory": true,
+      "List Policies": true
+    },
+    "Evidence": {
+      "List Evidence Bundles": true,
+      "Get Evidence Stats": false,
+      "Verify Bundle": false,
+      "Get Compliance Frameworks": true,
+      "Get Compliance Status": false,
+      "Get Audit Logs": true,
+      "Get Audit Logs (Limited)": true,
+      "List Reports": true,
+      "Get Report Templates": false,
+      "Generate Report": false
+    },
+    "Settings": {
+      "List Users": true,
+      "List Teams": true,
+      "Get SSO Config": true,
+      "List Integrations": true,
+      "Browse Marketplace": true,
+      "System Health": true,
+      "API Health": true,
+      "System Version": true,
+      "System Status": true,
+      "List Webhooks": false,
+      "Get Webhook Mappings": true
+    },
+    "Core APIs": {
+      "Get Risk Graph": true,
+      "Global Search": false
+    }
+  }
+}

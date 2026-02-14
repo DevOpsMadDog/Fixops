@@ -1,6 +1,0 @@
-ERROR: No module named 'apps'
-Traceback (most recent call last):
-  File "/Users/devops.ai/developement/fixops/Fixops/tools/test_router_loading.py", line 17, in <module>
-    from apps.api.app import create_app
-ModuleNotFoundError: No module named 'apps'
-
