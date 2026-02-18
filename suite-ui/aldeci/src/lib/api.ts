@@ -25,11 +25,14 @@ export const api = axios.create({
 /**
  * Update the API key used for all future requests.
  * Called from Settings page when user saves a new key.
+ *
+ * Security: Uses sessionStorage (not localStorage) so the key is never
+ * persisted to disk and is cleared when the browser tab closes.
  */
 export function updateApiKey(key: string) {
   _activeApiKey = key
   api.defaults.headers.common['X-API-Key'] = key
-  localStorage.setItem('aldeci_api_key', key)
+  sessionStorage.setItem('aldeci_api_key', key)
 }
 
 /** Get the currently active API key */
@@ -42,11 +45,12 @@ export function getApiBaseUrl(): string {
   return API_BASE_URL
 }
 
-// Clear any stale localStorage API key that doesn't match the env-configured key.
+// Restore any session-stored API key (survives page refresh within same tab).
 ;(() => {
-  const stored = localStorage.getItem('aldeci_api_key')
+  const stored = sessionStorage.getItem('aldeci_api_key')
   if (stored && stored !== API_KEY) {
-    localStorage.setItem('aldeci_api_key', API_KEY)
+    _activeApiKey = stored
+    api.defaults.headers.common['X-API-Key'] = stored
   }
 })()
 
@@ -1183,3 +1187,82 @@ export const nerveCenterApi = {
   getOverlayConfig: nerveCenter.getOverlayConfig,
   updateOverlayConfig: nerveCenter.updateOverlayConfig,
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MCP (Model Context Protocol) API - AI Agent Integration
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const mcpApi = {
+  // Status & Health
+  getStatus: () => api.get('/api/v1/mcp/status').then(r => r.data),
+  getManifest: () => api.get('/api/v1/mcp/manifest').then(r => r.data),
+  
+  // Client Management
+  getClients: () => api.get('/api/v1/mcp/clients').then(r => r.data),
+  registerClient: (data: { name: string, capabilities?: string[] }) => 
+    api.post('/api/v1/mcp/clients', data).then(r => r.data),
+  
+  // Tools
+  getTools: () => api.get('/api/v1/mcp/tools').then(r => r.data),
+  invokeTool: (toolName: string, args: Record<string, unknown>) => 
+    api.post(`/api/v1/mcp/tools/${toolName}/invoke`, args).then(r => r.data),
+  
+  // Resources
+  getResources: () => api.get('/api/v1/mcp/resources').then(r => r.data),
+  getResource: (uri: string) => 
+    api.get('/api/v1/mcp/resources/read', { params: { uri } }).then(r => r.data),
+  
+  // Prompts
+  getPrompts: () => api.get('/api/v1/mcp/prompts').then(r => r.data),
+  getPrompt: (name: string, args?: Record<string, unknown>) => 
+    api.get(`/api/v1/mcp/prompts/${name}`, { params: args }).then(r => r.data),
+  
+  // Configuration
+  getConfig: () => api.get('/api/v1/mcp/config').then(r => r.data),
+  configure: (config: Record<string, unknown>) => 
+    api.post('/api/v1/mcp/configure', config).then(r => r.data),
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CNAPP Connectors API - Cloud Security Platforms
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const cnappConnectorsApi = {
+  // Available connector types with display metadata
+  getConnectorTypes: () => Promise.resolve([
+    { id: 'wiz', name: 'Wiz', icon: '🛡️', category: 'cnapp', 
+      description: 'Cloud-native application protection platform', configFields: ['client_id', 'client_secret'] },
+    { id: 'prisma-cloud', name: 'Prisma Cloud', icon: '🔺', category: 'cnapp',
+      description: 'Palo Alto CNAPP for cloud security posture', configFields: ['access_key', 'secret_key', 'base_url'] },
+    { id: 'orca', name: 'Orca Security', icon: '🐋', category: 'cnapp',
+      description: 'Agentless cloud security platform', configFields: ['api_token'] },
+    { id: 'lacework', name: 'Lacework', icon: '🔒', category: 'cnapp',
+      description: 'Cloud security and compliance automation', configFields: ['account', 'key_id', 'secret'] },
+    { id: 'aws-security-hub', name: 'AWS Security Hub', icon: '☁️', category: 'cloud-native',
+      description: 'AWS-native security findings aggregator', configFields: ['access_key_id', 'secret_access_key', 'region'] },
+    { id: 'azure-security-center', name: 'Azure Security Center', icon: '🔷', category: 'cloud-native',
+      description: 'Azure-native unified security management', configFields: ['tenant_id', 'client_id', 'client_secret', 'subscription_id'] },
+    { id: 'snyk', name: 'Snyk', icon: '🐍', category: 'sast-sca',
+      description: 'Developer security platform for code & dependencies', configFields: ['api_key', 'org_id'] },
+    { id: 'sonarqube', name: 'SonarQube', icon: '📊', category: 'sast-sca',
+      description: 'Code quality and security analysis', configFields: ['url', 'token'] },
+    { id: 'dependabot', name: 'Dependabot', icon: '🤖', category: 'sast-sca',
+      description: 'GitHub dependency vulnerability scanner', configFields: ['github_token'] },
+  ]),
+
+  // Connector CRUD via integrations API
+  list: () => api.get('/api/v1/integrations').then(r => r.data),
+  get: (id: string) => api.get(`/api/v1/integrations/${id}`).then(r => r.data),
+  create: (data: { type: string, name: string, config: Record<string, unknown> }) => 
+    api.post('/api/v1/integrations', data).then(r => r.data),
+  update: (id: string, data: Record<string, unknown>) => 
+    api.put(`/api/v1/integrations/${id}`, data).then(r => r.data),
+  delete: (id: string) => api.delete(`/api/v1/integrations/${id}`).then(r => r.data),
+  test: (id: string) => api.post(`/api/v1/integrations/${id}/test`).then(r => r.data),
+  sync: (id: string) => api.post(`/api/v1/integrations/${id}/sync`).then(r => r.data),
+
+  // Fetch findings from a specific connector
+  getFindings: (connectorId: string, params?: { severity?: string, limit?: number }) => 
+    api.get(`/api/v1/integrations/${connectorId}/findings`, { params }).then(r => r.data),
+}
+

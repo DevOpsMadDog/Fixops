@@ -369,6 +369,13 @@ try:
 except ImportError as e:
     _logger.warning("OSS Tools router not available: %s", e)
 
+mcp_router: Optional[APIRouter] = None
+try:
+    from api.mcp_router import router as mcp_router
+    _logger.info("Loaded MCP router from suite-integrations")
+except ImportError as e:
+    _logger.warning("MCP router not available: %s", e)
+
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
 from core.enhanced_decision import EnhancedDecisionEngine
@@ -706,6 +713,17 @@ def create_app() -> FastAPI:
 
     app.include_router(health_v1_router)  # Health endpoints with /api/v1 prefix
 
+    # Legacy /health endpoint — required by Dockerfile HEALTHCHECK and
+    # scripts/docker-entrypoint.sh readiness probes that poll /health directly.
+    @app.get("/health", tags=["health"])
+    def legacy_health_check() -> Dict[str, Any]:
+        """Legacy health endpoint for backward-compatible probes."""
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "service": "aldeci-api",
+        }
+
     @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
     async def authenticated_status() -> Dict[str, Any]:
         """Authenticated status endpoint."""
@@ -864,6 +882,7 @@ def create_app() -> FastAPI:
         (webhooks_router, "Webhooks"),
         (iac_router, "IaC"),
         (ide_router, "IDE"),
+        (mcp_router, "MCP"),
     ]
     for _r, _name in _integration_routers:
         if _r:

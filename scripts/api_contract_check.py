@@ -100,16 +100,17 @@ def get_openapi_endpoints_from_introspect() -> set[tuple[str, str]]:
     import os
     import sys
 
-    # Add project root to path
+    # Add project root and suite-api to path (apps/ lives under suite-api/)
     project_root = Path(__file__).parent.parent
     sys.path.insert(0, str(project_root))
+    sys.path.insert(0, str(project_root / "suite-api"))
 
     # Set minimal environment for app creation
     os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret")
     os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
     os.environ.setdefault("FIXOPS_DEMO_MODE", "true")
 
-    from backend.app import create_app
+    from apps.api.app import create_app
 
     app = create_app()
     spec = app.openapi()
