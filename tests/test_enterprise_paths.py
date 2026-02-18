@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Mapping
 
 import pytest
+
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import load_overlay

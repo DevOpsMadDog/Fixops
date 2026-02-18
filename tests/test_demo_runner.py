@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from core.demo_runner import run_demo_pipeline
 from core.evidence import Fernet
 

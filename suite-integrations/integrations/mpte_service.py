@@ -14,7 +14,6 @@ from core.mpte_models import (
     PenTestResult,
     PenTestStatus,
 )
-
 from integrations.mpte_client import (
     MPTEClient,
     MPTEFinding,

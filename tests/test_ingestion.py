@@ -18,6 +18,8 @@ import time
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+
 from apps.api.ingestion import (
     Asset,
     AssetType,
@@ -38,7 +40,6 @@ from apps.api.ingestion import (
     get_ingestion_service,
     get_registry,
 )
-from fastapi.testclient import TestClient
 
 
 class TestUnifiedFinding:
@@ -2104,8 +2105,9 @@ class TestFinalCoverage:
 
     def test_multipart_endpoint_with_result_errors_extend(self):
         """Test multipart endpoint extends errors from result (lines 1032)."""
-        from apps.api.app import create_app
         from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
 
         app = create_app()
         test_client = TestClient(app)
@@ -2160,8 +2162,9 @@ class TestFinalCoverage:
         """Test multipart endpoint handles exceptions (lines 1033-1044)."""
         from unittest.mock import patch
 
-        from apps.api.app import create_app
         from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
 
         app = create_app()
         test_client = TestClient(app)
@@ -3001,6 +3004,7 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         # Create a temporary YAML config with invalid plugin config
@@ -3028,6 +3032,7 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3059,6 +3064,7 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3090,6 +3096,7 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3121,6 +3128,7 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3153,6 +3161,7 @@ class TestMissingCoverageLines:
         from unittest.mock import patch
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3254,6 +3263,7 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
+
         from apps.api.ingestion import NormalizerRegistry
 
         # Create a temporary module with a valid normalizer

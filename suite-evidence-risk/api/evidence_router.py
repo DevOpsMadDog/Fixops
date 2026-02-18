@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import yaml  # type: ignore[import]
-from core.paths import verify_allowlisted_path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+
+from core.paths import verify_allowlisted_path
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:

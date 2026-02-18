@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from core.paths import verify_allowlisted_path
 from fastapi import APIRouter, HTTPException, Request
 
+from core.paths import verify_allowlisted_path
 from services.provenance import load_attestation
 
 router = APIRouter(prefix="/provenance", tags=["provenance"])

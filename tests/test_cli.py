@@ -2,8 +2,9 @@ import json
 import os
 from pathlib import Path
 
-import core.cli as cli
 import pytest
+
+import core.cli as cli
 
 
 def _write_json(path: Path, payload: dict) -> None:

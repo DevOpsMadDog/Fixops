@@ -201,8 +201,9 @@ def demo_client(monkeypatch):
     monkeypatch.setenv("FIXOPS_DISABLE_TELEMETRY", "1")
 
     try:
-        from apps.api.app import create_app
         from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
 
         app = create_app()
         return TestClient(app)
@@ -216,8 +217,9 @@ def authenticated_client(monkeypatch):
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
 
     try:
-        from apps.api.app import create_app
         from fastapi.testclient import TestClient
+
+        from apps.api.app import create_app
 
         app = create_app()
         client = TestClient(app)

@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from core.sast_engine import SAST_RULES, get_sast_engine
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+
+from core.sast_engine import SAST_RULES, get_sast_engine
 
 router = APIRouter(prefix="/api/v1/sast", tags=["SAST"])
 

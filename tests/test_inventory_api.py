@@ -6,9 +6,10 @@ import shutil
 import tempfile
 
 import pytest
+from fastapi.testclient import TestClient
+
 from apps.api.app import create_app
 from core.inventory_db import InventoryDB
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture

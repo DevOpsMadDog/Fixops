@@ -1,7 +1,8 @@
 """Comprehensive tests for 100% diff coverage on changed files."""
 import pytest
-from apps.api.app import create_app
 from fastapi.testclient import TestClient
+
+from apps.api.app import create_app
 
 API_TOKEN = "demo-token-12345"
 AUTH_HEADERS = {"X-API-Key": API_TOKEN}
@@ -2311,8 +2312,9 @@ class TestActualCodePathCoverage:
         """
         from unittest.mock import MagicMock
 
-        from core.user_models import User, UserRole, UserStatus
         from fastapi import HTTPException
+
+        from core.user_models import User, UserRole, UserStatus
 
         # Create a mock inactive user
         mock_user = MagicMock(spec=User)

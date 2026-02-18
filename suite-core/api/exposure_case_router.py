@@ -19,6 +19,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
 from core.exposure_case import (
     VALID_TRANSITIONS,
     CasePriority,
@@ -26,8 +29,6 @@ from core.exposure_case import (
     ExposureCase,
     get_case_manager,
 )
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/cases", tags=["exposure-cases"])

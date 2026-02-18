@@ -12,11 +12,12 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+
 from apps.api.dependencies import get_org_id
 from core.inventory_db import InventoryDB
 from core.inventory_models import Application, ApplicationCriticality, ApplicationStatus
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 db = InventoryDB()

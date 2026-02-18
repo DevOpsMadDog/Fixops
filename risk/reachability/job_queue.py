@@ -228,7 +228,6 @@ class JobQueue:
     def _worker_loop(self) -> None:
         """Worker thread main loop."""
         from core.configuration import load_overlay
-
         from risk.reachability.analyzer import ReachabilityAnalyzer
 
         overlay = load_overlay()

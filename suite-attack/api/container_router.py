@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from core.container_scanner import get_container_scanner
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
+
+from core.container_scanner import get_container_scanner
 
 router = APIRouter(prefix="/api/v1/container", tags=["Container Scanner"])
 

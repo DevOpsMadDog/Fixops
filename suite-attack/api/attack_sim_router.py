@@ -15,9 +15,10 @@ import logging
 from dataclasses import asdict
 from typing import List, Optional
 
-from core.attack_simulation_engine import get_attack_simulation_engine
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field, validator
+
+from core.attack_simulation_engine import get_attack_simulation_engine
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:

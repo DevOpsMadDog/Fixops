@@ -15,6 +15,8 @@ from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
+from requests import RequestException
+
 from core.connectors import (
     AutomationConnectors,
     AzureDevOpsConnector,
@@ -32,7 +34,6 @@ from core.connectors import (
     _BaseConnector,
     _mask,
 )
-from requests import RequestException
 
 
 class MockResponse:
@@ -3417,8 +3418,9 @@ class TestOrgIdDependencies:
 
     def test_get_org_id_required_raises_when_missing(self) -> None:
         """Test get_org_id_required raises HTTPException when neither provided."""
-        from apps.api.dependencies import get_org_id_required
         from fastapi import HTTPException
+
+        from apps.api.dependencies import get_org_id_required
 
         with pytest.raises(HTTPException) as exc_info:
             get_org_id_required(org_id=None, x_org_id=None)

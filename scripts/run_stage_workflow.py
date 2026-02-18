@@ -16,10 +16,11 @@ if str(REPO_ROOT) not in sys.path:
 if str(ENTERPRISE_SRC) not in sys.path:
     sys.path.insert(0, str(ENTERPRISE_SRC))
 
-from apps.api.normalizers import InputNormalizer
-from core.stage_runner import StageRunner
 from src.services import id_allocator, signing
 from src.services.run_registry import RunRegistry
+
+from apps.api.normalizers import InputNormalizer
+from core.stage_runner import StageRunner
 
 STAGE_SEQUENCE: list[tuple[str, str | None]] = [
     ("requirements", "requirements/requirements-input.csv"),

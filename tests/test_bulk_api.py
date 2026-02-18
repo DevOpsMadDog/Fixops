@@ -2,8 +2,9 @@
 import os
 
 import pytest
-from apps.api.app import create_app
 from fastapi.testclient import TestClient
+
+from apps.api.app import create_app
 
 
 @pytest.fixture

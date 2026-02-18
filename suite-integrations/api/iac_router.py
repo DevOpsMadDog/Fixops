@@ -8,11 +8,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
 from core.iac_db import IaCDB
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
 from core.iac_scanner import ScannerType, get_iac_scanner
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

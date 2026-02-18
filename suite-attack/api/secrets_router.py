@@ -8,11 +8,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
 from core.secrets_db import SecretsDB
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import SecretsScanner, get_secrets_detector
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:

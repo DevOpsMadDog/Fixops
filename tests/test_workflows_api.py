@@ -4,10 +4,11 @@ Tests for workflow orchestration API endpoints.
 import os
 
 import pytest
+from fastapi.testclient import TestClient
+
 from apps.api.app import create_app
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
-from fastapi.testclient import TestClient
 
 # Use the API token from environment or default (matches Docker image default)
 API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")

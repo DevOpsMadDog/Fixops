@@ -2,6 +2,7 @@
 Tests for integration management API endpoints.
 """
 import pytest
+
 from core.integration_db import IntegrationDB
 from core.integration_models import Integration, IntegrationStatus, IntegrationType
 

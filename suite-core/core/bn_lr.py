@@ -25,10 +25,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
-from core.processing_layer import ProcessingLayer
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
+
+from core.processing_layer import ProcessingLayer
 
 logger = logging.getLogger(__name__)
 

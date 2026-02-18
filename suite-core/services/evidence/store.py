@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Mapping, MutableMapping
 
 from core.configuration import OverlayConfig
-
 from domain import EvidenceAttachment, EvidenceRun
 
 

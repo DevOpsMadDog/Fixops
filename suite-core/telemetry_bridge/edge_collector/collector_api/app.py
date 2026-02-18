@@ -14,9 +14,10 @@ from threading import Lock
 from typing import Any, Dict, List, Optional
 
 import requests
-from core.paths import verify_allowlisted_path
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
+
+from core.paths import verify_allowlisted_path
 
 logger = logging.getLogger(__name__)
 

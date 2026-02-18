@@ -5,6 +5,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+
 from apps.api.dependencies import get_org_id
 from core.connectors import (
     AzureDevOpsConnector,
@@ -24,8 +27,6 @@ from core.security_connectors import (
     SnykConnector,
     SonarQubeConnector,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

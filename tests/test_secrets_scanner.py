@@ -18,6 +18,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import (
     SecretsDetector,

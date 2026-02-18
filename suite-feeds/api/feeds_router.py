@@ -28,7 +28,6 @@ try:
 except ImportError:
     _HAS_BRAIN = False
 
-from apps.api.dependencies import get_org_id
 from feeds_service import (
     AUTHORITATIVE_FEEDS,
     CLOUD_RUNTIME_FEEDS,
@@ -44,6 +43,8 @@ from feeds_service import (
     SupplyChainVuln,
     ThreatActorMapping,
 )
+
+from apps.api.dependencies import get_org_id
 
 router = APIRouter(prefix="/api/v1/feeds", tags=["feeds"])
 

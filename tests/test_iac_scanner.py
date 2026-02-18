@@ -19,6 +19,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
 from core.iac_scanner import (
     IaCScanner,

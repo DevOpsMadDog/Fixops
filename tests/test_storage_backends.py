@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from core.storage_backends import (
     AzureImmutableBlobBackend,
     ConfigurationError,

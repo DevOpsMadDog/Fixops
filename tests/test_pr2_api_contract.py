@@ -24,8 +24,9 @@ def client():
     os.environ["FIXOPS_JWT_SECRET"] = "test-secret"
     os.environ["FIXOPS_DEMO_MODE"] = "true"
 
-    from backend.app import create_app
     from fastapi.testclient import TestClient
+
+    from backend.app import create_app
 
     app = create_app()
     with TestClient(app) as c:

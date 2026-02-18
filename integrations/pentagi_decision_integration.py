@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 from core.enhanced_decision import MultiLLMResult
 from core.pentagi_db import PentagiDB
 from core.pentagi_models import ExploitabilityLevel
-
 from integrations.pentagi_service import AdvancedPentagiService
 
 logger = logging.getLogger(__name__)

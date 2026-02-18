@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 import pytest
+
 from core.vector_store import SecurityPatternMatcher
 
 

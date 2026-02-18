@@ -14,6 +14,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
 from apps.api.dependencies import get_org_id
 from core.analytics_db import AnalyticsDB
 from core.analytics_models import (
@@ -23,9 +27,6 @@ from core.analytics_models import (
     FindingSeverity,
     FindingStatus,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 db = AnalyticsDB()

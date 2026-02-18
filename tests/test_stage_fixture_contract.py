@@ -3,10 +3,11 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from apps.api.normalizers import InputNormalizer
-from core.stage_runner import StageRunner
 from src.services import id_allocator, signing
 from src.services.run_registry import RunRegistry
+
+from apps.api.normalizers import InputNormalizer
+from core.stage_runner import StageRunner
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INPUT_ROOT = REPO_ROOT / "fixtures" / "sample_inputs"

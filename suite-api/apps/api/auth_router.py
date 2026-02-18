@@ -3,10 +3,11 @@ SSO/SAML authentication API endpoints.
 """
 from typing import Any, Dict, List, Optional
 
-from core.auth_db import AuthDB
-from core.auth_models import AuthProvider, SSOConfig, SSOStatus
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from core.auth_db import AuthDB
+from core.auth_models import AuthProvider, SSOConfig, SSOStatus
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 db = AuthDB()

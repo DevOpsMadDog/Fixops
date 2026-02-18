@@ -6,13 +6,13 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional
 
-from apps.api.normalizers import NormalizedCVEFeed
 from compliance.mapping import (
     ComplianceMappingResult,
     load_control_mappings,
     map_cve_to_controls,
 )
 
+from apps.api.normalizers import NormalizedCVEFeed
 from risk.enrichment import EnrichmentEvidence, compute_enrichment
 from risk.forecasting import ForecastResult, compute_forecast
 from risk.threat_model import ThreatModelResult, compute_threat_model

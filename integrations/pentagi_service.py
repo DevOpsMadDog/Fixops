@@ -14,7 +14,6 @@ from core.pentagi_models import (
     PenTestResult,
     PenTestStatus,
 )
-
 from integrations.pentagi_client import (
     PentagiClient,
     PentagiFinding,

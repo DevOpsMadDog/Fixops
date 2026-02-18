@@ -3,9 +3,10 @@ import os
 import tempfile
 
 import pytest
+from fastapi.testclient import TestClient
+
 from apps.api.app import create_app
 from core.auth_db import AuthDB
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture

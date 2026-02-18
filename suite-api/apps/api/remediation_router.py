@@ -3,14 +3,15 @@
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+
 from apps.api.dependencies import get_org_id
 from core.services.remediation import (
     VALID_TRANSITIONS,
     RemediationService,
     RemediationStatus,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:

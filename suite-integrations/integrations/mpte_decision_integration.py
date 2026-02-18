@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 from core.enhanced_decision import MultiLLMResult
 from core.mpte_db import MPTEDB
 from core.mpte_models import ExploitabilityLevel
-
 from integrations.mpte_service import AdvancedMPTEService
 
 logger = logging.getLogger(__name__)

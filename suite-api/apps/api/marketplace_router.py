@@ -16,10 +16,11 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 logger = logging.getLogger(__name__)
 
-from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
+
+from apps.api.dependencies import get_org_id
 
 # Load the marketplace service module directly using importlib to avoid path conflicts
 # This is optional - if enterprise modules aren't present, we use stub implementations

@@ -6,9 +6,10 @@ import time
 from collections import defaultdict
 from typing import Callable, Dict
 
-from core.logging_config import get_logger
 from fastapi import HTTPException, Request, Response, status
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
