@@ -504,12 +504,15 @@ class AzureSecurityCenterConnector(_BaseConnector):
 # 6. Wiz CNAPP Connector
 # ---------------------------------------------------------------------------
 
+
 class WizConnector(_BaseConnector):
     """Fetch vulnerability and cloud security data from Wiz GraphQL API."""
 
     def __init__(self, settings: Mapping[str, Any]):
         super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
-        self.base_url = str(settings.get("base_url") or "https://api.wiz.io").rstrip("/")
+        self.base_url = str(settings.get("base_url") or "https://api.wiz.io").rstrip(
+            "/"
+        )
         self.client_id = settings.get("client_id")
         self.client_secret = settings.get("client_secret")
         client_secret_env = settings.get("client_secret_env", "WIZ_CLIENT_SECRET")
@@ -529,7 +532,7 @@ class WizConnector(_BaseConnector):
         try:
             resp = self._request(
                 "POST",
-                f"https://auth.wiz.io/oauth/token",
+                "https://auth.wiz.io/oauth/token",
                 data={
                     "grant_type": "client_credentials",
                     "client_id": self.client_id,
@@ -561,7 +564,9 @@ class WizConnector(_BaseConnector):
         resp.raise_for_status()
         return resp.json()
 
-    def get_issues(self, severity: Optional[str] = None, limit: int = 100) -> ConnectorOutcome:
+    def get_issues(
+        self, severity: Optional[str] = None, limit: int = 100
+    ) -> ConnectorOutcome:
         """Fetch security issues from Wiz."""
         if not self.configured:
             return ConnectorOutcome("skipped", {"reason": "wiz not configured"})
@@ -617,8 +622,12 @@ class WizConnector(_BaseConnector):
         """
         try:
             data = self._graphql(query, {"first": limit})
-            vulns = data.get("data", {}).get("vulnerabilityFindings", {}).get("nodes", [])
-            return ConnectorOutcome("fetched", {"vulnerabilities": vulns, "count": len(vulns)})
+            vulns = (
+                data.get("data", {}).get("vulnerabilityFindings", {}).get("nodes", [])
+            )
+            return ConnectorOutcome(
+                "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
+            )
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
 
@@ -638,18 +647,24 @@ class WizConnector(_BaseConnector):
         try:
             data = self._graphql(query, {"first": limit})
             resources = data.get("data", {}).get("graphSearch", {}).get("nodes", [])
-            return ConnectorOutcome("fetched", {"resources": resources, "count": len(resources)})
+            return ConnectorOutcome(
+                "fetched", {"resources": resources, "count": len(resources)}
+            )
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
-            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+            return ConnectorHealth(
+                healthy=False, latency_ms=0, message="Not configured"
+            )
         start = time.time()
         token = self._get_token()
         ms = (time.time() - start) * 1000
         if token:
-            return ConnectorHealth(healthy=True, latency_ms=ms, message="Authenticated OK")
+            return ConnectorHealth(
+                healthy=True, latency_ms=ms, message="Authenticated OK"
+            )
         return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
 
 
@@ -657,12 +672,15 @@ class WizConnector(_BaseConnector):
 # 7. Prisma Cloud (Palo Alto CNAPP) Connector
 # ---------------------------------------------------------------------------
 
+
 class PrismaCloudConnector(_BaseConnector):
     """Fetch vulnerability and compliance data from Prisma Cloud REST API."""
 
     def __init__(self, settings: Mapping[str, Any]):
         super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
-        self.base_url = str(settings.get("base_url") or "https://api.prismacloud.io").rstrip("/")
+        self.base_url = str(
+            settings.get("base_url") or "https://api.prismacloud.io"
+        ).rstrip("/")
         self.access_key = settings.get("access_key")
         self.secret_key = settings.get("secret_key")
         secret_key_env = settings.get("secret_key_env", "PRISMA_SECRET_KEY")
@@ -701,14 +719,21 @@ class PrismaCloudConnector(_BaseConnector):
     def get_alerts(self, status: str = "open", limit: int = 100) -> ConnectorOutcome:
         """Fetch security alerts from Prisma Cloud."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "prisma cloud not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "prisma cloud not configured"}
+            )
         url = f"{self.base_url}/alert"
         try:
             resp = self._request(
                 "POST",
                 url,
                 headers=self._headers(),
-                json={"filters": [{"name": "alert.status", "operator": "=", "value": status}], "limit": limit},
+                json={
+                    "filters": [
+                        {"name": "alert.status", "operator": "=", "value": status}
+                    ],
+                    "limit": limit,
+                },
             )
             resp.raise_for_status()
             alerts = resp.json()
@@ -719,10 +744,14 @@ class PrismaCloudConnector(_BaseConnector):
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch vulnerability findings from Prisma Cloud Compute."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "prisma cloud not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "prisma cloud not configured"}
+            )
         url = f"{self.base_url}/api/v1/images"
         try:
-            resp = self._request("GET", url, headers=self._headers(), params={"limit": limit})
+            resp = self._request(
+                "GET", url, headers=self._headers(), params={"limit": limit}
+            )
             resp.raise_for_status()
             images = resp.json()
             # Extract vulnerabilities from images
@@ -730,31 +759,43 @@ class PrismaCloudConnector(_BaseConnector):
             for img in images:
                 for vuln in img.get("vulnerabilities", []):
                     vulns.append({**vuln, "image": img.get("id")})
-            return ConnectorOutcome("fetched", {"vulnerabilities": vulns, "count": len(vulns)})
+            return ConnectorOutcome(
+                "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
+            )
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
 
     def get_compliance_findings(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch compliance posture findings."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "prisma cloud not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "prisma cloud not configured"}
+            )
         url = f"{self.base_url}/compliance/posture"
         try:
-            resp = self._request("POST", url, headers=self._headers(), json={"limit": limit})
+            resp = self._request(
+                "POST", url, headers=self._headers(), json={"limit": limit}
+            )
             resp.raise_for_status()
             data = resp.json()
-            return ConnectorOutcome("fetched", {"compliance": data, "count": len(data.get("items", []))})
+            return ConnectorOutcome(
+                "fetched", {"compliance": data, "count": len(data.get("items", []))}
+            )
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
-            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+            return ConnectorHealth(
+                healthy=False, latency_ms=0, message="Not configured"
+            )
         start = time.time()
         token = self._get_token()
         ms = (time.time() - start) * 1000
         if token:
-            return ConnectorHealth(healthy=True, latency_ms=ms, message="Authenticated OK")
+            return ConnectorHealth(
+                healthy=True, latency_ms=ms, message="Authenticated OK"
+            )
         return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
 
 
@@ -762,12 +803,15 @@ class PrismaCloudConnector(_BaseConnector):
 # 8. Orca Security CNAPP Connector
 # ---------------------------------------------------------------------------
 
+
 class OrcaSecurityConnector(_BaseConnector):
     """Fetch security findings from Orca Security REST API."""
 
     def __init__(self, settings: Mapping[str, Any]):
         super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
-        self.base_url = str(settings.get("base_url") or "https://api.orcasecurity.io").rstrip("/")
+        self.base_url = str(
+            settings.get("base_url") or "https://api.orcasecurity.io"
+        ).rstrip("/")
         self.api_token = settings.get("api_token")
         token_env = settings.get("api_token_env", "ORCA_API_TOKEN")
         if token_env:
@@ -778,9 +822,14 @@ class OrcaSecurityConnector(_BaseConnector):
         return bool(self.base_url and self.api_token)
 
     def _headers(self) -> Dict[str, str]:
-        return {"Authorization": f"Token {self.api_token}", "Content-Type": "application/json"}
+        return {
+            "Authorization": f"Token {self.api_token}",
+            "Content-Type": "application/json",
+        }
 
-    def get_alerts(self, severity: Optional[str] = None, limit: int = 100) -> ConnectorOutcome:
+    def get_alerts(
+        self, severity: Optional[str] = None, limit: int = 100
+    ) -> ConnectorOutcome:
         """Fetch security alerts from Orca."""
         if not self.configured:
             return ConnectorOutcome("skipped", {"reason": "orca not configured"})
@@ -803,31 +852,44 @@ class OrcaSecurityConnector(_BaseConnector):
             return ConnectorOutcome("skipped", {"reason": "orca not configured"})
         url = f"{self.base_url}/api/cves"
         try:
-            resp = self._request("GET", url, headers=self._headers(), params={"limit": limit})
+            resp = self._request(
+                "GET", url, headers=self._headers(), params={"limit": limit}
+            )
             resp.raise_for_status()
             data = resp.json()
             vulns = data.get("data", [])
-            return ConnectorOutcome("fetched", {"vulnerabilities": vulns, "count": len(vulns)})
+            return ConnectorOutcome(
+                "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
+            )
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
-            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+            return ConnectorHealth(
+                healthy=False, latency_ms=0, message="Not configured"
+            )
         start = time.time()
         try:
-            resp = self._request("GET", f"{self.base_url}/api/user/me", headers=self._headers())
+            resp = self._request(
+                "GET", f"{self.base_url}/api/user/me", headers=self._headers()
+            )
             ms = (time.time() - start) * 1000
             if resp.status_code == 200:
                 return ConnectorHealth(healthy=True, latency_ms=ms, message="OK")
-            return ConnectorHealth(healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}")
+            return ConnectorHealth(
+                healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}"
+            )
         except Exception as exc:
-            return ConnectorHealth(healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc))
+            return ConnectorHealth(
+                healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
+            )
 
 
 # ---------------------------------------------------------------------------
 # 9. Lacework CNAPP Connector
 # ---------------------------------------------------------------------------
+
 
 class LaceworkConnector(_BaseConnector):
     """Fetch security data from Lacework API v2."""
@@ -872,18 +934,26 @@ class LaceworkConnector(_BaseConnector):
         token = self._get_token()
         return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    def get_alerts(self, severity: Optional[str] = None, limit: int = 100) -> ConnectorOutcome:
+    def get_alerts(
+        self, severity: Optional[str] = None, limit: int = 100
+    ) -> ConnectorOutcome:
         """Fetch security alerts."""
         if not self.configured:
             return ConnectorOutcome("skipped", {"reason": "lacework not configured"})
         url = f"{self.base_url}/api/v2/Alerts"
         try:
-            resp = self._request("GET", url, headers=self._headers(), params={"limit": limit})
+            resp = self._request(
+                "GET", url, headers=self._headers(), params={"limit": limit}
+            )
             resp.raise_for_status()
             data = resp.json()
             alerts = data.get("data", [])
             if severity:
-                alerts = [a for a in alerts if a.get("severity", "").lower() == severity.lower()]
+                alerts = [
+                    a
+                    for a in alerts
+                    if a.get("severity", "").lower() == severity.lower()
+                ]
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
@@ -898,23 +968,32 @@ class LaceworkConnector(_BaseConnector):
                 "POST",
                 url,
                 headers=self._headers(),
-                json={"filters": [], "returns": ["vulnId", "severity", "fixInfo", "cveProps"]},
+                json={
+                    "filters": [],
+                    "returns": ["vulnId", "severity", "fixInfo", "cveProps"],
+                },
             )
             resp.raise_for_status()
             data = resp.json()
             vulns = data.get("data", [])
-            return ConnectorOutcome("fetched", {"vulnerabilities": vulns[:limit], "count": len(vulns)})
+            return ConnectorOutcome(
+                "fetched", {"vulnerabilities": vulns[:limit], "count": len(vulns)}
+            )
         except Exception as exc:
             return ConnectorOutcome("failed", {"error": str(exc)})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
-            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+            return ConnectorHealth(
+                healthy=False, latency_ms=0, message="Not configured"
+            )
         start = time.time()
         token = self._get_token()
         ms = (time.time() - start) * 1000
         if token:
-            return ConnectorHealth(healthy=True, latency_ms=ms, message="Authenticated OK")
+            return ConnectorHealth(
+                healthy=True, latency_ms=ms, message="Authenticated OK"
+            )
         return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
 
 

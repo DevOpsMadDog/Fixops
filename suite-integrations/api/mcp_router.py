@@ -9,8 +9,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class MCPTransport(str, Enum):
 
 class MCPClient(BaseModel):
     """An MCP client connection."""
-    
+
     id: str
     name: str
     client_type: str  # "copilot", "cursor", "windsurf", "zed", "agent"
@@ -50,7 +50,7 @@ class MCPClient(BaseModel):
 
 class MCPTool(BaseModel):
     """An MCP tool exposed by FixOps."""
-    
+
     name: str
     description: str
     input_schema: Dict[str, Any]
@@ -60,7 +60,7 @@ class MCPTool(BaseModel):
 
 class MCPResource(BaseModel):
     """An MCP resource exposed by FixOps."""
-    
+
     uri: str
     name: str
     description: str
@@ -69,7 +69,7 @@ class MCPResource(BaseModel):
 
 class MCPPrompt(BaseModel):
     """An MCP prompt template."""
-    
+
     name: str
     description: str
     arguments: List[Dict[str, Any]] = []
@@ -77,7 +77,7 @@ class MCPPrompt(BaseModel):
 
 class MCPServerConfig(BaseModel):
     """MCP server configuration."""
-    
+
     enabled: bool = True
     transport: MCPTransport = MCPTransport.HTTP_SSE
     port: int = 8080
@@ -90,7 +90,7 @@ class MCPServerConfig(BaseModel):
 
 class MCPStatusResponse(BaseModel):
     """MCP server status."""
-    
+
     enabled: bool
     transport: MCPTransport
     connected_clients: int
@@ -103,7 +103,7 @@ class MCPStatusResponse(BaseModel):
 
 class MCPConfigureRequest(BaseModel):
     """Request to configure MCP server."""
-    
+
     enabled: Optional[bool] = None
     transport: Optional[MCPTransport] = None
     port: Optional[int] = None
@@ -135,8 +135,14 @@ MCP_TOOLS: List[MCPTool] = [
         input_schema={
             "type": "object",
             "properties": {
-                "severity": {"type": "string", "enum": ["critical", "high", "medium", "low", "info"]},
-                "status": {"type": "string", "enum": ["open", "in_progress", "resolved", "false_positive"]},
+                "severity": {
+                    "type": "string",
+                    "enum": ["critical", "high", "medium", "low", "info"],
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["open", "in_progress", "resolved", "false_positive"],
+                },
                 "source": {"type": "string"},
                 "limit": {"type": "integer", "default": 50},
             },
@@ -161,8 +167,14 @@ MCP_TOOLS: List[MCPTool] = [
         input_schema={
             "type": "object",
             "properties": {
-                "target": {"type": "string", "description": "CVE ID, URL, container image, or repo path"},
-                "scan_type": {"type": "string", "enum": ["vulnerability", "reachability", "attack"]},
+                "target": {
+                    "type": "string",
+                    "description": "CVE ID, URL, container image, or repo path",
+                },
+                "scan_type": {
+                    "type": "string",
+                    "enum": ["vulnerability", "reachability", "attack"],
+                },
             },
             "required": ["target"],
         },
@@ -174,7 +186,10 @@ MCP_TOOLS: List[MCPTool] = [
         input_schema={
             "type": "object",
             "properties": {
-                "framework": {"type": "string", "enum": ["SOC2", "ISO27001", "PCI-DSS", "SLSA"]},
+                "framework": {
+                    "type": "string",
+                    "enum": ["SOC2", "ISO27001", "PCI-DSS", "SLSA"],
+                },
                 "finding_ids": {"type": "array", "items": {"type": "string"}},
             },
             "required": ["framework"],
@@ -221,7 +236,10 @@ MCP_TOOLS: List[MCPTool] = [
         input_schema={
             "type": "object",
             "properties": {
-                "channel": {"type": "string", "enum": ["slack", "jira", "email", "webhook"]},
+                "channel": {
+                    "type": "string",
+                    "enum": ["slack", "jira", "email", "webhook"],
+                },
                 "message": {"type": "string"},
                 "severity": {"type": "string", "enum": ["info", "warning", "critical"]},
             },
@@ -261,14 +279,22 @@ MCP_PROMPTS: List[MCPPrompt] = [
         name="analyze_finding",
         description="Analyze a security finding and provide remediation guidance",
         arguments=[
-            {"name": "finding_id", "description": "The finding ID to analyze", "required": True},
+            {
+                "name": "finding_id",
+                "description": "The finding ID to analyze",
+                "required": True,
+            },
         ],
     ),
     MCPPrompt(
         name="explain_cve",
         description="Explain a CVE with blast radius and exploitation likelihood",
         arguments=[
-            {"name": "cve_id", "description": "The CVE ID (e.g., CVE-2024-3094)", "required": True},
+            {
+                "name": "cve_id",
+                "description": "The CVE ID (e.g., CVE-2024-3094)",
+                "required": True,
+            },
         ],
     ),
     MCPPrompt(
@@ -276,7 +302,11 @@ MCP_PROMPTS: List[MCPPrompt] = [
         description="Suggest remediation steps for a finding",
         arguments=[
             {"name": "finding_id", "description": "The finding ID", "required": True},
-            {"name": "context", "description": "Additional context about the environment", "required": False},
+            {
+                "name": "context",
+                "description": "Additional context about the environment",
+                "required": False,
+            },
         ],
     ),
 ]
@@ -291,11 +321,13 @@ MCP_PROMPTS: List[MCPPrompt] = [
 async def get_mcp_status():
     """Get MCP server status and statistics."""
     uptime = (datetime.utcnow() - _mcp_start_time).total_seconds()
-    
+
     return MCPStatusResponse(
         enabled=_mcp_config.enabled,
         transport=_mcp_config.transport,
-        connected_clients=len([c for c in _mcp_clients.values() if c.status == MCPClientStatus.CONNECTED]),
+        connected_clients=len(
+            [c for c in _mcp_clients.values() if c.status == MCPClientStatus.CONNECTED]
+        ),
         available_tools=len(MCP_TOOLS),
         available_resources=len(MCP_RESOURCES),
         available_prompts=len(MCP_PROMPTS),
@@ -310,12 +342,12 @@ async def list_mcp_clients(
 ):
     """List connected MCP clients."""
     clients = list(_mcp_clients.values())
-    
+
     if status:
         clients = [c for c in clients if c.status == status]
     if client_type:
         clients = [c for c in clients if c.client_type == client_type]
-    
+
     return clients
 
 
@@ -325,14 +357,14 @@ async def list_mcp_tools(
 ):
     """List available MCP tools."""
     tools = MCP_TOOLS
-    
+
     if category:
         tools = [t for t in tools if t.category == category]
-    
+
     # Filter by exposed_tools config if set
     if _mcp_config.exposed_tools:
         tools = [t for t in tools if t.name in _mcp_config.exposed_tools]
-    
+
     return tools
 
 
@@ -340,10 +372,10 @@ async def list_mcp_tools(
 async def list_mcp_resources():
     """List available MCP resources."""
     resources = MCP_RESOURCES
-    
+
     if _mcp_config.exposed_resources:
         resources = [r for r in resources if r.uri in _mcp_config.exposed_resources]
-    
+
     return resources
 
 
@@ -363,7 +395,7 @@ async def get_mcp_config():
 async def configure_mcp_server(config: MCPConfigureRequest):
     """Update MCP server configuration."""
     global _mcp_config
-    
+
     if config.enabled is not None:
         _mcp_config.enabled = config.enabled
     if config.transport is not None:
@@ -378,7 +410,7 @@ async def configure_mcp_server(config: MCPConfigureRequest):
         _mcp_config.exposed_tools = config.exposed_tools
     if config.rate_limit_per_minute is not None:
         _mcp_config.rate_limit_per_minute = config.rate_limit_per_minute
-    
+
     logger.info(f"MCP config updated: {_mcp_config}")
     return _mcp_config
 
@@ -388,7 +420,7 @@ async def disconnect_client(client_id: str):
     """Disconnect an MCP client."""
     if client_id not in _mcp_clients:
         raise HTTPException(status_code=404, detail=f"Client {client_id} not found")
-    
+
     _mcp_clients[client_id].status = MCPClientStatus.DISCONNECTED
     return {"message": f"Client {client_id} disconnected"}
 
@@ -398,7 +430,7 @@ async def remove_client(client_id: str):
     """Remove an MCP client registration."""
     if client_id not in _mcp_clients:
         raise HTTPException(status_code=404, detail=f"Client {client_id} not found")
-    
+
     del _mcp_clients[client_id]
     return {"message": f"Client {client_id} removed"}
 
@@ -412,7 +444,7 @@ async def remove_client(client_id: str):
 async def get_mcp_manifest():
     """
     Get MCP server manifest for IDE/agent configuration.
-    
+
     This returns the JSON configuration that can be added to VS Code settings,
     Cursor's .cursor/mcp.json, or Claude Desktop's config.
     """

@@ -21,11 +21,10 @@ from typing import Any, Dict, List, Literal, Optional
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel
-
 from apps.api.dependencies import get_org_id
 from core.connectors import AutomationConnectors
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel
 
 # Management endpoints - requires API key authentication
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])

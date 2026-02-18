@@ -75,12 +75,12 @@ def api_post(endpoint: str, data: dict):
 def cli(ctx, verbose: bool, api_url: str, api_key: str):
     """ALdeci CLI - AI-powered security platform."""
     global DEFAULT_API_URL, API_KEY
-    
+
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
     ctx.obj["api_url"] = api_url
     ctx.obj["api_key"] = api_key or API_KEY
-    
+
     DEFAULT_API_URL = api_url
     if api_key:
         API_KEY = api_key
@@ -93,16 +93,22 @@ def cli(ctx, verbose: bool, api_url: str, api_key: str):
 
 @cli.command()
 @click.argument("target")
-@click.option("--type", "-t", "scan_type", 
-              type=click.Choice(["vulnerability", "reachability", "attack", "full"]),
-              default="vulnerability", help="Scan type")
-@click.option("--format", "-f", default="table", 
-              type=click.Choice(["table", "json", "sarif"]))
+@click.option(
+    "--type",
+    "-t",
+    "scan_type",
+    type=click.Choice(["vulnerability", "reachability", "attack", "full"]),
+    default="vulnerability",
+    help="Scan type",
+)
+@click.option(
+    "--format", "-f", default="table", type=click.Choice(["table", "json", "sarif"])
+)
 @click.option("--output", "-o", type=click.Path(), help="Output file")
 @click.pass_context
 def scan(ctx, target: str, scan_type: str, format: str, output: Optional[str]):
     """Scan a target for vulnerabilities.
-    
+
     TARGET can be:
     - CVE ID (e.g., CVE-2024-3094)
     - URL (e.g., https://api.example.com)
@@ -110,12 +116,17 @@ def scan(ctx, target: str, scan_type: str, format: str, output: Optional[str]):
     - File path (e.g., ./src or /path/to/code)
     """
     click.echo(f"🔍 Scanning {target}...")
-    
+
     # Determine if this is a path or other target
     if os.path.exists(target):
         # Use fixops scan for file paths
         from subprocess import run
-        result = run(["fixops", "scan", target, "--format", format], capture_output=True, text=True)
+
+        result = run(
+            ["fixops", "scan", target, "--format", format],
+            capture_output=True,
+            text=True,
+        )
         if output:
             with open(output, "w") as f:
                 f.write(result.stdout)
@@ -126,14 +137,14 @@ def scan(ctx, target: str, scan_type: str, format: str, output: Optional[str]):
         # Use API for CVE/URL/image scans
         data = {"target": target, "scan_type": scan_type}
         result = api_post("/api/v1/micro-pentest/scan", data)
-        
+
         if result:
             if format == "json":
                 output_text = json.dumps(result, indent=2)
             else:
                 # Table format
                 output_text = format_scan_results(result)
-            
+
             if output:
                 with open(output, "w") as f:
                     f.write(output_text)
@@ -148,7 +159,7 @@ def format_scan_results(result: dict) -> str:
     lines.append(f"│ Target: {result.get('target', 'Unknown'):<48}│")
     lines.append(f"│ Status: {result.get('status', 'Unknown'):<48}│")
     lines.append("├─────────────────────────────────────────────────────────┤")
-    
+
     findings = result.get("findings", [])
     if findings:
         for f in findings[:10]:  # Limit to 10
@@ -157,7 +168,7 @@ def format_scan_results(result: dict) -> str:
             lines.append(f"│ [{sev:>8}] {title:<45}│")
     else:
         lines.append("│ No findings                                             │")
-    
+
     lines.append("└─────────────────────────────────────────────────────────┘")
     return "\n".join(lines)
 
@@ -169,21 +180,25 @@ def format_scan_results(result: dict) -> str:
 
 @cli.command()
 @click.argument("target")
-@click.option("--mode", "-m", 
-              type=click.Choice(["passive", "active", "aggressive"]),
-              default="passive", help="Attack mode")
+@click.option(
+    "--mode",
+    "-m",
+    type=click.Choice(["passive", "active", "aggressive"]),
+    default="passive",
+    help="Attack mode",
+)
 @click.option("--timeout", "-t", default=300, help="Timeout in seconds")
 @click.pass_context
 def attack(ctx, target: str, mode: str, timeout: int):
     """Run micro-pentest / attack simulation.
-    
+
     TARGET can be a CVE ID, URL, IP address, or container image.
     """
     click.echo(f"⚔️  Running {mode} attack on {target}...")
-    
+
     data = {"target": target, "mode": mode, "timeout": timeout}
     result = api_post("/api/v1/micro-pentest/attack", data)
-    
+
     if result:
         click.echo(format_attack_results(result))
 
@@ -193,7 +208,7 @@ def format_attack_results(result: dict) -> str:
     lines = ["", "═══════════════════════════════════════════════════════════"]
     lines.append(f"  Attack Results: {result.get('target', 'Unknown')}")
     lines.append("═══════════════════════════════════════════════════════════")
-    
+
     verdict = result.get("verdict", "unknown")
     if verdict == "exploitable":
         lines.append("  ❌ VERDICT: EXPLOITABLE")
@@ -201,17 +216,17 @@ def format_attack_results(result: dict) -> str:
         lines.append("  ⚠️  VERDICT: POTENTIALLY EXPLOITABLE")
     else:
         lines.append("  ✅ VERDICT: NOT EXPLOITABLE")
-    
+
     lines.append(f"  Confidence: {result.get('confidence', 0)}%")
     lines.append(f"  Risk Score: {result.get('risk_score', 0)}")
     lines.append("")
-    
+
     evidence = result.get("evidence", [])
     if evidence:
         lines.append("  Evidence:")
         for e in evidence:
             lines.append(f"    • {e}")
-    
+
     lines.append("═══════════════════════════════════════════════════════════")
     return "\n".join(lines)
 
@@ -222,21 +237,25 @@ def format_attack_results(result: dict) -> str:
 
 
 @cli.command()
-@click.option("--severity", "-s", 
-              type=click.Choice(["critical", "high", "medium", "low", "info"]),
-              help="Filter by severity")
-@click.option("--status", 
-              type=click.Choice(["open", "in_progress", "resolved", "false_positive"]),
-              help="Filter by status")
+@click.option(
+    "--severity",
+    "-s",
+    type=click.Choice(["critical", "high", "medium", "low", "info"]),
+    help="Filter by severity",
+)
+@click.option(
+    "--status",
+    type=click.Choice(["open", "in_progress", "resolved", "false_positive"]),
+    help="Filter by status",
+)
 @click.option("--source", help="Filter by source connector")
 @click.option("--limit", "-l", default=50, help="Maximum results")
-@click.option("--format", "-f", default="table", 
-              type=click.Choice(["table", "json"]))
+@click.option("--format", "-f", default="table", type=click.Choice(["table", "json"]))
 @click.pass_context
 def findings(ctx, severity: str, status: str, source: str, limit: int, format: str):
     """List security findings."""
     click.echo("📋 Fetching findings...")
-    
+
     params = []
     if severity:
         params.append(f"severity={severity}")
@@ -245,10 +264,10 @@ def findings(ctx, severity: str, status: str, source: str, limit: int, format: s
     if source:
         params.append(f"source={source}")
     params.append(f"limit={limit}")
-    
+
     query = "&".join(params)
     result = api_get(f"/api/v1/analytics/findings?{query}")
-    
+
     if result:
         if format == "json":
             click.echo(json.dumps(result, indent=2))
@@ -260,19 +279,27 @@ def format_findings_table(result: dict) -> str:
     """Format findings as table."""
     items = result.get("items", result.get("findings", []))
     total = result.get("total", len(items))
-    
+
     lines = ["", f"Found {total} findings:", ""]
-    lines.append("┌────────────┬────────────┬──────────────────────────────────────────┐")
-    lines.append("│ Severity   │ Status     │ Title                                    │")
-    lines.append("├────────────┼────────────┼──────────────────────────────────────────┤")
-    
+    lines.append(
+        "┌────────────┬────────────┬──────────────────────────────────────────┐"
+    )
+    lines.append(
+        "│ Severity   │ Status     │ Title                                    │"
+    )
+    lines.append(
+        "├────────────┼────────────┼──────────────────────────────────────────┤"
+    )
+
     for f in items[:20]:  # Limit display to 20
         sev = f.get("severity", "unknown")[:10]
         stat = f.get("status", "open")[:10]
         title = f.get("title", f.get("name", "Unknown"))[:38]
         lines.append(f"│ {sev:<10} │ {stat:<10} │ {title:<40} │")
-    
-    lines.append("└────────────┴────────────┴──────────────────────────────────────────┘")
+
+    lines.append(
+        "└────────────┴────────────┴──────────────────────────────────────────┘"
+    )
     return "\n".join(lines)
 
 
@@ -292,9 +319,9 @@ def connect():
 def connect_list(ctx, format: str):
     """List configured connectors."""
     click.echo("🔗 Fetching connectors...")
-    
+
     result = api_get("/api/v1/integrations")
-    
+
     if result:
         if format == "json":
             click.echo(json.dumps(result, indent=2))
@@ -303,34 +330,44 @@ def connect_list(ctx, format: str):
             click.echo(f"\n{len(items)} connectors configured:\n")
             for c in items:
                 status = "✅" if c.get("status") == "active" else "❌"
-                click.echo(f"  {status} {c.get('name', 'Unknown')} ({c.get('integration_type', 'unknown')})")
+                click.echo(
+                    f"  {status} {c.get('name', 'Unknown')} ({c.get('integration_type', 'unknown')})"
+                )
 
 
 @connect.command("add")
-@click.argument("connector_type", type=click.Choice([
-    "github", "gitlab", "jira", "slack", "snyk", "sonarqube", 
-    "aws-security-hub", "azure-security-center", "dependabot"
-]))
+@click.argument(
+    "connector_type",
+    type=click.Choice(
+        [
+            "github",
+            "gitlab",
+            "jira",
+            "slack",
+            "snyk",
+            "sonarqube",
+            "aws-security-hub",
+            "azure-security-center",
+            "dependabot",
+        ]
+    ),
+)
 @click.option("--name", "-n", required=True, help="Connector name")
 @click.option("--config", "-c", type=click.Path(exists=True), help="Config file (JSON)")
 @click.pass_context
 def connect_add(ctx, connector_type: str, name: str, config: str):
     """Add a new connector."""
     click.echo(f"🔧 Adding {connector_type} connector...")
-    
+
     config_data = {}
     if config:
         with open(config) as f:
             config_data = json.load(f)
-    
-    data = {
-        "name": name,
-        "integration_type": connector_type,
-        "config": config_data
-    }
-    
+
+    data = {"name": name, "integration_type": connector_type, "config": config_data}
+
     result = api_post("/api/v1/integrations", data)
-    
+
     if result:
         click.echo(f"✅ Connector {name} added successfully!")
 
@@ -341,9 +378,9 @@ def connect_add(ctx, connector_type: str, name: str, config: str):
 def connect_sync(ctx, connector_name: str):
     """Trigger sync for a connector."""
     click.echo(f"🔄 Syncing {connector_name}...")
-    
+
     result = api_post(f"/api/v1/integrations/{connector_name}/sync", {})
-    
+
     if result:
         click.echo(f"✅ Sync triggered for {connector_name}")
 
@@ -359,44 +396,53 @@ def evidence():
 
 
 @evidence.command("list")
-@click.option("--framework", "-f",
-              type=click.Choice(["SOC2", "ISO27001", "PCI-DSS", "SLSA"]),
-              help="Filter by framework")
+@click.option(
+    "--framework",
+    "-f",
+    type=click.Choice(["SOC2", "ISO27001", "PCI-DSS", "SLSA"]),
+    help="Filter by framework",
+)
 @click.pass_context
 def evidence_list(ctx, framework: str):
     """List evidence bundles."""
     click.echo("📦 Fetching evidence bundles...")
-    
+
     endpoint = "/api/v1/evidence/bundles"
     if framework:
         endpoint += f"?framework={framework}"
-    
+
     result = api_get(endpoint)
-    
+
     if result:
         bundles = result.get("bundles", [])
         click.echo(f"\n{len(bundles)} evidence bundles:\n")
         for b in bundles:
             signed = "🔐" if b.get("signed") else "  "
-            click.echo(f"  {signed} {b.get('id')} | {b.get('type')} | {b.get('status')}")
+            click.echo(
+                f"  {signed} {b.get('id')} | {b.get('type')} | {b.get('status')}"
+            )
 
 
 @evidence.command("generate")
-@click.option("--framework", "-f", required=True,
-              type=click.Choice(["SOC2", "ISO27001", "PCI-DSS", "SLSA"]),
-              help="Framework to generate evidence for")
+@click.option(
+    "--framework",
+    "-f",
+    required=True,
+    type=click.Choice(["SOC2", "ISO27001", "PCI-DSS", "SLSA"]),
+    help="Framework to generate evidence for",
+)
 @click.option("--output", "-o", type=click.Path(), help="Output file")
 @click.pass_context
 def evidence_generate(ctx, framework: str, output: str):
     """Generate compliance evidence bundle."""
     click.echo(f"📜 Generating {framework} evidence bundle...")
-    
+
     result = api_post("/api/v1/evidence/generate", {"framework": framework})
-    
+
     if result:
         bundle_id = result.get("bundle_id", "unknown")
         click.echo(f"✅ Evidence bundle generated: {bundle_id}")
-        
+
         if output:
             with open(output, "w") as f:
                 json.dump(result, f, indent=2)
@@ -414,7 +460,7 @@ def evidence_generate(ctx, framework: str, output: str):
 @click.pass_context
 def brain(ctx, query: str, interactive: bool):
     """Chat with The Brain AI assistant.
-    
+
     Examples:
         aldeci brain "what are my critical findings?"
         aldeci brain "explain CVE-2024-3094"
@@ -431,9 +477,9 @@ def brain(ctx, query: str, interactive: bool):
 def ask_brain(query: str):
     """Send query to Brain."""
     click.echo(f"🧠 Asking The Brain: {query}\n")
-    
+
     result = api_post("/api/v1/copilot/sessions/cli/message", {"content": query})
-    
+
     if result:
         response = result.get("response", result.get("content", "No response"))
         click.echo(f"💡 {response}")
@@ -443,7 +489,7 @@ def run_interactive_chat():
     """Run interactive chat mode."""
     click.echo("🧠 The Brain - Interactive Mode")
     click.echo("Type 'exit' to quit\n")
-    
+
     while True:
         try:
             query = click.prompt("You", prompt_suffix="> ")
@@ -453,7 +499,7 @@ def run_interactive_chat():
             click.echo()
         except (KeyboardInterrupt, EOFError):
             break
-    
+
     click.echo("\n👋 Goodbye!")
 
 
@@ -472,10 +518,10 @@ def mcp():
 def mcp_status(ctx):
     """Get MCP server status."""
     result = api_get("/api/v1/mcp/status")
-    
+
     if result:
         enabled = "✅ Enabled" if result.get("enabled") else "❌ Disabled"
-        click.echo(f"\n🔌 MCP Server Status")
+        click.echo("\n🔌 MCP Server Status")
         click.echo(f"   Status: {enabled}")
         click.echo(f"   Transport: {result.get('transport', 'unknown')}")
         click.echo(f"   Connected Clients: {result.get('connected_clients', 0)}")
@@ -489,7 +535,7 @@ def mcp_status(ctx):
 def mcp_clients(ctx):
     """List connected MCP clients."""
     result = api_get("/api/v1/mcp/clients")
-    
+
     if result:
         click.echo(f"\n🖥️  Connected MCP Clients ({len(result)}):\n")
         for c in result:
@@ -502,7 +548,7 @@ def mcp_clients(ctx):
 def mcp_tools(ctx):
     """List available MCP tools."""
     result = api_get("/api/v1/mcp/tools")
-    
+
     if result:
         click.echo(f"\n🔧 Available MCP Tools ({len(result)}):\n")
         for t in result:
@@ -516,7 +562,7 @@ def mcp_tools(ctx):
 def mcp_manifest(ctx, output: str):
     """Get MCP server manifest for IDE configuration."""
     result = api_get("/api/v1/mcp/manifest")
-    
+
     if result:
         if output:
             with open(output, "w") as f:
@@ -542,12 +588,12 @@ def auth():
 def auth_login(ctx, api_key: str):
     """Login to ALdeci."""
     click.echo("🔐 Logging in...")
-    
+
     # Try to validate the key
     global API_KEY
     API_KEY = api_key
     result = api_get("/api/v1/health")
-    
+
     if result:
         # Save to config file
         config_path = Path.home() / ".aldeci" / "config.json"
@@ -567,11 +613,11 @@ def auth_login(ctx, api_key: str):
 def auth_logout(ctx):
     """Logout from ALdeci."""
     click.echo("🔐 Logging out...")
-    
+
     config_path = Path.home() / ".aldeci" / "config.json"
     if config_path.exists():
         config_path.unlink()
-    
+
     click.echo("✅ Logged out!")
 
 
@@ -580,9 +626,11 @@ def auth_logout(ctx):
 def auth_whoami(ctx):
     """Show current authentication status."""
     result = api_get("/api/v1/auth/me")
-    
+
     if result:
-        click.echo(f"\n👤 Logged in as: {result.get('email', result.get('user_id', 'Unknown'))}")
+        click.echo(
+            f"\n👤 Logged in as: {result.get('email', result.get('user_id', 'Unknown'))}"
+        )
         click.echo(f"   Organization: {result.get('org_id', 'Unknown')}")
         click.echo(f"   Role: {result.get('role', 'Unknown')}")
     else:
@@ -605,9 +653,9 @@ def pipeline():
 def pipeline_run(ctx, template: str):
     """Run a pipeline."""
     click.echo(f"🚀 Running {template} pipeline...")
-    
+
     result = api_post("/api/v1/brain-pipeline/runs", {"template": template})
-    
+
     if result:
         run_id = result.get("run_id", result.get("id", "unknown"))
         click.echo(f"✅ Pipeline started: {run_id}")
@@ -622,13 +670,15 @@ def pipeline_status(ctx, run_id: str):
         result = api_get(f"/api/v1/brain-pipeline/runs/{run_id}")
     else:
         result = api_get("/api/v1/brain-pipeline/runs?limit=5")
-    
+
     if result:
         if isinstance(result, list):
             click.echo("\n📊 Recent Pipeline Runs:\n")
             for r in result:
                 status = "✅" if r.get("status") == "completed" else "⏳"
-                click.echo(f"  {status} {r.get('id')} | {r.get('template')} | {r.get('status')}")
+                click.echo(
+                    f"  {status} {r.get('id')} | {r.get('template')} | {r.get('status')}"
+                )
         else:
             click.echo(f"\n📊 Pipeline: {result.get('id')}")
             click.echo(f"   Status: {result.get('status')}")
@@ -653,7 +703,7 @@ def main():
                 API_KEY = config.get("api_key", API_KEY)
         except Exception:
             pass
-    
+
     cli()
 
 
