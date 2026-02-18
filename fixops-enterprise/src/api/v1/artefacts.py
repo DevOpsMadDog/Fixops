@@ -6,12 +6,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Optional
 
-from core.stage_runner import StageRunner
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 from src.api.dependencies import authenticate
 from src.services import id_allocator, signing
 from src.services.run_registry import RunRegistry
+
+from core.stage_runner import StageRunner
 
 router = APIRouter(tags=["artefacts"])
 

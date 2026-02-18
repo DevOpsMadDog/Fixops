@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 
 import pytest
-from core.configuration import OverlayConfig
 
 from core import cli
+from core.configuration import OverlayConfig
 
 
 @pytest.fixture

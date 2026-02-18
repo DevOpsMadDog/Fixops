@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 
 import pytest
-from core.configuration import OverlayConfig
 
 from apps.api import app as backend_app
+from core.configuration import OverlayConfig
 
 
 def _make_overlay(root: Path) -> OverlayConfig:
