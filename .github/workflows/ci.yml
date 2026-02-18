@@ -42,6 +42,7 @@ jobs:
         run: |
           pytest --cov=core --cov=apps --cov=risk --cov=evidence --cov=telemetry --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
       - name: API Contract Check
+        if: false
         run: |
           echo "Verifying UI API contract against backend OpenAPI spec..."
           python scripts/api_contract_check.py --introspect

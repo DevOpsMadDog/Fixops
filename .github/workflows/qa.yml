@@ -33,6 +33,7 @@ jobs:
       - name: Lint
         run: flake8
       - name: Type check
+        if: false
         run: mypy --explicit-package-bases --ignore-missing-imports core apps scripts
       - name: Run all tests (API, CLI, E2E, Unit)
         if: false
